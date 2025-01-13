@@ -1,0 +1,95 @@
+//
+//  MultiPaymentMethodSheet.swift
+//  MakeItRain
+//
+//  Created by Cody Burnett on 1/7/25.
+//
+
+import SwiftUI
+
+struct MultiPaymentMethodSheet: View {
+    @Environment(\.colorScheme) var colorScheme
+    @Environment(\.dismiss) var dismiss
+    
+    @Environment(CalendarModel.self) private var calModel
+    @Environment(PayMethodModel.self) private var payModel
+        
+    @Binding var payMethods: Array<CBPaymentMethod>
+    @FocusState private var focusedField: Int?
+    @State private var searchText = ""
+    
+    @State private var sections: Array<PaySection> = []
+    var filteredSections: Array<PaySection> {
+        if searchText.isEmpty {
+            return sections
+        } else {
+            return sections
+                .filter { !$0.payMethods.filter { $0.title.localizedStandardContains(searchText) }.isEmpty }
+        }
+    }
+    
+    var body: some View {
+        SheetHeader(
+            title: "Payment Methods",
+            close: { dismiss() },
+            view1: { selectButton }
+        )
+        .padding(.bottom, 12)
+        .padding(.horizontal, 20)
+        .padding(.top)
+                
+        StandardTextField("Search Payment Methods", text: $searchText, isSearchField: true, focusedField: $focusedField, focusValue: 0)
+            .padding(.horizontal, 20)
+                
+        List {
+            ForEach(filteredSections) { section in
+                if !section.payMethods.isEmpty {
+                    Section(section.kind.rawValue) {
+                        ForEach(searchText.isEmpty ? section.payMethods : section.payMethods.filter { $0.title.localizedStandardContains(searchText) }) { meth in
+                            HStack {
+                                Image(systemName: "circle.fill")
+                                    .if(meth.isUnified) {
+                                        $0.foregroundStyle(AngularGradient(gradient: Gradient(colors: [.red, .yellow, .green, .blue, .purple, .red]), center: .center))
+                                    }
+                                    .if(!meth.isUnified) {
+                                        $0.foregroundStyle(meth.isUnified ? (colorScheme == .dark ? .white : .black) : meth.color, .primary, .secondary)
+                                    }
+                                Text(meth.title)
+                                    //.bold(meth.isUnified)
+                                Spacer()
+                                
+                                Image(systemName: "checkmark")
+                                    .opacity(payMethods.contains(meth) ? 1 : 0)
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture { doIt(meth) }
+                        }
+                    }
+                }
+            }
+        }
+        .task {
+            sections = [
+                PaySection(kind: .debit, payMethods: payModel.paymentMethods.filter { $0.accountType == .checking }),
+                PaySection(kind: .credit, payMethods: payModel.paymentMethods.filter { $0.accountType == .credit }),
+                PaySection(kind: .other, payMethods: payModel.paymentMethods.filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking].contains($0.accountType) })
+            ]
+        }
+    }
+    
+    var selectButton: some View {
+        Button {
+            payMethods = payMethods.isEmpty ? payModel.paymentMethods : []                        
+        } label: {
+            Image(systemName: payMethods.isEmpty ? "checklist.checked" : "checklist.unchecked")
+        }
+    }
+    
+    func doIt(_ payMethod: CBPaymentMethod) {
+        if payMethods.contains(payMethod) {
+            payMethods.removeAll(where: { $0.id == payMethod.id })
+        } else {
+            payMethods.append(payMethod)
+        }
+    }
+}
