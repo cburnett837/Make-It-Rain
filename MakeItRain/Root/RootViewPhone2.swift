@@ -13,10 +13,7 @@ import SwiftUI
 
 
 
-struct RootViewPhone2: View {
-    @AppStorage("viewMode") var viewMode = CalendarViewMode.scrollable
-    
-    //@Environment(RootViewModelPhone.self) var vm
+struct RootViewPhone2: View {    
     @Environment(CalendarModel.self) var calModel
     @Environment(PayMethodModel.self) var payModel
     @Environment(CategoryModel.self) var catModel

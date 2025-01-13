@@ -14,8 +14,8 @@
             filePath = "MakeItRain/Calendar/CalendarModel.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1343"
-            endingLineNumber = "1343"
+            startingLineNumber = "1341"
+            endingLineNumber = "1341"
             landmarkName = "calculateTotalForMonth(month:paymentMethod:)"
             landmarkType = "7">
          </BreakpointContent>
@@ -30,8 +30,8 @@
             filePath = "MakeItRain/Calendar/CalendarModel.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1344"
-            endingLineNumber = "1344"
+            startingLineNumber = "1342"
+            endingLineNumber = "1342"
             landmarkName = "calculateTotalForMonth(month:paymentMethod:)"
             landmarkType = "7">
          </BreakpointContent>
@@ -46,8 +46,8 @@
             filePath = "MakeItRain/Calendar/CalendarModel.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1345"
-            endingLineNumber = "1345"
+            startingLineNumber = "1343"
+            endingLineNumber = "1343"
             landmarkName = "calculateTotalForMonth(month:paymentMethod:)"
             landmarkType = "7">
          </BreakpointContent>
@@ -62,8 +62,8 @@
             filePath = "MakeItRain/Calendar/CalendarModel.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1346"
-            endingLineNumber = "1346"
+            startingLineNumber = "1344"
+            endingLineNumber = "1344"
             landmarkName = "calculateTotalForMonth(month:paymentMethod:)"
             landmarkType = "7">
          </BreakpointContent>
@@ -94,8 +94,8 @@
             filePath = "MakeItRain/Calendar/CalendarModel.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "2143"
-            endingLineNumber = "2143"
+            startingLineNumber = "2141"
+            endingLineNumber = "2141"
             landmarkName = "uploadPicture(from:pictureTransactionID:)"
             landmarkType = "7">
          </BreakpointContent>

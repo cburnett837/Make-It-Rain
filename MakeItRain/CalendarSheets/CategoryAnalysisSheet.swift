@@ -220,8 +220,6 @@ struct AnalysisSheet2: View {
             print(".onChange(of: CategoryAnalysisSheet.transEditID)")
             /// When `newValue` is false, save to the server. We have to use this because `.popover(isPresented:)` has no onDismiss option.
             if oldValue != nil && newValue == nil {
-                //analyzeTransactions()
-                calModel.transPreviewID = nil
                 calModel.saveTransaction(id: oldValue!, day: transDay!)
                 transDay = nil
             }

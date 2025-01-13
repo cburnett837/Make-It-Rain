@@ -1179,9 +1179,7 @@ struct TransactionEditView: View {
 
         /// Get the transaction from the model.
         //var trans: CBTransaction?
-        
-        
-        calModel.transPreviewID = nil
+                
         calModel.hilightTrans = nil
         
         trans = calModel.getTransaction(by: transEditID!, from: isTemp ? .tempList : transLocation)

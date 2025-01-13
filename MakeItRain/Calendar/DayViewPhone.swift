@@ -12,7 +12,6 @@ import SwiftUI
 struct DayViewPhone: View {
     @Environment(\.colorScheme) var colorScheme
     @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
-    @AppStorage("viewMode") var viewMode = CalendarViewMode.scrollable
     @AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
     @AppStorage("tightenUpEodTotals") var tightenUpEodTotals = true
@@ -23,7 +22,6 @@ struct DayViewPhone: View {
     @AppStorage("phoneLineItemDisplayItem") var phoneLineItemDisplayItem: PhoneLineItemDisplayItem = .both
     
     
-    //@Environment(RootViewModelPhone.self) var vm
     @Environment(CalendarModel.self) private var calModel
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
@@ -46,15 +44,7 @@ struct DayViewPhone: View {
     @Binding var day: CBDay
     @Binding var selectedDay: CBDay?
     @Binding var showTransferSheet: Bool
-    let outerGeo: GeometryProxy
-    @Binding var overlayX: CGFloat?
-    @Binding var overlayY: CGFloat?
     @Binding var putBackToBottomPanelViewOnRotate: Bool
-    //var cellHeight: CGFloat?
-    //var maxDayHeight: CGFloat = 20
-    //@Binding var transEditID: Int?
-    //@Binding var transPreviewID: Int?
-    
     
     @State private var showDailyActions = false
     @State private var showPhotosPicker = false
@@ -82,46 +72,20 @@ struct DayViewPhone: View {
                 }
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    if viewMode == .scrollable {
-                        withAnimation {
-                            overlayX = nil
-                            overlayY = nil
-                            calModel.transPreviewID = nil
-                            calModel.hilightTrans = nil
-                        }
+                    withAnimation {
+                        calModel.hilightTrans = nil
                     }
                 }
-                //.padding(.horizontal, categoryIndicator == .background ? 1 : 0)
             } else {
-                VStack(spacing: viewMode == .scrollable ? 5 : 0) {
+                VStack(spacing: 5) {
                     dayNumber
-                    
-                    if viewMode == .scrollable {
-                        dailyTransactionList
-                    } else {
-                        transactionDotRow
-                    }
-                    
+                    dailyTransactionList
                     eodText
                 }
-                //.padding(.horizontal, categoryIndicator == .background ? 1 : 0)
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    if viewMode == .scrollable {
-                        withAnimation {
-                            overviewDay = day
-                        }
-                    } else {
-                        if viewMode == .bottomPanel {
-                            selectedDay = day
-                        } else {
-                            withAnimation {
-                                overlayX = nil
-                                overlayY = nil
-                                calModel.transPreviewID = nil
-                                calModel.hilightTrans = nil
-                            }
-                        }
+                    withAnimation {
+                        overviewDay = day
                     }
                 }
                 .onLongPressGesture(minimumDuration: 1) {
@@ -133,34 +97,15 @@ struct DayViewPhone: View {
                 .padding(.vertical, 2)
                 .background(
                     RoundedRectangle(cornerRadius: 6)
-                        //.fill(selectedDay == day ? Color(.tertiarySystemFill) : Color.clear)
-                    
-                    /// The selectedDay is required because the list view of the calendar required a selected day to view the transaction list, and thus the `TransactionEditView` also requires it, but the selected day doesn't make sense in details view. So when in details view, only show the selected day view if it is the actual day. If in list view, show the selected day depending on what day was tapped.
-                    
-                        /// `BEGIN NOTE 1.1` Use this to  hilight the selected day in bottomPanel view, and the current day in details view.
-//                        .fill((viewMode == .details ? selectedDay == day
-//                               && day.dateComponents?.month == AppState.shared.todayMonth
-//                               && day.dateComponents?.year == AppState.shared.todayYear
-//                               && day.dateComponents?.day == AppState.shared.todayDay : selectedDay == day)
-//                              ? Color(.tertiarySystemFill) : Color.clear)
-                        /// `END NOTE 1.1`
-                        /// `BEGIN NOTE 1.1` Use this to only hilight the selected day in bottomPanel view.
-                        .fill((viewMode == .bottomPanel && selectedDay == day) ? Color(.tertiarySystemFill) : Color.clear)
-                        .fill((viewMode == .scrollable && overviewDay == day) ? Color(.tertiarySystemFill) : Color.clear)
-                        /// `END NOTE 1.1`
-                    
-                    
+                        /// Use this to only hilight the overview day.
+                        .fill(overviewDay == day ? Color(.tertiarySystemFill) : Color.clear)
                         .padding(.bottom, 2) /// This is here to offset the overlay divider line in `CalendarViewPhone` that separates the weeks.
-                
                 )
                 .padding(.vertical, 2)
                 .background(calModel.dragTarget == day ? .gray.opacity(0.5) : .clear)
-                //.onTapGesture { calModel.hilightTrans = nil }
-                //.frame(height: maxEodSize)
                 .dropDestination(for: CBTransaction.self) { droppedTrans, location in
                     let trans = droppedTrans.first
                     if let trans {
-                        
                         withAnimation {
                             let originalMonth = trans.dateComponents?.month!
                             let monthObj = calModel.months.filter { $0.num == originalMonth }.first
@@ -179,27 +124,16 @@ struct DayViewPhone: View {
                             calModel.dragTarget = nil
                         }
                         
-//                        Task {
-//                            calModel.calculateTotalForMonth(month: calModel.sMonth)
-//                            let _ = await calModel.submit(trans)
-//                        }
                         calModel.saveTransaction(id: trans.id)
                     }
                     
                     return true
                     
-                } isTargeted: { isTargeted in
-                    if isTargeted {
-                        withAnimation {
-                            calModel.dragTarget = day
-                        }
+                } isTargeted: {
+                    if $0 {
+                        withAnimation { calModel.dragTarget = day }
                     }
                 }
-//                .sheet(item: $overviewDay) { day in
-//                    DayOverviewView(day: day, transEditID: $transEditID)
-//                        .presentationDetents([.height(300), .medium, .large])
-//                        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
-//                }
                 .confirmationDialog("\(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())", isPresented: $showDailyActions) {
                     Button {
                         transEditID = UUID().uuidString
@@ -301,19 +235,14 @@ struct DayViewPhone: View {
     }
     
     var dailyTransactionList: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 2) {
-                ForEach(filteredTrans) { trans in
-                    LineItemMiniView(transEditID: $transEditID, trans: trans, day: day, outerGeo: outerGeo, overlayX: $overlayX, overlayY: $overlayY, putBackToBottomPanelViewOnRotate: $putBackToBottomPanelViewOnRotate)
-                        .padding(.vertical, 0)
-                }
-                if (viewMode == .scrollable) {
-                    Spacer()
-                }
+        VStack(alignment: .leading, spacing: 2) {
+            ForEach(filteredTrans) { trans in
+                LineItemMiniView(transEditID: $transEditID, trans: trans, day: day, putBackToBottomPanelViewOnRotate: $putBackToBottomPanelViewOnRotate)
+                    .padding(.vertical, 0)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-        }
-        .if(viewMode == .scrollable) {
-            $0.scrollDisabled(true)
+            
+            Spacer()
         }
     }
     
@@ -365,7 +294,6 @@ struct DayViewPhone: View {
         }
         .font(.caption2)
         .foregroundColor(eodColor)
-        .if(viewMode == .bottomPanel) { $0.frame(maxHeight: .infinity, alignment: .center) }
         .frame(maxWidth: .infinity, alignment: .center) /// This causes each day to be the same size
         .minimumScaleFactor(0.5)
         .lineLimit(1)

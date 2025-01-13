@@ -80,9 +80,6 @@ struct RootView: View {
         /// Set ``sMonth`` in ``CalendarModel`` so the model is aware
         .onChange(of: navManager.selection, { oldValue, newValue in
             print("onChange(of: navManager.selection)")
-            
-            calModel.transPreviewID = nil
-            //calModel.transEditID = nil
             calModel.hilightTrans = nil
             
             if let selection = navManager.selection {
@@ -107,13 +104,7 @@ struct RootView: View {
                 
                 print("NEW PATH \(newPath)")
                 if new.count > old.count || new.count == old.count {
-                    //navTitle = String(calModel.sYear)
-                    calModel.transPreviewID = nil
-                   // calModel.transEditID = nil
                     calModel.hilightTrans = nil
-                    
-                    /// Gotta have a selectedDay for the editing of a transaction. Since one is not always used in details view, set to the current day if in the current month, otherwise set to the first of the month.
-                    
                     
                     if NavDestination.justMonths.contains(newPath) {
                         if new.count > old.count {
@@ -123,6 +114,7 @@ struct RootView: View {
                         
                         calModel.setSelectedMonthFromNavigation(navID: newPath, prepareStartAmount: true)
                         
+                        /// Gotta have a selectedDay for the editing of a transaction. Since one is not always used in details view, set to the current day if in the current month, otherwise set to the first of the month.
                         let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
                         selectedDay = targetDay
                         

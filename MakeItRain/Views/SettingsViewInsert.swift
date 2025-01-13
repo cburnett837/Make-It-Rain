@@ -12,7 +12,6 @@ struct SettingsViewInsert: View {
     @AppStorage("incomeColor") var incomeColor: String = Color.blue.description
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
     @AppStorage("tightenUpEodTotals") var tightenUpEodTotals = true
-    @AppStorage("lineItemInteractionMode") var lineItemInteractionMode: LineItemInteractionMode = .open
     @AppStorage("phoneLineItemDisplayItem") var phoneLineItemDisplayItem: PhoneLineItemDisplayItem = .both
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
     @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
@@ -334,18 +333,6 @@ struct SettingsViewInsert: View {
                 Text("Category, Title, & Total")
                     .tag(PhoneLineItemDisplayItem.both)
             }
-            .onChange(of: phoneLineItemDisplayItem) { oldValue, newValue in
-                if newValue == .both {
-                    lineItemInteractionMode = .open
-                }
-            }
-            
-            if phoneLineItemDisplayItem == .title || phoneLineItemDisplayItem == .total {
-                lineItemInteractionModePicker
-            }
-            
-            
-            
             
             GeometryReader { geo in
                 HStack {
@@ -375,23 +362,10 @@ struct SettingsViewInsert: View {
                     Text("full").italic(true).bold(true)
                     +
                     Text(", choose what to display for the line items.")
-                                        
-                    if phoneLineItemDisplayItem != .both && lineItemInteractionMode == .preview {
-                        Text("Tap a line item to preview. Tag again to close, or double tap to open.")
-                    }
                 }
                 .foregroundStyle(.gray)
                 .font(.footnote)
             }
-        }
-    }
-    
-    var lineItemInteractionModePicker: some View {
-        Picker("Touch a line and…", selection: $lineItemInteractionMode) {
-            Text("Open it")
-                .tag(LineItemInteractionMode.open)
-            Text("Preview it")
-                .tag(LineItemInteractionMode.preview)
         }
     }
     
@@ -420,7 +394,6 @@ struct SettingsViewInsert: View {
 struct DemoDay: View {
     @Environment(\.colorScheme) var colorScheme
     @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
-    @AppStorage("viewMode") var viewMode = CalendarViewMode.scrollable
     @AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
     @AppStorage("tightenUpEodTotals") var tightenUpEodTotals = true
@@ -438,7 +411,7 @@ struct DemoDay: View {
     let outerGeo: GeometryProxy
    
     var body: some View {
-        VStack(spacing: viewMode == .scrollable ? 5 : 0) {
+        VStack(spacing: 5) {
             dayNumber
             dailyTransactionList
             eodText
@@ -489,9 +462,6 @@ struct DemoDay: View {
                     transEditID: .constant(nil),
                     trans: trans,
                     day: day,
-                    outerGeo: outerGeo,
-                    overlayX: .constant(nil),
-                    overlayY: .constant(nil),
                     putBackToBottomPanelViewOnRotate: .constant(false)
                 )
                 .padding(.vertical, 0)
@@ -517,7 +487,6 @@ struct DemoDay: View {
         }
         .font(.caption2)
         .foregroundColor(.gray)
-        .if(viewMode == .bottomPanel) { $0.frame(maxHeight: .infinity, alignment: .center) }
         .frame(maxWidth: .infinity, alignment: .center) /// This causes each day to be the same size
         .minimumScaleFactor(0.5)
         .lineLimit(1)
@@ -528,258 +497,258 @@ struct DemoDay: View {
 
 #endif
 
-
-
-
-
-struct SettingsViewInsertOG: View {
-    @AppStorage("showPaymentMethodIndicator") var showPaymentMethodIndicator = false
-    @AppStorage("useWholeNumbers") var useWholeNumbers = false
-    @AppStorage("tightenUpEodTotals") var tightenUpEodTotals = true
-    @AppStorage("lineItemInteractionMode") var lineItemInteractionMode: LineItemInteractionMode = .open
-    @AppStorage("phoneLineItemDisplayItem") var phoneLineItemDisplayItem: PhoneLineItemDisplayItem = .both
-    
-    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
-    //@AppStorage("macCategoryDisplayMode") var macCategoryDisplayMode: MacCategoryDisplayMode = .emoji
-    
-    @AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode: UpdatedByOtherUserDisplayMode = .full
-    @AppStorage("phoneLineItemTotalPosition") var phoneLineItemTotalPosition: PhoneLineItemTotalPosition = .below
-    @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
-    @AppStorage("transactionSortMode") var transactionSortMode: TransactionSortMode = .title
-    
-    @AppStorage("showHashTagsOnLineItems") var showHashTagsOnLineItems: Bool = true
-
-
-    
-    var withDividers: Bool = false
-    
-    
-    var body: some View {
-        Toggle(isOn: $showPaymentMethodIndicator) {
-            VStack(alignment: .leading) {
-                Text("Show Payment Method Indicator")
-                Text("Show an indicator when in a unified payment view to show which payment method was used on the transaction.")
-                    .foregroundStyle(.gray)
-                    .font(.footnote)
-            }
-        }
-        
-        if withDividers { Divider() }
-        
-        
-        Toggle(isOn: $useWholeNumbers) {
-            VStack(alignment: .leading) {
-                Text("Only whole numbers")
-                Text("Round all dollar amounts and remove their decimals.")
-                    .foregroundStyle(.gray)
-                    .font(.footnote)
-                
-            }
-        }
-        if withDividers { Divider() }
-        
-        
-        
-        
-        #if os(iOS)
-        Toggle(isOn: $tightenUpEodTotals) {
-            VStack(alignment: .leading) {
-                Text("Trim totals")
-                Text("Remove dollar signs and commas from totals.")
-                    .foregroundStyle(.gray)
-                    .font(.footnote)
-            }
-        }
-        if withDividers { Divider() }
-        
-        #endif
-        
-        Toggle(isOn: $showHashTagsOnLineItems) {
-            VStack(alignment: .leading) {
-                Text("Show Tags")
-                Text("Display tags belows the transaction title.")
-                    .foregroundStyle(.gray)
-                    .font(.footnote)
-            }
-        }
-        
-        if withDividers { Divider() }
-        
-        
-        
-        
-        #if os(iOS)
-        
-        
-        LabeledContent {
-            Picker("", selection: $transactionSortMode) {
-                Text("Titles")
-                    .tag(TransactionSortMode.title)
-                Text("Categories")
-                    .tag(TransactionSortMode.category)
-            }
-        } label: {
-            Text("Sort transactions by...")
-        }
-        
-        if withDividers { Divider() }
-        
-        LabeledContent {
-            Picker("", selection: $categorySortMode) {
-                Text("Titles")
-                    .tag(CategorySortMode.title)
-                Text("Manually")
-                    .tag(CategorySortMode.listOrder)
-            }
-        } label: {
-            Text("Sort categories by...")
-        }
-        
-        if withDividers { Divider() }
-        
-        LabeledContent {
-            Picker("", selection: $phoneLineItemDisplayItem.animation()) {
-                Text("Titles")
-                    .tag(PhoneLineItemDisplayItem.title)
-                Text("Totals")
-                    .tag(PhoneLineItemDisplayItem.total)
-                Text("Title & Total")
-                    .tag(PhoneLineItemDisplayItem.both)
-            }
-            .onChange(of: phoneLineItemDisplayItem) { oldValue, newValue in
-                if newValue == .both {
-                    lineItemInteractionMode = .open
-                }
-            }
-        } label: {
-            VStack(alignment: .leading) {
-                Text("Display what on line items")
-                Group {
-                    Text("If viewing the calendar as ")
-                    +
-                    Text("details").italic(true).bold(true)
-                    +
-                    Text(" or ")
-                    +
-                    Text("full").italic(true).bold(true)
-                    +
-                    Text(", choose what to display for the line items.")
-                }
-                .foregroundStyle(.gray)
-                .font(.footnote)
-                
-            }
-        }
-        
-        if withDividers { Divider() }
-        
-        if phoneLineItemDisplayItem != .both {
-            LabeledContent {
-                Picker("", selection: $lineItemInteractionMode) {
-                    Text("Open")
-                        .tag(LineItemInteractionMode.open)
-                    Text("Preview")
-                        .tag(LineItemInteractionMode.preview)
-                }
-            } label: {
-                VStack(alignment: .leading) {
-                    Text("Do what when touching a line item")
-                    Group {
-                        Text("If ")
-                        +
-                        Text("preview").italic(true).bold(true)
-                        +
-                        Text(", touch the preview, or the line item again open it.")
-                    }
-                    .foregroundStyle(.gray)
-                    .font(.footnote)
-                }
-            }
-            if withDividers { Divider() }
-        }
-        
-        
-        LabeledContent {
-            Picker("", selection: $phoneLineItemTotalPosition) {
-                Text("Next to title")
-                    .tag(PhoneLineItemTotalPosition.inline)
-                Text("Below title")
-                    .tag(PhoneLineItemTotalPosition.below)
-            }
-        } label: {
-            VStack(alignment: .leading) {
-                Text("Display totals…")
-            }
-        }
-        if withDividers { Divider() }
-        
-        
-        
-        
-        
-        
-        
-        #endif
-
-        
-        
-        LabeledContent {
-            Picker("", selection: $lineItemIndicator) {
-                Text("Category Dot")
-                    .tag(LineItemIndicator.dot)
-                Text("Category Symbol")
-                    .tag(LineItemIndicator.emoji)
-                #if os(iOS)
-                Text("Payment Method")
-                    .tag(LineItemIndicator.paymentMethod)
-//                Text("None")
-//                    .tag(LineItemIndicator.none)
-                #endif
-            }
-        } label: {
-            VStack(alignment: .leading) {
-                Text("Display what next to line item")
-                Group {
-                    Text("If viewing the calendar as ")
-                    +
-                    Text("details").italic(true).bold(true)
-                    +
-                    Text(" or ")
-                    +
-                    Text("full").italic(true).bold(true)
-                    +
-                    Text(", choose how to indicate categories.")
-                    
-                    Text("Note: Symbols will be displayed as dots when viewing as ")
-                    +
-                    Text("details").italic(true).bold(true)
-                    +
-                    Text(" or ")
-                    +
-                    Text("full").italic(true).bold(true)
-                    +
-                    Text(" due to space constraints.")
-                }
-                .foregroundStyle(.gray)
-                .font(.footnote)
-            }
-        }
-
-        if withDividers { Divider() }
-        
-        
-        LabeledContent {
-            Picker("", selection: $updatedByOtherUserDisplayMode) {
-                Text("Bold & italic title")
-                    .tag(UpdatedByOtherUserDisplayMode.concise)
-                Text("Their name")
-                    .tag(UpdatedByOtherUserDisplayMode.full)
-            }
-        } label: {
-            Text("Display transactions edited by someone else as…")
-        }
-        
-        if withDividers { Divider() }
-        
-    }
-}
+//
+//
+//
+//
+//struct SettingsViewInsertOG: View {
+//    @AppStorage("showPaymentMethodIndicator") var showPaymentMethodIndicator = false
+//    @AppStorage("useWholeNumbers") var useWholeNumbers = false
+//    @AppStorage("tightenUpEodTotals") var tightenUpEodTotals = true
+//    @AppStorage("lineItemInteractionMode") var lineItemInteractionMode: LineItemInteractionMode = .open
+//    @AppStorage("phoneLineItemDisplayItem") var phoneLineItemDisplayItem: PhoneLineItemDisplayItem = .both
+//    
+//    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
+//    //@AppStorage("macCategoryDisplayMode") var macCategoryDisplayMode: MacCategoryDisplayMode = .emoji
+//    
+//    @AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode: UpdatedByOtherUserDisplayMode = .full
+//    @AppStorage("phoneLineItemTotalPosition") var phoneLineItemTotalPosition: PhoneLineItemTotalPosition = .below
+//    @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
+//    @AppStorage("transactionSortMode") var transactionSortMode: TransactionSortMode = .title
+//    
+//    @AppStorage("showHashTagsOnLineItems") var showHashTagsOnLineItems: Bool = true
+//
+//
+//    
+//    var withDividers: Bool = false
+//    
+//    
+//    var body: some View {
+//        Toggle(isOn: $showPaymentMethodIndicator) {
+//            VStack(alignment: .leading) {
+//                Text("Show Payment Method Indicator")
+//                Text("Show an indicator when in a unified payment view to show which payment method was used on the transaction.")
+//                    .foregroundStyle(.gray)
+//                    .font(.footnote)
+//            }
+//        }
+//        
+//        if withDividers { Divider() }
+//        
+//        
+//        Toggle(isOn: $useWholeNumbers) {
+//            VStack(alignment: .leading) {
+//                Text("Only whole numbers")
+//                Text("Round all dollar amounts and remove their decimals.")
+//                    .foregroundStyle(.gray)
+//                    .font(.footnote)
+//                
+//            }
+//        }
+//        if withDividers { Divider() }
+//        
+//        
+//        
+//        
+//        #if os(iOS)
+//        Toggle(isOn: $tightenUpEodTotals) {
+//            VStack(alignment: .leading) {
+//                Text("Trim totals")
+//                Text("Remove dollar signs and commas from totals.")
+//                    .foregroundStyle(.gray)
+//                    .font(.footnote)
+//            }
+//        }
+//        if withDividers { Divider() }
+//        
+//        #endif
+//        
+//        Toggle(isOn: $showHashTagsOnLineItems) {
+//            VStack(alignment: .leading) {
+//                Text("Show Tags")
+//                Text("Display tags belows the transaction title.")
+//                    .foregroundStyle(.gray)
+//                    .font(.footnote)
+//            }
+//        }
+//        
+//        if withDividers { Divider() }
+//        
+//        
+//        
+//        
+//        #if os(iOS)
+//        
+//        
+//        LabeledContent {
+//            Picker("", selection: $transactionSortMode) {
+//                Text("Titles")
+//                    .tag(TransactionSortMode.title)
+//                Text("Categories")
+//                    .tag(TransactionSortMode.category)
+//            }
+//        } label: {
+//            Text("Sort transactions by...")
+//        }
+//        
+//        if withDividers { Divider() }
+//        
+//        LabeledContent {
+//            Picker("", selection: $categorySortMode) {
+//                Text("Titles")
+//                    .tag(CategorySortMode.title)
+//                Text("Manually")
+//                    .tag(CategorySortMode.listOrder)
+//            }
+//        } label: {
+//            Text("Sort categories by...")
+//        }
+//        
+//        if withDividers { Divider() }
+//        
+//        LabeledContent {
+//            Picker("", selection: $phoneLineItemDisplayItem.animation()) {
+//                Text("Titles")
+//                    .tag(PhoneLineItemDisplayItem.title)
+//                Text("Totals")
+//                    .tag(PhoneLineItemDisplayItem.total)
+//                Text("Title & Total")
+//                    .tag(PhoneLineItemDisplayItem.both)
+//            }
+//            .onChange(of: phoneLineItemDisplayItem) { oldValue, newValue in
+//                if newValue == .both {
+//                    lineItemInteractionMode = .open
+//                }
+//            }
+//        } label: {
+//            VStack(alignment: .leading) {
+//                Text("Display what on line items")
+//                Group {
+//                    Text("If viewing the calendar as ")
+//                    +
+//                    Text("details").italic(true).bold(true)
+//                    +
+//                    Text(" or ")
+//                    +
+//                    Text("full").italic(true).bold(true)
+//                    +
+//                    Text(", choose what to display for the line items.")
+//                }
+//                .foregroundStyle(.gray)
+//                .font(.footnote)
+//                
+//            }
+//        }
+//        
+//        if withDividers { Divider() }
+//        
+//        if phoneLineItemDisplayItem != .both {
+//            LabeledContent {
+//                Picker("", selection: $lineItemInteractionMode) {
+//                    Text("Open")
+//                        .tag(LineItemInteractionMode.open)
+//                    Text("Preview")
+//                        .tag(LineItemInteractionMode.preview)
+//                }
+//            } label: {
+//                VStack(alignment: .leading) {
+//                    Text("Do what when touching a line item")
+//                    Group {
+//                        Text("If ")
+//                        +
+//                        Text("preview").italic(true).bold(true)
+//                        +
+//                        Text(", touch the preview, or the line item again open it.")
+//                    }
+//                    .foregroundStyle(.gray)
+//                    .font(.footnote)
+//                }
+//            }
+//            if withDividers { Divider() }
+//        }
+//        
+//        
+//        LabeledContent {
+//            Picker("", selection: $phoneLineItemTotalPosition) {
+//                Text("Next to title")
+//                    .tag(PhoneLineItemTotalPosition.inline)
+//                Text("Below title")
+//                    .tag(PhoneLineItemTotalPosition.below)
+//            }
+//        } label: {
+//            VStack(alignment: .leading) {
+//                Text("Display totals…")
+//            }
+//        }
+//        if withDividers { Divider() }
+//        
+//        
+//        
+//        
+//        
+//        
+//        
+//        #endif
+//
+//        
+//        
+//        LabeledContent {
+//            Picker("", selection: $lineItemIndicator) {
+//                Text("Category Dot")
+//                    .tag(LineItemIndicator.dot)
+//                Text("Category Symbol")
+//                    .tag(LineItemIndicator.emoji)
+//                #if os(iOS)
+//                Text("Payment Method")
+//                    .tag(LineItemIndicator.paymentMethod)
+////                Text("None")
+////                    .tag(LineItemIndicator.none)
+//                #endif
+//            }
+//        } label: {
+//            VStack(alignment: .leading) {
+//                Text("Display what next to line item")
+//                Group {
+//                    Text("If viewing the calendar as ")
+//                    +
+//                    Text("details").italic(true).bold(true)
+//                    +
+//                    Text(" or ")
+//                    +
+//                    Text("full").italic(true).bold(true)
+//                    +
+//                    Text(", choose how to indicate categories.")
+//                    
+//                    Text("Note: Symbols will be displayed as dots when viewing as ")
+//                    +
+//                    Text("details").italic(true).bold(true)
+//                    +
+//                    Text(" or ")
+//                    +
+//                    Text("full").italic(true).bold(true)
+//                    +
+//                    Text(" due to space constraints.")
+//                }
+//                .foregroundStyle(.gray)
+//                .font(.footnote)
+//            }
+//        }
+//
+//        if withDividers { Divider() }
+//        
+//        
+//        LabeledContent {
+//            Picker("", selection: $updatedByOtherUserDisplayMode) {
+//                Text("Bold & italic title")
+//                    .tag(UpdatedByOtherUserDisplayMode.concise)
+//                Text("Their name")
+//                    .tag(UpdatedByOtherUserDisplayMode.full)
+//            }
+//        } label: {
+//            Text("Display transactions edited by someone else as…")
+//        }
+//        
+//        if withDividers { Divider() }
+//        
+//    }
+//}

@@ -77,7 +77,6 @@ class CalendarModel {
     }
     
     var transEditID: String?
-    var transPreviewID: String?
     var searchText = ""
     var searchWhat = CalendarSearchWhat.titles
     
@@ -500,7 +499,6 @@ class CalendarModel {
         print("-- \(#function)")
         self.transEditID = nil
         cleanTags()
-        //transPreviewID = nil
         //hilightTrans = nil
         
         let trans = getTransaction(by: id, from: isPendingSmartTransaction ? .tempList : location)
