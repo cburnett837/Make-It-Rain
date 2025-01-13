@@ -90,6 +90,8 @@ struct CalendarViewPhone: View {
     @State private var overlayY: CGFloat?
     
     
+    @State private var overviewDay: CBDay?
+    
     @State private var putBackToBottomPanelViewOnRotate = false
 
     
@@ -307,7 +309,7 @@ struct CalendarViewPhone: View {
                                 LazyVGrid(columns: sevenColumnGrid, spacing: 0) {
                                     ForEach($calModel.sMonth.days) { $day in
                                         VStack(spacing: 0) {
-                                            DayViewPhone(transEditID: $transEditID, day: $day, selectedDay: $selectedDay, showTransferSheet: $showTransferSheet, outerGeo: geo, overlayX: $overlayX, overlayY: $overlayY, putBackToBottomPanelViewOnRotate: $putBackToBottomPanelViewOnRotate)
+                                            DayViewPhone(transEditID: $transEditID, day: $day, selectedDay: $selectedDay, showTransferSheet: $showTransferSheet, outerGeo: geo, overlayX: $overlayX, overlayY: $overlayY, putBackToBottomPanelViewOnRotate: $putBackToBottomPanelViewOnRotate, overviewDay: $overviewDay)
                                                 .id(day.dateComponents?.day)
                                             
                                                 /// This is the dividing line
@@ -324,7 +326,7 @@ struct CalendarViewPhone: View {
                                 }
                             }
                             .scrollIndicators(.hidden)
-                            .transaction { $0.animation = nil }
+                            //.transaction { $0.animation = nil }
 //                            .transaction {
 //                                if geo.frame(in: .global).minX == 0 {
 //                                    $0.animation = .default
@@ -404,6 +406,15 @@ struct CalendarViewPhone: View {
                 
                 if viewMode == .bottomPanel {
                     bottomPanel
+                }
+                
+                if viewMode == .scrollable {
+                    if overviewDay != nil {
+                        DayOverviewView(day: $overviewDay, transEditID: $transEditID)
+                            .frame(height: 300)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                            //.edgesIgnoringSafeArea(.bottom)
+                    }
                 }
             }
         }
@@ -1105,5 +1116,74 @@ struct CalendarViewPhone: View {
             }
         }
     }
+    
+    
+    struct DayOverviewView: View {
+        @Environment(CalendarModel.self) private var calModel
+        @Binding var day: CBDay?
+        @Binding var transEditID: String?
+        
+        @Environment(\.dismiss) var dismiss
+        
+        var moreButton: some View {
+            Button {
+                
+            } label: {
+                Image(systemName: "ellipsis")
+            }
+        }
+        
+        var body: some View {
+            if let day {
+                VStack {
+                    SheetHeader(
+                        title: day.displayDate,
+                        close: { withAnimation { self.day = nil } },
+                        view1: { moreButton }
+                    )
+                    .padding()
+                                                    
+                    ScrollView {
+                        /// Preview Panel
+                        
+                        var filteredTrans: Array<CBTransaction> {
+                            calModel.filteredTrans(day: day)
+                        }
+                        
+                        VStack(spacing: 0) {
+                            Divider()
+                            
+                            if filteredTrans.isEmpty {
+                                ContentUnavailableView("No Transactions", systemImage: "bag.fill.badge.questionmark")
+                                Button("Add") {
+                                    transEditID = UUID().uuidString
+                                }
+                            } else {
+                                VStack(spacing: 0) {
+                                    //List {
+                                    #warning("Using the same filter approach I use for the mac causes the sheet to die")
+                                    ForEach(filteredTrans) { trans in
+                                        VStack(spacing: 0) {
+                                            LineItemView(trans: trans, day: day)
+                                                //.padding(.vertical, 4)
+                                            //LineItemViewPhone(trans: trans, day: selectedDay)
+                                            Divider()
+                                        }
+                                        .listRowInsets(EdgeInsets())
+                                    }
+                                    //}
+                                    //.listStyle(.plain)
+                                    
+                                }
+                            }
+                        }
+                    }
+                }
+                .background { Color.darkGray.ignoresSafeArea(edges: .bottom) }
+            }
+            
+        }
+    }
+    
 }
 #endif

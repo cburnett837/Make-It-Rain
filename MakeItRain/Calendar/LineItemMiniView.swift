@@ -122,7 +122,7 @@ struct LineItemMiniView: View {
         }
         .contentShape(Rectangle())
         .draggable(trans) { dragPreview }
-        
+        .allowsHitTesting(phoneLineItemDisplayItem != .category && viewMode == .scrollable)
         .onTapGesture {
             if let localGeoProxy = localGeoProxy {
                 let outerGlobal = outerGeo.frame(in: .global)
@@ -207,15 +207,10 @@ struct LineItemMiniView: View {
         Group {
             let wasUpdatedByAnotherUser = trans.updatedBy.id != AppState.shared.user?.id
             HStack(spacing: 2) {
-                Capsule()
-                    .fill(
-                        calModel.isUnifiedPayMethod && lineItemIndicator == .paymentMethod
-                        ? (trans.payMethod?.color ?? .gray)
-                        : (trans.category?.color ?? .gray)
-                    )
-                    .frame(width: 3)
-                    .frame(maxHeight: .infinity)
-                    .padding(.vertical, 2)
+                if phoneLineItemDisplayItem != .category {
+                    accessoryIndicator
+                }
+                
                 
                 if phoneLineItemDisplayItem == .title {
                     Text(trans.title)
@@ -238,6 +233,18 @@ struct LineItemMiniView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .overlay { ExcludeFromTotalsLine(trans: trans) }
                     
+                } else if phoneLineItemDisplayItem == .category {
+                    Capsule()
+                        .fill(
+                            calModel.isUnifiedPayMethod && lineItemIndicator == .paymentMethod
+                            ? (trans.payMethod?.color ?? .gray)
+                            : (trans.category?.color ?? .gray)
+                        )
+                        .frame(height: 8)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 1)
+                        .overlay { ExcludeFromTotalsLine(trans: trans) }
+                                    
                 } else {
                     if putBackToBottomPanelViewOnRotate {
                         inlineTitleAndTotal
@@ -271,6 +278,17 @@ struct LineItemMiniView: View {
         }
     }
     
+    var accessoryIndicator: some View {
+        Capsule()
+            .fill(
+                calModel.isUnifiedPayMethod && lineItemIndicator == .paymentMethod
+                ? (trans.payMethod?.color ?? .gray)
+                : (trans.category?.color ?? .gray)
+            )
+            .frame(width: 3)
+            .frame(maxHeight: .infinity)
+            .padding(.vertical, 2)
+    }
     
     var stackedTitleAndTotal: some View {
         Group {

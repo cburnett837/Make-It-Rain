@@ -239,7 +239,7 @@ enum TransactionSortMode: String {
 }
 
 enum PhoneLineItemDisplayItem: String {
-    case title, total, both
+    case title, total, both, category
 }
 
 enum PhoneLineItemTotalPosition: String {

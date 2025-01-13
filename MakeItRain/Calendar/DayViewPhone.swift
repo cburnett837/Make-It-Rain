@@ -20,6 +20,9 @@ struct DayViewPhone: View {
     @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
     
     
+    @AppStorage("phoneLineItemDisplayItem") var phoneLineItemDisplayItem: PhoneLineItemDisplayItem = .both
+    
+    
     //@Environment(RootViewModelPhone.self) var vm
     @Environment(CalendarModel.self) private var calModel
     @Environment(PayMethodModel.self) private var payModel
@@ -57,11 +60,14 @@ struct DayViewPhone: View {
     @State private var showPhotosPicker = false
     @State private var showCamera = false
     
+    @Binding var overviewDay: CBDay?
+    
     
     var filteredTrans: [CBTransaction] {
         calModel.filteredTrans(day: day)
     }
     
+    let columnGrid = Array(repeating: GridItem(.flexible(), spacing: 3), count: 2)
     
    
     var body: some View {
@@ -87,7 +93,7 @@ struct DayViewPhone: View {
                 }
                 //.padding(.horizontal, categoryIndicator == .background ? 1 : 0)
             } else {
-                VStack(spacing: 5) {
+                VStack(spacing: viewMode == .scrollable ? 5 : 0) {
                     dayNumber
                     
                     if viewMode == .scrollable {
@@ -101,14 +107,20 @@ struct DayViewPhone: View {
                 //.padding(.horizontal, categoryIndicator == .background ? 1 : 0)
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    if viewMode == .bottomPanel {
-                        selectedDay = day
-                    } else {
+                    if viewMode == .scrollable {
                         withAnimation {
-                            overlayX = nil
-                            overlayY = nil
-                            calModel.transPreviewID = nil
-                            calModel.hilightTrans = nil
+                            overviewDay = day
+                        }
+                    } else {
+                        if viewMode == .bottomPanel {
+                            selectedDay = day
+                        } else {
+                            withAnimation {
+                                overlayX = nil
+                                overlayY = nil
+                                calModel.transPreviewID = nil
+                                calModel.hilightTrans = nil
+                            }
                         }
                     }
                 }
@@ -134,6 +146,7 @@ struct DayViewPhone: View {
                         /// `END NOTE 1.1`
                         /// `BEGIN NOTE 1.1` Use this to only hilight the selected day in bottomPanel view.
                         .fill((viewMode == .bottomPanel && selectedDay == day) ? Color(.tertiarySystemFill) : Color.clear)
+                        .fill((viewMode == .scrollable && overviewDay == day) ? Color(.tertiarySystemFill) : Color.clear)
                         /// `END NOTE 1.1`
                     
                     
@@ -182,6 +195,11 @@ struct DayViewPhone: View {
                         }
                     }
                 }
+//                .sheet(item: $overviewDay) { day in
+//                    DayOverviewView(day: day, transEditID: $transEditID)
+//                        .presentationDetents([.height(300), .medium, .large])
+//                        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+//                }
                 .confirmationDialog("\(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())", isPresented: $showDailyActions) {
                     Button {
                         transEditID = UUID().uuidString
@@ -263,7 +281,14 @@ struct DayViewPhone: View {
         Text("\(day.dateComponents?.day ?? 0)")
             .frame(maxWidth: .infinity)
             .foregroundColor(.primary)
+            .contentShape(Rectangle())
             //.padding(.bottom, 5)
+//            .onTapGesture {
+//                withAnimation {
+//                    overviewDay = day
+//                }
+//                
+//            }
             .if(isToday) {
                 $0
                 .bold()
@@ -345,6 +370,7 @@ struct DayViewPhone: View {
         .minimumScaleFactor(0.5)
         .lineLimit(1)
     }
+            
 }
 
 

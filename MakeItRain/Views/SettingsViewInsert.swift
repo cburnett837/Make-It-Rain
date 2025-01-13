@@ -29,6 +29,8 @@ struct SettingsViewInsert: View {
     @Environment(CategoryModel.self) var catModel
 
     
+    @State private var demoDay = CBDay(date: Date())
+    
     var withDividers: Bool = false
     
     
@@ -117,6 +119,30 @@ struct SettingsViewInsert: View {
                     .foregroundStyle(.red)
                     .font(.footnote)
             }
+        }
+        
+        .task {
+            let trans1 = CBTransaction()
+            let cat1 = CBCategory()
+            cat1.color = .red
+            trans1.title = "Apples"
+            trans1.category = cat1
+            
+            let trans2 = CBTransaction()
+            let cat2 = CBCategory()
+            cat2.color = .orange
+            trans2.title = "Bananas"
+            trans2.category = cat2
+            
+            let trans3 = CBTransaction()
+            let cat3 = CBCategory()
+            cat3.color = .green
+            trans3.title = "Coconuts"
+            trans3.category = cat3
+            
+            demoDay.transactions = [
+                trans1, trans2, trans3
+            ]
         }
 
     }
@@ -299,11 +325,13 @@ struct SettingsViewInsert: View {
     var phoneLineItemText: some View {
         Section {
             Picker("Display as…", selection: $phoneLineItemDisplayItem.animation()) {
-                Text("Titles")
+                Text("Category & Title")
                     .tag(PhoneLineItemDisplayItem.title)
-                Text("Totals")
+                Text("Category & Total")
                     .tag(PhoneLineItemDisplayItem.total)
-                Text("Title & Total")
+                Text("Category Only")
+                    .tag(PhoneLineItemDisplayItem.category)
+                Text("Category, Title, & Total")
                     .tag(PhoneLineItemDisplayItem.both)
             }
             .onChange(of: phoneLineItemDisplayItem) { oldValue, newValue in
@@ -312,9 +340,31 @@ struct SettingsViewInsert: View {
                 }
             }
             
-            if phoneLineItemDisplayItem != .both {
+            if phoneLineItemDisplayItem == .title || phoneLineItemDisplayItem == .total {
                 lineItemInteractionModePicker
             }
+            
+            
+            
+            
+            GeometryReader { geo in
+                HStack {
+                    DemoDay(dayNum: 8, outerGeo: geo)
+                        .frame(width: geo.size.width / 4)
+                    DemoDay(dayNum: 9, outerGeo: geo)
+                        .frame(width: geo.size.width / 4)
+                    DemoDay(dayNum: 10, outerGeo: geo)
+                        .frame(width: geo.size.width / 4)
+                    DemoDay(dayNum: 11, outerGeo: geo)
+                        .frame(width: geo.size.width / 4)
+                }
+                
+            }
+            .frame(height: 140)
+            
+            
+            
+            
         } header: {
             Text("Line Items")
         } footer: {
@@ -363,6 +413,121 @@ struct SettingsViewInsert: View {
     
    
 }
+
+
+
+#if os(iOS)
+struct DemoDay: View {
+    @Environment(\.colorScheme) var colorScheme
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    @AppStorage("viewMode") var viewMode = CalendarViewMode.scrollable
+    @AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
+    @AppStorage("useWholeNumbers") var useWholeNumbers = false
+    @AppStorage("tightenUpEodTotals") var tightenUpEodTotals = true
+    @AppStorage("threshold") var threshold = "500.0"
+    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
+    
+    
+    @AppStorage("phoneLineItemDisplayItem") var phoneLineItemDisplayItem: PhoneLineItemDisplayItem = .both
+    
+    let dayNum: Int
+    @State private var day = CBDay(date: Date())
+
+    
+    let columnGrid = Array(repeating: GridItem(.flexible(), spacing: 3), count: 2)
+    let outerGeo: GeometryProxy
+   
+    var body: some View {
+        VStack(spacing: viewMode == .scrollable ? 5 : 0) {
+            dayNumber
+            dailyTransactionList
+            eodText
+        }
+        .padding(.vertical, 2)
+        .task {
+            let trans1 = CBTransaction()
+            let cat1 = CBCategory()
+            cat1.color = .red
+            trans1.title = "Apples"
+            trans1.amountString = "-$5.69"
+            trans1.category = cat1
+            
+            let trans2 = CBTransaction()
+            let cat2 = CBCategory()
+            cat2.color = .orange
+            trans2.title = "Bananas"
+            trans2.amountString = "-$10.80"
+            trans2.category = cat2
+            
+            let trans3 = CBTransaction()
+            let cat3 = CBCategory()
+            cat3.color = .green
+            trans3.title = "Coconuts"
+            trans3.amountString = "-$912.12"
+            trans3.category = cat3
+            
+            day.transactions = [
+                trans1, trans2, trans3
+            ]
+        }
+
+    }
+    
+   
+        
+    var dayNumber: some View {
+        Text("\(dayNum)")
+            .frame(maxWidth: .infinity)
+            .foregroundColor(.primary)
+            .contentShape(Rectangle())
+    }
+    
+    var dailyTransactionList: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            ForEach(day.transactions) { trans in
+                LineItemMiniView(
+                    transEditID: .constant(nil),
+                    trans: trans,
+                    day: day,
+                    outerGeo: outerGeo,
+                    overlayX: .constant(nil),
+                    overlayY: .constant(nil),
+                    putBackToBottomPanelViewOnRotate: .constant(false)
+                )
+                .padding(.vertical, 0)
+            }
+        }
+    }
+        
+    
+    var eodText: some View {
+        Group {
+            if useWholeNumbers && tightenUpEodTotals {
+                Text("\(String(format: "%.00f", day.eodTotal).replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: ""))")
+                
+            } else if useWholeNumbers {
+                Text(day.eodTotal.currencyWithDecimals(0))
+                
+            } else if !useWholeNumbers && tightenUpEodTotals {
+                Text(day.eodTotal.currencyWithDecimals(2).replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: ""))
+                
+            } else {
+                Text(day.eodTotal.currencyWithDecimals(2))
+            }
+        }
+        .font(.caption2)
+        .foregroundColor(.gray)
+        .if(viewMode == .bottomPanel) { $0.frame(maxHeight: .infinity, alignment: .center) }
+        .frame(maxWidth: .infinity, alignment: .center) /// This causes each day to be the same size
+        .minimumScaleFactor(0.5)
+        .lineLimit(1)
+    }
+            
+}
+
+
+#endif
+
 
 
 
