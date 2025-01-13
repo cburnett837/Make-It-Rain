@@ -82,11 +82,15 @@ struct DayViewPhone: View {
                     dailyTransactionList
                     eodText
                 }
+                .frame(maxWidth: .infinity, alignment: .center) /// This causes each day to be the same size
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    withAnimation {
-                        overviewDay = day
+                    if phoneLineItemDisplayItem != .both {
+                        withAnimation {
+                            overviewDay = day
+                        }
                     }
+                    
                 }
                 .onLongPressGesture(minimumDuration: 1) {
                     showDailyActions = true

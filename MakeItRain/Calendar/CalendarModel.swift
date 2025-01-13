@@ -1214,6 +1214,7 @@ class CalendarModel {
     
     @MainActor
     func fetchTags() async {
+        tags.removeAll()
         LogManager.log()
 
         /// Do networking.
@@ -1249,7 +1250,7 @@ class CalendarModel {
             switch error {
             case .taskCancelled:
                 /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
-                print("keyModel fetchFrom Server Task Cancelled")
+                print("fetchTags Task Cancelled")
             default:
                 LogManager.error(error.localizedDescription)
                 AppState.shared.showAlert("There was a problem trying to fetch the tags.")

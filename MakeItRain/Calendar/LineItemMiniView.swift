@@ -71,7 +71,7 @@ struct LineItemMiniView: View {
         }
         .contentShape(Rectangle())
         .draggable(trans) { dragPreview }
-        .allowsHitTesting(phoneLineItemDisplayItem != .category)
+        .allowsHitTesting(phoneLineItemDisplayItem == .both)
         .onTapGesture {
             calModel.hilightTrans = trans
             transEditID = trans.id

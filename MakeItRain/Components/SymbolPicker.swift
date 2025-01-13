@@ -33,6 +33,7 @@ struct SymbolPicker: View {
             "house.fill",
             "tree.fill",
             "leaf.fill",
+            "scissors",
             "camera.macro",
             "screwdriver.fill",
             "door.garage.double.bay.closed",

@@ -31,21 +31,32 @@ struct SettingsViewInsert: View {
     @State private var demoDay = CBDay(date: Date())
     
     var withDividers: Bool = false
-    
-    
+        
     var body: some View {
         Section("Options") {
             paymentMethodIndicatorToggle
             useWholeNumbersToggle
             tightenUpEodTotalsToggle
             showShowHashTagToggle
-            
             incomeColorPicker
         }
         
         #if os(iOS)
-        phoneLineItemText
-        lineItemTotalPosition
+        phoneLineItemDisplay
+        
+        Section("Demo Day View") {
+            HStack {
+                DemoDay(dayNum: 8)
+                    .frame(maxWidth: .infinity)
+                DemoDay(dayNum: 9)
+                    .frame(maxWidth: .infinity)
+                DemoDay(dayNum: 10)
+                    .frame(maxWidth: .infinity)
+                DemoDay(dayNum: 11)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        
         #endif
         
         lineItemIndicatorPicker
@@ -321,37 +332,27 @@ struct SettingsViewInsert: View {
     
     
     #if os(iOS)
-    var phoneLineItemText: some View {
+    var phoneLineItemDisplay: some View {
         Section {
             Picker("Display as…", selection: $phoneLineItemDisplayItem.animation()) {
-                Text("Category & Title")
+                Text("Title")
                     .tag(PhoneLineItemDisplayItem.title)
-                Text("Category & Total")
+                Text("Total")
                     .tag(PhoneLineItemDisplayItem.total)
-                Text("Category Only")
+                Text("Category")
                     .tag(PhoneLineItemDisplayItem.category)
                 Text("Category, Title, & Total")
                     .tag(PhoneLineItemDisplayItem.both)
             }
             
-            GeometryReader { geo in
-                HStack {
-                    DemoDay(dayNum: 8, outerGeo: geo)
-                        .frame(width: geo.size.width / 4)
-                    DemoDay(dayNum: 9, outerGeo: geo)
-                        .frame(width: geo.size.width / 4)
-                    DemoDay(dayNum: 10, outerGeo: geo)
-                        .frame(width: geo.size.width / 4)
-                    DemoDay(dayNum: 11, outerGeo: geo)
-                        .frame(width: geo.size.width / 4)
+            if phoneLineItemDisplayItem == .both {
+                Picker("Display totals…", selection: $phoneLineItemTotalPosition) {
+                    Text("Next to title")
+                        .tag(PhoneLineItemTotalPosition.inline)
+                    Text("Below title")
+                        .tag(PhoneLineItemTotalPosition.below)
                 }
-                
             }
-            .frame(height: 140)
-            
-            
-            
-            
         } header: {
             Text("Line Items")
         } footer: {
@@ -366,21 +367,6 @@ struct SettingsViewInsert: View {
                 .foregroundStyle(.gray)
                 .font(.footnote)
             }
-        }
-    }
-    
-    var lineItemTotalPosition: some View {
-        Section {
-            Picker("Display totals…", selection: $phoneLineItemTotalPosition) {
-                Text("Next to title")
-                    .tag(PhoneLineItemTotalPosition.inline)
-                Text("Below title")
-                    .tag(PhoneLineItemTotalPosition.below)
-            }
-        } header: {
-            Text("Line Item Totals")
-        } footer: {
-            EmptyView()
         }
     }
     #endif
@@ -408,7 +394,6 @@ struct DemoDay: View {
 
     
     let columnGrid = Array(repeating: GridItem(.flexible(), spacing: 3), count: 2)
-    let outerGeo: GeometryProxy
    
     var body: some View {
         VStack(spacing: 5) {
@@ -435,8 +420,8 @@ struct DemoDay: View {
             let trans3 = CBTransaction()
             let cat3 = CBCategory()
             cat3.color = .green
-            trans3.title = "Coconuts"
-            trans3.amountString = "-$912.12"
+            trans3.title = "Income"
+            trans3.amountString = "$912.12"
             trans3.category = cat3
             
             day.transactions = [
