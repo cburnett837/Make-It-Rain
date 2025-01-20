@@ -29,6 +29,7 @@ struct LineItemMiniView: View {
     @Bindable var trans: CBTransaction
     @Bindable var day: CBDay
     @Binding var putBackToBottomPanelViewOnRotate: Bool
+    @Binding var transHeight: CGFloat
     @State private var showDeleteAlert = false
     
     var amountColor: Color {
@@ -63,19 +64,28 @@ struct LineItemMiniView: View {
                 .transition(.opacity)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 2)
-                .background {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(lineColor)
-                        .contentShape(Rectangle())
-                }
+                /// Ignore the transHeight variable until it has been fully calculated, and the apply it.
+                /// As Per ChatGPT:
+                /// The issue you’re encountering is likely due to the timing of how SwiftUI resolves layout constraints. The subviews are being resized before the maximum size has been properly determined because the frame modifier is applied too early in the layout process.
+                /// To fix this, you can ensure the maximum size is only applied after all views have been measured by delaying the application of the frame modifier until the maximum size is fully resolved.
+                .frame(height: transHeight > 0 ? transHeight : nil)
+                .background(RoundedRectangle(cornerRadius: 4).fill(lineColor))
+                .transMaxViewHeightObserver()
+            //let _ = print("transHeight: \(transHeight)")
+        }
+        .if(!preferDarkMode) {
+            $0.padding(.horizontal, 1)
         }
         .contentShape(Rectangle())
         .draggable(trans) { dragPreview }
-        .allowsHitTesting(phoneLineItemDisplayItem == .both)
-        .onTapGesture {
-            calModel.hilightTrans = trans
-            transEditID = trans.id
+        //.allowsHitTesting(phoneLineItemDisplayItem == .both)
+        .if(phoneLineItemDisplayItem == .both) {
+            $0.onTapGesture {
+                calModel.hilightTrans = trans
+                transEditID = trans.id
+            }
         }
+        
         .confirmationDialog("Delete \"\(trans.title)\"?", isPresented: $showDeleteAlert) {
             Button("Yes", role: .destructive) {
                 trans.action = .delete
@@ -85,9 +95,12 @@ struct LineItemMiniView: View {
         } message: {
             Text("Delete \"\(trans.title)\"?")
         }
-        .contextMenu {
-            TransactionContextMenu(trans: trans, transEditID: $transEditID, showDeleteAlert: $showDeleteAlert)
-        }
+//        .contextMenu {
+//            TransactionContextMenu(trans: trans, transEditID: $transEditID, showDeleteAlert: $showDeleteAlert)
+//        }
+        
+        .fixedSize(horizontal: false, vertical: true)
+        
     }
     
     
@@ -175,7 +188,7 @@ struct LineItemMiniView: View {
                 : (trans.category?.color ?? .gray)
             )
             .frame(width: 3)
-            .frame(maxHeight: .infinity)
+            //.frame(maxHeight: .infinity)
             .padding(.vertical, 2)
     }
     
@@ -191,11 +204,13 @@ struct LineItemMiniView: View {
                     .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
                     .foregroundStyle(titleColor)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    //.frame(maxHeight: .infinity, alignment: .bottom)
                     .overlay { ExcludeFromTotalsLine(trans: trans) }
                 
                 totalText
                     .font(.system(size: 10))
                     .overlay { ExcludeFromTotalsLine(trans: trans) }
+                    .frame(maxHeight: .infinity, alignment: .bottom)
             }
             .if(wasUpdatedByAnotherUser) {
                 $0.italic(true).bold(true)
@@ -247,7 +262,8 @@ struct LineItemMiniView: View {
         .foregroundStyle(amountColor)
         .lineLimit(1)
     }
-            
+      
+    
     var dragPreview: some View {
         Text(trans.title)
             .padding(6)

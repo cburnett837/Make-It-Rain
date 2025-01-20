@@ -183,22 +183,13 @@ struct DayViewMac: View {
                             calModel.dragTarget = nil
                         }
                         
-//                        Task {
-//                            calModel.calculateTotalForMonth(month: calModel.sMonth)
-//                            let _ = await calModel.submit(trans)
-//                        }
-                        
                         calModel.saveTransaction(id: trans.id)
                     }
                     
                     return true
                     
-                } isTargeted: { isTargeted in
-                    if isTargeted {
-                        withAnimation {
-                            calModel.dragTarget = day
-                        }
-                    }
+                } isTargeted: {
+                    if $0 { withAnimation { calModel.dragTarget = day } }
                 }
                 
                 .sheet(isPresented: $showTransferSheet) {

@@ -126,6 +126,8 @@ struct CalendarViewMac: View {
         .dropDestination(for: CBTransaction.self) { droppedTrans, location in
             calModel.dragTarget = nil
             return true
+        } isTargeted: {
+            if $0 { withAnimation { calModel.dragTarget = nil } }
         }
         .contentShape(Rectangle())
         .onTapGesture {

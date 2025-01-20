@@ -56,7 +56,6 @@ struct MakeItRainApp: App {
     let keychainManager = KeychainManager()
     @State private var isUnlocked = false
     
-    
     init() {
         let calModel = CalendarModel()
         let payModel = PayMethodModel()
@@ -104,6 +103,16 @@ struct MakeItRainApp: App {
                     }
                 }
             }
+            #if os(iOS)
+            .fullScreenCover(isPresented: $appState.showPaymentMethodNeededSheet, onDismiss: { downloadInitial() }) {
+                PaymentMethodRequiredView()
+            }
+            #else
+            .sheet(isPresented: $appState.showPaymentMethodNeededSheet, onDismiss: { downloadInitial() }) {
+                PaymentMethodRequiredView()
+                    .padding()
+            }
+            #endif
             .environment(funcModel)
             .environment(calModel)
             .environment(payModel)
@@ -112,13 +121,6 @@ struct MakeItRainApp: App {
             .environment(repModel)
             .environment(\.colorScheme, preferDarkMode ? .dark : .light)
             .preferredColorScheme(preferDarkMode ? .dark : .light)
-//            .onReceive(AppState.shared.splashTimer) { input in
-//                AppState.shared.splashTimer.upstream.connect().cancel()
-//                withAnimation(.easeOut(duration: 1)) {
-//                    AppState.shared.holdSplash = false
-//                }
-//            }
-            
             #if os(iOS)
             .onAppear {
                 let or = UIDevice.current.orientation
@@ -162,22 +164,16 @@ struct MakeItRainApp: App {
                 }
             }
             #endif
-        
-            /// Univseral alert
+            /// Universal alert
             .alert(AppState.shared.alertText, isPresented: $appState.showAlert) {
                 if let function = AppState.shared.alertFunction {
-                    Button(AppState.shared.alertButtonText) {
-                        function()
-                    }
+                    Button(AppState.shared.alertButtonText, action: function)
                 }
-                
                 if let function = AppState.shared.alertFunction2 {
-                    Button(AppState.shared.alertButtonText2) {
-                        function()
-                    }
+                    Button(AppState.shared.alertButtonText2, action: function)
                 } else {
-                    Button("Close") {}
-                }                
+                    Button("Close", action: {})
+                }
             }
         }
         .defaultSize(width: 1000, height: 600)
@@ -215,40 +211,21 @@ struct MakeItRainApp: App {
                 .transition(.opacity)
                 .task {
                     funcModel.setDeviceUUID()
+                    
+                    /// This will check the keychain for credentials. If it finds them, it will attempt to authenticate with the server. If not, it will take the user to the login page.
+                    /// If the user successfully authenticates with the server, this will also look if the user has payment methods, and set AppState accordingly.
                     await funcModel.checkForCredentials()
+                    
                     if AuthState.shared.isLoggedIn {
-                        print("TASK")
-                        /// Add the current month to the NavPath
-                        /// Using this task, and `init()` of ``CalendarModel``, the app will start on the current month and year.
-                        /// ``todayMonth`` is in ``MakeItRainApp``
-                        
-                        /// When the user logs in, if they have no payment methods, make the payment method table the only view available.
-                        if !AppState.shared.methsExist {
+                        /// When the user logs in, if they have no payment methods, show the payment method required sheet.
+                        if AppState.shared.methsExist {
+                            downloadInitial()
+                        } else {
                             LoadingManager.shared.showInitiallyLoadingSpinner = false
                             LoadingManager.shared.showLoadingBar = false
-                            navManager.selection = .paymentMethods
-                        
-                            /// Fetch the unified payment methods (standard with every account).
-                            await payModel.fetchPaymentMethods(calModel: calModel)
-                            
-                        } else {
-                            /// This isn't used on the iPhone, but it needed to be set since the funcModel uses it to determine what to download first.
-                            /// This is used on the Mac.
-                            navManager.selection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
-                            
-                            navManager.navPath.append(NavDestination.getMonthFromInt(AppState.shared.todayMonth)!)
-                            LoadingManager.shared.showInitiallyLoadingSpinner = true
-                            //printPersistentMethods()
-                                        
-                            funcModel.refreshTask = Task {
-                                calModel.prepareMonths()
-                                if let selection = navManager.selection {
-                                    calModel.setSelectedMonthFromNavigation(navID: selection, prepareStartAmount: false)
-                                    await funcModel.downloadEverything(setDefaultPayMethod: true, createNewStructs: true, refreshTechnique: .viaInitial)
-                                }
-                            }
+                            AppState.shared.showPaymentMethodNeededSheet = true
                         }
-                        funcModel.longPollServerForChanges()
+                                                
                         NotificationManager.shared.registerForPushNotifications()
                     }
                 }
@@ -262,10 +239,25 @@ struct MakeItRainApp: App {
                 screenWidth = value.width
                 screenHeight = value.height
             }
-            //.environment(tagModel)
-            //.toolbar(.hidden, for: .windowToolbar)
     }
     
+    
+    
+    func downloadInitial() {
+        @Bindable var navManager = NavigationManager.shared
+        navManager.selection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+        
+        navManager.navPath.append(NavDestination.getMonthFromInt(AppState.shared.todayMonth)!)
+        LoadingManager.shared.showInitiallyLoadingSpinner = true
+                    
+        funcModel.refreshTask = Task {
+            calModel.prepareMonths()
+            if let selection = navManager.selection {
+                calModel.setSelectedMonthFromNavigation(navID: selection, prepareStartAmount: false)
+                await funcModel.downloadEverything(setDefaultPayMethod: true, createNewStructs: true, refreshTechnique: .viaInitial)
+            }
+        }
+    }
     
     private func setupTips() throws {
         // Show all defined tips in the app.
@@ -290,7 +282,73 @@ struct MakeItRainApp: App {
 
 
 
-
+struct PaymentMethodRequiredView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(CalendarModel.self) private var calModel
+    @Environment(PayMethodModel.self) private var payModel
+    
+    @State private var editPaymentMethod: CBPaymentMethod?
+    @State private var paymentMethodEditID: CBPaymentMethod.ID?
+    @State private var showLoadingSpinner = false
+    
+    var body: some View {
+        VStack {
+            Spacer()
+            
+            ContentUnavailableView("Let's Make it Rain", systemImage: "creditcard", description: Text("Get started by adding a payment method"))
+            Spacer()
+            
+            if showLoadingSpinner {
+                ProgressView {
+                    Text("Saving…")
+                }
+            } else {
+                Button("Add Payment Method") {
+                    paymentMethodEditID = UUID().uuidString
+                }
+                .focusable(false)
+                .padding(.vertical, 12)
+                .padding(.horizontal, 12)
+                .fontWeight(.bold)
+                .foregroundStyle(.white)
+                .background(.green.gradient, in: .capsule)
+                .buttonStyle(.plain)
+            }
+        }
+        .sheet(item: $editPaymentMethod, onDismiss: {
+            paymentMethodEditID = nil
+        }, content: { meth in
+            PayMethodView(payMethod: meth, payModel: payModel, editID: $paymentMethodEditID)
+        })
+        .onChange(of: paymentMethodEditID) { oldValue, newValue in
+            if let newValue {
+                let payMethod = payModel.getPaymentMethod(by: newValue)
+                editPaymentMethod = payMethod
+            } else {
+                /// Slimmed down logic from `payModel.savePaymentMethod()`
+                let payMethod = payModel.getPaymentMethod(by: oldValue!)
+                if payMethod.title.isEmpty {
+                    if payMethod.action != .add && payMethod.title.isEmpty {
+                        payMethod.title = payMethod.deepCopy?.title ?? ""
+                    }
+                    return
+                }
+                                
+                Task {
+                    showLoadingSpinner = true
+                    /// Save the newly created payment method to the server.
+                    let _ = await payModel.submit(payMethod)
+                    /// Fetch the newly added payment method, plus the 2 unified methods from the server.
+                    await payModel.fetchPaymentMethods(calModel: calModel)
+                    /// Allow entry into the normal app.
+                    AppState.shared.methsExist = true
+                    /// Close the sheet, which will kick off the normal download task.
+                    dismiss()
+                }
+            }
+        }
+    }
+}
 
 
 

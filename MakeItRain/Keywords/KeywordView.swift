@@ -28,10 +28,11 @@ struct KeywordView: View {
         } label: {
             Image(systemName: "trash")
         }
+        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
     }
     
-    var body: some View {
-        VStack(spacing: 0) {
+    var header: some View {
+        Group {
             SheetHeader(
                 title: title,
                 close: { editID = nil; dismiss() },
@@ -41,7 +42,15 @@ struct KeywordView: View {
             
             Divider()
                 .padding(.horizontal)
-            
+        }
+    }
+    
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            #if os(iOS)
+            if !AppState.shared.isLandscape { header }
+            #endif
             #if os(macOS)
             VStack(alignment: .center) {
                 HStack {
@@ -98,8 +107,8 @@ struct KeywordView: View {
             .padding(.bottom, 20)
             #else
             ScrollView {
+                if AppState.shared.isLandscape { header }
                 VStack(alignment: .leading, spacing: 6) {
-                    
                     GroupBox {
                         HStack(spacing: 0) {
                             Text("If the transaction title ")
@@ -122,10 +131,21 @@ struct KeywordView: View {
                                 
                             }
                         }
-                        StandardTextField("Keyword", text: $keyword.keyword, keyboardType: .text, focusedField: $focusedField, focusValue: 0)
-                        //.focused($focusedField, equals: .title)
+                        
+                        
+                        Group {
+                            #if os(iOS)
+                            StandardUITextFieldFancy("Keyword", text: $keyword.keyword, toolbar: {
+                                /// The blank text removes the up and down arrows.
+                                KeyboardToolbarView(focusedField: $focusedField, accessoryText1: "", accessoryText2: "")
+                            })
+                            .cbClearButtonMode(.whileEditing)
+                            .cbFocused(_focusedField, equals: 0)
+                            #else
+                            StandardTextField("Keyword", text: $keyword.keyword, keyboardType: .text, focusedField: $focusedField, focusValue: 0)
+                            #endif
+                        }
                     }
-                    
                     
                     GroupBox {
                         HStack(spacing: 0) {
@@ -133,7 +153,6 @@ struct KeywordView: View {
                             CategorySheetButton(category: $keyword.category)
                         }
                     }
-                    
                     
                     Spacer()
                 }

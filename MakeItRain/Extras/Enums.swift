@@ -240,6 +240,16 @@ enum TransactionSortMode: String {
 
 enum PhoneLineItemDisplayItem: String {
     case title, total, both, category
+    
+    static func fromString(_ theString: String) -> Self {
+        switch theString {
+        case "title": return .title
+        case "total": return .total
+        case "both": return .both
+        case "category": return .category
+        default: return .title
+        }
+    }
 }
 
 enum PhoneLineItemTotalPosition: String {

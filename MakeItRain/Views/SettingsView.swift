@@ -306,7 +306,7 @@ struct SettingsView: View {
             }
             #endif
                         
-            SettingsViewInsert()
+            SettingsViewInsert(shouldRecalculateTransHeight: .constant(false))
 
             
             

@@ -273,6 +273,15 @@ struct MaxViewHeightObserver: ViewModifier {
     }
 }
 
+struct TransMaxViewHeightObserver: ViewModifier {
+    func body(content: Content) -> some View {
+        return content.background {
+            GeometryReader { geo in
+                Color.clear.preference(key: TransMaxSizePreferenceKey.self, value: geo.size.height)
+            }
+        }
+    }
+}
 
 
 struct ViewWidthObserver: ViewModifier {

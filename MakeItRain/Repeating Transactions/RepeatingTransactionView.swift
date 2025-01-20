@@ -39,10 +39,11 @@ struct RepeatingTransactionView: View {
         } label: {
             Image(systemName: "trash")
         }
+        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
     }
-        
-    var body: some View {
-        VStack(spacing: 0) {
+    
+    var header: some View {
+        Group {
             SheetHeader(
                 title: title,
                 close: { editID = nil; dismiss() },
@@ -52,8 +53,20 @@ struct RepeatingTransactionView: View {
             
             Divider()
                 .padding(.horizontal)
-                        
+        }
+    }
+        
+    var body: some View {
+        VStack(spacing: 0) {
+            #if os(iOS)
+            if !AppState.shared.isLandscape { header }
+            #else
+            header
+            #endif
             ScrollView {
+                #if os(iOS)
+                if AppState.shared.isLandscape { header }
+                #endif
                 VStack(spacing: 6) {
                     LabeledRow("Name", labelWidth) {
                         #if os(iOS)
@@ -75,7 +88,7 @@ struct RepeatingTransactionView: View {
                         Group {
                             #if os(iOS)
                             StandardUITextFieldFancy("Amount", text: $repTransaction.amountString, toolbar: {
-                                KeyboardToolbarView(focusedField: $focusedField, accessoryText3: "plus.forwardslash.minus", accessoryFunc3: {
+                                KeyboardToolbarView(focusedField: $focusedField, accessoryImage3: "plus.forwardslash.minus", accessoryFunc3: {
                                     Helpers.plusMinus($repTransaction.amountString)
                                 })
                             })
@@ -220,63 +233,6 @@ struct RepeatingTransactionView: View {
     }
     
     
-//    var paymentMethodMenu: some View {
-//        RoundedRectangle(cornerRadius: 8)
-//            .fill(payMethodMenuColor)
-//            #if os(macOS)
-//            .frame(height: 27)
-//            #else
-//            .frame(height: 34)
-//            #endif
-//            .overlay {
-//                MenuOrListButton(title: repTransaction.payMethod?.title, alternateTitle: "Select Payment Method") {
-//                    showPaymentMethodSheet = true
-//                }
-//            }
-//            .onHover { payMethodMenuColor = $0 ? Color(.systemFill) : Color(.tertiarySystemFill) }
-//            .sheet(isPresented: $showPaymentMethodSheet) {
-//                PaymentMethodSheet(payMethod: $repTransaction.payMethod, whichPaymentMethods: .allExceptUnified)
-//                #if os(macOS)
-//                    .frame(minWidth: 300, minHeight: 500)
-//                    .presentationSizing(.fitted)
-//                #endif
-//            }
-//    }
-//    
-//    var categoryMenu: some View {
-//        RoundedRectangle(cornerRadius: 8)
-//            .fill(categoryMenuColor)
-//            #if os(macOS)
-//            .frame(height: 27)
-//            #else
-//            .frame(height: 34)
-//            #endif
-//            .overlay {
-//                MenuOrListButton(title: repTransaction.category?.title, alternateTitle: "Select Category") {
-//                    showCategorySheet = true
-//                }
-//           }
-//           .onHover { categoryMenuColor = $0 ? Color(.systemFill) : Color(.tertiarySystemFill) }
-//           .sheet(isPresented: $showCategorySheet) {
-//               CategorySheet(category: $repTransaction.category)
-//               #if os(macOS)
-//                   .frame(minWidth: 300, minHeight: 500)
-//                   .presentationSizing(.fitted)
-//               #endif
-//           }
-//    }
-    
-    
-//    
-//    func save() {
-//        dismiss()
-//        Task {
-//            guard !repTransaction.title.isEmpty else { return }
-//            repModel.upsert(repTransaction)
-//            await repModel.submit(repTransaction)
-//        }
-//    }
-    
     
     struct WeekdayToggles: View {
         @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
@@ -300,10 +256,8 @@ struct RepeatingTransactionView: View {
                             .contentShape(Circle())
                     }
                     .buttonStyle(.borderless)
-                    
-                    
+                                        
                     Divider()
-                    
                     
                     ForEach($repTransaction.when.filter { $0.whenType.wrappedValue == .weekday }) { $when in
                         Button {
@@ -350,12 +304,9 @@ struct RepeatingTransactionView: View {
                             .contentShape(Circle())
                     }
                     .buttonStyle(.borderless)
-                    
-                    
+                                        
                     Divider()
-                    
-                    
-                    
+                                                            
                     ForEach($repTransaction.when.filter { $0.whenType.wrappedValue == .month }) { $when in
                         Button {
                             when.active.toggle()
@@ -411,38 +362,4 @@ struct RepeatingTransactionView: View {
             .frame(maxWidth: .infinity)
         }
     }
-    
-    
-    
-//    struct WeekdayRow: View {
-//        @Environment(RepeatingTransactionModel.self) private var repModel
-//        @Bindable var repTransaction: CBRepeatingTransaction
-//                
-//        var body: some View {
-//            HStack {
-//                ForEach($repTransaction.when.filter { $0.whenType.wrappedValue == .weekday }) { $when in
-//                    Toggle(isOn: $when.active) {
-//                        Text(when.displayTitle)
-//                    }
-//                    Spacer()
-//                }
-//            }
-//        }
-//    }
-//    
-//    struct MonthRow: View {
-//        @Environment(RepeatingTransactionModel.self) private var repModel
-//        @Bindable var repTransaction: CBRepeatingTransaction
-//                
-//        var body: some View {
-//            HStack {
-//                ForEach($repTransaction.when.filter { $0.whenType.wrappedValue == .month }) { $when in
-//                    Toggle(isOn: $when.active) {
-//                        Text(when.displayTitle)
-//                    }
-//                    Spacer()
-//                }
-//            }
-//        }
-//    }
 }

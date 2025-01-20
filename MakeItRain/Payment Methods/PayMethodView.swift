@@ -42,6 +42,7 @@ struct PayMethodView: View {
         } label: {
             Image(systemName: "trash")
         }
+        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
     }
     
     var notificationButton: some View {
@@ -52,10 +53,8 @@ struct PayMethodView: View {
         }
     }
     
-    
-    
-    var body: some View {
-        VStack(spacing: 0) {
+    var header: some View {
+        Group {
             if payMethod.accountType == .credit && payMethod.dueDate != nil {
                 SheetHeader(
                     title: title,
@@ -75,8 +74,21 @@ struct PayMethodView: View {
             
             Divider()
                 .padding(.horizontal)
-            
+        }
+    }
+    
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            #if os(iOS)
+            if !AppState.shared.isLandscape { header }
+            #else
+            header
+            #endif
             ScrollView {
+                #if os(iOS)
+                if AppState.shared.isLandscape { header }
+                #endif
                 VStack(spacing: 6) {
                     LabeledRow("Name", labelWidth) {
                         #if os(iOS)

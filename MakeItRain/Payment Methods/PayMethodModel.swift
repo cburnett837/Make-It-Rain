@@ -183,12 +183,8 @@ class PayMethodModel {
     func submit(_ payMethod: CBPaymentMethod) async -> Bool {
         isThinking = true
         //LoadingManager.shared.startDelayedSpinner()
-        
-        
-        guard let entity = DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)), createIfNotFound: true) else { return false }
-
                 
-        
+        guard let entity = DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)), createIfNotFound: true) else { return false }
         entity.id = payMethod.id
         entity.title = payMethod.title
         entity.dueDate = Int64(payMethod.dueDate ?? 0)
@@ -205,6 +201,9 @@ class PayMethodModel {
                                                         
         let _ = DataManager.shared.save()
         
+        
+        print(payMethod.action)
+        print(entity.id)
         
         
         LogManager.log()
@@ -270,6 +269,9 @@ class PayMethodModel {
     
     func delete(_ payMethod: CBPaymentMethod, andSubmit: Bool, calModel: CalendarModel) async {
         print("-- \(#function)")
+        print(payMethod.id)
+        print(paymentMethods.map {$0.id})
+        
         payMethod.action = .delete
         paymentMethods.removeAll { $0.id == payMethod.id }
         
@@ -277,11 +279,6 @@ class PayMethodModel {
             month.days.forEach { day in
                 day.transactions.removeAll(where: { $0.payMethod?.id == payMethod.id })
             }
-        }        
-                
-        /// If you clear the only remaining payment method, make the payment method table the only view available.
-        if paymentMethods.filter({ $0.accountType != .unifiedChecking && $0.accountType != .unifiedCredit }).isEmpty {
-            AppState.shared.methsExist = false
         }
         
         if andSubmit {
@@ -347,11 +344,20 @@ class PayMethodModel {
     
     
     func determineIfUserIsRequiredToAddPaymentMethod() {
+        print("-- \(#function)")
         /// If you close the payment method edit page, and the data is not valid, hide all the other views.
         if AppState.shared.methsExist
         && paymentMethods.filter({ !$0.isUnified }).isEmpty {
             AppState.shared.methsExist = false
-            NavigationManager.shared.navigate(to: .paymentMethods)
+            AppState.shared.showPaymentMethodNeededSheet = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: {
+                #if os(iOS)
+                NavigationManager.shared.navPath = []
+                #else
+                NavigationManager.shared.selection = nil
+                #endif
+            })
+            
         } else {
             /// If you close the payment method edit page, and the data was valid, show all the other views.
             if !AppState.shared.methsExist

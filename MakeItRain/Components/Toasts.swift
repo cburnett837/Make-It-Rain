@@ -38,10 +38,12 @@ struct ToastView: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text(toast?.header ?? "")
                     .font(.callout)
+                    .bold()
                 Text(toast?.title ?? "")
                     .font(.caption2)
                 Text(toast?.message ?? "")
                     .font(.caption2)
+                    .foregroundStyle(.gray)
             }
             
             Spacer(minLength: 0)

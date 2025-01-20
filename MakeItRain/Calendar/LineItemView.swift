@@ -73,8 +73,6 @@ struct LineItemView: View {
     
     var body: some View {
         //let _ = Self._printChanges()
-        
-        
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 0) {
                 // MARK: - Color Dot
@@ -103,9 +101,7 @@ struct LineItemView: View {
                             CircleDot(color: .white, width: labelWidth)
                         }
                     }
-                
                 }
-                
                 
                 // MARK: - TITLE
                 let isNew = trans.title.isEmpty && trans.action == .add
@@ -126,14 +122,10 @@ struct LineItemView: View {
                 
             }
             .overlay { ExcludeFromTotalsLine(trans: trans) }
-            
-            
-            
-            
+                                                
             // MARK: - line 2
             VStack(alignment: .leading, spacing: 2) {
                 let wasUpdatedByAnotherUser = trans.updatedBy.id != AppState.shared.user?.id
-                
                 if showHashTagsOnLineItems {
                     if !trans.tags.isEmpty {
                         #if os(macOS)
@@ -153,7 +145,8 @@ struct LineItemView: View {
                         TagLayout(alignment: .leading, spacing: 5) {
                             ForEach(trans.tags) { tag in
                                 Text("#\(tag.tag)")
-                                    .foregroundStyle(Color.fromName(appColorTheme))
+                                    //.foregroundStyle(Color.fromName(appColorTheme))
+                                    .foregroundStyle(.gray)
                                     .bold()
                                     .font(.caption)
                             }
@@ -196,24 +189,19 @@ struct LineItemView: View {
         #if os(iOS)
         .padding(.vertical, 4)
         #endif
-        .draggable(trans) { dragPreview }
         .contentShape(Rectangle())
+        .draggable(trans) { dragPreview }
         .background {
             RoundedRectangle(cornerRadius: 4)
-                //.fill(calModel.hilightTrans == trans ? .gray.opacity(0.2) : .clear)
+                #if os(iOS)
+                .fill(calModel.hilightTrans == trans ? .gray.opacity(0.2) : .clear)
+                #else
                 .fill(transEditID == trans.id ? .gray.opacity(0.2) : .clear)
+                #endif
         }
         .onTapGesture(count: 1) {
             calModel.hilightTrans = trans
             transEditID = trans.id
-            
-//            if calModel.hilightTrans == trans {
-//                transEditID = trans.id
-//                //calModel.transEditID = trans.id
-//            } else {
-//                /// Used for hilighting.
-//                calModel.hilightTrans = trans
-//            }
         }
         .confirmationDialog("Delete \"\(trans.title)\"?", isPresented: $showDeleteAlert) {
             Button("Yes", role: .destructive) {
@@ -226,9 +214,11 @@ struct LineItemView: View {
             Text("Delete \"\(trans.title)\"?")
             #endif
         }
+        #if os(macOS)
         .contextMenu {
             TransactionContextMenu(trans: trans, transEditID: $transEditID, showDeleteAlert: $showDeleteAlert)
         }
+        #endif
         /// This `.popover(item: $transEditID) & .onChange(of: transEditID)` are used for editing existing transactions. They also exist in ``LineItemViewMac``, which are used to add new transactions.
         .popover(item: $transEditID, arrowEdge: .trailing, content: { id in
             TransactionEditView(transEditID: id, day: day, isTemp: false)
@@ -246,7 +236,6 @@ struct LineItemView: View {
         /// This onChange is needed because you can close the popover without actually clicking the close button.
         /// `popover()` has no `onDismiss()` optiion, so I need somewhere to do cleanup.
         .onChange(of: transEditID, { oldValue, newValue in
-            
             if oldValue == nil && newValue != nil {
                 focusedField = nil
             }
@@ -261,12 +250,15 @@ struct LineItemView: View {
     var dragPreview: some View {
         HStack {
             Text(trans.title)
+            #if os(macOS)
             Spacer()
             Text(trans.amountString)
+            #endif
         }
         .padding(6)
-        .frame(width: 120)
-        .background(trans.category?.color ?? .gray)
-        .cornerRadius(6)
-    }    
+        .background {
+            RoundedRectangle(cornerRadius: 4)
+                .fill(trans.category?.color ?? .gray)
+        }
+    }
 }

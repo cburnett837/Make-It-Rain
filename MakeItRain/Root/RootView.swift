@@ -93,12 +93,7 @@ struct RootView: View {
         #if os(iOS)
         /// Set ``sMonth`` in ``CalendarModel`` so the model is aware
         .onChange(of: navManager.navPath) { old, new in
-            print("onChange(of: navManager.navPath.count)")
-            
-            print(navManager.navPath)
-            
             if let newPath = navManager.navPath.last {
-                
                 /// I had this commented out, but put it back on 1/2/25 - I think it's needed for visuals only on iOS.
                 navManager.selection = newPath
                 
@@ -117,8 +112,6 @@ struct RootView: View {
                         /// Gotta have a selectedDay for the editing of a transaction. Since one is not always used in details view, set to the current day if in the current month, otherwise set to the first of the month.
                         let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
                         selectedDay = targetDay
-                        
-                        
                     }
                 } else {
                     

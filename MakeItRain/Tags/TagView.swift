@@ -29,15 +29,27 @@ struct TagView: View {
         }
     }
     
-    
-    var body: some View {
-        VStack(spacing: 0) {
+    var header: some View {
+        Group {
             SheetHeader(title: "Tags", close: { dismiss() })
                 .padding(.bottom, 12)
                 .padding(.horizontal)
                 .padding(.top)
-            
+        }
+    }
+    
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            #if os(iOS)
+            if !AppState.shared.isLandscape { header }
+            #else
+            header
+            #endif
             ScrollView {
+                #if os(iOS)
+                if AppState.shared.isLandscape { header }
+                #endif
                 StandardTextField("Search Tags", text: $searchText, isSearchField: true, focusedField: $focusedField, focusValue: 0)
                     //.focused($focusedField, equals: .search)
                     //.submitLabel(.search)

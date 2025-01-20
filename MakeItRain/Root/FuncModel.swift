@@ -417,6 +417,7 @@ class FuncModel {
                 .sorted { ($0.title ?? "").lowercased() < ($1.title ?? "").lowercased() }
                 //.filter { $0.id != nil } /// Have a weird bug that added blank in CoreData.
                 .forEach { meth in
+                    print(meth.title)
                     if setDefaultPayMethod && meth.isDefault {
                         calModel.sPayMethod = CBPaymentMethod(entity: meth)
                     }

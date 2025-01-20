@@ -14,6 +14,7 @@ class AppState {
     var downloadedData: Array<NavDestination> = []
     var user: CBUser?
     var methsExist = false
+    var showPaymentMethodNeededSheet = false
     
     var isInFullScreen = false
     var macWindowDidBecomeMain = false

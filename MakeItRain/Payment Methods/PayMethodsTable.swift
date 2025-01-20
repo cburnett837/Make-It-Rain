@@ -88,17 +88,19 @@ struct PayMethodsTable: View {
             #endif
         }
         
+        .onChange(of: sortOrder) { _, sortOrder in
+            payModel.paymentMethods.sort(using: sortOrder)
+        }
+        
         .sheet(item: $editPaymentMethod, onDismiss: {
             paymentMethodEditID = nil
+            payModel.determineIfUserIsRequiredToAddPaymentMethod()
         }, content: { meth in
             PayMethodView(payMethod: meth, payModel: payModel, editID: $paymentMethodEditID)
             #if os(iOS)
             //.presentationDetents([.medium, .large])
             #endif
         })
-        .onChange(of: sortOrder) { _, sortOrder in
-            payModel.paymentMethods.sort(using: sortOrder)
-        }
         .onChange(of: paymentMethodEditID) { oldValue, newValue in
             if let newValue {
                 let payMethod = payModel.getPaymentMethod(by: newValue)
@@ -119,6 +121,7 @@ struct PayMethodsTable: View {
                 if let deleteMethod = deleteMethod {
                     Task {
                         await payModel.delete(deleteMethod, andSubmit: true, calModel: calModel)
+                        payModel.determineIfUserIsRequiredToAddPaymentMethod()                                    
                     }
                 }
             }

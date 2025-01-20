@@ -34,10 +34,11 @@ struct CategoryView: View {
         } label: {
             Image(systemName: "trash")
         }
+        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
     }
-
-    var body: some View {
-        VStack(spacing: 0) {
+    
+    var header: some View {
+        Group {
             SheetHeader(
                 title: title,
                 close: { editID = nil; dismiss() },
@@ -47,8 +48,20 @@ struct CategoryView: View {
             
             Divider()
                 .padding(.horizontal)
-            
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            #if os(iOS)
+            if !AppState.shared.isLandscape { header }
+            #else
+            header
+            #endif
             ScrollView {
+                #if os(iOS)
+                if AppState.shared.isLandscape { header }
+                #endif
                 VStack(spacing: 6) {
                     LabeledRow("Name", labelWidth) {
                         #if os(iOS)
@@ -65,7 +78,7 @@ struct CategoryView: View {
                     LabeledRow("Budget", labelWidth) {
                         #if os(iOS)
                         StandardUITextFieldFancy("Monthly Amount", text: $category.amountString ?? "", toolbar: {
-                            KeyboardToolbarView(focusedField: $focusedField, accessoryText3: "plus.forwardslash.minus", accessoryFunc3: {
+                            KeyboardToolbarView(focusedField: $focusedField, accessoryImage3: "plus.forwardslash.minus", accessoryFunc3: {
                                 Helpers.plusMinus($category.amountString ?? "")
                             })
                         })

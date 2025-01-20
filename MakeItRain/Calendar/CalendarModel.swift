@@ -682,17 +682,19 @@ class CalendarModel {
     }
     
     func startDelayedLoadingSpinnerTimer() {
-        loadingSpinnerTimer = Timer(fireAt: Date.now.addingTimeInterval(2), interval: 0, target: self, selector: #selector(showLoadingSpinnerViaTimer), userInfo: nil, repeats: false)
-        if let loadingSpinnerTimer {
-            RunLoop.main.add(loadingSpinnerTimer, forMode: .common)
-        }
+        print("-- \(#function)")
+        if loadingSpinnerTimer != nil {
+            loadingSpinnerTimer = Timer(fireAt: Date.now.addingTimeInterval(2), interval: 0, target: self, selector: #selector(showLoadingSpinnerViaTimer), userInfo: nil, repeats: false)
+            RunLoop.main.add(loadingSpinnerTimer!, forMode: .common)
+        }        
     }
     
     func stopDelayedLoadingSpinnerTimer() {
+        print("-- \(#function)")
         if let loadingSpinnerTimer = self.loadingSpinnerTimer {
             loadingSpinnerTimer.invalidate()
-            showLoadingSpinner = false
         }
+        showLoadingSpinner = false
     }
     
     /// Only called from `funcModel.downloadEverything()`.

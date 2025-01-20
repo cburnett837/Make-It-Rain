@@ -15,6 +15,14 @@ struct MaxSizePreferenceKey: PreferenceKey {
     }
 }
 
+struct TransMaxSizePreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = .zero
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 
 struct ViewWidthKey: PreferenceKey {
     static var defaultValue: CGFloat = 0

@@ -30,108 +30,116 @@ struct SettingsViewInsert: View {
     
     @State private var demoDay = CBDay(date: Date())
     
+    
+    @State private var phoneLineItemDisplayItemWhenSettingsWasOpened: PhoneLineItemDisplayItem?
+    
+    
     var withDividers: Bool = false
+    @Binding var shouldRecalculateTransHeight: Bool
         
     var body: some View {
-        Section("Options") {
-            paymentMethodIndicatorToggle
-            useWholeNumbersToggle
-            tightenUpEodTotalsToggle
-            showShowHashTagToggle
-            incomeColorPicker
-        }
-        
-        #if os(iOS)
-        phoneLineItemDisplay
-        
-        Section("Demo Day View") {
-            HStack {
-                DemoDay(dayNum: 8)
-                    .frame(maxWidth: .infinity)
-                DemoDay(dayNum: 9)
-                    .frame(maxWidth: .infinity)
-                DemoDay(dayNum: 10)
-                    .frame(maxWidth: .infinity)
-                DemoDay(dayNum: 11)
-                    .frame(maxWidth: .infinity)
-            }
-        }
-        
-        #endif
-        
-        lineItemIndicatorPicker
-        
-        updatedByOtherPerson
-        
-        
-        Section {
-            Picker("Sort transactions by…", selection: $transactionSortMode.animation()) {
-                Text("Title")
-                    .tag(TransactionSortMode.title)
-                Text("Category")
-                    .tag(TransactionSortMode.category)
-                Text("Entered Date")
-                    .tag(TransactionSortMode.enteredDate)
+        Group {
+            Section("Options") {
+                paymentMethodIndicatorToggle
+                useWholeNumbersToggle
+                tightenUpEodTotalsToggle
+                showShowHashTagToggle
+                incomeColorPicker
             }
             
+            #if os(iOS)
+            phoneLineItemDisplay
             
-            if transactionSortMode == .category {
-                Picker("Sort categories by…", selection: $categorySortMode.animation()) {
+            Section("Demo Day View") {
+                HStack {
+                    DemoDay(dayNum: 8)
+                        .frame(maxWidth: .infinity)
+                    DemoDay(dayNum: 9)
+                        .frame(maxWidth: .infinity)
+                    DemoDay(dayNum: 10)
+                        .frame(maxWidth: .infinity)
+                    DemoDay(dayNum: 11)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            
+            #endif
+            
+            lineItemIndicatorPicker
+            
+            updatedByOtherPerson
+            
+            
+            Section {
+                Picker("Sort transactions by…", selection: $transactionSortMode.animation()) {
                     Text("Title")
-                        .tag(CategorySortMode.title)
-                    Text("Custom Order")
-                        .tag(CategorySortMode.listOrder)
+                        .tag(TransactionSortMode.title)
+                    Text("Category")
+                        .tag(TransactionSortMode.category)
+                    Text("Entered Date")
+                        .tag(TransactionSortMode.enteredDate)
                 }
-                /// Only needed if we change the sort order from the settings modal, while on the category page in macOS
-                #if os(macOS)
-                .onChange(of: categorySortMode) { oldValue, newValue in
-                    catModel.categories.sort {
-                        categorySortMode == .title
-                        ? ($0.title).lowercased() < ($1.title).lowercased()
-                        : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
+                
+                
+                if transactionSortMode == .category {
+                    Picker("Sort categories by…", selection: $categorySortMode.animation()) {
+                        Text("Title")
+                            .tag(CategorySortMode.title)
+                        Text("Custom Order")
+                            .tag(CategorySortMode.listOrder)
                     }
+                    /// Only needed if we change the sort order from the settings modal, while on the category page in macOS
+                    #if os(macOS)
+                    .onChange(of: categorySortMode) { oldValue, newValue in
+                        catModel.categories.sort {
+                            categorySortMode == .title
+                            ? ($0.title).lowercased() < ($1.title).lowercased()
+                            : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
+                        }
+                    }
+                    #endif
                 }
-                #endif
+                
+                
+            } header: {
+                Text("Sorting Options")
+            } footer: {
+                EmptyView()
             }
             
             
-        } header: {
-            Text("Sorting Options")
-        } footer: {
-            EmptyView()
-        }
-        
-        
-        Section {
-            VStack(alignment: .leading) {
-                TextField("Amount", text: $threshold)
-                #if os(macOS)
-                    .textFieldStyle(.roundedBorder)
-                #else
-                    .keyboardType(useWholeNumbers ? .numberPad : .decimalPad)
-                #endif
-            }
-        } header: {
-            Text("Low Balance Threshold")
-        } footer: {
-            Group {
-                Text("Any EOD total under \((Double(threshold) ?? 0).currencyWithDecimals(useWholeNumbers ? 0 : 2)) will be hilighted in ")
-                    .foregroundStyle(.gray)
-                    .font(.footnote)
-                + Text("orange")
-                    .foregroundStyle(.orange)
-                    .font(.footnote)
-                + Text("\n")
-                + Text("Any EOD total under \(0.currencyWithDecimals(useWholeNumbers ? 0 : 2)) will be hilighted in ")
-                    .foregroundStyle(.gray)
-                    .font(.footnote)
-                + Text("red")
-                    .foregroundStyle(.red)
-                    .font(.footnote)
+            Section {
+                VStack(alignment: .leading) {
+                    TextField("Amount", text: $threshold)
+                        #if os(macOS)
+                        .textFieldStyle(.roundedBorder)
+                        #else
+                        .keyboardType(useWholeNumbers ? .numberPad : .decimalPad)
+                        #endif
+                }
+            } header: {
+                Text("Low Balance Threshold")
+            } footer: {
+                Group {
+                    Text("Any EOD total under \((Double(threshold) ?? 0).currencyWithDecimals(useWholeNumbers ? 0 : 2)) will be hilighted in ")
+                        .foregroundStyle(.gray)
+                        .font(.footnote)
+                    + Text("orange")
+                        .foregroundStyle(.orange)
+                        .font(.footnote)
+                    + Text("\n")
+                    + Text("Any EOD total under \(0.currencyWithDecimals(useWholeNumbers ? 0 : 2)) will be hilighted in ")
+                        .foregroundStyle(.gray)
+                        .font(.footnote)
+                    + Text("red")
+                        .foregroundStyle(.red)
+                        .font(.footnote)
+                }
             }
         }
         
         .task {
+            print("TASk")
             let trans1 = CBTransaction()
             let cat1 = CBCategory()
             cat1.color = .red
@@ -153,6 +161,28 @@ struct SettingsViewInsert: View {
             demoDay.transactions = [
                 trans1, trans2, trans3
             ]
+            
+            phoneLineItemDisplayItemWhenSettingsWasOpened = phoneLineItemDisplayItem
+        }
+        .onChange(of: phoneLineItemDisplayItem) { oldValue, newValue in
+            
+            
+            print(phoneLineItemDisplayItemWhenSettingsWasOpened)
+            
+            if newValue != .both {
+                print("CHANGE")
+                shouldRecalculateTransHeight = true
+            }
+            
+            
+            if newValue == phoneLineItemDisplayItemWhenSettingsWasOpened {
+                print("NEGATE")
+                shouldRecalculateTransHeight = false
+            }
+            
+        }
+        .onChange(of: phoneLineItemTotalPosition) {
+            shouldRecalculateTransHeight = true
         }
 
     }
@@ -447,7 +477,8 @@ struct DemoDay: View {
                     transEditID: .constant(nil),
                     trans: trans,
                     day: day,
-                    putBackToBottomPanelViewOnRotate: .constant(false)
+                    putBackToBottomPanelViewOnRotate: .constant(false),
+                    transHeight: .constant(40)
                 )
                 .padding(.vertical, 0)
             }

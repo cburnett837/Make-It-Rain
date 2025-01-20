@@ -87,6 +87,16 @@ struct TransactionEditView: View {
         }
     }
     
+    var header: some View {
+        Group {
+            SheetHeaderView(title: title, trans: trans, focusedField: $focusedField, showDeleteAlert: $showDeleteAlert)
+                .padding()
+            
+            Divider()
+                .padding(.horizontal)
+        }
+    }
+    
     var body: some View {
         //let _ = Self._printChanges()
         @Bindable var calModel = calModel
@@ -97,13 +107,16 @@ struct TransactionEditView: View {
         //NavigationStack {
             VStack(spacing: 0) {
                 /// There's a bug in dismiss() that causes the photo sheet to open, close, and then open again. By moving the dismiss variable into a seperate view, it doesn't affect the photo sheet anymore.
-                SheetHeaderView(title: title, trans: trans, focusedField: $focusedField, showDeleteAlert: $showDeleteAlert)
-                    .padding()
-                
-                Divider()
-                    .padding(.horizontal)
+                #if os(iOS)
+                if !AppState.shared.isLandscape { header }
+                #else
+                header
+                #endif                                
               
                 ScrollView {
+                    #if os(iOS)
+                    if AppState.shared.isLandscape { header }
+                    #endif                    
                     VStack(spacing: 6) {
                         titleTextField
                         amountTextField
@@ -876,6 +889,7 @@ struct TransactionEditView: View {
             } label: {
                 Image(systemName: "trash")
             }
+            .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
         }
         
         var notificationButton: some View {

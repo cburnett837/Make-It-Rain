@@ -208,6 +208,10 @@ extension View {
         modifier(MaxViewHeightObserver())
     }
     
+    func transMaxViewHeightObserver() -> some View {
+        modifier(TransMaxViewHeightObserver())
+    }
+    
     func viewWidthObserver() -> some View {
         modifier(ViewWidthObserver())
     }
