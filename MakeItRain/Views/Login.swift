@@ -100,17 +100,7 @@ struct Login: View {
                     .opacity(attemptingLogin ? 0 : 1)
                     .buttonStyle(.borderedProminent)
                     .tint(.green)
-                    .keyboardShortcut(.return)
-                    
-                    Button("Test") {
-                        email = "cburnett837@yahoo.com"
-                        password = "idkyet"
-                        attemptingLogin = true
-                        Task { await attemptLogin() }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.green)
-                    
+                    .keyboardShortcut(.return)                    
                 }
                 .overlay {
                     ProgressView()

@@ -51,6 +51,7 @@ struct MakeItRainApp: App {
     @State private var catModel: CategoryModel
     @State private var keyModel: KeywordModel
     @State private var repModel: RepeatingTransactionModel
+    @State private var eventModel: EventModel
     //@State private var tagModel = TagModel()
     
     let keychainManager = KeychainManager()
@@ -62,14 +63,16 @@ struct MakeItRainApp: App {
         let catModel = CategoryModel()
         let keyModel = KeywordModel()
         let repModel = RepeatingTransactionModel()
+        let eventModel = EventModel()
         
         self.calModel = calModel
         self.payModel = payModel
         self.catModel = catModel
         self.keyModel = keyModel
         self.repModel = repModel
+        self.eventModel = eventModel
         
-        self.funcModel = .init(calModel: calModel, payModel: payModel, catModel: catModel, keyModel: keyModel, repModel: repModel)
+        self.funcModel = .init(calModel: calModel, payModel: payModel, catModel: catModel, keyModel: keyModel, repModel: repModel, eventModel: eventModel)
         
         do {
             try setupTips()
@@ -119,6 +122,7 @@ struct MakeItRainApp: App {
             .environment(catModel)
             .environment(keyModel)
             .environment(repModel)
+            .environment(eventModel)
             .environment(\.colorScheme, preferDarkMode ? .dark : .light)
             .preferredColorScheme(preferDarkMode ? .dark : .light)
             #if os(iOS)
@@ -284,6 +288,7 @@ struct MakeItRainApp: App {
 
 struct PaymentMethodRequiredView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(FuncModel.self) private var funcModel
     @Environment(CalendarModel.self) private var calModel
     @Environment(PayMethodModel.self) private var payModel
     
@@ -305,6 +310,18 @@ struct PaymentMethodRequiredView: View {
             } else {
                 Button("Add Payment Method") {
                     paymentMethodEditID = UUID().uuidString
+                }
+                .focusable(false)
+                .padding(.vertical, 12)
+                .padding(.horizontal, 12)
+                .fontWeight(.bold)
+                .foregroundStyle(.white)
+                .background(.green.gradient, in: .capsule)
+                .buttonStyle(.plain)
+                
+                Button("Logout") {
+                    AppState.shared.showPaymentMethodNeededSheet = false
+                    funcModel.logout()
                 }
                 .focusable(false)
                 .padding(.vertical, 12)

@@ -137,6 +137,22 @@
 		FDC26E902D3E86D500B0A97C /* DollarPartical.sks in Resources */ = {isa = PBXBuildFile; fileRef = FDC26DB82D3E86D500B0A97C /* DollarPartical.sks */; };
 		FDC26E912D3E86D500B0A97C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FDC26D902D3E86D500B0A97C /* Assets.xcassets */; };
 		FDC26E922D3E86D500B0A97C /* gitignore in Resources */ = {isa = PBXBuildFile; fileRef = FDC26DC02D3E86D500B0A97C /* gitignore */; };
+		FDC26E952D3E935A00B0A97C /* CBEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26E942D3E935A00B0A97C /* CBEvent.swift */; };
+		FDC26E972D3E9B2F00B0A97C /* EventsTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26E962D3E9B2F00B0A97C /* EventsTable.swift */; };
+		FDC26E992D3E9BCA00B0A97C /* EventModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26E982D3E9BCA00B0A97C /* EventModel.swift */; };
+		FDC26E9B2D3E9D5700B0A97C /* EventView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26E9A2D3E9D5700B0A97C /* EventView.swift */; };
+		FDC26E9D2D3EA7F800B0A97C /* MultiUserSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26E9C2D3EA7F800B0A97C /* MultiUserSheet.swift */; };
+		FDC26E9F2D3ECC1900B0A97C /* CBEventParticipant.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26E9E2D3ECC1900B0A97C /* CBEventParticipant.swift */; };
+		FDC26EA12D3F134600B0A97C /* CBEventItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26EA02D3F134600B0A97C /* CBEventItem.swift */; };
+		FDC26EA32D3FE6C100B0A97C /* EventItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26EA22D3FE6C100B0A97C /* EventItemView.swift */; };
+		FDC26EA52D3FF61900B0A97C /* EventIdModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26EA42D3FF61900B0A97C /* EventIdModel.swift */; };
+		FDC26EA72D40139100B0A97C /* EventTransactionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26EA62D40139100B0A97C /* EventTransactionView.swift */; };
+		FDC26EA92D40175C00B0A97C /* CBEventTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26EA82D40175C00B0A97C /* CBEventTransaction.swift */; };
+		FDC26EC52D4131E000B0A97C /* UserSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26EC42D4131E000B0A97C /* UserSheet.swift */; };
+		FDC26EC82D413B8900B0A97C /* XrefModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26EC72D413B8900B0A97C /* XrefModel.swift */; };
+		FDC26ECC2D4166D000B0A97C /* CBEventInvite.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26ECB2D4166D000B0A97C /* CBEventInvite.swift */; };
+		FDC26ECE2D41792600B0A97C /* EventPendingInviteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26ECD2D41792600B0A97C /* EventPendingInviteView.swift */; };
+		FDC26ED02D42898D00B0A97C /* EventInviteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26ECF2D42898D00B0A97C /* EventInviteView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -273,6 +289,22 @@
 		FDC26E0D2D3E86D500B0A97C /* TransactionListLine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionListLine.swift; sourceTree = "<group>"; };
 		FDC26E0E2D3E86D500B0A97C /* TransferSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferSheet.swift; sourceTree = "<group>"; };
 		FDC26E0F2D3E86D500B0A97C /* YearPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YearPicker.swift; sourceTree = "<group>"; };
+		FDC26E942D3E935A00B0A97C /* CBEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBEvent.swift; sourceTree = "<group>"; };
+		FDC26E962D3E9B2F00B0A97C /* EventsTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsTable.swift; sourceTree = "<group>"; };
+		FDC26E982D3E9BCA00B0A97C /* EventModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventModel.swift; sourceTree = "<group>"; };
+		FDC26E9A2D3E9D5700B0A97C /* EventView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventView.swift; sourceTree = "<group>"; };
+		FDC26E9C2D3EA7F800B0A97C /* MultiUserSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiUserSheet.swift; sourceTree = "<group>"; };
+		FDC26E9E2D3ECC1900B0A97C /* CBEventParticipant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBEventParticipant.swift; sourceTree = "<group>"; };
+		FDC26EA02D3F134600B0A97C /* CBEventItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBEventItem.swift; sourceTree = "<group>"; };
+		FDC26EA22D3FE6C100B0A97C /* EventItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventItemView.swift; sourceTree = "<group>"; };
+		FDC26EA42D3FF61900B0A97C /* EventIdModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventIdModel.swift; sourceTree = "<group>"; };
+		FDC26EA62D40139100B0A97C /* EventTransactionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTransactionView.swift; sourceTree = "<group>"; };
+		FDC26EA82D40175C00B0A97C /* CBEventTransaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBEventTransaction.swift; sourceTree = "<group>"; };
+		FDC26EC42D4131E000B0A97C /* UserSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSheet.swift; sourceTree = "<group>"; };
+		FDC26EC72D413B8900B0A97C /* XrefModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XrefModel.swift; sourceTree = "<group>"; };
+		FDC26ECB2D4166D000B0A97C /* CBEventInvite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBEventInvite.swift; sourceTree = "<group>"; };
+		FDC26ECD2D41792600B0A97C /* EventPendingInviteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventPendingInviteView.swift; sourceTree = "<group>"; };
+		FDC26ECF2D42898D00B0A97C /* EventInviteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventInviteView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -290,8 +322,8 @@
 		FD292E052C9B248B003C18D2 = {
 			isa = PBXGroup;
 			children = (
-				FDC26E102D3E86D500B0A97C /* MakeItRain */,
 				FDA579372C9E6FA9004E9B60 /* PersistentModel.xcdatamodeld */,
+				FDC26E102D3E86D500B0A97C /* MakeItRain */,
 				FD292E0F2C9B248B003C18D2 /* Products */,
 				FDC26D312D3E85FC00B0A97C /* MakeItRain.xcodeproj */,
 			);
@@ -407,6 +439,21 @@
 		FDC26D802D3E86D500B0A97C /* Events */ = {
 			isa = PBXGroup;
 			children = (
+				FDC26E942D3E935A00B0A97C /* CBEvent.swift */,
+				FDC26E9E2D3ECC1900B0A97C /* CBEventParticipant.swift */,
+				FDC26EA02D3F134600B0A97C /* CBEventItem.swift */,
+				FDC26EA82D40175C00B0A97C /* CBEventTransaction.swift */,
+				FDC26ECB2D4166D000B0A97C /* CBEventInvite.swift */,
+				FDC26EA42D3FF61900B0A97C /* EventIdModel.swift */,
+				FDC26E982D3E9BCA00B0A97C /* EventModel.swift */,
+				FDC26E962D3E9B2F00B0A97C /* EventsTable.swift */,
+				FDC26E9A2D3E9D5700B0A97C /* EventView.swift */,
+				FDC26EA22D3FE6C100B0A97C /* EventItemView.swift */,
+				FDC26EA62D40139100B0A97C /* EventTransactionView.swift */,
+				FDC26ECD2D41792600B0A97C /* EventPendingInviteView.swift */,
+				FDC26EC42D4131E000B0A97C /* UserSheet.swift */,
+				FDC26E9C2D3EA7F800B0A97C /* MultiUserSheet.swift */,
+				FDC26ECF2D42898D00B0A97C /* EventInviteView.swift */,
 			);
 			path = Events;
 			sourceTree = "<group>";
@@ -563,6 +610,7 @@
 				FDC26D8D2D3E86D500B0A97C /* AppDelegate.swift */,
 				FDC26D8E2D3E86D500B0A97C /* AppState.swift */,
 				FDC26D8F2D3E86D500B0A97C /* AppTips.swift */,
+				FDC26D882D3E86D500B0A97C /* Root */,
 				FDC26D7A2D3E86D500B0A97C /* Authentication */,
 				FDC26D7B2D3E86D500B0A97C /* Budget */,
 				FDC26D7C2D3E86D500B0A97C /* Calendar */,
@@ -577,10 +625,10 @@
 				FDC26D852D3E86D500B0A97C /* Payment Methods */,
 				FDC26D862D3E86D500B0A97C /* Preview Content */,
 				FDC26D872D3E86D500B0A97C /* Repeating Transactions */,
-				FDC26D882D3E86D500B0A97C /* Root */,
 				FDC26D892D3E86D500B0A97C /* Tags */,
 				FDC26D8A2D3E86D500B0A97C /* Transaction */,
 				FDC26D8B2D3E86D500B0A97C /* Views */,
+				FDC26EC62D413B7700B0A97C /* XREF */,
 				FDC26D902D3E86D500B0A97C /* Assets.xcassets */,
 				FDC26D912D3E86D500B0A97C /* Assets 2.xcassets */,
 				FDC26DB82D3E86D500B0A97C /* DollarPartical.sks */,
@@ -589,6 +637,14 @@
 				FDC26DD22D3E86D500B0A97C /* MakeItRain.entitlements */,
 			);
 			path = MakeItRain;
+			sourceTree = "<group>";
+		};
+		FDC26EC62D413B7700B0A97C /* XREF */ = {
+			isa = PBXGroup;
+			children = (
+				FDC26EC72D413B8900B0A97C /* XrefModel.swift */,
+			);
+			path = XREF;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -685,13 +741,17 @@
 				FDC26E152D3E86D500B0A97C /* Modifiers.swift in Sources */,
 				FDC26E162D3E86D500B0A97C /* MultiMonthSheet.swift in Sources */,
 				FDC26E172D3E86D500B0A97C /* PayMethodModel.swift in Sources */,
+				FDC26E9B2D3E9D5700B0A97C /* EventView.swift in Sources */,
 				FDC26E182D3E86D500B0A97C /* PreferenceKeys.swift in Sources */,
+				FDC26E9F2D3ECC1900B0A97C /* CBEventParticipant.swift in Sources */,
 				FDC26E192D3E86D500B0A97C /* AppDelegate.swift in Sources */,
+				FDC26EA12D3F134600B0A97C /* CBEventItem.swift in Sources */,
 				FDC26E1A2D3E86D500B0A97C /* LabeledRow.swift in Sources */,
 				FDC26E1B2D3E86D500B0A97C /* Keys.swift in Sources */,
 				FDC26E1C2D3E86D500B0A97C /* LoadingManager.swift in Sources */,
 				FDC26E1D2D3E86D500B0A97C /* TagView.swift in Sources */,
 				FDC26E1E2D3E86D500B0A97C /* MultiYearSheet.swift in Sources */,
+				FDC26ECE2D41792600B0A97C /* EventPendingInviteView.swift in Sources */,
 				FDC26E1F2D3E86D500B0A97C /* CBMonth.swift in Sources */,
 				FDC26E202D3E86D500B0A97C /* TransactionEditView.swift in Sources */,
 				FDC26E212D3E86D500B0A97C /* RepeatingTransactionModel.swift in Sources */,
@@ -705,7 +765,9 @@
 				FDC26E292D3E86D500B0A97C /* LogManager.swift in Sources */,
 				FDC26E2A2D3E86D500B0A97C /* SFSafariView.swift in Sources */,
 				FDC26E2B2D3E86D500B0A97C /* TagsTable.swift in Sources */,
+				FDC26E972D3E9B2F00B0A97C /* EventsTable.swift in Sources */,
 				FDC26E2C2D3E86D500B0A97C /* ToolbarRefreshButton.swift in Sources */,
+				FDC26ECC2D4166D000B0A97C /* CBEventInvite.swift in Sources */,
 				FDC26E2E2D3E86D500B0A97C /* ReminderCreator.swift in Sources */,
 				FDC26E2F2D3E86D500B0A97C /* CBPaymentMethod.swift in Sources */,
 				FDC26E302D3E86D500B0A97C /* MakeItRainApp.swift in Sources */,
@@ -716,6 +778,7 @@
 				FDC26E352D3E86D500B0A97C /* AuthState.swift in Sources */,
 				FDC26E362D3E86D500B0A97C /* SheetHeader.swift in Sources */,
 				FDC26E372D3E86D500B0A97C /* DataManager.swift in Sources */,
+				FDC26E9D2D3EA7F800B0A97C /* MultiUserSheet.swift in Sources */,
 				FDC26E382D3E86D500B0A97C /* ButtonStyles.swift in Sources */,
 				FDC26E392D3E86D500B0A97C /* ToolbarNowButton.swift in Sources */,
 				FDC26E3A2D3E86D500B0A97C /* StartingAmountSheet.swift in Sources */,
@@ -730,11 +793,14 @@
 				FDC26E432D3E86D500B0A97C /* CBKeyword.swift in Sources */,
 				FDC26E442D3E86D500B0A97C /* CBTransaction.swift in Sources */,
 				FDC26E452D3E86D500B0A97C /* PaymentMethodMenu.swift in Sources */,
+				FDC26EC82D413B8900B0A97C /* XrefModel.swift in Sources */,
 				FDC26E462D3E86D500B0A97C /* Toasts.swift in Sources */,
+				FDC26EC52D4131E000B0A97C /* UserSheet.swift in Sources */,
 				FDC26E472D3E86D500B0A97C /* CalendarViewMac.swift in Sources */,
 				FDC26E482D3E86D500B0A97C /* CalendarViewPhone.swift in Sources */,
 				FDC26E492D3E86D500B0A97C /* Helpers.swift in Sources */,
 				FDC26E4A2D3E86D500B0A97C /* MultiPaymentMethodSheet.swift in Sources */,
+				FDC26EA72D40139100B0A97C /* EventTransactionView.swift in Sources */,
 				FDC26E4B2D3E86D500B0A97C /* RepeatingTransactionsTable.swift in Sources */,
 				FDC26E4C2D3E86D500B0A97C /* ResetMonthModel.swift in Sources */,
 				FDC26E4D2D3E86D500B0A97C /* CBTransfer.swift in Sources */,
@@ -742,6 +808,7 @@
 				FDC26E4F2D3E86D500B0A97C /* ColorPickerView.swift in Sources */,
 				FDC26E502D3E86D500B0A97C /* SplashScreen.swift in Sources */,
 				FDC26E512D3E86D500B0A97C /* CBCategory.swift in Sources */,
+				FDC26E952D3E935A00B0A97C /* CBEvent.swift in Sources */,
 				FDC26E522D3E86D500B0A97C /* LineItemView.swift in Sources */,
 				FDC26E532D3E86D500B0A97C /* TitleColorMenu.swift in Sources */,
 				FDC26E542D3E86D500B0A97C /* NavLinkPhone.swift in Sources */,
@@ -761,7 +828,9 @@
 				FDC26E632D3E86D500B0A97C /* StandardDivider.swift in Sources */,
 				FDC26E642D3E86D500B0A97C /* KeywordModel.swift in Sources */,
 				FDC26E652D3E86D500B0A97C /* LineItemMiniView.swift in Sources */,
+				FDC26EA92D40175C00B0A97C /* CBEventTransaction.swift in Sources */,
 				FDC26E662D3E86D500B0A97C /* CategorySheet.swift in Sources */,
+				FDC26ED02D42898D00B0A97C /* EventInviteView.swift in Sources */,
 				FDC26E672D3E86D500B0A97C /* RootView.swift in Sources */,
 				FDC26E682D3E86D500B0A97C /* RootViewFunctions.swift in Sources */,
 				FDC26E692D3E86D500B0A97C /* TagModel.swift in Sources */,
@@ -786,6 +855,7 @@
 				FDC26E7C2D3E86D500B0A97C /* NavSidebarPhone.swift in Sources */,
 				FDC26E7D2D3E86D500B0A97C /* CBStartingAmount.swift in Sources */,
 				FDC26E7E2D3E86D500B0A97C /* CategoryModel.swift in Sources */,
+				FDC26E992D3E9BCA00B0A97C /* EventModel.swift in Sources */,
 				FDC26E7F2D3E86D500B0A97C /* DayContextMenu.swift in Sources */,
 				FDC26E802D3E86D500B0A97C /* LogSheet.swift in Sources */,
 				FDC26E812D3E86D500B0A97C /* CBUser.swift in Sources */,
@@ -797,8 +867,10 @@
 				FDC26E872D3E86D500B0A97C /* FuncModel.swift in Sources */,
 				FDC26E882D3E86D500B0A97C /* TempTransactionList.swift in Sources */,
 				FDC26E892D3E86D500B0A97C /* Textfields.swift in Sources */,
+				FDC26EA32D3FE6C100B0A97C /* EventItemView.swift in Sources */,
 				FDC26E8A2D3E86D500B0A97C /* RequestModel.swift in Sources */,
 				FDC26E8B2D3E86D500B0A97C /* RepeatingAndBudgetSubmissionModel.swift in Sources */,
+				FDC26EA52D3FF61900B0A97C /* EventIdModel.swift in Sources */,
 				FDC26E8C2D3E86D500B0A97C /* CalendarModel.swift in Sources */,
 				FDC26E8D2D3E86D500B0A97C /* CategoryAnalysisSheet.swift in Sources */,
 				FDA579392C9E6FA9004E9B60 /* PersistentModel.xcdatamodeld in Sources */,

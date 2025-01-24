@@ -54,6 +54,7 @@ struct NavSidebar: View {
                     if AppState.shared.methsExist {
                         NavLinkPhone2(destination: .categories, title: "Categories", image: "books.vertical")
                         NavLinkPhone2(destination: .keywords, title: "Keywords", image: "textformat.abc.dottedunderline")
+                        NavLinkPhone2(destination: .events, title: "Events", image: "beach.umbrella")
                     }
                 }
             }

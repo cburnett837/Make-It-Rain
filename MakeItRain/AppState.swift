@@ -13,6 +13,7 @@ class AppState {
     static let shared = AppState()
     var downloadedData: Array<NavDestination> = []
     var user: CBUser?
+    var accountUsers: Array<CBUser> = []
     var methsExist = false
     var showPaymentMethodNeededSheet = false
     
@@ -151,7 +152,7 @@ class AppState {
         
         let model = RequestModel(requestType: "check_connection", model: CodablePlaceHolder())
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager(timeout: 3).singleRequest(requestModel: model)
+        async let result: ResultResponse = await NetworkManager(timeout: 10).singleRequest(requestModel: model)
         
         switch await result {
         case .success(let model):

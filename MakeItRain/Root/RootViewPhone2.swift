@@ -84,6 +84,9 @@ struct RootViewPhone2: View {
                     case .analytics:
                         Text("analytics")
                         
+                    case .events:
+                        EventsTable()
+                        
                     @unknown default:
                        EmptyView()
                     }

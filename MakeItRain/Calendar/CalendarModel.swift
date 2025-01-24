@@ -306,8 +306,6 @@ class CalendarModel {
                 month.days.forEach { day in
                     day.transactions.forEach { trans in
                         if trans.id == id {
-                            //#error("NEED TO ignore editing transaction if from sceneChange")
-                            
                             /// Ignore the currently viewed transaction if coming back to the app from another app (ie if bouncing back and forth between this app and a banking app)
                             if id == transEditID {
                                 if refreshTechnique == .viaSceneChange || refreshTechnique == .viaTempListSceneChange {
@@ -322,47 +320,6 @@ class CalendarModel {
                             } else {
                                 if let index = day.getIndex(for: transaction) {
                                     ogObject = day.transactions[index]
-                                    
-                                    //let (changes, changeCount) = ogObject!.getChanges(new: transaction)
-                                    
-//                                    if changeCount > 1 {
-//
-//                                    } else {
-//                                        if changes.contains("title") {
-//                                            let message = "Change: \(ogObject!.title) -> \(transaction.title)"
-//                                            AppState.shared.showToast(
-//                                                header: "Transaction Title Changed",
-//                                                title: "Title: \(transaction.title)",
-//                                                message: message,
-//                                                symbol: "creditcard"
-//                                            )
-//                                        }
-//
-//                                        if changes.contains("date") {
-//                                            let message = "Change: \(ogObject!.date?.string(to: .monthDayShortYear) ?? "N/A") -> \(transaction.date?.string(to: .monthDayShortYear) ?? "N/A")"
-//                                            AppState.shared.showToast(
-//                                                header: "Transaction Date Changed",
-//                                                title: "Title: \(transaction.title)",
-//                                                message: message,
-//                                                symbol: "creditcard"
-//                                            )
-//                                        }
-//
-//
-////                                        if changes.contains("amount") {
-////                                            let message = "\(ogObject!.amount) was changed to \(transaction.amount)"
-////                                            AppState.shared.showToast(title: message, symbol: "creditcard")
-////                                        }
-////                                        if changes.contains("title") {
-////                                            let message = "\(ogObject!.title) was changed to \(transaction.title)"
-////                                            AppState.shared.showToast(title: message, symbol: "creditcard")
-////                                        }
-////                                        if changes.contains("title") {
-////                                            let message = "\(ogObject!.title) was changed to \(transaction.title)"
-////                                            AppState.shared.showToast(title: message, symbol: "creditcard")
-////                                        }
-//                                    }
-                                                                                                                                                
                                     ogObject!.setFromAnotherInstance(transaction: transaction)
                                     ogObject!.deepCopy?.setFromAnotherInstance(transaction: transaction)
                                 }
@@ -380,20 +337,10 @@ class CalendarModel {
             }
             
             if !exists {
-                //print("Transaction Doesn't Exist")
                 ogObject = transaction
-                                                
-//                AppState.shared.showToast(
-//                    header: "New Transaction Added",
-//                    title: "Title: \(transaction.title)",
-//                    message: "\(transaction.date?.string(to: .monthDayShortYear) ?? "N/A")",
-//                    symbol: "creditcard"
-//                )
-                
             }
                                     
             if !exists || dateChanged {
-                //print("\(month) \(date) \(year)")
                 var targetMonthNum = month
                 if month == 1 && year == sYear + 1 {
                     targetMonthNum = 13
@@ -404,7 +351,6 @@ class CalendarModel {
                 
                 if let targetMonth = months.filter({ $0.num == targetMonthNum }).first {
                     if let targetDay = targetMonth.days.filter({ $0.dateComponents?.day == dayNum }).first {
-                        //print("APPENDING NEW TRANSACTION")
                         targetDay.upsert(ogObject!)
                     }
                 }
@@ -416,21 +362,7 @@ class CalendarModel {
                 .flatMap { $0.days }
                 .filter { day in day.transactions.contains { $0.id == id && $0.date != day.date } }
                 .forEach { $0.transactions.removeAll { $0.id == id } }
-                
-                
-//                months.forEach { month in
-//                    month.days.forEach { day in
-//                        day.transactions.forEach { trans in
-//                            if trans.id == id && date != day.date {
-//                                day.remove(transaction)
-//                            }
-//                        }
-//                    }
-//                }
             }
-            
-//            let montObj = months.filter{ $0.num == month }.first!
-//            calculateTotalForMonth(month: montObj)
         }
         
         
@@ -479,8 +411,7 @@ class CalendarModel {
                     let exists = !targetDay.transactions.filter { $0.id == trans.id }.isEmpty
                     if exists {
                         targetDay.transactions.removeAll(where: { $0.id == trans.id })
-                        
-                        
+                                                
                         if newDate?.year == oldDate?.year {
                             if let targetMonth = months.filter({ $0.num == newDate?.month }).first {
                                 if let targetDay = targetMonth.days.filter({ $0.date == newDate }).first {
@@ -493,9 +424,183 @@ class CalendarModel {
             }
         }
     }
+    
+    func transactionIsValid(trans: CBTransaction, day: CBDay? = nil) -> Bool {
+        /// Check for blank title or missing payment method
+        if trans.title.isEmpty || trans.payMethod == nil /*&& day.date == nil*/ {
+            print("-- \(#function) -- Title or payment method missing 1")
+            /// If a transaction is already existing, and you wipe out the title, put the title back and alert the user.
+            if trans.action != .add && trans.title.isEmpty {
+                trans.title = trans.deepCopy?.title ?? ""
+                                
+                AppState.shared.showAlert("Removing a title from a transaction is not allowed. If you want to delete \(trans.title), please use the delete button instead.")
+            } else {
+                day?.remove(trans)
+            }
+            
+            if !trans.title.isEmpty && trans.payMethod == nil {
+                Task {
+                    try? await Task.sleep(nanoseconds: UInt64(1 * Double(NSEC_PER_SEC)))
+                    
+                    AppState.shared.showToast(header: "Failed To Add", title: "Payment Method was missing", message: "", symbol: "exclamationmark.triangle", symbolColor: .orange)
+                }
+            }
+            return false
+        }
+        
+        /// If there is no changes
+        if !trans.hasChanges() && trans.action != .delete {
+            print("-- \(#function) -- No changed detected")
+            LogManager.log("No changed detected")
+            return false
+            
+        /// nothing, assumed mistake
+        } else if trans.title.isEmpty || trans.payMethod == nil {
+            print("-- \(#function) -- Title or payment method missing 2")
+            return false
+        }
+        
+        return true
+    }
   
     
     func saveTransaction(id: String, day: CBDay? = nil, isPendingSmartTransaction: Bool = false, location: WhereToLookForTransaction = .normalList) {
+        print("-- \(#function)")
+        self.transEditID = nil
+        cleanTags()
+        //hilightTrans = nil
+        
+        let trans = getTransaction(by: id, from: isPendingSmartTransaction ? .tempList : location)
+        
+        /// Go update the normal transaction list if the editing transaction is not already in it.
+        if isPendingSmartTransaction || location == .searchResultList {
+            self.handleTransactions([trans], refreshTechnique: .viaLongPoll)
+        }
+        
+        if transactionIsValid(trans: trans, day: day) {
+            /// Set the updated by user
+            trans.updatedBy = AppState.shared.user!
+            
+            /// Move the transaction if applicable
+            if trans.dateChanged() { changeDate(trans) }
+                        
+            if trans.action == .delete {
+                /// Check if the transaction has a related ID (like from a transfer or payment)
+                if trans.relatedTransactionID != nil {
+                    let trans2 = getTransaction(by: trans.relatedTransactionID!, from: .normalList)
+                    /// Submit to the server
+//                    Task {
+//                        await withTaskGroup(of: Void.self) { group in
+//                            group.addTask { let _ = await self.delete(trans) }
+//                            group.addTask { let _ = await self.delete(trans2) }
+//                        }
+//                    }
+                    
+                    self.delete(trans)
+                    self.delete(trans2)
+                } else {
+                    self.delete(trans)
+                }
+                
+            } else {
+                Task {
+                    /// Recalculate totals for each day
+                    calculateTotalForMonth(month: sMonth)
+                }
+                
+                let toastLingo = "Successfully \(trans.action == .add ? "Added" : "Updated")"
+                
+                /// Check if the transaction has a related ID (like from a transfer or payment)
+                if trans.relatedTransactionID != nil && trans.action != .add {
+                    let trans2 = getTransaction(by: trans.relatedTransactionID!, from: .normalList)
+                    trans2.deepCopy(.create)
+                    
+                    trans2.updatedBy = AppState.shared.user!
+                    
+                    /// Update the linked date
+                    if trans.dateChanged() {
+                        trans2.date = trans.date
+                        changeDate(trans2)
+                    }
+                    
+                    /// Update the dollar amounts accordingly
+                    let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+                    if trans.payMethod?.accountType != .credit {
+                        if trans2.payMethod?.accountType == .credit {
+                            trans2.amountString = (trans.amount * 1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                        } else {
+                            trans2.amountString = (trans.amount * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                        }
+                        
+                    } else {
+                        if trans2.payMethod?.accountType == .credit {
+                            trans2.amountString = (trans.amount * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                        } else {
+                            trans2.amountString = (trans.amount * 1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                        }
+                    }
+                    
+                    /// Submit to the server
+                    Task {
+                        await withTaskGroup(of: Void.self) { group in
+                            group.addTask { let _ = await self.submit(trans) }
+                            group.addTask { let _ = await self.submit(trans2) }
+                        }
+                        
+                        if sPayMethod?.accountType == .checking || sPayMethod?.accountType == .cash {
+                            if trans.payMethod?.accountType != .checking && trans.payMethod?.accountType != .cash {
+                                NotificationManager.shared.sendNotification(title: toastLingo, subtitle: trans.title, body: trans.amountString)
+                            }
+                        } else {
+                            if trans.payMethod?.accountType == .checking && trans.payMethod?.accountType == .cash {
+                                NotificationManager.shared.sendNotification(title: toastLingo, subtitle: trans.title, body: trans.amountString)
+                            }
+                        }
+                    }
+                } else {
+                    Task { @MainActor in
+                        let _ = await submit(trans)
+                        showToastsForTransactionSave(isPendingSmartTransaction: isPendingSmartTransaction, trans: trans)
+                    }
+                }
+            }
+        }
+    }
+    
+    func showToastsForTransactionSave(isPendingSmartTransaction: Bool, trans: CBTransaction) {
+        let toastLingo = "Successfully \(trans.action == .add ? "Added" : "Updated")"
+        
+        if isPendingSmartTransaction {
+            AppState.shared.showToast(
+                header: "Successfully Added \(trans.title)",
+                title: "\(trans.date?.string(to: .monthDayShortYear) ?? "Date: N/A")",
+                message: "\(trans.payMethod?.title ?? "N/A")\n\(trans.amountString)",
+                symbol: "creditcard"
+            )
+        } else {
+            if sPayMethod?.accountType == .unifiedChecking {
+                if trans.payMethod?.accountType != .checking && trans.payMethod?.accountType != .cash {
+                    //NotificationManager.shared.sendNotification(title: "Successfully Added", subtitle: trans.title, body: trans.amountString)
+                    AppState.shared.showToast(header: toastLingo, title: trans.title, message: trans.amountString, symbol: "creditcard")
+                }
+            } else if sPayMethod?.accountType == .unifiedCredit {
+                if trans.payMethod?.accountType == .checking && trans.payMethod?.accountType == .cash {
+                    //NotificationManager.shared.sendNotification(title: "Successfully Added", subtitle: trans.title, body: trans.amountString)
+                    AppState.shared.showToast(header: toastLingo, title: trans.title, message: trans.amountString, symbol: "creditcard")
+                }
+            } else {
+                if sPayMethod?.accountType != trans.payMethod?.accountType {
+                    //NotificationManager.shared.sendNotification(title: "Successfully Added", subtitle: trans.title, body: trans.amountString)
+                    AppState.shared.showToast(header: toastLingo, title: trans.title, message: trans.amountString, symbol: "creditcard")
+                }
+            }
+        }
+    }
+    
+    
+    
+    
+    func saveTransactionOG(id: String, day: CBDay? = nil, isPendingSmartTransaction: Bool = false, location: WhereToLookForTransaction = .normalList) {
         print("-- \(#function)")
         self.transEditID = nil
         cleanTags()
@@ -550,8 +655,7 @@ class CalendarModel {
             
             /// Move the transaction if applicable
             if trans.dateChanged() { changeDate(trans) }
-            
-            
+                        
             if trans.action == .delete {
                 /// Check if the transaction has a related ID (like from a transfer or payment)
                 if trans.relatedTransactionID != nil {
@@ -581,7 +685,7 @@ class CalendarModel {
                 let toastLingo = "Successfully \(trans.action == .add ? "Added" : "Updated")"
                 
                 /// Check if the transaction has a related ID (like from a transfer or payment)
-                if trans.relatedTransactionID != nil {
+                if trans.relatedTransactionID != nil && trans.action != .add {
                     let trans2 = getTransaction(by: trans.relatedTransactionID!, from: .normalList)
                     trans2.deepCopy(.create)
                     
@@ -626,17 +730,7 @@ class CalendarModel {
                                 NotificationManager.shared.sendNotification(title: toastLingo, subtitle: trans.title, body: trans.amountString)
                             }
                         }
-                        
-                        
-                        
-//                        AppState.shared.showToast(
-//                            header: "Successfully Added",
-//                            title: "Title: \(trans.title)",
-//                            message: "\(trans.date?.string(to: .monthDayShortYear) ?? "N/A")",
-//                            symbol: "creditcard"
-//                        )
                     }
-                    
                 } else {
                     Task { @MainActor in
                         let _ = await submit(trans)
@@ -674,6 +768,9 @@ class CalendarModel {
             }
         }
     }
+    
+    
+    
     
     var showLoadingSpinner = false
     var loadingSpinnerTimer: Timer?
@@ -747,7 +844,7 @@ class CalendarModel {
         /// Used to test the snapshot data race
         //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
         
-        typealias ResultResponse = Result<ReturnTransactionIdModel?, AppError>
+        typealias ResultResponse = Result<ParentChildIdModel?, AppError>
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
         switch await result {
@@ -761,19 +858,19 @@ class CalendarModel {
                 if trans.isFromCoreData {
                     let actualTrans = justTransactions.first(where: {$0.id == trans.id})
                     if let actualTrans {
-                        actualTrans.id = String(model?.transactionID ?? "0")
+                        actualTrans.id = String(model?.parentID ?? "0")
                         actualTrans.uuid = nil
                         actualTrans.action = .edit
                     }
                 } else {
-                    trans.id = String(model?.transactionID ?? "0")
+                    trans.id = String(model?.parentID ?? "0")
                     trans.uuid = nil
                     trans.action = .edit
                 }
             }
             
-            for each in model?.tagIds ?? [] {
-                let index = tags.firstIndex(where: {$0.uuid == each.uuid})
+            for each in model?.childIDs ?? [] {
+                let index = tags.firstIndex(where: { $0.uuid == each.uuid })
                 if let index {
                     tags[index].id = String(each.id)
                 }
@@ -876,7 +973,7 @@ class CalendarModel {
                     } else {
                         let index = targetMonth.budgets.firstIndex(where: { $0.id == Int(idModel.uuid ?? "") })
                         if let index {
-                            targetMonth.budgets[index].id = idModel.id
+                            targetMonth.budgets[index].id = Int(idModel.id) ?? 0
                         }
                     }
                 }

@@ -66,6 +66,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
     var trackingNumber: String
     var orderNumber: String
     var url: String
+    var relatedTransactionType: XrefItem?
     
     
     var isBudgetable: Bool { self.payMethod?.accountType == .cash || self.payMethod?.accountType == .checking }
@@ -188,7 +189,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
     }
     
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, entered_date, updated_date, pictures, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs }
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, entered_date, updated_date, pictures, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, related_transaction_type_id }
     
     
     func encode(to encoder: Encoder) throws {
@@ -223,6 +224,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         try container.encode(url, forKey: .url)
         try container.encode(wasAddedFromPopulate ? 1 : 0, forKey: .was_added_from_populate)
         try container.encode(logs, forKey: .logs)
+        try container.encode(relatedTransactionType?.id, forKey: .related_transaction_type_id)
     }
     
     
@@ -258,15 +260,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         } else {
             self.color = color
         }
-        
-        
-//        if color == .white && colorScheme == .light {
-//            self.color = .black
-//        } else if color == .black && colorScheme == .dark {
-//            self.color = .white
-//        } else {
-//            self.color = color
-//        }
+                
         
         let isActive = try container.decode(Int?.self, forKey: .active)
         self.active = isActive == 1
@@ -290,6 +284,12 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         
         pictures = try container.decode(Array<CBPicture>?.self, forKey: .pictures)
         tags = try container.decode(Array<CBTag>?.self, forKey: .tags) ?? []
+        
+        let relatedTransactionTypeID = try container.decode(Int?.self, forKey: .related_transaction_type_id)
+        if let relatedTransactionTypeID = relatedTransactionTypeID {
+            self.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byID: relatedTransactionTypeID)
+        }
+        
 
         
         action = .edit

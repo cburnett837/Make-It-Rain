@@ -84,43 +84,47 @@ class ResultCompleteModel: Codable {
 
 
 class ReturnIdModel: Decodable {
+    let id: String
     let uuid: String?
-    let id: Int
     let type: String?
     
     enum CodingKeys: CodingKey { case uuid, id, type }
     
-    init(){
-        self.uuid = UUID().uuidString
-        self.id = 0
+    init() {
+        let uuid = UUID().uuidString
+        self.uuid = uuid
+        self.id = uuid
         self.type = nil
     }
     
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         uuid = try container.decode(String?.self, forKey: .uuid)
-        id = try container.decode(Int.self, forKey: .id)
+        id = try container.decode(String.self, forKey: .id)
         type = try container.decodeIfPresent(String.self, forKey: .type)
     }
 }
 
-class ReturnTransactionIdModel: Decodable {
-    let transactionID: String
-    let tagIds: Array<ReturnIdModel>
+class ParentChildIdModel: Decodable {
+    let parentID: String
+    let childIDs: Array<ReturnIdModel>
     
-    enum CodingKeys: CodingKey { case transaction_id, tag_ids }
+    enum CodingKeys: CodingKey { case parent_id, child_ids }
     
     init(){
-        self.transactionID = UUID().uuidString
-        self.tagIds = []
+        self.parentID = UUID().uuidString
+        self.childIDs = []
     }
     
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        transactionID = try container.decode(String.self, forKey: .transaction_id)
-        tagIds = try container.decode(Array<ReturnIdModel>.self, forKey: .tag_ids)
+        parentID = try container.decode(String.self, forKey: .parent_id)
+        childIDs = try container.decode(Array<ReturnIdModel>.self, forKey: .child_ids)
     }
 }
+
+
+
 
 
 

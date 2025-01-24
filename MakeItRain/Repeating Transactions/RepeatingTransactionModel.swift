@@ -134,7 +134,7 @@ class RepeatingTransactionModel {
             
             if repTransaction.action != .delete {
                 if repTransaction.action == .add {
-                    repTransaction.id = String(model?.id ?? 0)
+                    repTransaction.id = model?.id ?? "0"
                     repTransaction.action = .edit
                 }                
             }

@@ -14,7 +14,7 @@ struct ToolbarRefreshButton: View {
     
     var body: some View {
         Button {
-            Task {
+            funcModel.refreshTask = Task {
                 LoadingManager.shared.showInitiallyLoadingSpinner = true
                 calModel.months.forEach { month in
                     month.days.removeAll()

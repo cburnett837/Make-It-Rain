@@ -17,16 +17,18 @@ class FuncModel {
     var catModel: CategoryModel
     var keyModel: KeywordModel
     var repModel: RepeatingTransactionModel
+    var eventModel: EventModel
     
     var longPollTask: Task<Void, Error>?
     var refreshTask: Task<Void, Error>?
     
-    init(calModel: CalendarModel, payModel: PayMethodModel, catModel: CategoryModel, keyModel: KeywordModel, repModel: RepeatingTransactionModel) {
+    init(calModel: CalendarModel, payModel: PayMethodModel, catModel: CategoryModel, keyModel: KeywordModel, repModel: RepeatingTransactionModel, eventModel: EventModel) {
         self.calModel = calModel
         self.payModel = payModel
         self.catModel = catModel
         self.keyModel = keyModel
         self.repModel = repModel
+        self.eventModel = eventModel
     }
     
     
@@ -112,6 +114,9 @@ class FuncModel {
         }
         
         
+        eventModel.invitations.removeAll()
+        eventModel.events.removeAll()
+        
         Task {
             let hasBadConnection = await AppState.shared.hasBadConnection()
             if hasBadConnection {
@@ -131,8 +136,7 @@ class FuncModel {
             AppState.shared.downloadedData.removeAll()
             LoadingManager.shared.downloadAmount = 0
         }
-        
-        
+                
         /// Grab anything that got stuffed into temporary storage while the network connection was bad, and send it to the server before trying to download any new data.
         do {
             if let entities = try DataManager.shared.getMany(type: TempTransaction.self) {
@@ -212,7 +216,6 @@ class FuncModel {
         #endif
         
         if let currentNavSelection {
-            
             /// If viewing a month, determine current and adjacent months.
             if NavDestination.justMonths.contains(currentNavSelection) {
                 
@@ -334,6 +337,10 @@ class FuncModel {
             group.addTask { await self.keyModel.fetchKeywords() }
             /// Grab Repeating Transactions.
             group.addTask { await self.repModel.fetchRepeatingTransactions() }
+            /// Grab Events.
+            group.addTask { await self.eventModel.fetchEvents() }
+            /// Grab Invitations.
+            group.addTask { await self.eventModel.fetchInvitations() }
         }
         
         let everytingElseElapsed = CFAbsoluteTimeGetCurrent() - everythingElseStart
@@ -370,6 +377,10 @@ class FuncModel {
             group.addTask { await self.keyModel.fetchKeywords() }
             /// Grab Repeating Transactions.
             group.addTask { await self.repModel.fetchRepeatingTransactions() }
+            /// Grab Events.
+            group.addTask { await self.eventModel.fetchEvents() }
+            /// Grab Event Invitations
+            group.addTask { await self.eventModel.fetchInvitations() }
             
 //            group.addTask {
 //                let model = RequestModel(requestType: "fetch_accessorials", model: CodablePlaceHolder())
@@ -557,6 +568,8 @@ class FuncModel {
                     if let categories = model.categories { await self.handleLongPollCategories(categories) }
                     if let keywords = model.keywords { await self.handleLongPollKeywords(keywords) }
                     if let budgets = model.budgets { self.handleLongPollBudgets(budgets) }
+                    if let events = model.events { await self.handleLongPollEvents(events) }
+                    if let invitations = model.invitations { await self.handleLongPollInvitations(invitations) }
                 }
                 
                 print("restarting longpoll - \(Date())")
@@ -770,6 +783,120 @@ class FuncModel {
     }
     
     
+    @MainActor private func handleLongPollEvents(_ events: Array<CBEvent>) async {
+        print("-- \(#function)")
+        //print(events.map {$0.title})
+        for event in events {
+            print("INITIAL PARTS")
+            print(event.participants.map {$0.user.name})
+            print(event.participants.map {$0.active})
+            
+            /// See if the user has an active participant record.
+            let doesUserHavePermission = event.participants
+                .filter { $0.active }
+                .filter { $0.status?.enumID == .accepted }
+                .contains(where: { $0.user.id == AppState.shared.user?.id ?? 0 })
+            
+            if eventModel.doesExist(event) {
+                
+                /// Since there will be multiple inactive participants records, remove them all before proceeding.
+                for each in event.participants {
+                    if !each.active {
+                        event.participants.removeAll(where: { $0.id == each.id })
+                    }
+                }
+                
+                print("REMAINIG PARTS")
+                print(event.participants.map {$0.user.name})
+                print(event.participants.map {$0.active})
+                
+                /// If the event has been deleted, remove it.
+                if !event.active {
+                    AppState.shared.showToast(header: "Event Removed", title: event.title, message: "The event has been removed by the host.", symbol: "calendar.badge.minus")
+                    await eventModel.delete(event, andSubmit: false)
+                    continue
+                } else {
+                    /// If they don't have permission, remove the event since they have been kicked out.
+                    if !doesUserHavePermission {
+                        eventModel.events.removeAll(where: {$0.id == event.id})
+                        AppState.shared.showToast(header: "Event Revoked", title: event.title, message: "You have been removed by the host.", symbol: "person.slash.fill")
+                        continue
+                    }
+                                                            
+                    /// Find the event in the users data.
+                    if let index = eventModel.getIndex(for: event) {
+                        let actualEvent = eventModel.events[index]
+                        actualEvent.setFromAnotherInstance(event: event)
+                        actualEvent.deepCopy?.setFromAnotherInstance(event: event)
+                                                
+                        /// Check the participant array from the newly updated event, and see if they are part of the list of invitations.
+                        var acceptingUsers: [String] = []
+                        for each in actualEvent.participants {
+                            let participantEmail = each.user.email.lowercased()
+                            
+                            /// If the user is now in participants, and was found in the invite array, that means they have accepted the invitation.
+                            /// Remove the user from the invitation array, and append to the `acceptingUsers` array. (Only used for the toast)
+//                            if actualEvent.invitationsToSend.map({ $0.email?.lowercased() }).contains(participantEmail) {
+//                                actualEvent.invitationsToSend.removeAll(where: { $0.email?.lowercased() == participantEmail })
+//                                acceptingUsers.append(each.user.name)
+//                            }
+                        }
+                                                                        
+                        /// Show the toast for accepted invitations.
+                        //if !acceptingUsers.isEmpty {
+                            //AppState.shared.showToast(header: "Invite Accepted", title: actualEvent.title, message: "\(acceptingUsers.joined(separator: ", ")) just accepted your invitation", symbol: "calendar.badge.checkmark")
+                        
+                        AppState.shared.showToast(header: "Invite Accepted", title: actualEvent.title, message: "Someone just accepted your invitation", symbol: "calendar.badge.checkmark")
+                        //}
+                    }
+                }
+            } else {
+                /// If the event is active, check to make sure the user is allowed to see it.
+                /// If they are, upset the event.
+                if event.active {
+                    if doesUserHavePermission {
+                        eventModel.upsert(event)
+                        //eventModel.invitations.removeAll(where: {$0.eventID == event.id})
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    @MainActor private func handleLongPollInvitations(_ participants: Array<CBEventParticipant>) async {
+        print("-- \(#function)")
+        print(participants.map {$0.email})
+        for part in participants {
+            if eventModel.doesExist(part) {
+                /// If the invite is inactive, that means the invitee rejected it.
+                if !part.active {
+                    /// Remove the invitation from the invitation list.
+                    eventModel.invitations.removeAll { $0.id == part.id }
+                    /// Remove the pending invitation from the associated event.
+                    if let targetEvent = eventModel.events.filter({ $0.id == part.eventID }).first {
+                        targetEvent.participants.removeAll(where: { $0.id == part.id })
+                    }
+                    
+                    continue
+                } else {
+                    /// The event is active, so update the invitation in the model.
+                    if let index = eventModel.getIndex(for: part) {
+                        eventModel.invitations[index] = part
+                    }
+                }
+            } else {
+                /// Upsert the invite if it doesn't exist.
+                if part.active {
+                    eventModel.upsert(part)
+                }
+            }
+        }
+    }
+    
+    
+    
+    
     // MARK: - Misc
     @MainActor func printPersistentMethods() {
         do {
@@ -815,6 +942,8 @@ class FuncModel {
         payModel.paymentMethods.removeAll()
         catModel.categories.removeAll()
         keyModel.keywords.removeAll()
+        eventModel.events.removeAll()
+        eventModel.invitations.removeAll()
                         
         /// Remove all from cache.
         let saveResult1 = DataManager.shared.deleteAll(for: PersistentPaymentMethod.self)

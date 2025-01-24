@@ -98,7 +98,7 @@ struct SheetHeaderButtonStyle: ButtonStyle {
     }
 }
 
-
+#if os(iOS)
 struct SheetHeaderButtonStyleOG: ButtonStyle {
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
     @State private var buttonColor: Color = Color(.tertiarySystemFill)
@@ -118,3 +118,4 @@ struct SheetHeaderButtonStyleOG: ButtonStyle {
             //.animation(.easeOut(duration: 0.2), value: configuration.isPressed)
     }
 }
+#endif

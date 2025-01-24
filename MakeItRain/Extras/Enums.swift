@@ -8,7 +8,11 @@
 import Foundation
 
 enum WhereToLookForTransaction {
-    case normalList, tempList, searchResultList
+    case normalList, tempList, searchResultList, eventList
+}
+
+enum TransactionSaveActionToProcess {
+    case normal, fromTransfer, fromEvent
 }
 
 enum AppError: Error {
@@ -119,6 +123,95 @@ enum KeywordAction: String {
         }
     }
 }
+
+enum EventAction: String {
+    case add, edit, delete
+    
+    var serverKey: String {
+        switch self {
+        case .add:      return "add_cb_event"
+        case .edit:     return "edit_cb_event"
+        case .delete:   return "delete_cb_event"
+        }
+    }
+    
+    static func fromString(_ theString: String) -> Self {
+        switch theString {
+        case "add": return .add
+        case "edit": return .edit
+        case "delete": return .delete
+        default: return .add
+        }
+    }
+}
+
+
+enum EventParticipantAction: String {
+    case add, edit, delete
+    
+    var serverKey: String {
+        switch self {
+        case .add:      return "add_cb_event_participant"
+        case .edit:     return "edit_cb_event_participant"
+        case .delete:   return "delete_cb_event_participant"
+        }
+    }
+    
+    static func fromString(_ theString: String) -> Self {
+        switch theString {
+        case "add": return .add
+        case "edit": return .edit
+        case "delete": return .delete
+        default: return .add
+        }
+    }
+}
+
+
+enum EventItemAction: String {
+    case add, edit, delete
+    
+    var serverKey: String {
+        switch self {
+        case .add:      return "add_cb_event_item"
+        case .edit:     return "edit_cb_event_item"
+        case .delete:   return "delete_cb_event_item"
+        }
+    }
+    
+    static func fromString(_ theString: String) -> Self {
+        switch theString {
+        case "add": return .add
+        case "edit": return .edit
+        case "delete": return .delete
+        default: return .add
+        }
+    }
+}
+
+
+enum EventTransactionAction: String {
+    case add, edit, delete
+    
+    var serverKey: String {
+        switch self {
+        case .add:      return "add_cb_event_transaction"
+        case .edit:     return "edit_cb_event_transaction"
+        case .delete:   return "delete_cb_event_transaction"
+        }
+    }
+    
+    static func fromString(_ theString: String) -> Self {
+        switch theString {
+        case "add": return .add
+        case "edit": return .edit
+        case "delete": return .delete
+        default: return .add
+        }
+    }
+}
+
+
 
 enum KeywordTriggerType: String {
     case equals = "equals"

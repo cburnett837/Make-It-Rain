@@ -291,10 +291,12 @@ struct TransferSheet2: View {
             fromTrans.payMethod = transfer.from
             fromTrans.category = transfer.category
             fromTrans.updatedBy = AppState.shared.user!
+            fromTrans.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
                         
             let toTrans = calModel.getTransaction(by: UUID().uuidString, from: .normalList)
             toTrans.title = "\(transferLingo) from \(transfer.from?.title ?? "N/A")"
             toTrans.date = date
+            toTrans.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
             
             if transfer.to?.accountType == .credit {
                 toTrans.amountString = (transfer.amount * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
@@ -304,7 +306,7 @@ struct TransferSheet2: View {
             
             toTrans.payMethod = transfer.to
             toTrans.category = transfer.category
-            fromTrans.updatedBy = AppState.shared.user!
+            toTrans.updatedBy = AppState.shared.user!
                                     
             let transferMonth = date.month
             let transferDay = date.day

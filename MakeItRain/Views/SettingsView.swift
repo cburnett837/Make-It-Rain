@@ -52,6 +52,7 @@ struct SettingsView: View {
     @Environment(CategoryModel.self) var catModel
     @Environment(KeywordModel.self) var keyModel
     @Environment(RepeatingTransactionModel.self) var repModel
+    @Environment(EventModel.self) var eventModel
         
     //@State private var bioType: BiometricType?
         
@@ -149,8 +150,23 @@ struct SettingsView: View {
                     } else {
                         Text("N/A")
                     }
-                    
                 }
+                
+                HStack {
+                    Label {
+                        Text("Account Users")
+                    } icon: {
+                        Image(systemName: "person.3.fill")
+                    }
+                    
+                    VStack {
+                        ForEach(AppState.shared.accountUsers) { user in
+                            Text(user.email)
+                        }
+                    }
+                }
+                
+                
             }
             
             Section("General Settings") {
@@ -392,6 +408,8 @@ struct SettingsView: View {
         payModel.paymentMethods.removeAll()
         catModel.categories.removeAll()
         keyModel.keywords.removeAll()
+        eventModel.events.removeAll()
+        eventModel.invitations.removeAll()
         
         /// Remove all from cache.
         let _ = DataManager.shared.deleteAll(for: PersistentPaymentMethod.self, shouldSave: false)

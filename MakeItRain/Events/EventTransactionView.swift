@@ -1,21 +1,202 @@
 //
-//  EditTransactionView.swift
+//  TransactionEditViewBackuo.swift
 //  MakeItRain
 //
-//  Created by Cody Burnett on 9/19/24.
+//  Created by Cody Burnett on 1/21/25.
 //
 
+import Foundation
 import SwiftUI
 import PhotosUI
 import SafariServices
 import TipKit
 
 
+struct FakeTransEditView: View {
+    @AppStorage("useWholeNumbers") var useWholeNumbers = false
+    
+    @Environment(\.dismiss) var dismiss
+    
+    @Bindable var trans: CBEventTransaction
+    @Bindable var item: CBEventItem
+    @Bindable var event: CBEvent
+    
+    @State private var showDeleteAlert = false
+    @State private var showUserSheet = false
+    @State private var showPaymentMethodSheet = false
+    @State private var showCategorySheet = false
+    
+    @FocusState private var focusedField: Int?
+    
+    var title: String { trans.action == .add ? "New Transaction" : "Edit Transaction" }
+        
+    var deleteButton: some View {
+        Button {
+            showDeleteAlert = true
+        } label: {
+            Image(systemName: "trash")
+        }
+        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
+    }
+    
+    var header: some View {
+        Group {
+            SheetHeader(
+                title: title,
+                close: { dismiss() },
+                view3: { deleteButton }
+            )
+            .padding()
+            
+            Divider()
+                .padding(.horizontal)
+        }
+    }
+    
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            header
+            List {
+                HStack {
+                    Text("Title")
+                    Spacer()
+                    #if os(iOS)
+                    UITextFieldWrapperFancy(placeholder: "Transaction Title", text: $trans.title, toolbar: {
+                        KeyboardToolbarView(focusedField: $focusedField)
+                    })
+                    .uiTag(0)
+                    .uiTextAlignment(.right)
+                    .uiClearButtonMode(.whileEditing)
+                    .uiStartCursorAtEnd(true)
+                    #else
+                    TextField("Transaction Title", text: $trans.title)
+                        .multilineTextAlignment(.trailing)
+                    #endif
+                }
+                .focused($focusedField, equals: 0)
+                
+                HStack {
+                    Text("Amount")
+                    Spacer()
+                    
+                    #if os(iOS)
+                    UITextFieldWrapperFancy(placeholder: "Total", text: $trans.amountString, toolbar: {
+                        KeyboardToolbarView(
+                            focusedField: $focusedField,
+                            accessoryImage3: "plus.forwardslash.minus",
+                            accessoryFunc3: {
+                                Helpers.plusMinus($trans.amountString)
+                            })
+                    })
+                    .uiKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
+                    .uiTag(1)
+                    .uiTextAlignment(.right)
+                    .uiClearButtonMode(.whileEditing)
+                    .uiStartCursorAtEnd(true)
+                    #else
+                    TextField("Budget", text: $trans.amountString ?? "")
+                        .multilineTextAlignment(.trailing)
+                    #endif
+                }
+                .focused($focusedField, equals: 1)
+                
+                HStack {
+                    Text("Date")
+                    Spacer()
+                    DatePicker("", selection: $trans.date ?? Date(), displayedComponents: [.date])
+                        .labelsHidden()
+                    
+                }
+                
+                HStack {
+                    Text("Who Paid")
+                    Spacer()
+                    
+                    Button(trans.paidBy?.name ?? "Select Payee") {
+                        showUserSheet = true
+                    }
+                    
+                }
+                
+                HStack {
+                    Text("Status")
+                    Spacer()
+                    Menu("\(trans.status.description)") {
+                        ForEach(XrefModel.eventTransactionStatuses) { status in
+                            Button(status.description) {
+                                trans.status = status
+                                trans.paidBy = AppState.shared.user!
+                            }
+                        }
+                    }
+                }
+                
+                if trans.status.enumID == .claimed {
+                    HStack {
+                        Text("Payment Method")
+                        Spacer()
+                        Button((trans.realTransaction.payMethod == nil ? "Select" : trans.realTransaction.payMethod?.title) ?? "Select") {
+                            showPaymentMethodSheet = true
+                        }
+                    }
+                    .sheet(isPresented: $showPaymentMethodSheet) {
+                        PaymentMethodSheet(payMethod: $trans.realTransaction.payMethod, whichPaymentMethods: .allExceptUnified)
+                        #if os(macOS)
+                            .frame(minWidth: 300, minHeight: 500)
+                            .presentationSizing(.fitted)
+                        #endif
+                    }
+                    
+                    HStack {
+                        Text("Category")
+                        Spacer()
+                    }
+                }
+                
+            }
+        }
+        .task {
+            if trans.date == nil {
+                trans.date = Date()
+            }
+            
+            item.upsert(trans)
+        }
+        .confirmationDialog("Delete \"\(trans.title)\"?", isPresented: $showDeleteAlert, actions: {
+            Button("Yes", role: .destructive) {
+                dismiss()
+                item.deleteTransaction(id: trans.id)
+            }
+            
+            Button("No", role: .cancel) {
+                showDeleteAlert = false
+            }
+        }, message: {
+            #if os(iOS)
+            Text("Delete \"\(trans.title)\"?\nThis will not delete any associated transactions.")
+            #else
+            Text("This will not delete any associated transactions.")
+            #endif
+        })
+        .sheet(isPresented: $showUserSheet) {
+            UserSheet(selectedUser: $trans.paidBy, availableUsers: event.participants.map { $0.user })
+            #if os(macOS)
+                .frame(minWidth: 300, minHeight: 500)
+                .presentationSizing(.fitted)
+            #endif
+        }
+
+    }
+}
+
+
+
+
 fileprivate let photoWidth: CGFloat = 125
 fileprivate let photoHeight: CGFloat = 200
 
-
-struct TransactionEditView: View {
+struct EventTransactionEditViewACTUAL: View {
     @Observable
     class ViewModel {
         var hoverPic: CBPicture?
@@ -111,12 +292,12 @@ struct TransactionEditView: View {
                 if !AppState.shared.isLandscape { header }
                 #else
                 header
-                #endif                                
+                #endif
               
                 ScrollView {
                     #if os(iOS)
                     if AppState.shared.isLandscape { header }
-                    #endif                    
+                    #endif
                     VStack(spacing: 6) {
                         titleTextField
                         amountTextField
@@ -1265,22 +1446,3 @@ struct TransactionEditView: View {
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

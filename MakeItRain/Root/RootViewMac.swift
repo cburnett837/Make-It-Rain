@@ -143,7 +143,10 @@ struct RootViewMac: View {
                 AdvancedSearchView()
                 
             case .analytics:
-                Text("analytics")                            
+                Text("analytics")
+                
+            case .events:
+                EventsTable()
                 
             case .none:
                EmptyView()

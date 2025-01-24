@@ -209,10 +209,10 @@ class KeywordModel {
                 guard let entity = DataManager.shared.getOne(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: true) else { return false }
                 
                 if keyword.action == .add {
-                    keyword.id = String(model?.id ?? 0)
+                    keyword.id = model?.id ?? "0"
                     keyword.uuid = nil
                     keyword.action = .edit
-                    entity.id = String(model?.id ?? 0)
+                    entity.id = model?.id ?? "0"
                     entity.action = "edit"
                 }
                 

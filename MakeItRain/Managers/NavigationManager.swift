@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 enum NavDestination: String, Codable, Hashable {
-    case january, february, march, april, may, june, july, august, september, october, november, december, lastDecember, nextJanuary, repeatingTransactions, paymentMethods, categories, keywords, search, analytics
+    case january, february, march, april, may, june, july, august, september, october, november, december, lastDecember, nextJanuary, repeatingTransactions, paymentMethods, categories, keywords, search, analytics, events
     
     var monthNum: Int? {
         switch self {
@@ -66,6 +66,7 @@ enum NavDestination: String, Codable, Hashable {
         case .keywords:                 return "Keywords"
         case .search:                   return "Search"
         case .analytics:                return "Analytics"
+        case .events:                return "Events"
         }
     }
     
@@ -74,7 +75,7 @@ enum NavDestination: String, Codable, Hashable {
     }
     
     static var justAccessorials: [NavDestination] {
-        [.repeatingTransactions, .paymentMethods, .categories, .keywords, .search, .analytics]
+        [.repeatingTransactions, .paymentMethods, .categories, .keywords, .search, .analytics, .events]
     }
     
     static func getMonthFromInt(_ int: Int) -> NavDestination? {

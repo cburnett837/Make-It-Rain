@@ -270,17 +270,17 @@ class CategoryModel {
                             //print("FOUND TEMPS")
                             entities
                                 .filter { $0.category?.id == category.id }
-                                .forEach { $0.category?.id = String(model?.id ?? 0) }
+                                .forEach { $0.category?.id = model?.id ?? "0" }
                         }
                     } catch {
                         
                     }
                     
-                    category.id = String(model?.id ?? 0)
+                    category.id = model?.id ?? "0"
                     category.uuid = nil
                     category.action = .edit
-                    entity.id = String(model?.id ?? 0)
-                    entity.action = "edit"                    
+                    entity.id = model?.id ?? "0"
+                    entity.action = "edit"
                 }
                 
                 entity.isPending = false

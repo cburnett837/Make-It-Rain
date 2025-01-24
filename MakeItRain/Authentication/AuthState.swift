@@ -27,8 +27,8 @@ class AuthState {
         let loginModel = LoginModel(email: email, password: password)
         
         let model = RequestModel(requestType: "budget_app_login", model: loginModel)
-        typealias ResultResponse = Result<CBUser?, AppError>
-        async let result: ResultResponse = await NetworkManager(timeout: 3).singleRequest(requestModel: model)
+        typealias ResultResponse = Result<CBLogin?, AppError>
+        async let result: ResultResponse = await NetworkManager(timeout: 20).singleRequest(requestModel: model)
         
         switch await result {
         case .success(let model):
@@ -36,9 +36,10 @@ class AuthState {
                 if let model = model {
                     try keychainManager.addToKeychain(email: email, password: password)
                     
-                    let userData = try JSONEncoder().encode(model)
+                    let userData = try JSONEncoder().encode(model.user)
                     UserDefaults.standard.set(userData, forKey: "user")
-                    AppState.shared.user = model
+                    AppState.shared.user = model.user
+                    AppState.shared.accountUsers = model.accountUsers
                     AppState.shared.methsExist = model.hasPaymentMethodsExisiting
                     AppState.shared.isLoggingInForFirstTime = true
                     AppState.shared.hasBadConnection = false

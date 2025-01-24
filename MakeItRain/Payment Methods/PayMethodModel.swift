@@ -224,10 +224,10 @@ class PayMethodModel {
                 
                 if payMethod.action == .add {
                     
-                    payMethod.id = String(model?.id ?? 0)
+                    payMethod.id = model?.id ?? "0"
                     payMethod.uuid = nil
                     payMethod.action = .edit
-                    entity.id = String(model?.id ?? 0)
+                    entity.id = model?.id ?? "0"
                     entity.action = "edit"
                 }
                             
