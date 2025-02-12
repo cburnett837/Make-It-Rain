@@ -346,7 +346,7 @@ class CategoryModel {
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
         switch await result {
-        case .success(let model):
+        case .success:
             LogManager.networkingSuccessful()
                                                 
             #if os(macOS)
@@ -401,7 +401,7 @@ class CategoryModel {
             let _ = await submit(meth)
         }
         
-        let saveResult = DataManager.shared.deleteAll(for: PersistentCategory.self)
+        let _ = DataManager.shared.deleteAll(for: PersistentCategory.self)
         //print("SaveResult: \(saveResult)")
         categories.removeAll()
     }

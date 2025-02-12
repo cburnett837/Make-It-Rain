@@ -135,9 +135,9 @@ struct KeywordView: View {
                         
                         Group {
                             #if os(iOS)
-                            StandardUITextFieldFancy("Keyword", text: $keyword.keyword, toolbar: {
+                            StandardUITextField("Keyword", text: $keyword.keyword, toolbar: {
                                 /// The blank text removes the up and down arrows.
-                                KeyboardToolbarView(focusedField: $focusedField, accessoryText1: "", accessoryText2: "")
+                                KeyboardToolbarView(focusedField: $focusedField, removeNavButtons: true)
                             })
                             .cbClearButtonMode(.whileEditing)
                             .cbFocused(_focusedField, equals: 0)

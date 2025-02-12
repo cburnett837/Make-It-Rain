@@ -92,7 +92,7 @@ struct RootViewPhone2: View {
                     }
                 }
         }
-        .toast()
+        //.toast()
         
         /// Don't show this loading spinner if the user has to add an initial payment method.
         .if(AppState.shared.methsExist) {
@@ -102,7 +102,27 @@ struct RootViewPhone2: View {
         .overlay {
             VStack {
                 VStack {
-                    StandardTextField("Search",
+                    
+//                    StandardUITextField(
+//                        "Search \(calModel.searchWhat == .titles ? "Titles" : "Tags")",
+//                        text: $calModel.searchText,
+//                        onSubmit: { withAnimation { showSearchBar = false } },
+//                        onCancel: { withAnimation { showSearchBar = false } },
+//                        toolbar: {
+//                            KeyboardToolbarView(focusedField: $focusedField, removeNavButtons: true, extraDoneFunctionality: {
+//                                withAnimation { showSearchBar = false }
+//                            })
+//                        }
+//                    )
+//                    .cbFocused(_focusedField, equals: 0)
+//                    .cbClearButtonMode(.whileEditing)
+//                    .cbIsSearchField(true)
+//                    .cbAlwaysShowCancelButton(true)
+//                    
+                    /// Opting for this since using ``StandardUITextField`` won't close the keyboard when clicking the return button.
+                    /// I also don't need the toolbar for this textField.
+                    StandardTextField(
+                        "Search \(calModel.searchWhat == .titles ? "Transaction Titles" : "Transaction Tags")",
                         text: $calModel.searchText,
                         isSearchField: true,
                         alwaysShowCancelButton: true,

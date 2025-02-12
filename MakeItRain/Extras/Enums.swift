@@ -7,8 +7,12 @@
 
 import Foundation
 
+enum InAppAlertPreference {
+    case alert, toast
+}
+
 enum WhereToLookForTransaction {
-    case normalList, tempList, searchResultList, eventList
+    case normalList, tempList, searchResultList, /*eventList,*/ smartList
 }
 
 enum TransactionSaveActionToProcess {

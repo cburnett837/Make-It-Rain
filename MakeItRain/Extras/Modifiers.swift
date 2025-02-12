@@ -164,6 +164,42 @@ struct ToolbarBorder: ViewModifier {
     
 }
 
+
+
+struct FormatCurrencyLiveAndOnUnFocus: ViewModifier {
+    var focusValue: Int
+    var focusedField: Int?
+    var amountString: String?
+    @Binding var amountStringBinding: String
+    var amount: Double?
+    
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: amountString) {
+                Helpers.liveFormatCurrency(oldValue: $0, newValue: $1, text: $amountStringBinding)
+            }
+            .onChange(of: focusedField) {
+                if let string = Helpers.formatCurrency(focusValue: focusValue, oldFocus: $0, newFocus: $1, amountString: amountStringBinding, amount: amount) {
+                    amountStringBinding = string
+                }
+            }
+            #if os(macOS)
+            .onSubmit {
+                if !(amountString ?? "").isEmpty {
+                    if amountString == "$" || amountString == "-$" {
+                        amountStringBinding = ""
+                    } else {
+                        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+                        amountStringBinding = amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? ""
+                    }
+                } else {
+                    amountStringBinding = amountString ?? ""
+                }
+            }
+            #endif
+    }
+}
+
 struct LoadingSpinner: ViewModifier {
     let id: NavDestination
     let text: String?

@@ -38,8 +38,8 @@ struct EventInviteView: View {
             List {
                 Group {
                     #if os(iOS)
-                    UITextFieldWrapperFancy(placeholder: "Email", text: $inviteEmail, toolbar: {
-                        KeyboardToolbarView(focusedField: $focusedField, accessoryText1: "", accessoryImage1: "", accessoryText2: "", accessoryImage2: "")
+                    UITextFieldWrapper(placeholder: "Email", text: $inviteEmail, toolbar: {
+                        KeyboardToolbarView(focusedField: $focusedField, removeNavButtons: true)
                     })
                     .uiTag(0)
                     .uiClearButtonMode(.whileEditing)

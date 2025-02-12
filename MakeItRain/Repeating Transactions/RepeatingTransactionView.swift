@@ -70,7 +70,7 @@ struct RepeatingTransactionView: View {
                 VStack(spacing: 6) {
                     LabeledRow("Name", labelWidth) {
                         #if os(iOS)
-                        StandardUITextFieldFancy("Amount", text: $repTransaction.title, onSubmit: {
+                        StandardUITextField("Amount", text: $repTransaction.title, onSubmit: {
                             focusedField = 1
                         }, toolbar: {
                             KeyboardToolbarView(focusedField: $focusedField)
@@ -87,7 +87,7 @@ struct RepeatingTransactionView: View {
                     LabeledRow("Amount", labelWidth) {
                         Group {
                             #if os(iOS)
-                            StandardUITextFieldFancy("Amount", text: $repTransaction.amountString, toolbar: {
+                            StandardUITextField("Amount", text: $repTransaction.amountString, toolbar: {
                                 KeyboardToolbarView(focusedField: $focusedField, accessoryImage3: "plus.forwardslash.minus", accessoryFunc3: {
                                     Helpers.plusMinus($repTransaction.amountString)
                                 })
@@ -95,19 +95,37 @@ struct RepeatingTransactionView: View {
                             .cbKeyboardType(.decimalPad)
                             .cbClearButtonMode(.whileEditing)
                             .cbFocused(_focusedField, equals: 1)
-#else
+                            #else
                             StandardTextField("Amount", text: $repTransaction.amountString, focusedField: $focusedField, focusValue: 1)
-#endif
+                            #endif
                         }
-                        .onChange(of: repTransaction.amountString) { oldValue, newValue in
-                            if repTransaction.amountString != "-" {
-                                if repTransaction.amount == 0.0 {
-                                    repTransaction.amountString = ""
-                                } else {
-                                    repTransaction.amountString = repTransaction.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
-                                }
-                            }
-                        }
+                        .formatCurrencyLiveAndOnUnFocus(
+                            focusValue: 1,
+                            focusedField: focusedField,
+                            amountString: repTransaction.amountString,
+                            amountStringBinding: $repTransaction.amountString,
+                            amount: repTransaction.amount
+                        )
+                                                
+//                        .onChange(of: repTransaction.amountString) {
+//                            Helpers.liveFormatCurrency(oldValue: $0, newValue: $1, text: $repTransaction.amountString)
+//                        }
+//                        .onChange(of: focusedField) {
+//                            if let string = Helpers.formatCurrency(focusValue: 1, oldFocus: $0, newFocus: $1, amountString: repTransaction.amountString, amount: repTransaction.amount) {
+//                                repTransaction.amountString = string
+//                            }
+//                        }
+//
+//
+//                        .onChange(of: repTransaction.amountString) { oldValue, newValue in
+//                            if repTransaction.amountString != "-" {
+//                                if repTransaction.amount == 0.0 {
+//                                    repTransaction.amountString = ""
+//                                } else {
+//                                    repTransaction.amountString = repTransaction.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+//                                }
+//                            }
+//                        }
                     }
                     
                     StandardDivider()
@@ -219,17 +237,17 @@ struct RepeatingTransactionView: View {
         
         
         /// Just for formatting.
-        .onChange(of: focusedField) { oldValue, newValue in
-            if newValue == 1 {
-                if repTransaction.amount == 0.0 {
-                    repTransaction.amountString = ""
-                }
-            } else {
-                if oldValue == 1 {
-                    repTransaction.amountString = repTransaction.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
-                }
-            }
-        }
+//        .onChange(of: focusedField) { oldValue, newValue in
+//            if newValue == 1 {
+//                if repTransaction.amount == 0.0 {
+//                    repTransaction.amountString = ""
+//                }
+//            } else {
+//                if oldValue == 1 {
+//                    repTransaction.amountString = repTransaction.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+//                }
+//            }
+//        }
     }
     
     

@@ -8,7 +8,7 @@
 import SwiftUI
 
 
-struct MultiUserSheet: View {
+struct EventParticipantView: View {
     
     private struct StatusItem {
         var color: Color
@@ -51,9 +51,7 @@ struct MultiUserSheet: View {
         .padding(.horizontal, 20)
         .padding(.top)
         
-        StandardTextField("Search Users", text: $searchText, isSearchField: true, focusedField: $focusedField, focusValue: 0)
-            //.focused($focusedField, equals: .search)
-            .padding(.horizontal, 20)
+        SearchTextField(title: "Users", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)                
         
         List {
             Section("Available Users") {
@@ -63,8 +61,9 @@ struct MultiUserSheet: View {
             }
             
             if showInviteButton {
-                Section("Invited Users") {
-                    ForEach(event.participants.filter {$0.status?.enumID == .pending}) { invite in
+                
+                Section {
+                    ForEach(event.participants.filter { $0.status?.enumID == .pending }) { invite in
                         
                         var statusPieces: StatusItem {
                             switch invite.status?.enumID {
@@ -86,12 +85,23 @@ struct MultiUserSheet: View {
                     Button("Create Invite") {
                         showInviteSheet = true
                     }
+                } header: {
+                    Text("Invited Users")
+                } footer: {
+                    if !event.participants.filter({ $0.status?.enumID == .pending }).isEmpty {
+                        Text("Invitations will be sent when you close the event.")
+                    }
+                    
                 }
             }
         }
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
         .sheet(isPresented: $showInviteSheet) {
             EventInviteView(event: event)
+            #if os(macOS)
+                .frame(minWidth: 300, minHeight: 500)
+                .presentationSizing(.fitted)
+            #endif
         }
     }
             
@@ -114,6 +124,7 @@ fileprivate struct EventParticipantSheetLineItem: View {
     var labelWidth: CGFloat
     
     @State private var showConfirmationAlert = false
+    @State private var showAdminErrorAlert = false
     
     
     var body: some View {
@@ -124,21 +135,39 @@ fileprivate struct EventParticipantSheetLineItem: View {
                 .opacity(users.contains(user) ? 1 : 0)
         }
         .contentShape(Rectangle())
-        .onTapGesture { doIt(user) }
-        .alert("Remove this person?", isPresented: $showConfirmationAlert) {
+        .onTapGesture {
+            if !AppState.shared.user(is: user) {
+                doIt(user)
+            } else {
+                showAdminErrorAlert = true
+            }
+        }
+        .alert("Remove \(user.name)?", isPresented: $showConfirmationAlert) {
             Button("Yes", role: .destructive) {
-                //event.participants.removeAll(where: { $0.user.id == user.id })
-                if let index = event.participants.firstIndex(where: { $0.user.id == user.id }) {
-                    
-                    print("Kicking participant id \(event.participants[index].id)")
-                    event.participants[index].active = false
+                
+                let records = event.participants.filter { $0.user.id == user.id && $0.active }
+                records.forEach { part in
+                    if let index = event.participants.firstIndex(where: { $0.id == part.id }) {
+                        withAnimation {
+                            event.participants[index].active = false
+                            users.removeAll(where: { $0.id == user.id })
+                        }
+                    }
                 }
-                users.removeAll(where: { $0.id == user.id })
+                
+                
+//                if let index = event.participants.firstIndex(where: { $0.user.id == user.id && $0.active }) {
+//                    withAnimation {
+//                        event.participants[index].active = false
+//                        users.removeAll(where: { $0.id == user.id })
+//                    }
+//                }
             }
             
-            Button("No", role: .cancel) {
-                
-            }
+            Button("No", role: .cancel) {}
+        }
+        .alert("The creator of the event cannot be removed", isPresented: $showAdminErrorAlert) {
+            Button("OK", role: .cancel) {}
         }
     }
     

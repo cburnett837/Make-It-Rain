@@ -173,6 +173,12 @@ extension View {
 //        modifier(KeyboardToolbarOnChange(showKeyboardToolbar: showKeyboardToolbar, focusedField: focusedField))
 //    }
     
+    
+    func formatCurrencyLiveAndOnUnFocus(focusValue: Int, focusedField: Int?, amountString: String?, amountStringBinding: Binding<String>, amount: Double?) -> some View {
+        /// This will format the text with a $ or a -$ on the front when typing, and then fully format the text with decimals, and commas when unfocusing the textfield, or when clicking enter (macOS).
+        modifier(FormatCurrencyLiveAndOnUnFocus(focusValue: focusValue, focusedField: focusedField, amountString: amountString, amountStringBinding: amountStringBinding, amount: amount))
+    }
+    
         
     func toast() -> some View {
         self

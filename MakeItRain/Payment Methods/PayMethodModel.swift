@@ -203,7 +203,7 @@ class PayMethodModel {
         
         
         print(payMethod.action)
-        print(entity.id)
+        print(entity.id ?? "No Entity ID")
         
         
         LogManager.log()
@@ -234,7 +234,7 @@ class PayMethodModel {
                 entity.isPending = false
                 let _ = DataManager.shared.save()
             } else {
-                let saveResult = DataManager.shared.delete(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)))
+                let _ = DataManager.shared.delete(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)))
             }
             
             isThinking = false
@@ -295,7 +295,7 @@ class PayMethodModel {
             let _ = await submit(meth)
         }
         
-        let saveResult = DataManager.shared.deleteAll(for: PersistentPaymentMethod.self)
+        let _ = DataManager.shared.deleteAll(for: PersistentPaymentMethod.self)
         //print("SaveResult: \(saveResult)")
         paymentMethods.removeAll()
     }
@@ -330,7 +330,7 @@ class PayMethodModel {
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
         switch await result {
-        case .success(let model):
+        case .success:
             LogManager.networkingSuccessful()
 
         case .failure(let error):

@@ -57,30 +57,29 @@ struct Login: View {
                 VStack(spacing: 0) {
                     TextField("Email", text: $email)
                         .textFieldStyle(.plain)
-                        //.textCase(.lowercase)
-                        //.textFieldStyle(.roundedBorder)
+                        .keyboardType(.emailAddress)
+                        .textInputAutocapitalization(.never)
                         .textContentType(.emailAddress)
                         .focused($focusedField, equals: .email)
                         .frame(width: 250)
-                        .onChange(of: email) { oldValue, newValue in
-                            email = email.lowercased()
-                        }
+//                        .onChange(of: email) { oldValue, newValue in
+//                            email = email.lowercased()
+//                        }
                     Divider()
                         .frame(width: 250)
                 }
                 //.background(Color(.secondarySystemBackground).blur(radius: 10))
-                
-                
+                                
                 Spacer().frame(height: 16)
                 
                 VStack(spacing: 0) {
                     SecureField("Password", text: $password)
                         .textFieldStyle(.plain)
-                    //.textFieldStyle(.roundedBorder)
-                        .focused($focusedField, equals: .password)
                         .textContentType(.password)
+                        .focused($focusedField, equals: .password)
                         .frame(width: 250)
                         .onSubmit {
+                            focusedField = nil
                             attemptingLogin = true
                             Task { await attemptLogin() }
                         }
@@ -88,12 +87,12 @@ struct Login: View {
                     Divider()
                         .frame(width: 250)
                 }
-                //.background(Color(.secondarySystemBackground).blur(radius: 10))
                 
                 Spacer().frame(height: 16)
                 
                 VStack {
                     Button("Login") {
+                        focusedField = nil
                         attemptingLogin = true
                         Task { await attemptLogin() }
                     }

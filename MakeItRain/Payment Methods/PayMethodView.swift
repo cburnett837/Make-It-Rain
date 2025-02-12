@@ -92,7 +92,7 @@ struct PayMethodView: View {
                 VStack(spacing: 6) {
                     LabeledRow("Name", labelWidth) {
                         #if os(iOS)
-                        StandardUITextFieldFancy("Name", text: $payMethod.title, toolbar: {
+                        StandardUITextField("Name", text: $payMethod.title, toolbar: {
                             KeyboardToolbarView(focusedField: $focusedField)
                         })
                         .cbFocused(_focusedField, equals: 0)
@@ -135,19 +135,75 @@ struct PayMethodView: View {
                     }
                     
                     if payMethod.accountType == .checking || payMethod.accountType == .credit {
-                        LabeledRow("Last 4 Digits", labelWidth) {
-                            #if os(iOS)
-                            StandardUITextFieldFancy("Last 4 Digits", text: $payMethod.last4 ?? "", toolbar: {
-                                KeyboardToolbarView(focusedField: $focusedField)
-                            })
-                            .cbKeyboardType(.numberPad)
-                            .cbFocused(_focusedField, equals: 1)
-                            .cbClearButtonMode(.whileEditing)
-                            .cbMaxLength(4)
-                            #else
-                            StandardTextField("Last 4 Digits", text: $payMethod.last4 ?? "", focusedField: $focusedField, focusValue: 1)
-                            #endif
+                        
+                        
+                        HStack(alignment: .circleAndTitle) {
+                            Text("Last 4 Digits")
+                                .frame(minWidth: labelWidth, alignment: .leading)
+                                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                            
+                                /// This is the same as using `.maxLabelWidthObserver()`. But I did it this way to I could understand better when looking at this.
+                                .background {
+                                    GeometryReader { geo in
+                                        Color.clear.preference(key: MaxSizePreferenceKey.self, value: geo.size.width)
+                                    }
+                                }
+                            
+                            VStack(spacing: 0) {
+                                Group {
+                                    #if os(iOS)
+                                    StandardUITextField("Last 4 Digits", text: $payMethod.last4 ?? "", toolbar: {
+                                        KeyboardToolbarView(focusedField: $focusedField)
+                                    })
+                                    .cbKeyboardType(.numberPad)
+                                    .cbFocused(_focusedField, equals: 1)
+                                    .cbClearButtonMode(.whileEditing)
+                                    .cbMaxLength(4)
+                                    #else
+                                    StandardTextField("Last 4 Digits", text: $payMethod.last4 ?? "", focusedField: $focusedField, focusValue: 1)
+                                    #endif
+                                }
+                                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                                
+                                
+                                Text("If you wish to use the smart receipt feature offered by ChatGPT, enter the last 4 digits of your card information. If not, you can leave this field blank.")
+                                .foregroundStyle(.gray)
+                                .font(.caption)
+                                .multilineTextAlignment(.leading)
+                                .padding(.leading, 6)
+                                
+                            }
+                                
                         }
+                        
+//                        LabeledRow("Last 4 Digits", labelWidth) {
+//                            VStack(spacing: 0) {
+//                                Group {
+//                                    #if os(iOS)
+//                                    StandardUITextField("Last 4 Digits", text: $payMethod.last4 ?? "", toolbar: {
+//                                        KeyboardToolbarView(focusedField: $focusedField)
+//                                    })
+//                                    .cbKeyboardType(.numberPad)
+//                                    .cbFocused(_focusedField, equals: 1)
+//                                    .cbClearButtonMode(.whileEditing)
+//                                    .cbMaxLength(4)
+//                                    #else
+//                                    StandardTextField("Last 4 Digits", text: $payMethod.last4 ?? "", focusedField: $focusedField, focusValue: 1)
+//                                    #endif
+//                                }
+//                                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+//                                
+//                                
+//                                Text("No information will be collected. Enter the last 4 digits of your card information (if applicable) if you want to use the smart receipt upload feature offered by ChatGPT. If not, leave this field blank."
+//                                )
+//                                .foregroundStyle(.gray)
+//                                .font(.caption)
+//                                .multilineTextAlignment(.leading)
+//                                .padding(.horizontal, 6)
+//                                
+//                            }
+//                            
+//                        }
                     }
                     
                     if payMethod.accountType == .credit {
@@ -156,7 +212,7 @@ struct PayMethodView: View {
                         LabeledRow("Due Date", labelWidth) {
                             Group {
                                 #if os(iOS)
-                                StandardUITextFieldFancy("(day number only)", text: $payMethod.dueDateString ?? "", onBeginEditing: {
+                                StandardUITextField("(day number only)", text: $payMethod.dueDateString ?? "", onBeginEditing: {
                                     payMethod.dueDateString = payMethod.dueDateString?.replacing(/[a-z]+/, with: "", maxReplacements: 1)
                                 }, toolbar: {
                                     KeyboardToolbarView(focusedField: $focusedField)
@@ -185,7 +241,7 @@ struct PayMethodView: View {
                         LabeledRow("Limit", labelWidth) {
                             Group {
                                 #if os(iOS)
-                                StandardUITextFieldFancy("Limit", text: $payMethod.limitString ?? "", toolbar: {
+                                StandardUITextField("Limit", text: $payMethod.limitString ?? "", toolbar: {
                                     KeyboardToolbarView(focusedField: $focusedField)
                                 })
                                 .cbFocused(_focusedField, equals: 3)
@@ -195,21 +251,20 @@ struct PayMethodView: View {
                                 StandardTextField("Limit", text: $payMethod.limitString ?? "", focusedField: $focusedField, focusValue: 3)
                                 #endif
                             }
-                            .onChange(of: focusedField) { oldValue, newValue in
-                                if newValue == 3 {
-                                    if payMethod.limit == 0.0 {
-                                        payMethod.limitString = ""
-                                    }
-                                } else {
-                                    if oldValue == 2 && !(payMethod.limitString ?? "").isEmpty {
-                                        if payMethod.limitString == "$" || payMethod.limitString == "-$" {
-                                            payMethod.limitString = ""
-                                        } else {
-                                            payMethod.limitString = payMethod.limit?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
-                                        }
-                                    }
-                                }
-                            }
+                            .formatCurrencyLiveAndOnUnFocus(
+                                focusValue: 3,
+                                focusedField: focusedField,
+                                amountString: payMethod.limitString,
+                                amountStringBinding: $payMethod.limitString ?? "",
+                                amount: payMethod.limit
+                            )
+                            
+//                            .onChange(of: payMethod.limitString) {
+//                                Helpers.liveFormatCurrency(oldValue: $0, newValue: $1, text: $payMethod.limitString ?? "")
+//                            }
+//                            .onChange(of: focusedField) {
+//                                payMethod.limitString = Helpers.formatCurrency(focusValue: 3, oldFocus: $0, newFocus: $1, amountString: payMethod.limitString, amount: payMethod.limit)
+//                            }
                         }
                     }
                     

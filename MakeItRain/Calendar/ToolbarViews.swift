@@ -7,6 +7,8 @@
 
 import SwiftUI
 
+#if os(macOS)
+
 struct CalendarToolbarLeading: View {
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
     //@AppStorage("showAccountOnUnifiedView") var showAccountOnUnifiedView = false
@@ -343,13 +345,13 @@ struct ToolbarCenterView: View {
                 if [.lastDecember, .january, .february, .march, .april, .may, .june, .july, .august, .september, .october, .november, .december, .nextJanuary].contains(selection) {
                     
                     if selection == .lastDecember {
-                        Text((selection.displayName ?? "") + " \(calModel.sYear - 1)")
+                        Text((selection.displayName) + " \(calModel.sYear - 1)")
                             .font(.title)
                     } else if selection == .nextJanuary {
-                        Text((selection.displayName ?? "") + " \(calModel.sYear + 1)")
+                        Text((selection.displayName) + " \(calModel.sYear + 1)")
                             .font(.title)
                     } else {
-                        Text((selection.displayName ?? "") + " \(calModel.sYear)")
+                        Text((selection.displayName) + " \(calModel.sYear)")
                             .font(.title)
                     }
                     
@@ -357,7 +359,7 @@ struct ToolbarCenterView: View {
 //                        ProgressView(value: LoadingManager.shared.downloadAmount, total: 120)
 //                    }
                 } else {
-                    Text(selection.displayName ?? "")
+                    Text(selection.displayName)
                         .font(.title)
                 }
             }
@@ -549,3 +551,4 @@ struct CalendarToolbarTrailing: View {
         .toolbarBorder()
     }
 }
+#endif

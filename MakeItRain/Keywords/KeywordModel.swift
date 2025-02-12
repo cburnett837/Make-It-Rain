@@ -268,7 +268,7 @@ class KeywordModel {
             let _ = await submit(keyword)
         }
         
-        let saveResult = DataManager.shared.deleteAll(for: PersistentKeyword.self)
+        let _ = DataManager.shared.deleteAll(for: PersistentKeyword.self)
         //print("SaveResult: \(saveResult)")
         keywords.removeAll()
     }

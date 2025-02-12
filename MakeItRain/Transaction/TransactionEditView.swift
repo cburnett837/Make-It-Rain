@@ -42,6 +42,10 @@ struct TransactionEditView: View {
     @State private var vm = ViewModel()
     @State private var trans = CBTransaction()
     
+    /// Retain an objectID of the original placeholder transaction above so we can prevent onChanges from running when we call `prepareTransactionForEditing()` on view load..
+    @State private var placeholderObjectID = UUID()
+    var transIsNotPlaceholder: Bool { return placeholderObjectID != trans.objectID }
+    
     @State private var titleColorButtonHoverColor: Color = .gray
     @State private var payMethodMenuColor: Color = Color(.tertiarySystemFill)
     @State private var categoryMenuColor: Color = Color(.tertiarySystemFill)
@@ -67,16 +71,13 @@ struct TransactionEditView: View {
     @State private var showCategorySheet = false
     @State private var showPaymentMethodChangeAlert = false
     @State private var showDeleteAlert = false
-    //@State private var showErrorAlert = false
     
     @State private var blockKeywordChangeWhenViewLoads = true
-    @State private var showCamera = false
     @State private var showTrackingOrderAndUrlFields = false
-    
-    //@State private var keyboardHeight: CGFloat = 0
-    //@State private var offset: CGFloat = 100
-    
-    
+    @State private var showPhotosPicker = false
+    @State private var showCamera = false
+    @State private var showUndoRedoAlert = false
+        
     let changeTransactionTitleColorTip = ChangeTransactionTitleColorTip()
     
     var transTypeLingo: String {
@@ -87,10 +88,19 @@ struct TransactionEditView: View {
         }
     }
     
+    var paymentMethodMissing: Bool {
+        return !trans.title.isEmpty && !trans.amountString.isEmpty && trans.payMethod == nil
+    }
+    
     var header: some View {
         Group {
-            SheetHeaderView(title: title, trans: trans, focusedField: $focusedField, showDeleteAlert: $showDeleteAlert)
-                .padding()
+            SheetHeaderView(
+                title: title,
+                trans: trans,
+                focusedField: $focusedField,
+                showDeleteAlert: $showDeleteAlert
+            )
+            .padding()
             
             Divider()
                 .padding(.horizontal)
@@ -98,11 +108,12 @@ struct TransactionEditView: View {
     }
     
     var body: some View {
-        //let _ = Self._printChanges()
+        let _ = Self._printChanges()
         @Bindable var calModel = calModel
         @Bindable var payModel = payModel
         @Bindable var catModel = catModel
         @Bindable var keyModel = keyModel
+        @Bindable var appState = AppState.shared
         
         //NavigationStack {
             VStack(spacing: 0) {
@@ -172,47 +183,19 @@ struct TransactionEditView: View {
                 }
                 .scrollDismissesKeyboard(.interactively)
             }
+            .interactiveDismissDisabled(paymentMethodMissing)
             #if os(iOS)
             .toolbar(.hidden) /// To hide the nav bar
             #endif
         //}
-        
-//        #if os(iOS)
-//        .keyboardToolbar(
-//            text:
-//                focusedField == 0 ? $trans.title :
-//                focusedField == 1 ? $trans.amountString :
-//                focusedField == 2 ? $trans.trackingNumber :
-//                focusedField == 3 ? $trans.orderNumber :
-//                focusedField == 4 ? $trans.url :
-//                focusedField == 5 ? $trans.notes :
-//                .constant(""),
-//            focusedField: $focusedField,
-//            focusViews: [
-//                FocusView(
-//                    focusID: 1,
-//                    view: AnyView(
-//                        Button {
-//                            trans.amountString = Helpers.plusMinus(amountString: trans.amountString)
-//                        } label: {
-//                            Image(systemName: "plus.forwardslash.minus")
-//                                .foregroundStyle(.gray)
-//                        }
-//                    )
-//                )
-//            ]
-//        )
-//        #endif
-        
         .environment(vm)
         .task {
             prepareTransactionForEditing(isTemp: isTemp)
             ChangeTransactionTitleColorTip.didOpenTransaction.sendDonation()
         }
         .alert("Please change the payment method by right-clicking on the line item from the main view.", isPresented: $showPaymentMethodChangeAlert) {
-            Button("OK"){}
+            Button("OK") {}
         }
-        
         .confirmationDialog("Delete \"\(trans.title)\"?", isPresented: $showDeleteAlert) {
             /// There's a bug in dismiss() that causes the photo sheet to open, close, and then open again. By moving the dismiss variable into a seperate view, it doesn't affect the photo sheet anymore.
             DeleteYesButton(trans: trans, isTemp: isTemp)
@@ -239,6 +222,64 @@ struct TransactionEditView: View {
         #if os(iOS)
         .sheet(item: $safariUrl) { SFSafariView(url: $0) }
         #endif
+//        .alert(AppState.shared.alertText, isPresented: $appState.showAlert) {
+//            if let function = AppState.shared.alertFunction {
+//                Button(AppState.shared.alertButtonText, action: function)
+//            }
+//            if let function = AppState.shared.alertFunction2 {
+//                Button(AppState.shared.alertButtonText2, action: function)
+//            } else {
+//                Button("Close", action: {})
+//            }
+//        }
+        .onShake {
+            UndodoManager.shared.showAlert = true
+        }
+        .onChange(of: UndodoManager.shared.returnMe) { oldValue, newValue in
+            if let newValue {
+                if newValue.focusedField == 0 {
+                    trans.title = newValue.text
+                    
+                } else if newValue.focusedField == 1 {
+                    trans.amountString = newValue.text
+                }
+                
+                //UndodoManager.shared.returnMe = nil
+            }
+        }
+        .onChange(of: trans.title) {
+            print("Change title \($0) - \($1)")
+            print(trans.objectID)
+            if UndodoManager.shared.returnMe != nil {
+                UndodoManager.shared.returnMe = nil
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    UndodoManager.shared.commitTextChange(text: trans.title, focusedField: 0)
+                }
+            }
+        }
+        .onChange(of: trans.amountString) {
+            print("Change amountString \($0) - \($1)")
+            print(trans.objectID)
+            if UndodoManager.shared.returnMe != nil {
+                UndodoManager.shared.returnMe = nil
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    UndodoManager.shared.commitTextChange(text: trans.amountString, focusedField: 1)
+                }
+            }
+        }
+        .onChange(of: trans.payMethod ?? CBPaymentMethod()) {
+            print("Change payMethod \($0.id) - \($1.id)")
+            print(trans.objectID)
+        }
+//        .onChange(of: focusedField) { oldValue, newValue in
+//            if newValue == 0 {
+//                UndodoManager.shared.commitTextChange(text: trans.title, focusedField: 0)
+//            } else if newValue == 1 {
+//                UndodoManager.shared.commitTextChange(text: trans.amountString, focusedField: 1)
+//            }
+//        }
     }
                
     
@@ -284,7 +325,8 @@ struct TransactionEditView: View {
             
             Group {
                 #if os(iOS)
-                StandardUITextFieldFancy("Title", text: $trans.title, onSubmit: {
+                StandardUITextField("Title", text: $trans.title, onSubmit: {
+                    UndodoManager.shared.commitTextChange(text: trans.title, focusedField: 0)
                     focusedField = 1
                 }, toolbar: {
                     KeyboardToolbarView(focusedField: $focusedField)
@@ -342,7 +384,7 @@ struct TransactionEditView: View {
             VStack(alignment: .leading, spacing: 0) {
                 Group {
                     #if os(iOS)
-                    StandardUITextFieldFancy("Amount", text: $trans.amountString, toolbar: {
+                    StandardUITextField("Amount", text: $trans.amountString, toolbar: {
                         KeyboardToolbarView(
                             focusedField: $focusedField,
                             accessoryImage3: "plus.forwardslash.minus",
@@ -353,23 +395,32 @@ struct TransactionEditView: View {
                     .cbClearButtonMode(.whileEditing)
                     .cbFocused(_focusedField, equals: 1)
                     .cbKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
-                    .cbTextfieldInputType(.currency)
-                    /// Format the amount field
-                    .onChange(of: focusedField) { oldValue, newValue in
-                        if newValue == 1 {
-                            if trans.amount == 0.0 {
-                                trans.amountString = ""
-                            }
-                        } else {
-                            if oldValue == 1 && !trans.amountString.isEmpty {
-                                if trans.amountString == "$" || trans.amountString == "-$" {
-                                    trans.amountString = ""
-                                } else {
-                                    trans.amountString = trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
-                                }
-                            }
-                        }
-                    }
+                    //.cbTextfieldInputType(.currency)                    
+//                    .onChange(of: trans.amountString) {
+//                        Helpers.liveFormatCurrency(oldValue: $0, newValue: $1, text: $trans.amountString)
+//                    }
+//                    .onChange(of: focusedField) {
+//                        if let string = Helpers.formatCurrency(focusValue: 1, oldFocus: $0, newFocus: $1, amountString: trans.amountString, amount: trans.amount) {
+//                            trans.amountString = string
+//                        }
+//                    }
+//
+//
+//                    .onChange(of: focusedField) { oldValue, newValue in
+//                        if newValue == 1 {
+//                            if trans.amount == 0.0 {
+//                                trans.amountString = ""
+//                            }
+//                        } else {
+//                            if oldValue == 1 && !trans.amountString.isEmpty {
+//                                if trans.amountString == "$" || trans.amountString == "-$" {
+//                                    trans.amountString = ""
+//                                } else {
+//                                    trans.amountString = trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+//                                }
+//                            }
+//                        }
+//                    }
 //                    .onChange(of: trans.amountString) { oldValue, newValue in
 //                        if trans.amountString != "-" {
 //                            if trans.amount == 0.0 {
@@ -383,6 +434,13 @@ struct TransactionEditView: View {
                     StandardTextField("Amount", text: $trans.amountString, focusedField: $focusedField, focusValue: 1)
                     #endif
                 }
+                .formatCurrencyLiveAndOnUnFocus(
+                    focusValue: 1,
+                    focusedField: focusedField,
+                    amountString: trans.amountString,
+                    amountStringBinding: $trans.amountString,
+                    amount: trans.amount
+                )
                 .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
                 
                 (Text("Transaction Type: ") + Text(transTypeLingo).bold(true).foregroundStyle(Color.fromName(appColorTheme)))
@@ -447,7 +505,7 @@ struct TransactionEditView: View {
                                     
             Group {
                 #if os(iOS)
-                StandardUITextFieldFancy("Tracking Number", text: $trans.trackingNumber, onSubmit: {
+                StandardUITextField("Tracking Number", text: $trans.trackingNumber, onSubmit: {
                     focusedField = 3
                 }, toolbar: {
                     KeyboardToolbarView(focusedField: $focusedField)
@@ -475,7 +533,7 @@ struct TransactionEditView: View {
                         
             Group {
                 #if os(iOS)
-                StandardUITextFieldFancy("Order Number", text: $trans.orderNumber, onSubmit: {
+                StandardUITextField("Order Number", text: $trans.orderNumber, onSubmit: {
                     focusedField = 4
                 }, toolbar: {
                     KeyboardToolbarView(focusedField: $focusedField)
@@ -505,7 +563,7 @@ struct TransactionEditView: View {
             VStack(alignment: .leading) {
                 HStack {
                     #if os(iOS)
-                    StandardUITextFieldFancy("URL", text: $trans.url, onSubmit: {
+                    StandardUITextField("URL", text: $trans.url, onSubmit: {
                         focusedField = nil
                     }, toolbar: {
                         KeyboardToolbarView(focusedField: $focusedField)
@@ -550,11 +608,14 @@ struct TransactionEditView: View {
                 .foregroundColor(.gray)
                 .frame(width: symbolWidth)
             
-            DatePicker(selection: $trans.date ?? Date(), displayedComponents: [.date]) {
-                EmptyView()
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .labelsHidden()
+            #if os(iOS)
+            UIKitDatePicker(date: $trans.date, alignment: .leading) // Have to use because of reformatting issue
+                .frame(height: 40)
+            #else
+            DatePicker("", selection: $trans.date ?? Date(), displayedComponents: [.date])
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .labelsHidden()
+            #endif
                                                                 
         }
     }
@@ -760,16 +821,18 @@ struct TransactionEditView: View {
                 .frame(width: symbolWidth)
             
             
+//            UITextEditorWrapper(placeholder: "Notes…", text: $trans.notes, toolbar: {
+//                KeyboardToolbarView(focusedField: $focusedField)
+//            })
+            
             TextEditor(text: $trans.notes)
                 .foregroundStyle(trans.notes.isEmpty ? .gray : .primary)
                 .scrollContentBackground(.hidden)
                 .background(.clear)
                 .frame(minHeight: 100)
                 .focused($focusedField, equals: showTrackingOrderAndUrlFields ? 5 : 2)
-//                .keyboardType(.asciiCapable)
-//                .autocorrectionDisabled()
+                .offset(y: -10)
                 .overlay {
-                    VStack {}
                     Text("Notes…")
                         .foregroundStyle(.gray)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -869,11 +932,19 @@ struct TransactionEditView: View {
         var focusedField: FocusState<Int?>.Binding
         @Binding var showDeleteAlert: Bool
         
+        var linkedLingo: String? {
+            if trans.relatedTransactionType == XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction) {
+                return "(Linked to transaction)"
+            } else {
+                return "(Linked to event)"
+            }        
+        }
+        
         var body: some View {
             SheetHeader(
                 title: title,
-                subtitle: trans.relatedTransactionID == nil ? nil : "(Linked)",
-                close: { focusedField.wrappedValue = nil; dismiss() },
+                subtitle: trans.relatedTransactionID == nil ? nil : linkedLingo,
+                close: { validateBeforeClosing() },
                 view1: { notificationButton },
                 view2: { factorInCalculationsButton },
                 view3: { deleteButton }
@@ -902,6 +973,21 @@ struct TransactionEditView: View {
                 withAnimation { trans.factorInCalculations.toggle() }
             } label: {
                 Image(systemName: trans.factorInCalculations ? "eye.slash.fill" : "eye.fill")
+            }
+        }
+        
+        func validateBeforeClosing() {
+            if !trans.title.isEmpty && !trans.amountString.isEmpty && trans.payMethod == nil {
+                let config = AlertConfig(
+                    title: "Missing Payment Method",
+                    subtitle: "Please add a payment method or delete this transaction.",
+                    symbol: .init(name: "creditcard.trianglebadge.exclamationmark.fill", color: .orange)
+                )
+                AppState.shared.showAlert(config: config)
+                
+            } else {
+                focusedField.wrappedValue = nil
+                dismiss()
             }
         }
     }
@@ -965,7 +1051,8 @@ struct TransactionEditView: View {
                     Spacer()
                 } else {
                     
-                    if let pictures = trans.pictures {
+                    /// Check for active for 1 situation only - if a photo fails to upload, we deactivate it to hide the view.
+                    if let pictures = trans.pictures?.filter({ $0.active }) {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(alignment: .top, spacing: 4) {
                                 ForEach(pictures) { pic in
@@ -999,6 +1086,7 @@ struct TransactionEditView: View {
                                         }
                                     }
                                     #else
+                                    
                                     /// Open inline safari-sheet
                                     .onTapGesture {
                                         safariUrl = URL(string: "https://\(Keys.baseURL):8676/budget_app.photo.\(pic.uuid).jpg")!
@@ -1019,19 +1107,21 @@ struct TransactionEditView: View {
                         }
                     } else {
                         photoPickerButton
-                        
                         Spacer()
                     }
                 }
             }
             #if os(iOS)
+            .photosPicker(isPresented: $showPhotosPicker, selection: $calModel.imagesFromLibrary, matching: .images, photoLibrary: .shared())
+            .onChange(of: showPhotosPicker) { oldValue, newValue in
+                if !newValue { calModel.uploadPictures() }
+            }
             .fullScreenCover(isPresented: $showCamera) {
-                AccessCameraView(selectedImage: $calModel.selectedImage)
+                AccessCameraView(selectedImage: $calModel.imageFromCamera)
                     .background(.black)
             }
             #endif
         }
-        
     }
     
     
@@ -1039,7 +1129,27 @@ struct TransactionEditView: View {
         Group {
             @Bindable var calModel = calModel
             VStack(spacing: 6) {
-                PhotosPicker(selection: $calModel.imageSelection, matching: .images, photoLibrary: .shared()) {
+//                PhotosPicker(selection: $calModel.imageFromLibrary, matching: .images, photoLibrary: .shared()) {
+//                    RoundedRectangle(cornerRadius: 12)
+//                        .fill(addPhotoButtonHoverColor2)
+//                        #if os(iOS)
+//                        .frame(width: photoWidth, height: (photoHeight / 2) - 3)
+//                        #else
+//                        .frame(width: photoWidth, height: photoHeight)
+//                        #endif
+//                    
+//                        .overlay {
+//                            VStack {
+//                                Image(systemName: "photo.badge.plus")
+//                                    .font(.title)
+//                                Text("Library")
+//                            }
+//                            .foregroundStyle(.gray)
+//                        }
+//                }
+                Button(action: {
+                    showPhotosPicker = true
+                }, label: {
                     RoundedRectangle(cornerRadius: 12)
                         .fill(addPhotoButtonHoverColor2)
                         #if os(iOS)
@@ -1056,7 +1166,7 @@ struct TransactionEditView: View {
                             }
                             .foregroundStyle(.gray)
                         }
-                }
+                })
                 .buttonStyle(.plain)
                 .onHover { isHovered in addPhotoButtonHoverColor2 = isHovered ? Color(.systemFill) : Color(.tertiarySystemFill) }
                 .focusEffectDisabled(true)
@@ -1188,13 +1298,16 @@ struct TransactionEditView: View {
     func prepareTransactionForEditing(isTemp: Bool) {
         /// `WARNING!` Can't do this logic in `init()` due to redraws.
 
-        /// Get the transaction from the model.
-        //var trans: CBTransaction?
-                
+        /// Clear undo history.
+        UndodoManager.shared.clearHistory()
+        
         calModel.hilightTrans = nil
         
-        trans = calModel.getTransaction(by: transEditID!, from: isTemp ? .tempList : transLocation)
+        /// Prevent on changes from running when the transaction gets set below.
+        placeholderObjectID = trans.objectID
         
+        /// Grab the transaction from the model or create a new one.
+        trans = calModel.getTransaction(by: transEditID!, from: isTemp ? .tempList : transLocation)
             
         /// Determine the title button color.
         titleColorButtonHoverColor = trans.color == .primary ? .gray : trans.color
@@ -1206,8 +1319,7 @@ struct TransactionEditView: View {
         
         /// Just for formatting.
         trans.amountString = trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
-        
-        
+                
         /// Set a reference to the transactions ID so photos know where to go.
         calModel.pictureTransactionID = trans.id
 
@@ -1253,6 +1365,7 @@ struct TransactionEditView: View {
         #endif
         
         calModel.transEditID = transEditID
+        print("Done preparing transaction")
     }
     
     

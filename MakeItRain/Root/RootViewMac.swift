@@ -101,6 +101,7 @@ struct RootViewMac: View {
                         if AppState.shared.methsExist {
                             NavLinkMac(destination: .categories, title: "Categories", image: "books.vertical")
                             NavLinkMac(destination: .keywords, title: "Keywords", image: "textformat.abc.dottedunderline")
+                            NavLinkMac(destination: .events, title: "Events", image: "beach.umbrella")
                         }
                     }
                 }

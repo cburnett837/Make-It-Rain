@@ -13,41 +13,16 @@ struct EventItemView: View {
     @Environment(EventModel.self) private var eventModel
     
     @Bindable var event: CBEvent
-    @Bindable var item: CBEventItem
-    
     @State private var showDeleteAlert = false
-    @State private var deleteTrans: CBEventTransaction?
-    @State private var editTrans: CBEventTransaction?
-    @State private var transEditID: CBEventTransaction.ID?
-    
     @FocusState private var focusedField: Int?
     
-    var title: String { item.action == .add ? "New Item" : "Edit Item" }
-    
-    var addItemButton: some View {
-        Button {
-            transEditID = UUID().uuidString
-        } label: {
-            Image(systemName: "plus")
-        }
-    }
-        
-    var deleteButton: some View {
-        Button {
-            showDeleteAlert = true
-        } label: {
-            Image(systemName: "trash")
-        }
-        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
-    }
+    @State private var deleteItem: CBEventItem?
     
     var header: some View {
         Group {
             SheetHeader(
-                title: title,
-                close: { dismiss() },
-                view1: { addItemButton },
-                view3: { deleteButton }
+                title: "Sections",
+                close: { dismiss() }
             )
             .padding()
             
@@ -60,94 +35,60 @@ struct EventItemView: View {
         VStack(spacing: 0) {
             header
             List {
-                
-                HStack {
-                    Text("Title")
-                    Spacer()
-                    #if os(iOS)
-                    UITextFieldWrapperFancy(placeholder: "Item Title", text: $item.title, toolbar: {
-                        KeyboardToolbarView(focusedField: $focusedField)
-                    })
-                    .uiTag(0)
-                    .uiTextAlignment(.right)
-                    .uiClearButtonMode(.whileEditing)
-                    .uiStartCursorAtEnd(true)
-                    #else
-                    TextField("Item Title", text: $event.title)
-                        .multilineTextAlignment(.trailing)
-                    #endif
-                }
-                .focused($focusedField, equals: 0)
-                
-                
-                Section("Transactions") {
-                    ForEach(item.transactions.filter { $0.active }) { trans in
-                        Text(trans.title)
-                            .onTapGesture {
-                                transEditID = trans.id
-                            }
-                        
+                ForEach($event.items.filter {$0.wrappedValue.active}) { $item in
+                    Group {
+                        #if os(iOS)
+                        UITextFieldWrapper(placeholder: "Item Title", text: $item.title, toolbar: {
+                            KeyboardToolbarView(focusedField: $focusedField)
+                        })
+                        .uiTag(0)
+                        .uiTextAlignment(.left)
+                        .uiClearButtonMode(.whileEditing)
+                        .uiStartCursorAtEnd(true)
+                        #else
+                        TextField("Item Title", text: $event.title)
+                            .multilineTextAlignment(.leading)
+                        #endif
                     }
-                    Button("Add Transaction") {
-                        transEditID = UUID().uuidString
+                    .swipeActions(allowsFullSwipe: false) {
+                        Button {
+                            deleteItem = item
+                            showDeleteAlert = true
+                        } label: {
+                            Image(systemName: "trash")
+                                .tint(.red)
+                        }
                     }
-                }
-                
-                
-                
-            }
-        }
-        .task {
-            event.upsert(item)
-        }
-        .sheet(item: $editTrans, onDismiss: {
-            transEditID = nil
-        }, content: { trans in
-            FakeTransEditView(trans: trans, item: item, event: event)
-            #if os(macOS)
-                .frame(minWidth: 300, minHeight: 500)
-                .presentationSizing(.fitted)
-            #endif
-        })
-        
-        .onChange(of: transEditID) { oldValue, newValue in
-            if let newValue {
-                editTrans = item.getTransaction(by: newValue)
-            } else {
-                item.saveTransaction(id: oldValue!)
-                
-                
-                let trans = item.getTransaction(by: oldValue!)
-                if trans.status.enumID == .claimed {
-                    print("Creating real transaction in itemview")
-                    let realTrans = trans.realTransaction
-                    realTrans.title = trans.title
-                    realTrans.amountString = trans.amountString
-                    realTrans.date = trans.date
-                    realTrans.enteredBy = trans.paidBy!
-                    realTrans.updatedBy = trans.paidBy!
-                    realTrans.relatedTransactionID = trans.id
-                    realTrans.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .eventTransaction)
+                    .focused($focusedField, equals: getFocusIndex(for: item))
                     
-                    eventModel.pendingTransactionToSave.append(realTrans)
+                }
+                
+                Button("Add Item") {
+                    let item = CBEventItem()
+                    event.upsert(item)
                 }
             }
         }
-        .confirmationDialog("Delete \"\(item.title)\"?", isPresented: $showDeleteAlert, actions: {
-            Button("Yes", role: .destructive) {
-                dismiss()
-                event.deleteItem(id: item.id)
+        .confirmationDialog("Delete \"\(deleteItem?.title ?? "N.A")\"?", isPresented: $showDeleteAlert, actions: {
+            if let deleteItem {
+                Button("Yes", role: .destructive) {
+                    event.deleteItem(id: deleteItem.id)
+                }
             }
-            
             Button("No", role: .cancel) {
                 showDeleteAlert = false
             }
         }, message: {
             #if os(iOS)
-            Text("Delete \"\(item.title)\"?\nThis will not delete any associated transactions.")
+            Text("Delete \"\(deleteItem?.title ?? "N.A")\"?\nThis will not delete any associated transactions.")
             #else
             Text("This will not delete any associated transactions.")
             #endif
         })
     }
+    
+    func getFocusIndex(for item: CBEventItem) -> Int {
+        return (event.items.firstIndex(of: item) ?? 0) + 2
+    }
+    
 }

@@ -38,8 +38,7 @@ struct MultiPaymentMethodSheet: View {
         .padding(.horizontal, 20)
         .padding(.top)
                 
-        StandardTextField("Search Payment Methods", text: $searchText, isSearchField: true, focusedField: $focusedField, focusValue: 0)
-            .padding(.horizontal, 20)
+        SearchTextField(title: "Payment Methods", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)                
                 
         List {
             ForEach(filteredSections) { section in

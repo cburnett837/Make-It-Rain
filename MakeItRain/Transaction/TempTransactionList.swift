@@ -221,7 +221,7 @@ struct TempTransactionList: View {
                 Task {
                     try? await Task.sleep(nanoseconds: UInt64(1 * Double(NSEC_PER_SEC)))
                     
-                    AppState.shared.showToast(header: "Failed To Add", title: "Payment Method was missing", message: "", symbol: "exclamationmark.triangle", symbolColor: .orange)
+                    AppState.shared.showToast(title: "Failed To Add", subtitle: "Payment Method was missing", body: "", symbol: "exclamationmark.triangle", symbolColor: .orange)
                 }
             }
             return

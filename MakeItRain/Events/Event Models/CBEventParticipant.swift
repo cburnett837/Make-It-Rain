@@ -22,12 +22,13 @@ class CBEventParticipant: Codable, Identifiable, Hashable, Equatable {
     var email: String?
     var status: XrefItem?
     var eventID: String /// Used for verifying email
+    var eventName: String?
     
     
     var active: Bool
     var action: EventParticipantAction
     
-    enum CodingKeys: CodingKey { case id, uuid, user, amount, active, invite_from, invite_to, email, status_id, event_id }
+    enum CodingKeys: CodingKey { case id, uuid, user, amount, active, invite_from, invite_to, email, status_id, event_id, event_name }
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -53,7 +54,7 @@ class CBEventParticipant: Codable, Identifiable, Hashable, Equatable {
         self.active = true
         self.action = .add
         self.inviteFrom = AppState.shared.user!
-        self.inviteTo = AppState.shared.user!
+        //self.inviteTo = AppState.shared.user!
         self.eventID = eventID
         self.email = email
         self.status = XrefModel.getItem(from: .eventInviteStatus, byEnumID: .pending)
@@ -81,6 +82,9 @@ class CBEventParticipant: Codable, Identifiable, Hashable, Equatable {
         inviteTo = try container.decode(CBUser.self, forKey: .invite_to)
         email = try container.decode(String?.self, forKey: .email)
         let statusID = try container.decode(Int.self, forKey: .status_id)
+        
+        eventName = try container.decodeIfPresent(String.self, forKey: .event_name)
+        
         self.status = XrefModel.getItem(from: .eventInviteStatus, byID: statusID)
         
         do {
@@ -90,6 +94,35 @@ class CBEventParticipant: Codable, Identifiable, Hashable, Equatable {
         }
         
         action = .edit
+    }
+    
+    
+    
+    func setFromAnotherInstance(part: CBEventParticipant) {
+        self.user = part.user
+        self.amountString = part.amountString
+        self.active = part.active
+        self.inviteFrom = part.inviteFrom
+        self.inviteTo = part.inviteTo
+        self.email = part.email
+        self.eventID = part.eventID
+        self.eventName = part.eventName
+        self.status = part.status
+        
+    }
+    
+    func updateFromLongPoll(part: CBEventParticipant) {
+        if AppState.shared.user(is: part.user) {
+            self.user = part.user
+            self.amountString = part.amountString
+            self.active = part.active
+            self.inviteFrom = part.inviteFrom
+            self.inviteTo = part.inviteTo
+            self.email = part.email
+            self.eventID = part.eventID
+            self.eventName = part.eventName
+            self.status = part.status
+        }
     }
     
     
@@ -107,6 +140,8 @@ class CBEventParticipant: Codable, Identifiable, Hashable, Equatable {
             copy.inviteTo = self.inviteTo
             copy.email = self.email
             copy.status = self.status
+            copy.eventID = self.eventID
+            copy.eventName = self.eventName
             self.deepCopy = copy
         case .restore:
             if let deepCopy = self.deepCopy {
@@ -119,6 +154,7 @@ class CBEventParticipant: Codable, Identifiable, Hashable, Equatable {
                 self.inviteTo = deepCopy.inviteTo
                 self.email = deepCopy.email
                 self.eventID = deepCopy.eventID
+                self.eventName = deepCopy.eventName
                 self.status = deepCopy.status
             }
         }
@@ -135,6 +171,8 @@ class CBEventParticipant: Codable, Identifiable, Hashable, Equatable {
         && lhs.inviteTo == rhs.inviteTo
         && lhs.email == rhs.email
         && lhs.status == rhs.status
+        && lhs.eventID == rhs.eventID
+        && lhs.eventName == rhs.eventName
         && lhs.active == rhs.active {
             return true
         }

@@ -94,11 +94,9 @@ struct CategorySheet: View {
         .padding(.bottom, 12)
         .padding(.horizontal, 20)
         .padding(.top)
-        
-        StandardTextField("Search Categories", text: $searchText, isSearchField: true, focusedField: $focusedField, focusValue: 0)
-            //.focused($focusedField, equals: .search)
-            .padding(.horizontal, 20)
-        
+                
+        SearchTextField(title: "Categories", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)
+                
         List {
             if searchText.isEmpty {
                 Section("None") {

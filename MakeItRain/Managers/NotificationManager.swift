@@ -86,12 +86,13 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     }
     
     
-    func sendNotification(title: String, subtitle: String, body: String) {
+    func sendNotification(title: String, subtitle: String?, body: String?) {
         print("-- \(#function)")
         let content = UNMutableNotificationContent()
         content.title = title
-        content.subtitle = subtitle
-        content.body = body
+        if let subtitle { content.subtitle = subtitle }
+        if let body { content.body = body }
+        
         content.sound = .none
         
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)

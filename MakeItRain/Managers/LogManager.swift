@@ -26,8 +26,7 @@ struct LogManager {
         print(
             """
             \(sesh)\(file?.replacingOccurrences(of: "MakeItRain/", with: "") ?? "NoFile") --- \(line ?? 0) --- \(function ?? "NoFunction")
-            🟢\(text ?? "NoMessage")
-            
+            🟢\(text ?? "NoMessage")            
             """
         )
         

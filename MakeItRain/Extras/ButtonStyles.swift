@@ -23,6 +23,9 @@ extension ButtonStyle where Self == CodyGrowingWithHoverButtonStyle {
 extension ButtonStyle where Self == SheetHeaderButtonStyle {
     internal static var sheetHeader: SheetHeaderButtonStyle { SheetHeaderButtonStyle() }
 }
+extension ButtonStyle where Self == AlertButtonStyle {
+    internal static var codyAlert: AlertButtonStyle { AlertButtonStyle() }
+}
 
 struct CodyStandardButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
@@ -118,4 +121,21 @@ struct SheetHeaderButtonStyleOG: ButtonStyle {
             //.animation(.easeOut(duration: 0.2), value: configuration.isPressed)
     }
 }
+
+
+struct AlertButtonStyle: ButtonStyle {
+    @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
+    
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(preferDarkMode ? .white : .black)
+            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity)
+            .background(configuration.isPressed ? Material.ultraThinMaterial : Material.ultraThickMaterial)
+        
+            //.scaleEffect(configuration.isPressed ? 1.2 : 1)
+            //.animation(.easeOut(duration: 0.2), value: configuration.isPressed)
+    }
+}
+
 #endif

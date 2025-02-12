@@ -63,7 +63,53 @@ struct Helpers {
         }
     }
     
+    static func formatCurrency(focusValue: Int, oldFocus: Int?, newFocus: Int?, amountString: String?, amount: Double?) -> String? {
+        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+        
+        if newFocus == focusValue {
+            if amount == 0.0 {
+                return ""
+            } else {
+                return amountString
+            }
+        } else {
+            if oldFocus == focusValue && !(amountString ?? "").isEmpty {
+                if amountString == "$" || amountString == "-$" {
+                    return ""
+                } else {
+                    return amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                }
+            } else {
+                return amountString
+            }
+        }
+    }
     
+    
+    static func liveFormatCurrency(oldValue: String?, newValue: String?, text: Binding<String>) {
+        //print(oldValue, newValue)
+        if (oldValue ?? "").isEmpty && newValue == "-" { return }
+        if (newValue ?? "").isEmpty { return }
+        if newValue == "-" { return }
+                                                        
+        if (newValue ?? "").hasPrefix("-") {
+            if (newValue ?? "").hasPrefix("-$") {
+                return
+            } else {
+                text.wrappedValue.removeFirst()
+                var useMe = (newValue ?? "")
+                useMe.removeFirst()
+                text.wrappedValue = "-$" + useMe
+            }
+        } else {
+            if (newValue ?? "").hasPrefix("$") {
+                return
+            } else {
+                text.wrappedValue.removeFirst()
+                text.wrappedValue = "$" + (newValue ?? "")
+            }
+        }
+    }
 }
 
 func ??<T>(lhs: Binding<Optional<T>>, rhs: T) -> Binding<T> {

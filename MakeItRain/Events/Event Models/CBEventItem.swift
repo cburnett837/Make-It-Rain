@@ -26,10 +26,8 @@ class CBEventItem: Codable, Identifiable, Hashable, Equatable {
     var updatedDate: Date
     
     var action: EventItemAction
-    
-    var transactions: Array<CBEventTransaction>
-    
-    enum CodingKeys: CodingKey { case id, uuid, event_id, title, opt_date_title, opt_date_value, opt_text_title, opt_text_value, opt_picker_title, opt_picker_value, active, entered_by, updated_by, entered_date, updated_date, user_id, account_id, device_uuid, action, transactions }
+        
+    enum CodingKeys: CodingKey { case id, uuid, event_id, title, opt_date_title, opt_date_value, opt_text_title, opt_text_value, opt_picker_title, opt_picker_value, active, entered_by, updated_by, entered_date, updated_date, user_id, account_id, device_uuid, action }
     
     init(uuid: String) {
         self.id = uuid
@@ -39,7 +37,6 @@ class CBEventItem: Codable, Identifiable, Hashable, Equatable {
         self.enteredDate = Date()
         self.updatedDate = Date()
         self.action = .add
-        self.transactions = []
     }
     
     init() {
@@ -51,7 +48,6 @@ class CBEventItem: Codable, Identifiable, Hashable, Equatable {
         self.enteredDate = Date()
         self.updatedDate = Date()
         self.action = .add
-        self.transactions = []
     }
     
     
@@ -75,7 +71,6 @@ class CBEventItem: Codable, Identifiable, Hashable, Equatable {
         try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
         try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
         try container.encode(action.serverKey, forKey: .action)
-        try container.encode(transactions, forKey: .transactions)
     }
         
     required init(from decoder: Decoder) throws {
@@ -116,8 +111,6 @@ class CBEventItem: Codable, Identifiable, Hashable, Equatable {
         let isActive = try container.decode(Int?.self, forKey: .active)
         self.active = isActive == 1 ? true : false
         action = .edit
-        
-        self.transactions = try container.decode(Array<CBEventTransaction>.self, forKey: .transactions)
     }
     
     
@@ -141,10 +134,6 @@ class CBEventItem: Codable, Identifiable, Hashable, Equatable {
             copy.enteredDate = self.enteredDate
             copy.updatedDate = self.updatedDate
             copy.active = self.active
-            copy.transactions = self.transactions.map {
-                $0.deepCopy(.create)
-                return $0.deepCopy!
-            }
             self.deepCopy = copy
         case .restore:
             if let deepCopy = self.deepCopy {
@@ -163,7 +152,6 @@ class CBEventItem: Codable, Identifiable, Hashable, Equatable {
                 self.enteredDate = deepCopy.enteredDate
                 self.updatedDate = deepCopy.updatedDate
                 self.active = deepCopy.active
-                self.transactions = deepCopy.transactions
             }
         }
     }
@@ -186,7 +174,6 @@ class CBEventItem: Codable, Identifiable, Hashable, Equatable {
         && lhs.enteredDate == rhs.enteredDate
         && lhs.updatedDate == rhs.updatedDate
         && lhs.active == rhs.active
-        && lhs.transactions == rhs.transactions
         {
             return true
         }
@@ -199,6 +186,7 @@ class CBEventItem: Codable, Identifiable, Hashable, Equatable {
     
     
     func setFromAnotherInstance(item: CBEventItem) {
+        //print("SETTING ACTIVE TO \(item.active) for \(item.title)")
         self.id = item.id
         self.title = item.title
         self.dateTitle = item.dateTitle
@@ -213,48 +201,6 @@ class CBEventItem: Codable, Identifiable, Hashable, Equatable {
         self.enteredDate = item.enteredDate
         self.updatedDate = item.updatedDate
         self.active = item.active
-        self.transactions = item.transactions
+        self.action = item.action
     }
-    
-    
-    
-    
-    func upsert(_ trans: CBEventTransaction) {
-        if !doesExist(trans) {
-            transactions.append(trans)
-        }
-    }
-    
-    func doesExist(_ item: CBEventTransaction) -> Bool {
-        return !transactions.filter { $0.id == item.id }.isEmpty
-    }
-    
-    func getTransaction(by id: String) -> CBEventTransaction {
-        return transactions.filter { $0.id == id }.first ?? CBEventTransaction(uuid: id)
-    }
-    
-    func saveTransaction(id: String) {
-        let trans = getTransaction(by: id)
-        if trans.title.isEmpty {
-            if trans.action != .add && trans.title.isEmpty {
-                trans.title = trans.deepCopy?.title ?? ""
-                AppState.shared.showAlert("Removing a title is not allowed. If you want to delete \(trans.title), please use the delete button instead.")
-            } else {
-                transactions.removeAll { $0.id == id }
-            }
-        }
-    }
-    
-    func deleteTransaction(id: String) {        
-        let index = transactions.firstIndex(where: {$0.id == id})
-        if let index {
-            transactions[index].active = false
-            transactions[index].action = .delete
-            
-        }
-        
-    }
-    
-    
-    
 }

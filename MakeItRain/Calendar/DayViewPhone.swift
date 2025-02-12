@@ -116,7 +116,7 @@ struct DayViewPhone: View {
                     if let trans {
                         if trans.date == day.date {
                             calModel.dragTarget = nil
-                            AppState.shared.showToast(header: "Operation Cancelled", title: "Can't copy or move to the original day", message: "Please try again", symbol: "hand.raised.fill", symbolColor: .orange)
+                            AppState.shared.showToast(title: "Operation Cancelled", subtitle: "Can't copy or move to the original day", body: "Please try again", symbol: "hand.raised.fill", symbolColor: .orange)
                             return true
                         }
                                                 

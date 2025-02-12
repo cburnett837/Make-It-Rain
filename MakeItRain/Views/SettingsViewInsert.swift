@@ -15,7 +15,10 @@ struct SettingsViewInsert: View {
     @AppStorage("phoneLineItemDisplayItem") var phoneLineItemDisplayItem: PhoneLineItemDisplayItem = .both
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
     @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
-    @AppStorage("threshold") var threshold = "500.00"
+    
+    
+    @AppStorage("threshold") var threshold: Double = 500.00
+    @State private var thresholdString: String = "500.00"
 
     //@AppStorage("macCategoryDisplayMode") var macCategoryDisplayMode: MacCategoryDisplayMode = .emoji
     
@@ -33,9 +36,10 @@ struct SettingsViewInsert: View {
     
     @State private var phoneLineItemDisplayItemWhenSettingsWasOpened: PhoneLineItemDisplayItem?
     
+    @FocusState private var focusedField: Int?
+    
     
     var withDividers: Bool = false
-    @Binding var shouldRecalculateTransHeight: Bool
         
     var body: some View {
         Group {
@@ -110,25 +114,48 @@ struct SettingsViewInsert: View {
             
             Section {
                 VStack(alignment: .leading) {
-                    TextField("Amount", text: $threshold)
-                        #if os(macOS)
-                        .textFieldStyle(.roundedBorder)
+                    Group {
+                        #if os(iOS)
+                        UITextFieldWrapper(placeholder: "Amount", text: $thresholdString, toolbar: {
+                            KeyboardToolbarView(focusedField: $focusedField, removeNavButtons: true)
+                        })
+                        .uiClearButtonMode(.whileEditing)
+                        .uiTag(1)
+                        .uiKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
+                        /// Format the amount field
+
                         #else
-                        .keyboardType(useWholeNumbers ? .numberPad : .decimalPad)
+                        TextField("Amount", text: $thresholdString)
+                            .textFieldStyle(.roundedBorder)
                         #endif
+                    }
+                    .focused($focusedField, equals: 1)
+                    .onChange(of: thresholdString) {
+                        threshold = Double($1.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
+                        Helpers.liveFormatCurrency(oldValue: $0, newValue: $1, text: $thresholdString)
+                    }
+                    .onChange(of: focusedField) {
+                        if let string = Helpers.formatCurrency(focusValue: 1, oldFocus: $0, newFocus: $1, amountString: thresholdString, amount: threshold) {
+                            thresholdString = string
+                        }
+                    }
+                    .task {
+                        thresholdString = threshold.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                    }
+                    
                 }
             } header: {
                 Text("Low Balance Threshold")
             } footer: {
                 Group {
-                    Text("Any EOD total under \((Double(threshold) ?? 0).currencyWithDecimals(useWholeNumbers ? 0 : 2)) will be hilighted in ")
+                    Text("Any EOD total under \(threshold.currencyWithDecimals(useWholeNumbers ? 0 : 2)) will be hilighted in ")
                         .foregroundStyle(.gray)
                         .font(.footnote)
                     + Text("orange")
                         .foregroundStyle(.orange)
                         .font(.footnote)
-                    + Text("\n")
-                    + Text("Any EOD total under \(0.currencyWithDecimals(useWholeNumbers ? 0 : 2)) will be hilighted in ")
+                    + Text(".")
+                    + Text(" Any EOD total under \(0.currencyWithDecimals(useWholeNumbers ? 0 : 2)) will be hilighted in ")
                         .foregroundStyle(.gray)
                         .font(.footnote)
                     + Text("red")
@@ -164,27 +191,6 @@ struct SettingsViewInsert: View {
             
             phoneLineItemDisplayItemWhenSettingsWasOpened = phoneLineItemDisplayItem
         }
-        .onChange(of: phoneLineItemDisplayItem) { oldValue, newValue in
-            
-            
-            print(phoneLineItemDisplayItemWhenSettingsWasOpened)
-            
-            if newValue != .both {
-                print("CHANGE")
-                shouldRecalculateTransHeight = true
-            }
-            
-            
-            if newValue == phoneLineItemDisplayItemWhenSettingsWasOpened {
-                print("NEGATE")
-                shouldRecalculateTransHeight = false
-            }
-            
-        }
-        .onChange(of: phoneLineItemTotalPosition) {
-            shouldRecalculateTransHeight = true
-        }
-
     }
     
     

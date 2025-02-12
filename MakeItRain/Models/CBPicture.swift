@@ -10,30 +10,33 @@ import Foundation
 @Observable
 class CBPicture: Codable, Identifiable, Hashable {
     var id: String
-    var transactionID: String
+    var relatedID: String
+    var relatedRecordType: XrefItem
     var uuid: String
     var active: Bool
     
     var isPlaceholder: Bool = false
     
-    enum CodingKeys: CodingKey { case id, transaction_id, uuid, active, user_id, account_id, device_uuid }
+    enum CodingKeys: CodingKey { case id, related_id, related_type_id, uuid, active, user_id, account_id, device_uuid }
     
-    init(transactionID: String, uuid: String) {
+    init(relatedID: String, uuid: String) {
         self.id = UUID().uuidString
-        self.transactionID = transactionID
+        self.relatedID = relatedID
         self.uuid = uuid
         self.active = true
+        self.relatedRecordType = XrefModel.getItem(from: .photoTypes, byEnumID: .transaction)
     }
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(Int(id), forKey: .id) // This weird Int() thing is for the drag and drop
-        try container.encode(transactionID, forKey: .transaction_id)
+        try container.encode(relatedID, forKey: .related_id)
         try container.encode(uuid, forKey: .uuid)
         try container.encode(active ? 1 : 0, forKey: .active)
         try container.encode(AppState.shared.user?.id, forKey: .user_id)
         try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
         try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
+        try container.encode(relatedRecordType.id, forKey: .related_type_id)
     }
     
     required init(from decoder: Decoder) throws {
@@ -45,15 +48,18 @@ class CBPicture: Codable, Identifiable, Hashable {
         }
         
         do {
-            transactionID = try String(container.decode(Int.self, forKey: .transaction_id))
+            relatedID = try String(container.decode(Int.self, forKey: .related_id))
         } catch {
-            transactionID = try container.decode(String.self, forKey: .transaction_id)
+            relatedID = try container.decode(String.self, forKey: .related_id)
         }
         
         
         uuid = try container.decode(String.self, forKey: .uuid)
         let active = try container.decode(Int.self, forKey: .active)
         self.active = active == 1 ? true : false
+        
+        let relatedID = try container.decode(Int.self, forKey: .related_type_id)
+        self.relatedRecordType = XrefModel.getItem(from: .photoTypes, byID: relatedID)
     }
     
     func hash(into hasher: inout Hasher) {
@@ -61,7 +67,13 @@ class CBPicture: Codable, Identifiable, Hashable {
     }
     
     static func == (lhs: CBPicture, rhs: CBPicture) -> Bool {
-        if lhs.uuid == rhs.uuid {return true} else {return false}
+        if lhs.uuid == rhs.uuid
+        && lhs.active == rhs.active
+        {
+            return true
+        } else {
+            return false
+        }
     }
 }
 

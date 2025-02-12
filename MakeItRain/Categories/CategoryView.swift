@@ -65,7 +65,7 @@ struct CategoryView: View {
                 VStack(spacing: 6) {
                     LabeledRow("Name", labelWidth) {
                         #if os(iOS)
-                        StandardUITextFieldFancy("Title", text: $category.title, toolbar: {
+                        StandardUITextField("Title", text: $category.title, toolbar: {
                             KeyboardToolbarView(focusedField: $focusedField)
                         })
                         .cbFocused(_focusedField, equals: 0)
@@ -77,7 +77,7 @@ struct CategoryView: View {
                     
                     LabeledRow("Budget", labelWidth) {
                         #if os(iOS)
-                        StandardUITextFieldFancy("Monthly Amount", text: $category.amountString ?? "", toolbar: {
+                        StandardUITextField("Monthly Amount", text: $category.amountString ?? "", toolbar: {
                             KeyboardToolbarView(focusedField: $focusedField, accessoryImage3: "plus.forwardslash.minus", accessoryFunc3: {
                                 Helpers.plusMinus($category.amountString ?? "")
                             })

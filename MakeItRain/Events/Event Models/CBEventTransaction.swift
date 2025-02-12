@@ -36,10 +36,12 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
     }
     var payMethod: CBPaymentMethod?
     var category: CBCategory?
+    var item: CBEventItem?
     var notes: String = ""
     var active: Bool
     //var color: Color
     var action: EventTransactionAction
+    var actionBeforeSave: EventTransactionAction = .add
     var factorInCalculations: Bool
     
     var enteredBy: CBUser = AppState.shared.user!
@@ -56,8 +58,13 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
     var orderNumber: String
     var url: String
     var status: XrefItem
+    var isBeingClaimed = false
+    var isBeingUnClaimed = false
     
-    var realTransaction = CBTransaction(uuid: UUID().uuidString)
+    
+    var actionForRealTransaction: TransactionAction?
+    
+    //var realTransaction = CBTransaction(uuid: UUID().uuidString)
     
     init() {
         let uuid = UUID().uuidString
@@ -68,7 +75,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
         self.date = nil
         self.action = .add
         self.factorInCalculations = true
-        self.payMethod = CBPaymentMethod()
+        self.payMethod = nil
        // self.color = .primary
         self.active = true
         self.enteredDate = Date()
@@ -87,7 +94,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
         self.date = nil
         self.action = .add
         self.factorInCalculations = true
-        self.payMethod = CBPaymentMethod()
+        self.payMethod = nil
         //self.color = .primary
         self.active = true
         self.enteredDate = Date()
@@ -101,7 +108,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
     
     
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, paid_by, entered_date, updated_date, pictures, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, action, status_id }
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, paid_by, entered_date, updated_date, pictures, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, action, status_id, item }
     
     
     func encode(to encoder: Encoder) throws {
@@ -113,6 +120,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
         try container.encode(amount, forKey: .amount)
         try container.encode(payMethod, forKey: .payment_method)
         try container.encode(category, forKey: .category)
+        try container.encode(item, forKey: .item)
         try container.encode(notes, forKey: .notes)
         try container.encode(date?.string(to: .serverDate), forKey: .date)
         //try container.encode(color.toHex(), forKey: .title_hex_code)
@@ -152,8 +160,9 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
         let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
         self.amountString = amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
         
-        //self.payMethod = try container.decode(CBPaymentMethod?.self, forKey: .payment_method)
-        //self.category = try container.decode(CBCategory?.self, forKey: .category)
+        self.payMethod = try container.decode(CBPaymentMethod?.self, forKey: .payment_method)
+        self.category = try container.decode(CBCategory?.self, forKey: .category)
+        self.item = try container.decode(CBEventItem?.self, forKey: .item)
         self.notes = try container.decode(String?.self, forKey: .notes) ?? ""
         
         self.trackingNumber = try container.decode(String?.self, forKey: .tracking_number) ?? ""
@@ -219,11 +228,15 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
             let relatedTransactionID = try container.decode(Int?.self, forKey: .related_transaction_id)
             if let relatedTransactionID {
                 self.relatedTransactionID = String(relatedTransactionID)
+                //self.realTransaction.id = String(relatedTransactionID)
             } else {
                 self.relatedTransactionID = nil
             }
         } catch {
             relatedTransactionID = try container.decode(String?.self, forKey: .related_transaction_id)
+//            if let relatedID = self.relatedTransactionID {
+//                self.realTransaction.id = relatedID
+//            }
         }
     }
         
@@ -251,6 +264,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
             && self.amount == deepCopy.amount
             && self.payMethod?.id == deepCopy.payMethod?.id
             && self.category?.id == deepCopy.category?.id
+            && self.item?.id == deepCopy.item?.id
             && self.notes == deepCopy.notes
             && self.factorInCalculations == deepCopy.factorInCalculations
             //&& self.color == deepCopy.color
@@ -281,6 +295,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
             copy.amountString = self.amountString
             copy.payMethod = self.payMethod
             copy.category = self.category
+            copy.item = self.item
             copy.date = self.date
             copy.notes = self.notes
             copy.factorInCalculations = self.factorInCalculations
@@ -305,6 +320,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
                 self.amountString = deepCopy.amountString
                 self.payMethod = deepCopy.payMethod
                 self.category = deepCopy.category
+                self.item = deepCopy.item
                 self.date = deepCopy.date
                 self.notes = deepCopy.notes
                 self.factorInCalculations = deepCopy.factorInCalculations
@@ -332,6 +348,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
         
         self.payMethod = transaction.payMethod
         self.category = transaction.category
+        self.item = transaction.item
         self.date = transaction.date
         self.notes = transaction.notes
         //self.color = transaction.color
@@ -346,9 +363,26 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
         self.orderNumber = transaction.orderNumber
         self.url = transaction.url
         self.status = transaction.status
+        self.action = transaction.action
+        self.active = transaction.active
     }
     
 
+    func setFromTransactionInstance(transaction: CBTransaction) {
+        //self.id = transaction.id
+        self.title = transaction.title
+        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+        self.amountString = transaction.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        self.date = transaction.date
+        //self.enteredBy = transaction.paidBy!
+        self.updatedBy = transaction.updatedBy
+        self.relatedTransactionID = transaction.id
+        //self.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .eventTransaction)
+        self.payMethod = transaction.payMethod
+        self.category = transaction.category
+        self.enteredDate = Date()
+        self.updatedDate = Date()
+    }
     
     
     static func == (lhs: CBEventTransaction, rhs: CBEventTransaction) -> Bool {
@@ -358,6 +392,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
         && lhs.amount == rhs.amount
         && lhs.payMethod?.id == rhs.payMethod?.id
         && lhs.category?.id == rhs.category?.id
+        && lhs.item?.id == rhs.item?.id
         && lhs.notes == rhs.notes
         && lhs.factorInCalculations == rhs.factorInCalculations
         //&& lhs.color == rhs.color
@@ -371,6 +406,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
         && lhs.orderNumber == rhs.orderNumber
         && lhs.url == rhs.url
         && lhs.status == rhs.status
+        && lhs.active == rhs.active
         {
             return true
         }

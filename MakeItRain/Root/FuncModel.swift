@@ -101,6 +101,7 @@ class FuncModel {
         ///     `.viaInitial, .viaButton, .viaLongPoll` are not used, and are only there for clarity.
         
         print("-- \(#function)")
+        let start = CFAbsoluteTimeGetCurrent()
         
         NSLog("\(file):\(line) : \(function)")
         
@@ -202,7 +203,7 @@ class FuncModel {
         
         var next: CBMonth?
         var prev: CBMonth?
-        var start: Double?
+        //var start: Double?
         
         /// See if the user is looking at a month or an accessorial view.
         var currentNavSelection = NavigationManager.shared.selection
@@ -231,7 +232,7 @@ class FuncModel {
                 }
                 
                 /// Download viewing month.
-                start = await downloadViewingMonth(viewingMonth, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
+                await downloadViewingMonth(viewingMonth, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
                 /// Download adjacent months.
                 await downloadAdjacentMonth(next: next, prev: prev, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
                 /// Download other months and accessorials.
@@ -242,7 +243,7 @@ class FuncModel {
                 /// If we're not viewing a month, then we must be viewing an accessorial view, so download those first.
                 if NavDestination.justAccessorials.contains(currentNavSelection) {
                     await downloadAccessorials(createNewStructs: createNewStructs)
-                    start = await downloadViewingMonth(calModel.sMonth, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
+                    await downloadViewingMonth(calModel.sMonth, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
                     await downloadAdjacentMonth(next: next, prev: prev, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
                     await downloadOtherMonths(viewingMonth: calModel.sMonth, next: next, prev: prev, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
                 }
@@ -257,13 +258,13 @@ class FuncModel {
         self.refreshTask = nil
         
         
-        let final = CFAbsoluteTimeGetCurrent() - (start ?? 0.0)
+        let final = CFAbsoluteTimeGetCurrent() - (start)
         print("🔴Everything took \(final) seconds to fetch")
     }
     
     
     // MARK: - Downloading Stuff
-    @MainActor private func downloadViewingMonth(_ viewingMonth: CBMonth, createNewStructs: Bool, refreshTechnique: RefreshTechnique) async -> CFAbsoluteTime {
+    @MainActor private func downloadViewingMonth(_ viewingMonth: CBMonth, createNewStructs: Bool, refreshTechnique: RefreshTechnique) async  {
         /// Grab the viewing month first.
         let start = CFAbsoluteTimeGetCurrent()
         await calModel.fetchFromServer(month: viewingMonth, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
@@ -279,8 +280,6 @@ class FuncModel {
         withAnimation(.easeOut(duration: 1)) {
             AppState.shared.appIsReadyToHideSplashScreen = true
         }
-        
-        return start
     }
         
     
@@ -428,7 +427,7 @@ class FuncModel {
                 .sorted { ($0.title ?? "").lowercased() < ($1.title ?? "").lowercased() }
                 //.filter { $0.id != nil } /// Have a weird bug that added blank in CoreData.
                 .forEach { meth in
-                    print(meth.title)
+                    //print(meth.title)
                     if setDefaultPayMethod && meth.isDefault {
                         calModel.sPayMethod = CBPaymentMethod(entity: meth)
                     }
@@ -436,11 +435,11 @@ class FuncModel {
                         payModel.paymentMethods.append(CBPaymentMethod(entity: meth))
                     }
                     
-                    #warning("remove this")
-                    let notifications = NotificationManager.shared.scheduledNotifications.filter { $0.payMethodID == meth.id }
-                    if !notifications.isEmpty {
-                        NotificationManager.shared.createReminder2(payMethod: CBPaymentMethod(entity: meth))
-                    }
+//                    #warning("remove this")
+//                    let notifications = NotificationManager.shared.scheduledNotifications.filter { $0.payMethodID == meth.id }
+//                    if !notifications.isEmpty {
+//                        NotificationManager.shared.createReminder2(payMethod: CBPaymentMethod(entity: meth))
+//                    }
                 }
                                 
                 //payModel.paymentMethods.sort { $0.title < $1.title }
@@ -587,16 +586,19 @@ class FuncModel {
                     
                     longPollTask?.cancel()
                     longPollTask = nil
-                    AppState.shared.showAlert("There was a problem subscribing to multi-device updates.", buttonText: "Retry") {
-                        
-                        Task {
-                            AppState.shared.longPollFailed = false
-                            await self.downloadEverything(setDefaultPayMethod: false, createNewStructs: false, refreshTechnique: .viaLongPoll)
-                        }
-                        
-                        
-                        //longPollServerForChanges()
-                    }
+                    
+                    let alertConfig = AlertConfig(
+                        title: "There was a problem subscribing to multi-device updates.",
+                        symbol: .init(name: "ipad.and.iphone.slash", color: .red),
+                        primaryButton:
+                            AlertConfig.AlertButton(config: .init(text: "Retry", role: .primary, function: {
+                                Task {
+                                    AppState.shared.longPollFailed = false
+                                    await self.downloadEverything(setDefaultPayMethod: false, createNewStructs: false, refreshTechnique: .viaLongPoll)
+                                }
+                            }))
+                    )
+                    AppState.shared.showAlert(config: alertConfig)
                 }
             }
         }
@@ -690,7 +692,7 @@ class FuncModel {
                     payModel.upsert(payMethod)
                 }
             }
-            let saveResult = payModel.updateCache(for: payMethod)
+            let _ = payModel.updateCache(for: payMethod)
             //print("SaveResult: \(saveResult)")
             
             calModel.justTransactions.filter { $0.payMethod?.id == payMethod.id }.forEach { $0.payMethod = payMethod }
@@ -757,7 +759,7 @@ class FuncModel {
                     keyModel.upsert(keyword)
                 }
             }
-            let saveResult = keyModel.updateCache(for: keyword)
+            let _ = keyModel.updateCache(for: keyword)
             //print("SaveResult: \(saveResult)")
         }
     }
@@ -786,10 +788,18 @@ class FuncModel {
     @MainActor private func handleLongPollEvents(_ events: Array<CBEvent>) async {
         print("-- \(#function)")
         //print(events.map {$0.title})
+        
+        
         for event in events {
+            
+            //let participantCount = event.participants.count
+            
+            
             print("INITIAL PARTS")
-            print(event.participants.map {$0.user.name})
-            print(event.participants.map {$0.active})
+            print("userNames: \(event.participants.map {$0.user.name})")
+            print("actives: \(event.participants.map {$0.active})")
+            print("statuses: \(event.participants.map {$0.status?.description})")
+            print("ids: \(event.participants.map {$0.id})")
             
             /// See if the user has an active participant record.
             let doesUserHavePermission = event.participants
@@ -798,65 +808,82 @@ class FuncModel {
                 .contains(where: { $0.user.id == AppState.shared.user?.id ?? 0 })
             
             if eventModel.doesExist(event) {
-                
-                /// Since there will be multiple inactive participants records, remove them all before proceeding.
-                for each in event.participants {
-                    if !each.active {
-                        event.participants.removeAll(where: { $0.id == each.id })
-                    }
-                }
-                
-                print("REMAINIG PARTS")
-                print(event.participants.map {$0.user.name})
-                print(event.participants.map {$0.active})
-                
                 /// If the event has been deleted, remove it.
                 if !event.active {
-                    AppState.shared.showToast(header: "Event Removed", title: event.title, message: "The event has been removed by the host.", symbol: "calendar.badge.minus")
+                    AppState.shared.showToast(title: "Event Removed", subtitle: event.title, body: "The event has been removed by the host.", symbol: "calendar.badge.minus")
                     await eventModel.delete(event, andSubmit: false)
                     continue
                 } else {
                     /// If they don't have permission, remove the event since they have been kicked out.
                     if !doesUserHavePermission {
-                        eventModel.events.removeAll(where: {$0.id == event.id})
-                        AppState.shared.showToast(header: "Event Revoked", title: event.title, message: "You have been removed by the host.", symbol: "person.slash.fill")
+                        withAnimation {
+                            eventModel.revoke(event)
+                        }
+                        AppState.shared.showToast(title: "Event Revoked", subtitle: event.title, body: "You have been removed by the host.", symbol: "person.slash.fill")
+                        
                         continue
                     }
                                                             
                     /// Find the event in the users data.
                     if let index = eventModel.getIndex(for: event) {
                         let actualEvent = eventModel.events[index]
-                        actualEvent.setFromAnotherInstance(event: event)
+                        
+                        //print(event.items.map{$0.title})
+                        //print(event.items.map{$0.active})
+                        
+                        actualEvent.updateFromLongPoll(event: event)
                         actualEvent.deepCopy?.setFromAnotherInstance(event: event)
+                        
+                        
+                        for item in actualEvent.items {
+                            if !item.active {
+                                actualEvent.deleteItem(id: item.id)
+                            }
+                        }
+                        
+                        for transaction in actualEvent.transactions {
+                            if !transaction.active {
+                                actualEvent.deleteTransaction(id: transaction.id)
+                            }
+                        }
+                        
                                                 
                         /// Check the participant array from the newly updated event, and see if they are part of the list of invitations.
-                        var acceptingUsers: [String] = []
-                        for each in actualEvent.participants {
-                            let participantEmail = each.user.email.lowercased()
-                            
-                            /// If the user is now in participants, and was found in the invite array, that means they have accepted the invitation.
-                            /// Remove the user from the invitation array, and append to the `acceptingUsers` array. (Only used for the toast)
-//                            if actualEvent.invitationsToSend.map({ $0.email?.lowercased() }).contains(participantEmail) {
-//                                actualEvent.invitationsToSend.removeAll(where: { $0.email?.lowercased() == participantEmail })
-//                                acceptingUsers.append(each.user.name)
-//                            }
-                        }
+//                        var acceptingUsers: [String] = []
+//                        for each in actualEvent.participants {
+//                            let participantEmail = each.user.email.lowercased()
+//                            
+//                            /// If the user is now in participants, and was found in the invite array, that means they have accepted the invitation.
+//                            /// Remove the user from the invitation array, and append to the `acceptingUsers` array. (Only used for the toast)
+////                            if actualEvent.invitationsToSend.map({ $0.email?.lowercased() }).contains(participantEmail) {
+////                                actualEvent.invitationsToSend.removeAll(where: { $0.email?.lowercased() == participantEmail })
+////                                acceptingUsers.append(each.user.name)
+////                            }
+//                        }
                                                                         
                         /// Show the toast for accepted invitations.
                         //if !acceptingUsers.isEmpty {
                             //AppState.shared.showToast(header: "Invite Accepted", title: actualEvent.title, message: "\(acceptingUsers.joined(separator: ", ")) just accepted your invitation", symbol: "calendar.badge.checkmark")
                         
-                        AppState.shared.showToast(header: "Invite Accepted", title: actualEvent.title, message: "Someone just accepted your invitation", symbol: "calendar.badge.checkmark")
+//                        let newParticipantCount = actualEvent.participants.count
+//                        
+//                        if participantCount > newParticipantCount {
+//                            AppState.shared.showToast(header: "Somebody left", title: actualEvent.title, message: "Someone just left the event", symbol: "person.fill.xmark")
+//                        } else {
+//                            AppState.shared.showToast(header: "Invite Accepted", title: actualEvent.title, message: "Someone just accepted your invitation", symbol: "calendar.badge.checkmark")
+//                        }
+                        
                         //}
                     }
                 }
             } else {
                 /// If the event is active, check to make sure the user is allowed to see it.
-                /// If they are, upset the event.
+                /// If they are, upsert the event.
                 if event.active {
                     if doesUserHavePermission {
                         eventModel.upsert(event)
-                        //eventModel.invitations.removeAll(where: {$0.eventID == event.id})
+                        //eventModel.invitations.removeAll(where: {$0.id == part.id})
+                        eventModel.invitations.removeAll(where: {$0.eventID == event.id})
                     }
                 }
             }
@@ -867,6 +894,10 @@ class FuncModel {
     @MainActor private func handleLongPollInvitations(_ participants: Array<CBEventParticipant>) async {
         print("-- \(#function)")
         print(participants.map {$0.email})
+        print(participants.map {$0.active})
+        print(participants.map {$0.id})
+        print(participants.map {$0.status?.description})
+        
         for part in participants {
             if eventModel.doesExist(part) {
                 /// If the invite is inactive, that means the invitee rejected it.
@@ -881,14 +912,42 @@ class FuncModel {
                     continue
                 } else {
                     /// The event is active, so update the invitation in the model.
+                    print("THE PART IS ACTIVE")
                     if let index = eventModel.getIndex(for: part) {
-                        eventModel.invitations[index] = part
+                        //eventModel.invitations[index] = part
+                                                                        
+                        print("FOUND IT")
+                        if part.status?.enumID == .rejected {
+                            eventModel.invitations.removeAll(where: { $0.id == part.id })
+                        } else {
+                            eventModel.invitations[index].setFromAnotherInstance(part: part)
+                        }
+                        
                     }
                 }
             } else {
                 /// Upsert the invite if it doesn't exist.
                 if part.active {
-                    eventModel.upsert(part)
+                    print("Participant is active")
+                    if part.status?.enumID == .rejected {
+                        /// Remove the invitation from the invitation list.
+                        eventModel.invitations.removeAll { $0.id == part.id }
+                        /// Remove the pending invitation from the associated event.
+                        if let targetEvent = eventModel.events.filter({ $0.id == part.eventID }).first {
+                            targetEvent.participants.removeAll(where: { $0.id == part.id })
+                        }
+                    } else {
+                        print("UPSERTING")
+                        withAnimation {
+                            eventModel.upsert(part)
+                        }
+                        
+                    }
+                } else {
+                    print("SHOUD REMOVE INVITE")
+                    print(eventModel.invitations.map {$0.id})
+                    print("\(part.id) - \(String(describing: part.email)) - \(part.eventID)")
+                    eventModel.invitations.removeAll(where: {$0.id == part.id})
                 }
             }
         }
@@ -906,7 +965,7 @@ class FuncModel {
                     print("there are no saved payment methods")
                 } else {
                     for meth in meths {
-                        print(meth.id)
+                        print(meth.id ?? "No Meth ID")
                     }
                 }
             }
@@ -946,11 +1005,11 @@ class FuncModel {
         eventModel.invitations.removeAll()
                         
         /// Remove all from cache.
-        let saveResult1 = DataManager.shared.deleteAll(for: PersistentPaymentMethod.self)
+        let _ = DataManager.shared.deleteAll(for: PersistentPaymentMethod.self)
         //print(saveResult1)
-        let saveResult2 = DataManager.shared.deleteAll(for: PersistentCategory.self)
+        let _ = DataManager.shared.deleteAll(for: PersistentCategory.self)
         //print(saveResult2)
-        let saveResult3 = DataManager.shared.deleteAll(for: PersistentKeyword.self)
+        let _ = DataManager.shared.deleteAll(for: PersistentKeyword.self)
         //print(saveResult3)
     }
 }

@@ -43,9 +43,7 @@ struct UserSheet: View {
         .padding(.horizontal, 20)
         .padding(.top)
         
-        StandardTextField("Search Users", text: $searchText, isSearchField: true, focusedField: $focusedField, focusValue: 0)
-            //.focused($focusedField, equals: .search)
-            .padding(.horizontal, 20)
+        SearchTextField(title: "Users", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)                
         
         List {
             if searchText.isEmpty {

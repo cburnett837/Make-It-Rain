@@ -9,8 +9,8 @@ import SwiftUI
 
 struct Toast {
     var header: String
-    var title: String
-    var message: String
+    var title: String?
+    var message: String?
     var symbol: String
     var symbolColor: Color? = nil
 }
@@ -39,11 +39,17 @@ struct ToastView: View {
                 Text(toast?.header ?? "")
                     .font(.callout)
                     .bold()
-                Text(toast?.title ?? "")
-                    .font(.caption2)
-                Text(toast?.message ?? "")
-                    .font(.caption2)
-                    .foregroundStyle(.gray)
+                
+                if let title = toast?.title {
+                    Text(title)
+                        .font(.caption2)
+                }
+                
+                if let message = toast?.message {
+                    Text(message)
+                        .font(.caption2)
+                        .foregroundStyle(.gray)
+                }
             }
             
             Spacer(minLength: 0)
@@ -77,7 +83,7 @@ struct ToastView: View {
         #else
         .frame(maxWidth: .infinity)
         #endif
-        .transition(.asymmetric(insertion: .offset(y: -100), removal: .offset(y: -200))) // top
+        .transition(.asymmetric(insertion: .offset(y: -200), removal: .offset(y: -200))) // top
         .onReceive(timer) { _ in
             timer.upstream.connect().cancel()
             

@@ -51,6 +51,7 @@ struct AdvancedSearchView: View {
     @Environment(CalendarModel.self) var calModel
     @Environment(PayMethodModel.self) var payModel
     @Environment(CategoryModel.self) var catModel
+    @Environment(EventModel.self) private var eventModel
     
     @State private var searchModel = AdvancedSearchModel()
     @State private var showPaymentMethodSheet = false
@@ -163,9 +164,10 @@ struct AdvancedSearchView: View {
             print(".onChange(of: CategoryAnalysisSheet.transEditID)")
             /// When `newValue` is false, save to the server. We have to use this because `.popover(isPresented:)` has no onDismiss option.
             if oldValue != nil && newValue == nil {
-                calModel.saveTransaction(id: oldValue!, day: transDay!, location: .searchResultList)
+                calModel.saveTransaction(id: oldValue!, day: transDay!, location: .searchResultList, eventModel: eventModel)
             }
         })
+        .sensoryFeedback(.selection, trigger: transEditID) { $1 != nil }
         .sheet(item: $transEditID) { id in
             TransactionEditView(transEditID: id, day: transDay!, isTemp: false, transLocation: .searchResultList)
         }
@@ -375,7 +377,7 @@ struct AdvancedSearchView: View {
                 
                 Group {
                     #if os(iOS)
-                    UITextFieldWrapperFancy(placeholder: "Search Term(s)", text: $newSearchTerm, onSubmit: {
+                    UITextFieldWrapper(placeholder: "Search Term(s)", text: $newSearchTerm, onSubmit: {
                         search()
                     }, toolbar: {
                         KeyboardToolbarView(

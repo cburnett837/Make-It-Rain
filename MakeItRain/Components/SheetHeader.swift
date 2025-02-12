@@ -40,7 +40,7 @@ struct SheetHeader<Content: View, Content2: View, Content3: View>: View {
                         .font(.title3)
                         .overlay { theOverlay }
                     Text(subtitle)
-                        .font(.subheadline)
+                        .font(.caption2)
                         .foregroundStyle(.gray)
                 }
             } else {

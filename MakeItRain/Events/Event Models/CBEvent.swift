@@ -34,8 +34,9 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
         
     var participants: [CBEventParticipant]
     var items: [CBEventItem]
+    var transactions: Array<CBEventTransaction>
     
-    var newRealTransactionsToBeAdded: [CBTransaction] = []
+    var pendingRealTransactionsToSave: [CBTransaction] = []
     //var invitationsToSend: Array<CBEventInvite> = []
     //var participantsToRemove: Array<CBUser> = []
     
@@ -51,6 +52,7 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
         self.action = .add
         self.participants = []
         self.items = []
+        self.transactions = []
         
         self.enteredDate = Date()
         self.updatedDate = Date()
@@ -66,12 +68,13 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
         self.action = .add
         self.participants = []
         self.items = []
+        self.transactions = []
         
         self.enteredDate = Date()
         self.updatedDate = Date()
     }
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, event_type, start_date, end_date, active, entered_by, updated_by, entered_date, updated_date, user_id, account_id, device_uuid, participants, items}
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, event_type, start_date, end_date, active, entered_by, updated_by, entered_date, updated_date, user_id, account_id, device_uuid, participants, items, transactions }
     
     
     func encode(to encoder: Encoder) throws {
@@ -87,6 +90,7 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
         
         try container.encode(participants, forKey: .participants)
         try container.encode(items, forKey: .items)
+        try container.encode(transactions, forKey: .transactions)
         
         try container.encode(enteredBy, forKey: .entered_by)
         try container.encode(updatedBy, forKey: .updated_by)
@@ -135,6 +139,7 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
         
         participants = try container.decode(Array<CBEventParticipant>.self, forKey: .participants)
         items = try container.decode(Array<CBEventItem>.self, forKey: .items)
+        self.transactions = try container.decode(Array<CBEventTransaction>.self, forKey: .transactions)
         //invitationsToSend = try container.decode(Array<CBEventInvite>.self, forKey: .invitations_to_send)
         //participantsToRemove = try container.decode(Array<CBUser>.self, forKey: .participants_to_remove)
         
@@ -171,6 +176,7 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
             && self.startDate == deepCopy.startDate
             && self.endDate == deepCopy.endDate
             && self.participants == deepCopy.participants
+            && self.transactions == deepCopy.transactions
             //&& self.invitationsToSend == deepCopy.invitationsToSend
             //&& self.participantsToRemove == deepCopy.participantsToRemove
             && self.items == deepCopy.items {
@@ -204,6 +210,11 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
                 return $0.deepCopy!
             }
             
+            copy.transactions = self.transactions.map {
+                $0.deepCopy(.create)
+                return $0.deepCopy!
+            }
+            
 //            copy.invitationsToSend = self.invitationsToSend.map {
 //                $0.deepCopy(.create)
 //                return $0.deepCopy!
@@ -226,9 +237,8 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
                 self.startDate = deepCopy.startDate
                 self.endDate = deepCopy.endDate
                 self.participants = deepCopy.participants
-                //self.invitationsToSend = deepCopy.invitationsToSend
-                //self.participantsToRemove = deepCopy.participantsToRemove
                 self.items = deepCopy.items
+                self.transactions = deepCopy.transactions
                 self.active = deepCopy.active
             }
         }
@@ -246,18 +256,123 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
         //self.participantsToRemove = event.participantsToRemove
         //self.items = event.items
         self.active = event.active
+        self.action = event.action
         
         
-        self.participants = event.participants.map {
-            $0.deepCopy(.create)
-            return $0.deepCopy!
+        self.participants = event.participants.map { part in
+            if let index = self.participants.firstIndex(where: {$0.id == part.id}) {
+                self.participants[index].setFromAnotherInstance(part: part)
+                return self.participants[index]
+            }
+            return part
         }
         
-        self.items = event.items.map {
-            $0.deepCopy(.create)
-            return $0.deepCopy!
+        self.items = event.items.map { item in
+            if let index = self.items.firstIndex(where: {$0.id == item.id}) {
+                self.items[index].setFromAnotherInstance(item: item)
+                return self.items[index]
+            }
+            return item
         }
         
+        self.transactions = event.transactions.map { trans in
+            if let index = self.transactions.firstIndex(where: {$0.id == trans.id}) {
+                self.transactions[index].setFromAnotherInstance(transaction: trans)
+                return self.transactions[index]
+            }
+            return trans
+        }
+    }
+    
+    
+    func updateFromLongPoll(event: CBEvent) {
+        print("SELF PARTS")
+        print("userNames: \(self.participants.map {$0.user.name})")
+        print("actives: \(self.participants.map {$0.active})")
+        print("statuses: \(self.participants.map {$0.status?.description})")
+        print("ids: \(self.participants.map {$0.id})")
+        
+        if event.wasUpdatedByAdmin() {
+            print("Event was updated by admin")
+            /// If the event was updated by the admin, update the event details.
+            self.title = event.title
+            self.amountString = event.amountString
+            self.eventType = event.eventType
+            self.startDate = event.startDate
+            self.endDate = event.endDate
+            
+            /// If the event was updated by the admin, update the event items
+            self.items = event.items.map { item in
+                if let index = self.items.firstIndex(where: { $0.id == item.id }) {
+                    self.items[index].setFromAnotherInstance(item: item)
+                    return self.items[index]
+                }
+                return item
+            }
+                        
+            for each in event.participants {
+                print("Processing Participant ID \(each.id)")
+                /// Determine if the admin removed participants, or If someone rejected an invitation.
+                if !each.active || each.status?.enumID == .rejected {
+                    print("PArt is either deactive ir rejected \(each.active) - \(String(describing: each.status?.description))")
+                    /// Clean the incoming event.
+                    event.participants.removeAll(where: { $0.id == each.id })
+                    /// Remove the participants from the event object being updated.
+                    withAnimation {
+                        self.participants.removeAll(where: { $0.id == each.id })
+                    }
+                } else {
+                    /// Determine if the admin added new participants.
+                    if !self.participants.contains(where: { $0.id == each.id }) {
+                        print("✅Appending Object \(each.id) ")
+                        withAnimation {
+                            self.participants.append(each)
+                        }
+                    } else {
+                        print("⚠️Object is already there \(each.id) ")
+                        let object = self.participants.filter {$0.id == each.id}.first
+                        if let object {
+                            print("Objkect has a staus of \(String(describing: object.status?.description)) and an active of \(object.active)")
+                        }
+                        
+                    }
+                }
+            }
+        } else {
+            print("was not updated by admin \(event.updatedBy.id) - \(event.enteredBy.id)")
+            
+            
+            /// If the user that updated the event is the same as the logged in user, change their own things. Otherwise change other things.
+            for each in event.participants {
+                if let index = self.participants.firstIndex(where: { $0.id == each.id && $0.status?.enumID == .pending }) {
+                    self.participants[index].setFromAnotherInstance(part: each)
+                }
+            }
+        }
+        
+        /// If the user that updated the event is the same as the logged in user, change their own things. Otherwise change other things.
+        for each in event.transactions.filter({ (AppState.shared.user(is: event.updatedBy) ? AppState.shared.user(is: $0.paidBy) : !AppState.shared.user(is: $0.paidBy)) || $0.paidBy == nil }) {
+            if let index = self.transactions.firstIndex(where: { $0.id == each.id }) {
+                self.transactions[index].setFromAnotherInstance(transaction: each)
+            } else {
+                self.transactions.append(each)
+            }
+        }
+        
+        
+        /// If the user that updated the event is the same as the logged in user, change their own things. Otherwise change other things.
+        for each in event.participants.filter({ AppState.shared.user(is: event.updatedBy) ? AppState.shared.user(is: $0.user) : !AppState.shared.user(is: $0.user) }) {
+            if let index = self.participants.firstIndex(where: { $0.id == each.id }) {
+                self.participants[index].setFromAnotherInstance(part: each)
+            }
+        }
+                                            
+        self.active = event.active
+        self.action = event.action
+        
+        
+        
+        self.participants.removeAll(where: { $0.status?.enumID == .rejected })
     }
     
     
@@ -271,6 +386,7 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
         && lhs.endDate == rhs.endDate
         && lhs.participants == rhs.participants
         && lhs.items == rhs.items
+        && lhs.transactions == rhs.transactions
         //&& lhs.invitationsToSend == rhs.invitationsToSend
         //&& lhs.participantsToRemove == rhs.participantsToRemove
         && lhs.active == rhs.active {
@@ -284,7 +400,13 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
     }
     
     
+    func amIAdmin() -> Bool {
+        return AppState.shared.user!.id == self.enteredBy.id
+    }
     
+    func wasUpdatedByAdmin() -> Bool {
+        return self.updatedBy.id == self.enteredBy.id
+    }
     
     
     func upsert(_ item: CBEventItem) {
@@ -319,6 +441,41 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
             items[index].active = false
             items[index].action = .delete
             
+        }
+    }
+    
+    
+    func upsert(_ trans: CBEventTransaction) {
+        if !doesExist(trans) {
+            transactions.append(trans)
+        }
+    }
+    
+    func doesExist(_ item: CBEventTransaction) -> Bool {
+        return !transactions.filter { $0.id == item.id }.isEmpty
+    }
+    
+    func getTransaction(by id: String) -> CBEventTransaction {
+        return transactions.filter { $0.id == id }.first ?? CBEventTransaction(uuid: id)
+    }
+    
+    func saveTransaction(id: String) {
+        let trans = getTransaction(by: id)
+        if trans.title.isEmpty {
+            if trans.action != .add && trans.title.isEmpty {
+                trans.title = trans.deepCopy?.title ?? ""
+                AppState.shared.showAlert("Removing a title is not allowed. If you want to delete \(trans.title), please use the delete button instead.")
+            } else {
+                transactions.removeAll { $0.id == id }
+            }
+        }
+    }
+    
+    func deleteTransaction(id: String) {
+        let index = transactions.firstIndex(where: {$0.id == id})
+        if let index {
+            transactions[index].active = false
+            transactions[index].action = .delete
         }
     }
 }

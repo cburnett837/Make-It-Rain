@@ -13,6 +13,7 @@ struct KeyboardToolbarView: View {
     
     var focusedField: FocusState<Int?>.Binding
     
+    var removeNavButtons: Bool = false
     var accessoryText1: String?
     var accessoryImage1: String?
     var accessoryFunc1: (() -> Void)?
@@ -25,6 +26,8 @@ struct KeyboardToolbarView: View {
     var accessoryImage3: String?
     var accessoryFunc3: (() -> Void)?
     
+    var extraDoneFunctionality: (() -> Void)?
+    
     var body: some View {
         VStack(spacing: 0) {
             Divider()
@@ -32,20 +35,23 @@ struct KeyboardToolbarView: View {
             HStack {
                 HStack(spacing: 15) {
                     if accessoryText1 == nil && accessoryText2 == nil && accessoryImage1 == nil && accessoryImage2 == nil {
-                        Button {
-                            if let _ = focusedField.wrappedValue {
-                                focusedField.wrappedValue! -= 1
+                        if !removeNavButtons {
+                            
+                            Button {
+                                if let _ = focusedField.wrappedValue {
+                                    focusedField.wrappedValue! -= 1
+                                }
+                            } label: {
+                                Image(systemName: "chevron.up")
                             }
-                        } label: {
-                            Image(systemName: "chevron.up")
-                        }
-                        
-                        Button {
-                            if let _ = focusedField.wrappedValue {
-                                focusedField.wrappedValue! += 1
+                            
+                            Button {
+                                if let _ = focusedField.wrappedValue {
+                                    focusedField.wrappedValue! += 1
+                                }
+                            } label: {
+                                Image(systemName: "chevron.down")
                             }
-                        } label: {
-                            Image(systemName: "chevron.down")
                         }
                         
                     } else {
@@ -101,6 +107,11 @@ struct KeyboardToolbarView: View {
                     
                     Button {
                         focusedField.wrappedValue = nil
+                        
+                        if let extra = extraDoneFunctionality {
+                            extra()
+                        }
+                        
                     } label: {
                         Text("Done")
                             .font(.body)

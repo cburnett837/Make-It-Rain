@@ -11,6 +11,7 @@ import Charts
 struct AnalysisSheet2: View {
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
     @Environment(CalendarModel.self) private var calModel
+    @Environment(EventModel.self) private var eventModel
     @Binding var showAnalysisSheet: Bool
         
     struct CumTotal {
@@ -220,10 +221,11 @@ struct AnalysisSheet2: View {
             print(".onChange(of: CategoryAnalysisSheet.transEditID)")
             /// When `newValue` is false, save to the server. We have to use this because `.popover(isPresented:)` has no onDismiss option.
             if oldValue != nil && newValue == nil {
-                calModel.saveTransaction(id: oldValue!, day: transDay!)
+                calModel.saveTransaction(id: oldValue!, day: transDay!, eventModel: eventModel)
                 transDay = nil
             }
         })
+        .sensoryFeedback(.selection, trigger: transEditID) { $1 != nil }        
     }
     
     

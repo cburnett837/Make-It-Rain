@@ -54,6 +54,8 @@ class CBDay: Identifiable, Hashable, Equatable {
         hasher.combine(id)
     }
     
+    // MARK: - Transaction Object Functions
+    
     func isExisting(_ transaction: CBTransaction) -> Bool {
         return !transactions.filter { $0.id == transaction.id }.isEmpty
     }
@@ -70,5 +72,24 @@ class CBDay: Identifiable, Hashable, Equatable {
     
     func getIndex(for transaction: CBTransaction) -> Int? {
         return transactions.firstIndex(where: { $0.id == transaction.id })
+    }
+    
+    
+    // MARK: - Transaction ID Functions
+    func isExisting(_ id: String) -> Bool {
+        return !transactions.filter { $0.id == id }.isEmpty
+    }
+    
+    func removeTransaction(by id: String) {
+        transactions.removeAll(where: { $0.id == id })
+    }
+    
+    func getTransactionIndex(by id: String) -> Int? {
+        return transactions.firstIndex(where: { $0.id == id })
+    }
+    
+    
+    func getTransaction(by id: String) -> CBTransaction {
+        return transactions.first(where: { $0.id == id }) ?? CBTransaction(uuid: id)
     }
 }

@@ -13,6 +13,7 @@ struct KeychainManager {
         case duplicateItem
         case unexpectedDataFormat
         case itemNotFound
+        case missingEmail
         case unknown(OSStatus)
     }
         
@@ -94,25 +95,29 @@ struct KeychainManager {
     func removeFromKeychain() throws {
         print("-- \(#function)")
         
-        let email = AppState.shared.user?.email
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassInternetPassword,
-            kSecAttrAccount as String: email,
-            kSecUseDataProtectionKeychain as String: true
-        ]
-        
-        let status = SecItemDelete(query as CFDictionary)
-        if status == errSecItemNotFound {
-            print("item not found")
-            throw KeychainError.itemNotFound
+        if let email = AppState.shared.user?.email {
+            let query: [String: Any] = [
+                kSecClass as String: kSecClassInternetPassword,
+                kSecAttrAccount as String: email,
+                kSecUseDataProtectionKeychain as String: true
+            ]
             
-        } else if status != errSecSuccess {
-            print("unknown error")
-            throw KeychainError.unknown(status)
-            
+            let status = SecItemDelete(query as CFDictionary)
+            if status == errSecItemNotFound {
+                print("item not found")
+                throw KeychainError.itemNotFound
+                
+            } else if status != errSecSuccess {
+                print("unknown error")
+                throw KeychainError.unknown(status)
+                
+            } else {
+                print("successfully removed from keychain")
+            }
         } else {
-            print("successfully removed from keychain")
+            throw KeychainError.missingEmail
         }
+        
     }
 
     
@@ -120,36 +125,43 @@ struct KeychainManager {
     func getCredentialsFromKeychain() throws -> (String?, String?) {
         print("-- \(#function)")
         
-        let email = AppState.shared.user?.email
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassInternetPassword,
-            kSecAttrAccount as String: email,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-            kSecReturnAttributes as String: true,
-            kSecReturnData as String: true,
-            kSecUseDataProtectionKeychain as String: true
-        ]
-        var item: CFTypeRef?
-    
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        if status == errSecItemNotFound {
-            print("item not found")
-            throw KeychainError.itemNotFound
+        if let email = AppState.shared.user?.email {
+            let query: [String: Any] = [
+                kSecClass as String: kSecClassInternetPassword,
+                kSecAttrAccount as String: email,
+                kSecMatchLimit as String: kSecMatchLimitOne,
+                kSecReturnAttributes as String: true,
+                kSecReturnData as String: true,
+                kSecUseDataProtectionKeychain as String: true
+            ]
+            var item: CFTypeRef?
+        
+            let status = SecItemCopyMatching(query as CFDictionary, &item)
+            if status == errSecItemNotFound {
+                print("item not found")
+                throw KeychainError.itemNotFound
+                
+            } else if status != errSecSuccess {
+                print("unknown error")
+                throw KeychainError.unknown(status)
+            }
+           
+            if let existingItem = item as? [String: Any],
+               let email = existingItem[kSecAttrAccount as String] as? String,
+               let passwordData = existingItem[kSecValueData as String] as? Data,
+               let password = String(data: passwordData, encoding: .utf8)
+            {
+                print("Successfully got user credentials from Keychain")
+                return (email, password)
+            }
             
-        } else if status != errSecSuccess {
-            print("unknown error")
-            throw KeychainError.unknown(status)
-        }
-       
-        if let existingItem = item as? [String: Any],
-           let email = existingItem[kSecAttrAccount as String] as? String,
-           let passwordData = existingItem[kSecValueData as String] as? Data,
-           let password = String(data: passwordData, encoding: .utf8)
-        {
-            print("Successfully got user credentials from Keychain")
-            return (email, password)
+            return (nil, nil)
+            
+        } else {
+            throw KeychainError.missingEmail
         }
         
-        return (nil, nil)
+        
+        
     }
 }

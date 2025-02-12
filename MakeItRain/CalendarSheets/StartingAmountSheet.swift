@@ -116,7 +116,7 @@ struct StartingAmountSheet: View {
                 
                 Group {
                     #if os(iOS)
-                    UITextFieldWrapperFancy(placeholder: "Starting Amount", text: $startingAmount.amountString, toolbar: {
+                    UITextFieldWrapper(placeholder: "Starting Amount", text: $startingAmount.amountString, toolbar: {
                         KeyboardToolbarView(
                             focusedField: $focusedField,
                             accessoryText1: "AutoFill",
@@ -154,21 +154,31 @@ struct StartingAmountSheet: View {
                     #endif
                 }
                 .focused($focusedField, equals: focusID)
-                .onChange(of: focusedField) { oldValue, newValue in
-                    if newValue == focusID {
-                        if startingAmount.amount == 0.0 {
-                            startingAmount.amountString = ""
-                        }
-                    } else {
-                        if oldValue == focusID && !startingAmount.amountString.isEmpty {
-                            if startingAmount.amountString == "$" || startingAmount.amountString == "-$" {
-                                startingAmount.amountString = ""
-                            } else {
-                                startingAmount.amountString = startingAmount.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
-                            }
-                        }
-                    }
-                }
+                .formatCurrencyLiveAndOnUnFocus(
+                    focusValue: focusID,
+                    focusedField: focusedField,
+                    amountString: startingAmount.amountString,
+                    amountStringBinding: $startingAmount.amountString,
+                    amount: startingAmount.amount
+                )
+                
+                
+                
+//                .onChange(of: focusedField) { oldValue, newValue in
+//                    if newValue == focusID {
+//                        if startingAmount.amount == 0.0 {
+//                            startingAmount.amountString = ""
+//                        }
+//                    } else {
+//                        if oldValue == focusID && !startingAmount.amountString.isEmpty {
+//                            if startingAmount.amountString == "$" || startingAmount.amountString == "-$" {
+//                                startingAmount.amountString = ""
+//                            } else {
+//                                startingAmount.amountString = startingAmount.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+//                            }
+//                        }
+//                    }
+//                }
             }
         }
     }

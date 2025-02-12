@@ -21,7 +21,7 @@ struct PaymentMethodSheet: View {
     var isPendingSmartTransaction: Bool
     
     init(payMethod: Binding<CBPaymentMethod?>, whichPaymentMethods: ApplicablePaymentMethods) {
-        print("-- \(#function)")
+        //print("-- \(#function)")
         self._payMethod = payMethod
         self.trans = nil
         self.calcAndSaveOnChange = false
@@ -31,7 +31,7 @@ struct PaymentMethodSheet: View {
     
     
     init(payMethod: Binding<CBPaymentMethod?>, trans: CBTransaction?, calcAndSaveOnChange: Bool, whichPaymentMethods: ApplicablePaymentMethods, isPendingSmartTransaction: Bool = false) {
-        print("-- \(#function)")
+        //print("-- \(#function)")
         self._payMethod = payMethod
         self.trans = trans
         self.calcAndSaveOnChange = calcAndSaveOnChange
@@ -54,15 +54,14 @@ struct PaymentMethodSheet: View {
     }
     
     var body: some View {
-        let _ = Self._printChanges()
+        //let _ = Self._printChanges()
         SheetHeader(title: "Payment Methods", close: { dismiss() })
             .padding(.bottom, 12)
             .padding(.horizontal, 20)
-            .padding(.top)
-                
-        StandardTextField("Search Payment Methods", text: $searchText, isSearchField: true, focusedField: $focusedField, focusValue: 0)
-            .padding(.horizontal, 20)
-                
+            .padding(.top)        
+        
+        SearchTextField(title: "Payment Methods", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)
+        
         List {
             ForEach(filteredSections) { section in
                 if !section.payMethods.isEmpty {
@@ -92,7 +91,8 @@ struct PaymentMethodSheet: View {
                                     payMethod = meth
                                     
                                     trans!.action = .edit
-                                    calModel.saveTransaction(id: trans!.id, isPendingSmartTransaction: isPendingSmartTransaction)
+                                    //calModel.saveTransaction(id: trans!.id, isPendingSmartTransaction: isPendingSmartTransaction)
+                                    calModel.saveTransaction(id: trans!.id, location: isPendingSmartTransaction ? .smartList : .normalList)
                                     calModel.tempTransactions.removeAll()
                                     
                                     if isPendingSmartTransaction {

@@ -174,7 +174,20 @@ extension String {
 
 
 enum DateFormat {
-    case date, dateTime, dateTimeShort, dateTimeNoYear, monthDayHrMinAmPm, monthDayYearHrMinAmPm, dateTimeTodayOrNot, timeAmPm, serverDateTime, serverDate, monthDay, monthDayShortYear, swiftDefault
+    case date,
+    dateTime,
+    dateTimeShort,
+    dateTimeNoYear,
+    monthDayHrMinAmPm,
+    monthDayYearHrMinAmPm,
+    dateTimeTodayOrNot,
+    timeAmPm,
+    serverDateTime,
+    serverDate,
+    monthDay,
+    monthDayShortYear,
+    swiftDefault,
+    datePickerDateOnlyDefault
 }
 
 func getDateFormat(_ format: DateFormat) -> String {
@@ -192,5 +205,6 @@ func getDateFormat(_ format: DateFormat) -> String {
     case .monthDay:             return "MM/dd"
     case .monthDayShortYear:    return "MM/dd/YY"
     case .swiftDefault:         return "y-MM-dd H:mm:ss z"
+    case .datePickerDateOnlyDefault:    return "MMM dd, yyyy"
     }
 }

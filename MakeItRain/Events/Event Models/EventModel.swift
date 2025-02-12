@@ -33,10 +33,30 @@ class EventModel {
     var eventEditID: Int?
     var events: Array<CBEvent> = []
     var invitations: Array<CBEventParticipant> = []
-    var pendingTransactionToSave: Array<CBTransaction> = []
+    //var pendingTransactionsToSave: Array<CBTransaction> = []
+    //var pendingTransactionsToDelete: Array<CBTransaction> = []
+    var revokedEvent: CBEvent?
+    //var claimedTransaction: CBEvent?
     
     //var refreshTask: Task<Void, Error>?
     var fuckYouSwiftuiTableRefreshID: UUID = UUID()
+    
+    var justTransactions: Array<CBEventTransaction> {
+        events.flatMap { $0.transactions }
+    }
+    
+    func doesTransactionExist(with id: String) -> Bool {
+        return !justTransactions.filter { $0.id == id }.isEmpty
+    }
+    
+    func getTransactionIndex(for id: String) -> Int? {
+        return justTransactions.firstIndex(where: { $0.id == id })
+    }
+    
+    func getEventThatContainsTransaction(transactionID: String) -> CBEvent? {
+        return events.filter { $0.transactions.map {$0.id}.contains(transactionID) }.first
+    }
+    
     
     func doesExist(_ event: CBEvent) -> Bool {
         return !events.filter { $0.id == event.id }.isEmpty
@@ -52,10 +72,14 @@ class EventModel {
         }
     }
     
+    func revoke(_ event: CBEvent) {
+        events.removeAll(where: {$0.id == event.id})
+        revokedEvent = event
+    }
+    
     func getIndex(for event: CBEvent) -> Int? {
         return events.firstIndex(where: { $0.id == event.id })
     }
-    
     
     func doesExist(_ participant: CBEventParticipant) -> Bool {
         return !invitations.filter { $0.id == participant.id }.isEmpty
@@ -80,12 +104,13 @@ class EventModel {
     func saveEvent(id: String, calModel: CalendarModel) {
         let event = getEvent(by: id)
         Task {
-            
+            /// Validate that the title is not empty.
             if event.title.isEmpty {
                 if event.action != .add && event.title.isEmpty {
                     event.title = event.deepCopy?.title ?? ""
                     AppState.shared.showAlert("Removing a title is not allowed. If you want to delete \(event.title), please use the delete button instead.")
                 } else {
+                    #warning("idk if this makes sense...")
                     events.removeAll { $0.id == id }
                 }
                 return
@@ -93,39 +118,115 @@ class EventModel {
                                 
             if event.hasChanges() {
                 print("The event has changes")
-                let _ = await submit(event)
                 
-                print("Processing pending trans")
-                for trans in pendingTransactionToSave {
-                    print("Processing \(trans.title)")
+                var relatedIDs: [TempRelatedID] = []
+                
+                struct TempRelatedID {
+                    var eventTransID: String
+                    var relatedID: String?
+                }
+                                
+                event.transactions.forEach { trans in
+                    /// Save the actions before the submit to server so I can translate them to the real transactions.
+                    trans.actionBeforeSave = trans.action
                     
-                    if trans.title.isEmpty || trans.payMethod == nil /*&& day.date == nil*/ {
-                        print("Somerhing is wrtong \(trans.title)")
-                        continue
-                    } else {
-                        print(trans.dateComponents?.month)
-                        if let targetMonth = calModel.months.filter({ $0.num == trans.dateComponents?.month }).first {
-                            if let targetDay = targetMonth.days.filter({ $0.dateComponents?.day == trans.date?.day }).first {
-                                let exists = !targetDay.transactions.filter { $0.id == trans.id }.isEmpty
-                                if !exists {
-                                    print("doesnt exist \(trans.title)")
-                                    print("saving \(trans.title)")
-                                    targetDay.transactions.append(trans)
-                                    calModel.saveTransaction(id: trans.id, location: .normalList)
-                                }
-                            } else {
-                               print("cant find target day \(trans.title)")
-                            }
-                        } else {
-                            print("cant find target month \(trans.title)")
-                         }
-                    }
+                    /// Save the related ID's. If unclaiming an transaction, the relatedID get's wiped out. So retain the relatedID so I can delete the realTrans.
+                    relatedIDs.append(TempRelatedID(eventTransID: trans.id, relatedID: trans.relatedTransactionID))
+                    
+                    /// Blank out the relatedID since it has been retained above. This will set it to null on the server.
+                    if trans.isBeingUnClaimed { trans.relatedTransactionID = nil }
                 }
                 
+                /// Save the event
+                let _ = await submit(event)
                 
-                pendingTransactionToSave.removeAll()
+                /// If a transaction was added, go update the temp list with the new real ID from the server.
+                event.transactions.forEach { trans in
+                    if let index = relatedIDs.firstIndex(where: { $0.eventTransID == trans.uuid }) {
+                        relatedIDs[index].eventTransID = trans.id
+                        
+                        /// This would normally happen in the `submit()`, but I need it here.
+                        trans.uuid = nil
+                    }
+                }
+
                 
-                
+                for eventTrans in event.transactions {
+                    var relatedID = relatedIDs.filter {$0.eventTransID == eventTrans.id}.first!.relatedID
+                    
+                    print("eventTrans Title: \(eventTrans.title) - ID: \(eventTrans.id) - Active: \(eventTrans.active) ActionBeforeSave: \(eventTrans.actionBeforeSave)")
+                                        
+                    
+                    /// Determine what to do to the realTransaction
+                    switch eventTrans.actionBeforeSave {
+                    case .add:
+                        if eventTrans.isBeingClaimed {
+                            /// If adding and claiming.
+                            print("eventTrans \(eventTrans.id) is being claimed")
+                            eventTrans.actionForRealTransaction = .add
+                            
+                            /// Create a related ID that will be used for the realTrans that will be created.
+                            if relatedID == nil {
+                                let uuid = UUID().uuidString
+                                eventTrans.relatedTransactionID = uuid
+                                relatedID = uuid
+                            }
+                            
+                            
+                        } else {
+                            /// If adding doing nothing regarding claim.
+                            eventTrans.actionForRealTransaction = nil
+                        }
+                        
+                    case .edit:
+                        if eventTrans.isBeingClaimed {
+                            /// If editing and claiming
+                            print("eventTrans \(eventTrans.id) is being claimed")
+                            eventTrans.actionForRealTransaction = .add
+                            
+                            /// Create a related ID that will be used for the realTrans that will be created.
+                            if relatedID == nil {
+                                print("Creating realTrans ID for eventTrans \(eventTrans.id)")
+                                let uuid = UUID().uuidString
+                                eventTrans.relatedTransactionID = uuid
+                                relatedID = uuid
+                            }
+                            
+                        } else if eventTrans.isBeingUnClaimed {
+                            print("eventTrans \(eventTrans.id) is being unclaimed")
+                            /// if editing and unclaiming
+                            eventTrans.actionForRealTransaction = .delete
+                                                                               
+                        } else if relatedID != nil {
+                            print("eventTrans \(eventTrans.id) relatedID \(relatedID!) is not nil")
+                            /// if doing nothing regarding claim, but the transaction appears to exist.
+                            eventTrans.actionForRealTransaction = .edit
+                            
+                        } else {
+                            print("else ignore")
+                            /// if doing nothing regarding claim, and the transaction does not exist.
+                            eventTrans.actionForRealTransaction = nil
+                        }
+                        
+                    case .delete:
+                        /// if deleting, delete.
+                        eventTrans.actionForRealTransaction = .delete
+                        
+                        /// If the transaction exists locally, remove it.
+                        if calModel.doesTransactionExist(with: relatedID!, from: .normalList) {
+                            print("realTrans \(String(describing: relatedID)) does exist in cal Model")
+                            event.transactions.removeAll(where: { $0.id == eventTrans.id })
+                        } else {
+                            print("realTrans \(String(describing: relatedID)) does NOT exist in calModel")
+                        }
+                    }
+                    
+                    
+                    
+                    if let _ = eventTrans.actionForRealTransaction, let relatedID = relatedID {
+                        calModel.saveTransactionFromEvent(eventTrans: eventTrans, relatedID: relatedID)
+                    }
+                }
             } else {
                 print("The event has no changes")
             }
@@ -135,6 +236,7 @@ class EventModel {
     
     @MainActor
     func fetchEvents() async {
+        print("-- \(#function)")
         LogManager.log()
         
         /// Do networking.
@@ -180,7 +282,7 @@ class EventModel {
             switch error {
             case .taskCancelled:
                 /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
-                print("keyModel fetchFrom Server Task Cancelled")
+                print("eventModel fetchFrom Server Task Cancelled")
             default:
                 LogManager.error(error.localizedDescription)
                 AppState.shared.showAlert("There was a problem trying to fetch the events.")
@@ -219,7 +321,7 @@ class EventModel {
                 print("keyModel fetchFrom Server Task Cancelled")
             default:
                 LogManager.error(error.localizedDescription)
-                AppState.shared.showAlert("There was a problem trying to fetch the events.")
+                AppState.shared.showAlert("There was a problem trying to fetch the events invitations.")
             }
         }
     }
@@ -277,17 +379,18 @@ class EventModel {
                             item.uuid = nil
                             item.action = .edit
                         }
-                        
-                        for transModel in item.transactions {
-                            let index = item.transactions.firstIndex(where: { $0.uuid == transModel.uuid })
-                            if let index {
-                                let trans = item.transactions[index]
-                                if trans.action == .add {
-                                    trans.id = String(transModel.id)
-                                    trans.uuid = nil
-                                    trans.action = .edit
-                                }
-                            }
+                    }
+                }
+                
+                
+                for each in model?.transactions ?? [] {
+                    let index = event.transactions.firstIndex(where: { $0.uuid == each.uuid })
+                    if let index {
+                        let trans = event.transactions[index]
+                        if trans.action == .add {
+                            trans.id = String(each.id)
+                            //trans.uuid = nil /// Don't blank this out because I need it to update the temp list related to saving realTrans.
+                            trans.action = .edit
                         }
                     }
                 }
@@ -362,7 +465,7 @@ class EventModel {
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
         switch await result {
-        case .success(let model):
+        case .success:
             LogManager.networkingSuccessful()
             return true
             
@@ -386,7 +489,7 @@ class EventModel {
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
         switch await result {
-        case .success(let model):
+        case .success:
             LogManager.networkingSuccessful()
             return true
             

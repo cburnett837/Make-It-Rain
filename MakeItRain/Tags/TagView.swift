@@ -50,10 +50,11 @@ struct TagView: View {
                 #if os(iOS)
                 if AppState.shared.isLandscape { header }
                 #endif
-                StandardTextField("Search Tags", text: $searchText, isSearchField: true, focusedField: $focusedField, focusValue: 0)
-                    //.focused($focusedField, equals: .search)
-                    //.submitLabel(.search)
                 
+                SearchTextField(title: "Tags", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)
+                /// negate the padding that this view has by default since the scroll view already has padding.
+                    .padding(.horizontal, -20)
+                                
                 Divider()
                 
                 

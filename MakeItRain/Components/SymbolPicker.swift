@@ -170,9 +170,7 @@ struct SymbolPicker: View {
                 .padding(.horizontal, 20)
                 .padding(.top)
             
-            StandardTextField("Search Symbols", text: $searchText, isSearchField: true, focusedField: $focusedField, focusValue: 0)
-                //.focused($focusedField, equals: .search)
-                .padding(.horizontal, 20)
+            SearchTextField(title: "Symbols", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)                        
             
             List {
                 ForEach(filteredSections.sorted { $0.title < $1.title }) { section in

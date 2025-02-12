@@ -55,6 +55,7 @@ struct EventsTable: View {
                     #endif
             }
         }
+        .loadingSpinner(id: .events, text: "Loading Events…")
         #if os(iOS)
         .navigationTitle("Events")
         .navigationBarTitleDisplayMode(.inline)
@@ -71,27 +72,31 @@ struct EventsTable: View {
             phoneToolbar()
             #endif
         }
-        .searchable(text: $searchText) {
-            #if os(macOS)
-            let relevantTitles: Array<String> = eventModel.events
-                .compactMap { $0.event }
-                .uniqued()
-                .filter { $0.localizedStandardContains(searchText) }
-                    
-            ForEach(relevantTitles, id: \.self) { title in
-                Text(title)
-                    .searchCompletion(title)
-            }
-            #endif
-        }
+//        .searchable(text: $searchText) {
+//            #if os(macOS)
+//            
+//            let titles: Array<String> = eventModel.events
+//
+//            let relevantTitles: Array<String> = eventModel.events
+//                .map { $0.event.title }
+//                //.uniqued()
+//                .filter { $0.localizedStandardContains(searchText) }
+//                    
+////            ForEach(relevantTitles, id: \.self) { title in
+////                Text(title)
+////                    .searchCompletion(title)
+////            }
+//            #endif
+//        }
         
         .sheet(item: $editEvent, onDismiss: {
             eventEditID = nil
         }, content: { event in
             EventView(event: event, editID: $eventEditID)
-                #if os(macOS)
-                .frame(minWidth: 700)
-                #endif
+            #if os(macOS)
+                .frame(minWidth: 300, minHeight: 500)
+                .presentationSizing(.fitted)
+            #endif
         })
         .sheet(isPresented: $showPendingInviteSheet) {
             EventPendingInviteView()
@@ -103,9 +108,28 @@ struct EventsTable: View {
             if let newValue {
                 editEvent = eventModel.getEvent(by: newValue)
             } else {
-                eventModel.saveEvent(id: oldValue!, calModel: calModel)
+                /// If the event was being viewed when it was revoked, clear the revoked event object and don't save.
+                if let oldValue {
+                    if eventModel.revokedEvent?.id == oldValue {
+                        eventModel.revokedEvent = nil
+                    } else {
+                        eventModel.saveEvent(id: oldValue, calModel: calModel)
+                    }
+                }
+                
             }
         }
+        
+        /// If an event gets revoked while being viewed, close the page.
+        .onChange(of: eventModel.revokedEvent) { oldValue, newValue in
+            if let newValue {
+                if editEvent?.id == newValue.id {
+                    editEvent = nil
+                }
+            }
+        }
+        
+        
         .confirmationDialog("Delete event \(deleteEvent == nil ? "N/A" : deleteEvent!.title)?", isPresented: $showDeleteAlert, actions: {
             Button("Yes", role: .destructive) {
                 if let deleteEvent = deleteEvent {
@@ -177,7 +201,6 @@ struct EventsTable: View {
             TableColumn("Event", value: \.title) { event in
                 Text(event.title)
             }
-            .customizationID("event")
             
             TableColumn("Delete") { event in
                 Button {
@@ -192,7 +215,6 @@ struct EventsTable: View {
             .width(min: 20, ideal: 30, max: 50)
         }
         .clipped()
-        .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
     }
     #endif
     
@@ -211,15 +233,13 @@ struct EventsTable: View {
         }
         ToolbarItem(placement: .topBarTrailing) {
             HStack {
-                
                 if !eventModel.invitations.isEmpty {
                     Button {
                         showPendingInviteSheet = true
                     } label: {
                         Image(systemName: "envelope.badge")
                             .foregroundStyle(.red)
-                    }
-
+                    }                    
                 }
                 
                 ToolbarRefreshButton()
@@ -237,8 +257,22 @@ struct EventsTable: View {
     var phoneList: some View {
         List(filteredEvents, selection: $eventEditID) { event in
             HStack(alignment: .center) {
-                Text(event.title)
+                VStack(alignment: .leading) {
+                    Text(event.title)
+                    HStack {
+                        Image(systemName: "person.fill")
+                        let partCount = event.participants.filter { $0.status?.enumID == .accepted && $0.active }.count
+                        Text("\(partCount)")
+                    }
+                    .foregroundStyle(.gray)
+                    .font(.footnote)
+                }
+                
                 Spacer()
+                
+                Text(event.startDate?.string(to: .monthDayShortYear) ?? "N/A") +
+                Text(" - ") +
+                Text(event.endDate?.string(to: .monthDayShortYear) ?? "N/A")
             }
             .rowBackgroundWithSelection(id: event.id, selectedID: eventEditID)
             .swipeActions(allowsFullSwipe: false) {

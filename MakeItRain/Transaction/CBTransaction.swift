@@ -11,6 +11,9 @@ import SwiftUI
 
 @Observable
 class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
+    
+    let objectID: UUID = UUID()
+    
     var id: String
     var uuid: String?
     
@@ -45,6 +48,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
     var active: Bool
     var color: Color
     var action: TransactionAction
+    var actionBeforeSave: TransactionAction = .add
     var tempAction: TransactionAction = .add
     var factorInCalculations: Bool
     
@@ -186,6 +190,34 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         self.url = ""
         self.tags = []
         self.wasAddedFromPopulate = true
+    }
+    
+    
+    init(eventTrans: CBEventTransaction, relatedID: String) {
+        
+        self.id = relatedID
+        self.uuid = relatedID
+        self.relatedTransactionID = eventTrans.id
+        self.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byID: 4)
+        self.title = eventTrans.title
+        self.amountString = eventTrans.amountString
+        //self.action = .add
+        self.factorInCalculations = true
+        self.payMethod = eventTrans.payMethod
+        self.category = eventTrans.category
+        self.date = eventTrans.date
+        self.color = .primary
+        self.active = true
+        self.enteredDate = Date()
+        self.updatedDate = Date()
+        self.trackingNumber = ""
+        self.orderNumber = ""
+        self.url = ""
+        self.tags = []
+        self.wasAddedFromPopulate = false
+        
+        
+        self.action = eventTrans.actionForRealTransaction!
     }
     
     
@@ -377,6 +409,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
             && self.orderNumber == deepCopy.orderNumber
             && self.url == deepCopy.url
             && self.wasAddedFromPopulate == deepCopy.wasAddedFromPopulate
+            && self.pictures == deepCopy.pictures
             && self.date == deepCopy.date {
                 return false
             }
@@ -471,6 +504,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
             copy.url = self.url
             copy.active = self.active
             copy.wasAddedFromPopulate = self.wasAddedFromPopulate
+            copy.pictures = self.pictures
             //copy.action = self.action
             self.deepCopy = copy
             
@@ -498,6 +532,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
                 self.url = deepCopy.url
                 self.active = deepCopy.active
                 self.wasAddedFromPopulate = deepCopy.wasAddedFromPopulate
+                self.pictures = deepCopy.pictures
                 //self.action = deepCopy.action
             }
         }
@@ -528,6 +563,23 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         self.orderNumber = transaction.orderNumber
         self.url = transaction.url
         self.wasAddedFromPopulate = transaction.wasAddedFromPopulate
+    }
+    
+    
+    func setFromEventInstance(eventTrans: CBEventTransaction) {
+        //self.id = transaction.id
+        self.title = eventTrans.title
+        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+        self.amountString = eventTrans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        self.date = eventTrans.date
+        //self.enteredBy = eventTrans.paidBy!
+        //self.updatedBy = eventTrans.paidBy!
+        self.relatedTransactionID = eventTrans.id
+        self.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .eventTransaction)
+        self.payMethod = eventTrans.payMethod
+        self.category = eventTrans.category
+        self.enteredDate = Date()
+        self.updatedDate = Date()
     }
     
 

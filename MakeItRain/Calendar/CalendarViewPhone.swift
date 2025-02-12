@@ -28,6 +28,7 @@ struct CalendarViewPhone: View {
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
+    @Environment(EventModel.self) private var eventModel
     
     //@State private var transEditID: Int?
     @Binding var showSearchBar: Bool
@@ -85,11 +86,10 @@ struct CalendarViewPhone: View {
     
     @State private var scrollHeight: CGFloat = 0
     @State private var transHeight: CGFloat = 0
-    @State private var shouldRecalculateTransHeight = false
 
     
     var body: some View {
-        let _ = Self._printChanges()
+        //let _ = Self._printChanges()
         @Bindable var navManager = NavigationManager.shared
         //@Bindable var vm = vm
         @Bindable var calModel = calModel
@@ -121,9 +121,7 @@ struct CalendarViewPhone: View {
             let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
             selectedDay = targetDay
         }
-        .sensoryFeedback(.selection, trigger: transEditID) { oldValue, newValue in
-            newValue != nil
-        }
+        .sensoryFeedback(.selection, trigger: transEditID) { $1 != nil }
         .onShake {
             Helpers.buzzPhone(.success)
             withAnimation {
@@ -147,12 +145,12 @@ struct CalendarViewPhone: View {
         }
         
         /// This exists in 2 place - purely for visual effect. See ``LineItemView``
-        /// This is needed because you can close the popover without actually clicking the close button. So I need somewhere to do cleanup.
+        /// This is needed (passing the ID instead of the trans) because you can close the popover without actually clicking the close button. So I need somewhere to do cleanup.
         .onChange(of: transEditID, { oldValue, newValue in
             print(".onChange(of: transEditID)")
             /// When `newValue` is false, save to the server. We have to use this because `.popover(isPresented:)` has no onDismiss option.
             if oldValue != nil && newValue == nil {
-                calModel.saveTransaction(id: oldValue!, day: selectedDay!)
+                calModel.saveTransaction(id: oldValue!, day: selectedDay!, eventModel: eventModel)
                 /// - When adding a transaction via a day's context menu, `selectedDay` gets changed to the contexts day.
                 ///   So when closing the transaction, put `selectedDay`back to today so the normal plus button works and the gray box goes back to today.
                 /// - Gotta have a `selectedDay` for the editing of a transaction and transfer sheet.
@@ -164,6 +162,8 @@ struct CalendarViewPhone: View {
                     let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
                     selectedDay = targetDay
                 }
+                /// Keep the model clean, and show alert for a photo that may be taking a long time to upload.
+                calModel.pictureTransactionID = nil
             }
         })
         .sheet(item: $transEditID) { id in
@@ -180,12 +180,10 @@ struct CalendarViewPhone: View {
             AnalysisSheet2(showAnalysisSheet: $showAnalysisSheet)
         }
         .sheet(isPresented: $showCalendarOptionsSheet, onDismiss: {
-            //if shouldRecalculateTransHeight {
-                recalculateTransHeight()
-            //}
+            recalculateTransHeight()
             
         }, content: {
-            CalendarOptionsSheet(selectedDay: $selectedDay, shouldRecalculateTransHeight: $shouldRecalculateTransHeight)
+            CalendarOptionsSheet(selectedDay: $selectedDay)
         })
         .sheet(isPresented: $showPaymentMethodSheet, onDismiss: {
             TouchAndHoldMonthToFilterCategoriesTip.didTouchMonthName.sendDonation()
@@ -200,17 +198,6 @@ struct CalendarViewPhone: View {
         }
         .fullScreenCover(isPresented: $showBudgetSheet) {
             BudgetTable(maxHeaderHeight: .constant(50))
-        }
-        .sheet(isPresented: $calModel.showSmartTransactionPaymentMethodSheet) {
-            //PaymentMethodSheet(payMethod: Binding($calModel.pendingSmartTransaction)!.payMethod, trans: calModel.pendingSmartTransaction, calcAndSaveOnChange: true, whichPaymentMethods: .allExceptUnified, isPendingSmartTransaction: true)
-            PaymentMethodSheet(
-                payMethod: Binding(get: { CBPaymentMethod() }, set: { calModel.pendingSmartTransaction!.payMethod = $0 }),
-                trans: calModel.pendingSmartTransaction,
-                calcAndSaveOnChange: true,
-                whichPaymentMethods: .allExceptUnified,
-                isPendingSmartTransaction: true
-            )
-            
         }
         .sheet(isPresented: $showStartingAmountsSheet) {
             calModel.calculateTotalForMonth(month: calModel.sMonth)
@@ -227,50 +214,14 @@ struct CalendarViewPhone: View {
         } content: {
             StartingAmountSheet()
         }
-        .sheet(isPresented: $calModel.showSmartTransactionDatePickerSheet, onDismiss: {
-            if calModel.pendingSmartTransaction!.date == nil {
-                calModel.pendingSmartTransaction!.date = Date()
-            }
-            
-            calModel.saveTransaction(id: calModel.pendingSmartTransaction!.id, isPendingSmartTransaction: true)
-            calModel.tempTransactions.removeAll()
-            calModel.pendingSmartTransaction = nil
-        }, content: {
-            GeometryReader { geo in
-                ScrollView {
-                    VStack {
-                        SheetHeader(title: "Select Receipt Date", subtitle: calModel.pendingSmartTransaction!.title) {
-                            calModel.showSmartTransactionDatePickerSheet = false
-                        }
-                        
-                        Divider()                        
-                        
-                        DatePicker(selection: Binding($calModel.pendingSmartTransaction)!.date ?? Date(), displayedComponents: [.date]) {
-                            EmptyView()
-                        }
-                        .datePickerStyle(.graphical)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .labelsHidden()
-                       
-                        Spacer()
-                        Button("Done") {
-                            calModel.showSmartTransactionDatePickerSheet = false
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .padding(.bottom, 12)
-                    }
-                    .frame(minHeight: geo.size.height)
-                }
-                .padding([.top, .horizontal])
-            }
-            
-            //.presentationDetents([.medium])
-                                                            
-        })
-        .photosPicker(isPresented: $showPhotosPicker, selection: $calModel.imageSelection, matching: .images, photoLibrary: .shared())
+        
         #if os(iOS)
+        .photosPicker(isPresented: $showPhotosPicker, selection: $calModel.imagesFromLibrary, maxSelectionCount: 1, matching: .images, photoLibrary: .shared())
+        .onChange(of: showPhotosPicker) { oldValue, newValue in
+            if !newValue { calModel.uploadPictures() }
+        }
         .fullScreenCover(isPresented: $showCamera) {
-            AccessCameraView(selectedImage: $calModel.selectedImage)
+            AccessCameraView(selectedImage: $calModel.imageFromCamera)
                 .background(.black)
         }
         #endif
@@ -282,7 +233,6 @@ struct CalendarViewPhone: View {
         withAnimation {
             transHeight = 0
         }
-        shouldRecalculateTransHeight = false
     }
     
     var calendarView: some View {
@@ -503,14 +453,20 @@ struct CalendarViewPhone: View {
     
     var longPollToolbarButton: some View {
         Button {
-            AppState.shared.showAlert("Attempting to resubscribe to multi-device updates. \nIf this keeps failing please contact the developer.")
+            let config = AlertConfig(
+                title: "Attempting to resubscribe to multi-device updates",
+                subtitle: "If this keeps failing please contact the developer.",
+                symbol: .init(name: "ipad.and.iphone", color: .green)
+            )
+            AppState.shared.showAlert(config: config)
+            
             Task {
                 AppState.shared.longPollFailed = false
                 await funcModel.downloadEverything(setDefaultPayMethod: true, createNewStructs: false, refreshTechnique: .viaButton)
                 //funcModel.longPollServerForChanges()
             }
         } label: {
-            Image(systemName: "person.crop.circle.badge.exclamationmark")
+            Image(systemName: "ipad.and.iphone.slash")
                 .foregroundStyle(.red)
         }
     }
@@ -678,10 +634,7 @@ struct CalendarViewPhone: View {
             }
         }
     }
-    
-    
-    
-    
+                
     var fakeNavHeader: some View {
         HStack {
             @Bindable var calModel = calModel
@@ -891,6 +844,7 @@ struct CalendarViewPhone: View {
     struct DayOverviewView: View {
         @Environment(\.dismiss) var dismiss
         @Environment(CalendarModel.self) private var calModel
+        @Environment(EventModel.self) private var eventModel
         
         @Binding var day: CBDay?
         /// The transaction Sheet and the transfer sheet use the selected day - so keep it up to date with the day being displayed in the bottom panel
@@ -944,7 +898,7 @@ struct CalendarViewPhone: View {
                     if let trans {
                         if trans.date == day.date {
                             calModel.dragTarget = nil
-                            AppState.shared.showToast(header: "Operation Cancelled", title: "Can't copy or move to the original day", message: "Please try again", symbol: "hand.raised.fill", symbolColor: .orange)
+                            AppState.shared.showToast(title: "Operation Cancelled", subtitle: "Can't copy or move to the original day", body: "Please try again", symbol: "hand.raised.fill", symbolColor: .orange)
                             return true
                         }
                                                 
@@ -1037,7 +991,7 @@ struct CalendarViewPhone: View {
                                                         
                         day?.transactions.append(trans)
                         calModel.dragTarget = nil
-                        calModel.saveTransaction(id: trans.id)
+                        calModel.saveTransaction(id: trans.id, eventModel: eventModel)
                     }
                 }
             }

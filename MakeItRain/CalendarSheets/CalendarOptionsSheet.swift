@@ -30,7 +30,6 @@ struct CalendarOptionsSheet: View {
     @State private var showCategorySheet = false
     
     @Binding var selectedDay: CBDay?
-    @Binding var shouldRecalculateTransHeight: Bool
     @FocusState private var focusedField: Int?
     //var focusedField: FocusState<Int?>.Binding
     //@Binding var showKeyboardToolbar: Bool
@@ -56,7 +55,7 @@ struct CalendarOptionsSheet: View {
                 }
             }
             
-            SettingsViewInsert(withDividers: true, shouldRecalculateTransHeight: $shouldRecalculateTransHeight)
+            SettingsViewInsert(withDividers: true)
             resetButton
         }
         
@@ -326,7 +325,7 @@ struct CalendarOptionsSheetOG: View {
                             Divider()
                                 //.padding(.bottom, 16)
                                                                        
-                            SettingsViewInsert(withDividers: true, shouldRecalculateTransHeight: .constant(false))
+                            SettingsViewInsert(withDividers: true)
                             
                             Spacer()
                             resetButton
