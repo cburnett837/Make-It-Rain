@@ -28,6 +28,8 @@ struct CategorySheetButton: View {
             .onHover { categoryMenuColor = $0 ? Color(.systemFill) : Color(.tertiarySystemFill) }
             .sheet(isPresented: $showCategorySheet) {
                 CategorySheet(category: $category)
+                    /// For transactions only.
+                    //.onAppear { UndodoManager.shared.commitChangeInTask(value: category?.id, field: .category) }
                 #if os(macOS)
                     .frame(minWidth: 300, minHeight: 500)
                     .presentationSizing(.fitted)

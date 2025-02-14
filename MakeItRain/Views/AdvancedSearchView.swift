@@ -64,6 +64,7 @@ struct AdvancedSearchView: View {
     @State private var isSearching = false
     @State private var sortOrder: SortOrder = .forward
     @State private var transEditID: String?
+    @State private var editTrans: CBTransaction?
     @State private var transDay: CBDay? = CBDay(date: Date())
     
     @State private var fuckYouSwiftuiTableRefreshID: UUID = UUID()
@@ -161,16 +162,21 @@ struct AdvancedSearchView: View {
         }
                 
         .onChange(of: transEditID, { oldValue, newValue in
-            print(".onChange(of: CategoryAnalysisSheet.transEditID)")
+            print(".onChange(of: transEditID)")
             /// When `newValue` is false, save to the server. We have to use this because `.popover(isPresented:)` has no onDismiss option.
             if oldValue != nil && newValue == nil {
                 calModel.saveTransaction(id: oldValue!, day: transDay!, location: .searchResultList, eventModel: eventModel)
+            } else {
+                editTrans = calModel.getTransaction(by: transEditID!, from: .searchResultList)
             }
         })
-        .sensoryFeedback(.selection, trigger: transEditID) { $1 != nil }
-        .sheet(item: $transEditID) { id in
-            TransactionEditView(transEditID: id, day: transDay!, isTemp: false, transLocation: .searchResultList)
+        .sheet(item: $editTrans) { trans in
+            TransactionEditView(trans: trans, transEditID: $transEditID, day: transDay!, isTemp: false, transLocation: .searchResultList)
+                .onDisappear { transEditID = nil }
         }
+        
+        .sensoryFeedback(.selection, trigger: transEditID) { $1 != nil }
+        
         .sheet(isPresented: $showPaymentMethodSheet) {
             MultiPaymentMethodSheet(payMethods: $searchModel.payMethods)
             #if os(macOS)

@@ -26,7 +26,7 @@ class DataManager {
     }
     
     func save(file: String = #file, line: Int = #line, function: String = #function) -> Result<Bool, CoreDataError> {
-        NSLog("\(file):\(line) : \(function)")
+        //NSLog("\(file):\(line) : \(function)")
 
         do {
             try container.viewContext.save()

@@ -24,6 +24,7 @@ struct TempTransactionList: View {
     
     @State private var showLoadingSpinner = false
     @State private var transEditID: String?
+    @State private var editTrans: CBTransaction?
     
     var body: some View {
         @Bindable var calModel = calModel
@@ -127,10 +128,6 @@ struct TempTransactionList: View {
             .navigationTitle("Temp Transactions")
         }
         .toast()
-        .sheet(item: $transEditID) { id in
-            TransactionEditView(transEditID: id, day: selectedDay!, isTemp: true)
-        }
-        
         .alert("Delete transaction?", isPresented: $showDeleteAlert, presenting: transDeleteID, actions: { id in
             Button("Delete", role: .destructive) {
                 calModel.tempTransactions.removeAll { $0.id == id }
@@ -155,12 +152,21 @@ struct TempTransactionList: View {
 //                showDeleteAlert = false
 //            }
 //        }
+        
+        .sheet(item: $editTrans) { trans in
+            TransactionEditView(trans: trans, transEditID: $transEditID, day: selectedDay!, isTemp: true)
+                .onDisappear { transEditID = nil }
+        }
         .onChange(of: transEditID, { oldValue, newValue in
             /// When `newValue` is false, save to the server. We have to use this because `.popover(isPresented:)` has no onDismiss option.
             if oldValue != nil && newValue == nil {
                 saveTransaction(id: oldValue!)
+            } else {
+                editTrans = calModel.getTransaction(by: transEditID!, from: .tempList)
             }
         })
+        
+        
         .task {
             calModel.prepareMonths()
             

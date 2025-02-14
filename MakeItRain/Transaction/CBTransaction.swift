@@ -11,8 +11,7 @@ import SwiftUI
 
 @Observable
 class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
-    
-    let objectID: UUID = UUID()
+    //var undoManager: TransUndoManager?
     
     var id: String
     var uuid: String?
@@ -52,8 +51,8 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
     var tempAction: TransactionAction = .add
     var factorInCalculations: Bool
     
-    var enteredBy: CBUser = AppState.shared.user!
-    var updatedBy: CBUser = AppState.shared.user!
+    var enteredBy: CBUser = AppState.shared.user ?? CBUser()
+    var updatedBy: CBUser = AppState.shared.user ?? CBUser()
     
     var enteredDate: Date
     var updatedDate: Date
@@ -77,6 +76,10 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
     var isIncome: Bool { self.amount > 0 }
     var isExpense: Bool { self.amount < 0 }
     
+    
+    deinit {
+        print("KILLING CBTransaction - \(self.id) - \(self.title)")
+    }
     var logs: Array<CBLog> = []
     
     init() {
@@ -88,7 +91,8 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         self.date = nil
         self.action = .add
         self.factorInCalculations = true
-        self.payMethod = CBPaymentMethod()
+        self.payMethod = nil
+        //self.payMethod = CBPaymentMethod() // Changed 2/12/25
         self.color = .primary
         self.active = true
         self.enteredDate = Date()
@@ -100,6 +104,8 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         self.url = ""
         self.tags = []
         self.wasAddedFromPopulate = false
+        
+       // self.undoManager = TransUndoManager(trans: self)
     }
     
     init(uuid: String) {
@@ -110,7 +116,8 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         self.date = nil
         self.action = .add
         self.factorInCalculations = true
-        self.payMethod = CBPaymentMethod()
+        self.payMethod = nil
+        //self.payMethod = CBPaymentMethod() // Changed 2/12/25
         self.color = .primary
         self.active = true
         self.enteredDate = Date()
@@ -122,6 +129,8 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         self.url = ""
         self.tags = []
         self.wasAddedFromPopulate = false
+        
+        //self.undoManager = TransUndoManager(trans: self)
     }
     
     init(entity: TempTransaction, payMethod: CBPaymentMethod, category: CBCategory?, logs: Array<CBLog>) {
@@ -166,6 +175,8 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         self.wasAddedFromPopulate = false
         
         self.logs = logs
+        
+        //self.undoManager = TransUndoManager(trans: self)
     }
     
     
@@ -190,11 +201,12 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         self.url = ""
         self.tags = []
         self.wasAddedFromPopulate = true
+        
+        //self.undoManager = TransUndoManager(trans: self)
     }
     
     
     init(eventTrans: CBEventTransaction, relatedID: String) {
-        
         self.id = relatedID
         self.uuid = relatedID
         self.relatedTransactionID = eventTrans.id
@@ -218,6 +230,8 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         
         
         self.action = eventTrans.actionForRealTransaction!
+        
+        //self.undoManager = TransUndoManager(trans: self)
     }
     
     
@@ -367,7 +381,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
             self.wasAddedFromPopulate = wasAddedFromPopulate == 1
         }
         
-        
+        //self.undoManager = TransUndoManager(trans: self)
     }
     
     
@@ -673,4 +687,254 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
     static var transferRepresentation: some TransferRepresentation {
         CodableRepresentation(contentType: .transaction)
     }
+    
+            
+//    class TransUndoManager {
+//
+//        var trans: CBTransaction
+//        init(trans: CBTransaction) {
+//            self.trans = trans
+//        }
+//        
+//        //static let shared = UndodoManager()
+//        
+//        var undoField: String = ""
+//        var redoField: String = ""
+//        var showAlert = false
+//        var returnMe: UndoableText?
+//        //var trans: CBTransaction = CBTransaction()
+//        
+//        var undoPosition: Int = 0
+//        var history: [UndoableText] = []
+//        var maxIndex: Int { history.count - 1 }
+//
+//        private var changeTasks: Array<UndoTask> = []
+//        
+//        var canUndo: Bool = false
+//        var canRedo: Bool = false
+//        
+//        func getChangeFields() {
+//            /// Simulate undo to get field that will be undone if the user takes action.
+//            var simUndoPosition = undoPosition - 1
+//            print("undo simPos \(simUndoPosition)")
+//            
+//            if simUndoPosition == -1 {
+//                canUndo = false
+//                
+//            } else if simUndoPosition == 0 {
+//                if !shouldIgnore(for: .undo, index: simUndoPosition) {
+//                    canUndo = true
+//                    undoField = history[simUndoPosition].field.rawValue
+//                } else {
+//                    canUndo = false
+//                }
+//                
+//            } else if simUndoPosition > 0 {
+//                let usedPosition = getPosition(for: .undo, index: simUndoPosition)
+//                simUndoPosition = usedPosition
+//                print("undo simPos \(simUndoPosition)")
+//                
+//                if simUndoPosition == -1 {
+//                    canUndo = false
+//                } else {
+//                    canUndo = true
+//                    undoField = history[simUndoPosition].field.rawValue
+//                }
+//            }
+//            
+//            
+//            /// Simulate redo to get field that will be redone if the user takes action.
+//            var simRedoPosition = undoPosition + 1
+//            print("redo simPos \(simRedoPosition)")
+//            
+//            if simRedoPosition > maxIndex {
+//                canRedo = false
+//                
+//            } else if simRedoPosition == maxIndex {
+//                if !shouldIgnore(for: .redo, index: simRedoPosition) {
+//                    canRedo = true
+//                    redoField = history[simRedoPosition].field.rawValue
+//                } else {
+//                    canRedo = false
+//                }
+//                
+//            } else if simRedoPosition < maxIndex {
+//                let usedPosition = getPosition(for: .redo, index: simRedoPosition)
+//                simRedoPosition = usedPosition
+//                print("redo simPos \(simRedoPosition)")
+//                
+//                if simRedoPosition > maxIndex {
+//                    canRedo = false
+//                } else {
+//                    canRedo = true
+//                    redoField = history[simRedoPosition].field.rawValue
+//                }
+//            }
+//            
+//            
+//        }
+//        
+//        func processChange(value: String?, field: TransactionUndoField) {
+//            if returnMe != nil {
+//                returnMe = nil
+//            } else {
+//                let task = Task {
+//                    do {
+//                        try await Task.sleep(for: .seconds(1))
+//                        await MainActor.run {
+//                            self.commitChange(value: value, field: field)
+//                        }
+//                    }
+//                }
+//                            
+//                if let index = changeTasks.firstIndex(where: { $0.field == field }) {
+//                    changeTasks[index].task?.cancel()
+//                    changeTasks[index].task = task
+//                } else {
+//                    changeTasks.append(UndoTask(field: field, task: task))
+//                }
+//            }
+//        }
+//        
+//        
+//        func commitChangeInTask(value: String?, field: TransactionUndoField) {
+//            Task {
+//                do {
+//                    try await Task.sleep(for: .seconds(1))
+//                    await MainActor.run {
+//                        self.commitChange(value: value, field: field)
+//                    }
+//                }
+//            }
+//        }
+//        
+//        
+//        func commitChange(value: String?, field: TransactionUndoField) {
+//            /// Make sure you don't duplicate changes.
+//            guard (value, field) != (history.last?.value, history.last?.field) else { return }
+//
+//            
+//            let undoText = UndoableText(value: value, field: field)
+//            history.append(undoText)
+//            undoPosition += 1
+//            
+//            if maxIndex == -1 {
+//                undoPosition = 0
+//            } else if undoPosition < maxIndex  {
+//                let range = undoPosition..<maxIndex
+//                history.removeSubrange(range)
+//            } else {
+//                undoPosition = maxIndex
+//            }
+//            
+//            print("-- \(#function) -- undoPosition: \(undoPosition)")
+//            print(history.map { "\($0.value ?? "") - \($0.field.rawValue)" })
+//        }
+//
+//        
+//        func undo(trans: CBTransaction) -> UndoableText? {
+//            print("-- \(#function) ❌old position \(undoPosition)")
+//            undoPosition -= 1
+//            
+//            if undoPosition == -1 {
+//                undoPosition = 0
+//                
+//            } else if undoPosition == 0 {
+//                // do the check from getPosition(), but only check for matching, don't get new index
+//                
+//            } else if undoPosition > 0 {
+//                let usedPosition = getPosition(for: .undo, index: undoPosition)
+//                undoPosition = usedPosition
+//            }
+//            print("-- \(#function) ✅usedPosition \(undoPosition)")
+//            return history[undoPosition]
+//        }
+//
+//        
+//        func redo(trans: CBTransaction) -> UndoableText?  {
+//            print("-- \(#function) ❌old position \(undoPosition)")
+//            undoPosition += 1
+//            
+//            if undoPosition > maxIndex {
+//                undoPosition = maxIndex
+//                
+//            } else if undoPosition == maxIndex {
+//                // do the check from getPosition(), but only check for matching, don't get new index
+//                
+//            } else if undoPosition < maxIndex {
+//                let usedPosition = getPosition(for: .redo, index: undoPosition)
+//                undoPosition = usedPosition
+//            }
+//            
+//            print("-- \(#function) ✅usedPosition \(undoPosition)")
+//            return history[undoPosition]
+//        }
+//        
+//        
+//        func clearHistory() {
+//            history.removeAll()
+//        }
+//        
+//        
+//        func getPosition(for undoredo: UndoRedo, index: Int) -> Int {
+//            print("-- \(#function) -- \(index)")
+//            if index < 0 {
+//                print("index is less than 0")
+//                return 0
+//            }
+//            
+//            let target = history[index]
+//            
+//            let next = undoredo == .undo ? index - 1 : index + 1
+//            
+//            switch target.field {
+//            case .title:
+//                if trans.title == target.value { return getPosition(for: undoredo, index: next) }
+//            case .amount:
+//                if trans.amountString == target.value { return getPosition(for: undoredo, index: next) }
+//            case .payMethod:
+//                if trans.payMethod?.id == target.value { return getPosition(for: undoredo, index: next) }
+//            case .category:
+//                if trans.category?.id == target.value { return getPosition(for: undoredo, index: next) }
+//            case .date:
+//                if trans.date?.string(to: .serverDate) == target.value { return getPosition(for: undoredo, index: next) }
+//            case .trackingNumber:
+//                if trans.trackingNumber == target.value { return getPosition(for: undoredo, index: next) }
+//            case .orderNumber:
+//                if trans.orderNumber == target.value { return getPosition(for: undoredo, index: next) }
+//            case .url:
+//                if trans.url == target.value { return getPosition(for: undoredo, index: next) }
+//            case .notes:
+//                if trans.notes == target.value { return getPosition(for: undoredo, index: next) }
+//            }
+//            return index
+//        }
+//        
+//        
+//        func shouldIgnore(for undoredo: UndoRedo, index: Int) -> Bool {
+//            let target = history[index]
+//                    
+//            switch target.field {
+//            case .title:
+//                if trans.title == target.value { return true }
+//            case .amount:
+//                if trans.amountString == target.value { return true }
+//            case .payMethod:
+//                if trans.payMethod?.id == target.value { return true }
+//            case .category:
+//                if trans.category?.id == target.value { return true }
+//            case .date:
+//                if trans.date?.string(to: .serverDate) == target.value { return true }
+//            case .trackingNumber:
+//                if trans.trackingNumber == target.value { return true }
+//            case .orderNumber:
+//                if trans.orderNumber == target.value { return true }
+//            case .url:
+//                if trans.url == target.value { return true }
+//            case .notes:
+//                if trans.notes == target.value { return true }
+//            }
+//            return false
+//        }
+//    }
 }

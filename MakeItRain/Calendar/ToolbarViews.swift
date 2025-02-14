@@ -325,8 +325,7 @@ struct CalendarToolbarLeading: View {
                 .foregroundStyle(.gray)
                 .toolbarBorder()
                 .onTapGesture {
-                    AppState.shared.alertText = alertText
-                    AppState.shared.showAlert = true
+                    AppState.shared.showAlert(alertText)
                 }
         }
     }

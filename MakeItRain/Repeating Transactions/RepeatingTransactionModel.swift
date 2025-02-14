@@ -59,7 +59,8 @@ class RepeatingTransactionModel {
     
     
     @MainActor
-    func fetchRepeatingTransactions() async {
+    func fetchRepeatingTransactions(file: String = #file, line: Int = #line, function: String = #function) async {
+        NSLog("\(file):\(line) : \(function)")
         LogManager.log()
         
         /// Do networking.

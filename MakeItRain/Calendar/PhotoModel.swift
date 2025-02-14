@@ -28,7 +28,7 @@ class PhotoModel {
         let imageData = inputImage.jpegData(compressionQuality: 0.8) ?? Data()
         
         #else
-        guard let inputImage = NSImage(data: ogImageData) else { return }
+        guard let inputImage = NSImage(data: ogImageData) else { return nil }
         let cgImage = inputImage.cgImage(forProposedRect: nil, context: nil, hints: nil)!
         let bitmapRep = NSBitmapImageRep(cgImage: cgImage)
         let imageData = bitmapRep.representation(using: NSBitmapImageRep.FileType.jpeg, properties: [:]) ?? Data()

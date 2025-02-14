@@ -469,22 +469,27 @@ struct AlertAndToastLayerView: View {
 //            }
         }
         .toast()
-        .alert("Undo", isPresented: $undoManager.showAlert) {
+        
+        .alert("Undo / Redo", isPresented: $undoManager.showAlert) {
             VStack {
-                Button {
-                    if let old = UndodoManager.shared.undo() {
-                        undoManager.returnMe = old
+                if UndodoManager.shared.canUndo {
+                    Button {
+                        if let old = UndodoManager.shared.undo() {
+                            undoManager.returnMe = old
+                        }
+                    } label: {
+                        Text("Undo")
                     }
-                } label: {
-                    Text("Undo")
                 }
                 
-                Button {
-                    if let new = UndodoManager.shared.redo() {
-                        undoManager.returnMe = new
+                if UndodoManager.shared.canRedo {
+                    Button {
+                        if let new = UndodoManager.shared.redo() {
+                            undoManager.returnMe = new
+                        }
+                    } label: {
+                        Text("Redo")
                     }
-                } label: {
-                    Text("Redo")
                 }
                 
                 Button(role: .cancel) {
@@ -492,7 +497,6 @@ struct AlertAndToastLayerView: View {
                     Text("Cancel")
                 }
             }
-            
         }
         
         

@@ -10,8 +10,9 @@ import SpriteKit
 
 @MainActor
 struct SplashScreen: View {
-    
     @State private var logoScale: Double = 1
+    @State private var titleProgress: CGFloat = 0
+    
     
     var body: some View {
         ZStack {
@@ -36,6 +37,7 @@ struct SplashScreen: View {
                     .transition(.asymmetric(insertion: .scale, removal: .opacity)) // top
                     .font(.title)
                     .foregroundStyle(.primary)
+                    .textRenderer(TitleTextRenderer(progress: titleProgress))
                     
                 Spacer()
             }
@@ -48,30 +50,33 @@ struct SplashScreen: View {
         #if os(iOS)
         .standardBackground()
         #endif
+        .task {
+            withAnimation(.smooth(duration: 2.5, extraBounce: 0)) {
+                titleProgress = 1
+            }
+        }
     }
 }
 
-class DollarScene: SKScene {
-    let snowEmitterNode = SKEmitterNode(fileNamed: "DollarPartical.sks")
 
-    override func didMove(to view: SKView) {
-        guard let snowEmitterNode = snowEmitterNode else { return }
-        snowEmitterNode.particleSize = CGSize(width: 50, height: 50)
-        snowEmitterNode.particleLifetime = 2
-        snowEmitterNode.particleLifetimeRange = 6
-        addChild(snowEmitterNode)
-    }
-
-    override func didChangeSize(_ oldSize: CGSize) {
-        guard let snowEmitterNode = snowEmitterNode else { return }
-        snowEmitterNode.particlePosition = CGPoint(x: size.width/2, y: size.height)
-        snowEmitterNode.particlePositionRange = CGVector(dx: size.width, dy: size.height)
+struct TitleTextRenderer: TextRenderer, Animatable {
+    var progress: CGFloat
+    var animatableData: CGFloat {
+        get { progress }
+        set { progress = newValue }
     }
     
-    static var scene: SKScene {
-        let scene = DollarScene()
-        scene.scaleMode = .resizeFill
-        scene.backgroundColor = .clear
-        return scene
+    func draw(layout: Text.Layout, in ctx: inout GraphicsContext) {
+        let slices = layout.flatMap({ $0 }).flatMap({ $0 })
+        
+        for (index, slice) in slices.enumerated() {
+            let sliceProgressIndex = CGFloat(slices.count) * progress
+            let sliceProgress = max(min(sliceProgressIndex / CGFloat(index + 1), 1), 0)
+            
+            ctx.addFilter(.blur(radius: 5 - (5 * sliceProgress)))
+            ctx.opacity = sliceProgress
+            ctx.translateBy(x: 0, y: 5 - (5 * sliceProgress))
+            ctx.draw(slice, options: .disablesSubpixelQuantization)
+        }
     }
 }

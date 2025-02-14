@@ -101,6 +101,23 @@ struct SheetHeaderButtonStyle: ButtonStyle {
     }
 }
 
+
+
+struct AlertButtonStyle: ButtonStyle {
+    @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
+    
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(preferDarkMode ? .white : .black)
+            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity)
+            .background(configuration.isPressed ? Material.ultraThinMaterial : Material.ultraThickMaterial)
+        
+            //.scaleEffect(configuration.isPressed ? 1.2 : 1)
+            //.animation(.easeOut(duration: 0.2), value: configuration.isPressed)
+    }
+}
+
 #if os(iOS)
 struct SheetHeaderButtonStyleOG: ButtonStyle {
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
@@ -117,22 +134,6 @@ struct SheetHeaderButtonStyleOG: ButtonStyle {
             .background(configuration.isPressed ? Color(preferDarkMode ? .darkGray : Color(.lightGray)) : buttonColor)
             .clipShape(Circle())
             .onHover { buttonColor = $0 ? Color(.systemFill) : Color(.tertiarySystemFill) }
-            //.scaleEffect(configuration.isPressed ? 1.2 : 1)
-            //.animation(.easeOut(duration: 0.2), value: configuration.isPressed)
-    }
-}
-
-
-struct AlertButtonStyle: ButtonStyle {
-    @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
-    
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundStyle(preferDarkMode ? .white : .black)
-            .padding(.vertical, 14)
-            .frame(maxWidth: .infinity)
-            .background(configuration.isPressed ? Material.ultraThinMaterial : Material.ultraThickMaterial)
-        
             //.scaleEffect(configuration.isPressed ? 1.2 : 1)
             //.animation(.easeOut(duration: 0.2), value: configuration.isPressed)
     }

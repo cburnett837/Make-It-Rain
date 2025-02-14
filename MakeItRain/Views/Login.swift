@@ -57,8 +57,10 @@ struct Login: View {
                 VStack(spacing: 0) {
                     TextField("Email", text: $email)
                         .textFieldStyle(.plain)
+                        #if os(iOS)
                         .keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never)
+                        #endif
                         .textContentType(.emailAddress)
                         .focused($focusedField, equals: .email)
                         .frame(width: 250)

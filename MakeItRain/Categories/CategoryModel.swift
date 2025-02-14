@@ -125,7 +125,8 @@ class CategoryModel {
     
     
     @MainActor
-    func fetchCategories() async {
+    func fetchCategories(file: String = #file, line: Int = #line, function: String = #function) async {
+        NSLog("\(file):\(line) : \(function)")
         LogManager.log()
         
         /// Do networking.

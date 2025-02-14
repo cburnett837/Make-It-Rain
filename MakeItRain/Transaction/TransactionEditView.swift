@@ -40,11 +40,6 @@ struct TransactionEditView: View {
     //@Environment(TagModel.self) private var tagModel
     
     @State private var vm = ViewModel()
-    @State private var trans = CBTransaction()
-    
-    /// Retain an objectID of the original placeholder transaction above so we can prevent onChanges from running when we call `prepareTransactionForEditing()` on view load..
-    @State private var placeholderObjectID = UUID()
-    var transIsNotPlaceholder: Bool { return placeholderObjectID != trans.objectID }
     
     @State private var titleColorButtonHoverColor: Color = .gray
     @State private var payMethodMenuColor: Color = Color(.tertiarySystemFill)
@@ -54,7 +49,8 @@ struct TransactionEditView: View {
         
     @FocusState private var focusedField: Int?
     
-    var transEditID: String?
+    @Bindable var trans: CBTransaction
+    @Binding var transEditID: String?
     @Bindable var day: CBDay
     var isTemp: Bool
     var transLocation: WhereToLookForTransaction = .normalList
@@ -72,10 +68,15 @@ struct TransactionEditView: View {
     @State private var showPaymentMethodChangeAlert = false
     @State private var showDeleteAlert = false
     
+    @State private var blockUndoCommitOnLoad = true
     @State private var blockKeywordChangeWhenViewLoads = true
     @State private var showTrackingOrderAndUrlFields = false
     @State private var showPhotosPicker = false
     @State private var showCamera = false
+    
+    @State private var titleChangedTask: Task<Void, Error>?
+    @State private var amountChangedTask: Task<Void, Error>?
+    
     @State private var showUndoRedoAlert = false
         
     let changeTransactionTitleColorTip = ChangeTransactionTitleColorTip()
@@ -97,6 +98,7 @@ struct TransactionEditView: View {
             SheetHeaderView(
                 title: title,
                 trans: trans,
+                transEditID: $transEditID,
                 focusedField: $focusedField,
                 showDeleteAlert: $showDeleteAlert
             )
@@ -108,7 +110,7 @@ struct TransactionEditView: View {
     }
     
     var body: some View {
-        let _ = Self._printChanges()
+        //let _ = Self._printChanges()
         @Bindable var calModel = calModel
         @Bindable var payModel = payModel
         @Bindable var catModel = catModel
@@ -198,7 +200,7 @@ struct TransactionEditView: View {
         }
         .confirmationDialog("Delete \"\(trans.title)\"?", isPresented: $showDeleteAlert) {
             /// There's a bug in dismiss() that causes the photo sheet to open, close, and then open again. By moving the dismiss variable into a seperate view, it doesn't affect the photo sheet anymore.
-            DeleteYesButton(trans: trans, isTemp: isTemp)
+            DeleteYesButton(trans: trans, transEditID: $transEditID, isTemp: isTemp)
                         
             Button("No", role: .cancel) {
                 showDeleteAlert = false
@@ -232,56 +234,88 @@ struct TransactionEditView: View {
 //                Button("Close", action: {})
 //            }
 //        }
+        // MARK: - Undo Stuff
+        #if os(iOS)
         .onShake {
+            UndodoManager.shared.getChangeFields(trans: trans)            
             UndodoManager.shared.showAlert = true
         }
-        .onChange(of: UndodoManager.shared.returnMe) { oldValue, newValue in
-            if let newValue {
-                if newValue.focusedField == 0 {
-                    trans.title = newValue.text
-                    
-                } else if newValue.focusedField == 1 {
-                    trans.amountString = newValue.text
-                }
-                
-                //UndodoManager.shared.returnMe = nil
-            }
-        }
-        .onChange(of: trans.title) {
-            print("Change title \($0) - \($1)")
-            print(trans.objectID)
-            if UndodoManager.shared.returnMe != nil {
-                UndodoManager.shared.returnMe = nil
-            } else {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    UndodoManager.shared.commitTextChange(text: trans.title, focusedField: 0)
-                }
-            }
-        }
-        .onChange(of: trans.amountString) {
-            print("Change amountString \($0) - \($1)")
-            print(trans.objectID)
-            if UndodoManager.shared.returnMe != nil {
-                UndodoManager.shared.returnMe = nil
-            } else {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    UndodoManager.shared.commitTextChange(text: trans.amountString, focusedField: 1)
-                }
-            }
-        }
-        .onChange(of: trans.payMethod ?? CBPaymentMethod()) {
-            print("Change payMethod \($0.id) - \($1.id)")
-            print(trans.objectID)
-        }
-//        .onChange(of: focusedField) { oldValue, newValue in
-//            if newValue == 0 {
-//                UndodoManager.shared.commitTextChange(text: trans.title, focusedField: 0)
-//            } else if newValue == 1 {
-//                UndodoManager.shared.commitTextChange(text: trans.amountString, focusedField: 1)
+//        .alert("Undo / Redo", isPresented: $showUndoRedoAlert) {
+//            VStack {
+//                if UndodoManager.shared.canUndo {
+//                    Button {
+//                        if let old = UndodoManager.shared.undo(trans: trans) {
+//                            UndodoManager.shared.returnMe = old
+//                        }
+//                    } label: {
+//                        Text("Undo \(UndodoManager.shared.undoField)")
+//                    }
+//                }
+//                
+//                if UndodoManager.shared.canRedo {
+//                    Button {
+//                        if let new = UndodoManager.shared.redo(trans: trans) {
+//                            UndodoManager.shared.returnMe = new
+//                        }
+//                    } label: {
+//                        Text("Redo \(UndodoManager.shared.redoField)")
+//                    }
+//                }
+//                
+//                Button(role: .cancel) {
+//                    print(UndodoManager.shared.history)
+//                } label: {
+//                    Text("Cancel")
+//                }
 //            }
 //        }
+        .onChange(of: UndodoManager.shared.returnMe) {
+            if let new = $1 {
+                trans.title = new.title ?? ""
+                trans.amountString = new.amount ?? ""
+                trans.payMethod = payModel.paymentMethods.filter { $0.id == new.payMethodID }.first
+                trans.category = catModel.categories.filter { $0.id == new.categoryID }.first
+                trans.date = new.date?.toDateObj(from: .serverDate)
+                trans.trackingNumber = new.trackingNumber ?? ""
+                trans.orderNumber = new.orderNumber ?? ""
+                trans.url = new.url ?? ""
+                trans.notes = new.notes ?? ""
+                /// Block the onChanges from running when undo or redo is invoked.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: {
+                    UndodoManager.shared.returnMe = nil
+                })
+            }
+        }
+        .onChange(of: trans.title) { UndodoManager.shared.processChange(trans: trans) }
+        .onChange(of: trans.amountString) { UndodoManager.shared.processChange(trans: trans) }
+        .onChange(of: trans.payMethod) { UndodoManager.shared.processChange(trans: trans) }
+        .onChange(of: trans.category) { UndodoManager.shared.processChange(trans: trans) }
+        //.onChange(of: trans.date) { UndodoManager.shared.commitChange(trans: trans) }
+        .onChange(of: trans.trackingNumber) { UndodoManager.shared.processChange(trans: trans) }
+        .onChange(of: trans.orderNumber) { UndodoManager.shared.processChange(trans: trans) }
+        .onChange(of: trans.url) { UndodoManager.shared.processChange(trans: trans) }
+        .onChange(of: trans.notes) { UndodoManager.shared.processChange(trans: trans) }
+        .onChange(of: trans.date) { oldValue, newValue in
+            if oldValue != nil { /// Date is nil when creating a new transaction.
+                focusedField = nil /// Clear any focused text field when changing the date.
+                UndodoManager.shared.processChange(trans: trans)
+            }
+        }
+        .onChange(of: focusedField) { oldValue, newValue in
+            if newValue != nil {
+                if trans.action == .add && blockUndoCommitOnLoad {
+                    blockUndoCommitOnLoad = false
+                } else {
+                    UndodoManager.shared.changeTask?.cancel()
+                    UndodoManager.shared.commitChange(trans: trans)
+                }
+            }
+        }
+        #endif
     }
                
+    
+    
     
     // MARK: - SubViews
     var titleTextField: some View {
@@ -326,7 +360,6 @@ struct TransactionEditView: View {
             Group {
                 #if os(iOS)
                 StandardUITextField("Title", text: $trans.title, onSubmit: {
-                    UndodoManager.shared.commitTextChange(text: trans.title, focusedField: 0)
                     focusedField = 1
                 }, toolbar: {
                     KeyboardToolbarView(focusedField: $focusedField)
@@ -687,6 +720,7 @@ struct TransactionEditView: View {
                 .presentationSizing(.fitted)
             #else
             PaymentMethodSheet(payMethod: $trans.payMethod, trans: trans, calcAndSaveOnChange: false, whichPaymentMethods: .allExceptUnified)
+                //.onAppear { UndodoManager.shared.commitChangeInTask(value: trans.payMethod?.id, field: .payMethod) }
             #endif
         }
     }
@@ -714,6 +748,7 @@ struct TransactionEditView: View {
             
             VStack(alignment: .leading, spacing: 0) {
                 CategorySheetButton(category: $trans.category)
+                    /// Initial undo handled inside the button.
                     .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
                 
                 if trans.category != nil {
@@ -929,8 +964,10 @@ struct TransactionEditView: View {
         
         var title: String
         @Bindable var trans: CBTransaction
+        @Binding var transEditID: String?
         var focusedField: FocusState<Int?>.Binding
         @Binding var showDeleteAlert: Bool
+        
         
         var linkedLingo: String? {
             if trans.relatedTransactionType == XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction) {
@@ -987,6 +1024,7 @@ struct TransactionEditView: View {
                 
             } else {
                 focusedField.wrappedValue = nil
+                transEditID = nil
                 dismiss()
             }
         }
@@ -997,6 +1035,7 @@ struct TransactionEditView: View {
         @Environment(CalendarModel.self) private var calModel
         @Environment(\.dismiss) var dismiss
         @Bindable var trans: CBTransaction
+        @Binding var transEditID: String?
         var isTemp: Bool
         
         var body: some View {
@@ -1007,7 +1046,7 @@ struct TransactionEditView: View {
                     calModel.tempTransactions.removeAll { $0.id == trans.id }
                     let _ = DataManager.shared.delete(type: TempTransaction.self, predicate: .byId(.string(trans.id)))
                 } else {
-                    //transEditID = nil
+                    transEditID = nil
                     trans.action = .delete
                     dismiss()
                     
@@ -1300,14 +1339,13 @@ struct TransactionEditView: View {
 
         /// Clear undo history.
         UndodoManager.shared.clearHistory()
+        UndodoManager.shared.commitChange(trans: trans)
         
         calModel.hilightTrans = nil
         
-        /// Prevent on changes from running when the transaction gets set below.
-        placeholderObjectID = trans.objectID
-        
         /// Grab the transaction from the model or create a new one.
-        trans = calModel.getTransaction(by: transEditID!, from: isTemp ? .tempList : transLocation)
+        /// 2/12/25 now passed in to the view
+        //trans = calModel.getTransaction(by: transEditID!, from: isTemp ? .tempList : transLocation)
             
         /// Determine the title button color.
         titleColorButtonHoverColor = trans.color == .primary ? .gray : trans.color
@@ -1328,10 +1366,10 @@ struct TransactionEditView: View {
             trans.amountString = ""
             if calModel.isUnifiedPayMethod {
                 /// Require the user to pick a payment method if in a unified view.
-                trans.payMethod = nil
+                /// trans.payMethod = nil
             } else {
                 /// Add the selected viewing payment method to the transaction.
-                trans.payMethod = calModel.sPayMethod ?? CBPaymentMethod()
+                trans.payMethod = calModel.sPayMethod// ?? CBPaymentMethod()
             }
             /// Pre-add the transaction to the day so we can add photos to it before saving. Get's removed on cancel if title and payment method are blank.
             day.upsert(trans)
@@ -1365,7 +1403,6 @@ struct TransactionEditView: View {
         #endif
         
         calModel.transEditID = transEditID
-        print("Done preparing transaction")
     }
     
     

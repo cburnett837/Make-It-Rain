@@ -221,7 +221,7 @@ struct LineItemView: View {
         #endif
         /// This `.popover(item: $transEditID) & .onChange(of: transEditID)` are used for editing existing transactions. They also exist in ``LineItemViewMac``, which are used to add new transactions.
         .popover(item: $transEditID, arrowEdge: .trailing, content: { id in
-            TransactionEditView(transEditID: id, day: day, isTemp: false)
+            TransactionEditView(trans: trans, transEditID: $transEditID, day: day, isTemp: false)
                 .frame(minWidth: 320)
         })
         

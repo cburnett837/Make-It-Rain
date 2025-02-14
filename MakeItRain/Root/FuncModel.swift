@@ -234,7 +234,7 @@ class FuncModel {
                 /// Download viewing month.
                 await downloadViewingMonth(viewingMonth, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
                 /// Download adjacent months.
-                await downloadAdjacentMonth(next: next, prev: prev, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
+                await downloadAdjacentMonths(next: next, prev: prev, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
                 /// Download other months and accessorials.
                 await downloadOtherMonthsAndAccessorials(viewingMonth: viewingMonth, next: next, prev: prev, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
                 
@@ -244,7 +244,7 @@ class FuncModel {
                 if NavDestination.justAccessorials.contains(currentNavSelection) {
                     await downloadAccessorials(createNewStructs: createNewStructs)
                     await downloadViewingMonth(calModel.sMonth, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
-                    await downloadAdjacentMonth(next: next, prev: prev, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
+                    await downloadAdjacentMonths(next: next, prev: prev, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
                     await downloadOtherMonths(viewingMonth: calModel.sMonth, next: next, prev: prev, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
                 }
             }
@@ -266,6 +266,7 @@ class FuncModel {
     // MARK: - Downloading Stuff
     @MainActor private func downloadViewingMonth(_ viewingMonth: CBMonth, createNewStructs: Bool, refreshTechnique: RefreshTechnique) async  {
         /// Grab the viewing month first.
+        print("fetching \(viewingMonth.num)");
         let start = CFAbsoluteTimeGetCurrent()
         await calModel.fetchFromServer(month: viewingMonth, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
         withAnimation {
@@ -283,7 +284,7 @@ class FuncModel {
     }
         
     
-    @MainActor private func downloadAdjacentMonth(next: CBMonth?, prev: CBMonth?, createNewStructs: Bool, refreshTechnique: RefreshTechnique) async {
+    @MainActor private func downloadAdjacentMonths(next: CBMonth?, prev: CBMonth?, createNewStructs: Bool, refreshTechnique: RefreshTechnique) async {
         /// Grab months adjacent to viewing month.
         let adjacentStart = CFAbsoluteTimeGetCurrent()
         await withTaskGroup(of: Void.self) { group in

@@ -16,8 +16,10 @@ struct DayViewMac: View {
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
+    @Environment(EventModel.self) private var eventModel
     
     @State private var transEditID: String?
+    @State private var editTrans: CBTransaction?
     
     @Binding var day: CBDay
     var cellHeight: CGFloat?
@@ -144,10 +146,31 @@ struct DayViewMac: View {
                 }
                                 
                 /// This `.popover(item: $transEditID) & .onChange(of: transEditID)` are used for adding new transactions. They also exists in ``LineItemViewMac``, which are used to edit existing transactions.
-                .popover(item: $transEditID, content: { id in
-                    TransactionEditView(transEditID: id, day: day, isTemp: false)
+                .popover(item: $editTrans, content: { trans in
+                    TransactionEditView(trans: trans, transEditID: $transEditID, day: day, isTemp: false)
                         .frame(minWidth: 320)
                 })
+                
+                
+                
+                .onChange(of: transEditID, { oldValue, newValue in
+                    print(".onChange(of: transEditID)")
+                    /// When `newValue` is false, save to the server. We have to use this because `.popover(isPresented:)` has no onDismiss option.
+                    if oldValue != nil && newValue == nil {
+                        calModel.saveTransaction(id: oldValue!, day: day, eventModel: eventModel)
+                        
+                        /// Keep the model clean, and show alert for a photo that may be taking a long time to upload.
+                        calModel.pictureTransactionID = nil
+                    } else {
+                        editTrans = calModel.getTransaction(by: transEditID!, from: .normalList)
+                    }
+                })
+
+                
+                
+                
+                
+                
                                                 
                 /// This onChange is needed because you can close the popover without actually clicking the close button.
                 /// `popover()` has no `onDismiss()` optiion, so I need somewhere to do cleanup.

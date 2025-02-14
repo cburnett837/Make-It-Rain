@@ -33,6 +33,8 @@ struct AnalysisSheet2: View {
     @State private var chartData: [ChartData] = []
     
     @State private var transEditID: String?
+    @State private var editTrans: CBTransaction?
+    
     @State private var transDay: CBDay?
     @State private var cumTotals: [CumTotal] = []
     @State private var showCategorySheet = false
@@ -214,8 +216,9 @@ struct AnalysisSheet2: View {
             }
         }
         
-        .sheet(item: $transEditID) { id in
-            TransactionEditView(transEditID: id, day: transDay!, isTemp: false)
+        .sheet(item: $editTrans) { trans in
+            TransactionEditView(trans: trans, transEditID: $transEditID, day: transDay!, isTemp: false)
+                .onDisappear { transEditID = nil }
         }
         .onChange(of: transEditID, { oldValue, newValue in
             print(".onChange(of: CategoryAnalysisSheet.transEditID)")
@@ -223,9 +226,12 @@ struct AnalysisSheet2: View {
             if oldValue != nil && newValue == nil {
                 calModel.saveTransaction(id: oldValue!, day: transDay!, eventModel: eventModel)
                 transDay = nil
+                calModel.pictureTransactionID = nil
+            } else {
+                editTrans = calModel.getTransaction(by: transEditID!, from: .normalList)
             }
-        })
-        .sensoryFeedback(.selection, trigger: transEditID) { $1 != nil }        
+        })        
+        .sensoryFeedback(.selection, trigger: transEditID) { $1 != nil }
     }
     
     

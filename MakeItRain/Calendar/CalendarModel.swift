@@ -2458,7 +2458,9 @@ class CalendarModel {
         self.chatGptIsThinking = false
         if includingTrans { self.pendingSmartTransaction = nil }
         //self.imageFromLibrary = nil
+        #if os(iOS)
         self.imageFromCamera = nil
+        #endif
         
         /// Don't kill this.
         /// Example why: If you start a smart upload, and then open a transaction, and then the smart upload says it could not determine the payment method and asks if you want to select it, and you say no - this will clear the pictureTransactionID. So if you try and upload a regular picture on the transaction you are viewing, it will fail because the pictureTransactionID is no longer set.
@@ -2496,7 +2498,9 @@ class CalendarModel {
         }
         
         //imageFromLibrary = nil
+        #if os(iOS)
         imageFromCamera = nil
+        #endif
         //imageState = .empty
     }
         
@@ -2514,7 +2518,9 @@ class CalendarModel {
         }
         
         //imageFromLibrary = nil
+        #if os(iOS)
         imageFromCamera = nil
+        #endif
     }
     
     

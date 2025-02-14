@@ -72,7 +72,8 @@ class KeywordModel {
     }
     
     @MainActor
-    func fetchKeywords() async {
+    func fetchKeywords(file: String = #file, line: Int = #line, function: String = #function) async {
+        NSLog("\(file):\(line) : \(function)")
         LogManager.log()
         
         /// Do networking.

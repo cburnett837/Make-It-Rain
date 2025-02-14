@@ -235,8 +235,8 @@ class EventModel {
     
     
     @MainActor
-    func fetchEvents() async {
-        print("-- \(#function)")
+    func fetchEvents(file: String = #file, line: Int = #line, function: String = #function) async {
+        NSLog("\(file):\(line) : \(function)")
         LogManager.log()
         
         /// Do networking.
@@ -293,7 +293,8 @@ class EventModel {
     
     
     @MainActor
-    func fetchInvitations() async {
+    func fetchInvitations(file: String = #file, line: Int = #line, function: String = #function) async {
+        NSLog("\(file):\(line) : \(function)")
         LogManager.log()
         
         /// Do networking.

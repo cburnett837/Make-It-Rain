@@ -41,6 +41,7 @@ struct CalendarViewPhone: View {
     let swipeToChangeMonthsTip = SwipeToChangeMonthsTip()
     
     @State private var transEditID: String?
+    @State private var editTrans: CBTransaction?
     
     //var isShowingLoadingSpinnner: Bool
     
@@ -150,6 +151,14 @@ struct CalendarViewPhone: View {
             print(".onChange(of: transEditID)")
             /// When `newValue` is false, save to the server. We have to use this because `.popover(isPresented:)` has no onDismiss option.
             if oldValue != nil && newValue == nil {
+                
+                /// Present tip after trying to add 3 new transactions.
+                let trans = calModel.getTransaction(by: oldValue!, from: .normalList)
+                if trans.action == .add {
+                    TouchAndHoldPlusButtonTip.didTouchPlusButton.sendDonation()
+                }
+                
+                
                 calModel.saveTransaction(id: oldValue!, day: selectedDay!, eventModel: eventModel)
                 /// - When adding a transaction via a day's context menu, `selectedDay` gets changed to the contexts day.
                 ///   So when closing the transaction, put `selectedDay`back to today so the normal plus button works and the gray box goes back to today.
@@ -164,18 +173,49 @@ struct CalendarViewPhone: View {
                 }
                 /// Keep the model clean, and show alert for a photo that may be taking a long time to upload.
                 calModel.pictureTransactionID = nil
+                                                                
+            } else {
+                editTrans = calModel.getTransaction(by: transEditID!, from: .normalList)
             }
         })
-        .sheet(item: $transEditID) { id in
-            TransactionEditView(transEditID: id, day: selectedDay!, isTemp: false)
-                .onDisappear {
-                    /// Present tip after trying to add 3 new transactions.
-                    let trans = calModel.getTransaction(by: id, from: .normalList)
-                    if trans.action == .add {
-                        TouchAndHoldPlusButtonTip.didTouchPlusButton.sendDonation()
-                    }
-                }
+        .sheet(item: $editTrans) { trans in
+            TransactionEditView(trans: trans, transEditID: $transEditID, day: selectedDay!, isTemp: false)
+                /// This is needed for the drag to dismiss.
+                .onDisappear { transEditID = nil }
         }
+        
+        
+        
+        
+        
+//        .sheet(item: $editPaymentMethod, onDismiss: {
+//            paymentMethodEditID = nil
+//            payModel.determineIfUserIsRequiredToAddPaymentMethod()
+//        }, content: { meth in
+//            PayMethodView(payMethod: meth, payModel: payModel, editID: $paymentMethodEditID)
+//            #if os(iOS)
+//            //.presentationDetents([.medium, .large])
+//            #endif
+//        })
+//        .onChange(of: paymentMethodEditID) { oldValue, newValue in
+//            if let newValue {
+//                let payMethod = payModel.getPaymentMethod(by: newValue)
+//                
+//                if payMethod.accountType == .unifiedChecking || payMethod.accountType == .unifiedCredit {
+//                    paymentMethodEditID = nil
+//                    AppState.shared.showAlert("Combined payment methods cannot be edited.")
+//                } else {
+//                    editPaymentMethod = payMethod
+//                }
+//            } else {
+//                payModel.savePaymentMethod(id: oldValue!, calModel: calModel)
+//                payModel.determineIfUserIsRequiredToAddPaymentMethod()
+//            }
+//        }
+        
+        
+        
+        
         .sheet(isPresented: $showAnalysisSheet) {
             AnalysisSheet2(showAnalysisSheet: $showAnalysisSheet)
         }
