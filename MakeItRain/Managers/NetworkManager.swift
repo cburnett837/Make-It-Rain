@@ -59,7 +59,13 @@ class NetworkManager {
             request?.httpBody = jsonData
             
             if let session {
-                let (data, _): (Data, URLResponse) = try await session.data(for: request!)
+                let (data, response): (Data, URLResponse) = try await session.data(for: request!)
+                let httpResponse = response as? HTTPURLResponse
+                
+                if httpResponse?.statusCode == 403 {
+                    await AuthState.shared.serverAccessRevoked()
+                    return .failure(.accessRevoked)
+                }
                 
                 LogManager.log("should have a response from the server now", session: sesh)
                 
@@ -124,7 +130,16 @@ class NetworkManager {
             request?.httpBody = jsonData
             
             if let session {
-                let (data, _): (Data, URLResponse) = try await session.data(for: request!)
+                let (data, response): (Data, URLResponse) = try await session.data(for: request!)
+                let httpResponse = response as? HTTPURLResponse
+                
+                print(httpResponse?.statusCode)
+                
+                if httpResponse?.statusCode == 403 {
+                    await AuthState.shared.serverAccessRevoked()
+                    return .failure(.accessRevoked)
+                }
+                
                 LogManager.log("should have a response from the server now", session: sesh)
                 
                 let serverText = String(data: data, encoding: .utf8) ?? ""

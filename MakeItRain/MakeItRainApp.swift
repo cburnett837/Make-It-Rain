@@ -93,7 +93,7 @@ struct MakeItRainApp: App {
                 Group {
                     /// `AuthState.shared.isThinking` is always true when app launches from fresh state.
                     /// `AppState.shared.appIsReadyToHideSplashScreen` is set in `downloadEverything()` when the current month completes.
-                    if AuthState.shared.isThinking || !AppState.shared.appIsReadyToHideSplashScreen/* || AppState.shared.holdSplash */{
+                    if AuthState.shared.isThinking || !AppState.shared.appIsReadyToHideSplashScreen || !AppState.shared.splashTextAnimationIsFinished/* || AppState.shared.holdSplash */{
                         loadingScreen
                     } else {
                         if AuthState.shared.isLoggedIn {
@@ -108,6 +108,12 @@ struct MakeItRainApp: App {
                             } else {
                                 Login()
                                     .transition(.opacity)
+                                    .onAppear {
+                                        if AuthState.shared.serverRevoked {
+                                            serverRevokedAccess()
+                                            AuthState.shared.serverRevoked = false
+                                        }
+                                    }
                             }
                         }
                     }
@@ -243,6 +249,44 @@ struct MakeItRainApp: App {
             }
     }
     
+    
+    func serverRevokedAccess() {
+        AppState.shared.downloadedData.removeAll()
+        LoadingManager.shared.showInitiallyLoadingSpinner = true
+        LoadingManager.shared.downloadAmount = 0
+        LoadingManager.shared.showLoadingBar = true
+        
+        /// Cancel the long polling task.
+        if let _ = funcModel.longPollTask {
+            funcModel.longPollTask!.cancel()
+            funcModel.longPollTask = nil
+        }
+        
+        /// Remove all transactions and starting amounts for all months.
+        calModel.months.forEach { month in
+            month.startingAmounts.removeAll()
+            month.days.forEach { $0.transactions.removeAll() }
+            month.budgets.removeAll()
+        }
+        
+        /// Remove all extra downloaded data.
+        repModel.repTransactions.removeAll()
+        payModel.paymentMethods.removeAll()
+        catModel.categories.removeAll()
+        keyModel.keywords.removeAll()
+        eventModel.events.removeAll()
+        eventModel.invitations.removeAll()
+        
+        /// Remove all from cache.
+        let _ = DataManager.shared.deleteAll(for: PersistentPaymentMethod.self, shouldSave: false)
+        //print(saveResult1)
+        let _ = DataManager.shared.deleteAll(for: PersistentCategory.self, shouldSave: false)
+        //print(saveResult2)
+        let _ = DataManager.shared.deleteAll(for: PersistentKeyword.self, shouldSave: false)
+        //print(saveResult3)
+        
+        let _ = DataManager.shared.save()
+    }
         
     func downloadInitial() {
         @Bindable var navManager = NavigationManager.shared

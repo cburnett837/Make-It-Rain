@@ -48,7 +48,7 @@ struct Login: View {
                 Spacer()
                 
                 Text("Make it Rain")
-                    .font(.title)
+                    .font(.largeTitle)
                     .foregroundStyle(.primary)
                     //.background(Color(.secondarySystemBackground).blur(radius: 20))
                     

@@ -43,9 +43,10 @@ class AppState {
     var isLandscape: Bool = false
     #endif
 
-    var holdSplash = true
+    //var holdSplash = true
     //var splashTimer = Timer.publish(every: 3, tolerance: 0.5, on: .main, in: .common).autoconnect()
     var appIsReadyToHideSplashScreen: Bool = false
+    var splashTextAnimationIsFinished: Bool = false
     
     func user(is user: CBUser?) -> Bool {
         if let user {

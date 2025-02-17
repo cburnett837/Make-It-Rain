@@ -28,7 +28,7 @@ class CBEventParticipant: Codable, Identifiable, Hashable, Equatable {
     var active: Bool
     var action: EventParticipantAction
     
-    enum CodingKeys: CodingKey { case id, uuid, user, amount, active, invite_from, invite_to, email, status_id, event_id, event_name }
+    enum CodingKeys: CodingKey { case id, uuid, user, amount, active, invite_from, invite_to, email, status_id, event_id, event_name, user_id, account_id, device_uuid }
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -42,6 +42,9 @@ class CBEventParticipant: Codable, Identifiable, Hashable, Equatable {
         try container.encode(email, forKey: .email)
         try container.encode(status?.id, forKey: .status_id)
         try container.encode(eventID, forKey: .event_id)
+        try container.encode(AppState.shared.user?.id, forKey: .user_id)
+        try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
+        try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
     }
     
     

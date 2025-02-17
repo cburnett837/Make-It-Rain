@@ -17,6 +17,8 @@ class AuthState {
     var isAdmin = false
     var error: AppError?
     
+    var serverRevoked = false
+    
     static let shared: AuthState = AuthState()
     
     let networkManager = NetworkManager()
@@ -95,4 +97,11 @@ class AuthState {
             print(error.localizedDescription)
         }
     }
+    
+    
+    func serverAccessRevoked() {
+        logout()
+        serverRevoked = true        
+    }
+    
 }

@@ -20,7 +20,7 @@ enum TransactionSaveActionToProcess {
 }
 
 enum AppError: Error {
-    case serverError(String), connectionError, badtimeOut, taskCancelled, sessionError, incorrectCredentials, failedToGetPhoto, failedToUploadPhoto
+    case serverError(String), connectionError, badtimeOut, taskCancelled, sessionError, incorrectCredentials, failedToGetPhoto, failedToUploadPhoto, accessRevoked
 }
 
 enum CalendarSearchWhat {
