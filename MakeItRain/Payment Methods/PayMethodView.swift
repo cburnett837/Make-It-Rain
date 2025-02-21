@@ -20,6 +20,8 @@ struct PayMethodView: View {
 
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
+    @Environment(EventModel.self) private var eventModel
+    
     @Bindable var payMethod: CBPaymentMethod
     @Bindable var payModel: PayMethodModel
     
@@ -349,7 +351,7 @@ struct PayMethodView: View {
             Button("Yes", role: .destructive) {
                 Task {
                     dismiss()
-                    await payModel.delete(payMethod, andSubmit: true, calModel: calModel)
+                    await payModel.delete(payMethod, andSubmit: true, calModel: calModel, eventModel: eventModel)
                 }
             }
             
@@ -358,9 +360,9 @@ struct PayMethodView: View {
             }
         }, message: {
             #if os(iOS)
-            Text("Delete \"\(payMethod.title)\"?\nThis will also delete all associated transactions.")
+            Text("Delete \"\(payMethod.title)\"?\nThis will also delete all associated transactions and event transactions.")
             #else
-            Text("This will also delete all associated transactions.")
+            Text("This will also delete all associated transactions and event transactions.")
             #endif
         })
     }

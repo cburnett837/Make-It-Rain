@@ -15,7 +15,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
     
     var id: String
     var uuid: String?
-    
+    var fitID: String?
     var repID: String?
     var relatedTransactionID: String?
     var title: String
@@ -75,12 +75,12 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
     var isBudgetable: Bool { self.payMethod?.accountType == .cash || self.payMethod?.accountType == .checking }
     var isIncome: Bool { self.amount > 0 }
     var isExpense: Bool { self.amount < 0 }
-    
+    var logs: Array<CBLog> = []
     
     deinit {
-        print("KILLING CBTransaction - \(self.id) - \(self.title)")
+        //print("KILLING CBTransaction - \(self.id) - \(self.title)")
     }
-    var logs: Array<CBLog> = []
+    
     
     init() {
         let uuid = UUID().uuidString
@@ -227,15 +227,38 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         self.url = ""
         self.tags = []
         self.wasAddedFromPopulate = false
-        
-        
+                
         self.action = eventTrans.actionForRealTransaction!
-        
-        //self.undoManager = TransUndoManager(trans: self)
+    }
+    
+    init(fitTrans: CBFitTransaction) {
+        let uuid = UUID().uuidString
+        self.id = uuid
+        self.uuid = uuid
+        self.fitID = String(fitTrans.fitID)
+        self.title = fitTrans.title
+        self.amountString = fitTrans.amountString
+        //self.action = .add
+        self.factorInCalculations = true
+        self.payMethod = fitTrans.payMethod
+        //self.category = eventTrans.category
+        self.date = fitTrans.date
+        self.color = .primary
+        self.active = true
+        self.enteredDate = Date()
+        self.updatedDate = Date()
+        self.trackingNumber = ""
+        self.orderNumber = ""
+        self.url = ""
+        self.notes = "(Added via F.I.T.)"
+        self.tags = []
+        self.wasAddedFromPopulate = false
+                
+        self.action = .add
     }
     
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, entered_date, updated_date, pictures, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, related_transaction_type_id }
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, entered_date, updated_date, pictures, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, related_transaction_type_id, fit_id }
     
     
     func encode(to encoder: Encoder) throws {
@@ -271,6 +294,8 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         try container.encode(wasAddedFromPopulate ? 1 : 0, forKey: .was_added_from_populate)
         try container.encode(logs, forKey: .logs)
         try container.encode(relatedTransactionType?.id, forKey: .related_transaction_type_id)
+        
+        try container.encode(fitID, forKey: .fit_id)
     }
     
     

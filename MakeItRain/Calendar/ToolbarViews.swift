@@ -387,12 +387,25 @@ struct CalendarToolbarTrailing: View {
     @State private var showResetMonthAlert = false
     @State private var showResetOptionsSheet = false
     @State private var showAnalysisSheet = false
+    @State private var showFitTransactions = false
     
     var body: some View {
         @Bindable var calModel = calModel
         HStack {
             Spacer()
             if AppState.shared.longPollFailed { longPollButton }
+            
+            
+            Button {
+                withAnimation {
+                    showFitTransactions = true
+                }
+                
+            } label: {
+                Image(systemName: "clock.badge.exclamationmark")
+                    .foregroundStyle(.orange)
+            }
+            .toolbarBorder()
             
             Button {
                 showAnalysisSheet = true
@@ -449,6 +462,12 @@ struct CalendarToolbarTrailing: View {
         }
         .sheet(isPresented: $showAnalysisSheet) {
             AnalysisSheet2(showAnalysisSheet: $showAnalysisSheet)
+                .frame(minWidth: 300, minHeight: 500)
+                .presentationSizing(.fitted)
+        }
+        
+        .sheet(isPresented: $showFitTransactions) {
+            FitTransactionOverlay(showFitTransactions: $showFitTransactions)
                 .frame(minWidth: 300, minHeight: 500)
                 .presentationSizing(.fitted)
         }

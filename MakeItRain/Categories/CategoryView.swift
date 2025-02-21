@@ -12,6 +12,8 @@ struct CategoryView: View {
     @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
 
     @Environment(\.dismiss) var dismiss
+    @Environment(EventModel.self) private var eventModel
+    
     @Bindable var category: CBCategory
     @Bindable var catModel: CategoryModel
     @Bindable var calModel: CalendarModel
@@ -185,7 +187,7 @@ struct CategoryView: View {
             Button("Yes", role: .destructive) {
                 Task {
                     dismiss()
-                    await catModel.delete(category, andSubmit: true, calModel: calModel, keyModel: keyModel)
+                    await catModel.delete(category, andSubmit: true, calModel: calModel, keyModel: keyModel, eventModel: eventModel)
                 }
             }
             

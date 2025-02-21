@@ -345,7 +345,7 @@ struct ViewHeightObserver: ViewModifier {
 #if os(iOS)
 struct StandardBackground: ViewModifier {
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
-    @AppStorage("darkModeBackgroundColor") var grayShade: String = "darkGray"
+    @AppStorage("darkModeBackgroundColor") var grayShade: String = "darkGray3"
 
     func body(content: Content) -> some View {
         content

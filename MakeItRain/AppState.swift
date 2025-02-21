@@ -41,12 +41,19 @@ class AppState {
     #if os(iOS)
     var orientation: UIDeviceOrientation = UIDevice.current.orientation
     var isLandscape: Bool = false
+    
+    var isIpad: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
+    }
+    
     #endif
 
     //var holdSplash = true
     //var splashTimer = Timer.publish(every: 3, tolerance: 0.5, on: .main, in: .common).autoconnect()
-    var appIsReadyToHideSplashScreen: Bool = false
+    var appShouldShowSplashScreen: Bool = true
     var splashTextAnimationIsFinished: Bool = false
+    
+    
     
     func user(is user: CBUser?) -> Bool {
         if let user {

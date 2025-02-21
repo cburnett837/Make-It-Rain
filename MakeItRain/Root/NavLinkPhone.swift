@@ -78,18 +78,18 @@ struct NavLinkPhone2: View {
     let title: String
     let image: String
     
-    var backgroundColor: Color? {
-        if destination == NavigationManager.shared.selection {
-            if useGrayBackground && preferDarkMode {
-                return Color(.tertiarySystemBackground)
-            }
-        } else {
-            if preferDarkMode && useGrayBackground {
-                return Color.darkGray
-            }
-        }
-        return nil
-    }
+//    var backgroundColor: Color? {
+//        if destination == NavigationManager.shared.selection {
+//            if useGrayBackground && preferDarkMode {
+//                return Color(.tertiarySystemBackground)
+//            }
+//        } else {
+//            if preferDarkMode && useGrayBackground {
+//                return Color.darkGray
+//            }
+//        }
+//        return nil
+//    }
                 
     var body: some View {
         NavigationLink(value: destination) {

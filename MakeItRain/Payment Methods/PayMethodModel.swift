@@ -267,7 +267,7 @@ class PayMethodModel {
     }
     
     
-    func delete(_ payMethod: CBPaymentMethod, andSubmit: Bool, calModel: CalendarModel) async {
+    func delete(_ payMethod: CBPaymentMethod, andSubmit: Bool, calModel: CalendarModel, eventModel: EventModel) async {
         print("-- \(#function)")
         print(payMethod.id)
         print(paymentMethods.map {$0.id})
@@ -279,6 +279,10 @@ class PayMethodModel {
             month.days.forEach { day in
                 day.transactions.removeAll(where: { $0.payMethod?.id == payMethod.id })
             }
+        }
+        
+        eventModel.events.forEach { event in
+            event.transactions.removeAll(where: { $0.payMethod?.id == payMethod.id })
         }
         
         if andSubmit {

@@ -84,6 +84,7 @@ class CalendarModel {
     
     
     var tags: Array<CBTag> = []
+    var fitTrans: Array<CBFitTransaction> = []
     
 //    var tags: Array<CBTag> {
 //        justTransactions.flatMap { $0.tags }.uniqued()
@@ -92,6 +93,38 @@ class CalendarModel {
     
     
     // MARK: - Fetch From Server
+    
+    @MainActor
+    func fetchFitTransactionsFromServer() async {
+        //print("-- \(#function)")
+        LogManager.log()
+        
+        //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
+        //print("DONE FETCHING")
+                            
+        //let month = months.filter { $0.num == monthNum }.first!
+        let model = RequestModel(requestType: "fetch_fit_transactions", model: CodablePlaceHolder())
+        typealias ResultResponse = Result<Array<CBFitTransaction>?, AppError>
+        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+        
+        switch await result {
+        case .success(let model):
+            if let model {
+                self.fitTrans = model
+            }
+            
+        case .failure (let error):
+            switch error {
+            case .taskCancelled:
+                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
+                print("calModel fetchFitTransactionsFromServer Server Task Cancelled")
+            default:
+                LogManager.error(error.localizedDescription)
+                AppState.shared.showAlert("There was a problem trying to fetch fit transactions.")
+            }
+        }
+    }
+    
     
     @MainActor
     func fetchFromServer(month: CBMonth, createNewStructs: Bool, refreshTechnique: RefreshTechnique) async {
@@ -652,13 +685,7 @@ class CalendarModel {
                 /// Return unsuccessful save result to the caller.
                 return false
             }
-            
-            
-            
-            
-            
         }
-                
     }
     
     
@@ -1322,6 +1349,32 @@ class CalendarModel {
         //LoadingManager.shared.stopDelayedSpinner()
         //self.refreshTask = nil
         
+    }
+    
+    
+    @MainActor
+    func denyFitTransaction(_ trans: CBFitTransaction) async {
+        print("-- \(#function)")
+        //LoadingManager.shared.startDelayedSpinner()
+        LogManager.log()
+        let model = RequestModel(requestType: "deny_fit_transaction", model: trans)
+            
+        /// Used to test the snapshot data race
+        //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
+        
+        typealias ResultResponse = Result<ResultCompleteModel?, AppError>
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+                    
+        switch await result {
+        case .success(let model):
+            LogManager.networkingSuccessful()
+            
+        case .failure(let error):
+            LogManager.error(error.localizedDescription)
+            AppState.shared.showAlert("There was a problem trying to save the repeating transaction.")
+            #warning("Undo behavior")
+        }
+        //LoadingManager.shared.stopDelayedSpinner()
     }
     
     

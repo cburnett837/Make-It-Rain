@@ -91,7 +91,7 @@ struct TempTransactionList: View {
                             if AuthState.shared.isLoggedIn {
                                 await funcModel.downloadEverything(setDefaultPayMethod: false, createNewStructs: true, refreshTechnique: .viaTempListButton)
                             } else {
-                                await funcModel.checkForCredentials()
+                                await AuthState.shared.checkForCredentials()
                             }
                             showLoadingSpinner = false
                         }
@@ -192,7 +192,7 @@ struct TempTransactionList: View {
                     if AuthState.shared.isLoggedIn {
                         await funcModel.downloadEverything(setDefaultPayMethod: false, createNewStructs: true, refreshTechnique: .viaTempListSceneChange)
                     } else {
-                        await funcModel.checkForCredentials()
+                        await AuthState.shared.checkForCredentials()
                     }
                     showLoadingSpinner = false
                 }
@@ -203,13 +203,13 @@ struct TempTransactionList: View {
         #else
         // MARK: - Handling Lifecycles (Mac)
         .onChange(of: AppState.shared.macWokeUp) { oldValue, newValue in
-            if newValue { Task { await funcModel.checkForCredentials() } }
+            if newValue { Task { await AuthState.shared.checkForCredentials() } }
         }
         .onChange(of: AppState.shared.macSlept) { oldValue, newValue in
-            if newValue { Task { await funcModel.checkForCredentials() } }
+            if newValue { Task { await AuthState.shared.checkForCredentials() } }
         }
         .onChange(of: AppState.shared.macWindowDidBecomeMain) { oldValue, newValue in
-            if newValue { Task { await funcModel.checkForCredentials() } }
+            if newValue { Task { await AuthState.shared.checkForCredentials() } }
         }
         #endif
         

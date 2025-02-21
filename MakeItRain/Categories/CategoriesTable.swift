@@ -16,6 +16,7 @@ struct CategoriesTable: View {
     @Environment(CalendarModel.self) private var calModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
+    @Environment(EventModel.self) private var eventModel
     
     @State private var searchText = ""
     
@@ -136,7 +137,7 @@ struct CategoriesTable: View {
             Button("Yes", role: .destructive) {
                 if let deleteCategory = deleteCategory {
                     Task {                                                
-                        await catModel.delete(deleteCategory, andSubmit: true, calModel: calModel, keyModel: keyModel)
+                        await catModel.delete(deleteCategory, andSubmit: true, calModel: calModel, keyModel: keyModel, eventModel: eventModel)
                     }
                 }
             }

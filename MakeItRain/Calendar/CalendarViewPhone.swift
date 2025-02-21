@@ -87,6 +87,8 @@ struct CalendarViewPhone: View {
     
     @State private var scrollHeight: CGFloat = 0
     @State private var transHeight: CGFloat = 0
+    
+    @State private var showFitTransactions = false
 
     
     var body: some View {
@@ -318,9 +320,22 @@ struct CalendarViewPhone: View {
                                                 overviewDay: $overviewDay,
                                                 transHeight: $transHeight
                                             )
-                                            .id(day.dateComponents?.day)
+                                            .id(day.dateComponents?.day ?? 0)
                                             /// This is the dividing line
-                                            .overlay(Rectangle().frame(width: nil, height: 2, alignment: .bottom).foregroundColor(Color(.tertiarySystemFill)), alignment: .bottom)
+                                            .overlay(
+                                                Rectangle()
+                                                    .frame(width: nil, height: 2, alignment: .bottom)
+                                                    .foregroundColor(
+                                                        Color(.tertiarySystemFill)
+                                                    ), alignment: .bottom
+                                            )
+//                                            .overlay(
+//                                                Rectangle()
+//                                                    .frame(width: 2, height: nil, alignment: .leading)
+//                                                    .foregroundColor(
+//                                                        Color(.tertiarySystemFill)
+//                                                    ), alignment: .leading
+//                                            )
                                             
                                             //.frame(minHeight: geo.size.height / divideBy, alignment: .center)
                                             .frame(minHeight: scrollHeight / divideBy, alignment: .center)
@@ -331,7 +346,7 @@ struct CalendarViewPhone: View {
                             .scrollIndicators(.hidden)
                             //.transaction { $0.animation = nil }
                             //.frame(minHeight: geo.size.height)
-                            .frame(height: overviewDay == nil ? scrollHeight : (scrollHeight) - (AppState.shared.isLandscape ? 150 : 300))
+                            .frame(height: (overviewDay == nil && !showFitTransactions) ? scrollHeight : (scrollHeight) - (AppState.shared.isLandscape ? AppState.shared.isIpad ? 300 : 150 : AppState.shared.isIpad ? 500 : 300))
                             .onScrollPhaseChange { oldPhase, newPhase in
                                 if newPhase == .interacting {
                                     withAnimation { calModel.hilightTrans = nil }
@@ -351,8 +366,14 @@ struct CalendarViewPhone: View {
 //                                }
 //                            }
                             .onAppear {
-                                if calModel.sMonth.actualNum != AppState.shared.todayMonth || calModel.sYear != AppState.shared.todayYear { return }
-                                scroll.scrollTo(AppState.shared.todayDay, anchor: .top)
+                                /// Need the task due to the fade-in animation.
+                                Task {
+                                    //try? await Task.sleep(nanoseconds: UInt64(1 * Double(NSEC_PER_SEC)))
+                                    if calModel.sMonth.actualNum != AppState.shared.todayMonth || calModel.sYear != AppState.shared.todayYear {
+                                        return
+                                    }
+                                    scroll.scrollTo(AppState.shared.todayDay, anchor: .top)
+                                }
                             }
                         }
                         
@@ -365,9 +386,17 @@ struct CalendarViewPhone: View {
                                 showCamera: $showCamera,
                                 showPhotosPicker: $showPhotosPicker
                             )
-                            .frame(height: AppState.shared.isLandscape ? 150 : 300)
+                            .frame(height: AppState.shared.isLandscape ? AppState.shared.isIpad ? 300 : 150 : AppState.shared.isIpad ? 500 : 300)
                             .frame(maxHeight: .infinity, alignment: .bottom)
                             .transition(.move(edge: .bottom))
+                        }
+                        
+                        
+                        if showFitTransactions {
+                            FitTransactionOverlay(showFitTransactions: $showFitTransactions)
+                                .frame(height: AppState.shared.isLandscape ? AppState.shared.isIpad ? 300 : 150 : AppState.shared.isIpad ? 500 : 300)
+                                .frame(maxHeight: .infinity, alignment: .bottom)
+                                .transition(.move(edge: .bottom))
                         }
                     }
                     /// Only for the pref key
@@ -422,9 +451,28 @@ struct CalendarViewPhone: View {
                         .tint(.none)
                 }
                 
+                
+                
+                
                 if AppState.shared.longPollFailed {
                     longPollToolbarButton
                 }
+                
+                if !calModel.fitTrans.filter({ !$0.isAcknowledged }).isEmpty {
+                    if AppState.shared.user?.id == 1 {
+                        Button {
+                            withAnimation {
+                                showFitTransactions = true
+                            }
+                            
+                        } label: {
+                            Image(systemName: "clock.badge.exclamationmark")
+                                .foregroundStyle(.orange)
+                        }
+                    }
+                }
+                
+                
                 
                 if AppState.shared.isLandscape {
                     showPaymentMethodSheetButton
@@ -436,7 +484,7 @@ struct CalendarViewPhone: View {
                         analysisSheetButton
                     }
                     
-                    Section("Starting Amounts") {
+                    Section {
                         startingAmountSheetButton
                     }
                     
@@ -541,7 +589,7 @@ struct CalendarViewPhone: View {
             showStartingAmountsSheet = true
         } label: {
             Label {
-                Text("Show All")
+                Text("B.O.M. Balances")
             } icon: {
                 Image(systemName: "dollarsign.circle")
             }
@@ -878,185 +926,6 @@ struct CalendarViewPhone: View {
                 }
             }
         )
-    }
-    
-            
-    struct DayOverviewView: View {
-        @Environment(\.dismiss) var dismiss
-        @Environment(CalendarModel.self) private var calModel
-        @Environment(EventModel.self) private var eventModel
-        
-        @Binding var day: CBDay?
-        /// The transaction Sheet and the transfer sheet use the selected day - so keep it up to date with the day being displayed in the bottom panel
-        @Binding var selectedDay: CBDay?
-        @Binding var transEditID: String?
-        @Binding var showTransferSheet: Bool
-        @Binding var showCamera: Bool
-        @Binding var showPhotosPicker: Bool
-        
-        @State private var showDropActions = false
-        @State private var showDailyActions = false
-        
-        var body: some View {
-            if let day {
-                var filteredTrans: Array<CBTransaction> {
-                    calModel.filteredTrans(day: day)
-                }
-                VStack {
-                    if !AppState.shared.isLandscape { header }
-                    ScrollView {
-                        if AppState.shared.isLandscape { header }
-                        
-                        VStack(spacing: 0) {
-                            Divider()
-                            
-                            if filteredTrans.isEmpty {
-                                ContentUnavailableView("No Transactions", systemImage: "bag.fill.badge.questionmark")
-                                Button("Add") {
-                                    transEditID = UUID().uuidString
-                                }
-                            } else {
-                                VStack(spacing: 0) {
-                                    ForEach(filteredTrans) { trans in
-                                        VStack(spacing: 0) {
-                                            LineItemView(trans: trans, day: day)
-                                            Divider()
-                                        }
-                                        .listRowInsets(EdgeInsets())
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                .background {
-                    //Color.darkGray.ignoresSafeArea(edges: .bottom)
-                    Color(.secondarySystemBackground).ignoresSafeArea(edges: .bottom)
-                }
-                .dropDestination(for: CBTransaction.self) { droppedTrans, location in
-                    let trans = droppedTrans.first
-                    if let trans {
-                        if trans.date == day.date {
-                            calModel.dragTarget = nil
-                            AppState.shared.showToast(title: "Operation Cancelled", subtitle: "Can't copy or move to the original day", body: "Please try again", symbol: "hand.raised.fill", symbolColor: .orange)
-                            return true
-                        }
-                                                
-                        calModel.transactionToCopy = trans
-                        showDropActions = true
-                    }
-                    
-                    return true
-                    
-                } isTargeted: {
-                    if $0 { withAnimation { calModel.dragTarget = day } }
-                }
-                
-                .confirmationDialog("\(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())\n\(calModel.transactionToCopy?.title ?? "N/A")", isPresented: $showDropActions) {
-                    moveButton
-                    copyAndPasteButton
-                    Button("Cancel", role: .cancel) {
-                        calModel.dragTarget = nil
-                    }
-                } message: {
-                    Text("\(calModel.transactionToCopy?.title ?? "N/A")\nDropped on \(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())")
-                }
-                
-                .confirmationDialog("\(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())", isPresented: $showDailyActions) {
-                    DayContextMenu(
-                        day: day,
-                        selectedDay: $day,
-                        transEditID: $transEditID,
-                        showTransferSheet: $showTransferSheet,
-                        showCamera: $showCamera,
-                        showPhotosPicker: $showPhotosPicker
-                    )
-                } message: {
-                    Text("\(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())")
-                }
-            }
-        }
-        
-        
-        var header: some View {
-            SheetHeader(
-                title: day!.displayDate,
-                close: {
-                    /// When closing, set the selected day back to today or the first of the month if not viewing the current month (which would be the default)
-                    withAnimation { self.day = nil }
-                    let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
-                    selectedDay = targetDay
-                },
-                view1: { moreButton }
-            )
-            .padding()
-        }
-        
-        
-        var moreButton: some View {
-//            Button {
-//                showDailyActions = true
-//            } label: {
-//                Image(systemName: "ellipsis")
-//            }
-                        
-            Menu {
-                DayContextMenu(
-                    day: day!,
-                    selectedDay: $day,
-                    transEditID: $transEditID,
-                    showTransferSheet: $showTransferSheet,
-                    showCamera: $showCamera,
-                    showPhotosPicker: $showPhotosPicker
-                )
-            } label: {
-                Image(systemName: "ellipsis")
-            }
-        }
-        
-        var moveButton: some View {
-            Button("Move") {
-                withAnimation {
-                    if let trans = calModel.transactionToCopy {
-                        let originalMonth = trans.dateComponents?.month!
-                        let monthObj = calModel.months.filter { $0.num == originalMonth }.first
-                        if let monthObj {
-                            monthObj.days.forEach { $0.transactions.removeAll(where: { $0.id == trans.id }) }
-                        }
-                        
-                        trans.log(field: .date, old: trans.date?.string(to: .monthDayShortYear), new: day?.date?.string(to: .monthDayShortYear))
-                        
-                        trans.date = day?.date!
-                        calModel.sMonth.days.forEach { $0.transactions.removeAll(where: { $0.id == trans.id }) }
-                                                        
-                        day?.transactions.append(trans)
-                        calModel.dragTarget = nil
-                        calModel.saveTransaction(id: trans.id, eventModel: eventModel)
-                    }
-                }
-            }
-        }
-        
-        var copyAndPasteButton: some View {
-            Button {
-                withAnimation {
-                    if let trans = calModel.getCopyOfTransaction() {
-                        trans.date = day?.date!
-                                                        
-                        if !calModel.isUnifiedPayMethod {
-                            trans.payMethod = calModel.sPayMethod!
-                        }
-                        
-                        day?.upsert(trans)
-                        calModel.dragTarget = nil
-                        calModel.saveTransaction(id: trans.id, day: day)
-                    }
-                }
-            } label: {
-                Text("Copy & Paste")
-            }
-        }
-            
-    }
+    }                    
 }
 #endif

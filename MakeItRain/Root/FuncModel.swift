@@ -32,23 +32,23 @@ class FuncModel {
     }
     
     
-    /// This will take the stored credentials, and send them to the server for authentication.
-    /// The server will send back a ``CBUser`` object. That object will contain the user information, as well as a flag that indicates if we need to force the user to the payment method screen.
-    @MainActor func checkForCredentials() async {
-        do {
-            let (email, password) = try KeychainManager().getCredentialsFromKeychain()
-            guard (email != nil), (password != nil) else {
-                AuthState.shared.isThinking = false
-                AppState.shared.appIsReadyToHideSplashScreen = true
-                return
-            }
-            await AuthState.shared.attemptLogin(email: email!, password: password!)
-        } catch {
-            print(error.localizedDescription)
-            AuthState.shared.isThinking = false
-            AppState.shared.appIsReadyToHideSplashScreen = true
-        }
-    }
+//    /// This will take the stored credentials, and send them to the server for authentication.
+//    /// The server will send back a ``CBUser`` object. That object will contain the user information, as well as a flag that indicates if we need to force the user to the payment method screen.
+//    @MainActor func checkForCredentials() async {
+//        do {
+//            let (email, password) = try KeychainManager().getCredentialsFromKeychain()
+//            guard (email != nil), (password != nil) else {
+//                AuthState.shared.isThinking = false
+//                AppState.shared.appShouldShowSplashScreen = false
+//                return
+//            }
+//            await AuthState.shared.attemptLogin(email: email!, password: password!)
+//        } catch {
+//            print(error.localizedDescription)
+//            AuthState.shared.isThinking = false
+//            AppState.shared.appShouldShowSplashScreen = false
+//        }
+//    }
     
     
 //    /// This is only for biometrics.
@@ -238,6 +238,11 @@ class FuncModel {
                 /// Download other months and accessorials.
                 await downloadOtherMonthsAndAccessorials(viewingMonth: viewingMonth, next: next, prev: prev, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
                 
+                if AppState.shared.user?.id == 1 {
+                    await calModel.fetchFitTransactionsFromServer()
+                }
+                
+                
             } else {
                 /// Run this code if we come back from a sceneChange and are not viewing a month.
                 /// If we're not viewing a month, then we must be viewing an accessorial view, so download those first.
@@ -246,6 +251,9 @@ class FuncModel {
                     await downloadViewingMonth(calModel.sMonth, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
                     await downloadAdjacentMonths(next: next, prev: prev, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
                     await downloadOtherMonths(viewingMonth: calModel.sMonth, next: next, prev: prev, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
+                    if AppState.shared.user?.id == 1 {
+                        await calModel.fetchFitTransactionsFromServer()
+                    }
                 }
             }
         }
@@ -279,7 +287,7 @@ class FuncModel {
         print("🔴It took \(currentElapsed) seconds to fetch the first month")
         
         withAnimation(.easeOut(duration: 1)) {
-            AppState.shared.appIsReadyToHideSplashScreen = true
+            AppState.shared.appShouldShowSplashScreen = false
         }
     }
         
@@ -680,7 +688,7 @@ class FuncModel {
         for payMethod in payMethods {
             if payModel.doesExist(payMethod) {
                 if !payMethod.active {
-                    await payModel.delete(payMethod, andSubmit: false, calModel: calModel)
+                    await payModel.delete(payMethod, andSubmit: false, calModel: calModel, eventModel: eventModel)
                     continue
                 } else {
                     if let index = payModel.getIndex(for: payMethod) {
@@ -709,7 +717,7 @@ class FuncModel {
         for category in categories {
             if catModel.doesExist(category) {
                 if !category.active {
-                    await catModel.delete(category, andSubmit: false, calModel: calModel, keyModel: keyModel)
+                    await catModel.delete(category, andSubmit: false, calModel: calModel, keyModel: keyModel, eventModel: eventModel)
                     continue
                 } else {
                     if let index = catModel.getIndex(for: category) {

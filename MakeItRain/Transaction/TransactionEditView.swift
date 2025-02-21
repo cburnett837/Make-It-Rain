@@ -1113,7 +1113,7 @@ struct TransactionEditView: View {
                                     #if os(macOS)
                                     /// Open in safari browser
                                     .onTapGesture {
-                                        openURL(URL(string: "https://\(Keys.baseURL):8676/budget_app.photo.\(pic.uuid).jpg")!)
+                                        openURL(URL(string: "https://\(Keys.baseURL):8676/pictures/budget_app.photo.\(pic.uuid).jpg")!)
                                     }
                                     /// Hover to show share button and delete button.
                                     .onContinuousHover { phase in
@@ -1128,7 +1128,7 @@ struct TransactionEditView: View {
                                     
                                     /// Open inline safari-sheet
                                     .onTapGesture {
-                                        safariUrl = URL(string: "https://\(Keys.baseURL):8676/budget_app.photo.\(pic.uuid).jpg")!
+                                        safariUrl = URL(string: "https://\(Keys.baseURL):8676/pictures/budget_app.photo.\(pic.uuid).jpg")!
                                     }
                                     /// Long press to show delete (no share sheet option. Can share directly from safari sheet)
                                     .onLongPressGesture {
@@ -1245,7 +1245,7 @@ struct TransactionEditView: View {
             @Bindable var vw = vw
             AsyncImage(
                 //url: URL(string: "http://www.codyburnett.com:8677/budget_app.photo.\(picture.path).jpg"),
-                url: URL(string: "https://\(Keys.baseURL):8676/budget_app.photo.\(pic.uuid).jpg"),
+                url: URL(string: "https://\(Keys.baseURL):8676/pictures/budget_app.photo.\(pic.uuid).jpg"),
                 content: { image in
                     image
                         .resizable()
@@ -1297,7 +1297,7 @@ struct TransactionEditView: View {
 //                            .background(RoundedRectangle(cornerRadius: 4).fill(.ultraThickMaterial))
 //                    }
                                         
-                    ShareLink(item: URL(string: "https://\(Keys.baseURL):8676/budget_app.photo.\(pic.uuid).jpg")! /*, subject: Text(trans.title), message: Text(trans.amountString)*/) {
+                    ShareLink(item: URL(string: "https://\(Keys.baseURL):8676/pictures/budget_app.photo.\(pic.uuid).jpg")! /*, subject: Text(trans.title), message: Text(trans.amountString)*/) {
                         Image(systemName: "square.and.arrow.up")
                             .frame(width: 30, height: 30)
                             .foregroundStyle(Color.accentColor)

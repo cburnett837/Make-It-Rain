@@ -379,7 +379,7 @@ class CategoryModel {
     
     
     
-    func delete(_ category: CBCategory, andSubmit: Bool, calModel: CalendarModel, keyModel: KeywordModel) async {
+    func delete(_ category: CBCategory, andSubmit: Bool, calModel: CalendarModel, keyModel: KeywordModel, eventModel: EventModel) async {
         category.action = .delete
         category.deepCopy?.action = .delete
         categories.removeAll { $0.id == category.id }        
@@ -387,6 +387,7 @@ class CategoryModel {
         calModel.justTransactions.filter { $0.category?.id == category.id }.forEach { $0.category = nil }        
         calModel.months.forEach { $0.budgets.removeAll(where: { $0.category?.id == category.id }) }
         keyModel.keywords.removeAll(where: { $0.category?.id == category.id })
+        eventModel.events.forEach {$0.transactions.removeAll(where: { $0.category?.id == category.id })}
         
         if andSubmit {
             let _ = await submit(category)

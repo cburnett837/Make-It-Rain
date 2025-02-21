@@ -16,6 +16,7 @@ struct PayMethodsTable: View {
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
     @Environment(PayMethodModel.self) private var payModel
+    @Environment(EventModel.self) private var eventModel
     
     @State private var searchText = ""
     
@@ -120,8 +121,8 @@ struct PayMethodsTable: View {
             Button("Yes", role: .destructive) {
                 if let deleteMethod = deleteMethod {
                     Task {
-                        await payModel.delete(deleteMethod, andSubmit: true, calModel: calModel)
-                        payModel.determineIfUserIsRequiredToAddPaymentMethod()                                    
+                        await payModel.delete(deleteMethod, andSubmit: true, calModel: calModel, eventModel: eventModel)
+                        payModel.determineIfUserIsRequiredToAddPaymentMethod()
                     }
                 }
             }
@@ -132,9 +133,9 @@ struct PayMethodsTable: View {
             }
         }, message: {
             #if os(iOS)
-            Text("Delete \"\(deleteMethod == nil ? "N/A" : deleteMethod!.title)\"?\nThis will also delete all associated transactions.")
+            Text("Delete \"\(deleteMethod == nil ? "N/A" : deleteMethod!.title)\"?\nThis will also delete all associated transactions and event transactions.")
             #else
-            Text("This will also delete all associated transactions.")
+            Text("This will also delete all associated transactions and event transactions.")
             #endif
         })
         

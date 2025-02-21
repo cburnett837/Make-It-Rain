@@ -7,7 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FD07E24C2D68B53500024B11 /* FitTransactionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD07E24B2D68B53500024B11 /* FitTransactionOverlay.swift */; };
+		FD07E24E2D68B5BE00024B11 /* DayOverview.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD07E24D2D68B5BE00024B11 /* DayOverview.swift */; };
 		FD292E3B2C9B6318003C18D2 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = FD292E3A2C9B6318003C18D2 /* Algorithms */; };
+		FD6D7EEC2D667CB50026D39D /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FD6D7ECA2D667B4A0026D39D /* WidgetKit.framework */; };
+		FD6D7EED2D667CB50026D39D /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FD6D7ECC2D667B4A0026D39D /* SwiftUI.framework */; };
+		FD6D7EFA2D667CB60026D39D /* DailyWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = FD6D7EEB2D667CB50026D39D /* DailyWidgetExtension.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		FD6D7F012D6682AB0026D39D /* NewTransactionAppIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD6D7F002D6682AB0026D39D /* NewTransactionAppIntent.swift */; };
+		FD6D7F032D66CD0A0026D39D /* CBFitTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD6D7F022D66CD0A0026D39D /* CBFitTransaction.swift */; };
 		FDA579392C9E6FA9004E9B60 /* PersistentModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = FDA579372C9E6FA9004E9B60 /* PersistentModel.xcdatamodeld */; };
 		FDB066D12D4D40C40060568B /* UIDatePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDB066D02D4D40C40060568B /* UIDatePicker.swift */; };
 		FDC26E112D3E86D500B0A97C /* DollarParticalEmitterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DB92D3E86D500B0A97C /* DollarParticalEmitterView.swift */; };
@@ -158,8 +165,40 @@
 		FDE4E8142D5BF33200A883EE /* UndodoManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDE4E8132D5BF33200A883EE /* UndodoManager.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		FD6D7EF82D667CB60026D39D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = FD292E062C9B248B003C18D2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FD6D7EEA2D667CB50026D39D;
+			remoteInfo = DailyWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		FD6D7EDD2D667B4B0026D39D /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				FD6D7EFA2D667CB60026D39D /* DailyWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		FD07E24B2D68B53500024B11 /* FitTransactionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitTransactionOverlay.swift; sourceTree = "<group>"; };
+		FD07E24D2D68B5BE00024B11 /* DayOverview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayOverview.swift; sourceTree = "<group>"; };
 		FD292E0E2C9B248B003C18D2 /* MakeItRain.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MakeItRain.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FD6D7ECA2D667B4A0026D39D /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		FD6D7ECC2D667B4A0026D39D /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		FD6D7EEB2D667CB50026D39D /* DailyWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DailyWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		FD6D7EFF2D667F210026D39D /* DailyWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DailyWidgetExtension.entitlements; sourceTree = "<group>"; };
+		FD6D7F002D6682AB0026D39D /* NewTransactionAppIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTransactionAppIntent.swift; sourceTree = "<group>"; };
+		FD6D7F022D66CD0A0026D39D /* CBFitTransaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBFitTransaction.swift; sourceTree = "<group>"; };
 		FD8DFA7C2CFB8C100056EE39 /* PersistentModel2.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = PersistentModel2.xcdatamodel; sourceTree = "<group>"; };
 		FDB066D02D4D40C40060568B /* UIDatePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIDatePicker.swift; sourceTree = "<group>"; };
 		FDC26D312D3E85FC00B0A97C /* MakeItRain.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = MakeItRain.xcodeproj; sourceTree = "<group>"; };
@@ -313,6 +352,27 @@
 		FDE4E8132D5BF33200A883EE /* UndodoManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UndodoManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		FD6D7EFB2D667CB60026D39D /* Exceptions for "DailyWidget" folder in "DailyWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = FD6D7EEA2D667CB50026D39D /* DailyWidgetExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		FD6D7EEE2D667CB50026D39D /* DailyWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				FD6D7EFB2D667CB60026D39D /* Exceptions for "DailyWidget" folder in "DailyWidgetExtension" target */,
+			);
+			path = DailyWidget;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
 		FD292E0B2C9B248B003C18D2 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
@@ -322,14 +382,26 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FD6D7EE82D667CB50026D39D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FD6D7EED2D667CB50026D39D /* SwiftUI.framework in Frameworks */,
+				FD6D7EEC2D667CB50026D39D /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		FD292E052C9B248B003C18D2 = {
 			isa = PBXGroup;
 			children = (
+				FD6D7EFF2D667F210026D39D /* DailyWidgetExtension.entitlements */,
 				FDA579372C9E6FA9004E9B60 /* PersistentModel.xcdatamodeld */,
 				FDC26E102D3E86D500B0A97C /* MakeItRain */,
+				FD6D7EEE2D667CB50026D39D /* DailyWidget */,
+				FD6D7EC92D667B4A0026D39D /* Frameworks */,
 				FD292E0F2C9B248B003C18D2 /* Products */,
 				FDC26D312D3E85FC00B0A97C /* MakeItRain.xcodeproj */,
 			);
@@ -339,8 +411,18 @@
 			isa = PBXGroup;
 			children = (
 				FD292E0E2C9B248B003C18D2 /* MakeItRain.app */,
+				FD6D7EEB2D667CB50026D39D /* DailyWidgetExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		FD6D7EC92D667B4A0026D39D /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				FD6D7ECA2D667B4A0026D39D /* WidgetKit.framework */,
+				FD6D7ECC2D667B4A0026D39D /* SwiftUI.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		FDB066D22D4D41EB0060568B /* Event Models */ = {
@@ -405,6 +487,8 @@
 				FDC26DCC2D3E86D500B0A97C /* LineItemView.swift */,
 				FDC26E0A2D3E86D500B0A97C /* ToolbarViews.swift */,
 				FDE4E7D72D56AA0100A883EE /* PhotoModel.swift */,
+				FD07E24B2D68B53500024B11 /* FitTransactionOverlay.swift */,
+				FD07E24D2D68B5BE00024B11 /* DayOverview.swift */,
 			);
 			path = Calendar;
 			sourceTree = "<group>";
@@ -607,6 +691,7 @@
 			isa = PBXGroup;
 			children = (
 				FDC26DAE2D3E86D500B0A97C /* CBTransaction.swift */,
+				FD6D7F022D66CD0A0026D39D /* CBFitTransaction.swift */,
 				FDC26E042D3E86D500B0A97C /* TempTransactionList.swift */,
 				FDC26E0B2D3E86D500B0A97C /* TransactionContextMenu.swift */,
 				FDC26E0C2D3E86D500B0A97C /* TransactionEditView.swift */,
@@ -632,6 +717,7 @@
 			isa = PBXGroup;
 			children = (
 				FDC26DD32D3E86D500B0A97C /* MakeItRainApp.swift */,
+				FD6D7F002D6682AB0026D39D /* NewTransactionAppIntent.swift */,
 				FDC26D8D2D3E86D500B0A97C /* AppDelegate.swift */,
 				FDC26D8E2D3E86D500B0A97C /* AppState.swift */,
 				FDC26D8F2D3E86D500B0A97C /* AppTips.swift */,
@@ -682,10 +768,12 @@
 				FD292E0A2C9B248B003C18D2 /* Sources */,
 				FD292E0B2C9B248B003C18D2 /* Frameworks */,
 				FD292E0C2C9B248B003C18D2 /* Resources */,
+				FD6D7EDD2D667B4B0026D39D /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				FD6D7EF92D667CB60026D39D /* PBXTargetDependency */,
 			);
 			name = MakeItRain;
 			packageProductDependencies = (
@@ -695,6 +783,28 @@
 			productReference = FD292E0E2C9B248B003C18D2 /* MakeItRain.app */;
 			productType = "com.apple.product-type.application";
 		};
+		FD6D7EEA2D667CB50026D39D /* DailyWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FD6D7EFC2D667CB60026D39D /* Build configuration list for PBXNativeTarget "DailyWidgetExtension" */;
+			buildPhases = (
+				FD6D7EE72D667CB50026D39D /* Sources */,
+				FD6D7EE82D667CB50026D39D /* Frameworks */,
+				FD6D7EE92D667CB50026D39D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				FD6D7EEE2D667CB50026D39D /* DailyWidget */,
+			);
+			name = DailyWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = DailyWidgetExtension;
+			productReference = FD6D7EEB2D667CB50026D39D /* DailyWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -702,12 +812,15 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1600;
+				LastSwiftUpdateCheck = 1620;
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
 					FD292E0D2C9B248B003C18D2 = {
 						CreatedOnToolsVersion = 16.0;
 						LastSwiftMigration = 1620;
+					};
+					FD6D7EEA2D667CB50026D39D = {
+						CreatedOnToolsVersion = 16.2;
 					};
 				};
 			};
@@ -735,6 +848,7 @@
 			projectRoot = "";
 			targets = (
 				FD292E0D2C9B248B003C18D2 /* MakeItRain */,
+				FD6D7EEA2D667CB50026D39D /* DailyWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -752,6 +866,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FD6D7EE92D667CB50026D39D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -759,6 +880,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FD07E24C2D68B53500024B11 /* FitTransactionOverlay.swift in Sources */,
 				FDC26E112D3E86D500B0A97C /* DollarParticalEmitterView.swift in Sources */,
 				FDC26E122D3E86D500B0A97C /* RootViewMac.swift in Sources */,
 				FDC26E132D3E86D500B0A97C /* CBBudget.swift in Sources */,
@@ -809,6 +931,7 @@
 				FDC26E3B2D3E86D500B0A97C /* ResetMonthOptionSheet.swift in Sources */,
 				FDC26E3C2D3E86D500B0A97C /* BudgetModel.swift in Sources */,
 				FDC26E3D2D3E86D500B0A97C /* CBPicture.swift in Sources */,
+				FD07E24E2D68B5BE00024B11 /* DayOverview.swift in Sources */,
 				FDC26E3E2D3E86D500B0A97C /* KeychainManager.swift in Sources */,
 				FDC26E3F2D3E86D500B0A97C /* Login.swift in Sources */,
 				FDC26E402D3E86D500B0A97C /* CircleDot.swift in Sources */,
@@ -818,6 +941,7 @@
 				FDC26E442D3E86D500B0A97C /* CBTransaction.swift in Sources */,
 				FDC26E452D3E86D500B0A97C /* PaymentMethodMenu.swift in Sources */,
 				FDC26EC82D413B8900B0A97C /* XrefModel.swift in Sources */,
+				FD6D7F012D6682AB0026D39D /* NewTransactionAppIntent.swift in Sources */,
 				FDB066D12D4D40C40060568B /* UIDatePicker.swift in Sources */,
 				FDC26E462D3E86D500B0A97C /* Toasts.swift in Sources */,
 				FDC26EC52D4131E000B0A97C /* UserSheet.swift in Sources */,
@@ -899,13 +1023,30 @@
 				FDC26E8A2D3E86D500B0A97C /* RequestModel.swift in Sources */,
 				FDC26E8B2D3E86D500B0A97C /* RepeatingAndBudgetSubmissionModel.swift in Sources */,
 				FDC26EA52D3FF61900B0A97C /* EventIdModel.swift in Sources */,
+				FD6D7F032D66CD0A0026D39D /* CBFitTransaction.swift in Sources */,
 				FDC26E8C2D3E86D500B0A97C /* CalendarModel.swift in Sources */,
 				FDC26E8D2D3E86D500B0A97C /* CategoryAnalysisSheet.swift in Sources */,
 				FDA579392C9E6FA9004E9B60 /* PersistentModel.xcdatamodeld in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FD6D7EE72D667CB50026D39D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		FD6D7EF92D667CB60026D39D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			platformFilter = ios;
+			target = FD6D7EEA2D667CB50026D39D /* DailyWidgetExtension */;
+			targetProxy = FD6D7EF82D667CB60026D39D /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		FD292E1B2C9B248C003C18D2 /* Debug */ = {
@@ -1115,6 +1256,67 @@
 			};
 			name = Release;
 		};
+		FD6D7EFD2D667CB60026D39D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = DailyWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N83B9B3ZN6;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = DailyWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = DailyWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.codyburnett.MakeItRain.DailyWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		FD6D7EFE2D667CB60026D39D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = DailyWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N83B9B3ZN6;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = DailyWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = DailyWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.codyburnett.MakeItRain.DailyWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1132,6 +1334,15 @@
 			buildConfigurations = (
 				FD292E1E2C9B248C003C18D2 /* Debug */,
 				FD292E1F2C9B248C003C18D2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FD6D7EFC2D667CB60026D39D /* Build configuration list for PBXNativeTarget "DailyWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FD6D7EFD2D667CB60026D39D /* Debug */,
+				FD6D7EFE2D667CB60026D39D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

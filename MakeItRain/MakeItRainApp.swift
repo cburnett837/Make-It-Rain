@@ -59,7 +59,6 @@ struct MakeItRainApp: App {
     @State private var eventModel: EventModel
     //@State private var tagModel = TagModel()
     
-    let keychainManager = KeychainManager()
     @State private var isUnlocked = false
     
     init() {
@@ -92,8 +91,8 @@ struct MakeItRainApp: App {
                 @Bindable var appState = AppState.shared
                 Group {
                     /// `AuthState.shared.isThinking` is always true when app launches from fresh state.
-                    /// `AppState.shared.appIsReadyToHideSplashScreen` is set in `downloadEverything()` when the current month completes.
-                    if AuthState.shared.isThinking || !AppState.shared.appIsReadyToHideSplashScreen || !AppState.shared.splashTextAnimationIsFinished/* || AppState.shared.holdSplash */{
+                    /// `AppState.shared.appShouldShowSplashScreen` is set to false in `downloadEverything()` when the current month completes.
+                    if AuthState.shared.isThinking || AppState.shared.appShouldShowSplashScreen || !AppState.shared.splashTextAnimationIsFinished/* || AppState.shared.holdSplash */{
                         loadingScreen
                     } else {
                         if AuthState.shared.isLoggedIn {
@@ -222,7 +221,7 @@ struct MakeItRainApp: App {
                     
                     /// This will check the keychain for credentials. If it finds them, it will attempt to authenticate with the server. If not, it will take the user to the login page.
                     /// If the user successfully authenticates with the server, this will also look if the user has payment methods, and set AppState accordingly.
-                    await funcModel.checkForCredentials()
+                    await AuthState.shared.checkForCredentials()
                     
                     if AuthState.shared.isLoggedIn {
                         /// When the user logs in, if they have no payment methods, show the payment method required sheet.
@@ -257,10 +256,12 @@ struct MakeItRainApp: App {
         LoadingManager.shared.showLoadingBar = true
         
         /// Cancel the long polling task.
-        if let _ = funcModel.longPollTask {
-            funcModel.longPollTask!.cancel()
-            funcModel.longPollTask = nil
-        }
+        funcModel.longPollTask?.cancel()
+        funcModel.longPollTask = nil
+        
+        /// Cancel the regular download task.
+        funcModel.refreshTask?.cancel()
+        funcModel.refreshTask = nil
         
         /// Remove all transactions and starting amounts for all months.
         calModel.months.forEach { month in

@@ -18,15 +18,15 @@ struct KeychainManager {
     }
         
     
-    func addToKeychain(email: String, password: String) throws {
+    func addToKeychain(key: String, value: String) throws {
         print("-- \(#function)")
         
-        let passwordData = password.data(using: .utf8)!
+        let valueData = value.data(using: .utf8)!
         
         let query: [String: Any] = [
             kSecClass as String: kSecClassInternetPassword,
-            kSecAttrAccount as String: email,
-            kSecValueData as String: passwordData,
+            kSecAttrAccount as String: key,
+            kSecValueData as String: valueData,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
             kSecUseDataProtectionKeychain as String: true
         ]
@@ -35,7 +35,7 @@ struct KeychainManager {
         
         if status == errSecDuplicateItem {
             print("Item already exists")
-            try updateKeychain(email: email, password: password)
+            try updateKeychain(key: key, value: value)
             //throw KeychainError.duplicateItem
             
         } else if status != errSecSuccess {
@@ -63,19 +63,19 @@ struct KeychainManager {
     }
     
     
-    func updateKeychain(email: String, password: String) throws {
+    func updateKeychain(key: String, value: String) throws {
         print("-- \(#function)")
         
-        let passwordData = password.data(using: .utf8)!
+        let valueData = value.data(using: .utf8)!
         
         let query: [String: Any] = [
             kSecClass as String: kSecClassInternetPassword,
-            kSecAttrAccount as String: email,
+            kSecAttrAccount as String: key,
             kSecUseDataProtectionKeychain as String: true
         ]
         
         let attributesToUpdate: [String: Any] = [
-            kSecValueData as String: passwordData
+            kSecValueData as String: valueData
         ]
         
         let status = SecItemUpdate(query as CFDictionary, attributesToUpdate as CFDictionary)
@@ -92,32 +92,61 @@ struct KeychainManager {
     
     
     
-    func removeFromKeychain() throws {
+    func removeFromKeychain(key: String) throws {
         print("-- \(#function)")
-        
-        if let email = AppState.shared.user?.email {
-            let query: [String: Any] = [
-                kSecClass as String: kSecClassInternetPassword,
-                kSecAttrAccount as String: email,
-                kSecUseDataProtectionKeychain as String: true
-            ]
             
-            let status = SecItemDelete(query as CFDictionary)
-            if status == errSecItemNotFound {
-                print("item not found")
-                throw KeychainError.itemNotFound
-                
-            } else if status != errSecSuccess {
-                print("unknown error")
-                throw KeychainError.unknown(status)
-                
-            } else {
-                print("successfully removed from keychain")
-            }
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassInternetPassword,
+            kSecAttrAccount as String: key,
+            kSecUseDataProtectionKeychain as String: true
+        ]
+        
+        let status = SecItemDelete(query as CFDictionary)
+        if status == errSecItemNotFound {
+            print("item not found")
+            throw KeychainError.itemNotFound
+            
+        } else if status != errSecSuccess {
+            print("unknown error")
+            throw KeychainError.unknown(status)
+            
         } else {
-            throw KeychainError.missingEmail
+            print("successfully removed from keychain")
+        }
+    }
+    
+    func getFromKeychain(key: String) throws -> String? {
+        //print("-- \(#function)")
+                
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassInternetPassword,
+            kSecAttrAccount as String: key,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecReturnAttributes as String: true,
+            kSecReturnData as String: true,
+            kSecUseDataProtectionKeychain as String: true
+        ]
+        var item: CFTypeRef?
+    
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        if status == errSecItemNotFound {
+            print("item not found")
+            throw KeychainError.itemNotFound
+            
+        } else if status != errSecSuccess {
+            print("unknown error")
+            throw KeychainError.unknown(status)
+        }
+       
+        if let existingItem = item as? [String: Any],
+           let valueData = existingItem[kSecValueData as String] as? Data,
+           let value = String(data: valueData, encoding: .utf8)
+        {
+            //print("Successfully got user credentials from Keychain")
+            return value
         }
         
+        return nil
     }
 
     
@@ -160,8 +189,5 @@ struct KeychainManager {
         } else {
             throw KeychainError.missingEmail
         }
-        
-        
-        
     }
 }

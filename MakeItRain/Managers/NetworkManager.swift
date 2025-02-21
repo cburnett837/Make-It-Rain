@@ -19,7 +19,7 @@ class NetworkManager {
     init(timeout: TimeInterval = 60) {
         //let earl = String(format: "http://www.codyburnett.com:8677/")
         //let earl = String(format: "http://10.0.0.87:8677/")
-        let earl = String(format: "https://\(Keys.baseURL):8681/")
+        let earl = String(format: "https://\(Keys.baseURL):8681/budget_app")
         //let earl = String(format: "http://\(Keys.baseURL):8677/")
         let URL = URL(string: earl)
         var request = URLRequest(url: URL!)
@@ -42,6 +42,15 @@ class NetworkManager {
     }
  
     func arrayRequest<T: Encodable, U: Decodable>(requestModel: RequestModel<T>, ticker: Int = 3, sessionID: String = "") async -> Result<Array<U>?, AppError> {
+        
+        do {
+            let apiKey = try KeychainManager().getFromKeychain(key: "user_api_key")
+            request?.setValue(apiKey, forHTTPHeaderField: "Api-Key")
+            //request?.setValue("vqHNAJ_DMzpc6YiSkyQr9wMwus5BzZljeLsJS5iSh94", forHTTPHeaderField: "Api-Key")
+        } catch {
+            print("Cannot find apiKey")
+        }
+        
         var sesh: String = ""
         if sessionID.isEmpty {
             sesh = UUID().uuidString
@@ -63,6 +72,11 @@ class NetworkManager {
                 let httpResponse = response as? HTTPURLResponse
                 
                 if httpResponse?.statusCode == 403 {
+                    await AuthState.shared.serverAccessRevoked()
+                    return .failure(.incorrectCredentials)
+                }
+                
+                if httpResponse?.statusCode == 401 {
                     await AuthState.shared.serverAccessRevoked()
                     return .failure(.accessRevoked)
                 }
@@ -112,6 +126,15 @@ class NetworkManager {
     
     
     func singleRequest<T: Encodable, U: Decodable>(requestModel: RequestModel<T>, ticker: Int = 3, sessionID: String = "") async -> Result<U?, AppError> {
+        
+        do {
+            let apiKey = try KeychainManager().getFromKeychain(key: "user_api_key")
+            request?.setValue(apiKey, forHTTPHeaderField: "Api-Key")
+            //request?.setValue("vqHNAJ_DMzpc6YiSkyQr9wMwus5BzZljeLsJS5iSh94", forHTTPHeaderField: "Api-Key")
+        } catch {
+            print("Cannot find apiKey")
+        }
+        
         var sesh: String = ""
         if sessionID.isEmpty {
             sesh = UUID().uuidString
@@ -125,26 +148,34 @@ class NetworkManager {
             let jsonData = try? JSONEncoder().encode(requestModel)
             LogManager.log("jsonData: \(String(data: jsonData!, encoding: .utf8)!)", session: sesh)
             if AppState.shared.debugPrint { print("jsonData: \(String(data: jsonData!, encoding: .utf8)!)") }
-            
-            
+                        
             request?.httpBody = jsonData
             
             if let session {
                 let (data, response): (Data, URLResponse) = try await session.data(for: request!)
                 let httpResponse = response as? HTTPURLResponse
                 
-                print(httpResponse?.statusCode)
+                //print(httpResponse?.statusCode)
                 
                 if httpResponse?.statusCode == 403 {
                     await AuthState.shared.serverAccessRevoked()
+                    return .failure(.incorrectCredentials)
+                }
+                
+                if httpResponse?.statusCode == 401 {
+                    await AuthState.shared.serverAccessRevoked()
                     return .failure(.accessRevoked)
                 }
+                
+                
+                
                 
                 LogManager.log("should have a response from the server now", session: sesh)
                 
                 let serverText = String(data: data, encoding: .utf8) ?? ""
                 //print("GOT SERVER RESPONSE")
                 if AppState.shared.debugPrint { print(serverText) }
+                //print(serverText)
                 let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response
                 
                 if firstLine == "None" && requestModel.requestType == "budget_app_login" {
@@ -297,6 +328,13 @@ class NetworkManager {
         ticker: Int = 3
     ) async -> Result<U?, AppError> {
         do {
+            do {
+                let apiKey = try KeychainManager().getFromKeychain(key: "user_api_key")
+                request?.setValue(apiKey, forHTTPHeaderField: "Api-Key")
+            } catch {
+                print("Cannot find apiKey")
+            }
+            
             let metadata: [String: String] = [
                 "application": application,
                 "type": "photo",
@@ -373,6 +411,14 @@ class NetworkManager {
     func uploadPictureThatTheServerDoesntLike<U: Decodable>(application: String, recordID: String, uuid: String, imageString: String, isSmartTransaction: Bool = false, ticker: Int = 3) async -> Result<U?, AppError> {
         do {
             //let paramString = "application=\(application)&type=photo&recordID=\(recordID)&uuid=\(uuid)&image=\(imageString)&userID=\(String(AppState.shared.user?.id ?? 0))&accountID=\(String(AppState.shared.user?.accountID ?? 0))&deviceID=\(String(AppState.shared.deviceUUID ?? ""))&isSmartTransaction=\(isSmartTransaction.description)"
+            
+            
+            do {
+                let apiKey = try KeychainManager().getFromKeychain(key: "api_key")
+                request?.setValue(apiKey, forHTTPHeaderField: "Api-Key")
+            } catch {
+                print("Cannot find apiKey")
+            }
             
             
             let metadata: [String: String] = [

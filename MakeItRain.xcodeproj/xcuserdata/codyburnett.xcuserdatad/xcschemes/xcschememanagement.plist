@@ -4,6 +4,11 @@
 <dict>
 	<key>SchemeUserState</key>
 	<dict>
+		<key>DailyWidgetExtension.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>1</integer>
+		</dict>
 		<key>MakeItRain.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
@@ -13,6 +18,11 @@
 	<key>SuppressBuildableAutocreation</key>
 	<dict>
 		<key>FD292E0D2C9B248B003C18D2</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>FD6D7EEA2D667CB50026D39D</key>
 		<dict>
 			<key>primary</key>
 			<true/>
