@@ -247,6 +247,14 @@ class NetworkManager {
             subRequest.setValue(String(AppState.shared.user!.accountID), forHTTPHeaderField: "Account-ID")
             subRequest.setValue(String(AppState.shared.user!.id), forHTTPHeaderField: "User-ID")
             subRequest.setValue(String(AppState.shared.deviceUUID!), forHTTPHeaderField: "Device-UUID")
+            #if os(macOS)
+            subRequest.setValue(String(ProcessInfo.processInfo.operatingSystemVersionString), forHTTPHeaderField: "Device-OS")
+            subRequest.setValue(String(ProcessInfo.processInfo.hostName), forHTTPHeaderField: "Device-Name")
+            #else
+            await subRequest.setValue(String(UIDevice.current.systemVersion), forHTTPHeaderField: "Device-OS")
+            await subRequest.setValue(String(UIDevice.current.name), forHTTPHeaderField: "Device-Name")
+            #endif
+            
             subRequest.timeoutInterval = 130
             subRequest.setValue(Keys.userAgent, forHTTPHeaderField: "User-Agent")
 
@@ -281,7 +289,7 @@ class NetworkManager {
                     #if targetEnvironment(simulator)
                     let decodedData = try! JSONDecoder().decode(U?.self, from: data)
                     #else
-                    let decodedData = try? JSONDecoder().decode(U?.self, from: data)
+                    let decodedData = try! JSONDecoder().decode(U?.self, from: data)
                     #endif
                     LogManager.log("data has been decoded", session: sesh)
                     guard let decodedData else {

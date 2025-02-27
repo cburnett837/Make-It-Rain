@@ -8,7 +8,10 @@
 import SwiftUI
 import Charts
 
-struct AnalysisSheet2: View {
+struct AnalysisSheet: View {
+    #if os(macOS)
+    @Environment(\.dismiss) private var dismiss
+    #endif
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
     @Environment(CalendarModel.self) private var calModel
     @Environment(EventModel.self) private var eventModel
@@ -53,7 +56,15 @@ struct AnalysisSheet2: View {
         VStack {
             SheetHeader(
                 title: "Analyze Categories",
-                close: { showAnalysisSheet = false },
+                close: {
+                    #if os(iOS)
+                    withAnimation {
+                        showAnalysisSheet = false
+                    }
+                    #else
+                    dismiss()
+                    #endif
+                },
                 view1: { showCategorySheetButton }
             )
             .padding()
@@ -438,274 +449,3 @@ struct AnalysisSheet2: View {
     
     
 }
-
-
-
-
-
-
-//
-//struct AnalysisSheet: View {
-//    @AppStorage("useWholeNumbers") var useWholeNumbers = false
-//    @Environment(CalendarModel.self) private var calModel
-//    @Binding var showAnalysisSheet: Bool
-//    
-//    
-//    struct CumTotal {
-//        var day: Int
-//        var total: Double
-//    }
-//    
-//    struct ChartData: Identifiable {
-//        let id = UUID()
-//        let amount: Double
-//        let type: String
-//        //let thing: String
-//    }
-//
-//    
-//    var transactions: [CBTransaction] {
-//        calModel.justTransactions
-//            .filter { $0.category?.id == calModel.sCategory?.id }
-//            .filter { $0.dateComponents?.month == calModel.sMonth.actualNum }
-//            .sorted { $0.dateComponents?.day ?? 0 < $1.dateComponents?.day ?? 0 }
-//    }
-//    
-//    var totalSpent: Double {
-//        transactions
-//            .map { $0.payMethod?.accountType == .credit ? $0.amount * -1 : $0.amount }
-//            .reduce(0.0, +)
-//    }
-//    
-//    var budget: Double {
-//        calModel.justBudgets
-//            .filter { $0.month == calModel.sMonth.actualNum }
-//            .filter { $0.category?.id == calModel.sCategory?.id }
-//            .first?
-//            .amount ?? 0.0
-//            
-//    }
-//    
-//    @State private var cumTotals: [CumTotal] = []
-//    @State private var showCategorySheet = false
-//
-//    
-//    var body: some View {
-//        @Bindable var calModel = calModel
-//        VStack {
-//            
-//            SheetHeader(title: "Analyze \(calModel.sCategory?.title ?? "N/A")", close: {
-//                showAnalysisSheet = false
-//            }, action1: {
-//                showCategorySheet = true
-//            }, image1: "list.bullet")
-//                            
-//            .padding()
-//            
-//            Divider()
-//                        
-//            List {
-//                Section {
-//                    HStack {
-//                        Text("Total Items:")
-//                        Spacer()
-//                        Text("\(transactions.count)")
-//                    }
-//                    
-//                    HStack {
-//                        Text("Over/Under:")
-//                        Spacer()
-//                        Text((budget - (totalSpent * -1)).currencyWithDecimals(useWholeNumbers ? 0 : 2))
-//                            .foregroundStyle(budget - (totalSpent * -1) < 0 ? .red : .green)
-//                    }
-//                    
-//                    chartSection
-//                } header: {
-//                    Text("Details")
-//                }
-//                                    
-//                ForEach(calModel.sMonth.days) { day in
-//                    let doesHaveTransactions = transactions.filter {$0.dateComponents?.day == day.date?.day}.count > 0
-//                    let dailyTotal = transactions.filter {$0.dateComponents?.day == day.date?.day}.map {$0.amount}.reduce(0.0, +)
-//                    
-//                    
-//                    if day.date?.day == AppState.shared.todayDay && day.date?.month == AppState.shared.todayMonth && day.date?.year == AppState.shared.todayYear {
-//                        Section {
-//                            
-//                            if doesHaveTransactions {
-//                                ForEach(transactions.filter {$0.dateComponents?.day == day.date?.day}) { trans in
-//                                    HStack(alignment: .circleAndTitle, spacing: 4) {
-//                                        VStack(alignment: .leading, spacing: 2) {
-//                                            Text(trans.title)
-//                                                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-//                                            HStack(spacing: 4) {
-//                                                Circle()
-//                                                    .frame(width: 6, height: 6)
-//                                                    .foregroundStyle(trans.payMethod?.color ?? .primary)
-//                                                
-//                                                Text(trans.payMethod?.title ?? "")
-//                                                    .foregroundStyle(.gray)
-//                                                    .font(.caption)
-//                                            }
-//                                        }
-//                                        
-//                                        Spacer()
-//                                        
-//                                        Group {
-//                                            if trans.payMethod?.accountType == .credit {
-//                                                Text((trans.amount * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2))
-//                                            } else {
-//                                                Text(trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-//                                            }
-//                                        }
-//                                        .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-//                                    }
-//                                }
-//                            } else {
-//                                EmptyView()
-//                            }
-//                        } header: {
-//                            VStack(alignment: .leading) {
-//                                Text("TODAY")
-//                                    .foregroundStyle(.green)
-//                                if !doesHaveTransactions {
-//                                    Divider()
-//                                        .overlay(.green)
-//                                }
-//                            }
-//                        } footer: {
-//                            if doesHaveTransactions {
-//                                VStack(alignment: .leading) {
-//                                    Text("Daily Total: \(dailyTotal.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
-//                                    Text("Cumulative Total: \((cumTotals.filter { $0.day == day.date!.day }.first?.total ?? 0.0).currencyWithDecimals(useWholeNumbers ? 0 : 2))")
-//                                }
-//                            }
-//                        }
-//                    } else {
-//                        if doesHaveTransactions {
-//                            Section {
-//                                ForEach(transactions.filter {$0.dateComponents?.day == day.date?.day}) { trans in
-//                                    HStack(alignment: .circleAndTitle, spacing: 4) {
-//                                        VStack(alignment: .leading, spacing: 2) {
-//                                            Text(trans.title)
-//                                                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-//                                            HStack(spacing: 4) {
-//                                                Circle()
-//                                                    .frame(width: 6, height: 6)
-//                                                    .foregroundStyle(trans.payMethod?.color ?? .primary)
-//                                                
-//                                                Text(trans.payMethod?.title ?? "")
-//                                                    .foregroundStyle(.gray)
-//                                                    .font(.caption)
-//                                            }
-//                                        }
-//                                        
-//                                        Spacer()
-//                                        
-//                                        Group {
-//                                            if trans.payMethod?.accountType == .credit {
-//                                                Text((trans.amount * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2))
-//                                            } else {
-//                                                Text(trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-//                                            }
-//                                        }
-//                                        .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-//                                    }
-//                                }
-//                            } header: {
-//                                Text(day.date?.string(to: .monthDayShortYear) ?? "")
-//                            } footer: {
-//                                VStack(alignment: .leading) {
-//                                    Text("Daily Total: \(dailyTotal.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
-//                                    Text("Cumulative Total: \((cumTotals.filter { $0.day == day.date!.day }.first?.total ?? 0.0).currencyWithDecimals(useWholeNumbers ? 0 : 2))")
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//        .task {
-//            analyzeTransactions()
-//        }
-//        .sheet(isPresented: $showCategorySheet) {
-//            //MultiCategorySheet(categories: $calModel.sCategoriesForAnalysis)
-//            CategorySheet(category: $calModel.sCategory)
-//        }
-//        .onChange(of: calModel.sCategory) { oldValue, newValue in
-//            analyzeTransactions()
-//        }
-//        
-//    }
-//    
-//    
-//    
-//    var chartSection: some View {
-//        Group {
-//            let data: [ChartData] = [
-//                ChartData(amount: budget, type: "Budget"),
-//                ChartData(amount: totalSpent * -1, type: "Expenses")
-//            ]
-//            
-//            Chart(data) { metric in
-//                BarMark(
-//                    x: .value("Amount", metric.type == "Budget" && metric.amount == 0 ? data[1].amount : metric.amount),
-//                    y: .value("Key", metric.type)
-//                )
-//                .foregroundStyle(by: .value("Shape Color", metric.type))
-//                .annotation(position: .overlay, alignment: .center) {
-//                    HStack {
-//                        if metric.type == "Budget" && metric.amount == 0 {
-//                            Text("No Budget Set")
-//                                .italic(true)
-//                                .foregroundStyle(.gray)
-//                        } else {
-//                            Text(metric.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-//                        }
-//                        
-//                        Spacer()
-//                    }
-//                }
-//            }
-//            .chartYAxis(.hidden)
-//            .chartForegroundStyleScale([
-//                "Budget": data[0].amount == 0.0 ? .clear : .gray,
-//                "Expenses": totalSpent * -1 > budget ? .red : .green
-//            ])
-//        }
-//            
-//        
-//    }
-//    
-//    
-//    
-//    
-//    func analyzeTransactions() {
-//        cumTotals.removeAll()
-//        
-//        var total: Double = 0.0
-//        calModel.sMonth.days.forEach { day in
-//            let doesHaveTransactions = transactions.filter {$0.dateComponents?.day == day.date?.day}.count > 0
-//            let dailyTotal = transactions
-//                .filter { $0.dateComponents?.day == day.date?.day }
-//                .map { $0.payMethod?.accountType == .credit ? $0.amount * -1 : $0.amount }
-//                .reduce(0.0, +)
-//            
-//            
-//            if doesHaveTransactions {
-//                total += dailyTotal
-//                cumTotals.append(CumTotal(day: day.date!.day, total: total))
-//            }
-//
-//        }
-//    }
-//    
-//    
-//}
-//
-//
-//
-//
-//
-//
-

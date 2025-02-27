@@ -9,6 +9,8 @@ import SwiftUI
 
 struct CategoryMenu<Content: View>: View {
     @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
+    @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
+
     
     @Environment(CalendarModel.self) private var calModel
     @Environment(CategoryModel.self) private var catModel
@@ -36,6 +38,15 @@ struct CategoryMenu<Content: View>: View {
         self.saveOnChange = saveOnChange
         self.content = content()
         self.menuItemOnly = menuItemsOnly
+    }
+    
+    var sortedCategories: Array<CBCategory> {
+        return catModel.categories
+            .sorted {
+                categorySortMode == .title
+                ? $0.title.lowercased() < $1.title.lowercased()
+                : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
+            }
     }
     
     
@@ -69,7 +80,7 @@ struct CategoryMenu<Content: View>: View {
                 }
             }
                             
-            ForEach(catModel.categories) { cat in
+            ForEach(sortedCategories) { cat in
                 Button {
                     if saveOnChange && trans != nil {
                         trans!.log(field: .category, old: trans!.category?.id, new: cat.id)

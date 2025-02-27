@@ -200,22 +200,7 @@ struct RepeatingTransactionView: View {
                 focusedField = 0
             }
             #endif
-            
-            
         }
-        .alert("Delete \"\(repTransaction.title)\"?", isPresented: $showDeleteAlert) {
-            Button("Delete", role: .destructive) {
-                Task {
-                    dismiss()
-                    await repModel.delete(repTransaction, andSubmit: true)
-                }
-            }
-            
-            Button("Cancel", role: .cancel) {
-                showDeleteAlert = false
-            }
-        }
-        
         
         .confirmationDialog("Delete \"\(repTransaction.title)\"?", isPresented: $showDeleteAlert, actions: {
             Button("Yes", role: .destructive) {

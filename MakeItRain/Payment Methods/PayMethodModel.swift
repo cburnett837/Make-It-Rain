@@ -10,6 +10,7 @@ import Foundation
 @MainActor
 @Observable
 class PayMethodModel {
+    static let shared = PayMethodModel()
     var isThinking = false
     
     var paymentMethodEditID: Int?

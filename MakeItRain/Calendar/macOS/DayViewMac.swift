@@ -88,17 +88,13 @@ struct DayViewMac: View {
                     //Spacer()
                     HStack {
                         Spacer()
-                        //eodView(eodAmount: day.eodTotal)
-                                                
-                        let helpDescription = calModel.sPayMethod?.accountType == .credit || calModel.sPayMethod?.accountType == .unifiedCredit
-                        ? "Amount remaining before hitting your \(calModel.sPayMethod?.limit?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-") limit"
-                        : "Remaining balance before hitting $0.00"
+                        //eodView(eodAmount: day.eodTotal)                                                                        
                                                 
                         Text(day.eodTotal.currencyWithDecimals(useWholeNumbers ? 0 : 2))
                             .font(.title3)
                             .foregroundColor(eodColor)
                             .padding(.trailing, 2)
-                            .help(helpDescription)
+                            .help(createEodHelpDescription())
                             //.questionCursor()
                     }
                 }
@@ -245,6 +241,40 @@ struct DayViewMac: View {
             .padding(.horizontal, 8)
             .padding(.bottom, 10)
             .padding(.top, 10)
+    }
+    
+    
+    func createEodHelpDescription() -> String {
+        let creditEodView = CreditEodView.fromString(UserDefaults.standard.string(forKey: "creditEodView") ?? "")
+        
+        if calModel.sPayMethod?.accountType == .credit {
+            
+            switch creditEodView {
+            case .availableCredit:
+                return "Credit available out of limit of \(calModel.sPayMethod?.limit?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-")"
+            case .remainingBalance:
+                return "Remaining balance before hitting $0.00"
+            }
+            
+        } else if calModel.sPayMethod?.accountType == .unifiedCredit {
+            switch creditEodView {
+            case .availableCredit:
+                
+                let cumulativeLimits = PayMethodModel.shared
+                    .paymentMethods
+                    .filter { $0.accountType == .credit }
+                    .map { $0.limit ?? 0.0 }
+                    .reduce(0.0, +)
+                
+                
+                return "Credit available out of limit of \(cumulativeLimits.currencyWithDecimals(useWholeNumbers ? 0 : 2))"
+            case .remainingBalance:
+                return "Remaining balance before hitting $0.00"
+            }
+            
+        } else {
+            return "Remaining balance before hitting $0.00"
+        }
     }
 }
 

@@ -22,6 +22,8 @@ struct CalendarViewPhone: View {
     @AppStorage("threshold") var threshold = "500.0"
     @AppStorage("phoneLineItemDisplayItem") var phoneLineItemDisplayItem: PhoneLineItemDisplayItem = .both
     
+    @State private var currentPhoneLineItemDisplayItem = PhoneLineItemDisplayItem.both
+    
         
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
@@ -31,6 +33,7 @@ struct CalendarViewPhone: View {
     @Environment(EventModel.self) private var eventModel
     
     //@State private var transEditID: Int?
+    let enumID: NavDestination
     @Binding var showSearchBar: Bool
     @Binding var selectedDay: CBDay?
     var focusedField: FocusState<Int?>.Binding
@@ -89,6 +92,10 @@ struct CalendarViewPhone: View {
     @State private var transHeight: CGFloat = 0
     
     @State private var showFitTransactions = false
+    
+    @State private var visibleDays: Array<Int> = []
+    
+    @State private var scrollToComplete = false
 
     
     var body: some View {
@@ -97,10 +104,18 @@ struct CalendarViewPhone: View {
         //@Bindable var vm = vm
         @Bindable var calModel = calModel
         
-        /// The geomerty reader is needed for the keyboard avoidance
+        /// The geometry reader is needed for the keyboard avoidance
         
         Group {
             calendarView
+                .opacity((calModel.sMonth.num == 100000 || !scrollToComplete) ? 0 : 1)
+                .overlay(
+                    ProgressView()
+                        .transition(.opacity)
+                        .tint(.none)
+                        .opacity((calModel.sMonth.num == 100000 || !scrollToComplete) ? 1 : 0)
+                )
+                
         }
         .onChange(of: AppState.shared.orientation, { oldValue, newValue in
             if [.faceDown, .faceUp].contains(newValue) {
@@ -121,6 +136,11 @@ struct CalendarViewPhone: View {
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .standardBackground()
         .task {
+//            Task {
+//                calModel.setSelectedMonthFromNavigation(navID: enumID, prepareStartAmount: true)
+//            }
+            
+            
             let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
             selectedDay = targetDay
         }
@@ -219,10 +239,14 @@ struct CalendarViewPhone: View {
         
         
         .sheet(isPresented: $showAnalysisSheet) {
-            AnalysisSheet2(showAnalysisSheet: $showAnalysisSheet)
+            AnalysisSheet(showAnalysisSheet: $showAnalysisSheet)
         }
         .sheet(isPresented: $showCalendarOptionsSheet, onDismiss: {
-            recalculateTransHeight()
+            if currentPhoneLineItemDisplayItem != phoneLineItemDisplayItem {
+                currentPhoneLineItemDisplayItem = phoneLineItemDisplayItem
+                recalculateTransHeight()
+            }
+            
             
         }, content: {
             CalendarOptionsSheet(selectedDay: $selectedDay)
@@ -321,27 +345,54 @@ struct CalendarViewPhone: View {
                                                 transHeight: $transHeight
                                             )
                                             .id(day.dateComponents?.day ?? 0)
+                                            .onAppear {
+                                                visibleDays.append(day.dateComponents?.day ?? 0)
+                                            }
+                                            
                                             /// This is the dividing line
-                                            .overlay(
-                                                Rectangle()
-                                                    .frame(width: nil, height: 2, alignment: .bottom)
-                                                    .foregroundColor(
-                                                        Color(.tertiarySystemFill)
-                                                    ), alignment: .bottom
-                                            )
-//                                            .overlay(
-//                                                Rectangle()
-//                                                    .frame(width: 2, height: nil, alignment: .leading)
-//                                                    .foregroundColor(
-//                                                        Color(.tertiarySystemFill)
-//                                                    ), alignment: .leading
-//                                            )
+                                            .if(AppState.shared.isIpad && day.date != nil) {
+                                                $0.border(Color(.tertiarySystemFill), width: 2)                                                
+                                            }
+                                            
+                                            .if(!AppState.shared.isIpad) {
+                                                $0.overlay(
+                                                    Rectangle()
+                                                        .frame(width: nil, height: 2, alignment: .bottom)
+                                                        .foregroundColor(
+                                                            Color(.tertiarySystemFill)
+                                                        ), alignment: .bottom
+                                                )
+                                            }
+//                                            .if(AppState.shared.isIpad) {
+//                                                $0
+//                                                .overlay(
+//                                                    Rectangle()
+//                                                        .frame(width: 2, height: nil, alignment: .leading)
+//                                                        .foregroundColor(
+//                                                            Color(.tertiarySystemFill)
+//                                                        ), alignment: .leading
+//                                                )
+//                                                .overlay(
+//                                                    Rectangle()
+//                                                        .frame(width: 2, height: nil, alignment: .trailing)
+//                                                        .foregroundColor(
+//                                                            Color(.tertiarySystemFill)
+//                                                        ), alignment: .trailing
+//                                                )
+//                                            }
+                                            
                                             
                                             //.frame(minHeight: geo.size.height / divideBy, alignment: .center)
                                             .frame(minHeight: scrollHeight / divideBy, alignment: .center)
+                                            
                                         }
                                     }
                                 }
+                                
+                                /// This is for when the target scrollTo day is not visible. We first scroll to this so the scroll views goes to the bottom, and then we scroll to the targetDay.
+                                Spacer()
+                                    .frame(height: 1)
+                                    .id(100000)
                             }
                             .scrollIndicators(.hidden)
                             //.transaction { $0.animation = nil }
@@ -370,9 +421,17 @@ struct CalendarViewPhone: View {
                                 Task {
                                     //try? await Task.sleep(nanoseconds: UInt64(1 * Double(NSEC_PER_SEC)))
                                     if calModel.sMonth.actualNum != AppState.shared.todayMonth || calModel.sYear != AppState.shared.todayYear {
+                                        scrollToComplete = true
                                         return
                                     }
+                                    
+                                    /// This is for when the target scrollTo day is not visible. We first scroll to this so the scroll view goes to the bottom, and then we scroll to the targetDay.
+                                    if !visibleDays.contains(AppState.shared.todayDay) {
+                                        scroll.scrollTo(100000, anchor: .top)
+                                    }
                                     scroll.scrollTo(AppState.shared.todayDay, anchor: .top)
+                                    try? await Task.sleep(nanoseconds: UInt64(0.3 * Double(NSEC_PER_SEC)))
+                                    scrollToComplete = true
                                 }
                             }
                         }
@@ -439,9 +498,12 @@ struct CalendarViewPhone: View {
             }
         }
         
-        ToolbarItem(placement: .topBarLeading) {
-            backButton
+        if !AppState.shared.isIpad {
+            ToolbarItem(placement: .topBarLeading) {
+                backButton
+            }
         }
+        
         
         ToolbarItemGroup(placement: .topBarTrailing) {
             @Bindable var calModel = calModel
@@ -630,6 +692,7 @@ struct CalendarViewPhone: View {
     var settingsSheetButton: some View {
         Button {
             //showInfo()
+            currentPhoneLineItemDisplayItem = phoneLineItemDisplayItem
             showCalendarOptionsSheet = true
         } label: {
             Label {
@@ -928,4 +991,5 @@ struct CalendarViewPhone: View {
         )
     }                    
 }
+
 #endif

@@ -7,70 +7,8 @@
 
 import SwiftUI
 
-//#if os(iOS)
-//struct NavLinkPhone: View {
-//    @AppStorage("showIndividualLoadingSpinner") var showIndividualLoadingSpinner = false
-//    
-//    //@Environment(RootViewModelPhone.self) var vm
-//    @Environment(CalendarModel.self) var calModel
-//    @Binding var selectedDay: CBDay?
-//    
-//    let destination: NavDestination
-//    let title: String
-//    let image: String
-//            
-//    var iconColor: Color {
-//        !AppState.shared.downloadedData.contains(destination) && showIndividualLoadingSpinner ? .gray : destination == NavigationManager.shared.selection ? .white : Color.accentColor
-//    }
-//    
-//    
-//    var body: some View {
-//        
-//        
-////        NavigationLink(value: destination) {
-////            Label(
-////                title: {
-////                    Text(title)
-////                },
-////                icon: {
-////                    Image(systemName: image)
-////                }
-////            )
-////        }
-//        //.navRowBackgroundWithSelection(selection: destination)
-//        
-//        Button {
-//            setNavSelection(destination)
-//            if NavDestination.justMonths.contains(destination) {
-//                calModel.setSelectedMonthFromNavigation(navID: destination, prepareStartAmount: true)
-//            }
-//        } label: {
-//            Label(
-//                title: {
-//                    Text(title)
-//                },
-//                icon: {
-//                    Image(systemName: image)
-//                }
-//            )
-//        }
-//        .navRowBackgroundWithSelection(selection: destination)
-//    }
-//    
-//    func setNavSelection(_ selection: NavDestination) {
-//        NavigationManager.shared.selection = selection
-//        //vm.offset = 0
-//        //vm.showMenu = false
-//        selectedDay = nil
-//    }
-//}
-//#endif
-
-
-
-
 #if os(iOS)
-struct NavLinkPhone2: View {
+struct NavLinkPhone: View {
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
     @AppStorage("useGrayBackground") var useGrayBackground = true
         
@@ -92,12 +30,28 @@ struct NavLinkPhone2: View {
 //    }
                 
     var body: some View {
-        NavigationLink(value: destination) {
-            Label(
-                title: { Text(title) },
-                icon: { Image(systemName: image) }
-            )
+        Group {
+            if AppState.shared.isIpad {
+                Button {
+                    NavigationManager.shared.navPath = [destination]
+                } label: {
+                    Label(
+                        title: { Text(title) },
+                        icon: { Image(systemName: image) }
+                    )
+                }
+
+            } else {
+                NavigationLink(value: destination) {
+                    Label(
+                        title: { Text(title) },
+                        icon: { Image(systemName: image) }
+                    )
+                }
+            }
         }
+        
+        
         //.navRowBackgroundWithSelection(selection: destination)
         .rowBackgroundWithSelection(id: destination.rawValue, selectedID: NavigationManager.shared.selection?.rawValue)
         //.listRowBackground(backgroundColor)

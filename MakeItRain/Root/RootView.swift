@@ -44,7 +44,7 @@ struct RootView: View {
             #if os(macOS)
             RootViewMac()
             #else
-            RootViewPhone2(selectedDay: $selectedDay)
+            RootViewPhone(selectedDay: $selectedDay)
                 //.environment(iPhoneVm)
                 
             #endif
@@ -79,12 +79,15 @@ struct RootView: View {
         #if os(macOS)
         /// Set ``sMonth`` in ``CalendarModel`` so the model is aware
         .onChange(of: navManager.selection, { oldValue, newValue in
+            calModel.sMonth = CBMonth(num: 100000)
             print("onChange(of: navManager.selection)")
             calModel.hilightTrans = nil
             
             if let selection = navManager.selection {
                 if NavDestination.justMonths.contains(selection) {
-                    calModel.setSelectedMonthFromNavigation(navID: selection, prepareStartAmount: true)
+                    Task {
+                        calModel.setSelectedMonthFromNavigation(navID: selection, prepareStartAmount: true)
+                    }
                 }
             }
         })
@@ -93,6 +96,10 @@ struct RootView: View {
         #if os(iOS)
         /// Set ``sMonth`` in ``CalendarModel`` so the model is aware
         .onChange(of: navManager.navPath) { old, new in
+            //print("PATH CHANGED")
+            /// A month with the num of 100000 will show a loading spinner on the calendarView while it loads its line item views.
+            calModel.sMonth = CBMonth(num: 100000)
+            
             if let newPath = navManager.navPath.last {
                 /// I had this commented out, but put it back on 1/2/25 - I think it's needed for visuals only on iOS.
                 navManager.selection = newPath
@@ -107,7 +114,11 @@ struct RootView: View {
                             SwipeToChangeMonthsTip.didChangeMonthViaNavList.sendDonation()
                         }
                         
-                        calModel.setSelectedMonthFromNavigation(navID: newPath, prepareStartAmount: true)
+                        /// This has to be in a task because months with a large number of line items take a while to load.
+                        /// If we don't have this in a task, the nav link will freeze until the calendar view is fully rendered.
+                        Task {
+                            calModel.setSelectedMonthFromNavigation(navID: newPath, prepareStartAmount: true)
+                        }
                         
                         /// Gotta have a selectedDay for the editing of a transaction. Since one is not always used in details view, set to the current day if in the current month, otherwise set to the first of the month.
                         let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
@@ -118,6 +129,11 @@ struct RootView: View {
                 }
             } else {
                 navManager.selection = nil
+//                Task {
+//                    try? await Task.sleep(nanoseconds: UInt64(0.3 * Double(NSEC_PER_SEC)))
+//                    calModel.sMonth = CBMonth(num: 100000)
+//                    
+//                }
             }
         }
         #endif
@@ -182,6 +198,8 @@ struct RootView: View {
             }
         }
         
+        
+        #if os(macOS)
         // MARK: - Handling Lifecycles (Mac)
         .onChange(of: AppState.shared.macWokeUp) { oldValue, newValue in
             if newValue {
@@ -210,5 +228,6 @@ struct RootView: View {
         
         //.backgroundStyle(.background)
         //.background(Color.totalDarkGray)
+        #endif
     }
 }

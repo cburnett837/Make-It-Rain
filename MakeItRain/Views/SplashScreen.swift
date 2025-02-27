@@ -12,7 +12,7 @@ import SpriteKit
 struct SplashScreen: View {
     @State private var logoScale: Double = 1
     @State private var titleProgress: CGFloat = 0
-    
+    //@State private var hang = ""
     
     var body: some View {
         ZStack {
@@ -40,6 +40,13 @@ struct SplashScreen: View {
                     .textRenderer(TitleTextRenderer(progress: titleProgress))
                     
                 Spacer()
+                
+                //Text(hang)
+                
+//                Button("Hang") {
+//                    hang = UUID().uuidString
+//                }
+//                .buttonStyle(.borderedProminent)
             }
 //            .task {
 //                withAnimation(.easeIn(duration: 2)) {

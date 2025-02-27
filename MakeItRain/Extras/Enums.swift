@@ -349,6 +349,18 @@ enum PhoneLineItemDisplayItem: String {
     }
 }
 
+enum CreditEodView: String {
+    case availableCredit, remainingBalance
+    
+    static func fromString(_ theString: String) -> Self {
+        switch theString {
+        case "availableCredit": return .availableCredit
+        case "remainingBalance": return .remainingBalance
+        default: return .remainingBalance
+        }
+    }
+}
+
 enum PhoneLineItemTotalPosition: String {
     case inline, below
 }

@@ -113,7 +113,7 @@ struct ResetMonthOptionSheet: View {
                 model.paymentMethods.append(PayMethodRemoveOption(id: $0.id, title: $0.title, transactions: true, startingAmount: true))
             }
         }
-        .alert("Reset \(calModel.sMonth.name) \(String(calModel.sYear))", isPresented: $showResetMonthAlert) {
+        .alert("Reset \(calModel.sMonth.name) \(String(calModel.sMonth.year))", isPresented: $showResetMonthAlert) {
             Button("Reset", role: .destructive) {
                 dismiss()
                 calModel.resetMonth(model)

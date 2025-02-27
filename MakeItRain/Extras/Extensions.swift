@@ -67,8 +67,9 @@ extension URL: @retroactive Identifiable {
 extension Int {
     func withOrdinal() -> String {
         /// Number formatter in ``MakeItRainApp``
-        AppState.shared.numberFormatter.numberStyle = .ordinal
-        let first = AppState.shared.numberFormatter.string(from: NSNumber(value: self))
+        let formatter = AppState.shared.numberFormatter
+        formatter.numberStyle = .ordinal
+        let first = formatter.string(from: NSNumber(value: self))
         return first ?? ""
     }
 }
@@ -306,7 +307,7 @@ extension HorizontalAlignment {
 
 extension Double {
     func currencyWithDecimals(_ decimals: Int) -> String {
-        let formatter = NumberFormatter()
+        let formatter = AppState.shared.numberFormatter
         formatter.numberStyle = .currency
         formatter.currencyCode = "USD"
         formatter.maximumFractionDigits = decimals

@@ -16,11 +16,14 @@ struct ToolbarNowButton: View {
             calModel.sYear = AppState.shared.todayYear
             navManager.selection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
             
-            if let month = calModel.months.filter({ $0.enumID == navManager.selection }).first {
-                calModel.sMonth = month
-            } else {
-                fatalError("Could not determine month")
+            Task {
+                if let month = calModel.months.filter({ $0.enumID == navManager.selection }).first {
+                    calModel.sMonth = month
+                } else {
+                    fatalError("Could not determine month")
+                }
             }
+            
         }
         .toolbarBorder()
         .help("View \(calModel.months.filter { $0.num == AppState.shared.todayMonth }.first?.name ?? String(AppState.shared.todayMonth)) \(String(AppState.shared.todayYear))")

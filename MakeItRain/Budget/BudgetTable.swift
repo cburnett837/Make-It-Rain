@@ -740,15 +740,28 @@ struct BudgetTable: View {
                         //width: .ratio(0.6)
                     )
                     .foregroundStyle(item.category.color)
+                    //.cornerRadius(5)
                     //.clipShape(RoundedRectangle(cornerRadius: 8))
                     
-                    RectangleMark(
-                        x: .value("Amount", item.budget),
+                    let budgetBarAmount = item.budget - ((item.expenses + item.income) * -1) < 0 ? 0 : item.budget - ((item.expenses + item.income) * -1)
+                    
+                    BarMark(
+                        x: .value("Amount", budgetBarAmount),
                         y: .value("Budget", item.category.title)
-                        //width: 4,
-                        //height: .ratio(0.6)
+                        //width: .ratio(0.6)
                     )
-                    .foregroundStyle(.gray)
+                    .foregroundStyle(item.category.color.opacity(0.5))
+                    //.cornerRadius(5)
+                    //.clipShape(RoundedRectangle(cornerRadius: 8))
+                    
+                    
+//                    RectangleMark(
+//                        x: .value("Amount", item.budget),
+//                        y: .value("Budget", item.category.title)
+//                        //width: 4,
+//                        //height: .ratio(0.6)
+//                    )
+//                    .foregroundStyle(.gray)
                     //.clipShape(RoundedRectangle(cornerRadius: 8))
                     
                     

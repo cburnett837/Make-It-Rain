@@ -342,21 +342,13 @@ struct ToolbarCenterView: View {
         if let selection = navManager.selection {
             VStack(spacing: 2) {
                 if [.lastDecember, .january, .february, .march, .april, .may, .june, .july, .august, .september, .october, .november, .december, .nextJanuary].contains(selection) {
-                    
-                    if selection == .lastDecember {
-                        Text((selection.displayName) + " \(calModel.sYear - 1)")
-                            .font(.title)
-                    } else if selection == .nextJanuary {
-                        Text((selection.displayName) + " \(calModel.sYear + 1)")
+                    if calModel.sMonth.num == 100000 {
+                        Text("Loading…")
                             .font(.title)
                     } else {
-                        Text((selection.displayName) + " \(calModel.sYear)")
+                        Text((calModel.sMonth.name) + " \(calModel.sMonth.year)")
                             .font(.title)
                     }
-                    
-//                    if LoadingManager.shared.showLoadingBar {
-//                        ProgressView(value: LoadingManager.shared.downloadAmount, total: 120)
-//                    }
                 } else {
                     Text(selection.displayName)
                         .font(.title)
@@ -371,6 +363,9 @@ struct ToolbarCenterView: View {
 
 
 struct CalendarToolbarTrailing: View {
+    @Environment(\.supportsMultipleWindows) private var supportsMultipleWindows
+    @Environment(\.openWindow) private var openWindow
+    
     @AppStorage("calendarSplitViewPercentage") var calendarSplitViewPercentage = 0.0
     @AppStorage("viewMode") var viewMode = CalendarViewMode.scrollable
     
@@ -395,20 +390,21 @@ struct CalendarToolbarTrailing: View {
             Spacer()
             if AppState.shared.longPollFailed { longPollButton }
             
-            
-            Button {
-                withAnimation {
-                    showFitTransactions = true
-                }
+            if !calModel.fitTrans.filter({ !$0.isAcknowledged }).isEmpty {
                 
-            } label: {
-                Image(systemName: "clock.badge.exclamationmark")
-                    .foregroundStyle(.orange)
+                Button {
+                    openWindow(id: "pendingFitTransactions")
+                    //showFitTransactions = true
+                } label: {
+                    Image(systemName: "clock.badge.exclamationmark")
+                        .foregroundStyle(.orange)
+                }
+                .toolbarBorder()
             }
-            .toolbarBorder()
             
             Button {
-                showAnalysisSheet = true
+                openWindow(id: "analysisSheet")
+                //showAnalysisSheet = true
             } label: {
                 Image(systemName: "brain")
             }
@@ -446,7 +442,7 @@ struct CalendarToolbarTrailing: View {
             .help("Change the search scope to either titles or tags")
         }
         
-        .alert("Reset \(calModel.sMonth.name) \(String(calModel.sYear))", isPresented: $showResetMonthAlert) {
+        .alert("Reset \(calModel.sMonth.name) \(String(calModel.sMonth.year))", isPresented: $showResetMonthAlert) {
             Button("Options", role: .destructive) {
                 showResetOptionsSheet = true
             }
@@ -460,11 +456,11 @@ struct CalendarToolbarTrailing: View {
                 .frame(minWidth: 300, minHeight: 500)
                 .presentationSizing(.fitted)
         }
-        .sheet(isPresented: $showAnalysisSheet) {
-            AnalysisSheet2(showAnalysisSheet: $showAnalysisSheet)
-                .frame(minWidth: 300, minHeight: 500)
-                .presentationSizing(.fitted)
-        }
+//        .sheet(isPresented: $showAnalysisSheet) {
+//            AnalysisSheet(showAnalysisSheet: $showAnalysisSheet)
+//                .frame(minWidth: 300, minHeight: 500)
+//                .presentationSizing(.fitted)
+//        }
         
         .sheet(isPresented: $showFitTransactions) {
             FitTransactionOverlay(showFitTransactions: $showFitTransactions)

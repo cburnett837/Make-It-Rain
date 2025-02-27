@@ -83,14 +83,13 @@
 		FDC26E522D3E86D500B0A97C /* LineItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DCC2D3E86D500B0A97C /* LineItemView.swift */; };
 		FDC26E532D3E86D500B0A97C /* TitleColorMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26E062D3E86D500B0A97C /* TitleColorMenu.swift */; };
 		FDC26E542D3E86D500B0A97C /* NavLinkPhone.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DDC2D3E86D500B0A97C /* NavLinkPhone.swift */; };
-		FDC26E552D3E86D500B0A97C /* RootViewPhone2.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DF62D3E86D500B0A97C /* RootViewPhone2.swift */; };
+		FDC26E552D3E86D500B0A97C /* RootViewPhone.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DF62D3E86D500B0A97C /* RootViewPhone.swift */; };
 		FDC26E562D3E86D500B0A97C /* CBLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DA72D3E86D500B0A97C /* CBLog.swift */; };
 		FDC26E572D3E86D500B0A97C /* DayViewMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DB62D3E86D500B0A97C /* DayViewMac.swift */; };
 		FDC26E582D3E86D500B0A97C /* MultiCategorySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DD62D3E86D500B0A97C /* MultiCategorySheet.swift */; };
 		FDC26E592D3E86D500B0A97C /* CategoriesTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26D9C2D3E86D500B0A97C /* CategoriesTable.swift */; };
 		FDC26E5A2D3E86D500B0A97C /* PayMethodsTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DE52D3E86D500B0A97C /* PayMethodsTable.swift */; };
 		FDC26E5B2D3E86D500B0A97C /* KeywordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DC82D3E86D500B0A97C /* KeywordView.swift */; };
-		FDC26E5C2D3E86D500B0A97C /* RootViewPhone.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DF52D3E86D500B0A97C /* RootViewPhone.swift */; };
 		FDC26E5E2D3E86D500B0A97C /* NavigationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DDA2D3E86D500B0A97C /* NavigationManager.swift */; };
 		FDC26E5F2D3E86D500B0A97C /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DDF2D3E86D500B0A97C /* NotificationManager.swift */; };
 		FDC26E602D3E86D500B0A97C /* SymbolPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DFF2D3E86D500B0A97C /* SymbolPicker.swift */; };
@@ -305,8 +304,7 @@
 		FDC26DF22D3E86D500B0A97C /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		FDC26DF32D3E86D500B0A97C /* RootViewFunctions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootViewFunctions.swift; sourceTree = "<group>"; };
 		FDC26DF42D3E86D500B0A97C /* RootViewMac.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootViewMac.swift; sourceTree = "<group>"; };
-		FDC26DF52D3E86D500B0A97C /* RootViewPhone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootViewPhone.swift; sourceTree = "<group>"; };
-		FDC26DF62D3E86D500B0A97C /* RootViewPhone2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootViewPhone2.swift; sourceTree = "<group>"; };
+		FDC26DF62D3E86D500B0A97C /* RootViewPhone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootViewPhone.swift; sourceTree = "<group>"; };
 		FDC26DF72D3E86D500B0A97C /* ServerCredentials.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerCredentials.swift; sourceTree = "<group>"; };
 		FDC26DF82D3E86D500B0A97C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		FDC26DF92D3E86D500B0A97C /* SettingsViewInsert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewInsert.swift; sourceTree = "<group>"; };
@@ -394,6 +392,26 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		FD07E2532D6E537E00024B11 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				FDC26D9A2D3E86D500B0A97C /* CalendarViewPhone.swift */,
+				FDC26DB72D3E86D500B0A97C /* DayViewPhone.swift */,
+				FDC26DCA2D3E86D500B0A97C /* LineItemMiniView.swift */,
+			);
+			path = iOS;
+			sourceTree = "<group>";
+		};
+		FD07E2542D6E539200024B11 /* macOS */ = {
+			isa = PBXGroup;
+			children = (
+				FDC26D992D3E86D500B0A97C /* CalendarViewMac.swift */,
+				FDC26DB62D3E86D500B0A97C /* DayViewMac.swift */,
+				FDC26E0A2D3E86D500B0A97C /* ToolbarViews.swift */,
+			);
+			path = macOS;
+			sourceTree = "<group>";
+		};
 		FD292E052C9B248B003C18D2 = {
 			isa = PBXGroup;
 			children = (
@@ -479,14 +497,10 @@
 			isa = PBXGroup;
 			children = (
 				FDC26D972D3E86D500B0A97C /* CalendarModel.swift */,
-				FDC26D992D3E86D500B0A97C /* CalendarViewMac.swift */,
-				FDC26D9A2D3E86D500B0A97C /* CalendarViewPhone.swift */,
-				FDC26DB62D3E86D500B0A97C /* DayViewMac.swift */,
-				FDC26DB72D3E86D500B0A97C /* DayViewPhone.swift */,
-				FDC26DCA2D3E86D500B0A97C /* LineItemMiniView.swift */,
-				FDC26DCC2D3E86D500B0A97C /* LineItemView.swift */,
-				FDC26E0A2D3E86D500B0A97C /* ToolbarViews.swift */,
 				FDE4E7D72D56AA0100A883EE /* PhotoModel.swift */,
+				FD07E2542D6E539200024B11 /* macOS */,
+				FD07E2532D6E537E00024B11 /* iOS */,
+				FDC26DCC2D3E86D500B0A97C /* LineItemView.swift */,
 				FD07E24B2D68B53500024B11 /* FitTransactionOverlay.swift */,
 				FD07E24D2D68B5BE00024B11 /* DayOverview.swift */,
 			);
@@ -667,8 +681,7 @@
 				FDC26DF22D3E86D500B0A97C /* RootView.swift */,
 				FDC26DF32D3E86D500B0A97C /* RootViewFunctions.swift */,
 				FDC26DF42D3E86D500B0A97C /* RootViewMac.swift */,
-				FDC26DF52D3E86D500B0A97C /* RootViewPhone.swift */,
-				FDC26DF62D3E86D500B0A97C /* RootViewPhone2.swift */,
+				FDC26DF62D3E86D500B0A97C /* RootViewPhone.swift */,
 				FDC26DDB2D3E86D500B0A97C /* NavLinkMac.swift */,
 				FDC26DDC2D3E86D500B0A97C /* NavLinkPhone.swift */,
 				FDC26DDD2D3E86D500B0A97C /* NavSidebarPhone.swift */,
@@ -961,7 +974,7 @@
 				FDC26E522D3E86D500B0A97C /* LineItemView.swift in Sources */,
 				FDC26E532D3E86D500B0A97C /* TitleColorMenu.swift in Sources */,
 				FDC26E542D3E86D500B0A97C /* NavLinkPhone.swift in Sources */,
-				FDC26E552D3E86D500B0A97C /* RootViewPhone2.swift in Sources */,
+				FDC26E552D3E86D500B0A97C /* RootViewPhone.swift in Sources */,
 				FDE4E7DA2D5A592F00A883EE /* SmartReceiptViews.swift in Sources */,
 				FDC26E562D3E86D500B0A97C /* CBLog.swift in Sources */,
 				FDC26E572D3E86D500B0A97C /* DayViewMac.swift in Sources */,
@@ -969,7 +982,6 @@
 				FDC26E592D3E86D500B0A97C /* CategoriesTable.swift in Sources */,
 				FDC26E5A2D3E86D500B0A97C /* PayMethodsTable.swift in Sources */,
 				FDC26E5B2D3E86D500B0A97C /* KeywordView.swift in Sources */,
-				FDC26E5C2D3E86D500B0A97C /* RootViewPhone.swift in Sources */,
 				FDC26E5E2D3E86D500B0A97C /* NavigationManager.swift in Sources */,
 				FDC26E5F2D3E86D500B0A97C /* NotificationManager.swift in Sources */,
 				FDE4E8142D5BF33200A883EE /* UndodoManager.swift in Sources */,
@@ -1181,6 +1193,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MakeItRain/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Take photos for transactions";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Secure your transactions";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Access photos to be able to upload pictures of receipts";
@@ -1227,6 +1240,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MakeItRain/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Take photos for transactions";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Secure your transactions";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Access photos to be able to upload pictures of receipts";

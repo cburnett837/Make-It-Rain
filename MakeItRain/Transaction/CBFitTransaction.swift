@@ -19,16 +19,20 @@ class CBFitTransaction: Codable, Identifiable {
     var amountString: String
     var date: Date?
     var payMethod: CBPaymentMethod?
+    var category: CBCategory?
     
     var isAcknowledged: Bool
     
-    enum CodingKeys: CodingKey { case id, fitid, title, amount, date, is_acknowledged, payment_method }
+    enum CodingKeys: CodingKey { case id, fitid, title, amount, date, is_acknowledged, payment_method, category, device_uuid, user_id, account_id }
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(fitID, forKey: .fitid)
         try container.encode(isAcknowledged ? 1 : 0, forKey: .is_acknowledged)
+        try container.encode(AppState.shared.user?.id, forKey: .user_id)
+        try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
+        try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
     }
     
     required init(from decoder: Decoder) throws {
@@ -37,6 +41,7 @@ class CBFitTransaction: Codable, Identifiable {
         fitID = try container.decode(String.self, forKey: .fitid)
         title = try container.decode(String.self, forKey: .title)
         self.payMethod = try container.decode(CBPaymentMethod?.self, forKey: .payment_method)
+        self.category = try container.decode(CBCategory?.self, forKey: .category)
         
         let amount = try container.decode(String.self, forKey: .amount)
         let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")

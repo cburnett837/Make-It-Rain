@@ -233,6 +233,12 @@ class FuncModel {
                 
                 /// Download viewing month.
                 await downloadViewingMonth(viewingMonth, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
+                
+                //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
+                
+                /// Download fit transactions for Cody.
+                if AppState.shared.user?.id == 1 { await calModel.fetchFitTransactionsFromServer() }
+                
                 /// Download adjacent months.
                 await downloadAdjacentMonths(next: next, prev: prev, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
                 /// Download other months and accessorials.
@@ -249,11 +255,9 @@ class FuncModel {
                 if NavDestination.justAccessorials.contains(currentNavSelection) {
                     await downloadAccessorials(createNewStructs: createNewStructs)
                     await downloadViewingMonth(calModel.sMonth, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
+                    if AppState.shared.user?.id == 1 { await calModel.fetchFitTransactionsFromServer() }
                     await downloadAdjacentMonths(next: next, prev: prev, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
                     await downloadOtherMonths(viewingMonth: calModel.sMonth, next: next, prev: prev, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
-                    if AppState.shared.user?.id == 1 {
-                        await calModel.fetchFitTransactionsFromServer()
-                    }
                 }
             }
         }
@@ -286,9 +290,9 @@ class FuncModel {
         let currentElapsed = CFAbsoluteTimeGetCurrent() - start
         print("🔴It took \(currentElapsed) seconds to fetch the first month")
         
-        withAnimation(.easeOut(duration: 1)) {
+        //withAnimation(.easeOut(duration: 1)) {
             AppState.shared.appShouldShowSplashScreen = false
-        }
+        //}
     }
         
     
@@ -570,6 +574,11 @@ class FuncModel {
                 
                 if let model {
                     if let transactions = model.transactions { self.handleLongPollTransactions(transactions) }
+                    
+                    if AppState.shared.user?.id == 1 {
+                        if let fitTransactions = model.fitTransactions { self.handleLongPollFitTransactions(fitTransactions) }
+                    }
+                    
                     if let startingAmounts = model.startingAmounts { self.handleLongPollStartingAmounts(startingAmounts) }
                     if let repeatingTransactions = model.repeatingTransactions { await self.handleLongPollRepeatingTransactions(repeatingTransactions) }
                     if let payMethods = model.payMethods { await self.handleLongPollPaymentMethods(payMethods) }
@@ -622,6 +631,10 @@ class FuncModel {
             let montObj = calModel.months.filter{ $0.num == month }.first!
             calModel.calculateTotalForMonth(month: montObj)
         }
+    }
+    
+    @MainActor private func handleLongPollFitTransactions(_ transactions: Array<CBFitTransaction>) {
+        calModel.fitTrans = transactions
     }
     
     

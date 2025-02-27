@@ -319,14 +319,7 @@ struct AdvancedSearchView: View {
                     Text(trans.date?.string(to: .monthDayShortYear) ?? "N/A")
                 }
             }
-            .clipped()
-            
-            
-            
-            
-            
-            
-            Text("Hey")
+            .clipped()            
         }
     }
     

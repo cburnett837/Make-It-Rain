@@ -96,7 +96,7 @@ struct CalendarOptionsSheet: View {
             Text("You have already created a budget and populated this month with reoccuring transactions. If you proceed, reoccuring transactions will be duplicated.")
         }
         
-        .alert("Reset \(calModel.sMonth.name) \(String(calModel.sYear))", isPresented: $showResetMonthAlert) {
+        .alert("Reset \(calModel.sMonth.name) \(String(calModel.sMonth.year))", isPresented: $showResetMonthAlert) {
             Button("Options", role: .destructive) {
                 //calModel.resetMonth()
                 showResetOptionsSheet = true

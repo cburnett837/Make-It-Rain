@@ -45,6 +45,7 @@ class AppState {
     var isIpad: Bool {
         UIDevice.current.userInterfaceIdiom == .pad
     }
+
     
     #endif
 

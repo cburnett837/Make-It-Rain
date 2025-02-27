@@ -221,6 +221,12 @@ struct DayViewPhone: View {
     var dailyTransactionList: some View {
         VStack(alignment: .leading, spacing: 2) {
             ForEach(filteredTrans) { trans in
+                                
+//                VStack {
+//                    Text(trans.title)
+//                    Text(trans.amountString)
+//                }
+                
                 LineItemMiniView(
                     transEditID: $transEditID,
                     trans: trans,

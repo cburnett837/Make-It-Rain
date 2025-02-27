@@ -50,6 +50,14 @@ struct CalendarViewMac: View {
                 } else {
                     HStack(spacing: 0) {
                         calendarView
+                            .opacity(calModel.sMonth.num == 100000 ? 0 : 1)
+                            .overlay(
+                                ProgressView()
+                                    .transition(.opacity)
+                                    .tint(.none)
+                                    .opacity(calModel.sMonth.num == 100000 ? 1 : 0)
+                            )
+                        
                             .padding(viewMode == .split ? .horizontal : .horizontal, 15)
                             .if(viewMode == .split) {
                                 $0.frame(minWidth: calendarWidth - (extraViewsWidth / 2))

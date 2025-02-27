@@ -63,7 +63,12 @@ struct MakeItRainApp: App {
     
     init() {
         let calModel = CalendarModel()
-        let payModel = PayMethodModel()
+                
+        /// This is now a singleton because the creditLimits are needed inside the calModel. 2/21/25
+        /// However, views still access this via the environment.
+        let payModel = PayMethodModel.shared
+        //let payModel = PayMethodModel()
+        
         let catModel = CategoryModel()
         let keyModel = KeywordModel()
         let repModel = RepeatingTransactionModel()
@@ -196,6 +201,25 @@ struct MakeItRainApp: App {
         #endif
         
         #if os(macOS)
+        Window("Pending Fit Transactions", id: "pendingFitTransactions") {
+            FitTransactionOverlay(showFitTransactions: .constant(true))
+                .frame(minWidth: 300, minHeight: 200)
+                .environment(calModel)
+                .environment(payModel)
+        }
+        
+        Window("Category Analysis", id: "analysisSheet") {
+            AnalysisSheet(showAnalysisSheet: .constant(true))
+                .frame(minWidth: 300, minHeight: 500)
+                .environment(funcModel)
+                .environment(calModel)
+                .environment(payModel)
+                .environment(catModel)
+                .environment(keyModel)
+                .environment(repModel)
+                .environment(eventModel)
+        }
+        
         Settings {
             SettingsView(showSettings: .constant(false))
                 .frame(maxWidth: 400, minHeight: 600)
@@ -206,7 +230,6 @@ struct MakeItRainApp: App {
                 .environment(keyModel)
                 .environment(repModel)
                 .environment(eventModel)
-                //.environment(tagModel)
         }
         #endif
     }
@@ -289,21 +312,26 @@ struct MakeItRainApp: App {
         let _ = DataManager.shared.save()
     }
         
+    
     func downloadInitial() {
         @Bindable var navManager = NavigationManager.shared
+        /// Set navigation destination to current month
         navManager.selection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
-        
         navManager.navPath.append(NavDestination.getMonthFromInt(AppState.shared.todayMonth)!)
         LoadingManager.shared.showInitiallyLoadingSpinner = true
                     
         funcModel.refreshTask = Task {
+            /// populate all months with their days.
             calModel.prepareMonths()
             if let selection = navManager.selection {
+                /// set the calendar model to use the current month (ignore starting amounts and calculations)
                 calModel.setSelectedMonthFromNavigation(navID: selection, prepareStartAmount: false)
+                /// download everything, and populate the days in the respective months with transactions.
                 await funcModel.downloadEverything(setDefaultPayMethod: true, createNewStructs: true, refreshTechnique: .viaInitial)
             }
         }
     }
+    
     
     private func setupTips() throws {
         // Show all defined tips in the app.

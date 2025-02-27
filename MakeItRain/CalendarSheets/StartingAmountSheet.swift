@@ -30,7 +30,7 @@ struct StartingAmountSheet: View {
         return payModel.paymentMethods.filter { $0.accountType == .cash || $0.accountType == .checking }
     }
     
-    var creditMethod: [CBPaymentMethod] {
+    var creditMethods: [CBPaymentMethod] {
         payModel.paymentMethods.filter { $0.accountType == .credit }
     }
     
@@ -62,12 +62,12 @@ struct StartingAmountSheet: View {
                         }
                     }
                                         
-                    if !creditMethod.isEmpty {
+                    if !creditMethods.isEmpty {
                         Section("Credit") {
-                            ForEach(creditMethod.startIndex..<creditMethod.endIndex, id: \.self) { i in
+                            ForEach(creditMethods.startIndex..<creditMethods.endIndex, id: \.self) { i in
                                 let focusID = i + cashMethods.count
-                                let amount = calModel.sMonth.startingAmounts.filter { $0.payMethod.id == creditMethod[i].id }.first
-                                StartingAmountLine(startingAmount: amount!, payMethod: creditMethod[i], focusID: focusID)
+                                let amount = calModel.sMonth.startingAmounts.filter { $0.payMethod.id == creditMethods[i].id }.first
+                                StartingAmountLine(startingAmount: amount!, payMethod: creditMethods[i], focusID: focusID)
                             }
                         }
                     }
@@ -75,7 +75,7 @@ struct StartingAmountSheet: View {
                     if !otherMethods.isEmpty {
                         Section("Other") {
                             ForEach(otherMethods.startIndex..<otherMethods.endIndex, id: \.self) { i in
-                                let focusID = i + cashMethods.count + creditMethod.count
+                                let focusID = i + cashMethods.count + creditMethods.count
                                 let amount = calModel.sMonth.startingAmounts.filter { $0.payMethod.id == otherMethods[i].id }.first
                                 StartingAmountLine(startingAmount: amount!, payMethod: otherMethods[i], focusID: focusID)
                             }

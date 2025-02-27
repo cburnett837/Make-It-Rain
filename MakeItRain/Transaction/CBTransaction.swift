@@ -241,7 +241,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         //self.action = .add
         self.factorInCalculations = true
         self.payMethod = fitTrans.payMethod
-        //self.category = eventTrans.category
+        self.category = fitTrans.category
         self.date = fitTrans.date
         self.color = .primary
         self.active = true

@@ -9,7 +9,9 @@ import Foundation
 import SwiftUI
 
 struct FitTransactionOverlay: View {
-    @Environment(\.dismiss) var dismiss
+    #if os(macOS)
+    @Environment(\.dismiss) private var dismiss
+    #endif
     @Environment(CalendarModel.self) private var calModel
     @Environment(PayMethodModel.self) private var payModel
     
@@ -30,23 +32,28 @@ struct FitTransactionOverlay: View {
                 VStack(spacing: 0) {
                     Divider()
                     
-                    if calModel.fitTrans.isEmpty {
+                    if calModel.fitTrans.filter({ !$0.isAcknowledged }).isEmpty {
                         ContentUnavailableView("No Fit Transactions", systemImage: "bag.fill.badge.questionmark")
                     } else {
                         VStack(spacing: 0) {
                             ForEach(calModel.fitTrans.filter { !$0.isAcknowledged }) { trans in
                                 VStack(spacing: 0) {
                                     HStack {
-                                        VStack(alignment: .leading) {
+                                        VStack(alignment: .leading, spacing: 0) {
                                             
                                             HStack(spacing: 0) {
-                                                CircleDot(color: trans.payMethod?.color, width: 10)
+                                                CircleDot(color: trans.category?.color, width: 10)
                                                 Text(trans.title)
                                             }
                                             
-                                            Text(trans.amountString)
-                                                .foregroundStyle(.gray)
-                                                .font(.caption2)
+                                            HStack(spacing: 0) {
+                                                CircleDot(color: trans.payMethod?.color, width: 10)
+                                                Text(trans.amountString)
+                                                    .foregroundStyle(.gray)
+                                                    .font(.footnote)
+                                            }
+                                            
+                                            
                                             Text(trans.date?.string(to: .monthDayShortYear) ?? "N/A")
                                                 .foregroundStyle(.gray)
                                                 .font(.caption2)
@@ -89,10 +96,12 @@ struct FitTransactionOverlay: View {
                                             }
                                         }
                                         .buttonStyle(.borderedProminent)
-                                        .tint(.orange)
+                                        .tint(.gray
+                                        )
                                     }
                                     
                                     Divider()
+                                        .padding(.vertical, 2)
                                 }
                                 .listRowInsets(EdgeInsets())
                             }
@@ -122,7 +131,21 @@ struct FitTransactionOverlay: View {
         SheetHeader(
             title: "Pending Fit Transactions",
             close: {
-                withAnimation { showFitTransactions = false }
+                #if os(iOS)
+                withAnimation {
+                    showFitTransactions = false
+                }
+                #else
+                dismiss()
+                #endif
+            },
+            view1: {
+                Button {
+                    Task { await calModel.fetchFitTransactionsFromServer() }
+                } label: {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                }
+
             }
         )
         .padding()

@@ -866,14 +866,22 @@ struct TransactionEditView: View {
                 .background(.clear)
                 .frame(minHeight: 100)
                 .focused($focusedField, equals: showTrackingOrderAndUrlFields ? 5 : 2)
+                #if os(iOS)
                 .offset(y: -10)
+                #else
+                .offset(y: 1)
+                #endif
                 .overlay {
                     Text("Notes…")
                         .foregroundStyle(.gray)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                         .opacity(!trans.notes.isEmpty || focusedField == (showTrackingOrderAndUrlFields ? 5 : 2) ? 0 : 1)
                         .allowsHitTesting(false)
+                        #if os(iOS)
                         .padding(.top, -2)
+                        #else
+                        .offset(y: -1)
+                        #endif
                         .padding(.leading, 0)
                 }
         }
@@ -1150,11 +1158,11 @@ struct TransactionEditView: View {
                     }
                 }
             }
-            #if os(iOS)
             .photosPicker(isPresented: $showPhotosPicker, selection: $calModel.imagesFromLibrary, matching: .images, photoLibrary: .shared())
             .onChange(of: showPhotosPicker) { oldValue, newValue in
                 if !newValue { calModel.uploadPictures() }
             }
+            #if os(iOS)
             .fullScreenCover(isPresented: $showCamera) {
                 AccessCameraView(selectedImage: $calModel.imageFromCamera)
                     .background(.black)

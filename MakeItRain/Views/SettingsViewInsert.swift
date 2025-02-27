@@ -15,6 +15,7 @@ struct SettingsViewInsert: View {
     @AppStorage("phoneLineItemDisplayItem") var phoneLineItemDisplayItem: PhoneLineItemDisplayItem = .both
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
     @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
+    @AppStorage("creditEodView") var creditEodView: CreditEodView = .remainingBalance
     
     
     @AppStorage("threshold") var threshold: Double = 500.00
@@ -29,6 +30,7 @@ struct SettingsViewInsert: View {
     
     @AppStorage("showHashTagsOnLineItems") var showHashTagsOnLineItems: Bool = true
     @Environment(CategoryModel.self) var catModel
+    @Environment(CalendarModel.self) var calModel
 
     
     @State private var demoDay = CBDay(date: Date())
@@ -50,6 +52,8 @@ struct SettingsViewInsert: View {
                 showShowHashTagToggle
                 incomeColorPicker
             }
+            
+            creditEodPicker
             
             #if os(iOS)
             phoneLineItemDisplay
@@ -363,6 +367,35 @@ struct SettingsViewInsert: View {
                 .foregroundStyle(Color.fromName(incomeColor))
             }
             
+        }
+    }
+    
+    
+    var creditEodPicker: some View {
+        Section {
+            Picker("Display as…", selection: $creditEodView) {
+                Text("Remaining Balance")
+                    .tag(CreditEodView.remainingBalance)
+                Text("Available Credit")
+                    .tag(CreditEodView.availableCredit)
+            }
+            .onChange(of: creditEodView) {
+                calModel.calculateTotalForMonth(month: calModel.sMonth)
+            }
+        } header: {
+            Text("Credit Account EOD's")
+        } footer: {
+            VStack(alignment: .leading) {
+                Group {
+                    Text("If viewing ")
+                    +
+                    Text("credit").italic(true).bold(true)
+                    +
+                    Text(" transactions, choose how the EOD's are displayed.")
+                }
+                .foregroundStyle(.gray)
+                .font(.footnote)
+            }
         }
     }
     

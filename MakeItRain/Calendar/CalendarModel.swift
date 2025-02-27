@@ -1287,7 +1287,7 @@ class CalendarModel {
         //LoadingManager.shared.startDelayedSpinner()
         LogManager.log()
         
-        let repModel = RepeatingAndBudgetSubmissionModel(month: sMonth.num, year: sYear, transactions: trans, budgets: budgets, isTransfer: isTransfer)
+        let repModel = RepeatingAndBudgetSubmissionModel(month: sMonth.actualNum, year: sMonth.year, transactions: trans, budgets: budgets, isTransfer: isTransfer)
         let model = RequestModel(requestType: "add_populated_transactions_and_budgets", model: repModel)
         
         typealias ResultResponse = Result<Array<ReturnIdModel>?, AppError>
@@ -1783,9 +1783,7 @@ class CalendarModel {
                         let theDate = Calendar.current.date(from: components)!
                         //print(theDate)
                         month.days.append(CBDay(date: theDate))
-                    }
-                    
-                    
+                    }                    
                 }
             }
         }
@@ -1811,7 +1809,6 @@ class CalendarModel {
                 .map { $0.amount }
                 .reduce(0.0, +)
             
-            
             //print(month.startingAmounts.map {$0.payMethod.title})
             
             
@@ -1834,11 +1831,20 @@ class CalendarModel {
                 day.eodTotal = currentAmount
             }
             
+            
+            
+            
         } else if theMethod?.accountType == .unifiedCredit {
+            
+            let creditEodView = CreditEodView.fromString(UserDefaults.standard.string(forKey: "creditEodView") ?? "")
+            
+            
             let startingBalance = month.startingAmounts
                 .filter { $0.payMethod.accountType == .credit }
                 .map { $0.amount }
                 .reduce(0.0, +)
+            
+            
             
             let index = month.startingAmounts.firstIndex(where: { $0.payMethod.accountType == .unifiedCredit })
             if let index {
@@ -1846,7 +1852,23 @@ class CalendarModel {
                 month.startingAmounts[index].amountString = startingBalance.currencyWithDecimals(useWholeNumbers ? 0 : 2)
             }
             
-            var currentAmount = startingBalance
+            var currentAmount = 0.0
+            
+            switch creditEodView {
+            case .availableCredit:
+                /// To show available credit.
+                let cumulativeLimits = PayMethodModel.shared
+                    .paymentMethods
+                    .filter { $0.accountType == .credit }
+                    .map { $0.limit ?? 0.0 }
+                    .reduce(0.0, +)
+                
+                currentAmount = cumulativeLimits - startingBalance
+                
+            case .remainingBalance:
+                currentAmount = startingBalance
+            }
+                        
             
             month.days.forEach { day in
                 let amounts = day.transactions
@@ -1855,17 +1877,36 @@ class CalendarModel {
                     .filter { $0.factorInCalculations == true }
                     .map { $0.amount }
                 
-                currentAmount -= amounts.reduce(0.0, +)
+                
+                switch creditEodView {
+                case .availableCredit: currentAmount -= amounts.reduce(0.0, +)
+                case .remainingBalance: currentAmount += amounts.reduce(0.0, +)
+                }
+                
                 day.eodTotal = currentAmount
             }
             
+            
+            
+            
         } else if theMethod?.accountType == .credit {
+            
+            let creditEodView = CreditEodView.fromString(UserDefaults.standard.string(forKey: "creditEodView") ?? "")
+
+            
             let startingBalance = month.startingAmounts
                 .filter { $0.payMethod.id == theMethod?.id }
                 .first
             
             if let startingBalance {
-                var currentAmount = (theMethod?.limit ?? 0.0) - startingBalance.amount
+                
+                var currentAmount = 0.0
+                
+                switch creditEodView {
+                case .availableCredit: currentAmount = (theMethod?.limit ?? 0.0) - startingBalance.amount
+                case .remainingBalance: currentAmount = startingBalance.amount
+                }
+                
                 
                 month.days.forEach { day in
                     let amounts = day.transactions
@@ -1874,12 +1915,21 @@ class CalendarModel {
                         .filter { $0.factorInCalculations == true }
                         .map { $0.amount }
                     
-                    currentAmount -= amounts.reduce(0.0, +)
+                    
+                    switch creditEodView {
+                    case .availableCredit: currentAmount -= amounts.reduce(0.0, +)
+                    case .remainingBalance: currentAmount += amounts.reduce(0.0, +)
+                    }
+                                        
                     day.eodTotal = currentAmount
                 }
             } else {
                 print("COULDNT DETERMINE CURRENT BALANCE")
             }
+            
+            
+            
+            
         } else {
             let startingAmount = month.startingAmounts
                 .filter { $0.payMethod.id == theMethod?.id }
@@ -1901,6 +1951,7 @@ class CalendarModel {
     }
     
     func setSelectedMonthFromNavigation(navID: NavDestination, prepareStartAmount: Bool) {
+        //print("-- \(#function)")
         if let month = months.filter({ $0.enumID == navID }).first {
             sMonth = month
             if prepareStartAmount {
@@ -1926,16 +1977,16 @@ class CalendarModel {
                 for repTrans in repTransactions.filter({ $0.payMethod?.id == meth.id }) {
                     let repID = repTrans.id
                     
-                    var monthID = 0
-                    if sMonth.enumID == .nextJanuary {
-                        monthID = 1
-                    } else if sMonth.enumID == .lastDecember {
-                        monthID = 12
-                    } else {
-                        monthID = sMonth.num
-                    }
+//                    var monthID = 0
+//                    if sMonth.enumID == .nextJanuary {
+//                        monthID = 1
+//                    } else if sMonth.enumID == .lastDecember {
+//                        monthID = 12
+//                    } else {
+//                        monthID = sMonth.num
+//                    }
                                         
-                    let isRelevantToSelectedMonth = !repTrans.when.filter({ $0.active && $0.whenType == .month && $0.monthNum == monthID}).isEmpty
+                    let isRelevantToSelectedMonth = !repTrans.when.filter({ $0.active && $0.whenType == .month && $0.monthNum == sMonth.actualNum}).isEmpty
                     
                     /// Only if the month checkbox in the repeating is checked.
                     if isRelevantToSelectedMonth {
@@ -1996,8 +2047,8 @@ class CalendarModel {
                 if !budgetExists {
                     let budget = CBBudget()
                     budget.id = Helpers.getTempID()
-                    budget.month = sMonth.num
-                    budget.year = sYear
+                    budget.month = sMonth.actualNum
+                    budget.year = sMonth.year
                     budget.amountString = cat.amountString ?? ""
                     budget.category = cat
                     
