@@ -2300,22 +2300,6 @@ class CalendarModel {
                 subtitle: "Both the payment method and date for the receipt were not determined. Would you like to alter them?",
                 symbol: .init(name: "creditcard.trianglebadge.exclamationmark.fill", color: .orange),
                 primaryButton:
-                    AlertConfig.AlertButton(config: .init(text: "Cancel", role: .cancel, function: {
-                    AppState.shared.showToast(
-                        title: "Rejecting \(trans.title)",
-                        subtitle: "\(trans.date?.string(to: .monthDayShortYear) ?? "Date: N/A")",
-                        body: "Payment Method: N/A\n\(trans.amountString)",
-                        symbol: "creditcard.trianglebadge.exclamationmark.fill",
-                        symbolColor: .orange
-                    )
-                    
-                    let trans = self.getTransaction(by: self.pendingSmartTransaction!.id, from: .smartList)
-                    trans.action = .delete
-                    self.saveTransaction(id: self.pendingSmartTransaction!.id, location: .smartList)
-                    self.cleanUpPhotoVariables(includingTrans: true)
-                    self.tempTransactions.removeAll()
-                })),
-                secondaryButton:
                     AlertConfig.AlertButton(config: .init(text: "Save", role: .primary, function: {
                     AppState.shared.closeAlert()
                     
@@ -2330,6 +2314,22 @@ class CalendarModel {
                     self.cleanUpPhotoVariables(includingTrans: true)
                     self.tempTransactions.removeAll()
                     self.pendingSmartTransaction = nil
+                })),
+                secondaryButton:
+                    AlertConfig.AlertButton(config: .init(text: "Cancel", role: .cancel, function: {
+                    AppState.shared.showToast(
+                        title: "Rejecting \(trans.title)",
+                        subtitle: "\(trans.date?.string(to: .monthDayShortYear) ?? "Date: N/A")",
+                        body: "Payment Method: N/A\n\(trans.amountString)",
+                        symbol: "creditcard.trianglebadge.exclamationmark.fill",
+                        symbolColor: .orange
+                    )
+                    
+                    let trans = self.getTransaction(by: self.pendingSmartTransaction!.id, from: .smartList)
+                    trans.action = .delete
+                    self.saveTransaction(id: self.pendingSmartTransaction!.id, location: .smartList)
+                    self.cleanUpPhotoVariables(includingTrans: true)
+                    self.tempTransactions.removeAll()
                 })),
                 views: [
                     AlertConfig.ViewConfig(content: AnyView(SmartReceiptDatePicker())),

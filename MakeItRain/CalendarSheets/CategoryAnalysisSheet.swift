@@ -11,6 +11,7 @@ import Charts
 struct AnalysisSheet: View {
     #if os(macOS)
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.appearsActive) var appearsActive
     #endif
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
     @Environment(CalendarModel.self) private var calModel
@@ -53,7 +54,7 @@ struct AnalysisSheet: View {
     
     var body: some View {
         @Bindable var calModel = calModel
-        VStack {
+        VStack {            
             SheetHeader(
                 title: "Analyze Categories",
                 close: {
@@ -220,12 +221,18 @@ struct AnalysisSheet: View {
             #endif
             //CategorySheet(category: $calModel.sCategory)
         })
-        .onChange(of: showCategorySheet) { oldValue, newValue in
-            if newValue == false {
-                prepareData()
-                //analyzeTransactions()
-            }
+        .onChange(of: showCategorySheet) {
+            if !$1 { prepareData() }
         }
+        
+        #if os(macOS)
+        .onChange(of: appearsActive) {
+            if $1 { prepareData() }
+        }
+//        .onChange(of: calModel.sMonth.transactionTotals) {
+//            prepareData()
+//        }
+        #endif
         
         .sheet(item: $editTrans) { trans in
             TransactionEditView(trans: trans, transEditID: $transEditID, day: transDay!, isTemp: false)
@@ -358,6 +365,7 @@ struct AnalysisSheet: View {
             
         
     }
+    
     
     func graphColors(for data: [ChartData]) -> [Color] {
         var returnColors = [Color]()

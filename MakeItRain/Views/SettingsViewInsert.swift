@@ -46,7 +46,10 @@ struct SettingsViewInsert: View {
     var body: some View {
         Group {
             Section("Options") {
-                paymentMethodIndicatorToggle
+                if phoneLineItemDisplayItem != .both {
+                    paymentMethodIndicatorToggle
+                }
+                
                 useWholeNumbersToggle
                 tightenUpEodTotalsToggle
                 showShowHashTagToggle
@@ -515,9 +518,9 @@ struct DemoDay: View {
                 LineItemMiniView(
                     transEditID: .constant(nil),
                     trans: trans,
-                    day: day,
-                    putBackToBottomPanelViewOnRotate: .constant(false),
-                    transHeight: .constant(40)
+                    day: day
+                    //putBackToBottomPanelViewOnRotate: .constant(false),
+                    //transHeight: .constant(40)
                 )
                 .padding(.vertical, 0)
             }

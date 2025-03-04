@@ -357,7 +357,8 @@ class PayMethodModel {
             AppState.shared.showPaymentMethodNeededSheet = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: {
                 #if os(iOS)
-                NavigationManager.shared.navPath = []
+                //NavigationManager.shared.navPath = []
+                NavigationManager.shared.selection = nil
                 #else
                 NavigationManager.shared.selection = nil
                 #endif

@@ -43,6 +43,8 @@ class AdvancedSearchModel: Encodable {
 
 
 struct AdvancedSearchView: View {
+    @Environment(\.dismiss) var dismiss
+    
     @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
@@ -330,13 +332,15 @@ struct AdvancedSearchView: View {
     #if os(iOS)
     @ToolbarContentBuilder
     func phoneToolbar() -> some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            Button {
-                NavigationManager.shared.navPath.removeLast()
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "chevron.left")
-                    Text("Back")
+        if !AppState.shared.isIpad {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                        Text("Back")
+                    }
                 }
             }
         }

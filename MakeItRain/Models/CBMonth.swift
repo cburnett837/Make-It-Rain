@@ -32,6 +32,14 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
         self.days.flatMap { $0.transactions }
     }
     
+    var transactionCount: Int {
+        justTransactions.count
+    }
+    
+    var transactionTotals: Double {
+        justTransactions.map {$0.amount}.reduce(0.0, +)
+    }
+    
     var dayCount: Int {
         let cal = Calendar.current
         var comps = DateComponents(calendar: cal, year: self.year, month: actualNum)
@@ -75,7 +83,7 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
         case 12:
             return "December"
         case 100000:
-            return "Loading…"
+            return ""
         default:
             return "Improper Month"
         }
@@ -109,7 +117,7 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
         case 12:
             return "Dec"
         case 100000:
-            return "Loading…"
+            return ""
         default:
             return "Improper Month"
         }
@@ -145,6 +153,8 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
             return .december
         case 13:
             return .nextJanuary
+        case 100000:
+            return .placeholderMonth
         default:
             return .january
         }

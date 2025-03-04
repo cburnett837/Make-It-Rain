@@ -31,57 +31,18 @@ struct RootViewMac: View {
                         }
                         
                         Section("Months") {
-                            
-                            //if navManager.selection == .january {
-                            
-                            //if [.january, .lastDecember].contains(navManager.selection ?? .december) {
-                                let lastDec = calModel.months.filter { $0.enumID == .lastDecember }.first!
-                                NavLinkMac(destination: lastDec.enumID, title: lastDec.name, image: "12.circle")
-                                    .italic()
-                                    .dropDestination(for: CBTransaction.self) { droppedTrans, location in
-                                        calModel.dragTarget = nil
-                                        return true
-                                    } isTargeted: { isTargeted in
-                                        if isTargeted {
-                                            withAnimation {
-                                                navManager.selection = NavDestination.getMonthFromInt(lastDec.num)
-                                            }
-                                        }
-                                    }
-                            //}
-                            
-                            
-                            
+                            let lastDec = calModel.months.filter { $0.enumID == .lastDecember }.first!
+                            NavLinkMac(destination: lastDec.enumID, title: lastDec.name, image: "12.circle")
+                                .italic()
+                                                                                    
                             ForEach(calModel.months.filter{![.lastDecember, .nextJanuary].contains($0.enumID)}, id: \.self) { month in
                                 NavLinkMac(destination: month.enumID, title: month.name, image: "\(month.num).circle")
-                                /// Allows dragging a transaction to a new month
-                                    .dropDestination(for: CBTransaction.self) { droppedTrans, location in
-                                        calModel.dragTarget = nil
-                                        return true
-                                    } isTargeted: { isTargeted in
-                                        if isTargeted {
-                                            withAnimation {
-                                                navManager.selection = NavDestination.getMonthFromInt(month.num)
-                                            }
-                                        }
-                                    }
+                                
                             }
-                            
-                            //if [.december, .nextJanuary].contains(navManager.selection ?? .december) {
-                                let nextJan = calModel.months.filter { $0.enumID == .nextJanuary }.first!
-                                NavLinkMac(destination: nextJan.enumID, title: nextJan.name, image: "1.circle")
-                                    .italic()
-                                    .dropDestination(for: CBTransaction.self) { droppedTrans, location in
-                                        calModel.dragTarget = nil
-                                        return true
-                                    } isTargeted: { isTargeted in
-                                        if isTargeted {
-                                            withAnimation {
-                                                navManager.selection = NavDestination.getMonthFromInt(nextJan.num)
-                                            }
-                                        }
-                                    }
-                            //}
+                                                        
+                            let nextJan = calModel.months.filter { $0.enumID == .nextJanuary }.first!
+                            NavLinkMac(destination: nextJan.enumID, title: nextJan.name, image: "1.circle")
+                                .italic()
                         }
                     }
                     
@@ -91,7 +52,7 @@ struct RootViewMac: View {
                         }
                     }
                     
-                    Section("Misc") {
+                    Section("More") {
                         if AppState.shared.methsExist {
                             NavLinkMac(destination: .repeatingTransactions, title: "Reoccuring Transactions", image: "repeat")
                         }
@@ -144,12 +105,15 @@ struct RootViewMac: View {
                 AdvancedSearchView()
                 
             case .analytics:
-                Text("analytics")
+                Text("Analytics")
                 
             case .events:
                 EventsTable()
                 
-            case .none:
+            case .settings:
+                Text("Settings")
+                
+            case .none, .placeholderMonth:
                EmptyView()
             }
         }

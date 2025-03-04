@@ -65,7 +65,7 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         }
     }
     
-    
+    @available(iOSApplicationExtension, unavailable)
     func registerForPushNotifications() {
         notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) { success, error in
             if success {

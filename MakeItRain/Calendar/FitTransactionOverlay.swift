@@ -25,11 +25,10 @@ struct FitTransactionOverlay: View {
             header
             #endif
             ScrollView {
-                #if os(iOS)
-                if AppState.shared.isLandscape { header }
-                #endif
-                
                 VStack(spacing: 0) {
+                    #if os(iOS)
+                    if AppState.shared.isLandscape { header }
+                    #endif
                     Divider()
                     
                     if calModel.fitTrans.filter({ !$0.isAcknowledged }).isEmpty {
@@ -114,7 +113,16 @@ struct FitTransactionOverlay: View {
         #if os(iOS)
         .background {
             //Color.darkGray.ignoresSafeArea(edges: .bottom)
-            Color(.secondarySystemBackground).ignoresSafeArea(edges: .bottom)
+            Color(.secondarySystemBackground)
+                .clipShape(
+                    .rect(
+                        topLeadingRadius: 15,
+                        bottomLeadingRadius: 0,
+                        bottomTrailingRadius: 0,
+                        topTrailingRadius: 15
+                    )
+                )
+                .ignoresSafeArea(edges: .bottom)
         }
         #endif
         

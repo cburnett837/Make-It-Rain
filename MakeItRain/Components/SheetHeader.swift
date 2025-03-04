@@ -86,6 +86,7 @@ struct SheetHeader<Content: View, Content2: View, Content3: View>: View {
             }
             .buttonStyle(.sheetHeader)
             .focusable(false)
+            .keyboardShortcut(.return, modifiers: [.command]) /// Just because I am used to it from the original app.
         }
         .padding(.top, 4)
         //.padding(.trailing, 8)

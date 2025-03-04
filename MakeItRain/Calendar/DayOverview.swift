@@ -36,11 +36,10 @@ struct DayOverviewView: View {
                 header
                 #endif
                 ScrollView {
-                    #if os(iOS)
-                    if AppState.shared.isLandscape { header }
-                    #endif
-                    
                     VStack(spacing: 0) {
+                        #if os(iOS)
+                        if AppState.shared.isLandscape { header }
+                        #endif
                         Divider()
                         
                         if filteredTrans.isEmpty {
@@ -65,7 +64,16 @@ struct DayOverviewView: View {
             #if os(iOS)
             .background {
                 //Color.darkGray.ignoresSafeArea(edges: .bottom)
-                Color(.secondarySystemBackground).ignoresSafeArea(edges: .bottom)
+                Color(.secondarySystemBackground)
+                    .clipShape(
+                        .rect(
+                            topLeadingRadius: 15,
+                            bottomLeadingRadius: 0,
+                            bottomTrailingRadius: 0,
+                            topTrailingRadius: 15
+                        )
+                    )
+                    .ignoresSafeArea(edges: .bottom)
             }
             #endif
             .dropDestination(for: CBTransaction.self) { droppedTrans, location in

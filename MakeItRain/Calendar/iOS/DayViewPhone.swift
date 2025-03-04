@@ -43,7 +43,7 @@ struct DayViewPhone: View {
     @Binding var day: CBDay
     @Binding var selectedDay: CBDay?
     @Binding var showTransferSheet: Bool
-    @Binding var putBackToBottomPanelViewOnRotate: Bool
+    //@Binding var putBackToBottomPanelViewOnRotate: Bool
     @Binding var showPhotosPicker: Bool
     @Binding var showCamera: Bool
     @Binding var overviewDay: CBDay?
@@ -51,6 +51,7 @@ struct DayViewPhone: View {
     
     @State private var showDropActions = false
     @State private var showDailyActions = false
+    @State private var showMoreTrans = false
     
     
     var filteredTrans: [CBTransaction] {
@@ -93,6 +94,7 @@ struct DayViewPhone: View {
                             /// Set `selectedDay` to the same day as the overview day that way any transactions or transfers initiated via the bottom panel will have the date of the bottom panel.
                             /// (Since `TransactionEditView` and `TransferSheet` use `selectedDate` as their default date.)
                             selectedDay = day
+                            
                         }
                     }
                 }
@@ -201,41 +203,125 @@ struct DayViewPhone: View {
         
     var dayNumber: some View {
         Text("\(day.dateComponents?.day ?? 0)")
-            .frame(maxWidth: .infinity)
-            //.foregroundStyle(.primary)
             .contentShape(Rectangle())
             .if(isToday) {
                 $0
                 .bold()
+                .padding(6)
                 .background {
-                    RoundedRectangle(cornerRadius: 5)
+                    Circle()
+                    //RoundedRectangle(cornerRadius: 5)
                         .fill(Color.fromName(appColorTheme).opacity(preferDarkMode ? 1 : 0.7))
-                        .frame(maxWidth: .infinity)
+                        //.frame(maxWidth: .infinity)
                 }
                 .if(!preferDarkMode) {
                     $0.foregroundStyle(.white)
                 }
+                .padding(-6)
             }
+            .padding(.leading, AppState.shared.isIpad ? 6 : 0)
+            .frame(maxWidth: .infinity, alignment: AppState.shared.isIpad ? .leading : .center)
     }
     
     var dailyTransactionList: some View {
         VStack(alignment: .leading, spacing: 2) {
-            ForEach(filteredTrans) { trans in
-                                
-//                VStack {
-//                    Text(trans.title)
-//                    Text(trans.amountString)
-//                }
+            
+            if calModel.sMonth.transactionCount > (calModel.sMonth.dayCount * 5)
+                && filteredTrans.count > 5
+                && phoneLineItemDisplayItem == .both
+            {
+                ForEach(filteredTrans.prefix(5)) { trans in
+                    LineItemMiniView(
+                        transEditID: $transEditID,
+                        trans: trans,
+                        day: day
+                        //putBackToBottomPanelViewOnRotate: $putBackToBottomPanelViewOnRotate,
+                        //transHeight: $transHeight
+                    )
+                                    
+    //                LineItemMiniView2(
+    //                    transEditID: $transEditID,
+    //                    trans: trans,
+    //                    day: day
+    //                )
+                    //.padding(.vertical, 0)
+                }
+                HStack(spacing: 2) {
+                    Canvas { context, size in
+                        let capsuleRect = CGRect(origin: .zero, size: size)
+                        let capsulePath = Path(roundedRect: capsuleRect, cornerRadius: size.height / 2) // Full capsule effect
+                        context.fill(capsulePath, with: .color(.gray))
+                    }
+                    .frame(width: 3)
+                    .padding(.vertical, 2)
+                    
+                    Button {
+                        withAnimation {
+                            showMoreTrans.toggle()
+                        }
+                    } label: {
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text(showMoreTrans ? "Hide…" : "More…")
+                                .font(.caption2)
+                                .foregroundStyle(.gray)
+                                .lineLimit(1)
+                            Text("(\(filteredTrans.count - 5))")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.gray)
+                                .lineLimit(1)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, preferDarkMode ? 2 : 3)
+                .fixedSize(horizontal: false, vertical: true)
                 
-                LineItemMiniView(
-                    transEditID: $transEditID,
-                    trans: trans,
-                    day: day,
-                    putBackToBottomPanelViewOnRotate: $putBackToBottomPanelViewOnRotate,
-                    transHeight: $transHeight
-                )
-                //.padding(.vertical, 0)
+                
+                if showMoreTrans {
+                    ForEach(filteredTrans.suffix(filteredTrans.count - 5)) { trans in
+                        LineItemMiniView(
+                            transEditID: $transEditID,
+                            trans: trans,
+                            day: day
+                            //putBackToBottomPanelViewOnRotate: $putBackToBottomPanelViewOnRotate,
+                            //transHeight: $transHeight
+                        )
+                                        
+        //                LineItemMiniView2(
+        //                    transEditID: $transEditID,
+        //                    trans: trans,
+        //                    day: day
+        //                )
+                        //.padding(.vertical, 0)
+                    }
+                }
+            } else {
+                ForEach(filteredTrans) { trans in
+                    LineItemMiniView(
+                        transEditID: $transEditID,
+                        trans: trans,
+                        day: day
+                        //putBackToBottomPanelViewOnRotate: $putBackToBottomPanelViewOnRotate,
+                        //transHeight: $transHeight
+                    )
+                                    
+    //                LineItemMiniView2(
+    //                    transEditID: $transEditID,
+    //                    trans: trans,
+    //                    day: day
+    //                )
+                    //.padding(.vertical, 0)
+                }
             }
+            
+            
+            
+            
+            
+            
+            
+            
+            
             Spacer()
         }
     }
@@ -286,9 +372,10 @@ struct DayViewPhone: View {
                 Text(day.eodTotal.currencyWithDecimals(2))
             }
         }
+        .padding(.leading, AppState.shared.isIpad ? 8 : 0)
         .font(.caption2)
         .foregroundColor(eodColor)
-        .frame(maxWidth: .infinity, alignment: .center) /// This causes each day to be the same size
+        .frame(maxWidth: .infinity, alignment: AppState.shared.isIpad ? .leading : .center) /// This causes each day to be the same size
         .minimumScaleFactor(0.5)
         .lineLimit(1)
     }

@@ -161,13 +161,13 @@ struct Login: View {
         attemptingLogin = false
         switch type {
         case .email:
-            showMissingEmailAlert = true
+            AppState.shared.showAlert(config: AlertConfig(title: "Email cannot be blank", symbol: .init(name: "envelope", color: .orange)))
         case .password:
-            showMissingPasswordAlert = true
+            AppState.shared.showAlert(config: AlertConfig(title: "Password cannot be blank", symbol: .init(name: "lock", color: .orange)))
         case .invalid:
-            showFailedLoginAlert = true
+            AppState.shared.showAlert(config: AlertConfig(title: "Login Failed", subtitle: "The entered credentials were incorrect", symbol: .init(name: "hand.thumbsdown", color: .red)))
         case .server:
-            showServerErrorAlert = true
+            AppState.shared.showAlert(config: AlertConfig(title: "Server Error", subtitle: "There was a problem connecting to server", symbol: .init(name: "network.slash", color: .red)))
         }
     }
     
@@ -186,7 +186,7 @@ struct Login: View {
         await AuthState.shared.attemptLogin(email: email, password: password)
         
         switch AuthState.shared.error {
-        case .incorrectCredentials: // calling .credentialsIncorrect because credentials can't be revoked at this stage. I mean they can, but this is a better alert.
+        case .incorrectCredentials, .accessRevoked: // calling .credentialsIncorrect because credentials can't be revoked at this stage. I mean they can, but this is a better alert.
             attemptingLogin = false
             activateAlert(.invalid)
             

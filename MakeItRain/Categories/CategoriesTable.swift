@@ -9,6 +9,8 @@ import SwiftUI
 import Algorithms
 
 struct CategoriesTable: View {
+    @Environment(\.dismiss) var dismiss
+    
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
     @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
     
@@ -266,25 +268,42 @@ struct CategoriesTable: View {
     @ToolbarContentBuilder
     func phoneToolbar() -> some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
-            Button {
-                NavigationManager.shared.navPath.removeLast()
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "chevron.left")
-                    Text("Back")
+            if !AppState.shared.isIpad {
+                Button {
+                    dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                        Text("Back")
+                    }
+                }
+            } else {
+                HStack {
+                    ToolbarRefreshButton()
+                    Button {
+                        categoryEditID = UUID().uuidString
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    
+                    sortMenu
+                    //.disabled(catModel.isThinking)
                 }
             }
         }
-        ToolbarItem(placement: .topBarTrailing) {
-            HStack {
-                sortMenu
-                ToolbarRefreshButton()
-                Button {
-                    categoryEditID = UUID().uuidString
-                } label: {
-                    Image(systemName: "plus")
+        
+        if !AppState.shared.isIpad {
+            ToolbarItem(placement: .topBarTrailing) {
+                HStack {
+                    sortMenu
+                    ToolbarRefreshButton()
+                    Button {
+                        categoryEditID = UUID().uuidString
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    //.disabled(catModel.isThinking)
                 }
-                //.disabled(catModel.isThinking)
             }
         }
     }

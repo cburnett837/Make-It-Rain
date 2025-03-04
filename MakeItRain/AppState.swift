@@ -84,7 +84,7 @@ class AppState {
         }
     }
     
-    
+    @available(iOSApplicationExtension, unavailable)
     func alertBasedOnScenePhase(
         title: String,
         subtitle: String? = nil,
@@ -246,94 +246,3 @@ class AppState {
     }
 }
 
-struct AlertConfig {
-    var title: String
-    var subtitle: String?
-    var symbol: SymbolConfig = .init(name: "exclamationmark.triangle.fill", color: .orange)
-    var primaryButton: AlertButton?
-    var secondaryButton: AlertButton?
-    var views: [ViewConfig] = []
-    
-    
-    
-    struct SymbolConfig {
-        var name: String
-        var color: Color? = .primary
-    }
-    
-    struct ViewConfig: Identifiable {
-        var id: UUID = UUID()
-        var content: AnyView
-    }
-    
-    struct ButtonConfig: Identifiable {
-        var id: UUID = UUID()
-        var text: String
-        var role: AlertConfig.ButtonRole? = nil
-        var function: () -> Void
-        var color: Color {
-            switch role {
-            case .cancel, .primary, .some(.none), nil:
-                .primary
-            case .destructive:
-                .red
-            }
-        }
-        var edge: Edge = .trailing
-    }
-    
-    enum ButtonRole {
-        case cancel, destructive, primary, none
-    }
-    
-    
-    struct AlertButton: View {
-        @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
-        var config: ButtonConfig
-        
-        var body: some View {
-            Button {
-                AppState.shared.closeAlert()
-                config.function()
-            } label: {
-                Text(config.text)
-                    .fontWeight(config.role == .primary ? .bold : .regular)
-                    .foregroundStyle(config.role == .destructive ? .red : (preferDarkMode ? .white : .black))
-                    //.padding(.vertical, 14)
-                    //.frame(maxWidth: .infinity)
-                    //.background(config.color/*.gradient*/, in: .rect(cornerRadius: 10))
-            }
-            .buttonStyle(.codyAlert)
-            .clipShape(
-                .rect(
-                    topLeadingRadius: 0,
-                    bottomLeadingRadius: config.edge == .trailing ? 0 : 15,
-                    bottomTrailingRadius: config.edge == .trailing ? 15 : 0,
-                    topTrailingRadius: 0
-                )
-            )
-        }
-        
-    }
-    
-    struct CancelButton: View {
-        @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
-        
-        var body: some View {
-            Button {
-                AppState.shared.closeAlert()
-            } label: {
-                Text("Cancel")
-            }
-            .buttonStyle(.codyAlert)
-            .clipShape(
-                .rect(
-                    topLeadingRadius: 0,
-                    bottomLeadingRadius: 15,
-                    bottomTrailingRadius: 0,
-                    topTrailingRadius: 0
-                )
-            )
-        }
-    }
-}

@@ -14,6 +14,7 @@ import TipKit
 
 struct CalendarViewPhone: View {
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.dismiss) var dismiss
     
     @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
     @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
@@ -34,10 +35,12 @@ struct CalendarViewPhone: View {
     
     //@State private var transEditID: Int?
     let enumID: NavDestination
-    @Binding var showSearchBar: Bool
+    @State private var showSearchBar = false
     @Binding var selectedDay: CBDay?
-    var focusedField: FocusState<Int?>.Binding
-    var searchFocus: FocusState<Int?>.Binding
+    //var focusedField: FocusState<Int?>.Binding
+    //var searchFocus: FocusState<Int?>.Binding
+    
+    @FocusState private var focusedField: Int?
     
     let touchAndHoldPlusButtonTip = TouchAndHoldPlusButtonTip()
     let touchAndHoldMonthToFilterCategoriesTip = TouchAndHoldMonthToFilterCategoriesTip()
@@ -86,7 +89,7 @@ struct CalendarViewPhone: View {
     
     @State private var overviewDay: CBDay?
     
-    @State private var putBackToBottomPanelViewOnRotate = false
+    //@State private var putBackToBottomPanelViewOnRotate = false
     
     @State private var scrollHeight: CGFloat = 0
     @State private var transHeight: CGFloat = 0
@@ -105,192 +108,259 @@ struct CalendarViewPhone: View {
         @Bindable var calModel = calModel
         
         /// The geometry reader is needed for the keyboard avoidance
-        
-        Group {
-            calendarView
-                .opacity((calModel.sMonth.num == 100000 || !scrollToComplete) ? 0 : 1)
-                .overlay(
+        NavigationStack {
+            Group {
+                if calModel.sMonth.enumID == enumID {
+                    calendarView
+                    //Text("Calendar")
+                } else {
                     ProgressView()
+                    //Text("HEY")
                         .transition(.opacity)
                         .tint(.none)
-                        .opacity((calModel.sMonth.num == 100000 || !scrollToComplete) ? 1 : 0)
-                )
-                
-        }
-        .onChange(of: AppState.shared.orientation, { oldValue, newValue in
-            if [.faceDown, .faceUp].contains(newValue) {
-                return
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+//                calendarView
+//                    .opacity(calModel.sMonth.enumID == enumID ? 1 : 0)
+//                    .overlay(
+//                        ProgressView()
+//                            .transition(.opacity)
+//                            .tint(.none)
+//                            .opacity(calModel.sMonth.enumID == enumID ? 0 : 1)
+//                    )
+                    
             }
-            
-            if [.landscapeRight, .landscapeLeft].contains(newValue) {
-                recalculateTransHeight()
-            }
-            
-            if [.portrait, .portraitUpsideDown].contains(newValue)
-            && [.landscapeRight, .landscapeLeft].contains(oldValue) {
-                recalculateTransHeight()
-            }
-        })
-                
-        .onPreferenceChange(MaxSizePreferenceKey.self) { maxDayHeight = $0 }
-        .ignoresSafeArea(.keyboard, edges: .bottom)
-        .standardBackground()
-        .task {
-//            Task {
-//                calModel.setSelectedMonthFromNavigation(navID: enumID, prepareStartAmount: true)
-//            }
-            
-            
-            let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
-            selectedDay = targetDay
-        }
-        .sensoryFeedback(.selection, trigger: transEditID) { $1 != nil }
-        .onShake {
-            Helpers.buzzPhone(.success)
-            withAnimation {
-                //calModel.sCategory = nil
-                calModel.sCategories = []
-                calModel.searchText = ""
-                showSearchBar = false
-                calModel.sPayMethod = payModel.paymentMethods.first(where: { $0.isDefault })
-            }
-        }
-//        .refreshable {
-//            Task {
-//                calModel.prepareForRefresh()
-//                await funcModel.downloadEverything(setDefaultPayMethod: false, createNewStructs: true, refreshTechnique: .viaButton)
-//            }
-//        }
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(true)
-        .toolbar {
-            calendarToolbar()
-        }
-        
-        /// This exists in 2 place - purely for visual effect. See ``LineItemView``
-        /// This is needed (passing the ID instead of the trans) because you can close the popover without actually clicking the close button. So I need somewhere to do cleanup.
-        .onChange(of: transEditID, { oldValue, newValue in
-            print(".onChange(of: transEditID)")
-            /// When `newValue` is false, save to the server. We have to use this because `.popover(isPresented:)` has no onDismiss option.
-            if oldValue != nil && newValue == nil {
-                
-                /// Present tip after trying to add 3 new transactions.
-                let trans = calModel.getTransaction(by: oldValue!, from: .normalList)
-                if trans.action == .add {
-                    TouchAndHoldPlusButtonTip.didTouchPlusButton.sendDonation()
+            .onChange(of: AppState.shared.orientation, { oldValue, newValue in
+                if [.faceDown, .faceUp].contains(newValue) {
+                    return
                 }
                 
+                if [.landscapeRight, .landscapeLeft].contains(newValue) {
+                    recalculateTransHeight()
+                }
                 
-                calModel.saveTransaction(id: oldValue!, day: selectedDay!, eventModel: eventModel)
-                /// - When adding a transaction via a day's context menu, `selectedDay` gets changed to the contexts day.
-                ///   So when closing the transaction, put `selectedDay`back to today so the normal plus button works and the gray box goes back to today.
-                /// - Gotta have a `selectedDay` for the editing of a transaction and transfer sheet.
-                ///   Since one is not always used in details view, set to the current day if in the current month, otherwise set to the first of the month.
-                /// - If you're viewing the bottom panel, reset `selectedDay` to `overviewDay` so any transactions that are added via the bottom panel have the date of the bottom panel.
-                if overviewDay != nil {
-                    selectedDay = overviewDay
-                } else {
-                    let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
+                if [.portrait, .portraitUpsideDown].contains(newValue)
+                && [.landscapeRight, .landscapeLeft].contains(oldValue) {
+                    recalculateTransHeight()
+                }
+            })
+                    
+            .onPreferenceChange(MaxSizePreferenceKey.self) { maxDayHeight = $0 }
+            .ignoresSafeArea(.keyboard, edges: .bottom)
+            .standardBackground()
+//            .task {
+//                calModel.setSelectedMonthFromNavigation(navID: enumID, prepareStartAmount: true)
+//                let month = calModel.months.filter {$0.enumID == enumID}.first!
+//                let targetDay = month.days.filter { $0.dateComponents?.day == (month.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
+//                selectedDay = targetDay
+//            }
+            /// Using this instead of a task because the iPad doesn't reload `CalendarView`. It just changes the data source.
+            .onChange(of: enumID, initial: true) {
+                Task {
+                    calModel.setSelectedMonthFromNavigation(navID: enumID, prepareStartAmount: true)
+                    let month = calModel.months.filter {$0.enumID == enumID}.first!
+                    let targetDay = month.days.filter { $0.dateComponents?.day == (month.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
                     selectedDay = targetDay
                 }
-                /// Keep the model clean, and show alert for a photo that may be taking a long time to upload.
-                calModel.pictureTransactionID = nil
-                                                                
-            } else {
-                editTrans = calModel.getTransaction(by: transEditID!, from: .normalList)
+                
             }
-        })
-        .sheet(item: $editTrans) { trans in
-            TransactionEditView(trans: trans, transEditID: $transEditID, day: selectedDay!, isTemp: false)
-                /// This is needed for the drag to dismiss.
-                .onDisappear { transEditID = nil }
-        }
-        
-        
-        
-        
-        
-//        .sheet(item: $editPaymentMethod, onDismiss: {
-//            paymentMethodEditID = nil
-//            payModel.determineIfUserIsRequiredToAddPaymentMethod()
-//        }, content: { meth in
-//            PayMethodView(payMethod: meth, payModel: payModel, editID: $paymentMethodEditID)
-//            #if os(iOS)
-//            //.presentationDetents([.medium, .large])
-//            #endif
-//        })
-//        .onChange(of: paymentMethodEditID) { oldValue, newValue in
-//            if let newValue {
-//                let payMethod = payModel.getPaymentMethod(by: newValue)
-//                
-//                if payMethod.accountType == .unifiedChecking || payMethod.accountType == .unifiedCredit {
-//                    paymentMethodEditID = nil
-//                    AppState.shared.showAlert("Combined payment methods cannot be edited.")
-//                } else {
-//                    editPaymentMethod = payMethod
-//                }
-//            } else {
-//                payModel.savePaymentMethod(id: oldValue!, calModel: calModel)
-//                payModel.determineIfUserIsRequiredToAddPaymentMethod()
-//            }
-//        }
-        
-        
-        
-        
-        .sheet(isPresented: $showAnalysisSheet) {
-            AnalysisSheet(showAnalysisSheet: $showAnalysisSheet)
-        }
-        .sheet(isPresented: $showCalendarOptionsSheet, onDismiss: {
-            if currentPhoneLineItemDisplayItem != phoneLineItemDisplayItem {
-                currentPhoneLineItemDisplayItem = phoneLineItemDisplayItem
-                recalculateTransHeight()
+            .sensoryFeedback(.selection, trigger: transEditID) { $1 != nil }
+            .onShake {
+                Helpers.buzzPhone(.success)
+                withAnimation {
+                    //calModel.sCategory = nil
+                    calModel.sCategories = []
+                    calModel.searchText = ""
+                    showSearchBar = false
+                    calModel.sPayMethod = payModel.paymentMethods.first(where: { $0.isDefault })
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarBackButtonHidden(true)
+            .interactiveDismissDisabled(true)
+            .toolbar {
+                calendarToolbar()
+            }
+            
+            /// This exists in 2 place - purely for visual effect. See ``LineItemView``
+            /// This is needed (passing the ID instead of the trans) because you can close the popover without actually clicking the close button. So I need somewhere to do cleanup.
+            .onChange(of: transEditID, { oldValue, newValue in
+                print(".onChange(of: transEditID)")
+                /// When `newValue` is false, save to the server. We have to use this because `.popover(isPresented:)` has no onDismiss option.
+                if oldValue != nil && newValue == nil {
+                    
+                    /// Present tip after trying to add 3 new transactions.
+                    let trans = calModel.getTransaction(by: oldValue!, from: .normalList)
+                    if trans.action == .add {
+                        TouchAndHoldPlusButtonTip.didTouchPlusButton.sendDonation()
+                    }
+                                        
+                    calModel.saveTransaction(id: oldValue!, day: selectedDay!, eventModel: eventModel)
+                    /// - When adding a transaction via a day's context menu, `selectedDay` gets changed to the contexts day.
+                    ///   So when closing the transaction, put `selectedDay`back to today so the normal plus button works and the gray box goes back to today.
+                    /// - Gotta have a `selectedDay` for the editing of a transaction and transfer sheet.
+                    ///   Since one is not always used in details view, set to the current day if in the current month, otherwise set to the first of the month.
+                    /// - If you're viewing the bottom panel, reset `selectedDay` to `overviewDay` so any transactions that are added via the bottom panel have the date of the bottom panel.
+                    if overviewDay != nil {
+                        selectedDay = overviewDay
+                    } else {
+                        let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
+                        selectedDay = targetDay
+                    }
+                    /// Keep the model clean, and show alert for a photo that may be taking a long time to upload.
+                    calModel.pictureTransactionID = nil
+                                                                    
+                } else {
+                    editTrans = calModel.getTransaction(by: transEditID!, from: .normalList)
+                }
+            })
+            .sheet(item: $editTrans) { trans in
+                TransactionEditView(trans: trans, transEditID: $transEditID, day: selectedDay!, isTemp: false)
+                    /// This is needed for the drag to dismiss.
+                    .onDisappear { transEditID = nil }
             }
             
             
-        }, content: {
-            CalendarOptionsSheet(selectedDay: $selectedDay)
-        })
-        .sheet(isPresented: $showPaymentMethodSheet, onDismiss: {
-            TouchAndHoldMonthToFilterCategoriesTip.didTouchMonthName.sendDonation()
-        }, content: {
-            PaymentMethodSheet(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all)
-        })
-        .sheet(isPresented: $showCategorySheet) {
-            MultiCategorySheet(categories: $calModel.sCategories)
-        }
-        .sheet(isPresented: $showTransferSheet) {
-            TransferSheet2(date: selectedDay?.date ?? Date())
-        }
-        .fullScreenCover(isPresented: $showBudgetSheet) {
-            BudgetTable(maxHeaderHeight: .constant(50))
-        }
-        .sheet(isPresented: $showStartingAmountsSheet) {
-            calModel.calculateTotalForMonth(month: calModel.sMonth)
-            Task {
-                await withTaskGroup(of: Void.self) { group in
-                    let starts = calModel.sMonth.startingAmounts.filter { !$0.payMethod.isUnified }
-                    for start in starts {
-                        group.addTask {
-                            await calModel.submit(start)
+            
+            
+            
+    //        .sheet(item: $editPaymentMethod, onDismiss: {
+    //            paymentMethodEditID = nil
+    //            payModel.determineIfUserIsRequiredToAddPaymentMethod()
+    //        }, content: { meth in
+    //            PayMethodView(payMethod: meth, payModel: payModel, editID: $paymentMethodEditID)
+    //            #if os(iOS)
+    //            //.presentationDetents([.medium, .large])
+    //            #endif
+    //        })
+    //        .onChange(of: paymentMethodEditID) { oldValue, newValue in
+    //            if let newValue {
+    //                let payMethod = payModel.getPaymentMethod(by: newValue)
+    //
+    //                if payMethod.accountType == .unifiedChecking || payMethod.accountType == .unifiedCredit {
+    //                    paymentMethodEditID = nil
+    //                    AppState.shared.showAlert("Combined payment methods cannot be edited.")
+    //                } else {
+    //                    editPaymentMethod = payMethod
+    //                }
+    //            } else {
+    //                payModel.savePaymentMethod(id: oldValue!, calModel: calModel)
+    //                payModel.determineIfUserIsRequiredToAddPaymentMethod()
+    //            }
+    //        }
+            
+            
+            
+            
+            .sheet(isPresented: $showAnalysisSheet) {
+                AnalysisSheet(showAnalysisSheet: $showAnalysisSheet)
+            }
+            .sheet(isPresented: $showCalendarOptionsSheet, onDismiss: {
+                if currentPhoneLineItemDisplayItem != phoneLineItemDisplayItem {
+                    currentPhoneLineItemDisplayItem = phoneLineItemDisplayItem
+                    recalculateTransHeight()
+                }
+            }, content: {
+                CalendarOptionsSheet(selectedDay: $selectedDay)
+            })
+            .sheet(isPresented: $showPaymentMethodSheet, onDismiss: {
+                TouchAndHoldMonthToFilterCategoriesTip.didTouchMonthName.sendDonation()
+            }, content: {
+                PaymentMethodSheet(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all)
+            })
+            .sheet(isPresented: $showCategorySheet) {
+                MultiCategorySheet(categories: $calModel.sCategories)
+            }
+            .sheet(isPresented: $showTransferSheet) {
+                TransferSheet2(date: selectedDay?.date ?? Date())
+            }
+            .fullScreenCover(isPresented: $showBudgetSheet) {
+                BudgetTable(maxHeaderHeight: .constant(50))
+            }
+            .sheet(isPresented: $showStartingAmountsSheet) {
+                calModel.calculateTotalForMonth(month: calModel.sMonth)
+                Task {
+                    await withTaskGroup(of: Void.self) { group in
+                        let starts = calModel.sMonth.startingAmounts.filter { !$0.payMethod.isUnified }
+                        for start in starts {
+                            group.addTask {
+                                await calModel.submit(start)
+                            }
                         }
                     }
                 }
+            } content: {
+                StartingAmountSheet()
             }
-        } content: {
-            StartingAmountSheet()
+            
+            #if os(iOS)
+            .photosPicker(isPresented: $showPhotosPicker, selection: $calModel.imagesFromLibrary, maxSelectionCount: 1, matching: .images, photoLibrary: .shared())
+            .onChange(of: showPhotosPicker) { oldValue, newValue in
+                if !newValue { calModel.uploadPictures() }
+            }
+            .fullScreenCover(isPresented: $showCamera) {
+                AccessCameraView(selectedImage: $calModel.imageFromCamera)
+                    .background(.black)
+            }
+            #endif
         }
         
-        #if os(iOS)
-        .photosPicker(isPresented: $showPhotosPicker, selection: $calModel.imagesFromLibrary, maxSelectionCount: 1, matching: .images, photoLibrary: .shared())
-        .onChange(of: showPhotosPicker) { oldValue, newValue in
-            if !newValue { calModel.uploadPictures() }
+        .overlay {
+            VStack {
+                VStack {
+                    
+//                    StandardUITextField(
+//                        "Search \(calModel.searchWhat == .titles ? "Titles" : "Tags")",
+//                        text: $calModel.searchText,
+//                        onSubmit: { withAnimation { showSearchBar = false } },
+//                        onCancel: { withAnimation { showSearchBar = false } },
+//                        toolbar: {
+//                            KeyboardToolbarView(focusedField: $focusedField, removeNavButtons: true, extraDoneFunctionality: {
+//                                withAnimation { showSearchBar = false }
+//                            })
+//                        }
+//                    )
+//                    .cbFocused(_focusedField, equals: 0)
+//                    .cbClearButtonMode(.whileEditing)
+//                    .cbIsSearchField(true)
+//                    .cbAlwaysShowCancelButton(true)
+//
+                    /// Opting for this since using ``StandardUITextField`` won't close the keyboard when clicking the return button.
+                    /// I also don't need the toolbar for this textField.
+                    StandardTextField(
+                        "Search \(calModel.searchWhat == .titles ? "Transaction Titles" : "Transaction Tags")",
+                        text: $calModel.searchText,
+                        isSearchField: true,
+                        alwaysShowCancelButton: true,
+                        focusedField: $focusedField,
+                        focusValue: 0,
+                        onSubmit: { withAnimation { showSearchBar = false } },
+                        onCancel: { withAnimation { showSearchBar = false } }
+                    )
+                    Picker("", selection: $calModel.searchWhat) {
+                        Text("Transaction Title")
+                            .tag(CalendarSearchWhat.titles)
+                        Text("Tag")
+                            .tag(CalendarSearchWhat.tags)
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                }
+                
+                .padding(.horizontal, 10)
+                .padding(.bottom, 10)
+                //.focused($focusedField, equals: .search)
+                .background(.ultraThickMaterial)
+                
+                Spacer()
+            }
+            //.animation(.easeOut, value: showSearchBar)
+            
+            //.opacity(showSearchBar ? 1 : 0)
+            .offset(y: showSearchBar ? 0 : -200)
+            .transition(.move(edge: .top))
         }
-        .fullScreenCover(isPresented: $showCamera) {
-            AccessCameraView(selectedImage: $calModel.imageFromCamera)
-                .background(.black)
-        }
-        #endif
+        
     }
     
     
@@ -300,6 +370,7 @@ struct CalendarViewPhone: View {
             transHeight = 0
         }
     }
+    
     
     var calendarView: some View {
         Group {
@@ -338,7 +409,7 @@ struct CalendarViewPhone: View {
                                                 day: $day,
                                                 selectedDay: $selectedDay,
                                                 showTransferSheet: $showTransferSheet,
-                                                putBackToBottomPanelViewOnRotate: $putBackToBottomPanelViewOnRotate,
+                                                //putBackToBottomPanelViewOnRotate: $putBackToBottomPanelViewOnRotate,
                                                 showPhotosPicker: $showPhotosPicker,
                                                 showCamera: $showCamera,
                                                 overviewDay: $overviewDay,
@@ -350,19 +421,20 @@ struct CalendarViewPhone: View {
                                             }
                                             
                                             /// This is the dividing line
-                                            .if(AppState.shared.isIpad && day.date != nil) {
-                                                $0.border(Color(.tertiarySystemFill), width: 2)                                                
-                                            }
+//                                            .if(AppState.shared.isIpad && day.date != nil) {
+//                                                $0.border(Color(.tertiarySystemFill), width: 2)                                                
+//                                            }
                                             
-                                            .if(!AppState.shared.isIpad) {
-                                                $0.overlay(
+                                            //.if(!AppState.shared.isIpad) {
+                                            //    $0.
+                                            .overlay(
                                                     Rectangle()
                                                         .frame(width: nil, height: 2, alignment: .bottom)
                                                         .foregroundColor(
                                                             Color(.tertiarySystemFill)
                                                         ), alignment: .bottom
                                                 )
-                                            }
+                                           // }
 //                                            .if(AppState.shared.isIpad) {
 //                                                $0
 //                                                .overlay(
@@ -390,25 +462,27 @@ struct CalendarViewPhone: View {
                                 }
                                 
                                 /// This is for when the target scrollTo day is not visible. We first scroll to this so the scroll views goes to the bottom, and then we scroll to the targetDay.
-                                Spacer()
-                                    .frame(height: 1)
-                                    .id(100000)
+//                                Spacer()
+//                                    .frame(height: 1)
+//                                    .id(100000)
                             }
+                            .contentMargins(.bottom, (overviewDay == nil && !showFitTransactions) ? 0 : (scrollHeight) - (AppState.shared.isLandscape ? AppState.shared.isIpad ? 300 : 150 : AppState.shared.isIpad ? 500 : 300), for: .scrollContent)
+                            .frame(height: scrollHeight)
+                            //.frame(height: (overviewDay == nil && !showFitTransactions) ? scrollHeight : (scrollHeight) - (AppState.shared.isLandscape ? AppState.shared.isIpad ? 300 : 150 : AppState.shared.isIpad ? 500 : 300))
                             .scrollIndicators(.hidden)
                             //.transaction { $0.animation = nil }
                             //.frame(minHeight: geo.size.height)
-                            .frame(height: (overviewDay == nil && !showFitTransactions) ? scrollHeight : (scrollHeight) - (AppState.shared.isLandscape ? AppState.shared.isIpad ? 300 : 150 : AppState.shared.isIpad ? 500 : 300))
                             .onScrollPhaseChange { oldPhase, newPhase in
                                 if newPhase == .interacting {
                                     withAnimation { calModel.hilightTrans = nil }
                                 }
                             }
-                            .onChange(of: AppState.shared.orientation) { oldValue, newValue in
-                                if [.faceDown, .faceUp].contains(newValue) { return }
-                                if [.faceDown, .faceUp].contains(oldValue) { return }
-                                if calModel.sMonth.actualNum != AppState.shared.todayMonth || calModel.sYear != AppState.shared.todayYear { return }
-                                scroll.scrollTo(AppState.shared.todayDay, anchor: .top)
-                            }
+//                            .onChange(of: AppState.shared.orientation) { oldValue, newValue in
+//                                if [.faceDown, .faceUp].contains(newValue) { return }
+//                                if [.faceDown, .faceUp].contains(oldValue) { return }
+//                                if calModel.sMonth.actualNum != AppState.shared.todayMonth || calModel.sYear != AppState.shared.todayYear { return }
+//                                scroll.scrollTo(AppState.shared.todayDay, anchor: .top)
+//                            }
 //                            .onChange(of: overviewDay) { oldValue, newValue in
 //                                if phoneLineItemDisplayItem != .both {
 //                                    withAnimation {
@@ -416,26 +490,43 @@ struct CalendarViewPhone: View {
 //                                    }
 //                                }
 //                            }
-                            .onAppear {
-                                /// Need the task due to the fade-in animation.
-                                Task {
-                                    //try? await Task.sleep(nanoseconds: UInt64(1 * Double(NSEC_PER_SEC)))
-                                    if calModel.sMonth.actualNum != AppState.shared.todayMonth || calModel.sYear != AppState.shared.todayYear {
-                                        scrollToComplete = true
-                                        return
-                                    }
-                                    
-                                    /// This is for when the target scrollTo day is not visible. We first scroll to this so the scroll view goes to the bottom, and then we scroll to the targetDay.
-                                    if !visibleDays.contains(AppState.shared.todayDay) {
-                                        scroll.scrollTo(100000, anchor: .top)
-                                    }
-                                    scroll.scrollTo(AppState.shared.todayDay, anchor: .top)
-                                    try? await Task.sleep(nanoseconds: UInt64(0.3 * Double(NSEC_PER_SEC)))
-                                    scrollToComplete = true
-                                }
-                            }
+//                            .onAppear {
+//                                /// Need the task due to the fade-in animation.
+//                                Task {
+//                                    //try? await Task.sleep(nanoseconds: UInt64(1 * Double(NSEC_PER_SEC)))
+//                                    if calModel.sMonth.actualNum != AppState.shared.todayMonth || calModel.sYear != AppState.shared.todayYear {
+//                                        print("NOT TO TODAY \(calModel.sMonth.actualNum) - \(AppState.shared.todayMonth) - \(calModel.sYear) - \(AppState.shared.todayYear)")
+//                                        scrollToComplete = true
+//                                        return
+//                                    }
+//                                    
+//                                    print("SCROLLING TO TODAY")
+//                                    /// This is for when the target scrollTo day is not visible. We first scroll to this so the scroll view goes to the bottom, and then we scroll to the targetDay.
+//                                    if !visibleDays.contains(AppState.shared.todayDay) {
+//                                        scroll.scrollTo(100000, anchor: .top)
+//                                    }
+//                                    //scroll.scrollTo(AppState.shared.todayDay, anchor: .top)
+//                                    try? await Task.sleep(nanoseconds: UInt64(0.3 * Double(NSEC_PER_SEC)))
+//                                    scrollToComplete = true
+//                                }
+//                            }
                         }
                         
+                        
+                        
+                    }
+                    /// Only for the pref key
+                    .background {
+                        GeometryReader { geo in
+                            Color.clear.preference(key: ViewHeightKey.self, value: geo.size.height)
+                        }
+                    }
+                    .onPreferenceChange(ViewHeightKey.self) {
+                        scrollHeight = $0
+                        //if scrollHeight == 0 { scrollHeight = $0 }
+                    }
+                    
+                    .overlay {
                         if overviewDay != nil {
                             DayOverviewView(
                                 day: $overviewDay,
@@ -458,16 +549,6 @@ struct CalendarViewPhone: View {
                                 .transition(.move(edge: .bottom))
                         }
                     }
-                    /// Only for the pref key
-                    .background {
-                        GeometryReader { geo in
-                            Color.clear.preference(key: ViewHeightKey.self, value: geo.size.height)
-                        }
-                    }
-                    .onPreferenceChange(ViewHeightKey.self) {
-                        scrollHeight = $0
-                        //if scrollHeight == 0 { scrollHeight = $0 }
-                    }
                 }
                 .contentShape(Rectangle())
                 .onTapGesture {
@@ -488,13 +569,11 @@ struct CalendarViewPhone: View {
         }
     }
     
-    
-    
     @ToolbarContentBuilder
     func calendarToolbar() -> some ToolbarContent {
         if AppState.shared.isLandscape {
             ToolbarItemGroup(placement: .principal) {
-                Text(calModel.sMonth.name)
+                Text(enumID.displayName)
             }
         }
         
@@ -512,9 +591,10 @@ struct CalendarViewPhone: View {
                     ProgressView()
                         .tint(.none)
                 }
-                
-                
-                
+               
+                if AppState.shared.isLandscape {
+                    showPaymentMethodSheetButton
+                }
                 
                 if AppState.shared.longPollFailed {
                     longPollToolbarButton
@@ -534,11 +614,7 @@ struct CalendarViewPhone: View {
                     }
                 }
                 
-                
-                
-                if AppState.shared.isLandscape {
-                    showPaymentMethodSheetButton
-                }
+               
 
                 Menu {
                     Section("Analytics") {
@@ -589,9 +665,11 @@ struct CalendarViewPhone: View {
     
     var backButton: some View {
         Group {
-            @Bindable var navManager = NavigationManager.shared
+            //@Bindable var navManager = NavigationManager.shared
             Button {
-                navManager.navPath.removeLast()
+                //navManager.navPath.removeLast()
+                dismiss()
+                //NavigationManager.shared.monthSelection = nil
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "chevron.left")
@@ -599,6 +677,9 @@ struct CalendarViewPhone: View {
                 }
             }
         }
+//        .onDisappear {
+//            NavigationManager.shared.selection = nil
+//        }
     }
     
     var longPollToolbarButton: some View {
@@ -708,8 +789,8 @@ struct CalendarViewPhone: View {
         Button {
             withAnimation {
                 showSearchBar.toggle()
-                searchFocus.wrappedValue = 0 /// 0 is the searchFields focusID
-                focusedField.wrappedValue = 0 /// 0 is the searchFields focusID
+                //searchFocus.wrappedValue = 0 /// 0 is the searchFields focusID
+                focusedField = 0 /// 0 is the searchFields focusID
                 //focusedField.wrappedValue = .search
             }
         } label: {
@@ -880,7 +961,8 @@ struct CalendarViewPhone: View {
 //                    }
 //                    
 //                    if let prev = prev {
-//                        NavigationManager.shared.navPath = [prev]
+//                        //NavigationManager.shared.navPath = [prev]
+//                        NavigationManager.shared.monthSelection = prev
 //                        SwipeToChangeMonthsTip.didChangeViaSwipe = true
 //                        swipeToChangeMonthsTip.invalidate(reason: .actionPerformed)
 //                    }
@@ -910,7 +992,8 @@ struct CalendarViewPhone: View {
 //                    }
 //                    
 //                    if let next = next {
-//                        NavigationManager.shared.navPath = [next]
+//                        //NavigationManager.shared.navPath = [next]
+//                        NavigationManager.shared.monthSelection = next
 //                        SwipeToChangeMonthsTip.didChangeViaSwipe = true
 //                        swipeToChangeMonthsTip.invalidate(reason: .actionPerformed)
 //                    }
@@ -930,66 +1013,68 @@ struct CalendarViewPhone: View {
         .contentShape(Rectangle())
         
         
-        .gesture(DragGesture()
-            .onEnded { value in
-                let dragAmount = value.translation.width
-                if dragAmount < -200 {
-                    var next: NavDestination? {
-                        switch calModel.sMonth.enumID {
-                        case .lastDecember: return .january
-                        case .january:      return .february
-                        case .february:     return .march
-                        case .march:        return .april
-                        case .april:        return .may
-                        case .may:          return .june
-                        case .june:         return .july
-                        case .july:         return .august
-                        case .august:       return .september
-                        case .september:    return .october
-                        case .october:      return .november
-                        case .november:     return .december
-                        case .december:     return .nextJanuary
-                        case .nextJanuary:  return nil
-                        default:            return nil
-                        }
-                    }
-                    
-                    if let next = next {
-                        NavigationManager.shared.navPath = [next]
-                        SwipeToChangeMonthsTip.didChangeViaSwipe = true
-                        swipeToChangeMonthsTip.invalidate(reason: .actionPerformed)
-                    }
-                                        
-                } else if dragAmount > 200 {
-                    var prev: NavDestination? {
-                        switch calModel.sMonth.enumID {
-                        case .lastDecember: return nil
-                        case .january:      return .lastDecember
-                        case .february:     return .january
-                        case .march:        return .february
-                        case .april:        return .march
-                        case .may:          return .april
-                        case .june:         return .may
-                        case .july:         return .june
-                        case .august:       return .july
-                        case .september:    return .august
-                        case .october:      return .september
-                        case .november:     return .october
-                        case .december:     return .november
-                        case .nextJanuary:  return .december
-                        default:            return nil
-                        }
-                    }
-                    
-                    if let prev = prev {
-                        NavigationManager.shared.navPath = [prev]
-                        SwipeToChangeMonthsTip.didChangeViaSwipe = true
-                        swipeToChangeMonthsTip.invalidate(reason: .actionPerformed)
-                    }
-                }
-            }
-        )
-    }                    
+//        .gesture(DragGesture()
+//            .onEnded { value in
+//                let dragAmount = value.translation.width
+//                if dragAmount < -200 {
+//                    var next: NavDestination? {
+//                        switch calModel.sMonth.enumID {
+//                        case .lastDecember: return .january
+//                        case .january:      return .february
+//                        case .february:     return .march
+//                        case .march:        return .april
+//                        case .april:        return .may
+//                        case .may:          return .june
+//                        case .june:         return .july
+//                        case .july:         return .august
+//                        case .august:       return .september
+//                        case .september:    return .october
+//                        case .october:      return .november
+//                        case .november:     return .december
+//                        case .december:     return .nextJanuary
+//                        case .nextJanuary:  return nil
+//                        default:            return nil
+//                        }
+//                    }
+//                    
+//                    if let next = next {
+//                        NavigationManager.shared.monthSelection = next
+//                        //NavigationManager.shared.navPath = [next]
+//                        SwipeToChangeMonthsTip.didChangeViaSwipe = true
+//                        swipeToChangeMonthsTip.invalidate(reason: .actionPerformed)
+//                    }
+//                                        
+//                } else if dragAmount > 200 {
+//                    var prev: NavDestination? {
+//                        switch calModel.sMonth.enumID {
+//                        case .lastDecember: return nil
+//                        case .january:      return .lastDecember
+//                        case .february:     return .january
+//                        case .march:        return .february
+//                        case .april:        return .march
+//                        case .may:          return .april
+//                        case .june:         return .may
+//                        case .july:         return .june
+//                        case .august:       return .july
+//                        case .september:    return .august
+//                        case .october:      return .september
+//                        case .november:     return .october
+//                        case .december:     return .november
+//                        case .nextJanuary:  return .december
+//                        default:            return nil
+//                        }
+//                    }
+//                    
+//                    if let prev = prev {
+//                        NavigationManager.shared.monthSelection = prev
+//                        //NavigationManager.shared.navPath = [prev]
+//                        SwipeToChangeMonthsTip.didChangeViaSwipe = true
+//                        swipeToChangeMonthsTip.invalidate(reason: .actionPerformed)
+//                    }
+//                }
+//            }
+//        )
+    }
 }
 
 #endif

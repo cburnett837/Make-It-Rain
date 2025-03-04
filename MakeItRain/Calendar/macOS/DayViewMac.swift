@@ -184,6 +184,12 @@ struct DayViewMac: View {
                     let trans = droppedTrans.first
                     if let trans {
                         
+                        if trans.date == day.date {
+                            calModel.dragTarget = nil
+                            AppState.shared.showToast(title: "Operation Cancelled", subtitle: "Can't copy or move to the original day", body: "Please try again", symbol: "hand.raised.fill", symbolColor: .orange)
+                            return true
+                        }
+                        
                         withAnimation {
                             let originalMonth = trans.dateComponents?.month!
                             let monthObj = calModel.months.filter { $0.num == originalMonth }.first
@@ -224,14 +230,16 @@ struct DayViewMac: View {
     
     var todayNumber: some View {
         Text("\(day.dateComponents?.day ?? 0)")
+            .bold()
             .font(.title2)
-            .foregroundColor(Color(.darkGray))
-            .padding(.bottom, 4)
-            .padding(.top, 4)
-            .padding(4)
+            //.foregroundColor(Color(.darkGray))
+            .padding(.bottom, 6)
+            .padding(.top, 8)
+            .padding(6)
             .background(Circle().fill(Color(.green)))
             .padding(.horizontal, 8)
-            .padding(.bottom, 4)
+            .padding(.bottom, 0)
+            .padding(.top, -4)
     }
     
     var notTodayNumber: some View {

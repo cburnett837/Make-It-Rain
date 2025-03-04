@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct PayMethodsTable: View {
+    @Environment(\.dismiss) var dismiss
+    
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
     #if os(macOS)
     @AppStorage("paymentMethodTableColumnOrder") private var columnCustomization: TableColumnCustomization<CBPaymentMethod>
@@ -287,28 +289,45 @@ struct PayMethodsTable: View {
     #if os(iOS)
     @ToolbarContentBuilder
     func phoneToolbar() -> some ToolbarContent {
+        
         ToolbarItem(placement: .topBarLeading) {
-            Button {
-                NavigationManager.shared.navPath.removeLast()
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "chevron.left")
-                    Text("Back")
+            if !AppState.shared.isIpad {
+                Button {
+                    dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                        Text("Back")
+                    }
+                }
+            } else {
+                HStack {
+                    ToolbarRefreshButton()
+                        .disabled(!AppState.shared.methsExist)
+                    
+                    Button {
+                        paymentMethodEditID = UUID().uuidString
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    //.disabled(payModel.isThinking)
                 }
             }
         }
         
-        ToolbarItem(placement: .topBarTrailing) {
-            HStack {
-                ToolbarRefreshButton()
-                    .disabled(!AppState.shared.methsExist)
-                
-                Button {
-                    paymentMethodEditID = UUID().uuidString
-                } label: {
-                    Image(systemName: "plus")
+        if !AppState.shared.isIpad {
+            ToolbarItem(placement: .topBarTrailing) {
+                HStack {
+                    ToolbarRefreshButton()
+                        .disabled(!AppState.shared.methsExist)
+                    
+                    Button {
+                        paymentMethodEditID = UUID().uuidString
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    //.disabled(payModel.isThinking)
                 }
-                //.disabled(payModel.isThinking)
             }
         }
     }

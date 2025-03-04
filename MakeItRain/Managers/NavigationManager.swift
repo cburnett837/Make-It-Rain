@@ -8,8 +8,12 @@
 import Foundation
 import SwiftUI
 
-enum NavDestination: String, Codable, Hashable {
-    case january, february, march, april, may, june, july, august, september, october, november, december, lastDecember, nextJanuary, repeatingTransactions, paymentMethods, categories, keywords, search, analytics, events
+enum NavDestination: String, Codable, Hashable, Identifiable {
+    case january, february, march, april, may, june, july, august, september, october, november, december, lastDecember, nextJanuary, repeatingTransactions, paymentMethods, categories, keywords, search, analytics, events, settings, placeholderMonth
+    
+    var id: NavDestination {
+        return self
+    }
     
     var monthNum: Int? {
         switch self {
@@ -41,6 +45,8 @@ enum NavDestination: String, Codable, Hashable {
             return 12
         case .nextJanuary:
             return 13
+        case .placeholderMonth:
+            return 100000
         default:
             return nil
         }
@@ -66,7 +72,9 @@ enum NavDestination: String, Codable, Hashable {
         case .keywords:                 return "Keywords"
         case .search:                   return "Search"
         case .analytics:                return "Analytics"
-        case .events:                return "Events"
+        case .events:                   return "Events"
+        case .settings:                 return "Settings"
+        case .placeholderMonth:         return ""
         }
     }
     
@@ -103,29 +111,31 @@ enum NavDestination: String, Codable, Hashable {
 class NavigationManager {
     static let shared: NavigationManager = NavigationManager()
     
-    #warning("not sure if the didSet is needed yet...")
+    //#warning("not sure if the didSet is needed yet...")
     var selection: NavDestination?
+    //var monthSelection: NavDestination?
 //    {
 //        didSet {
 //            if let selection = selection {
 //                self.navPath.append(selection)
 //            }
-//            
+    
+//
 //        }
 //    }
     
     
-    var navPath: Array<NavDestination> = []
+    //var navPath: Array<NavDestination> = []
     
     //var navPath = NavigationPath()
-    func navigate(to destination: NavDestination) {
-        selection = destination
-        navPath.append(destination)
-    }
-    func navigateBack() {
-        navPath.removeLast()
-    }
-    func navigateToRoot() {
-        navPath.removeLast(navPath.count)
-    }
+//    func navigate(to destination: NavDestination) {
+//        selection = destination
+//        navPath.append(destination)
+//    }
+//    func navigateBack() {
+//        navPath.removeLast()
+//    }
+//    func navigateToRoot() {
+//        navPath.removeLast(navPath.count)
+//    }
 }

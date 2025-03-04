@@ -623,6 +623,9 @@ extension Color {
     
     #if os(macOS)
     static var totalDarkGray = Color(NSColor(red: 0.35, green: 0.35, blue: 0.37, alpha: 1.00))
+    static var darkGray = Color(NSColor(red: 0.1, green: 0.1, blue: 0.1, alpha: 1.00))
+    static var darkGray2 = Color(NSColor(red: 0.08, green: 0.08, blue: 0.08, alpha: 1.00))
+    static var darkGray3 = Color(NSColor(red: 0.05, green: 0.05, blue: 0.05, alpha: 1.00))
     #else
     static var totalDarkGray = Color(UIColor(red: 0.35, green: 0.35, blue: 0.37, alpha: 1.00))
     static var darkGray = Color(UIColor(red: 0.1, green: 0.1, blue: 0.1, alpha: 1.00))

@@ -317,7 +317,9 @@ struct MakeItRainApp: App {
         @Bindable var navManager = NavigationManager.shared
         /// Set navigation destination to current month
         navManager.selection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
-        navManager.navPath.append(NavDestination.getMonthFromInt(AppState.shared.todayMonth)!)
+        //navManager.monthSelection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+        
+        //navManager.navPath.append(NavDestination.getMonthFromInt(AppState.shared.todayMonth)!)
         LoadingManager.shared.showInitiallyLoadingSpinner = true
                     
         funcModel.refreshTask = Task {
@@ -354,91 +356,6 @@ struct MakeItRainApp: App {
 
 
 
-
-
-struct PaymentMethodRequiredView: View {
-    @Environment(\.dismiss) private var dismiss
-    @Environment(FuncModel.self) private var funcModel
-    @Environment(CalendarModel.self) private var calModel
-    @Environment(PayMethodModel.self) private var payModel
-    
-    @State private var editPaymentMethod: CBPaymentMethod?
-    @State private var paymentMethodEditID: CBPaymentMethod.ID?
-    @State private var showLoadingSpinner = false
-    
-    var body: some View {
-        VStack {
-            Spacer()
-            
-            ContentUnavailableView("Let's Make it Rain", systemImage: "creditcard", description: Text("Get started by adding a payment method"))
-            Spacer()
-            
-            if showLoadingSpinner {
-                ProgressView {
-                    Text("Saving…")
-                }
-            } else {
-                Button("Add Payment Method") {
-                    paymentMethodEditID = UUID().uuidString
-                }
-                .focusable(false)
-                .padding(.vertical, 12)
-                .padding(.horizontal, 12)
-                .fontWeight(.bold)
-                .foregroundStyle(.white)
-                .background(.green.gradient, in: .capsule)
-                .buttonStyle(.plain)
-                
-                Button("Logout") {
-                    AppState.shared.showPaymentMethodNeededSheet = false
-                    funcModel.logout()
-                }
-                .focusable(false)
-                .padding(.vertical, 12)
-                .padding(.horizontal, 12)
-                .fontWeight(.bold)
-                .foregroundStyle(.white)
-                .background(.green.gradient, in: .capsule)
-                .buttonStyle(.plain)
-            }
-        }
-        .sheet(item: $editPaymentMethod, onDismiss: {
-            paymentMethodEditID = nil
-        }, content: { meth in
-            PayMethodView(payMethod: meth, payModel: payModel, editID: $paymentMethodEditID)
-        })
-        .onChange(of: paymentMethodEditID) { oldValue, newValue in
-            if let newValue {
-                let payMethod = payModel.getPaymentMethod(by: newValue)
-                editPaymentMethod = payMethod
-            } else {
-                /// Slimmed down logic from `payModel.savePaymentMethod()`
-                let payMethod = payModel.getPaymentMethod(by: oldValue!)
-                if payMethod.title.isEmpty {
-                    if payMethod.action != .add && payMethod.title.isEmpty {
-                        payMethod.title = payMethod.deepCopy?.title ?? ""
-                    }
-                    return
-                }
-                                
-                Task {
-                    showLoadingSpinner = true
-                    /// Save the newly created payment method to the server.
-                    let _ = await payModel.submit(payMethod)
-                    /// Fetch the newly added payment method, plus the 2 unified methods from the server.
-                    await payModel.fetchPaymentMethods(calModel: calModel)
-                    /// Allow entry into the normal app.
-                    AppState.shared.methsExist = true
-                    /// Close the sheet, which will kick off the normal download task.
-                    dismiss()
-                }
-            }
-        }
-    }
-}
-
-
-
 struct RootViewWrapper<Content: View>: View {
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
@@ -468,11 +385,11 @@ struct RootViewWrapper<Content: View>: View {
                     
                     let rootViewController = UIHostingController(rootView:
                         AlertAndToastLayerView()
-                        .environment(funcModel)
-                        .environment(calModel)
-                        .environment(payModel)
-                        .environment(catModel)
-                        .environment(keyModel)
+                            .environment(funcModel)
+                            .environment(calModel)
+                            .environment(payModel)
+                            .environment(catModel)
+                            .environment(keyModel)
                     )
                     rootViewController.view.backgroundColor = .clear
                     
@@ -485,11 +402,11 @@ struct RootViewWrapper<Content: View>: View {
             #else
             .overlay {
                 AlertAndToastLayerView()
-                .environment(funcModel)
-                .environment(calModel)
-                .environment(payModel)
-                .environment(catModel)
-                .environment(keyModel)
+                    .environment(funcModel)
+                    .environment(calModel)
+                    .environment(payModel)
+                    .environment(catModel)
+                    .environment(keyModel)
             }
             #endif
 
@@ -507,219 +424,11 @@ struct RootViewWrapper<Content: View>: View {
 //    }
 //}
 
-struct AlertAndToastLayerView: View {
-    @Environment(CalendarModel.self) private var calModel
-    
-    var body: some View {
-        @Bindable var appState = AppState.shared
-        @Bindable var calModel = calModel
-        @Bindable var undoManager = UndodoManager.shared
-        
-        Group {
-//            if appState.showAlert {
-//                VStack {
-//                    Text(AppState.shared.alertText)
-//                    HStack {
-//                        if let function = AppState.shared.alertFunction {
-//                            Button(AppState.shared.alertButtonText) {
-//                                appState.showAlert = false
-//                                function()
-//                            }
-//                        }
-//                        if let function = AppState.shared.alertFunction2 {
-//                            Button(AppState.shared.alertButtonText2) {
-//                                appState.showAlert = false
-//                                function()
-//                            }
-//                        } else {
-//                            Button("Close", action: {
-//                                appState.showAlert = false
-//                            })
-//                        }
-//                        
-//                    }
-//                }
-//            }
-        }
-        .toast()
-        
-        .alert("Undo / Redo", isPresented: $undoManager.showAlert) {
-            VStack {
-                if UndodoManager.shared.canUndo {
-                    Button {
-                        if let old = UndodoManager.shared.undo() {
-                            undoManager.returnMe = old
-                        }
-                    } label: {
-                        Text("Undo")
-                    }
-                }
-                
-                if UndodoManager.shared.canRedo {
-                    Button {
-                        if let new = UndodoManager.shared.redo() {
-                            undoManager.returnMe = new
-                        }
-                    } label: {
-                        Text("Redo")
-                    }
-                }
-                
-                Button(role: .cancel) {
-                } label: {
-                    Text("Cancel")
-                }
-            }
-        }
-        
-        
-//        .sheet(isPresented: $calModel.showSmartTransactionPaymentMethodSheet) {
-//            PaymentMethodSheet(
-//                payMethod: Binding(get: { CBPaymentMethod() }, set: { calModel.pendingSmartTransaction!.payMethod = $0 }),
-//                trans: calModel.pendingSmartTransaction,
-//                calcAndSaveOnChange: true,
-//                whichPaymentMethods: .allExceptUnified,
-//                isPendingSmartTransaction: true
-//            )
-//        }
-//        
-//        
-//        .sheet(isPresented: $calModel.showSmartTransactionDatePickerSheet, onDismiss: {
-//            if calModel.pendingSmartTransaction!.date == nil {
-//                calModel.pendingSmartTransaction!.date = Date()
-//            }
-//            
-//            calModel.saveTransaction(id: calModel.pendingSmartTransaction!.id, location: .smartList)
-//            calModel.tempTransactions.removeAll()
-//            calModel.pendingSmartTransaction = nil
-//        }, content: {
-//            GeometryReader { geo in
-//                ScrollView {
-//                    VStack {
-//                        SheetHeader(title: "Select Receipt Date", subtitle: calModel.pendingSmartTransaction!.title) {
-//                            calModel.showSmartTransactionDatePickerSheet = false
-//                        }
-//                        
-//                        Divider()
-//                        
-//                        DatePicker(selection: Binding($calModel.pendingSmartTransaction)!.date ?? Date(), displayedComponents: [.date]) {
-//                            EmptyView()
-//                        }
-//                        .datePickerStyle(.graphical)
-//                        .frame(maxWidth: .infinity, alignment: .leading)
-//                        .labelsHidden()
-//                       
-//                        Spacer()
-//                        Button("Done") {
-//                            calModel.showSmartTransactionDatePickerSheet = false
-//                        }
-//                        .buttonStyle(.borderedProminent)
-//                        .padding(.bottom, 12)
-//                    }
-//                    .frame(minHeight: geo.size.height)
-//                }
-//                .padding([.top, .horizontal])
-//            }
-//            //.presentationDetents([.medium])
-//        })
-        
-        
-        //.opacity((AppState.shared.showAlert || AppState.shared.toast != nil) ? 1 : 0)
-//        .alert(AppState.shared.alertText, isPresented: $appState.showAlert) {
-//            if let function = AppState.shared.alertFunction {
-//                Button(AppState.shared.alertButtonText ?? "", action: function)
-//            }
-//            if let function = AppState.shared.alertFunction2 {
-//                Button(AppState.shared.alertButtonText2 ?? "", action: function)
-//            } else {
-//                Button("Close", action: {})
-//            }
-//        }
-        .overlay {
-            if let config = AppState.shared.alertConfig {
-                Rectangle()
-                    .fill(.ultraThinMaterial)
-                    .opacity(0.8)
-                    .ignoresSafeArea()
-                    .overlay { CustomAlert(config: config) }
-                    .opacity(appState.showCustomAlert ? 1 : 0)
-                                        
-            }
-        }
-    }
-}
 
 
 
-struct CustomAlert: View {
-    @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
-    
-    let config: AlertConfig
-    var body: some View {
-        VStack {
-            Image(systemName: config.symbol.name)
-                .font(.title)
-                .foregroundStyle(.primary)
-                .frame(width: 65, height: 65)
-                .background((config.symbol.color ?? .primary).gradient, in: .circle)
-                .background {
-                    Circle()
-                        .stroke(.background, lineWidth: 8)
-                }
-            
-            Group {
-                Text(config.title)
-                    .font(.title3.bold())
-                    .multilineTextAlignment(.center)
-                
-                if let subtitle = config.subtitle {
-                    Text(subtitle)
-                        .font(.callout)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(3)
-                        .foregroundStyle(.gray)
-                    //.padding(.vertical, 4)
-                }
-            }
-            .padding(.horizontal, 15)
-                
-            if !config.views.isEmpty {
-                ForEach(config.views) { viewConfig in
-                    Divider()
-                    viewConfig.content
-                }
-            }
-        
-                                    
-            VStack(spacing: 0) {
-                Divider()
-                
-                HStack(spacing: 0) {
-                    if let button = config.secondaryButton {
-                        button
-                        Divider()
-                    } else {
-                        AlertConfig.CancelButton()
-                        Divider()
-                    }
-                    
-                    if let button = config.primaryButton {
-                        button
-                    }
-                }
-                .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        //.padding([.horizontal, .bottom], 15)
-        .background {
-            RoundedRectangle(cornerRadius: 15)
-                .fill(.ultraThickMaterial)
-                .padding(.top, 30)
-        }
-        .frame(maxWidth: 310)
-        .compositingGroup()
-    }
-}
+
+
 
 
 

@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct DayContextMenu: View {
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    
     @Environment(CalendarModel.self) private var calModel
     
     @Bindable var day: CBDay
@@ -41,7 +43,7 @@ struct DayContextMenu: View {
                     Image(systemName: "arrowshape.turn.up.forward.fill")
                 }
             }
-        }
+        }        
         
     
         Section {

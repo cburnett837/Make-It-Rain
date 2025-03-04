@@ -185,9 +185,12 @@ struct LineItemView: View {
             
         }
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
-        .padding(.horizontal, 8)
+        .padding(.leading, 8)
         #if os(iOS)
+        .padding(.trailing, 8)
         .padding(.vertical, 4)
+        #else
+        .padding(.trailing, 2)
         #endif
         .contentShape(Rectangle())
         .draggable(trans) { dragPreview }

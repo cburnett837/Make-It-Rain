@@ -65,6 +65,10 @@ struct ToastView: View {
         }
         #if os(macOS)
             .frame(maxWidth: 400)
+        #else
+            .if(AppState.shared.isIpad) {
+                $0.frame(maxWidth: 400)
+            }
         #endif
         .foregroundStyle(.primary)
         .padding(.vertical, 12)
@@ -79,7 +83,7 @@ struct ToastView: View {
         .padding(.horizontal, 15)
         .offset(y: 15)
         #if os(macOS)
-        .frame(maxWidth: .infinity, alignment: .trailing)
+        .frame(maxWidth: .infinity, alignment: .center)
         #else
         .frame(maxWidth: .infinity)
         #endif

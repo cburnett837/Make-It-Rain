@@ -12,15 +12,15 @@ struct LineItemMiniView2: View {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @Environment(\.colorScheme) var colorScheme
     
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    //@AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
     @AppStorage("incomeColor") var incomeColor: String = Color.blue.description
-    @AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
-    @AppStorage("useWholeNumbers") var useWholeNumbers = false
-    @AppStorage("tightenUpEodTotals") var tightenUpEodTotals = true
+    //@AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
+    //@AppStorage("useWholeNumbers") var useWholeNumbers = false
+    //@AppStorage("tightenUpEodTotals") var tightenUpEodTotals = true
     @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
-    @AppStorage("phoneLineItemDisplayItem") var phoneLineItemDisplayItem: PhoneLineItemDisplayItem = .both
-    @AppStorage("phoneLineItemTotalPosition") var phoneLineItemTotalPosition: PhoneLineItemTotalPosition = .below
+    //@AppStorage("phoneLineItemDisplayItem") var phoneLineItemDisplayItem: PhoneLineItemDisplayItem = .both
+    //@AppStorage("phoneLineItemTotalPosition") var phoneLineItemTotalPosition: PhoneLineItemTotalPosition = .below
     
     @Environment(CalendarModel.self) private var calModel
 
@@ -28,8 +28,8 @@ struct LineItemMiniView2: View {
     @Binding var transEditID: String?
     @Bindable var trans: CBTransaction
     @Bindable var day: CBDay
-    @Binding var putBackToBottomPanelViewOnRotate: Bool
-    @Binding var transHeight: CGFloat
+    //@Binding var putBackToBottomPanelViewOnRotate: Bool
+    //@Binding var transHeight: CGFloat
     @State private var showDeleteAlert = false
     
     var amountColor: Color {
@@ -64,71 +64,82 @@ struct LineItemMiniView2: View {
     var body: some View {
         @Bindable var calModel = calModel
         
-//        Text(trans.title)
-//            .font(.caption2)
-//        Text(trans.amountString)
-//            .font(.system(size: 10))
-        
-        Group {
-            Group {
-                HStack(spacing: 2) {
-                    if phoneLineItemDisplayItem != .category {
-                        //accessoryIndicator
-                    }
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(trans.title)
-                            .font(.caption2)
-                            .minimumScaleFactor(0.8)
-                            .lineLimit(1)
-                            .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-                            .foregroundStyle(titleColor)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        //.frame(maxHeight: .infinity, alignment: .bottom)
-                            .overlay { ExcludeFromTotalsLine(trans: trans) }
-                        
-                        Text(trans.amountString)
-                            .minimumScaleFactor(0.8)
-                            .foregroundStyle(amountColor)
-                            .lineLimit(1)
-                            .font(.system(size: 10))
-                            .overlay { ExcludeFromTotalsLine(trans: trans) }
-                            .frame(maxHeight: .infinity, alignment: .bottom)
-                        
-                    }
-//                    .italic(wasUpdatedByAnotherUser)
-//                    .bold(wasUpdatedByAnotherUser)
-//                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
+        HStack(spacing: 2) {
+            accessoryIndicator
+            VStack(alignment: .leading, spacing: 0) {
+                Text(trans.title)
+                    .font(.caption2)
+                    .lineLimit(1)
+                    .foregroundStyle(trans.color == .white || trans.color == .black ? .primary : trans.color)
+                Text(trans.amountString)
+                    .font(.system(size: 10))
+                    .foregroundStyle(amountColor)
+                    .lineLimit(1)
             }
-//            .transition(.opacity)
-//            .frame(maxWidth: .infinity, alignment: .leading)
-//            .padding(.horizontal, 2)
-//            
-//            .frame(height: transHeight > 0 ? transHeight : nil)
-//            .background(RoundedRectangle(cornerRadius: 4).fill(lineColor))
-//            .transMaxViewHeightObserver()
         }
-//        .padding(.horizontal, preferDarkMode ? 0 : 1)
-//        .contentShape(Rectangle())
-//        .draggable(trans) { dragPreview }
-//        //.allowsHitTesting(phoneLineItemDisplayItem == .both)
-//        .if(phoneLineItemDisplayItem == .both) {
-//            $0.onTapGesture {
-//                calModel.hilightTrans = trans
-//                transEditID = trans.id
+        .contentShape(Rectangle())
+        .fixedSize(horizontal: false, vertical: true)
+        
+//        Group {
+//            Group {
+//                HStack(spacing: 2) {
+//                    if phoneLineItemDisplayItem != .category {
+//                        //accessoryIndicator
+//                    }
+//                    VStack(alignment: .leading, spacing: 0) {
+//                        Text(trans.title)
+//                            .font(.caption2)
+//                            .minimumScaleFactor(0.8)
+//                            .lineLimit(1)
+//                            .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+//                            .foregroundStyle(titleColor)
+//                            .frame(maxWidth: .infinity, alignment: .leading)
+//                        //.frame(maxHeight: .infinity, alignment: .bottom)
+//                            .overlay { ExcludeFromTotalsLine(trans: trans) }
+//                        
+//                        Text(trans.amountString)
+//                            .minimumScaleFactor(0.8)
+//                            .foregroundStyle(amountColor)
+//                            .lineLimit(1)
+//                            .font(.system(size: 10))
+//                            .overlay { ExcludeFromTotalsLine(trans: trans) }
+//                            .frame(maxHeight: .infinity, alignment: .bottom)
+//                        
+//                    }
+////                    .italic(wasUpdatedByAnotherUser)
+////                    .bold(wasUpdatedByAnotherUser)
+////                    .frame(maxWidth: .infinity, alignment: .leading)
+//                }
 //            }
+////            .transition(.opacity)
+////            .frame(maxWidth: .infinity, alignment: .leading)
+////            .padding(.horizontal, 2)
+////            
+////            .frame(height: transHeight > 0 ? transHeight : nil)
+////            .background(RoundedRectangle(cornerRadius: 4).fill(lineColor))
+////            .transMaxViewHeightObserver()
 //        }
-//        
-//        .confirmationDialog("Delete \"\(trans.title)\"?", isPresented: $showDeleteAlert) {
-//            Button("Yes", role: .destructive) {
-//                trans.action = .delete
-//                calModel.saveTransaction(id: trans.id)
-//            }
-//            Button("No", role: .cancel) { showDeleteAlert = false }
-//        } message: {
-//            Text("Delete \"\(trans.title)\"?")
-//        }
-//        .fixedSize(horizontal: false, vertical: true)
+////        .padding(.horizontal, preferDarkMode ? 0 : 1)
+////        .contentShape(Rectangle())
+////        .draggable(trans) { dragPreview }
+////        //.allowsHitTesting(phoneLineItemDisplayItem == .both)
+////        .if(phoneLineItemDisplayItem == .both) {
+////            $0.onTapGesture {
+////                calModel.hilightTrans = trans
+////                transEditID = trans.id
+////            }
+////        }
+////        
+////        .confirmationDialog("Delete \"\(trans.title)\"?", isPresented: $showDeleteAlert) {
+////            Button("Yes", role: .destructive) {
+////                trans.action = .delete
+////                calModel.saveTransaction(id: trans.id)
+////            }
+////            Button("No", role: .cancel) { showDeleteAlert = false }
+////        } message: {
+////            Text("Delete \"\(trans.title)\"?")
+////        }
+////        .fixedSize(horizontal: false, vertical: true)
         
     }
     
@@ -175,9 +186,9 @@ struct LineItemMiniView: View {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @Environment(\.colorScheme) var colorScheme
     
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    //@AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
     @AppStorage("incomeColor") var incomeColor: String = Color.blue.description
-    @AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
+    //@AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
     @AppStorage("tightenUpEodTotals") var tightenUpEodTotals = true
     @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
@@ -191,8 +202,8 @@ struct LineItemMiniView: View {
     @Binding var transEditID: String?
     @Bindable var trans: CBTransaction
     @Bindable var day: CBDay
-    @Binding var putBackToBottomPanelViewOnRotate: Bool
-    @Binding var transHeight: CGFloat
+    //@Binding var putBackToBottomPanelViewOnRotate: Bool
+    //@Binding var transHeight: CGFloat
     @State private var showDeleteAlert = false
     
     var amountColor: Color {
@@ -228,16 +239,16 @@ struct LineItemMiniView: View {
         @Bindable var calModel = calModel
         Group {
             detailsLineItem
-                .transition(.opacity)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                //.transition(.opacity)
+                //.frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 2)
                 /// Ignore the transHeight variable until it has been fully calculated, and the apply it.
                 /// As Per ChatGPT:
                 /// The issue you’re encountering is likely due to the timing of how SwiftUI resolves layout constraints. The subviews are being resized before the maximum size has been properly determined because the frame modifier is applied too early in the layout process.
                 /// To fix this, you can ensure the maximum size is only applied after all views have been measured by delaying the application of the frame modifier until the maximum size is fully resolved.
-                .frame(height: transHeight > 0 ? transHeight : nil)
+                //.frame(height: transHeight > 0 ? transHeight : nil)
                 .background(RoundedRectangle(cornerRadius: 4).fill(lineColor))
-                .transMaxViewHeightObserver()
+                //.transMaxViewHeightObserver()
             //let _ = print("transHeight: \(transHeight)")
         }
         .padding(.horizontal, preferDarkMode ? 0 : 1)
@@ -279,10 +290,10 @@ struct LineItemMiniView: View {
                 if phoneLineItemDisplayItem == .title {
                     Text(trans.title)
                         .font(.caption)
-                        .minimumScaleFactor(0.8)
+                        //.minimumScaleFactor(0.8)
                         .lineLimit(1)
                         .foregroundStyle(trans.color == .white || trans.color == .black ? .primary : trans.color)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        //.frame(maxWidth: .infinity, alignment: .leading)
                         .overlay { ExcludeFromTotalsLine(trans: trans) }
                         .italic(wasUpdatedByAnotherUser)
                         .bold(wasUpdatedByAnotherUser)
@@ -290,7 +301,7 @@ struct LineItemMiniView: View {
                 } else if phoneLineItemDisplayItem == .total {
                     totalText
                         .font(.caption)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        //.frame(maxWidth: .infinity, alignment: .leading)
                         .overlay { ExcludeFromTotalsLine(trans: trans) }
                         .italic(wasUpdatedByAnotherUser)
                         .bold(wasUpdatedByAnotherUser)
@@ -303,19 +314,20 @@ struct LineItemMiniView: View {
                             : (trans.category?.color ?? .gray)
                         )
                         .frame(height: 8)
-                        .frame(maxWidth: .infinity)
+                        //.frame(maxWidth: .infinity)
                         .padding(.vertical, 1)
                         .overlay { ExcludeFromTotalsLine(trans: trans) }
                                     
                 } else {
-                    if putBackToBottomPanelViewOnRotate {
-                        inlineTitleAndTotal
-                            .overlay { ExcludeFromTotalsLine(trans: trans) }
-                        
-                    } else {
+//                    if putBackToBottomPanelViewOnRotate {
+//                        inlineTitleAndTotal
+//                            .overlay { ExcludeFromTotalsLine(trans: trans) }
+//                        
+//                    } else {
                         if AppState.shared.isLandscape {
-                            inlineTitleAndTotal
-                                .overlay { ExcludeFromTotalsLine(trans: trans) }
+                            stackedTitleAndTotal
+                            //inlineTitleAndTotal
+                                //.overlay { ExcludeFromTotalsLine(trans: trans) }
                             
                         } else if phoneLineItemTotalPosition == .below {
                             stackedTitleAndTotal
@@ -328,7 +340,7 @@ struct LineItemMiniView: View {
                             inlineTitleAndTotal
                                 .overlay { ExcludeFromTotalsLine(trans: trans) }
                         }
-                    }
+                    //}
                 }
                 
                 if trans.notifyOnDueDate {
@@ -372,18 +384,18 @@ struct LineItemMiniView: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text(trans.title)
                     .font(.caption2)
-                    .minimumScaleFactor(0.8)
+                    //.minimumScaleFactor(0.8)
                     .lineLimit(1)
-                    .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                    //.alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
                     .foregroundStyle(titleColor)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    //.frame(maxWidth: .infinity, alignment: .leading)
                     //.frame(maxHeight: .infinity, alignment: .bottom)
                     .overlay { ExcludeFromTotalsLine(trans: trans) }
                 
                 totalText
                     .font(.system(size: 10))
                     .overlay { ExcludeFromTotalsLine(trans: trans) }
-                    .frame(maxHeight: .infinity, alignment: .bottom)
+                    //.frame(maxHeight: .infinity, alignment: .bottom)
             }
             .italic(wasUpdatedByAnotherUser)
             .bold(wasUpdatedByAnotherUser)
@@ -397,18 +409,18 @@ struct LineItemMiniView: View {
             HStack(spacing: 0) {
                 Text(trans.title)
                     .font(.caption2)
-                    .minimumScaleFactor(0.8)
+                    //.minimumScaleFactor(0.8)
                     .lineLimit(1)
-                    .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                    //.alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
                     .foregroundStyle(titleColor)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .leading) /// To push the total over
                 
                 totalText
                     .font(.system(size: 10))
             }
             .italic(wasUpdatedByAnotherUser)
             .bold(wasUpdatedByAnotherUser)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            //.frame(maxWidth: .infinity, alignment: .leading)
         }
     }
     
@@ -428,7 +440,7 @@ struct LineItemMiniView: View {
                 Text(trans.amount.currencyWithDecimals(2))
             }
         }
-        .minimumScaleFactor(0.8)
+        //.minimumScaleFactor(0.8)
         .foregroundStyle(amountColor)
         .lineLimit(1)
     }

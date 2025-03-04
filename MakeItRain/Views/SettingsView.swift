@@ -12,6 +12,7 @@ import TipKit
 
 struct SettingsView: View {
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.dismiss) var dismiss
     
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
     @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
@@ -82,10 +83,10 @@ struct SettingsView: View {
     
     var body: some View {
         VStack {
-            #if os(iOS)
-            SheetHeader(title: "Settings", close: { showSettings = false })
-                .padding()
-            #endif
+//            #if os(iOS)
+//            SheetHeader(title: "Settings", close: { showSettings = false })
+//                .padding()
+//            #endif
             
             Group {
                 #if os(macOS)
@@ -100,7 +101,6 @@ struct SettingsView: View {
                 .scrollDismissesKeyboard(.interactively)
                 #endif
             }
-            .navigationTitle("Settings")
 //            .task {
 //                bioType = biometricType()
 //            }
@@ -113,7 +113,37 @@ struct SettingsView: View {
                 showResetAllSettingsAlert = false
             }
         }
+        #if os(iOS)
+        .navigationTitle("Settings")
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            #if os(iOS)
+            phoneToolbar()
+            #endif
+        }
     }
+    
+    #if os(iOS)
+    @ToolbarContentBuilder
+    func phoneToolbar() -> some ToolbarContent {
+        if !AppState.shared.isIpad {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    dismiss()
+                    //dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
+                    //NavigationManager.shared.selection = nil
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                        Text("Back")
+                    }
+                }
+            }
+        }
+    }
+    #endif
     
     
     

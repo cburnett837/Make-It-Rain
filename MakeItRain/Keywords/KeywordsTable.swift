@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct KeywordsTable: View {
+    @Environment(\.dismiss) var dismiss
+    
     #if os(macOS)
     @AppStorage("keywordsTableColumnOrder") private var columnCustomization: TableColumnCustomization<CBKeyword>
     #endif
@@ -200,26 +202,40 @@ struct KeywordsTable: View {
     @ToolbarContentBuilder
     func phoneToolbar() -> some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
-            Button {
-                NavigationManager.shared.navPath.removeLast()
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "chevron.left")
-                    Text("Back")
+            if !AppState.shared.isIpad {
+                Button {
+                    dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                        Text("Back")
+                    }
+                }
+            } else {
+                HStack {
+                    ToolbarRefreshButton()
+                    Button {
+                        keywordEditID = UUID().uuidString
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    //.disabled(keyModel.isThinking)
                 }
             }
         }
-        ToolbarItem(placement: .topBarTrailing) {
-            HStack {
-                ToolbarRefreshButton()
-                Button {
-                    keywordEditID = UUID().uuidString
-                } label: {
-                    Image(systemName: "plus")
-                }
-                //.disabled(keyModel.isThinking)
+        
+        if !AppState.shared.isIpad {
+            ToolbarItem(placement: .topBarTrailing) {
+                HStack {
+                    ToolbarRefreshButton()
+                    Button {
+                        keywordEditID = UUID().uuidString
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    //.disabled(keyModel.isThinking)
+                }                
             }
-            
         }
     }
     

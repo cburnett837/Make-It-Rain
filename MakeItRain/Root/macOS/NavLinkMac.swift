@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct NavLinkMac: View {
+    @Environment(CalendarModel.self) var calModel
+    
     @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
     @AppStorage("showIndividualLoadingSpinner") var showIndividualLoadingSpinner = false
     
@@ -32,6 +34,16 @@ struct NavLinkMac: View {
                             .tint(destination == .search ? Color.fromName(appColorTheme) : iconColor)
                     }
                 )
+            }
+        }
+        .dropDestination(for: CBTransaction.self) { droppedTrans, location in
+            calModel.dragTarget = nil
+            return true
+        } isTargeted: { isTargeted in
+            if isTargeted {
+                withAnimation {
+                    NavigationManager.shared.selection = destination
+                }
             }
         }
         //.disabled(!AppState.shared.downloadedData.contains(destination))

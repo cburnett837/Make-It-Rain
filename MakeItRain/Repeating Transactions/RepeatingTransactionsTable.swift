@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct RepeatingTransactionsTable: View {
+    @Environment(\.dismiss) var dismiss
+    
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
     #if os(macOS)
@@ -54,7 +56,7 @@ struct RepeatingTransactionsTable: View {
                     #endif
             }
         }
-        .loadingSpinner(id: .repeatingTransactions, text: "Loading Reoccuring Transactions…")
+        //.loadingSpinner(id: .repeatingTransactions, text: "Loading Reoccuring Transactions…")
         #if os(iOS)
         .navigationTitle("Reoccuring Transactions")
         .navigationBarTitleDisplayMode(.inline)
@@ -219,25 +221,39 @@ struct RepeatingTransactionsTable: View {
     @ToolbarContentBuilder
     func phoneToolbar() -> some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
-            Button {
-                NavigationManager.shared.navPath.removeLast()
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "chevron.left")
-                    Text("Back")
+            if !AppState.shared.isIpad {
+                Button {
+                    dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                        Text("Back")
+                    }
+                }
+            } else {
+                HStack {
+                    ToolbarRefreshButton()
+                    Button {
+                        repTransactionEditID = UUID().uuidString
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    //.disabled(repModel.isThinking)
                 }
             }
         }
         
-        ToolbarItem(placement: .topBarTrailing) {
-            HStack {
-                ToolbarRefreshButton()
-                Button {
-                    repTransactionEditID = UUID().uuidString
-                } label: {
-                    Image(systemName: "plus")
+        if !AppState.shared.isIpad {
+            ToolbarItem(placement: .topBarTrailing) {
+                HStack {
+                    ToolbarRefreshButton()
+                    Button {
+                        repTransactionEditID = UUID().uuidString
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    //.disabled(repModel.isThinking)
                 }
-                //.disabled(repModel.isThinking)
             }
         }
     }
