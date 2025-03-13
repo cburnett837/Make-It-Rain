@@ -25,10 +25,11 @@ struct ChartData: Identifiable {
 
 struct BudgetTable: View {
     @Environment(\.dismiss) var dismiss
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     @AppStorage("calendarChartMode") var chartMode = CalendarChartModel.verticalBar
     @AppStorage("viewMode") var viewMode = CalendarViewMode.scrollable
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
+    @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
     
     @Environment(CalendarModel.self) private var calModel
     @Environment(CategoryModel.self) private var catModel
@@ -50,42 +51,12 @@ struct BudgetTable: View {
     
     var budgetCount: Int { calModel.sMonth.budgets.count }
     
-    var categoryBudget: [ChartData] {
-        calModel.sMonth.budgets
-            .filter{ $0.category != nil }
-            .filter{ !$0.category!.isIncome }
-            .enumerated()
-            .map { (index, budget) in
-                let expenses = calModel.sMonth.justTransactions
-                    .filter { $0.isBudgetable && $0.isExpense && $0.factorInCalculations }
-                    .filter { $0.category?.id == budget.category?.id }
-                    .map { $0.amount }
-                    .reduce(0.0, +)
-                                                                                        
-                let income = calModel.sMonth.justTransactions
-                    .filter { $0.isBudgetable && $0.isIncome && $0.factorInCalculations }
-                    .filter { $0.category?.id == budget.category?.id }
-                    .map { $0.amount }
-                    .reduce(0.0, +)
-                
-                                        
-    //            let budge = ChartDataPoint(title: "Budget", amount: budget.amount)
-    //            let expenses = ChartDataPoint(title: "Expenses", amount: expenseAmount - reimbursementAmount)
-    //
-                return ChartData(
-                    category: budget.category!,
-                    budget: budget.amount,
-                    income: income,
-                    expenses: expenses,
-                    overlayPosition: index >= budgetCount / 2 ? .leading : .trailing
-                )
-        }
-    }
+    @State private var categoryBudget: [ChartData] = []
     
         
     var body: some View {
         #if os(iOS)
-        SheetHeader(title: "\(calModel.sMonth.name) \( String(calModel.sYear))", close: { dismiss() })
+        SheetHeader(title: "\(calModel.sMonth.name) \( String(calModel.sMonth.year))", close: { dismiss() })
         #endif
         
         if calModel.sMonth.budgets.isEmpty {
@@ -206,8 +177,16 @@ struct BudgetTable: View {
             }
             .onChange(of: budgetEditID) { oldValue, newValue in
                 if let newValue {
-                    if newValue != -1 {
-                        editBudget = calModel.sMonth.budgets.filter { $0.id == newValue }.first!
+                    editBudget = calModel.sMonth.budgets.filter { $0.id == newValue }.first!
+                } else if newValue == nil && oldValue != nil {
+                    let budget = calModel.sMonth.budgets.filter { $0.id == oldValue! }.first!
+                    Task {
+                        if budget.hasChanges() {
+                            print("HAS CHANGES")
+                            await calModel.submit(budget)
+                        } else {
+                            print("NO CHANGES")
+                        }
                     }
                 }
             }
@@ -224,6 +203,42 @@ struct BudgetTable: View {
                     //#endif
                     //.frame(maxWidth: 300)
             })
+            .task {
+                categoryBudget = calModel.sMonth.budgets
+                    .filter{ $0.category != nil }
+                    .filter{ !$0.category!.isIncome }
+                    .sorted {
+                        categorySortMode == .title
+                        ? ($0.category!.title).lowercased() < ($1.category!.title).lowercased()
+                        : $0.category!.listOrder ?? 1000000000 < $1.category!.listOrder ?? 1000000000
+                    }
+                    .enumerated()
+                    .map { (index, budget) in
+                        let expenses = calModel.sMonth.justTransactions
+                            .filter { $0.isBudgetable && $0.isExpense && $0.factorInCalculations }
+                            .filter { $0.category?.id == budget.category?.id }
+                            .map { $0.amount }
+                            .reduce(0.0, +)
+                                                                                                
+                        let income = calModel.sMonth.justTransactions
+                            .filter { $0.isBudgetable && $0.isIncome && $0.factorInCalculations }
+                            .filter { $0.category?.id == budget.category?.id }
+                            .map { $0.amount }
+                            .reduce(0.0, +)
+                        
+                                                
+            //            let budge = ChartDataPoint(title: "Budget", amount: budget.amount)
+            //            let expenses = ChartDataPoint(title: "Expenses", amount: expenseAmount - reimbursementAmount)
+            //
+                        return ChartData(
+                            category: budget.category!,
+                            budget: budget.amount,
+                            income: income,
+                            expenses: expenses,
+                            overlayPosition: index >= budgetCount / 2 ? .leading : .trailing
+                        )
+                }
+            }
         }
     }
     
@@ -521,30 +536,50 @@ struct BudgetTable: View {
                 List(calModel.sMonth.budgets, selection: $budgetEditID) { budget in
                     LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
                         HStack(alignment: .circleAndTitle, spacing: 5) {
-                            Circle()
-                                .fill(budget.category?.color ?? .primary)
-                                .frame(width: 12, height: 12)
-                                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                            let expenses = calModel.sMonth.justTransactions
+                                .filter { $0.isBudgetable && $0.isExpense && $0.factorInCalculations }
+                                .filter { $0.category?.id == budget.category?.id }
+                                .map { $0.amount }
+                                .reduce(0.0, +)
+                            
+                            
+                            
+                            ChartCircleDot(
+                                budget: budget.amount,
+                                expenses: abs(expenses),
+                                color: budget.category?.color ?? .white,
+                                size: 12
+                            )
+                            .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                            
+                            
+//                            Circle()
+//                                .fill(budget.category?.color ?? .primary)
+//                                .frame(width: 12, height: 12)
+//                                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
                             
                             
                             Text(budget.category?.title ?? "-")
                                 .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
                         }
                         
-                        Text(budget.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
                         
                         let expenses = calModel.sMonth.justTransactions
                             .filter { $0.isBudgetable && $0.isExpense && $0.factorInCalculations }
                             .filter { $0.category?.id == budget.category?.id }
                             .map { $0.amount }
                             .reduce(0.0, +)
-                        Text(abs(expenses).currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                                                                                                
+                        
                         let income = calModel.sMonth.justTransactions
                             .filter { $0.isBudgetable && $0.isIncome && $0.factorInCalculations }
                             .filter { $0.category?.id == budget.category?.id }
                             .map { $0.amount }
                             .reduce(0.0, +)
+                        
+                        
+                        Text(budget.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                        Text(abs(expenses).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                        
                         let overUnder = budget.amount + (expenses + income)
                         
                         Text(abs(overUnder).currencyWithDecimals(useWholeNumbers ? 0 : 2))
@@ -654,7 +689,7 @@ struct BudgetTable: View {
                 .listStyle(.plain)
                 
             }
-            .padding(.horizontal, 20)
+            //.padding(.horizontal, 20)
             .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
         }
     }
@@ -663,42 +698,6 @@ struct BudgetTable: View {
     
     var theChart: some View {
         VStack {
-//            HStack(alignment: .circleAndTitle) {
-//                VStack(alignment: .leading) {
-//                    
-//                    //Text("\(calModel.sMonth.name) \( String(calModel.sYear))")
-////
-////                    Text("Expenses by Category")
-////                        .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-////                    
-////                    if chartMode == .pie {
-////                        Text("(expenses only)")
-////                            .foregroundStyle(.gray)
-////                            .font(.caption2)
-////                    }
-//                }
-//                
-//                Spacer()
-//                
-//                Picker(selection: $chartMode) {
-//                    Image(systemName: "chart.bar.fill")
-//                        .tag(CalendarChartModel.verticalBar)
-//                    Image(systemName: "chart.pie.fill")
-//                        .tag(CalendarChartModel.pie)
-//                } label: {
-//                    EmptyView()
-//                }
-//                .pickerStyle(.segmented)
-//                .labelsHidden()
-//                .frame(maxWidth: 100)
-//                .padding(.leading, 8)
-//                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-//                
-//                
-//            }
-//            .frame(minHeight: maxHeaderHeight)
-            //.maxViewHeightObserver()
-            
             Divider()
             
             if chartMode == .verticalBar {
@@ -732,65 +731,109 @@ struct BudgetTable: View {
 //                    )
 //                    .foregroundStyle(.gray)
 //                    .clipShape(RoundedRectangle(cornerRadius: 8))
-//                    
-                    
-                    BarMark(
-                        x: .value("Amount", (item.expenses + item.income) * -1),
-                        y: .value("Budget", item.category.title)
-                        //width: .ratio(0.6)
-                    )
-                    .foregroundStyle(item.category.color)
-                    //.cornerRadius(5)
-                    //.clipShape(RoundedRectangle(cornerRadius: 8))
-                    
+//
                     let budgetBarAmount = item.budget - ((item.expenses + item.income) * -1) < 0 ? 0 : item.budget - ((item.expenses + item.income) * -1)
+                    
+                    
+                    if ((item.expenses + item.income) * -1) > 0 {
+                        BarMark(
+                            x: .value("Amount", (item.expenses + item.income) * -1),
+                            y: .value("Budget", item.category.title)
+                            //width: .ratio(0.6)
+                        )
+                        
+                        .foregroundStyle(
+                            selectedBudget == nil
+                            ? item.category.color
+                            : selectedBudget == item.category.title ? item.category.color : .gray.opacity(0.5)
+                        )
+                        //.cornerRadius(5)
+                        //.clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
                     
                     BarMark(
                         x: .value("Amount", budgetBarAmount),
                         y: .value("Budget", item.category.title)
                         //width: .ratio(0.6)
                     )
-                    .foregroundStyle(item.category.color.opacity(0.5))
-                    //.cornerRadius(5)
-                    //.clipShape(RoundedRectangle(cornerRadius: 8))
-                    
-                    
-//                    RectangleMark(
-//                        x: .value("Amount", item.budget),
-//                        y: .value("Budget", item.category.title)
-//                        //width: 4,
-//                        //height: .ratio(0.6)
-//                    )
-//                    .foregroundStyle(.gray)
-                    //.clipShape(RoundedRectangle(cornerRadius: 8))
-                    
-                    
-                    
-                    
-                    
-                    
+                    .foregroundStyle(
+                        selectedBudget == nil
+                        ? item.category.color.opacity(0.5)
+                        : selectedBudget == item.category.title ? item.category.color.opacity(0.5) : .gray.opacity(0.5)
+                    )
+                 
                 }
                 
                 if let selectedBudget {
                     let position = categoryBudget.filter { $0.category.title == selectedBudget }.first?.overlayPosition
                     let budget = categoryBudget.filter { $0.category.title == selectedBudget }.first?.budget
                     let expenses = categoryBudget.filter { $0.category.title == selectedBudget }.first?.expenses
+                    let income = categoryBudget.filter { $0.category.title == selectedBudget }.first?.income
+                    let category = categoryBudget.filter { $0.category.title == selectedBudget }.first?.category
                     
-                    if let position, let budget, let expenses {
-                        RectangleMark(y: .value("Budget", selectedBudget), height: .ratio(1))
-                            .foregroundStyle(.gray.opacity(0.2))
-                            .annotation(position: .automatic, alignment: .center, spacing: 0) {
-                                VStack(alignment: .leading) {
+                    if let position, let budget, let expenses, let category, let income {
+                        
+                        //let expenseAmount = (expenses + income) * -1
+                        //let budgetBarAmount = budget - ((expenses + income) * -1) < 0 ? 0 : budget - ((expenses + income) * -1)
+                        
+                        BarMark(
+                            x: .value("Amount", 20),
+                            y: .value("Budget", selectedBudget), height: .ratio(1)
+                        )
+                        .foregroundStyle(.clear)
+                        .annotation(
+                            position: .trailing,
+                            alignment: .leading,
+                            spacing: 0,
+                            overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .chart))
+                        ) {
+                            VStack(alignment: .leading) {
+                                HStack {
                                     Text(selectedBudget.capitalized)
-                                        .font(.headline)
-                                    Divider()
-                                    Text("Budget: \(budget.currencyWithDecimals(2))")
-                                    Text("Expenses: \(abs(expenses).currencyWithDecimals(2))")
+                                    Spacer()
+                                    Image(systemName: category.emoji ?? "circle")
+                                    
+                                    
+//                                    Chart {
+//                                        if abs(expenses) < abs(budget) {
+//                                            SectorMark(angle: .value("Budget", abs(budget - abs(expenses))))
+//                                                .foregroundStyle(category.color)
+//                                                .cornerRadius(8)
+//                                                .opacity(0.3)
+//                                        }
+//                                        SectorMark(angle: .value("Expenses", abs(expenses)))
+//                                            .foregroundStyle(category.color.gradient)
+//                                            .cornerRadius(8)
+//                                            .opacity(1)
+//                                    }
+//                                    .frame(width: 22, height: 22)
+                                    
+                                    
+                                    
+                                    
                                 }
-                                .padding()
-                                .background(Color.annotationBackground)
+                                .font(.headline)
+                                
+                                Divider()
+                                Text("Budget: \(budget.currencyWithDecimals(2))")
+                                    .bold()
+                                Text("Expenses: \((expenses * -1).currencyWithDecimals(2))")
+                                    .bold()
                             }
-                            .accessibilityHidden(true)
+                            //.padding()
+                            //.background(Color.annotationBackground)
+                            
+                            .foregroundStyle(.white)
+                            .padding(12)
+                            .frame(width: 180)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    //.fill(Color.annotationBackground)
+                                    .fill(category.color)
+                                    //.fill(category.color.shadow(.drop(color: .black, radius: 10))/*.gradient*/)
+                            )
+                        }
+                        .accessibilityHidden(true)
                     }
                 }
             }
@@ -799,7 +842,7 @@ struct BudgetTable: View {
 //            #else
 //            .chartYAxis { AxisMarks(position: .leading, values: .automatic(desiredCount: 10)) }
 //            #endif
-            .chartYSelection(value: $selectedBudget)
+            .chartYSelection(value: $selectedBudget.animation())
             //.chartScrollableAxes(.horizontal)
             .chartScrollTargetBehavior(.valueAligned(unit: 1))
             //.chartXVisibleDomain(length: 5)
@@ -900,7 +943,7 @@ struct BudgetTable: View {
                         .opacity(selectedBudget == nil ? 1 : (item.category.title == selectedBudget ? 1 : 0.3))
                 }
             }
-            .chartAngleSelection(value: $selectedAngle)
+            .chartAngleSelection(value: $selectedAngle.animation())
             .onChange(of: selectedAngle) { old, new in
                 if let new {
                     var cum: Double = 0
@@ -924,8 +967,41 @@ struct BudgetTable: View {
                         if let selectedBudget {
                             let budget = categoryBudget.filter { $0.category.title == selectedBudget }.first?.budget
                             let expenses = categoryBudget.filter { $0.category.title == selectedBudget }.first?.expenses
+                            let category = categoryBudget.filter { $0.category.title == selectedBudget }.first?.category
                             
-                            if let budget, let expenses {
+                            if let budget, let expenses, let category {
+                                Chart {
+                                    if abs(expenses) < abs(budget) {
+                                        SectorMark(
+                                            angle: .value("Budget", abs(budget - abs(expenses))),
+                                            innerRadius: .ratio(0.6),
+                                            outerRadius: .ratio(0.6),
+                                            angularInset: 2.0
+                                        )
+                                        .foregroundStyle(category.color)
+                                        .cornerRadius(8)
+                                        .opacity(0.3)
+                                    }
+                                                                                                            
+                                    
+                                        SectorMark(
+                                            angle: .value("Expenses", abs(expenses)),
+                                            innerRadius: .ratio(0.6),
+                                            outerRadius: .ratio(0.6),
+                                            angularInset: 2.0
+                                        )
+                                        .foregroundStyle(category.color.gradient)
+                                        .cornerRadius(8)
+                                        .opacity(1)
+                                       
+                                    
+                                }
+                                //.frame(width: 200, height: 200)
+                                .position(x: frame.midX, y: frame.midY)
+                                
+                                
+                                
+                                
                                 VStack(alignment: .leading) {
                                     Text(selectedBudget.capitalized)
                                         .font(.headline)
@@ -963,40 +1039,60 @@ struct BudgetTable: View {
                                                 
                     HStack(spacing: 0) {
                         ForEach(categoryBudget.filter { $0.expenses < 0 || $0.income > 0 }) { item in
-                            HStack(alignment: .circleAndTitle, spacing: 5) {
-                                Circle()
-                                    .fill(item.category.color)
-                                    .frame(maxWidth: 12, maxHeight: 12) // 8 seems to be the default from charts
-                                    .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                            
+                            VStack(spacing: 0) {
                                 
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.category.title)
-                                        .foregroundStyle(Color.secondary)
-                                        .font(.subheadline)
-                                        .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                                
+                                
+                                HStack(spacing: 5) {
+                                    ChartCircleDot(
+                                        budget: item.budget,
+                                        expenses: item.expenses,
+                                        color: item.category.color,
+                                        size: 22
+                                    )
                                     
-                                    let expenses = categoryBudget.filter { $0.category.title == item.category.title }.first?.expenses
-                                    if let expenses {
-                                        if expenses != 0 {
-                                            Text("\(abs(expenses).currencyWithDecimals(2))")
-                                                .foregroundStyle(Color.secondary)
-                                                .font(.caption2)
+                                    
+//                                    Circle()
+//                                        .fill(item.category.color)
+//                                        .frame(maxWidth: 12, maxHeight: 12) // 8 seems to be the default from charts
+//                                        .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                                    
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(item.category.title)
+                                            .foregroundStyle(Color.secondary)
+                                            .font(.subheadline)
+                                            //.alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                                        
+                                        let expenses = categoryBudget.filter { $0.category.title == item.category.title }.first?.expenses
+                                        if let expenses {
+                                            if expenses != 0 {
+                                                Text("\(abs(expenses).currencyWithDecimals(2))")
+                                                    .foregroundStyle(Color.secondary)
+                                                    .font(.caption2)
+                                            } else {
+                                                Text("-")
+                                                    .foregroundStyle(Color.secondary)
+                                                    .font(.caption2)
+                                            }
                                         }
                                     }
                                 }
+                                .padding(.horizontal, 4)
+                                .contentShape(Rectangle())
+    //                            #if os(macOS)
+    //                            .onContinuousHover { phase in
+    //                                switch phase {
+    //                                case .active:
+    //                                    selectedBudget = item.category.title
+    //                                case .ended:
+    //                                    selectedBudget = nil
+    //                                }
+    //                            }
+    //                            #endif
+                                
                             }
-                            .padding(.horizontal, 4)
-                            .contentShape(Rectangle())
-//                            #if os(macOS)
-//                            .onContinuousHover { phase in
-//                                switch phase {
-//                                case .active:
-//                                    selectedBudget = item.category.title
-//                                case .ended:
-//                                    selectedBudget = nil
-//                                }
-//                            }
-//                            #endif
+                            .frame(maxWidth: .infinity)
                         }
                     }
                 }
@@ -1050,7 +1146,7 @@ extension Color {
 //}
 //
 //struct BudgetTable: View {
-//    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+//    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
 //    @AppStorage("calendarChartMode") var chartMode = CalendarChartModel.verticalBar
 //    @AppStorage("viewMode") var viewMode = CalendarViewMode.bottomPanel
 //    @AppStorage("useWholeNumbers") var useWholeNumbers = false

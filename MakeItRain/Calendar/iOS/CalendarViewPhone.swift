@@ -16,7 +16,7 @@ struct CalendarViewPhone: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
     
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
     @AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
@@ -177,7 +177,7 @@ struct CalendarViewPhone: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(true)
-            .interactiveDismissDisabled(true)
+            //.interactiveDismissDisabled(true)
             .toolbar {
                 calendarToolbar()
             }
@@ -306,59 +306,10 @@ struct CalendarViewPhone: View {
         }
         
         .overlay {
-            VStack {
-                VStack {
-                    
-//                    StandardUITextField(
-//                        "Search \(calModel.searchWhat == .titles ? "Titles" : "Tags")",
-//                        text: $calModel.searchText,
-//                        onSubmit: { withAnimation { showSearchBar = false } },
-//                        onCancel: { withAnimation { showSearchBar = false } },
-//                        toolbar: {
-//                            KeyboardToolbarView(focusedField: $focusedField, removeNavButtons: true, extraDoneFunctionality: {
-//                                withAnimation { showSearchBar = false }
-//                            })
-//                        }
-//                    )
-//                    .cbFocused(_focusedField, equals: 0)
-//                    .cbClearButtonMode(.whileEditing)
-//                    .cbIsSearchField(true)
-//                    .cbAlwaysShowCancelButton(true)
-//
-                    /// Opting for this since using ``StandardUITextField`` won't close the keyboard when clicking the return button.
-                    /// I also don't need the toolbar for this textField.
-                    StandardTextField(
-                        "Search \(calModel.searchWhat == .titles ? "Transaction Titles" : "Transaction Tags")",
-                        text: $calModel.searchText,
-                        isSearchField: true,
-                        alwaysShowCancelButton: true,
-                        focusedField: $focusedField,
-                        focusValue: 0,
-                        onSubmit: { withAnimation { showSearchBar = false } },
-                        onCancel: { withAnimation { showSearchBar = false } }
-                    )
-                    Picker("", selection: $calModel.searchWhat) {
-                        Text("Transaction Title")
-                            .tag(CalendarSearchWhat.titles)
-                        Text("Tag")
-                            .tag(CalendarSearchWhat.tags)
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.segmented)
-                }
-                
-                .padding(.horizontal, 10)
-                .padding(.bottom, 10)
-                //.focused($focusedField, equals: .search)
-                .background(.ultraThickMaterial)
-                
-                Spacer()
+            if (!AppState.shared.isIpad) {
+                searchBarOverlay
             }
-            //.animation(.easeOut, value: showSearchBar)
             
-            //.opacity(showSearchBar ? 1 : 0)
-            .offset(y: showSearchBar ? 0 : -200)
-            .transition(.move(edge: .top))
         }
         
     }
@@ -577,9 +528,53 @@ struct CalendarViewPhone: View {
             }
         }
         
-        if !AppState.shared.isIpad {
-            ToolbarItem(placement: .topBarLeading) {
+        ToolbarItem(placement: .topBarLeading) {
+            if !AppState.shared.isIpad {
                 backButton
+            } else {
+                if AppState.shared.isLandscape {
+                    HStack(spacing: 10) {
+                        showPaymentMethodSheetButton
+                        
+                        Button {
+                            showCategorySheet = true
+                            TouchAndHoldMonthToFilterCategoriesTip.didSelectCategoryFilter = true
+                            touchAndHoldMonthToFilterCategoriesTip.invalidate(reason: .actionPerformed)
+                        } label: {
+                            HStack(spacing: 2) {
+                                if !calModel.sCategories.isEmpty {
+                                    var categoryFilterTitle: String {
+                                        let cats = calModel.sCategories
+                                        if cats.isEmpty {
+                                            return ""
+                                            
+                                        } else if cats.count == 1 {
+                                            return cats.first!.title
+                                            
+                                        } else if cats.count == 2 {
+                                            return "\(cats[0].title), \(cats[1].title)"
+                                            
+                                        } else {
+                                            return "\(cats[0].title), \(cats[1].title), \(cats.count - 2)+"
+                                        }
+                                    }
+                                    
+                                    Text("(\(categoryFilterTitle))")
+                                        .italic()
+                                } else {
+                                    Text("Categories")
+                                }
+                            }
+                            //.font(.callout)
+                            //.foregroundStyle(.gray)
+                            .contentShape(Rectangle())
+                        }
+                    
+                        
+                        
+                        
+                    }
+                }
             }
         }
         
@@ -587,79 +582,116 @@ struct CalendarViewPhone: View {
         ToolbarItemGroup(placement: .topBarTrailing) {
             @Bindable var calModel = calModel
             HStack(spacing: 20) {
-                if calModel.showLoadingSpinner {
-                    ProgressView()
-                        .tint(.none)
-                }
-               
-                if AppState.shared.isLandscape {
-                    showPaymentMethodSheetButton
-                }
                 
-                if AppState.shared.longPollFailed {
-                    longPollToolbarButton
-                }
-                
-                if !calModel.fitTrans.filter({ !$0.isAcknowledged }).isEmpty {
-                    if AppState.shared.user?.id == 1 {
-                        Button {
-                            withAnimation {
-                                showFitTransactions = true
+                if (!showSearchBar && AppState.shared.isIpad) || !AppState.shared.isIpad{
+                    if calModel.showLoadingSpinner {
+                        ProgressView()
+                            .tint(.none)
+                    }
+                    
+                    if AppState.shared.longPollFailed {
+                        longPollToolbarButton
+                    }
+                    
+                    if !calModel.fitTrans.filter({ !$0.isAcknowledged }).isEmpty {
+                        if AppState.shared.user?.id == 1 {
+                            Button {
+                                withAnimation {
+                                    showFitTransactions = true
+                                }
+                            } label: {
+                                Image(systemName: "clock.badge.exclamationmark")
+                                    .foregroundStyle(Color.fromName(appColorTheme) == .orange ? .red : .orange)
                             }
-                            
-                        } label: {
-                            Image(systemName: "clock.badge.exclamationmark")
-                                .foregroundStyle(.orange)
                         }
                     }
+                    
+                    Menu {
+                        Section("Analytics") {
+                            budgetSheetButton
+                            analysisSheetButton
+                        }
+                        
+                        Section {
+                            startingAmountSheetButton
+                        }
+                        
+                        Section {
+                            refreshButton
+                            settingsSheetButton
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .foregroundStyle(Color.accentColor)
+                    }
+                    
+                    searchButton
+                    
+                    Menu {
+                        Section("Create") {
+                            newTransactionButton
+                            newTransferButton
+                        }
+                        
+                        Section("Receipts") {
+                            takePhotoButton
+                            selectPhotoButton
+                        }
+                    } label: {
+                        Image(systemName: "plus")
+                    } primaryAction: {
+                        transEditID = UUID().uuidString
+                    }
+                    .popoverTip(touchAndHoldPlusButtonTip)
+                    .opacity(calModel.chatGptIsThinking ? 0 : 1)
+                    .overlay {
+                        ProgressView()
+                            .opacity(calModel.chatGptIsThinking ? 1 : 0)
+                            .tint(.none)
+                    }
                 }
                 
-               
-
-                Menu {
-                    Section("Analytics") {
-                        budgetSheetButton
-                        analysisSheetButton
+                
+                if showSearchBar && AppState.shared.isIpad {
+                    HStack(spacing: 0) {
+                        @Bindable var calModel = calModel
+                        
+                        Picker("", selection: $calModel.searchWhat) {
+                            Text("Title")
+                                .tag(CalendarSearchWhat.titles)
+                            Text("Tag")
+                                .tag(CalendarSearchWhat.tags)
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.menu)
+                        
+                        StandardTextField(
+                            "Search \(calModel.searchWhat == .titles ? "Transaction Titles" : "Transaction Tags")",
+                            text: $calModel.searchText,
+                            isSearchField: true,
+                            alwaysShowCancelButton: true,
+                            focusedField: $focusedField,
+                            focusValue: 0,
+                            onSubmit: { withAnimation { showSearchBar = false } },
+                            onCancel: { withAnimation { showSearchBar = false } }
+                        )
                     }
-                    
-                    Section {
-                        startingAmountSheetButton
-                    }
-                    
-                    Section {
-                        refreshButton
-                        settingsSheetButton
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .foregroundStyle(Color.accentColor)
+                    .offset(x: showSearchBar ? 0 : -200)
+                    //.opacity(showSearchBar ? 1 : 0)
+                    .transition(.move(edge: .trailing))
+                    .frame(maxWidth: showSearchBar ? .infinity : 0)
                 }
                 
-                searchButton
-                                                                                    
-                Menu {
-                    Section("Create") {
-                        newTransactionButton
-                        newTransferButton
-                    }
-                    
-                    Section("Receipts") {
-                        takePhotoButton
-                        selectPhotoButton
-                    }
-                } label: {
-                    Image(systemName: "plus")
-                } primaryAction: {
-                    transEditID = UUID().uuidString
-                }
-                .popoverTip(touchAndHoldPlusButtonTip)
-                .opacity(calModel.chatGptIsThinking ? 0 : 1)
-                .overlay {
-                    ProgressView()
-                        .opacity(calModel.chatGptIsThinking ? 1 : 0)
-                        .tint(.none)
-                }
+                
+                
+                
+            
             }
+//            .frame(maxWidth: .infinity)
+//            .opacity(showSearchBar ? 0 : 1)
+//            .overlay {
+//                
+//            }
         }
     }
     
@@ -698,7 +730,7 @@ struct CalendarViewPhone: View {
             }
         } label: {
             Image(systemName: "ipad.and.iphone.slash")
-                .foregroundStyle(.red)
+                .foregroundStyle(Color.fromName(appColorTheme) == .red ? .orange : .red)
         }
     }
     
@@ -790,9 +822,20 @@ struct CalendarViewPhone: View {
             withAnimation {
                 showSearchBar.toggle()
                 //searchFocus.wrappedValue = 0 /// 0 is the searchFields focusID
-                focusedField = 0 /// 0 is the searchFields focusID
+                
+                if AppState.shared.isIpad {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: {
+                        focusedField = 0 /// 0 is the searchFields focusID
+                    })
+                } else {
+                    focusedField = 0 /// 0 is the searchFields focusID
+                }
+                        
                 //focusedField.wrappedValue = .search
             }
+//            completion: {
+//                focusedField = 0 /// 0 is the searchFields focusID
+//            }
         } label: {
             Label {
                 Text("Search")
@@ -1074,6 +1117,46 @@ struct CalendarViewPhone: View {
 //                }
 //            }
 //        )
+    }
+    
+    var searchBarOverlay: some View {
+        VStack {
+            @Bindable var calModel = calModel
+            VStack {
+                /// Opting for this since using ``StandardUITextField`` won't close the keyboard when clicking the return button.
+                /// I also don't need the toolbar for this textField.
+                StandardTextField(
+                    "Search \(calModel.searchWhat == .titles ? "Transaction Titles" : "Transaction Tags")",
+                    text: $calModel.searchText,
+                    isSearchField: true,
+                    alwaysShowCancelButton: true,
+                    focusedField: $focusedField,
+                    focusValue: 0,
+                    onSubmit: { withAnimation { showSearchBar = false } },
+                    onCancel: { withAnimation { showSearchBar = false } }
+                )
+                Picker("", selection: $calModel.searchWhat) {
+                    Text("Title")
+                        .tag(CalendarSearchWhat.titles)
+                    Text("Tag")
+                        .tag(CalendarSearchWhat.tags)
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+            }            
+            .padding(.horizontal, 10)
+            .padding(.bottom, 10)
+            //.focused($focusedField, equals: .search)
+            .background(.ultraThickMaterial)
+            
+            Spacer()
+        }
+        //.animation(.easeOut, value: showSearchBar)
+        
+        //.opacity(showSearchBar ? 1 : 0)
+        .offset(y: showSearchBar ? 0 : -200)
+        .transition(.move(edge: .top))
+
     }
 }
 

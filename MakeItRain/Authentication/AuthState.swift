@@ -10,6 +10,10 @@ import SwiftUI
 import CryptoKit
 
 
+enum LoginType {
+    case apiKey, emailAndPassword
+}
+
 @MainActor
 @Observable
 class AuthState {
@@ -26,42 +30,34 @@ class AuthState {
     let networkManager = NetworkManager()
     let keychainManager = KeychainManager()
     
+    var loginTask: Task<Void, Error>?
+
+    
     /// This will take the stored credentials, and send them to the server for authentication.
     /// The server will send back a ``CBUser`` object. That object will contain the user information, as well as a flag that indicates if we need to force the user to the payment method screen.
-    @MainActor func checkForCredentials() async {
+    @MainActor func getApiKeyFromKeychain() async -> String? {
         do {
-            let apiKey = try keychainManager.getFromKeychain(key: "user_api_key")
-            guard apiKey != nil else {
-                isThinking = false
-                AppState.shared.appShouldShowSplashScreen = false
-                return
+            if let apiKey = try keychainManager.getFromKeychain(key: "user_api_key") {
+                return apiKey
+            } else {
+                return nil
             }
-//            
-//            let (email, password) = try keychainManager.getCredentialsFromKeychain()
-//            guard (email != nil), (password != nil) else {
-//                isThinking = false
-//                AppState.shared.appShouldShowSplashScreen = false
-//                return
-//            }
-            
-            /// API key will be fetched from the network functions and placed in the header.
-            await attemptLogin(email: "", password: "")
         } catch {
             print(error.localizedDescription)
-            isThinking = false
-            AppState.shared.appShouldShowSplashScreen = false
+            return nil
         }
     }
     
     
-    func attemptLogin(email: String, password: String) async {
-        /// Email and password are only used if the user is manually providing them.
+    
+    
+    func attemptLogin(using loginType: LoginType, with loginModel: LoginModel) async {
         print("-- \(#function)")
-        let loginModel = LoginModel(email: email, password: password)
-        
-        let model = RequestModel(requestType: "budget_app_login", model: loginModel)
         typealias ResultResponse = Result<CBLogin?, AppError>
-        async let result: ResultResponse = await NetworkManager(timeout: 20).singleRequest(requestModel: model)
+        
+        /// Set the ticker to 0 so it doesn't try and reattempt.
+        /// This will try to login once with a 15 second timeout before it says screw it.
+        async let result: ResultResponse = await NetworkManager(timeout: 15).login(using: loginType, with: loginModel, ticker: 0)
         
         switch await result {
         case .success(let model):
@@ -71,23 +67,31 @@ class AuthState {
                     //try keychainManager.addToKeychain(key: "user_password", value: password)
                     if let apiKey = model.apiKey {
                         try keychainManager.addToKeychain(key: "user_api_key", value: apiKey)
+                        AppState.shared.apiKey = apiKey
+                        
+                        let userData = try JSONEncoder().encode(model.user)
+                        UserDefaults.standard.set(userData, forKey: "user")
+                        AppState.shared.user = model.user
+                        AppState.shared.accountUsers = model.accountUsers
+                        AppState.shared.methsExist = model.hasPaymentMethodsExisiting
+                        AppState.shared.isLoggingInForFirstTime = true
+                        AppState.shared.hasBadConnection = false
+                        
+                        withAnimation {
+                            AppState.shared.appShouldShowSplashScreen = true
+                        }
+                                            
+                        self.isLoggedIn = true
+                        self.isThinking = false
+                        //self.isBioAuthed = true
+                    } else {
+                        self.isLoggedIn = false
+                        self.isThinking = false
+                        //self.isBioAuthed = false
+                        AppState.shared.appShouldShowSplashScreen = false
+                        logout()
+                        AppState.shared.showAlert("Problem getting api key from the server.")
                     }
-                    
-                    let userData = try JSONEncoder().encode(model.user)
-                    UserDefaults.standard.set(userData, forKey: "user")
-                    AppState.shared.user = model.user
-                    AppState.shared.accountUsers = model.accountUsers
-                    AppState.shared.methsExist = model.hasPaymentMethodsExisiting
-                    AppState.shared.isLoggingInForFirstTime = true
-                    AppState.shared.hasBadConnection = false
-                    
-                    withAnimation {
-                        AppState.shared.appShouldShowSplashScreen = true
-                    }
-                                        
-                    self.isLoggedIn = true
-                    self.isThinking = false
-                    //self.isBioAuthed = true
                 }
             } catch {
                 print(error.localizedDescription)
@@ -107,6 +111,9 @@ class AuthState {
             case .incorrectCredentials, .accessRevoked:
                 logout()
                 
+            case .taskCancelled:
+                AppState.shared.hasBadConnection = true
+                
             default:
                 AppState.shared.hasBadConnection = true
                 AppState.shared.showAlert("Connection Problem")
@@ -123,6 +130,7 @@ class AuthState {
             //try keychainManager.removeFromKeychain(key: "user_email")
             //try keychainManager.removeFromKeychain(key: "user_password")
             try keychainManager.removeFromKeychain(key: "user_api_key")
+            AppState.shared.apiKey = nil
             UserDefaults.standard.set(nil, forKey: "user")
 //            UserDefaults.standard.set("", forKey: "userEmail")
 //            UserDefaults.standard.set("", forKey: "userAccountID")

@@ -13,16 +13,8 @@ struct Helpers {
     static func buzzPhone(_ type: UINotificationFeedbackGenerator.FeedbackType) {
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(type)
-    }
-    
+    }    
     #endif
-    
-
-    static func getTempID() -> Int {
-        let lastUsedTempID: Int = UserDefaults.standard.integer(forKey: "lastUsedTempID")
-        UserDefaults.standard.set(lastUsedTempID + 1, forKey: "lastUsedTempID")
-        return lastUsedTempID
-    }
     
     static func plusMinus(_ amountString: String) -> String {
         var returnString = amountString
@@ -110,6 +102,18 @@ struct Helpers {
             }
         }
     }
+    
+    
+    static func createDate(month: Int, year: Int) -> Date? {
+        var components = DateComponents()
+        components.year = year
+        components.month = month
+
+        // Use the current calendar to create the date
+        let calendar = Calendar.current
+        return calendar.date(from: components)
+    }
+    
 }
 
 func ??<T>(lhs: Binding<Optional<T>>, rhs: T) -> Binding<T> {

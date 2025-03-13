@@ -451,7 +451,7 @@ struct SettingsViewInsert: View {
 #if os(iOS)
 struct DemoDay: View {
     @Environment(\.colorScheme) var colorScheme
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     @AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
     @AppStorage("tightenUpEodTotals") var tightenUpEodTotals = true

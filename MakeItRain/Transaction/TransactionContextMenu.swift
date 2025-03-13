@@ -20,7 +20,7 @@ struct TransactionContextMenu: View {
             Button { calModel.createCopy(of: trans) } label: { Text("Copy") }
             
             Button {
-                trans.log(field: .factorInCalculations, old: trans.factorInCalculations ? "true" : "false", new: trans.factorInCalculations ? "false" : "true")
+                trans.log(field: .factorInCalculations, old: trans.factorInCalculations ? "true" : "false", new: trans.factorInCalculations ? "false" : "true", groupID: UUID().uuidString)
                 
                 trans.factorInCalculations.toggle()
                 calModel.saveTransaction(id: trans.id)

@@ -10,10 +10,15 @@ import SwiftUI
 
 @Observable
 class CBBudget: Codable, Identifiable, Hashable, Equatable {
-    var id: Int
+    var id: String
+    var uuid: String?
     var category: CBCategory?
     var month: Int
     var year: Int
+    var date: Date {
+        Helpers.createDate(month: month, year: year)!
+    }
+    
     var amount: Double {
         Double(amountString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
     }
@@ -22,7 +27,9 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
     var action: BudgetAction
     
     init() {
-        self.id = 0
+        let uuid = UUID().uuidString
+        self.id = uuid
+        self.uuid = uuid        
         self.category = nil
         self.month = 0
         self.year = 0
@@ -32,12 +39,13 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
     }
     
     
-    enum CodingKeys: CodingKey { case id, category, month, year, amount, active, user_id, account_id, device_uuid }
+    enum CodingKeys: CodingKey { case id, uuid, category, month, year, amount, active, user_id, account_id, device_uuid }
     
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
+        try container.encode(uuid, forKey: .uuid)
         try container.encode(category, forKey: .category)
         try container.encode(month, forKey: .month)
         try container.encode(year, forKey: .year)
@@ -51,7 +59,11 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
     
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(Int.self, forKey: .id)
+        do {
+            id = try String(container.decode(Int.self, forKey: .id))
+        } catch {
+            id = try container.decode(String.self, forKey: .id)
+        }
         self.category = try container.decode(CBCategory?.self, forKey: .category)
         month = try container.decode(Int.self, forKey: .month)
         year = try container.decode(Int.self, forKey: .year)
@@ -108,6 +120,8 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
                 self.category = deepCopy.category
                 self.active = deepCopy.active
             }
+        case .clear:
+            break
         }
     }
     

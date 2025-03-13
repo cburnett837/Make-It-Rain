@@ -12,7 +12,7 @@ struct LineItemMiniView2: View {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @Environment(\.colorScheme) var colorScheme
     
-    //@AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    //@AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     @AppStorage("incomeColor") var incomeColor: String = Color.blue.description
     //@AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
     //@AppStorage("useWholeNumbers") var useWholeNumbers = false
@@ -186,7 +186,7 @@ struct LineItemMiniView: View {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @Environment(\.colorScheme) var colorScheme
     
-    //@AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    //@AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     @AppStorage("incomeColor") var incomeColor: String = Color.blue.description
     //@AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
@@ -355,27 +355,32 @@ struct LineItemMiniView: View {
     
     
     var accessoryIndicator: some View {
-//        Capsule()
-//            .fill(
+        Capsule()
+            .fill(
+                calModel.isUnifiedPayMethod && lineItemIndicator == .paymentMethod
+                ? (trans.payMethod?.color ?? .gray).gradient
+                : (trans.category?.color ?? .gray).gradient
+            )
+            .frame(width: 3)
+            //.frame(maxHeight: .infinity)
+            .padding(.vertical, 2)
+                
+        
+//        Canvas { context, size in
+//            var color: Color {
 //                calModel.isUnifiedPayMethod && lineItemIndicator == .paymentMethod
 //                ? (trans.payMethod?.color ?? .gray)
 //                : (trans.category?.color ?? .gray)
-//            )
-//            .frame(width: 3)
-//            //.frame(maxHeight: .infinity)
-//            .padding(.vertical, 2)
-        
-        Canvas { context, size in
-            let capsuleRect = CGRect(origin: .zero, size: size)
-            let capsulePath = Path(roundedRect: capsuleRect, cornerRadius: size.height / 2) // Full capsule effect
-            
-            context.fill(capsulePath, with: .color(
-                calModel.isUnifiedPayMethod && lineItemIndicator == .paymentMethod ? (trans.payMethod?.color ?? .gray) : (trans.category?.color ?? .gray)
-            ))
-        }
-        .frame(width: 3)
-        //.frame(maxHeight: .infinity)
-        .padding(.vertical, 2)
+//            }
+//            
+//            let capsuleRect = CGRect(origin: .zero, size: size)
+//            let capsulePath = Path(roundedRect: capsuleRect, cornerRadius: size.height / 2) // Full capsule effect
+//            
+//            context.fill(capsulePath, with: .color(color.gradient))
+//        }
+//        .frame(width: 3)
+//        //.frame(maxHeight: .infinity)
+//        .padding(.vertical, 2)
     }
     
     

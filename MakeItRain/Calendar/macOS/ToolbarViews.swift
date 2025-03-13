@@ -23,37 +23,44 @@ struct CalendarToolbarLeading: View {
     @State private var showPopulateOptionsSheet = false
     @State private var showStartingAmountsSheet = false
     @State private var showCategorySheet = false
+    @State private var showPaymentMethodSheet = false
+    
+    
+    
     
     var focusedField: FocusState<Int?>.Binding
     //@FocusState var focusedField: Int?
+    
+    var enumID: NavDestination = NavigationManager.shared.selection ?? .placeholderMonth
         
     @State private var double = 0.0
     @State private var text = ""
     
-    var formatter: NumberFormatter = {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.zeroSymbol = ""
-        return formatter
-    }()
+//    var formatter: NumberFormatter = {
+//        let formatter = NumberFormatter()
+//        formatter.numberStyle = .currency
+//        formatter.zeroSymbol = ""
+//        return formatter
+//    }()
     
     var body: some View {
         @Bindable var calModel = calModel
         @Bindable var navManager = NavigationManager.shared
         
         HStack {
-            if LoadingManager.shared.showLoadingSpinner {
-                ProgressView()
-                    .tint(.none)
-                    .scaleEffect(0.5)
-            }
+//            if LoadingManager.shared.showLoadingSpinner {
+//                ProgressView()
+//                    .tint(.none)
+//                    .scaleEffect(0.5)
+//            }
             
             previousMonthButton
             nextMonthButton
             
-            if calModel.sYear != AppState.shared.todayYear || calModel.sMonth.num != AppState.shared.todayMonth {
-                ToolbarNowButton()
-            }
+            //if calModel.sYear != AppState.shared.todayYear || calModel.sMonth.num != AppState.shared.todayMonth {
+            ToolbarNowButton()
+                .disabled(calModel.sYear == AppState.shared.todayYear && calModel.sMonth.num == AppState.shared.todayMonth)
+            //}
             Divider()
             
             populateButton
@@ -62,25 +69,11 @@ struct CalendarToolbarLeading: View {
                 .toolbarBorder()
             
             Divider()
-                        
             
-            Button("Select Categories") {
-                showCategorySheet = true
-            }
-            
-//            CategoryMenu(category: $calModel.sCategory) {
-//                Text(calModel.sCategory?.title ?? "All Categories")
-//            }
-            .frame(width: 100)
-            .toolbarBorder()
+            categoryButton
+            paymentMethodButton
             
             Divider()
-                        
-            PaymentMethodMenu(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all) {
-                Text(calModel.sPayMethod?.title ?? "Select Payment Method")
-            }
-            .frame(width: 100)
-            .toolbarBorder()
                         
             startingAmountTextFields
         }
@@ -99,31 +92,6 @@ struct CalendarToolbarLeading: View {
             PopulateMonthOptionsSheet()
                 .frame(minWidth: 300, minHeight: 500)
                 .presentationSizing(.fitted)
-        }
-        .sheet(isPresented: $showStartingAmountsSheet) {
-            calModel.calculateTotalForMonth(month: calModel.sMonth)
-            Task {
-                await withTaskGroup(of: Void.self) { group in
-                    let starts = calModel.sMonth.startingAmounts.filter { !$0.payMethod.isUnified }
-                    print(starts)
-                    for start in starts {
-                        print(start.amountString)
-                        group.addTask {
-                            await calModel.submit(start)
-                        }
-                    }
-                }
-            }
-        } content: {
-            StartingAmountSheet()
-                .frame(minWidth: 300, minHeight: 500)
-                .presentationSizing(.fitted)
-        }
-        .sheet(isPresented: $showCategorySheet) {
-            MultiCategorySheet(categories: $calModel.sCategories)
-                .frame(minWidth: 300, minHeight: 500)
-                .presentationSizing(.fitted)
-            //CategorySheet(category: $calModel.sCategory)
         }
     }
     
@@ -157,6 +125,7 @@ struct CalendarToolbarLeading: View {
         .toolbarBorder()
         .help(NavigationManager.shared.selection == .lastDecember ? "Can't move to previous year": "View previous month")
     }
+    
     
     var nextMonthButton: some View {
         Button {
@@ -207,75 +176,122 @@ struct CalendarToolbarLeading: View {
     }
    
     
+    var categoryButton: some View {
+        Group {
+            @Bindable var calModel = calModel
+            Button {
+                showCategorySheet = true
+            } label: {
+                HStack(spacing: 2) {
+                    if !calModel.sCategories.isEmpty {
+                        var categoryFilterTitle: String {
+                            let cats = calModel.sCategories
+                            if cats.isEmpty {
+                                return ""
+                                
+                            } else if cats.count == 1 {
+                                return cats.first!.title
+                                
+                            } else if cats.count == 2 {
+                                return "\(cats[0].title), \(cats[1].title)"
+                                
+                            } else {
+                                return "\(cats[0].title), \(cats[1].title), \(cats.count - 2)+"
+                            }
+                        }
+                        
+                        Text("(\(categoryFilterTitle))")
+                            .italic()
+                    } else {
+                        Text("Categories")
+                    }
+                }
+                //.font(.callout)
+                //.foregroundStyle(.gray)
+                .contentShape(Rectangle())
+                //.frame(width: 150)
+            }
+            .toolbarBorder()
+            .popover(isPresented: $showCategorySheet) {
+                MultiCategorySheet(categories: $calModel.sCategories)
+                    .frame(minWidth: 300, minHeight: 500)
+                    .presentationSizing(.fitted)
+                //CategorySheet(category: $calModel.sCategory)
+            }
+        }
+        
+    }
+    
+    
+    var paymentMethodButton: some View {
+        Group {
+            @Bindable var calModel = calModel
+            Button {
+                showPaymentMethodSheet = true
+            } label: {
+                HStack {
+                    Image(systemName: "circle.fill")
+                        .if(calModel.sPayMethod?.isUnified ?? false) {
+                            $0.foregroundStyle(AngularGradient(gradient: Gradient(colors: [.red, .yellow, .green, .blue, .purple, .red]), center: .center))
+                        }
+                        .if((calModel.sPayMethod?.isUnified ?? false == false)) {
+                            $0.foregroundStyle((calModel.sPayMethod?.isUnified ?? false ? .white : calModel.sPayMethod?.color) ?? .white, .primary, .secondary)
+                        }
+                    Text(calModel.sPayMethod?.title ?? "Select Payment Method")
+                }
+                
+                    //.frame(width: 100)
+            }
+            .toolbarBorder()
+            .popover(isPresented: $showPaymentMethodSheet) {
+                PaymentMethodSheet(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all)
+                    .frame(minWidth: 300, minHeight: 500)
+//                    .presentationSizing(.fitted)
+            }
+        }
+    }
+    
+    
     var startingAmountTextFields: some View {
         Group {
             @Bindable var calModel = calModel
             let sMeth: CBPaymentMethod? = calModel.sPayMethod
-            
-            
-            Text(calModel.sMonth.startingAmounts.filter { $0.payMethod.id == sMeth?.id }.first?.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "0.0")
-                .padding(6)
-                .foregroundStyle(.gray)
-                .toolbarBorder()
-                .onTapGesture {
-                    for meth in payModel.paymentMethods.filter({ !$0.isUnified }) {
-                        calModel.prepareStartingAmount(for: meth)
-                    }
-                    showStartingAmountsSheet = true
+                                                            
+            Button {
+                for meth in payModel.paymentMethods.filter({ !$0.isUnified }) {
+                    calModel.prepareStartingAmount(for: meth)
                 }
-            
-//            StaticAmountText(amount: calModel.sMonth.startingAmounts.filter { $0.payMethod.id == sMeth?.id }.first?.amount, alertText: "This starting amount is auto-calculated from your other \(sMeth?.accountType == .unifiedChecking ? "checking" : "credit") accounts.")
-//                .onTapGesture {
-//                    showStartingAmountsSheet = true
-//                }
-            
-            
-            
-            /// Disable the starting amount field if it's a unified account.
-//            if calModel.isUnifiedPayMethod {
-//                let doubleAmount = calModel.sMonth.startingAmounts.filter { $0.payMethod.id == sMeth?.id }.first?.amount
-//                StaticAmountText(amount: doubleAmount, alertText: "This starting amount is auto-calculated from your other \(sMeth?.accountType == .unifiedChecking ? "checking" : "credit") accounts.")
-//                
-//            } else {
-//                /// Show the standard starting amount text field.
-//                let amountFieldTitle: String = calModel.sPayMethod?.accountType == .credit ? "Current Balance" : "Starting Amount"
-//                let helpDescription: String = calModel.sPayMethod?.accountType == .credit ? "Enter your credit balance at the start of the month" : "Enter the amount of money you started the month with"
-//                
-//                ToolbarTextField(
-//                    amountFieldTitle,
-//                    text: $calModel.sMonth.startingAmounts.filter { $0.payMethod.id == sMeth?.id }.first?.amountString ?? .constant(""),
-//                    keyboardType: .currency,
-//                    onSubmit: { submitStartingAmount() }
-//                )
-//                .frame(width: 120)
-//                .help(helpDescription)
-//                .focused(focusedField, equals: 0)
-//                .onChange(of: focusedField.wrappedValue) { oldValue, newValue in
-//                    if newValue == nil && oldValue == 0 {
-//                        submitStartingAmount()
-//                    }
-//                            
-//                    
-////                    if (oldValue == nil && (newValue ?? "").isEmpty) || newValue == nil || calModel.isUnifiedPayMethod {
-////                        return
-////                    }
-////
-////                    calModel.calculateTotalForMonth(month: calModel.sMonth)
-////
-////                    /// If a mac, trigger on change. iPhone will trigger via submit of the keyboard button.
-////                    #if os(macOS)
-////                    let starting = calModel.sMonth.startingAmounts.filter { $0.payMethod.id == calModel.sPayMethod?.id }.first
-////                    if starting != nil {
-////                        if !calModel.isUnifiedPayMethod {
-////                            calModel.stopDelayedStartingAmountTimer()
-////                            calModel.startDelayedStartingAmountTimer()
-////                        }
-////                    }
-////                    #endif
-//                    
-//                    
-//                }
-//            }
+                showStartingAmountsSheet = true
+            } label: {
+                Text(calModel.sMonth.startingAmounts.filter { $0.payMethod.id == sMeth?.id }.first?.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "0.0")
+                    .contentShape(Rectangle())
+                    .frame(width: 100)
+                    .padding(6)
+                    .foregroundStyle(.gray)
+            }
+            .toolbarBorder()
+            .popover(isPresented: $showStartingAmountsSheet) {
+                StartingAmountSheet()
+                    .frame(minWidth: 300, minHeight: 500)
+                    .presentationSizing(.fitted)
+            }
+            .onChange(of: showStartingAmountsSheet) { oldValue, newValue in
+                if !newValue {
+                    calModel.calculateTotalForMonth(month: calModel.sMonth)
+                    Task {
+                        await withTaskGroup(of: Void.self) { group in
+                            let starts = calModel.sMonth.startingAmounts.filter { !$0.payMethod.isUnified }
+                            print(starts)
+                            for start in starts {
+                                print(start.amountString)
+                                group.addTask {
+                                    await calModel.submit(start)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
                                                 
             /// Show a total limit field for credit or unified credit views.
             if sMeth?.accountType == .credit || sMeth?.accountType == .unifiedCredit {
@@ -336,19 +352,23 @@ struct CalendarToolbarLeading: View {
 struct ToolbarCenterView: View {
     @Environment(CalendarModel.self) private var calModel
     
+    var enumID: NavDestination = NavigationManager.shared.selection ?? .placeholderMonth
+    
     var body: some View {
         @Bindable var navManager = NavigationManager.shared
         
         if let selection = navManager.selection {
             VStack(spacing: 2) {
                 if [.lastDecember, .january, .february, .march, .april, .may, .june, .july, .august, .september, .october, .november, .december, .nextJanuary].contains(selection) {
-                    if calModel.sMonth.num == 100000 {
-                        Text("Loading…")
-                            .font(.title)
-                    } else {
-                        Text((calModel.sMonth.name) + " \(calModel.sMonth.year)")
-                            .font(.title)
-                    }
+                    Text(enumID.displayName)
+                        .font(.title)
+//                    if calModel.sMonth.num == 100000 {
+//                        Text("Loading…")
+//                            .font(.title)
+//                    } else {
+//                        Text((calModel.sMonth.name) + " \(calModel.sMonth.year)")
+//                            .font(.title)
+//                    }
                 } else {
                     Text(selection.displayName)
                         .font(.title)

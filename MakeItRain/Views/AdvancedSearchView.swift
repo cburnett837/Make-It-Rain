@@ -45,7 +45,7 @@ class AdvancedSearchModel: Encodable {
 struct AdvancedSearchView: View {
     @Environment(\.dismiss) var dismiss
     
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
 
@@ -412,6 +412,9 @@ struct AdvancedSearchView: View {
                 }
                 .focused($focusedField, equals: 0)
                 
+                Button("Search", action: search)
+                    .disabled(!searchModel.isValid())
+                
             } header: {
                 HStack {
                     Text("Filter")
@@ -430,6 +433,21 @@ struct AdvancedSearchView: View {
                         Text("Reset")
                             .font(.caption)
                     }
+                }
+            }
+            
+            if !calModel.searchedTransactions.isEmpty {
+                let sum = calModel.searchedTransactions
+                    .map({ $0.payMethod?.accountType == .credit ? $0.amount * -1 : $0.amount })
+                    .reduce(0.0, +)
+                
+                Section("Transaction Summary") {
+                    HStack {
+                        Text("Total:")
+                        Spacer()
+                        Text(sum.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                    }
+                    
                 }
             }
                         

@@ -11,7 +11,7 @@ import SwiftUI
 #if os(iOS)
 struct DayViewPhone: View {
     @Environment(\.colorScheme) var colorScheme
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     @AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
     @AppStorage("tightenUpEodTotals") var tightenUpEodTotals = true
@@ -119,6 +119,7 @@ struct DayViewPhone: View {
                         if trans.date == day.date {
                             calModel.dragTarget = nil
                             AppState.shared.showToast(title: "Operation Cancelled", subtitle: "Can't copy or move to the original day", body: "Please try again", symbol: "hand.raised.fill", symbolColor: .orange)
+                            calModel.transactionToCopy = nil
                             return true
                         }
                                                 
@@ -137,6 +138,7 @@ struct DayViewPhone: View {
                     copyAndPasteButton
                     Button("Cancel", role: .cancel) {
                         calModel.dragTarget = nil
+                        calModel.transactionToCopy = nil
                     }
                 } message: {
                     Text("\(calModel.transactionToCopy?.title ?? "N/A")\nDropped on \(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())")
@@ -168,7 +170,7 @@ struct DayViewPhone: View {
                         monthObj.days.forEach { $0.transactions.removeAll(where: { $0.id == trans.id }) }
                     }
                     
-                    trans.log(field: .date, old: trans.date?.string(to: .monthDayShortYear), new: day.date?.string(to: .monthDayShortYear))
+                    trans.log(field: .date, old: trans.date?.string(to: .monthDayShortYear), new: day.date?.string(to: .monthDayShortYear), groupID: UUID().uuidString)
                     
                     trans.date = day.date!
                     calModel.sMonth.days.forEach { $0.transactions.removeAll(where: { $0.id == trans.id }) }
@@ -176,6 +178,8 @@ struct DayViewPhone: View {
                     day.transactions.append(trans)
                     calModel.dragTarget = nil
                     calModel.saveTransaction(id: trans.id)
+                    
+                    calModel.transactionToCopy = nil
                 }
             }
         }
@@ -194,6 +198,8 @@ struct DayViewPhone: View {
                     day.upsert(trans)
                     calModel.dragTarget = nil
                     calModel.saveTransaction(id: trans.id, day: day)
+                    
+                    calModel.transactionToCopy = nil
                 }
             }
         } label: {
@@ -207,7 +213,7 @@ struct DayViewPhone: View {
             .if(isToday) {
                 $0
                 .bold()
-                .padding(6)
+                .padding(4)
                 .background {
                     Circle()
                     //RoundedRectangle(cornerRadius: 5)
@@ -217,7 +223,7 @@ struct DayViewPhone: View {
                 .if(!preferDarkMode) {
                     $0.foregroundStyle(.white)
                 }
-                .padding(-6)
+                .padding(-4)
             }
             .padding(.leading, AppState.shared.isIpad ? 6 : 0)
             .frame(maxWidth: .infinity, alignment: AppState.shared.isIpad ? .leading : .center)

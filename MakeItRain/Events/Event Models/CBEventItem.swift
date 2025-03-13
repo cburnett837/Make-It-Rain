@@ -153,6 +153,8 @@ class CBEventItem: Codable, Identifiable, Hashable, Equatable {
                 self.updatedDate = deepCopy.updatedDate
                 self.active = deepCopy.active
             }
+        case .clear:
+            break
         }
     }
     

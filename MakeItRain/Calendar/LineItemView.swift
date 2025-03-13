@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct LineItemView: View {
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     @AppStorage("incomeColor") var incomeColor: String = Color.blue.description
     @AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
     @AppStorage("useWholeNumbers") var useWholeNumbers = false

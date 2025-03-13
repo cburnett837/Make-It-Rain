@@ -167,7 +167,7 @@ struct DayOverviewView: View {
                         monthObj.days.forEach { $0.transactions.removeAll(where: { $0.id == trans.id }) }
                     }
                     
-                    trans.log(field: .date, old: trans.date?.string(to: .monthDayShortYear), new: day?.date?.string(to: .monthDayShortYear))
+                    trans.log(field: .date, old: trans.date?.string(to: .monthDayShortYear), new: day?.date?.string(to: .monthDayShortYear), groupID: UUID().uuidString)
                     
                     trans.date = day?.date!
                     calModel.sMonth.days.forEach { $0.transactions.removeAll(where: { $0.id == trans.id }) }

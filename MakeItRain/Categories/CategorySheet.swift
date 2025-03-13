@@ -85,82 +85,14 @@ struct CategorySheet: View {
     
     
     var body: some View {
-        
-        SheetHeader(
-            title: "Categories",
-            close: { dismiss() },
-            view1: { sortMenu }
-        )
-        .padding(.bottom, 12)
-        .padding(.horizontal, 20)
-        .padding(.top)
-                
-        SearchTextField(title: "Categories", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)
-                
-        List {
-            if searchText.isEmpty {
-                Section("None") {
-                    HStack {
-                        Text("None")
-                            .strikethrough(true)
-                        Spacer()
-                        if category?.id == nil {
-                            Image(systemName: "checkmark")
-                        }
-                    }
-                    .contentShape(Rectangle())
-                    .onTapGesture { doIt(nil) }
-                }
-            }
-            
-            
-            Section("Your Categories") {
-                ForEach(filteredCategories) { cat in
-                    HStack {
-                        if lineItemIndicator == .dot {
-                            HStack { /// This can be a button or whatever you want
-                                Image(systemName: "circle.fill")
-                                    .foregroundStyle(cat.color, .primary, .secondary)
-                                Text(cat.title)
-                                Spacer()
-                                if category?.id == cat.id {
-                                    Image(systemName: "checkmark")
-                                }
-                            }
-                        } else {
-                            if let emoji = cat.emoji {
-                                HStack {
-                                    Image(systemName: emoji)
-                                        .foregroundStyle(cat.color)
-                                        .frame(minWidth: labelWidth, alignment: .center)
-                                        .maxViewWidthObserver()
-                                    Text(cat.title)
-                                    //Text("\(emoji) \(cat.title)")
-                                    Spacer()
-                                    if category?.id == cat.id {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            } else {
-                                HStack {
-                                    Text(cat.title)
-                                    Spacer()
-                                    if category?.id == cat.id {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                        }
-                        Spacer()
-                    }
-                    .contentShape(Rectangle())
-                    .onTapGesture { doIt(cat) }
-                }
-                
-                Button("New Category") {
-                    categoryEditID = UUID().uuidString
-                }
-            }
+        SheetContainerView(.list) {
+            noneSection
+            yourCategoriesSection
+        } header: {
+            SheetHeader(title: "Categories", close: { dismiss() }, view1: { sortMenu })
+        } subHeader: {
+            SearchTextField(title: "Categories", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)
+                .padding(.horizontal, -20)
         }
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
         .sheet(item: $editCategory, onDismiss: {
@@ -180,6 +112,71 @@ struct CategorySheet: View {
                 editCategory = catModel.getCategory(by: newValue)
             } else {
                 catModel.saveCategory(id: oldValue!, calModel: calModel)
+            }
+        }
+    }
+    
+    var noneSection: some View {
+        Section("None") {
+            HStack {
+                Text("None")
+                    .strikethrough(true)
+                Spacer()
+                if category?.id == nil {
+                    Image(systemName: "checkmark")
+                }
+            }
+            .contentShape(Rectangle())
+            .onTapGesture { doIt(nil) }
+        }
+    }
+    
+    var yourCategoriesSection: some View {
+        Section("Your Categories") {
+            ForEach(filteredCategories) { cat in
+                HStack {
+                    if lineItemIndicator == .dot {
+                        HStack { /// This can be a button or whatever you want
+                            Image(systemName: "circle.fill")
+                                .foregroundStyle(cat.color.gradient, .primary, .secondary)
+                            Text(cat.title)
+                            Spacer()
+                            if category?.id == cat.id {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    } else {
+                        if let emoji = cat.emoji {
+                            HStack {
+                                Image(systemName: emoji)
+                                    .foregroundStyle(cat.color.gradient)
+                                    .frame(minWidth: labelWidth, alignment: .center)
+                                    .maxViewWidthObserver()
+                                Text(cat.title)
+                                //Text("\(emoji) \(cat.title)")
+                                Spacer()
+                                if category?.id == cat.id {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        } else {
+                            HStack {
+                                Text(cat.title)
+                                Spacer()
+                                if category?.id == cat.id {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                    Spacer()
+                }
+                .contentShape(Rectangle())
+                .onTapGesture { doIt(cat) }
+            }
+            
+            Button("New Category") {
+                categoryEditID = UUID().uuidString
             }
         }
     }

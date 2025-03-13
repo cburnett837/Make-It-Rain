@@ -15,7 +15,7 @@ struct EventView: View {
     }
     
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
 
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
@@ -97,7 +97,7 @@ struct EventView: View {
                 if(isAdmin) {
                     SheetHeader(
                         title: title,
-                        subtitle: "Created by \(event.enteredBy.name)",
+                        //subtitle: "Created by \(event.enteredBy.name)",
                         close: { validateParticipantsOnDimiss() },
                         view1: { addItemButton },
                         view3: { deleteButton }
@@ -105,17 +105,13 @@ struct EventView: View {
                 } else {
                     SheetHeader(
                         title: title,
-                        subtitle: "Created by \(event.enteredBy.name)",
+                        //subtitle: "Created by \(event.enteredBy.name)",
                         close: { validateParticipantsOnDimiss() },
                         view1: { addItemButton }
                     )
                 }
             }
-            
-            .padding()
-            
-            Divider()
-                .padding(.horizontal)
+            .padding()                        
         }
     }
     

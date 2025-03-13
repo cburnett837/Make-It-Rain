@@ -10,7 +10,7 @@ import SwiftUI
 struct NavLinkMac: View {
     @Environment(CalendarModel.self) var calModel
     
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     @AppStorage("showIndividualLoadingSpinner") var showIndividualLoadingSpinner = false
     
     let destination: NavDestination

@@ -50,10 +50,9 @@ struct NavLinkPhone: View {
                 }
             }
         }
-        
-        
+                
         //.navRowBackgroundWithSelection(selection: destination)
-        .rowBackgroundWithSelection(id: destination.rawValue, selectedID: NavigationManager.shared.selection?.rawValue)
+        .standardNavRowBackgroundWithSelection(id: destination.rawValue, selectedID: NavigationManager.shared.selection?.rawValue)
         //.listRowBackground(backgroundColor)
     }
 }
@@ -62,7 +61,7 @@ struct MonthNavigationLink: View {
     @Environment(CalendarModel.self) var calModel
     
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     @Namespace private var monthNavigationNamespace
     let sevenColumnGrid = Array(repeating: GridItem(.flexible(), spacing: 0, alignment: .top), count: 7)
     
@@ -121,7 +120,16 @@ struct MonthNavigationLink: View {
             }
             .contentShape(Rectangle())
             .matchedTransitionSource(id: month.enumID, in: monthNavigationNamespace)
-            
+//            .dropDestination(for: CBTransaction.self) { droppedTrans, location in
+//                calModel.dragTarget = nil
+//                return true
+//            } isTargeted: { isTargeted in
+//                if isTargeted {
+//                    withAnimation {
+//                        NavigationManager.shared.selection = month.enumID
+//                    }
+//                }
+//            }
         }
         .padding(.bottom, 10)
         .buttonStyle(.plain)

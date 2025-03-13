@@ -125,7 +125,7 @@ class NavigationManager {
 //    }
     
     
-    //var navPath: Array<NavDestination> = []
+    var navPath: Array<NavDestination> = []
     
     //var navPath = NavigationPath()
 //    func navigate(to destination: NavDestination) {

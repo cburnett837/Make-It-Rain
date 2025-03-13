@@ -78,6 +78,8 @@ class CBUser: Codable, Identifiable, Hashable, Equatable {
                 self.initials = deepCopy.initials
                 self.email = deepCopy.email
             }
+        case .clear:
+            break
         }
     }
     

@@ -104,6 +104,8 @@ class CBTag: Codable, Identifiable {
                 self.active = deepCopy.active
                 //self.action = deepCopy.action
             }
+        case .clear:
+            break
         }
     }
     

@@ -13,6 +13,8 @@ struct SplashScreen: View {
     @State private var logoScale: Double = 1
     @State private var titleProgress: CGFloat = 0
     //@State private var hang = ""
+    let timer = Timer.publish(every: 5, on: .main, in: .common).autoconnect()
+    @State private var showSlowLoadingButton = false
     
     var body: some View {
         ZStack {
@@ -40,6 +42,9 @@ struct SplashScreen: View {
                     .textRenderer(TitleTextRenderer(progress: titleProgress))
                     
                 Spacer()
+                            
+                
+                
                 
                 //Text(hang)
                 
@@ -54,6 +59,23 @@ struct SplashScreen: View {
 //                }
 //            }
         }
+        .overlay {
+            if showSlowLoadingButton {
+                VStack {
+                    Spacer()
+                    Text("Connecting is taking longer than expected…")
+                    Button("Offline Mode") {
+                        AuthState.shared.loginTask?.cancel()
+                        withAnimation {
+                            AuthState.shared.isLoggedIn = false
+                            AppState.shared.hasBadConnection = true
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.green)
+                }
+            }
+        }
         #if os(iOS)
         .standardBackground()
         #endif
@@ -66,7 +88,21 @@ struct SplashScreen: View {
                 }
             }
         }
+        .onReceive(timer) { _ in
+            withAnimation {
+                if AuthState.shared.isThinking {
+                    showSlowLoadingButton = true
+                }
+            }
+            
+            self.timer.upstream.connect().cancel()
+        }
+        .onDisappear {
+            timer.upstream.connect().cancel()
+            showSlowLoadingButton = false
+        }
     }
+    
 }
 
 

@@ -324,6 +324,8 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
                 self.active = deepCopy.active
                 //self.action = deepCopy.action
             }
+        case .clear:
+            break
         }
     }
     
@@ -478,6 +480,8 @@ class CBRepeatingTransactionWhen: Identifiable, Decodable, Hashable, Equatable {
                 self.whenType = deepCopy.whenType
                 self.active = deepCopy.active
             }
+        case .clear:
+            break
         }
     }
 }

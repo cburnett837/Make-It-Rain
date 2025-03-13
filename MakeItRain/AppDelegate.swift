@@ -128,8 +128,8 @@ class AppDelegateMac: NSObject, NSApplicationDelegate, NSWindowDelegate {
     @objc private func systemDidWake() {
         print("-- 🍎 LIFECYCLE: \(#function)")
         // Handle system wakeup
-        AppState.shared.macSlept = false
-        AppState.shared.macWokeUp = true
+        //AppState.shared.macSlept = false
+        //AppState.shared.macWokeUp = true
     }
 
     @objc private func systemWillSleep() {
@@ -152,6 +152,8 @@ class AppDelegateMac: NSObject, NSApplicationDelegate, NSWindowDelegate {
     @objc private func screenIsUnlocked() {
         print("-- 🍎 LIFECYCLE: \(#function)")
         // Handle screen locking (screensaver starts)
+        AppState.shared.macSlept = false
+        AppState.shared.macWokeUp = true
     }
     
 }
@@ -181,6 +183,9 @@ struct HostingWindowFinder: NSViewRepresentable {
 
 #if os(iOS)
 class AppDelegatePhone: UIResponder, UIApplicationDelegate {
+    
+    var window: UIWindow?
+    
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
 //        PHPhotoLibrary.requestAuthorization(for: .readWrite) { [unowned self] (status) in
 //            DispatchQueue.main.async { [unowned self] in
@@ -188,42 +193,40 @@ class AppDelegatePhone: UIResponder, UIApplicationDelegate {
 //                //showUI(for: status)
 //            }
 //        }
-        
-        
-        
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow), name: UIResponder.keyboardWillShowNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide), name: UIResponder.keyboardWillHideNotification, object: nil)
+                        
+        //NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow), name: UIResponder.keyboardWillShowNotification, object: nil)
+        //NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide), name: UIResponder.keyboardWillHideNotification, object: nil)
         //NotificationCenter.default.addObserver(self, selector: #selector(keyboardDidShow), name: UIResponder.keyboardWillHideNotification, object: nil)
         
         return true
     }
     
     
-    @objc func keyboardDidShow(_ notification: Notification) {
-        if let keyboardFrame: NSValue = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue {
-            let keyboardRectangle = keyboardFrame.cgRectValue
-            let keyboardHeight = keyboardRectangle.height
-            //print(keyboardHeight)
-            AppState.shared.keyboardHeight = keyboardHeight
-            AppState.shared.showKeyboardToolbar = true
-        }
-    }
-    
-    
-    @objc func keyboardWillShow(_ notification: Notification) {
-        if let keyboardFrame: NSValue = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue {
-            let keyboardRectangle = keyboardFrame.cgRectValue
-            let keyboardHeight = keyboardRectangle.height
-           // print(keyboardHeight)
-            AppState.shared.keyboardHeight = keyboardHeight
-            AppState.shared.showKeyboardToolbar = true
-        }
-    }
-    
-    @objc func keyboardWillHide(_ notification: Notification) {
-        AppState.shared.keyboardHeight = 0
-        AppState.shared.showKeyboardToolbar = false
-    }
+//    @objc func keyboardDidShow(_ notification: Notification) {
+//        if let keyboardFrame: NSValue = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue {
+//            let keyboardRectangle = keyboardFrame.cgRectValue
+//            let keyboardHeight = keyboardRectangle.height
+//            //print(keyboardHeight)
+//            AppState.shared.keyboardHeight = keyboardHeight
+//            AppState.shared.showKeyboardToolbar = true
+//        }
+//    }
+//    
+//    
+//    @objc func keyboardWillShow(_ notification: Notification) {
+//        if let keyboardFrame: NSValue = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue {
+//            let keyboardRectangle = keyboardFrame.cgRectValue
+//            let keyboardHeight = keyboardRectangle.height
+//           // print(keyboardHeight)
+//            AppState.shared.keyboardHeight = keyboardHeight
+//            AppState.shared.showKeyboardToolbar = true
+//        }
+//    }
+//    
+//    @objc func keyboardWillHide(_ notification: Notification) {
+//        AppState.shared.keyboardHeight = 0
+//        AppState.shared.showKeyboardToolbar = false
+//    }
     
     
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
@@ -236,7 +239,11 @@ class AppDelegatePhone: UIResponder, UIApplicationDelegate {
     
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
         print("Failed to register: \(error)")
-    }        
+    }
+    
+    func application(_ application: UIApplication, shouldAllowExternalSceneSessionCreationForConnectionOptions connectionOptions: UIScene.ConnectionOptions) -> Bool {
+        return false // Prevents opening new windows
+    }
     
 }
 

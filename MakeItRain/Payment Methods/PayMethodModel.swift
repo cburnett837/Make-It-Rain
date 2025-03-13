@@ -348,6 +348,38 @@ class PayMethodModel {
     }
     
     
+    
+    @MainActor
+    func fetchStartingAmountsForDateRange(_ payMethod: CBPaymentMethod) async -> Array<CBStartingAmount>? {
+        print("-- \(#function)")
+        //LoadingManager.shared.startDelayedSpinner()
+        LogManager.log()
+      
+        /// Networking
+        let model = RequestModel(requestType: "fetch_starting_amounts_for_date_range", model: payMethod)
+        
+        typealias ResultResponse = Result<Array<CBStartingAmount>?, AppError>
+        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+                    
+        switch await result {
+        case .success(let model):
+            LogManager.networkingSuccessful()
+            return model
+
+        case .failure(let error):
+            LogManager.error(error.localizedDescription)
+            AppState.shared.showAlert("There was a problem trying to set the default payment method.")
+            return nil
+            //showSaveAlert = true
+            #warning("Undo behavior")
+        }
+        //LoadingManager.shared.stopDelayedSpinner()
+    }
+    
+    
+    
+    
+    
     func determineIfUserIsRequiredToAddPaymentMethod() {
         print("-- \(#function)")
         /// If you close the payment method edit page, and the data is not valid, hide all the other views.

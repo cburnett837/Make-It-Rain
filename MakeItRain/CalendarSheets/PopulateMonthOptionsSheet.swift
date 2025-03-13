@@ -21,7 +21,7 @@ class PopulateOptions {
 }
 
 struct PopulateMonthOptionsSheet: View {
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
@@ -34,15 +34,12 @@ struct PopulateMonthOptionsSheet: View {
     @State private var model = PopulateOptions()
     
     var body: some View {
-        VStack {
+        SheetContainerView(.list) {
+            paymentMethodSection
+            budgetSection
+        } header: {
             SheetHeader(title: "Populate Options", close: { dismiss() })
-                .padding()
-            
-            List {
-                paymentMethodSection
-                budgetSection
-                
-            }
+        } footer: {
             populateButton
         }
         .task {

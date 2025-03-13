@@ -31,137 +31,67 @@ struct KeywordView: View {
         .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
     }
     
-    var header: some View {
-        Group {
-            SheetHeader(
-                title: title,
-                close: { editID = nil; dismiss() },
-                view3: { deleteButton }
-            )
-            .padding()
-            
-            Divider()
-                .padding(.horizontal)
-        }
-    }
+//    var header: some View {
+//        Group {
+//            SheetHeader(
+//                title: title,
+//                close: { editID = nil; dismiss() },
+//                view3: { deleteButton }
+//            )
+//            .padding()
+//        }
+//    }
     
     
     var body: some View {
-        VStack(spacing: 0) {
-            #if os(iOS)
-            if !AppState.shared.isLandscape { header }
-            #endif
-            #if os(macOS)
-            VStack(alignment: .center) {
-                HStack {
-                    Text("If the transaction title")
-                    VStack(alignment: .leading) {
-                        
-                        Menu {
-                            Button {
-                                keyword.triggerType = .equals
-                            } label: {
-                                Text("equals")
-                            }
-                            Button {
-                                keyword.triggerType = .contains
-                            } label: {
-                                Text("contains")
-                            }
+        SheetContainerView {
+            GroupBox {
+                HStack(spacing: 0) {
+                    Text("If the transaction title ")
+                    Menu {
+                        Button {
+                            keyword.triggerType = .equals
                         } label: {
+                            Text("equals")
+                        }
+                        Button {
+                            keyword.triggerType = .contains
+                        } label: {
+                            Text("contains")
+                        }
+                    } label: {
+                        HStack {
                             Text(keyword.triggerType.rawValue)
+                            Spacer()
                         }
-                        .frame(width: 100)
                     }
-                    TextField("Keyword", text: $keyword.keyword)
-                        .frame(width: 120)
-                        .focused($focusedField, equals: 0)
+                }
                 
-                    Text("give it a category of")
-                    MenuOrListButton(title: keyword.category?.title, alternateTitle: "Select Category") {
-                        showCategorySheet = true
-                    }
-                    
-//                    Menu {
-//                        ForEach(catModel.categories) { cat in
-//                            Button {
-//                                keyword.category = cat
-//                            } label: {
-//                                HStack {
-//                                    if let emoji = cat.emoji {
-//                                        Text("\(emoji) \(cat.title)")
-//                                    } else {
-//                                        Text(cat.title)
-//                                    }
-//                                    
-//                                }
-//                            }
-//                        }
-//                    } label: {
-//                        Text(keyword.category.title)
-//                    }
-//                    .frame(width: 100)
+                Group {
+                    #if os(iOS)
+                    StandardUITextField("Keyword", text: $keyword.keyword, toolbar: {
+                        /// The blank text removes the up and down arrows.
+                        KeyboardToolbarView(focusedField: $focusedField, removeNavButtons: true)
+                    })
+                    .cbClearButtonMode(.whileEditing)
+                    .cbFocused(_focusedField, equals: 0)
+                    #else
+                    StandardTextField("Keyword", text: $keyword.keyword, focusedField: $focusedField, focusValue: 0)
+                    #endif
                 }
-                .padding(.bottom)
             }
-            .padding(.bottom, 20)
-            #else
-            ScrollView {
-                if AppState.shared.isLandscape { header }
-                VStack(alignment: .leading, spacing: 6) {
-                    GroupBox {
-                        HStack(spacing: 0) {
-                            Text("If the transaction title ")
-                            Menu {
-                                Button {
-                                    keyword.triggerType = .equals
-                                } label: {
-                                    Text("equals")
-                                }
-                                Button {
-                                    keyword.triggerType = .contains
-                                } label: {
-                                    Text("contains")
-                                }
-                            } label: {
-                                HStack {
-                                    Text(keyword.triggerType.rawValue)
-                                    Spacer()
-                                }
-                                
-                            }
-                        }
-                        
-                        
-                        Group {
-                            #if os(iOS)
-                            StandardUITextField("Keyword", text: $keyword.keyword, toolbar: {
-                                /// The blank text removes the up and down arrows.
-                                KeyboardToolbarView(focusedField: $focusedField, removeNavButtons: true)
-                            })
-                            .cbClearButtonMode(.whileEditing)
-                            .cbFocused(_focusedField, equals: 0)
-                            #else
-                            StandardTextField("Keyword", text: $keyword.keyword, keyboardType: .text, focusedField: $focusedField, focusValue: 0)
-                            #endif
-                        }
-                    }
-                    
-                    GroupBox {
-                        HStack(spacing: 0) {
-                            Text("give it a category of ")
-                            CategorySheetButton(category: $keyword.category)
-                        }
-                    }
-                    
-                    Spacer()
-                }
-                .padding(.horizontal)
-                .padding(.top, 12)
-            }
-            .scrollDismissesKeyboard(.immediately)
             
-            #endif
+            GroupBox {
+                HStack(spacing: 0) {
+                    Text("give it a category of ")
+                    CategorySheetButton(category: $keyword.category)
+                }
+            }
+            
+            Spacer()
+            
+        } header: {
+            SheetHeader(title: title, close: { editID = nil; dismiss() }, view3: { deleteButton })
         }
         .frame(minWidth: 200)
         .task {
@@ -186,7 +116,6 @@ struct KeywordView: View {
             Text("Delete \"\(keyword.keyword)\"?")
             #endif
         })
-        
         
         .sheet(isPresented: $showCategorySheet) {
             CategorySheet(category: $keyword.category)

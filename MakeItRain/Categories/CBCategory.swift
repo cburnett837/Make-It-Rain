@@ -181,6 +181,8 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
                 self.isIncome = deepCopy.isIncome
                 self.listOrder = deepCopy.listOrder
             }
+        case .clear:
+            break
         }
     }
     

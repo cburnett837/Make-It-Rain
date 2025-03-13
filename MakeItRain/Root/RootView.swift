@@ -18,7 +18,7 @@ import SwiftUI
 //}
 
 struct RootView: View {
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     
     @Environment(\.scenePhase) var scenePhase
 
@@ -30,7 +30,7 @@ struct RootView: View {
     @Environment(RepeatingTransactionModel.self) var repModel
     //@Environment(TagModel.self) var tagModel
     
-    @State private var showMonth = false
+    //@State private var showMonth = false
     
     #if os(iOS)
     @State private var selectedDay: CBDay?
@@ -46,14 +46,14 @@ struct RootView: View {
             #if os(macOS)
             RootViewMac()
             #else
-            RootViewPhone(selectedDay: $selectedDay, showMonth: $showMonth)
+            RootViewPhone(selectedDay: $selectedDay, showMonth: $calModel.showMonth)
                 //.environment(iPhoneVm)
                 
             #endif
         }
         .task {
             //navManager.monthSelection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
-            showMonth = true
+            calModel.showMonth = true
         }
         .tint(Color.fromName(appColorTheme))
 //        #if os(macOS)
@@ -101,22 +101,28 @@ struct RootView: View {
         
         #if os(iOS)
         
-        /// Need to have a seperate monthSelection property because the fullScreenCover that shows the sheet is bound to the selection, yet accessorials are passed to the navigationDestination via the normal selection property
-//        .onChange(of: navManager.monthSelection) { oldValue, newValue in
-//            /// Keep the normal selecton property in sync with the monthSelection so views that are used to reference the normal selection can be updated.
-//            navManager.selection = newValue
-//        }
-        .onChange(of: showMonth) { oldValue, newValue in
-            print("onChange(of: showMonth) -- \(newValue)")
+        /// The NavLink for a month view is technically a button that sets `NavigationManager.selection`, and then sets `showMonth = true` , which opens a fullScreenCover.
+        /// When the fullScreenCover is closed, set `NavigationManager.selection` to nil.
+        .onChange(of: calModel.showMonth) { oldValue, newValue in
+            //print("onChange(of: showMonth) -- \(newValue)")
             if !newValue {
                 navManager.selection = nil
             }
         }
+        /// This is ONLY here to hilight open the accessorials on iPhone. It serves no other function.
+        .onChange(of: navManager.navPath) { oldValue, newValue in
+            //print("onChange(of: navManager.navPath) -- \(newValue)")
+            if let newPath = newValue.last {
+                navManager.selection = newPath
+            } else {
+                navManager.selection = nil
+            }
+        }
+        
+        /// Clear out `calModel.sMonth` when `NavigationManager.selection` is set to nil, which will happen when closing the months fullScreenCover.
+        /// This will also happen when leaving a accessorial list, but that is less significant - and more of a "keep the app's state clean" thing.
         .onChange(of: navManager.selection, initial: true) { oldValue, newValue in
-            print("onChange(of: navManager.selection) -- \(String(describing: newValue))")
-//            if newValue == nil {
-//                calModel.sMonth = CBMonth(num: 100000)
-//            }
+            //print("onChange(of: navManager.selection) -- \(String(describing: newValue))")
             calModel.hilightTrans = nil
             
             if newValue == nil {
@@ -125,19 +131,6 @@ struct RootView: View {
                     calModel.sMonth = CBMonth(num: 100000)
                 }
             }
-            
-            
-//            if let selection = navManager.selection {
-//                if NavDestination.justMonths.contains(selection) {
-//                    Task {
-//                        calModel.setSelectedMonthFromNavigation(navID: selection, prepareStartAmount: true)
-//                        let month = calModel.months.filter {$0.enumID == selection}.first!
-//                        let targetDay = month.days.filter { $0.dateComponents?.day == (month.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
-//                        selectedDay = targetDay
-//                    }
-//                    
-//                }
-//            }
         }
         
         

@@ -9,7 +9,7 @@ import SwiftUI
 
 #if os(iOS)
 struct KeyboardToolbarView: View {
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     
     var focusedField: FocusState<Int?>.Binding
     
@@ -132,7 +132,7 @@ struct KeyboardToolbarView: View {
 
 /// NOT USED - custom shitty swiftui implementation that goes with the .keyboardToolbar Modifier. 1/2/25
 //struct KeyboardToolbarView4: View {
-//    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+//    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
 //    
 //    @Binding var text: String
 //    var focusedField: FocusState<Int?>.Binding

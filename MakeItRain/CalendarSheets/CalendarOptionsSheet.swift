@@ -26,8 +26,6 @@ struct CalendarOptionsSheet: View {
     
     @State private var showPopulateAlert = false
     @State private var showPopulateOptionsSheet = false
-    @State private var showPaymentMethodSheet = false
-    @State private var showCategorySheet = false
     
     @Binding var selectedDay: CBDay?
     @FocusState private var focusedField: Int?
@@ -38,10 +36,7 @@ struct CalendarOptionsSheet: View {
     var body: some View {
         @Bindable var calModel = calModel
         
-        SheetHeader(title: "Monthly Options", close: { dismiss() })
-            .padding()
-    
-        List {
+        SheetContainerView(.list) {
             Section {
                 populateButton
             } footer: {
@@ -57,27 +52,15 @@ struct CalendarOptionsSheet: View {
             
             SettingsViewInsert(withDividers: true)
             resetButton
+            
+        } header: {
+            SheetHeader(title: "Monthly Options", close: { dismiss() })
         }
-        
         .sheet(isPresented: $showResetOptionsSheet) {
             ResetMonthOptionSheet()
         }
         .sheet(isPresented: $showPopulateOptionsSheet) {
             PopulateMonthOptionsSheet()
-        }
-        .sheet(isPresented: $showPaymentMethodSheet) {
-            PaymentMethodSheet(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all)
-            #if os(macOS)
-                .frame(minWidth: 300, minHeight: 500)
-                .presentationSizing(.fitted)
-            #endif
-        }
-        .sheet(isPresented: $showCategorySheet) {
-            CategorySheet(category: $calModel.sCategory)
-            #if os(macOS)
-                .frame(minWidth: 300, minHeight: 500)
-                .presentationSizing(.fitted)
-            #endif
         }
         
         //.frame(width: getRect().width - 90)
@@ -288,8 +271,8 @@ struct CalendarOptionsSheetOG: View {
     
     @State private var showPopulateAlert = false
     @State private var showPopulateOptionsSheet = false
-    @State private var showPaymentMethodSheet = false
-    @State private var showCategorySheet = false
+    //@State private var showPaymentMethodSheet = false
+    //@State private var showCategorySheet = false
     
     @Binding var selectedDay: CBDay?
     @FocusState private var focusedField: Int?
@@ -343,20 +326,20 @@ struct CalendarOptionsSheetOG: View {
         .sheet(isPresented: $showPopulateOptionsSheet) {
             PopulateMonthOptionsSheet()
         }
-        .sheet(isPresented: $showPaymentMethodSheet) {
-            PaymentMethodSheet(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all)
-            #if os(macOS)
-                .frame(minWidth: 300, minHeight: 500)
-                .presentationSizing(.fitted)
-            #endif
-        }
-        .sheet(isPresented: $showCategorySheet) {
-            CategorySheet(category: $calModel.sCategory)
-            #if os(macOS)
-                .frame(minWidth: 300, minHeight: 500)
-                .presentationSizing(.fitted)
-            #endif
-        }
+//        .sheet(isPresented: $showPaymentMethodSheet) {
+//            PaymentMethodSheet(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all)
+//            #if os(macOS)
+//                .frame(minWidth: 300, minHeight: 500)
+//                .presentationSizing(.fitted)
+//            #endif
+//        }
+//        .sheet(isPresented: $showCategorySheet) {
+//            CategorySheet(category: $calModel.sCategory)
+//            #if os(macOS)
+//                .frame(minWidth: 300, minHeight: 500)
+//                .presentationSizing(.fitted)
+//            #endif
+//        }
         
         //.frame(width: getRect().width - 90)
         //.standardBackground()

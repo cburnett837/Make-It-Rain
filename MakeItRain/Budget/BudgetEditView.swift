@@ -16,8 +16,8 @@ struct BudgetEditView: View {
     
     @State private var showDeleteAlert = false
     @State private var labelWidth: CGFloat = 20.0
-    
-    var title: String { budget.id == 0 ? "New Budget" : "Edit Budget" }
+        
+    var title: String { budget.action == .add ? "New Budget" : "Edit Budget" }
     
     @FocusState private var focusedField: Int?
     @State private var showKeyboardToolbar = false
@@ -25,7 +25,7 @@ struct BudgetEditView: View {
     var body: some View {
         VStack {
             VStack {
-                SheetHeader(title: title, close: { save() })
+                SheetHeader(title: title, close: { dismiss() })
                 Divider()
                 
                 LabeledRow("Name", labelWidth) {
@@ -97,26 +97,5 @@ struct BudgetEditView: View {
 //        }, message: {
 //            Text("This will not delete any associated transactions.")
 //        })
-    }
-    
-    func save() {
-        dismiss()
-        Task {
-            //calModel.upsert(budget)
-            if budget.hasChanges() {
-                print("HAS CHANGES")
-                await calModel.submit(budget)
-                
-//                calModel.months.forEach { month in
-//                    month.days.forEach { day in
-//                        day.transactions.filter { $0.category?.id == category.id }.forEach { transaction in
-//                            transaction.category = category
-//                        }
-//                    }
-//                }
-            } else {
-                print("NO CHANGES")
-            }
-        }
     }
 }

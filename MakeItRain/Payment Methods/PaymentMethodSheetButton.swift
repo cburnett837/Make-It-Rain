@@ -11,31 +11,23 @@ struct PaymentMethodSheetButton: View {
     @State private var showPayMethodSheet = false
     @State private var payMethodMenuColor: Color = Color(.tertiarySystemFill)
     @Binding var payMethod: CBPaymentMethod?
+    var trans: CBTransaction?
+    var saveOnChange: Bool = false
     let whichPaymentMethods: ApplicablePaymentMethods
     
     var body: some View {
-        RoundedRectangle(cornerRadius: 8)
-            //.stroke(.gray, lineWidth: 1)
-            .fill(payMethodMenuColor)
+        StandardRectangle(fill: payMethodMenuColor) {
+            MenuOrListButton(title: payMethod?.title, alternateTitle: "Select Payment Method") {
+                showPayMethodSheet = true
+            }
+        }        
+        .onHover { payMethodMenuColor = $0 ? Color(.systemFill) : Color(.tertiarySystemFill) }
+        .sheet(isPresented: $showPayMethodSheet) {
+            PaymentMethodSheet(payMethod: $payMethod, trans: trans, calcAndSaveOnChange: saveOnChange, whichPaymentMethods: whichPaymentMethods)
             #if os(macOS)
-            .frame(height: 27)
-            #else
-            .frame(height: 34)
+                .frame(minWidth: 300, minHeight: 500)
+                .presentationSizing(.fitted)
             #endif
-            .overlay {
-                MenuOrListButton(title: payMethod?.title, alternateTitle: "Select Payment Method") {
-                    showPayMethodSheet = true
-                }
-            }
-            .onHover { payMethodMenuColor = $0 ? Color(.systemFill) : Color(.tertiarySystemFill) }
-            .sheet(isPresented: $showPayMethodSheet) {
-                #if os(macOS)
-                PaymentMethodSheet(payMethod: $payMethod, whichPaymentMethods: whichPaymentMethods)
-                    .frame(minWidth: 300, minHeight: 500)
-                    .presentationSizing(.fitted)
-                #else
-                PaymentMethodSheet(payMethod: $payMethod, whichPaymentMethods: whichPaymentMethods)
-                #endif
-            }
+        }
     }
 }

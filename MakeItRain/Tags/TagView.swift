@@ -9,7 +9,7 @@ import SwiftUI
 
 
 struct TagView: View {
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
     //@Environment(TagModel.self) private var tagModel
@@ -29,113 +29,65 @@ struct TagView: View {
         }
     }
     
-    var header: some View {
-        Group {
-            SheetHeader(title: "Tags", close: { dismiss() })
-                .padding(.bottom, 12)
-                .padding(.horizontal)
-                .padding(.top)
-        }
-    }
+//    var header: some View {
+//        Group {
+//            SheetHeader(title: "Tags", close: { dismiss() })
+//                .padding(.bottom, 12)
+//                .padding(.horizontal)
+//                .padding(.top)
+//        }
+//    }
     
     
     var body: some View {
-        VStack(spacing: 0) {
-            #if os(iOS)
-            if !AppState.shared.isLandscape { header }
-            #else
-            header
-            #endif
-            ScrollView {
-                #if os(iOS)
-                if AppState.shared.isLandscape { header }
-                #endif
-                
-                SearchTextField(title: "Tags", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)
-                /// negate the padding that this view has by default since the scroll view already has padding.
-                    .padding(.horizontal, -20)
+        SheetContainerView {
+            if !calModel.tags.isEmpty {
+                GroupBox {
+                    if filteredTags.isEmpty {
+                        VStack {
+                            Text("No Tags…")
+                                .frame(maxWidth: .infinity)
+                            Button("Add") {
+                                newTag = searchText
+                                if !newTag.isEmpty {
+                                    let newTag = CBTag(tag: newTag)
+                                    addOrFind(tag: newTag)
+                                }
+                                focusedField = nil
+                                newTag = ""
+                                searchText = ""
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .focusable(false)
+                        }
+                    } else {
+                        TagLayout(alignment: .leading, spacing: 10) {
+                            ForEach(filteredTags) { tag in
+                                let exists = !trans.tags.filter { $0.id == tag.id }.isEmpty
                                 
-                Divider()
-                
-                
-//                GroupBox {
-//                    TextField("Search Tags", text: $searchText)
-//                        .focused($focusedField, equals: .search)
-//                        .submitLabel(.search)
-//                        .textFieldStyle(.plain)
-//                }
-                
-                
-                
-                if !calModel.tags.isEmpty {
-                    GroupBox {
-                        if filteredTags.isEmpty {
-                            VStack {
-                                Text("No Tags...")
-                                    .frame(maxWidth: .infinity)
-                                Button("Add") {
-                                    newTag = searchText
-                                    if !newTag.isEmpty {
-                                        let newTag = CBTag(tag: newTag)
-                                        addOrFind(tag: newTag)
-                                    }
-                                    focusedField = nil
-                                    newTag = ""
-                                    searchText = ""
+                                Button {
+                                    addOrRemove(tag: tag)
+                                } label: {
+                                    Text("#\(tag.tag)")
                                 }
                                 .buttonStyle(.borderedProminent)
+                                .tint(exists ? Color.fromName(appColorTheme) : .gray)
                                 .focusable(false)
                             }
-                            
-                            
-                        } else {
-                            TagLayout(alignment: .leading, spacing: 10) {
-                                ForEach(filteredTags) { tag in
-                                    let exists = !trans.tags.filter { $0.id == tag.id }.isEmpty
-                                    
-                                    Button {
-                                        addOrRemove(tag: tag)
-                                    } label: {
-                                        Text("#\(tag.tag)")
-                                    }
-                                    .buttonStyle(.borderedProminent)
-                                    .tint(exists ? Color.fromName(appColorTheme) : .gray)
-                                    .focusable(false)
-                                }
-                            }
                         }
-                        
                     }
                 }
-                
-                
-                GroupBox {
-                    TextField("Add New Tag...", text: $newTag)
-                        .onSubmit {
-                            if !newTag.isEmpty {
-                                let newTag = CBTag(tag: newTag)
-                                addOrFind(tag: newTag)
-                            }
-                            focusedField = nil
-                            newTag = ""
-                        }
-                    
-                        .onChange(of: newTag) { old, new in
-                            newTag = new.replacingOccurrences(of: " ", with: "")
-                        }
-                        .focused($focusedField, equals: 0)
-                        .submitLabel(.done)
-                        .textFieldStyle(.plain)
-                }
             }
-            .scrollDismissesKeyboard(.immediately)
-            .padding(.horizontal, 15)
-            //.navigationTitle("Tags")
-            .toolbar {
-                ToolbarItem(placement: .keyboard) {
-                    HStack {
-                        if focusedField == 0 {
-                            Button("Add") {
+            
+            
+            GroupBox {
+                Group {
+                    #if os(iOS)
+                    UITextFieldWrapper(placeholder: "Add New Tag…", text: $newTag, onSubmit: { onSubmit() }, toolbar: {
+                        KeyboardToolbarView(
+                            focusedField: $focusedField,
+                            accessoryText1: "Add",
+                            accessoryFunc1: {
                                 if !newTag.isEmpty {
                                     let newTag = CBTag(tag: newTag)
                                     addOrFind(tag: newTag)
@@ -143,26 +95,165 @@ struct TagView: View {
                                 //focusedField = nil
                                 newTag = ""
                             }
-                            .disabled(newTag.isEmpty)
+                        )
+                    })
+                    .uiTag(0)
+                    .uiClearButtonMode(.whileEditing)
+                    .uiStartCursorAtEnd(true)
+                    .uiReturnKeyType(.done)
+                    #else
+                    TextField("Add New Tag…", text: $newTag)
+                        .textFieldStyle(.plain)
+                        .onSubmit {
+                            onSubmit()
                         }
-                        
-                        
-                        Spacer()
-                                                
-                        Button {
-                            focusedField = nil
-                        } label: {
-                            Image(systemName: "keyboard.chevron.compact.down")
-                                .foregroundStyle(.gray)
-                        }
-                    }
-                    
-                    //KeyboardToolbarView2(amountString: .constant(""), focusedField: _focusedField, fields: [.title])
+                    #endif
                 }
+                .onChange(of: newTag) { old, new in
+                    newTag = new.replacingOccurrences(of: " ", with: "")
+                }
+                .focused($focusedField, equals: 0)
             }
+        } header: {
+            SheetHeader(title: "Tags", close: { dismiss() })
+        } subHeader: {
+            SearchTextField(title: "Tags", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)
+                /// negate the padding that this view has by default since the scroll view already has padding.
+                .padding(.horizontal, -20)
         }
+
+//        VStack(spacing: 0) {
+//            #if os(iOS)
+//            if AppState.shared.isIpad || AppState.shared.isIphoneInPortrait { header }
+//            #else
+//            header
+//            #endif
+//            ScrollView {
+//                #if os(iOS)
+//                if AppState.shared.isIphoneInLandscape { header }
+//                #endif
+//                
+//                SearchTextField(title: "Tags", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)
+//                /// negate the padding that this view has by default since the scroll view already has padding.
+//                    .padding(.horizontal, -20)
+//                                
+//                Divider()
+//                
+//                
+////                GroupBox {
+////                    TextField("Search Tags", text: $searchText)
+////                        .focused($focusedField, equals: .search)
+////                        .submitLabel(.search)
+////                        .textFieldStyle(.plain)
+////                }
+//                
+//                
+//                
+//                if !calModel.tags.isEmpty {
+//                    GroupBox {
+//                        if filteredTags.isEmpty {
+//                            VStack {
+//                                Text("No Tags...")
+//                                    .frame(maxWidth: .infinity)
+//                                Button("Add") {
+//                                    newTag = searchText
+//                                    if !newTag.isEmpty {
+//                                        let newTag = CBTag(tag: newTag)
+//                                        addOrFind(tag: newTag)
+//                                    }
+//                                    focusedField = nil
+//                                    newTag = ""
+//                                    searchText = ""
+//                                }
+//                                .buttonStyle(.borderedProminent)
+//                                .focusable(false)
+//                            }
+//                            
+//                            
+//                        } else {
+//                            TagLayout(alignment: .leading, spacing: 10) {
+//                                ForEach(filteredTags) { tag in
+//                                    let exists = !trans.tags.filter { $0.id == tag.id }.isEmpty
+//                                    
+//                                    Button {
+//                                        addOrRemove(tag: tag)
+//                                    } label: {
+//                                        Text("#\(tag.tag)")
+//                                    }
+//                                    .buttonStyle(.borderedProminent)
+//                                    .tint(exists ? Color.fromName(appColorTheme) : .gray)
+//                                    .focusable(false)
+//                                }
+//                            }
+//                        }
+//                        
+//                    }
+//                }
+//                
+//                
+//                GroupBox {
+//                    TextField("Add New Tag...", text: $newTag)
+//                        .onSubmit {
+//                            if !newTag.isEmpty {
+//                                let newTag = CBTag(tag: newTag)
+//                                addOrFind(tag: newTag)
+//                            }
+//                            focusedField = nil
+//                            newTag = ""
+//                        }
+//                    
+//                        .onChange(of: newTag) { old, new in
+//                            newTag = new.replacingOccurrences(of: " ", with: "")
+//                        }
+//                        .focused($focusedField, equals: 0)
+//                        .submitLabel(.done)
+//                        .textFieldStyle(.plain)
+//                }
+//            }
+//            .scrollDismissesKeyboard(.immediately)
+//            .padding(.horizontal, 15)
+//            //.navigationTitle("Tags")
+//            .toolbar {
+//                ToolbarItem(placement: .keyboard) {
+//                    HStack {
+//                        if focusedField == 0 {
+//                            Button("Add") {
+//                                if !newTag.isEmpty {
+//                                    let newTag = CBTag(tag: newTag)
+//                                    addOrFind(tag: newTag)
+//                                }
+//                                //focusedField = nil
+//                                newTag = ""
+//                            }
+//                            .disabled(newTag.isEmpty)
+//                        }
+//                        
+//                        
+//                        Spacer()
+//                                                
+//                        Button {
+//                            focusedField = nil
+//                        } label: {
+//                            Image(systemName: "keyboard.chevron.compact.down")
+//                                .foregroundStyle(.gray)
+//                        }
+//                    }
+//                    
+//                    //KeyboardToolbarView2(amountString: .constant(""), focusedField: _focusedField, fields: [.title])
+//                }
+//            }
+//        }
         
         
+    }
+    
+    func onSubmit() {
+        if !newTag.isEmpty {
+            let newTag = CBTag(tag: newTag)
+            addOrFind(tag: newTag)
+        }
+        focusedField = nil
+        newTag = ""
     }
     
     func addOrFind(tag: CBTag) {

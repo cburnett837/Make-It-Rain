@@ -47,23 +47,23 @@ struct RootViewPhone: View {
                         .toolbar {
                             ToolbarItemGroup(placement: .topBarLeading) {
                                 Text("") /// Needed to make space at the top and push the fakeNavHeader down
-                                //                                Button {
-                                //                                    showSettings = true
-                                //                                } label: {
-                                //                                    Image(systemName: "gear")
-                                //                                }
+//                                Button {
+//                                    showSettings = true
+//                                } label: {
+//                                    Image(systemName: "gear")
+//                                }
                                 
                                 
                             }
                             
                             ToolbarItemGroup(placement: .topBarTrailing) {
-                                //                                var years: [Int] { Array(2000...2099).map { $0 } }
-                                //                                Picker("Year", selection: $calModel.sYear) {
-                                //                                    ForEach(years, id: \.self) {
-                                //                                        Text(String($0))
-                                //                                    }
-                                //                                }
-                                //                                .pickerStyle(.menu)
+//                                var years: [Int] { Array(2000...2099).map { $0 } }
+//                                Picker("Year", selection: $calModel.sYear) {
+//                                    ForEach(years, id: \.self) {
+//                                        Text(String($0))
+//                                    }
+//                                }
+//                                .pickerStyle(.menu)
                                 
                                 
                                 Button {
@@ -82,17 +82,22 @@ struct RootViewPhone: View {
                                 
                                
                                 
-                                //                                Button {
-                                //                                    showSettings = true
-                                //                                } label: {
-                                //                                    Image(systemName: "gear")
-                                //                                }
+//                                Button {
+//                                    showSettings = true
+//                                } label: {
+//                                    Image(systemName: "gear")
+//                                }
                             }
                         }
                 } detail: {
                     switch navManager.selection {
                     case .january, .february, .march, .april, .may, .june, .july, .august, .september, .october, .november, .december, .lastDecember, .nextJanuary:
-                        CalendarViewPhone(enumID: navManager.selection!, selectedDay: $selectedDay)
+                        if let selection = navManager.selection {
+                            CalendarViewPhone(enumID: navManager.selection!, selectedDay: $selectedDay)
+                                .if(AppState.shared.methsExist) {
+                                    $0.loadingSpinner(id: selection, text: "Loading…")
+                                }
+                        }
                         
                     case .repeatingTransactions:
                         RepeatingTransactionsTable()
@@ -131,7 +136,7 @@ struct RootViewPhone: View {
 //                }
 
             } else {
-                NavigationStack/*(path: $navManager.navPath)*/ {
+                NavigationStack(path: $navManager.navPath) {
                     NavSidebar(selectedDay: $selectedDay, showMonth: $showMonth)
                         .navigationTitle("")
                         .navigationBarTitleDisplayMode(.inline)
@@ -210,17 +215,7 @@ struct RootViewPhone: View {
                             }
                         }
                         //.fullScreenCover(item: $navManager.monthSelection, content: { selection in
-                        .fullScreenCover(isPresented: $showMonth) {
-                            if let selection = navManager.selection {
-                                if NavDestination.justMonths.contains(selection) {
-                                    CalendarViewPhone(enumID: selection, selectedDay: $selectedDay)
-                                        .navigationTransition(.zoom(sourceID: selection, in: monthNavigationNamespace))
-                                        .if(AppState.shared.methsExist) {
-                                            $0.loadingSpinner(id: selection, text: "Loading…")
-                                        }
-                                }
-                            }
-                        }
+                        
 //                        .fullScreenCover(isPresented: $showMonth) {
 //                            if let selection = navManager.selection {
 //                                if NavDestination.justMonths.contains(selection) {
@@ -232,7 +227,19 @@ struct RootViewPhone: View {
                 }
             }
         }
-        
+        .if(!AppState.shared.isIpad) {
+            $0.fullScreenCover(isPresented: $showMonth) {
+                if let selection = navManager.selection {
+                    if NavDestination.justMonths.contains(selection) {
+                        CalendarViewPhone(enumID: selection, selectedDay: $selectedDay)
+                            .navigationTransition(.zoom(sourceID: selection, in: monthNavigationNamespace))
+                            .if(AppState.shared.methsExist) {
+                                $0.loadingSpinner(id: selection, text: "Loading…")
+                            }
+                    }
+                }
+            }
+        }
         
         
         //.toast()

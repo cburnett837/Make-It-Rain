@@ -54,64 +54,74 @@ struct PaymentMethodSheet: View {
     }
     
     var body: some View {
-        //let _ = Self._printChanges()
-        SheetHeader(title: "Payment Methods", close: { dismiss() })
-            .padding(.bottom, 12)
-            .padding(.horizontal, 20)
-            .padding(.top)        
-        
-        SearchTextField(title: "Payment Methods", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)
-        
-        List {
-            ForEach(filteredSections) { section in
-                if !section.payMethods.isEmpty {
-                    Section(section.kind.rawValue) {
-                        ForEach(searchText.isEmpty ? section.payMethods : section.payMethods.filter { $0.title.localizedStandardContains(searchText) }) { meth in
-                            HStack {
-                                Image(systemName: "circle.fill")
-                                    .if(meth.isUnified) {
-                                        $0.foregroundStyle(AngularGradient(gradient: Gradient(colors: [.red, .yellow, .green, .blue, .purple, .red]), center: .center))
-                                    }
-                                    .if(!meth.isUnified) {
-                                        $0.foregroundStyle(meth.isUnified ? (colorScheme == .dark ? .white : .black) : meth.color, .primary, .secondary)
-                                    }
-                                Text(meth.title)
-                                    //.bold(meth.isUnified)
-                                Spacer()
-                                
-                                if payMethod?.id == meth.id {
-                                    Image(systemName: "checkmark")
-                                }
-                            }
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                if calcAndSaveOnChange && trans != nil {
-                                    trans!.log(field: .payMethod, old: trans!.payMethod?.id, new: meth.id)
-                                    
-                                    payMethod = meth
-                                    
-                                    trans!.action = .edit
-                                    //calModel.saveTransaction(id: trans!.id, isPendingSmartTransaction: isPendingSmartTransaction)
-                                    calModel.saveTransaction(id: trans!.id, location: isPendingSmartTransaction ? .smartList : .normalList)
-                                    calModel.tempTransactions.removeAll()
-                                    
-                                    if isPendingSmartTransaction {
-                                        calModel.pendingSmartTransaction = nil
-                                    }
-                                } else {
-                                    payMethod = meth
-                                }
-                                dismiss()
-                            }
-                        }
-                    }
-                }
-            }
+        SheetContainerView(.list) {
+            content
+        } header: {
+            SheetHeader(title: "Payment Methods", close: { dismiss() })
+        } subHeader: {
+            SearchTextField(title: "Payment Methods", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)
+                .padding(.horizontal, -20)
         }
         .task {
             sections = getApplicablePayMethods(type: whichPaymentMethods)
         }
     }
+    
+    var content: some View {
+        ForEach(filteredSections) { section in
+            if !section.payMethods.isEmpty {
+                Section(section.kind.rawValue) {
+                    ForEach(searchText.isEmpty ? section.payMethods : section.payMethods.filter { $0.title.localizedStandardContains(searchText) }) { meth in
+                        HStack {
+                            Image(systemName: "circle.fill")
+                                .if(meth.isUnified) {
+                                    $0.foregroundStyle(AngularGradient(gradient: Gradient(colors: [.red, .yellow, .green, .blue, .purple, .red]), center: .center))
+                                }
+                                .if(!meth.isUnified) {
+                                    $0.foregroundStyle(meth.isUnified ? (colorScheme == .dark ? .white : .black) : meth.color, .primary, .secondary)
+                                }
+                            Text(meth.title)
+                                //.bold(meth.isUnified)
+                            Spacer()
+                            
+                            if trans == nil {
+                                let count = calModel.getTransCount(for: meth, and: calModel.sMonth)
+                                if count > 0 {
+                                    TextWithCircleBackground(text: "\(count)")
+                                }
+                            }
+                            
+                            
+                            if payMethod?.id == meth.id {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            if calcAndSaveOnChange && trans != nil {
+                                trans!.log(field: .payMethod, old: trans!.payMethod?.id, new: meth.id, groupID: UUID().uuidString)
+                                
+                                payMethod = meth
+                                
+                                trans!.action = .edit
+                                //calModel.saveTransaction(id: trans!.id, isPendingSmartTransaction: isPendingSmartTransaction)
+                                calModel.saveTransaction(id: trans!.id, location: isPendingSmartTransaction ? .smartList : .normalList)
+                                calModel.tempTransactions.removeAll()
+                                
+                                if isPendingSmartTransaction {
+                                    calModel.pendingSmartTransaction = nil
+                                }
+                            } else {
+                                payMethod = meth
+                            }
+                            dismiss()
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
     
     
     
@@ -147,4 +157,37 @@ struct PaymentMethodSheet: View {
     }
     
     
+}
+
+struct TextWithCircleBackground: View {
+    let text: String
+    @State private var width: CGFloat = .zero
+    @State private var height: CGFloat = .zero
+
+    var body: some View {
+        ZStack {
+            if (!width.isZero && !height.isZero) {
+                Capsule()
+                    .fill(Color.secondary.opacity(0.5))
+                    //.strokeBorder()
+                    .frame(
+                        width: height >= width ? height : width,
+                        height: height
+                    )
+            }
+            
+            Text(text)
+                .padding(4)
+                .background(
+                    GeometryReader { geo in
+                        Color.clear.onAppear() {
+                            //radius = max(geo.size.width, geo.size.height)
+                            width = geo.size.width
+                            height = geo.size.height
+                        }
+                    }.hidden()
+                )
+            
+        }
+    }
 }

@@ -191,10 +191,6 @@ extension View {
             }
     }
     
-    func standardTextField(padding: Double = 6, alignment: TextAlignment = .leading, submit: @escaping ()->()) -> some View {
-        modifier(StandardTextFieldStyle(padding: padding, alignment: alignment, submit: submit))
-    }
-    
     func toolbarKeyboard(padding: Double = 6, alignment: TextAlignment = .leading) -> some View {
         modifier(ToolbarKeyboard(padding: padding, alignment: alignment))
     }
@@ -235,35 +231,14 @@ extension View {
         modifier(LoadingSpinner(id: id))
     }
     
+    
+    
+    
+    
     #if os(iOS)
-    func standardBackground() -> some View {
-        modifier(StandardBackground())
-    }
-    
-    func rowBackground() -> some View {
-        modifier(RowBackground())
-    }
-    
-//    func rowBackgroundWithSelection(id: Int, selectedID: Int?) -> some View {
-//        modifier(RowBackgroundWithSelection(id: id, selectedID: selectedID))
-//    }
-    
-    func rowBackgroundWithSelection(id: String, selectedID: String?) -> some View {
-        modifier(RowBackgroundWithSelection2(id: id, selectedID: selectedID))
-    }
-    
-//    func navRowBackgroundWithSelection(selection: NavDestination) -> some View {
-//        modifier(NavRowBackgroundWithSelection(selection: selection))
-//    }
-//    
     func getRect() -> CGRect {
         return UIScreen.main.bounds
     }
-    
-//    func keyboardToolbar(text: Binding<String>, focusedField: FocusState<Int?>.Binding, focusViews: [FocusView]) -> some View {
-//        modifier(KeyboardToolbar(text: text, focusedField: focusedField, focusViews: focusViews))
-//    }
-    
     
     func onShake(perform action: @escaping () -> Void) -> some View {
         modifier(DeviceShakeViewModifier(action: action))
@@ -275,6 +250,40 @@ extension View {
     
     #endif
 }
+
+
+
+// MARK: - Backgrounds
+extension View {
+    #if os(iOS)
+    func standardBackground() -> some View {
+        modifier(StandardBackground())
+    }
+
+    func standardRowBackground() -> some View {
+        modifier(StandardRowBackground())
+    }
+
+    func standardRowBackgroundWithSelection(id: String, selectedID: String?) -> some View {
+        modifier(StandardRowBackgroundWithSelection(id: id, selectedID: selectedID))
+    }
+    
+    // NAVIGATION SPECIFIC (TO ACCOMODATE IPAD)
+    func standardNavBackground() -> some View {
+        modifier(StandardNavBackground())
+    }
+
+    func standardNavRowBackground() -> some View {
+        modifier(StandardNavRowBackground())
+    }
+    
+    func standardNavRowBackgroundWithSelection(id: String, selectedID: String?) -> some View {
+        modifier(StandardNavRowBackgroundWithSelection(id: id, selectedID: selectedID))
+    }
+    #endif
+}
+
+
 
 extension [LayoutSubviews.Element] {
     func maxHeight(_ proposal: ProposedViewSize) -> CGFloat {
@@ -574,14 +583,14 @@ extension Color {
     
     
     
-//    static func fromName(_ name: String) -> Color {
-//        let colors: Array<Color> = [.pink, .red, .orange, .yellow, .green, .mint, .cyan, .blue, .indigo, .purple, .brown, .teal]
-//        return colors.first(where: { $0.description == name })!
-//    }
+    //    static func fromName(_ name: String) -> Color {
+    //        let colors: Array<Color> = [.pink, .red, .orange, .yellow, .green, .mint, .cyan, .blue, .indigo, .purple, .brown, .teal]
+    //        return colors.first(where: { $0.description == name })!
+    //    }
     
     
     
-    #if os(iOS)
+#if os(iOS)
     static func getGrayFromName(_ name: String) -> Color {
         //print(name)
         if name == "secondarySystemBackground" {
@@ -617,21 +626,156 @@ extension Color {
             return Color.black
         }
     }
-    #endif
+#else
+    static func getGrayFromName(_ name: String) -> Color {
+        //print(name)
+        if name == "secondarySystemBackground" {
+            return Color(.systemGray)
+            
+        } else if name == "gray" {
+            return Color.gray
+            
+        } else if name == "darkGray" {
+            return Color.darkGray
+        } else if name == "darkGray2" {
+            return Color.darkGray2
+        } else if name == "darkGray3" {
+            return Color.darkGray3
+            
+        } else if name == "black" {
+            return Color.black
+            
+        } else if name == "systemGray" {
+            return Color(nsColor: .systemGray)
+        } else if name == "systemGray2" {
+            return Color(nsColor: .systemGray)
+        } else if name == "systemGray3" {
+            return Color(nsColor: .systemGray)
+        } else if name == "systemGray4" {
+            return Color(nsColor: .systemGray)
+        } else if name == "systemGray5" {
+            return Color(nsColor: .systemGray)
+        } else if name == "systemGray6" {
+            return Color(nsColor: .systemGray)
+            
+        } else {
+            return Color.black
+        }
+    }
+#endif
     
     
     
-    #if os(macOS)
+#if os(macOS)
     static var totalDarkGray = Color(NSColor(red: 0.35, green: 0.35, blue: 0.37, alpha: 1.00))
     static var darkGray = Color(NSColor(red: 0.1, green: 0.1, blue: 0.1, alpha: 1.00))
     static var darkGray2 = Color(NSColor(red: 0.08, green: 0.08, blue: 0.08, alpha: 1.00))
     static var darkGray3 = Color(NSColor(red: 0.05, green: 0.05, blue: 0.05, alpha: 1.00))
-    #else
+#else
     static var totalDarkGray = Color(UIColor(red: 0.35, green: 0.35, blue: 0.37, alpha: 1.00))
     static var darkGray = Color(UIColor(red: 0.1, green: 0.1, blue: 0.1, alpha: 1.00))
     static var darkGray2 = Color(UIColor(red: 0.08, green: 0.08, blue: 0.08, alpha: 1.00))
     static var darkGray3 = Color(UIColor(red: 0.05, green: 0.05, blue: 0.05, alpha: 1.00))
-    #endif
+#endif
+    
+    struct Standard {
+        struct Dark {
+            static let background: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
+            
+            struct Row {
+                static let background: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
+                
+//                struct WithSelection {
+//                    static let background: Color = Color(.systemGray4)
+//                }
+            }
+            
+            struct Nav {
+                static let backgroundIpad: Color = Color.darkGray
+                static let backgroundIphone: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
+                
+                struct Row {
+                    static let backgroundIpad: Color = Color.darkGray
+                    static let backgroundIphone: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
+                    
+                    struct WithSelection {
+                        static let backgroundIpadSelected: Color = Color(.systemGray6)
+                        static let backgroundIpadNotSelected: Color = Color.darkGray
+                        static let backgroundIphoneSelected: Color = Color(.systemGray5)
+                        static let backgroundIphoneNotSelected: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
+                    }
+                }
+            }
+        }
+        
+        struct Light {
+            static let background: Color = Color.white
+            
+            struct Row {
+                static let background: Color = Color.white
+                
+//                struct WithSelection {
+//                    static let background: Color = Color(.systemGray4)
+//                }
+            }
+            
+            struct Nav {
+                static let backgroundIpad: Color = Color(.systemGray6)
+                static let backgroundIphone: Color = Color.white
+                
+                struct Row {
+                    static let backgroundIpad: Color = Color(.systemGray6)
+                    static let backgroundIphone: Color = Color.white
+                    
+                    struct WithSelection {                        
+                        static let backgroundIpadSelected: Color = Color(.tertiarySystemFill)
+                        static let backgroundIpadNotSelected: Color = Color(.systemGray6)
+                        static let backgroundIphoneSelected: Color = Color(.systemGray6)
+                        static let backgroundIphoneNotSelected: Color = Color.white
+                    }
+                }
+                
+                
+            }
+            
+            
+            
+        }
+    }
+    
+    
+    
+    //static let standardBackgroundDark: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
+    //static let standardRowBackgroundDark: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
+    
+    //static let standardRowBackgroundWithSelectionDark: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeSelectionColor") ?? "darkGray3")
+    //static let standardRowBackgroundWithSelectionLight: Color = Color(.tertiarySystemFill)
+    
+    //static let standardNavBackgroundDarkIpad: Color = Color.darkGray
+    //static let standardNavBackgroundLightIpad: Color = Color(UIColor.systemGray6)
+    
+    //static let standardNavBackgroundDarkIphone: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
+    //static let standardNavBackgroundLightIphone: Color = Color.white
+    
+    //static let standardNavRowBackgroundDarkIphone: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
+    //static let standardNavRowBackgroundLightIphone: Color = Color.white
+    
+    //static let standardNavRowBackgroundWithSelectionDarkIpadSelected: Color = Color(.tertiarySystemFill)
+    //static let standardNavRowBackgroundWithSelectionDarkIpadNotSelected: Color = Color.darkGray
+    
+    //static let standardNavRowBackgroundWithSelectionLightIpadSelected: Color = Color(.tertiarySystemFill)
+    //static let standardNavRowBackgroundWithSelectionLightIpadNotSelected: Color = Color(UIColor.systemGray6)
+    
+    //static let standardNavRowBackgroundWithSelectionDarkIphoneSelected: Color = Color(.tertiarySystemFill)
+    //static let standardNavRowBackgroundWithSelectionDarkIphoneNotSelected: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
+    
+    //static let standardNavRowBackgroundWithSelectionLightIphoneSelected: Color = Color(UIColor.systemGray4)
+    //static let standardNavRowBackgroundWithSelectionLightIphoneNotSelected: Color = Color.white
+    
+    
+    
+    
+    
 }
 
 extension UserDefaults {
@@ -655,6 +799,14 @@ extension UserDefaults {
         return UserDefaults.standard.dictionary(forKey: requestedKey) ?? ["" : ""]
     }
 }
+
+
+extension Array where Element: FloatingPoint {    
+    func average() -> Element {
+        reduce(0, +) / Element(count)
+    }
+}
+
 
 //extension View {
 //    func questionCursor() -> some View {

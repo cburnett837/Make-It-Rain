@@ -241,6 +241,8 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
                 self.transactions = deepCopy.transactions
                 self.active = deepCopy.active
             }
+        case .clear:
+            break
         }
     }
     

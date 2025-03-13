@@ -9,6 +9,8 @@ import Foundation
 import SwiftUI
 
 struct FitTransactionOverlay: View {
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+    
     #if os(macOS)
     @Environment(\.dismiss) private var dismiss
     #endif
@@ -20,14 +22,14 @@ struct FitTransactionOverlay: View {
     var body: some View {
         VStack {
             #if os(iOS)
-            if !AppState.shared.isLandscape { header }
+            if AppState.shared.isIpad || AppState.shared.isIphoneInPortrait { header }
             #else
             header
             #endif
             ScrollView {
                 VStack(spacing: 0) {
                     #if os(iOS)
-                    if AppState.shared.isLandscape { header }
+                    if AppState.shared.isIphoneInLandscape { header }
                     #endif
                     Divider()
                     
@@ -86,7 +88,7 @@ struct FitTransactionOverlay: View {
                                             calModel.saveTransaction(id: realTrans.id, location: .tempList)
                                         }
                                         .buttonStyle(.borderedProminent)
-                                        .tint(.green)
+                                        .tint(Color.fromName(appColorTheme))
                                         
                                         Button("Ignore") {
                                             trans.isAcknowledged = true
@@ -95,8 +97,7 @@ struct FitTransactionOverlay: View {
                                             }
                                         }
                                         .buttonStyle(.borderedProminent)
-                                        .tint(.gray
-                                        )
+                                        .tint(.gray)
                                     }
                                     
                                     Divider()
@@ -153,7 +154,6 @@ struct FitTransactionOverlay: View {
                 } label: {
                     Image(systemName: "arrow.triangle.2.circlepath")
                 }
-
             }
         )
         .padding()

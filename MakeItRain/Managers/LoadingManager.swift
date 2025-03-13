@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 
 @Observable
@@ -18,6 +19,11 @@ class LoadingManager {
     var showInitiallyLoadingSpinner = false
     
     var timer: Timer?
+    var longNetworkTaskTimer: Timer?
+    var showLongNetworkTaskToast = false
+    
+    
+    
     
     @objc func showDelayedSpinner() {
         showLoadingSpinner = true
@@ -32,6 +38,42 @@ class LoadingManager {
         showLoadingSpinner = false
         if let timer = self.timer {
             timer.invalidate()
+        }
+    }
+    
+    
+    
+    
+    
+    
+    @objc func showLongNetworkToast() {
+        showLongNetworkTaskToast = true
+        AppState.shared.showToast(
+            title: "Potential Network Problem",
+            subtitle: "Syncing with the server is taking longer than expected.",
+            body: "Your data will be stored offline and sync when you have a better connection.",
+            symbol: "network.slash",
+            symbolColor: .orange,
+            autoDismiss: false
+//            action: {
+//                withAnimation {
+//                    AppState.shared.hasBadConnection = true
+//                    AppState.shared.toast = nil
+//                }
+//            }
+        )
+    }
+            
+    func startLongNetworkTimer() {
+        longNetworkTaskTimer = Timer(fireAt: Date.now.addingTimeInterval(5), interval: 0, target: self, selector: #selector(showLongNetworkToast), userInfo: nil, repeats: false)
+        if let longNetworkTaskTimer { RunLoop.main.add(longNetworkTaskTimer, forMode: .common) }
+    }
+    
+    func stopLongNetworkTimer() {
+        showLongNetworkTaskToast = false
+        showLoadingSpinner = false
+        if let longNetworkTaskTimer = self.longNetworkTaskTimer {
+            longNetworkTaskTimer.invalidate()
         }
     }
 }

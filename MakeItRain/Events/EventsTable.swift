@@ -74,22 +74,20 @@ struct EventsTable: View {
             phoneToolbar()
             #endif
         }
-//        .searchable(text: $searchText) {
-//            #if os(macOS)
-//            
-//            let titles: Array<String> = eventModel.events
-//
-//            let relevantTitles: Array<String> = eventModel.events
-//                .map { $0.event.title }
-//                //.uniqued()
-//                .filter { $0.localizedStandardContains(searchText) }
-//                    
-////            ForEach(relevantTitles, id: \.self) { title in
-////                Text(title)
-////                    .searchCompletion(title)
-////            }
-//            #endif
-//        }
+        
+        .searchable(text: $searchText) {
+            #if os(macOS)
+            let relevantTitles: Array<String> = eventModel.events
+                .compactMap { $0.title }
+                .uniqued()
+                .filter { $0.localizedStandardContains(searchText) }
+                    
+            ForEach(relevantTitles, id: \.self) { title in
+                Text(title)
+                    .searchCompletion(title)
+            }
+            #endif
+        }
         
         .sheet(item: $editEvent, onDismiss: {
             eventEditID = nil
@@ -299,7 +297,7 @@ struct EventsTable: View {
                 Text(" - ") +
                 Text(event.endDate?.string(to: .monthDayShortYear) ?? "N/A")
             }
-            .rowBackgroundWithSelection(id: event.id, selectedID: eventEditID)
+            .standardRowBackgroundWithSelection(id: event.id, selectedID: eventEditID)
             .swipeActions(allowsFullSwipe: false) {
                 if(event.enteredBy.id == AppState.shared.user!.id) {
                     Button {

@@ -9,54 +9,75 @@ import SwiftUI
 
 struct SheetHeader<Content: View, Content2: View, Content3: View>: View {
     let title: String
-    let subtitle: String?
+    //let subtitle: String?
     var close: (() -> Void)?
     var view1: () -> Content?
     var view2: () -> Content2?
     var view3: () -> Content3?
+    var titlePosition: Alignment
     
     
     init(title: String,
-         subtitle: String? = nil,
+         //subtitle: String? = nil,
          close: @escaping (() -> Void),
          @ViewBuilder view1: @escaping () -> Content? = { EmptyView() },
          @ViewBuilder view2: @escaping () -> Content2? = { EmptyView() },
-         @ViewBuilder view3: @escaping () -> Content3? = { EmptyView() }
+         @ViewBuilder view3: @escaping () -> Content3? = { EmptyView() },
+         titlePosition: Alignment = .center
     ) {
         self.title = title
-        self.subtitle = subtitle
+        //self.subtitle = subtitle
         self.close = close
         self.view1 = view1
         self.view2 = view2
         self.view3 = view3
+        self.titlePosition = titlePosition
     }
                 
     var body: some View {
         Group {
-            if let subtitle = subtitle {
-                VStack(spacing: 0) {
-                    Text(title)
-                        .frame(maxWidth: .infinity)
-                        .font(.title3)
-                        .overlay { theOverlay }
-                    Text(subtitle)
-                        .font(.caption2)
-                        .foregroundStyle(.gray)
-                }
-            } else {
+//            if let subtitle = subtitle {
+//                VStack(spacing: 0) {
+//                    Text(title)
+//                        .frame(maxWidth: .infinity)
+//                        .font(.title3)
+//                        .overlay { theOverlay }
+//                    
+//                    Text(subtitle)
+//                        .font(.caption2)
+//                        .foregroundStyle(.gray)
+//                }
+//            } else {
+//                Text(title)
+//                    .frame(maxWidth: .infinity)
+//                    .font(.title3)
+//                    .overlay { theOverlay }
+//            }
+            
+            
+            HStack {
                 Text(title)
-                    .frame(maxWidth: .infinity)
-                    .font(.title3)
-                    .overlay { theOverlay }
+                if titlePosition == .leading {
+                    Spacer()
+                }
             }
+            .frame(maxWidth: .infinity)
+            .font(.body)
+            .bold()
+            .overlay { theOverlay }
+            
         }
         .frame(maxWidth: .infinity)
-        .padding(8)
+        .padding(.top, 8)
     }
         
     
     var theOverlay: some View {
         HStack {
+            if titlePosition == .leading {
+                Spacer()
+            }
+            
             if let view1 = view1() {
                 view1
                     .buttonStyle(.sheetHeader)
@@ -68,8 +89,11 @@ struct SheetHeader<Content: View, Content2: View, Content3: View>: View {
                     .buttonStyle(.sheetHeader)
                     .focusable(false)
             }
-                        
-            Spacer()
+                    
+            if titlePosition == .center {
+                Spacer()
+            }
+            
                         
             if let view3 = view3() {
                 view3
@@ -88,7 +112,7 @@ struct SheetHeader<Content: View, Content2: View, Content3: View>: View {
             .focusable(false)
             .keyboardShortcut(.return, modifiers: [.command]) /// Just because I am used to it from the original app.
         }
-        .padding(.top, 4)
+        //.padding(.top, 4)
         //.padding(.trailing, 8)
     }
 }

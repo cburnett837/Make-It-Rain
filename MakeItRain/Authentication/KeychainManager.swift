@@ -130,11 +130,13 @@ struct KeychainManager {
     
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         if status == errSecItemNotFound {
-            print("\(#function) -- item not found")
+            print("\(#function) -- item not found \(status)")
             throw KeychainError.itemNotFound
             
+            //https://www.oreilly.com/api/v2/epubs/9780133086898/files/graphics/18tab03.jpg
+
         } else if status != errSecSuccess {
-            print("\(#function) -- unknown error")
+            print("\(#function) -- unknown error \(status)")
             throw KeychainError.unknown(status)
         }
        

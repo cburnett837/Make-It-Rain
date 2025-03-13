@@ -6,177 +6,6 @@
 //
 
 import SwiftUI
-//
-//struct StandardTextField: View {
-//    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
-//
-//    @FocusState var focusState: Bool
-//    @State private var didFocus = false
-//    
-//    var placeholder: String
-//    @Binding var text: String
-//    var isSearchField: Bool
-//    var alignment: TextAlignment
-//    var onFocus: ((_ didFocus: Bool) -> ())?
-//    var onHover: ((_ didHover: Bool) -> ())?
-//    var onSubmit: (() -> ())?
-//    var onClear: (() -> ())?
-//    var onCancel: (() -> ())?
-//    
-//    var keyboardType: KeyboardType
-//    
-//    init(
-//        _ placeholder: String,
-//        text: Binding<String>,
-//        keyboardType: KeyboardType,
-//        isSearchField: Bool = false,
-//        alignment: TextAlignment = .leading,
-//        onFocus: @escaping (_: Bool) -> Void = {_ in },
-//        onHover: @escaping (_: Bool) -> Void = {_ in },
-//        onSubmit: @escaping () -> Void = {},
-//        onClear: @escaping () -> Void = {},
-//        onCancel: @escaping () -> Void = {}
-//    ) {
-//        self.placeholder = placeholder
-//        self._text = text
-//        self.keyboardType = keyboardType
-//        self.alignment = alignment
-//        self.onFocus = onFocus
-//        self.onHover = onHover
-//        self.onSubmit = onSubmit
-//        self.onClear = onClear
-//        self.onCancel = onCancel
-//        self.isSearchField = isSearchField
-//                                                
-//        //UITextField.appearance().clearsOnBeginEditing = true
-//    }
-//    
-//    var body: some View {
-//        HStack {                        
-//            Group {
-//                switch keyboardType {
-//                case .text, .double:
-//                    TextField(placeholder, text: $text)
-//                        
-//                    
-//                case .currency:
-//                    TextField(placeholder, text: $text)
-//                        .onChange(of: text) { oldValue, newValue in
-//                            if !newValue.starts(with: "$") && !newValue.isEmpty {
-//                                text = "$\(newValue)"
-//                            }
-//                        }
-//                }
-//            }
-//            .textFieldStyle(.plain)
-//            .padding(.leading, isSearchField ? 24 : 0)
-//            .padding(.trailing, didFocus && !text.isEmpty ? 24 : 0)
-//            
-//            .focused($focusState)
-//            
-//            .onSubmit {
-//                if let onSubmit {
-//                    onSubmit()
-//                }
-//            }
-//            
-//            .onHover { didHover in
-//                if let onHover {
-//                    onHover(didHover)
-//                }
-//            }
-//            
-//            .onChange(of: focusState, { oldValue, newValue in
-//                self.didFocus = newValue
-//                if let onFocus {
-//                    onFocus(newValue)
-//                }
-//            })
-//            
-//            .overlay(
-//                HStack {
-//                    if isSearchField {
-//                        Image(systemName: "magnifyingglass")
-//                            .foregroundColor(.gray)
-//                            .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
-//                    } else {
-//                        Spacer()
-//                    }
-//                    
-//                    
-//                    if didFocus && !text.isEmpty {
-//                        Button {
-//                            switch keyboardType {
-//                            case .text: text = ""
-//                            case .double: text = "0.0"
-//                            case .currency: text = ""
-//                            }
-//                            if let onClear {
-//                                onClear()
-//                            }
-//                        } label: {
-//                            Image(systemName: "multiply.circle.fill")
-//                                .foregroundColor(.gray)
-//                                //.scaleEffect(0.7)
-//                        }
-//                        .buttonStyle(.plain)
-//                        .focusable(false)
-//                        //.padding(.trailing, 8)
-//                    }
-//                    
-//                    
-////                    
-////                    if didFocus && !text.isEmpty {
-////                        Button(action: {
-////                            text = ""
-////                            //didFocus = false
-////                            
-////                            if let onClear {
-////                                onClear()
-////                            }
-////                            
-////                        }) {
-////                            Image(systemName: "multiply.circle.fill")
-////                                .foregroundColor(.gray)
-////                        }
-////                        .buttonStyle(.plain)
-////                    }
-//                }
-//            )
-//            .standardTextField(alignment: alignment, submit: onSubmit ?? {})
-//            .frame(maxHeight: .infinity)
-////            .viewExtractor { view in
-////                print(view)
-////                if let textField = view as? UITextField {
-////                    let _ = print("ITS A UI TEXT FIELD")
-////                    textField.placeholder = "Heyyyyyy"
-////                    textField.clearsOnBeginEditing = true
-////                } else {
-////                    let _ = print("ITS NOT A  UI TEXT FIELD")
-////                }
-////            }
-//            
-//            if isSearchField && didFocus {
-//                Button("Cancel") {
-//                    withAnimation {
-//                        focusState = false
-//                        text = ""
-//                        didFocus = false
-//                        if let onCancel {
-//                            onCancel()
-//                        }
-//                    }
-//                }
-//                .frame(maxHeight: .infinity)
-//                .tint(Color.fromName(appColorTheme))
-//                .focusable(false)
-//            }
-//        }
-//        .fixedSize(horizontal: false, vertical: true)
-//    }
-//}
-
-
 
 
 struct SearchTextField: View {
@@ -203,7 +32,7 @@ struct SearchTextField: View {
 
 
 struct StandardTextField: View {
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     
     /// This is needed to enable animation of the cancel button.
     @State private var didFocus = false
@@ -253,80 +82,73 @@ struct StandardTextField: View {
     
     var body: some View {
         HStack {
-            Group {
-                TextField(placeholder, text: $text)
-                
-//                switch keyboardType {
-//                case .text, .double:
-//                    TextField(placeholder, text: $text)
-//                        
-//                    
-//                case .currency:
-//                    TextField(placeholder, text: $text)
-//                        .onChange(of: text) { oldValue, newValue in
-//                            if !newValue.starts(with: "$") && !newValue.isEmpty {
-//                                text = "$\(newValue)"
-//                            }
-//                        }
-//                }
-            }
-            .textFieldStyle(.plain)
-            .padding(.leading, isSearchField ? 24 : 0)
-            .padding(.trailing, didFocus && !text.isEmpty ? 24 : 0)
-            .focused(focusedField, equals: focusValue)
-            //.focused($focusState)
-            //.if(focusValue == .search) { $0.submitLabel(.search) }
-            .onSubmit {
-                if let onSubmit {
-                    onSubmit()
-                }
-            }
-            /// This is needed to enable animation of the cancel button.
-            .onChange(of: focusedField.wrappedValue, { oldValue, newValue in
-                if focusedField.wrappedValue == focusValue {
-                    withAnimation {
-                        didFocus = newValue != nil
-                    }                    
-                } else {
-                    didFocus = false
-                }
-            })
-            
-            .overlay(
+            StandardRectangle {
                 HStack {
-                    if isSearchField {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.gray)
-                            .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
-                    } else {
-                        Spacer()
-                    }
-                    
-                    
-                    if didFocus && !text.isEmpty {
-                        Button {
-//                            switch keyboardType {
-//                            case .text: text = ""
-//                            case .double: text = "0.0"
-//                            case .currency: text = ""
-//                            }
-                            text = ""
-                            if let onClear {
-                                onClear()
-                            }
-                        } label: {
-                            Image(systemName: "multiply.circle.fill")
-                                .foregroundColor(.gray)
-                                //.scaleEffect(0.7)
+                    TextField(placeholder, text: $text)
+                        .textFieldStyle(.plain)
+                        .padding(.leading, isSearchField ? 24 : 0)
+                        .padding(.trailing, didFocus && !text.isEmpty ? 24 : 0)
+                        .focused(focusedField, equals: focusValue)
+                    //.focused($focusState)
+                    //.if(focusValue == .search) { $0.submitLabel(.search) }
+                        .onSubmit {
+                            if let onSubmit { onSubmit() }
                         }
-                        .buttonStyle(.plain)
-                        .focusable(false)
-                        //.padding(.trailing, 8)
-                    }
+                    /// This is needed to enable animation of the cancel button.
+                        .onChange(of: focusedField.wrappedValue, { oldValue, newValue in
+                            if focusedField.wrappedValue == focusValue {
+                                withAnimation {
+                                    didFocus = newValue != nil
+                                }
+                            } else {
+                                didFocus = false
+                            }
+                        })
+                    
+                        .overlay(
+                            HStack {
+                                if isSearchField {
+                                    Image(systemName: "magnifyingglass")
+                                        .foregroundColor(.gray)
+                                        .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+                                } else {
+                                    Spacer()
+                                }
+                                
+                                if didFocus && !text.isEmpty {
+                                    Button {
+                                        text = ""
+                                        if let onClear { onClear() }
+                                    } label: {
+                                        Image(systemName: "multiply.circle.fill")
+                                            .foregroundColor(.gray)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .focusable(false)
+                                }
+                            }
+                        )
+                    //.standardTextField(alignment: alignment, submit: onSubmit ?? {})
+                    
+                    /// BEGIN This is the stuff from `.standardTextField()`
+                        //.padding(.vertical, 6)
+                    //.padding(.leading, 0)
+                        //.background(Color(.tertiarySystemFill))
+                        //.cornerRadius(8)
+                        .multilineTextAlignment(alignment)
+                        .frame(maxWidth: .infinity)
+                    //            .onSubmit {
+                    //                if let onSubmit = onSubmit {
+                    //                    onSubmit()
+                    //                }
+                    //            }
+                    /// END This is the stuff from `.standardTextField()`
+                        .frame(maxHeight: .infinity)
+                    
                 }
-            )
-            .standardTextField(alignment: alignment, submit: onSubmit ?? {})
-            .frame(maxHeight: .infinity)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+            
             
             if (isSearchField && didFocus) || alwaysShowCancelButton {
                 Button("Cancel") {
@@ -475,7 +297,7 @@ struct ToolbarTextField: View {
 
 #if os(iOS)
 //struct StandardUITextField<Toolbar: View>: View {
-//    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+//    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
 //
 //    @State private var didFocus = false
 //    
@@ -733,7 +555,7 @@ struct ToolbarTextField: View {
 
 struct StandardUITextField<Toolbar: View>: View {
     @Environment(\.layoutDirection) private var layoutDirection: LayoutDirection
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     
     /// This is needed to enable animation of the cancel button.
     @State private var didFocus = false
@@ -791,65 +613,70 @@ struct StandardUITextField<Toolbar: View>: View {
         
     var body: some View {
         HStack {
-            Group {
-                UITextFieldWrapper(placeholder: placeholder, text: $text, onSubmit: {
-                    if let onSubmit { onSubmit() }
-                }, onClear: {
-                    if let onClear { onClear() }
-                }, onBeginEditing: {
-                    if let onBeginEditing { onBeginEditing() }
-                }, toolbar: {
-                    toolbar()
-                })
-                .uiFont(font)
-                .uiTextColor(foregroundColor)
-                .uiTint(tint)
-                .uiTextAlignment(multilineTextAlignment)
-                .uiTextContentType(contentType)
-                .uiAutoCorrectionDisabled(disableAutocorrection)
-                .uiAutoCapitalizationType(autocapitalizationType)
-                .uiKeyboardType(keyboardType)
-                .uiReturnKeyType(submitLabel)
-                .uiIsSecure(isSecure)
-                .uiClearsOnBeginEditing(clearsOnBeginEditing)
-                .uiClearButtonMode(clearButtonMode)
-                .uiDisabled(disabled)
-                .uiTag(focusValue)
-                .uiMaxLength(maxLength)
-                .uiStartCursorAtEnd(startCursorAtEnd)
-            }
-            .padding(.leading, isSearchField ? 24 : 0)
-            .focused($focusedField, equals: focusValue)
-            
-            /// This is needed to enable animation of the cancel button.
-            .onChange(of: focusedField, { oldValue, newValue in
-                if focusedField == focusValue {
-                    withAnimation {
-                        didFocus = newValue != nil
-                    }
-                } else {
-                    withAnimation {
-                        didFocus = false
-                    }
-                }
-            })
-            .overlay(
+            StandardRectangle(withTrailingPadding: false) {
                 HStack {
-                    if isSearchField {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.gray)
-                            .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
-                    } else {
-                        Spacer()
+                    Group {
+                        UITextFieldWrapper(placeholder: placeholder, text: $text, onSubmit: {
+                            if let onSubmit { onSubmit() }
+                        }, onClear: {
+                            if let onClear { onClear() }
+                        }, onBeginEditing: {
+                            if let onBeginEditing { onBeginEditing() }
+                        }, toolbar: {
+                            toolbar()
+                        })
+                        .uiFont(font)
+                        .uiTextColor(foregroundColor)
+                        .uiTint(tint)
+                        .uiTextAlignment(multilineTextAlignment)
+                        .uiTextContentType(contentType)
+                        .uiAutoCorrectionDisabled(disableAutocorrection)
+                        .uiAutoCapitalizationType(autocapitalizationType)
+                        .uiKeyboardType(keyboardType)
+                        .uiReturnKeyType(submitLabel)
+                        .uiIsSecure(isSecure)
+                        .uiClearsOnBeginEditing(clearsOnBeginEditing)
+                        .uiClearButtonMode(clearButtonMode)
+                        .uiDisabled(disabled)
+                        .uiTag(focusValue)
+                        .uiMaxLength(maxLength)
+                        .uiStartCursorAtEnd(startCursorAtEnd)
                     }
+                    .padding(.leading, isSearchField ? 24 : 0)
+                    .focused($focusedField, equals: focusValue)
+                    
+                    /// This is needed to enable animation of the cancel button.
+                    .onChange(of: focusedField, { oldValue, newValue in
+                        if focusedField == focusValue {
+                            withAnimation {
+                                didFocus = newValue != nil
+                            }
+                        } else {
+                            withAnimation {
+                                didFocus = false
+                            }
+                        }
+                    })
+                    .overlay(
+                        HStack {
+                            if isSearchField {
+                                Image(systemName: "magnifyingglass")
+                                    .foregroundColor(.gray)
+                                    .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+                            } else {
+                                Spacer()
+                            }
+                        }
+                    )
+                    //.padding([.vertical, .leading], 6)
+                    //            .padding(.leading, 0)
+                    //            .background(Color(.tertiarySystemFill))
+                    //            .cornerRadius(8)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-            )
-            .padding(6)
-            .padding(.leading, 0)
-            .background(Color(.tertiarySystemFill))
-            .cornerRadius(8)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-
+                .fixedSize(horizontal: false, vertical: true)
+            }
+            
             if (isSearchField && didFocus) || alwaysShowCancelButton {
                 Button("Cancel") {
                     withAnimation {

@@ -13,9 +13,12 @@ class AppState {
     static let shared = AppState()
     var downloadedData: Array<NavDestination> = []
     var user: CBUser?
+    var apiKey: String?
     var accountUsers: Array<CBUser> = []
     var methsExist = false
     var showPaymentMethodNeededSheet = false
+    
+    var showUniversalLoadingSpinner = false
     
     var isInFullScreen = false
     var macWindowDidBecomeMain = false
@@ -28,8 +31,8 @@ class AppState {
     
     var deviceUUID: String?
     
-    var keyboardHeight: CGFloat = 0
-    var showKeyboardToolbar = false
+    //var keyboardHeight: CGFloat = 0
+    //var showKeyboardToolbar = false
     
     var debugPrintString = UserDefaults.standard.string(forKey: "debugPrint") ?? "no debugPrint found"
     var debugPrint: Bool { return debugPrintString == "YES" ? true : false }
@@ -41,18 +44,17 @@ class AppState {
     #if os(iOS)
     var orientation: UIDeviceOrientation = UIDevice.current.orientation
     var isLandscape: Bool = false
-    
-    var isIpad: Bool {
-        UIDevice.current.userInterfaceIdiom == .pad
-    }
-
-    
+    var isIpad: Bool { UIDevice.current.userInterfaceIdiom == .pad }
+    var isIphoneInLandscape: Bool { UIDevice.current.userInterfaceIdiom == .phone && isLandscape }
+    var isIphoneInPortrait: Bool { UIDevice.current.userInterfaceIdiom == .phone && !isLandscape }
     #endif
 
     //var holdSplash = true
     //var splashTimer = Timer.publish(every: 3, tolerance: 0.5, on: .main, in: .common).autoconnect()
     var appShouldShowSplashScreen: Bool = true
     var splashTextAnimationIsFinished: Bool = false
+    
+    var longNetworkTaskTimer: Timer?
     
     
     
@@ -121,10 +123,18 @@ class AppState {
     
     
     var toast: Toast?
-    func showToast(title: String, subtitle: String?, body: String?, symbol: String, symbolColor: Color? = nil) {
+    func showToast(
+        title: String,
+        subtitle: String? = nil,
+        body: String? = nil,
+        symbol: String = "coloncurrencysign.circle",
+        symbolColor: Color? = nil,
+        autoDismiss: Bool = true,
+        action: @escaping () -> Void = {}
+    ) {
         withAnimation(.bouncy) {
             //DispatchQueue.main.async {
-                self.toast = Toast(header: title, title: subtitle, message: body, symbol: symbol, symbolColor: symbolColor)
+            self.toast = Toast(header: title, title: subtitle, message: body, symbol: symbol, symbolColor: symbolColor, autoDismiss: autoDismiss, action: action)
             //}
             
         }
@@ -150,7 +160,6 @@ class AppState {
 
     /// Called via `currentDateTimer`. The onReceive() modifier that calls this is in ``RootView``.
     func setNow() -> Bool {
-        
         let oldToday = todayDay
         let newToday = Calendar.current.component(.day, from: Date())
                         
@@ -158,13 +167,10 @@ class AppState {
             todayDay = newToday
             todayMonth = Calendar.current.component(.month, from: Date())
             todayYear = Calendar.current.component(.year, from: Date())
-            
             return true
         } else {
             return false
         }
-        
-        return false
     }
     
     /// Called when the iPhone enters the forground or when the Mac unlocks.

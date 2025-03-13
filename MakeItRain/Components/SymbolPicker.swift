@@ -14,7 +14,7 @@ fileprivate struct SymbolSection: Identifiable {
 }
 
 struct SymbolPicker: View {
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     @Environment(\.dismiss) var dismiss
     @Binding var selected: String?
     
@@ -164,23 +164,30 @@ struct SymbolPicker: View {
     }
     
     var body: some View {
-        VStack {
-            SheetHeader(title: "Symbols", close: { dismiss() })
-                .padding(.bottom, 12)
-                .padding(.horizontal, 20)
-                .padding(.top)
-            
-            SearchTextField(title: "Symbols", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)                        
-            
-            List {
-                ForEach(filteredSections.sorted { $0.title < $1.title }) { section in
-                    Section(section.title) {
-                        LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
-                            ForEach(searchText.isEmpty
-                                    ? section.symbols.sorted { $0 < $1 }
-                                    : section.symbols.filter { $0.localizedStandardContains(searchText) }.sorted { $0 < $1 },
-                                    id: \.self)
-                            { sym in
+        
+        SheetContainerView(.list) {
+            ForEach(filteredSections.sorted { $0.title < $1.title }) { section in
+                Section(section.title) {
+                    LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
+                        ForEach(searchText.isEmpty
+                                ? section.symbols.sorted { $0 < $1 }
+                                : section.symbols.filter { $0.localizedStandardContains(searchText) }.sorted { $0 < $1 },
+                                id: \.self)
+                        { sym in
+                            
+                            if (selected ?? "") == sym {
+                                RoundedRectangle(cornerRadius: 15)
+                                    .fill(Color.fromName(appColorTheme))
+                                    .onTapGesture {
+                                        selected = sym
+                                        dismiss()
+                                    }
+                                    .overlay {
+                                        Image(systemName: sym)
+                                            .frame(maxWidth: .infinity, alignment: .center)
+                                            .font(.title)
+                                    }
+                            } else {
                                 Image(systemName: sym)
                                     .frame(maxWidth: .infinity, alignment: .center)
                                     .font(.title)
@@ -188,19 +195,69 @@ struct SymbolPicker: View {
                                         selected = sym
                                         dismiss()
                                     }
-                                    .padding(5)
-                                    .background {
-                                        Circle()
-                                            .fill((selected ?? "") == sym ? Color.fromName(appColorTheme) : Color.clear)
-                                    }
                             }
+                            
+//                            Image(systemName: sym)
+//                                .frame(maxWidth: .infinity, alignment: .center)
+//                                .font(.title)
+//                                .onTapGesture {
+//                                    selected = sym
+//                                    dismiss()
+//                                }
+//                                .padding(5)
+//                                .background {
+//                                    Circle()
+//                                        .fill((selected ?? "") == sym ? Color.fromName(appColorTheme) : Color.clear)
+//                                }
                         }
                     }
                 }
             }
-            #if os(iOS)
-            .listSectionSpacing(2)
-            #endif
+        } header: {
+            SheetHeader(title: "Symbols", close: { dismiss() })
+        } subHeader: {
+            SearchTextField(title: "Symbols", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)
+                .padding(.horizontal, -20)
         }
+
+//        
+//        VStack {
+//            SheetHeader(title: "Symbols", close: { dismiss() })
+//                .padding(.bottom, 12)
+//                .padding(.horizontal, 20)
+//                .padding(.top)
+//            
+//            SearchTextField(title: "Symbols", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)                        
+//            
+//            List {
+//                ForEach(filteredSections.sorted { $0.title < $1.title }) { section in
+//                    Section(section.title) {
+//                        LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
+//                            ForEach(searchText.isEmpty
+//                                    ? section.symbols.sorted { $0 < $1 }
+//                                    : section.symbols.filter { $0.localizedStandardContains(searchText) }.sorted { $0 < $1 },
+//                                    id: \.self)
+//                            { sym in
+//                                Image(systemName: sym)
+//                                    .frame(maxWidth: .infinity, alignment: .center)
+//                                    .font(.title)
+//                                    .onTapGesture {
+//                                        selected = sym
+//                                        dismiss()
+//                                    }
+//                                    .padding(5)
+//                                    .background {
+//                                        Circle()
+//                                            .fill((selected ?? "") == sym ? Color.fromName(appColorTheme) : Color.clear)
+//                                    }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//            #if os(iOS)
+//            .listSectionSpacing(2)
+//            #endif
+//        }
     }
 }

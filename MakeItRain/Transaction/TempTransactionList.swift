@@ -30,68 +30,51 @@ struct TempTransactionList: View {
         @Bindable var calModel = calModel
         @Bindable var appState = AppState.shared
         NavigationStack {
-            Group {
+            VStack {
                 if calModel.tempTransactions.isEmpty {
-                    ContentUnavailableView("Problem Connecting To Server", systemImage: "network.slash", description: Text("There was trouble connecting to the server. You can add transactions here, and they will attempt to sync the next time you open the app."))
+                    ContentUnavailableView("Problem Connecting To Server", systemImage: "network.slash", description: Text("You can add transactions here, and they will attempt to sync the next time you open the app."))
                 } else {
-                    List(calModel.tempTransactions, selection: $transEditID) { trans in
-                        
-                        HStack(alignment: .circleAndTitle, spacing: 4) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                HStack {
-                                    Text(trans.title)
-                                    Spacer()
-                                    Text(trans.amountString)
-                                        .foregroundStyle(.gray)
-                                        .font(.caption)
-                                }
-                                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-                                
-                                
-                                HStack {
-                                    Text(trans.date?.string(to: .monthDayShortYear) ?? "N/A")
-                                        .foregroundStyle(.gray)
-                                        .font(.caption)
-                                    Spacer()
-                                    HStack(spacing: 4) {
-                                        Circle()
-                                            .frame(width: 6, height: 6)
-                                            .foregroundStyle(trans.payMethod?.color ?? .primary)
-                                        
-                                        Text(trans.payMethod?.title ?? "N/A")
-                                            .foregroundStyle(.gray)
-                                            .font(.caption)
+                    List(selection: $transEditID) {
+                        ForEach(catModel.categories) { cat in
+                            if !calModel.tempTransactions.filter({$0.category?.id == cat.id}).isEmpty {
+                                Section(cat.title) {
+                                    ForEach(calModel.tempTransactions.filter {$0.category?.id == cat.id}) { trans in
+                                        TransLineItem(trans: trans, showDeleteAlert: $showDeleteAlert, transDeleteID: $transDeleteID)
                                     }
                                 }
                             }
                         }
                         
-                        
-                        .swipeActions(content: {
-                            Button {
-                                transDeleteID = trans.id
-                                showDeleteAlert = true
-                            } label: {
-                                Image(systemName: "trash")
+                        if !calModel.tempTransactions.filter({$0.category == nil}).isEmpty {
+                            Section("(No Category)") {
+                                ForEach(calModel.tempTransactions.filter {$0.category == nil}) { trans in
+                                    TransLineItem(trans: trans, showDeleteAlert: $showDeleteAlert, transDeleteID: $transDeleteID)
+                                }
                             }
-                            .tint(.red)
-                            
-                        })
-                        .contentShape(Rectangle())
+                        }
                     }
+                                        
+                    Text("Currently Offline")
+                        .foregroundStyle(.gray)
+                        .italic()
+                        .font(.caption)
                 }
             }
             .toolbar {
                 #if os(iOS)
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {
+                        fetchTransactionsFromCache()
                         funcModel.refreshTask = Task {
                             //authState.isThinking = true
                             showLoadingSpinner = true
                             if AuthState.shared.isLoggedIn {
                                 await funcModel.downloadEverything(setDefaultPayMethod: false, createNewStructs: true, refreshTechnique: .viaTempListButton)
                             } else {
-                                await AuthState.shared.checkForCredentials()
+                                
+                                if let apiKey = await AuthState.shared.getApiKeyFromKeychain() {
+                                    await AuthState.shared.attemptLogin(using: .apiKey, with: LoginModel(apiKey: apiKey))
+                                }
                             }
                             showLoadingSpinner = false
                         }
@@ -103,9 +86,7 @@ struct TempTransactionList: View {
                         ProgressView()
                             .opacity(showLoadingSpinner ? 1 : 0)
                     }
-                }
-                
-                ToolbarItem(placement: .topBarTrailing) {
+                    
                     Button {
                         transEditID = UUID().uuidString
                     } label: {
@@ -125,7 +106,7 @@ struct TempTransactionList: View {
                 }
                 #endif
             }
-            .navigationTitle("Temp Transactions")
+            .navigationTitle("Transactions")
         }
         .toast()
         .alert("Delete transaction?", isPresented: $showDeleteAlert, presenting: transDeleteID, actions: { id in
@@ -138,20 +119,6 @@ struct TempTransactionList: View {
                 showDeleteAlert = false
             }
         })
-        
-//        .alert("Delete transaction?", isPresented: $showDeleteAlert) {
-//            Button("Delete", role: .destructive) {
-//                if let id = transDeleteID {
-//                    calModel.tempTransactions.removeAll { $0.id == id }
-//                    let _ = DataManager.shared.delete(type: TempTransaction.self, predicate: .byId(.string(id)))
-//                    transDeleteID = nil
-//                }
-//            }
-//            
-//            Button("Cancel", role: .cancel) {
-//                showDeleteAlert = false
-//            }
-//        }
         
         .sheet(item: $editTrans) { trans in
             TransactionEditView(trans: trans, transEditID: $transEditID, day: selectedDay!, isTemp: true)
@@ -187,15 +154,7 @@ struct TempTransactionList: View {
                 print("scenePhase: Inactive")
             } else if newPhase == .active {
                 print("scenePhase: Active")
-                funcModel.refreshTask = Task {
-                    showLoadingSpinner = true
-                    if AuthState.shared.isLoggedIn {
-                        await funcModel.downloadEverything(setDefaultPayMethod: false, createNewStructs: true, refreshTechnique: .viaTempListSceneChange)
-                    } else {
-                        await AuthState.shared.checkForCredentials()
-                    }
-                    showLoadingSpinner = false
-                }
+                lifeCycleChange()
             } else if newPhase == .background {
                 print("scenePhase: Background")
             }
@@ -203,21 +162,38 @@ struct TempTransactionList: View {
         #else
         // MARK: - Handling Lifecycles (Mac)
         .onChange(of: AppState.shared.macWokeUp) { oldValue, newValue in
-            if newValue { Task { await AuthState.shared.checkForCredentials() } }
+            if newValue { lifeCycleChange() }
         }
         .onChange(of: AppState.shared.macSlept) { oldValue, newValue in
-            if newValue { Task { await AuthState.shared.checkForCredentials() } }
+            if newValue { lifeCycleChange() }
         }
         .onChange(of: AppState.shared.macWindowDidBecomeMain) { oldValue, newValue in
-            if newValue { Task { await AuthState.shared.checkForCredentials() } }
+            if newValue { lifeCycleChange() }
         }
         #endif
         
         
     }
     
+    func lifeCycleChange() {
+        fetchTransactionsFromCache()
+        
+        funcModel.refreshTask = Task {
+            showLoadingSpinner = true
+            if AuthState.shared.isLoggedIn {
+                await funcModel.downloadEverything(setDefaultPayMethod: false, createNewStructs: true, refreshTechnique: .viaTempListSceneChange)
+            } else {
+                if let apiKey = await AuthState.shared.getApiKeyFromKeychain() {
+                    await AuthState.shared.attemptLogin(using: .apiKey, with: LoginModel(apiKey: apiKey))
+                }
+            }
+            showLoadingSpinner = false
+        }
+    }
+    
     
     func saveTransaction(id: String) {
+        print("-- \(#function)")
         let trans = calModel.getTransaction(by: id, from: .tempList)
         
         if trans.title.isEmpty || trans.payMethod == nil {
@@ -257,9 +233,9 @@ struct TempTransactionList: View {
         entity.factorInCalculations = trans.factorInCalculations
         entity.notificationOffset = Int64(trans.notificationOffset ?? 0)
         entity.notifyOnDueDate = trans.notifyOnDueDate
-        entity.action = "add"
-        entity.isPending = true
+        entity.action = trans.action.rawValue
         entity.tempAction = trans.tempAction.rawValue
+        entity.isPending = true
         entity.logs = NSSet(set: Set(trans.logs.compactMap { $0.createCoreDataEntity() }))
         
         
@@ -269,6 +245,7 @@ struct TempTransactionList: View {
     
     func fetchTransactionsFromCache() {
         do {
+            calModel.tempTransactions.removeAll()
             if let entities = try DataManager.shared.getMany(type: TempTransaction.self) {
                 for entity in entities {
                     var category: CBCategory?
@@ -288,8 +265,9 @@ struct TempTransactionList: View {
                     
                     var logs: Array<CBLog> = []
                     if let logEntities = entity.logs {
+                        let groupID = UUID().uuidString
                         logEntities.forEach { entity in
-                            let log = CBLog(transEntity: entity as! TempTransactionLog)
+                            let log = CBLog(transEntity: entity as! TempTransactionLog, groupID: groupID)
                             logs.append(log)
                         }
                     }
@@ -297,7 +275,11 @@ struct TempTransactionList: View {
                                             
                     if let payMethod = payMethod {
                         let trans = CBTransaction(entity: entity, payMethod: payMethod, category: category, logs: logs)
-                        calModel.tempTransactions.append(trans)
+                        if trans.action == .delete || trans.tempAction == .delete {
+                            
+                        } else {
+                            calModel.tempTransactions.append(trans)
+                        }
                     }
                 }
             }
@@ -305,4 +287,55 @@ struct TempTransactionList: View {
             print(error.localizedDescription)
         }
     }
+    
+    
+    struct TransLineItem: View {
+        @Bindable var trans: CBTransaction
+        
+        @Binding var showDeleteAlert: Bool
+        @Binding var transDeleteID: String?
+        
+        var body: some View {
+            HStack(alignment: .circleAndTitle, spacing: 4) {
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack {
+                        Text(trans.title)
+                        Spacer()
+                        Text(trans.amountString)
+                            .foregroundStyle(.gray)
+                            .font(.caption)
+                    }
+                    .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                                                                
+                    HStack {
+                        Text(trans.date?.string(to: .monthDayShortYear) ?? "N/A")
+                            .foregroundStyle(.gray)
+                            .font(.caption)
+                        Spacer()
+                        HStack(spacing: 4) {
+                            Circle()
+                                .frame(width: 6, height: 6)
+                                .foregroundStyle(trans.payMethod?.color ?? .primary)
+                            
+                            Text(trans.payMethod?.title ?? "N/A")
+                                .foregroundStyle(.gray)
+                                .font(.caption)
+                        }
+                    }
+                }
+            }
+            .swipeActions(content: {
+                Button {
+                    transDeleteID = trans.id
+                    showDeleteAlert = true
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .tint(.red)
+                
+            })
+            .contentShape(Rectangle())
+        }
+    }
+    
 }

@@ -37,8 +37,9 @@ import Foundation
 //}
 
 struct LoginModel: Codable {
-    var email: String
-    var password: String
+    var email: String?
+    var password: String?
+    var apiKey: String?
 }
 
 //

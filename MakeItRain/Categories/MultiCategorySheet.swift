@@ -43,24 +43,22 @@ struct MultiCategorySheet: View {
 
     
     var body: some View {
-        SheetHeader(
-            title: "Categories",
-            close: { dismiss() },
-            view1: { selectButton },
-            view2: { sortMenu }
-        )
-        .padding(.bottom, 12)
-        .padding(.horizontal, 20)
-        .padding(.top)
-                
-        SearchTextField(title: "Categories", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)
-               
-        List {
+        SheetContainerView(.list) {
             Section("Your Categories") {
                 ForEach(filteredCategories) { cat in
                     LineItem(cat: cat, categories: $categories, labelWidth: labelWidth)
                 }
             }
+        } header: {
+            SheetHeader(
+                title: "Categories",
+                close: { dismiss() },
+                view1: { selectButton },
+                view2: { sortMenu }
+            )
+        } subHeader: {
+            SearchTextField(title: "Categories", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)
+                .padding(.horizontal, -20)
         }
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
     }
@@ -112,7 +110,7 @@ fileprivate struct LineItem: View {
     var body: some View {
         HStack {
             Image(systemName: lineItemIndicator == .dot ? "circle.fill" : (cat.emoji ?? "circle.fill"))
-                .foregroundStyle(cat.color)
+                .foregroundStyle(cat.color.gradient)
                 .frame(minWidth: labelWidth, alignment: .center)
                 .maxViewWidthObserver()
             Text(cat.title)

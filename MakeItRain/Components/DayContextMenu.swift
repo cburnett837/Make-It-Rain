@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct DayContextMenu: View {
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     
     @Environment(CalendarModel.self) private var calModel
     
@@ -74,6 +74,31 @@ struct DayContextMenu: View {
                     Text("Select Receipt")
                 } icon: {
                     Image(systemName: "photo.badge.plus")
+                }
+            }
+        }
+        
+        if let trans = calModel.getCopyOfTransaction() {
+            Section {
+                Button {
+                    withAnimation {
+                        if let trans = calModel.getCopyOfTransaction() {
+                            trans.date = day.date!
+                                                            
+                            if !calModel.isUnifiedPayMethod {
+                                trans.payMethod = calModel.sPayMethod!
+                            }
+                            
+                            day.upsert(trans)
+                            calModel.dragTarget = nil
+                            calModel.saveTransaction(id: trans.id, day: day)
+                            
+                            calModel.transactionToCopy = nil
+                        }
+                    }
+                    
+                } label: {
+                    Text("Paste Transaction")
                 }
             }
         }

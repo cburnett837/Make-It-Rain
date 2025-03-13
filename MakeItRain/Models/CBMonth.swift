@@ -253,7 +253,7 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
         return !budgets.filter { $0.id == budget.id }.isEmpty
     }
     
-    func getBudget(by id: Int) -> CBBudget {
+    func getBudget(by id: String) -> CBBudget {
         return budgets.filter { $0.id == id }.first ?? CBBudget.empty
     }
     

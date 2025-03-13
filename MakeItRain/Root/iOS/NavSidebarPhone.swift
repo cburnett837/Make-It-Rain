@@ -12,7 +12,7 @@ struct NavSidebar: View {
     @Environment(\.colorScheme) var colorScheme
     
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
 
     @Environment(CalendarModel.self) var calModel
     @Environment(PayMethodModel.self) var payModel
@@ -39,7 +39,7 @@ struct NavSidebar: View {
                 fakeNavHeader
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
-                    .standardBackground()
+                    .standardNavBackground()
                 
                 if AppState.shared.methsExist {
                     Group {
@@ -50,7 +50,7 @@ struct NavSidebar: View {
                         }
                     }
                     .listRowSeparator(.hidden)
-                    .rowBackground()
+                    .standardNavRowBackground()
                 }
                 
 //                Section("Search") {
@@ -62,14 +62,19 @@ struct NavSidebar: View {
                 Section("More") {
                     if AppState.shared.methsExist {
                         NavLinkPhone(destination: .repeatingTransactions, title: "Reoccuring Transactions", image: "repeat")
+                            .listRowSeparator(.hidden)
                     }
                     
                     NavLinkPhone(destination: .paymentMethods, title: "Payment Methods", image: "creditcard")
+                        .listRowSeparator(.hidden)
                     
                     if AppState.shared.methsExist {
                         NavLinkPhone(destination: .categories, title: "Categories", image: "books.vertical")
+                            .listRowSeparator(.hidden)
                         NavLinkPhone(destination: .keywords, title: "Keywords", image: "textformat.abc.dottedunderline")
+                            .listRowSeparator(.hidden)
                         NavLinkPhone(destination: .events, title: "Events", image: "beach.umbrella")
+                            .listRowSeparator(.hidden)
                     }
                 }
                 
@@ -81,7 +86,7 @@ struct NavSidebar: View {
         }
         //.padding(.top, 10)
         //.frame(width: getRect().width - 90)
-        .standardBackground()
+        .standardNavBackground()
         .frame(maxWidth: .infinity)
     }
     

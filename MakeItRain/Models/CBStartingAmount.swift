@@ -12,6 +12,9 @@ class CBStartingAmount: Codable, Identifiable, Hashable, Equatable {
     var id: Int
     var month: Int
     var year: Int
+    var date: Date {
+        Helpers.createDate(month: month, year: year)!
+    }
     
     var amount: Double {
         Double(amountString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
@@ -52,7 +55,7 @@ class CBStartingAmount: Codable, Identifiable, Hashable, Equatable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(Int.self, forKey: .id)
         let amount = try container.decode(Double.self, forKey: .amount)
-        //self.amountString = "$\(amount)"        
+        //self.amountString = "$\(amount)"
         let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
         self.amountString = amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
         
@@ -61,7 +64,8 @@ class CBStartingAmount: Codable, Identifiable, Hashable, Equatable {
         self.payMethod = try container.decode(CBPaymentMethod.self, forKey: .payment_method)
         action = .edit
         let isActive = try container.decode(Int?.self, forKey: .active)
-        self.active = isActive == 1 ? true : false    }
+        self.active = isActive == 1 ? true : false
+    }
     
     
     

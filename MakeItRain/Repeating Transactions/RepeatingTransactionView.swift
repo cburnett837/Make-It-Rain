@@ -42,71 +42,58 @@ struct RepeatingTransactionView: View {
         .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
     }
     
-    var header: some View {
-        Group {
-            SheetHeader(
-                title: title,
-                close: { editID = nil; dismiss() },
-                view3: { deleteButton }
-            )
-            .padding()
-            
-            Divider()
-                .padding(.horizontal)
-        }
-    }
+//    var header: some View {
+//        Group {
+//            SheetHeader(
+//                title: title,
+//                close: { editID = nil; dismiss() },
+//                view3: { deleteButton }
+//            )
+//            .padding()
+//        }
+//    }
         
     var body: some View {
-        VStack(spacing: 0) {
-            #if os(iOS)
-            if !AppState.shared.isLandscape { header }
-            #else
-            header
-            #endif
-            ScrollView {
+        SheetContainerView {
+            LabeledRow("Name", labelWidth) {
                 #if os(iOS)
-                if AppState.shared.isLandscape { header }
+                StandardUITextField("Amount", text: $repTransaction.title, onSubmit: {
+                    focusedField = 1
+                }, toolbar: {
+                    KeyboardToolbarView(focusedField: $focusedField)
+                })
+                .cbFocused(_focusedField, equals: 0)
+                .cbClearButtonMode(.whileEditing)
+                .cbSubmitLabel(.next)
+                #else
+                StandardTextField("Title", text: $repTransaction.title, focusedField: $focusedField, focusValue: 0)
+                    .onSubmit { focusedField = 1 }
                 #endif
-                VStack(spacing: 6) {
-                    LabeledRow("Name", labelWidth) {
-                        #if os(iOS)
-                        StandardUITextField("Amount", text: $repTransaction.title, onSubmit: {
-                            focusedField = 1
-                        }, toolbar: {
-                            KeyboardToolbarView(focusedField: $focusedField)
+            }
+            
+            LabeledRow("Amount", labelWidth) {
+                Group {
+                    #if os(iOS)
+                    StandardUITextField("Amount", text: $repTransaction.amountString, toolbar: {
+                        KeyboardToolbarView(focusedField: $focusedField, accessoryImage3: "plus.forwardslash.minus", accessoryFunc3: {
+                            Helpers.plusMinus($repTransaction.amountString)
                         })
-                        .cbFocused(_focusedField, equals: 0)
-                        .cbClearButtonMode(.whileEditing)
-                        .cbSubmitLabel(.next)
-                        #else
-                        StandardTextField("Title", text: $repTransaction.title, focusedField: $focusedField, focusValue: 0)
-                            .onSubmit { focusedField = 1 }
-                        #endif
-                    }
-                    
-                    LabeledRow("Amount", labelWidth) {
-                        Group {
-                            #if os(iOS)
-                            StandardUITextField("Amount", text: $repTransaction.amountString, toolbar: {
-                                KeyboardToolbarView(focusedField: $focusedField, accessoryImage3: "plus.forwardslash.minus", accessoryFunc3: {
-                                    Helpers.plusMinus($repTransaction.amountString)
-                                })
-                            })
-                            .cbKeyboardType(.decimalPad)
-                            .cbClearButtonMode(.whileEditing)
-                            .cbFocused(_focusedField, equals: 1)
-                            #else
-                            StandardTextField("Amount", text: $repTransaction.amountString, focusedField: $focusedField, focusValue: 1)
-                            #endif
-                        }
-                        .formatCurrencyLiveAndOnUnFocus(
-                            focusValue: 1,
-                            focusedField: focusedField,
-                            amountString: repTransaction.amountString,
-                            amountStringBinding: $repTransaction.amountString,
-                            amount: repTransaction.amount
-                        )
-                                                
+                    })
+                    .cbKeyboardType(.decimalPad)
+                    .cbClearButtonMode(.whileEditing)
+                    .cbFocused(_focusedField, equals: 1)
+                    #else
+                    StandardTextField("Amount", text: $repTransaction.amountString, focusedField: $focusedField, focusValue: 1)
+                    #endif
+                }
+                .formatCurrencyLiveAndOnUnFocus(
+                    focusValue: 1,
+                    focusedField: focusedField,
+                    amountString: repTransaction.amountString,
+                    amountStringBinding: $repTransaction.amountString,
+                    amount: repTransaction.amount
+                )
+                                        
 //                        .onChange(of: repTransaction.amountString) {
 //                            Helpers.liveFormatCurrency(oldValue: $0, newValue: $1, text: $repTransaction.amountString)
 //                        }
@@ -126,60 +113,55 @@ struct RepeatingTransactionView: View {
 //                                }
 //                            }
 //                        }
-                    }
-                    
-                    StandardDivider()
-                    
-                    LabeledRow("Pay Meth", labelWidth) {
-                        PaymentMethodSheetButton(payMethod: $repTransaction.payMethod, whichPaymentMethods: .allExceptUnified)
-                    }
-                    
-                    LabeledRow("Category", labelWidth) {
-                        CategorySheetButton(category: $repTransaction.category)
-                    }
-                    
-                    StandardDivider()
-                                        
-                    LabeledRow("Weekdays", labelWidth) {
-                        WeekdayToggles(repTransaction: repTransaction)
-                    }
-                    
-                    StandardDivider()
-                    
-                    LabeledRow("Months", labelWidth) {
-                        MonthToggles(repTransaction: repTransaction)
-                    }
-                    
-                    StandardDivider()
-                    
-                    LabeledRow("Days", labelWidth) {
-                        DayToggles(repTransaction: repTransaction)
-                    }
-                    
-                    StandardDivider()
-                    
-                    LabeledRow("Color", labelWidth) {
-                        //ColorPickerButton(color: $repTransaction.color)
-                        
-                        HStack {
-                            ColorPicker("", selection: $repTransaction.color, supportsOpacity: false)
-                                .labelsHidden()
-                            Spacer()
-                        }
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.top, 12)
             }
-            .scrollDismissesKeyboard(.immediately)
-            .transaction { $0.animation = .none } /// stops a floater view above the keyboard toolbar
+            
+            StandardDivider()
+            
+            LabeledRow("Pay Meth", labelWidth) {
+                PaymentMethodSheetButton(payMethod: $repTransaction.payMethod, whichPaymentMethods: .allExceptUnified)
+            }
+            
+            LabeledRow("Category", labelWidth) {
+                CategorySheetButton(category: $repTransaction.category)
+            }
+            
+            StandardDivider()
+                                
+            LabeledRow("Weekdays", labelWidth) {
+                WeekdayToggles(repTransaction: repTransaction)
+            }
+            
+            StandardDivider()
+            
+            LabeledRow("Months", labelWidth) {
+                MonthToggles(repTransaction: repTransaction)
+            }
+            
+            StandardDivider()
+            
+            LabeledRow("Days", labelWidth) {
+                DayToggles(repTransaction: repTransaction)
+            }
+            
+            StandardDivider()
+            
+            LabeledRow("Color", labelWidth) {
+                //ColorPickerButton(color: $repTransaction.color)
+                
+                HStack {
+                    ColorPicker("", selection: $repTransaction.color, supportsOpacity: false)
+                        .labelsHidden()
+                    Capsule()
+                        .fill(repTransaction.color)
+                        .onTapGesture {
+                            AppState.shared.showToast(title: "Color Picker", subtitle: "Click the circle to the left to change the color.", body: nil, symbol: "theatermask.and.paintbrush", symbolColor: repTransaction.color)
+                        }
+                }
+            }
+            
+        } header: {
+            SheetHeader(title: title, close: { editID = nil; dismiss() }, view3: { deleteButton })
         }
-        #if os(macOS)
-        .padding(.bottom, 10)
-        #endif
-//        #if os(iOS)
-//        .keyboardToolbar(amountString: $repTransaction.amountString, focusedField: _focusedField, fields: [.title, .amount])
-//        #endif
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
 //        #if os(macOS)
 //        .presentationSizing(.fitted)
@@ -238,7 +220,7 @@ struct RepeatingTransactionView: View {
     
     
     struct WeekdayToggles: View {
-        @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+        @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
         @Environment(RepeatingTransactionModel.self) private var repModel
         @Bindable var repTransaction: CBRepeatingTransaction
         
@@ -286,7 +268,7 @@ struct RepeatingTransactionView: View {
     
     
     struct MonthToggles: View {
-        @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+        @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
         @Environment(RepeatingTransactionModel.self) private var repModel
         @Bindable var repTransaction: CBRepeatingTransaction
         
@@ -334,7 +316,7 @@ struct RepeatingTransactionView: View {
     
     
     struct DayToggles: View {
-        @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+        @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
         @Environment(RepeatingTransactionModel.self) private var repModel
         @Bindable var repTransaction: CBRepeatingTransaction
         

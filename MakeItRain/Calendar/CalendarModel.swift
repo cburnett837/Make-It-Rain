@@ -18,7 +18,10 @@ import UIKit
 @MainActor
 @Observable
 class CalendarModel {
+    static let shared = CalendarModel()    
     var isThinking = false
+    
+    var showMonth = false
     
     var trans: CBTransaction?
     //var transEditID: Int?
@@ -241,63 +244,55 @@ class CalendarModel {
     // MARK: - Transaction Stuff
     
     func filteredTrans(day: CBDay) -> Array<CBTransaction> {
-        
         let transactionSortMode = TransactionSortMode.fromString(UserDefaults.standard.string(forKey: "transactionSortMode") ?? "")
         let categorySortMode = CategorySortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
-
         
+        /// This will look at both the transaction, and its deepCopy.
+        /// The reason being - in case we change a transction category or payment method from what is currently being viewed. This will allow the transaction sheet to remain on screen until we close it, at which point the save function will clear the deepCopy.
         return day.transactions
-            .filter {
+            /// FIlter by active transactions.
+            .filter { trans in trans.active }
+            /// Filter by search term & category.
+            .filter { trans in
                 if searchText.isEmpty {
                     if !sCategories.isEmpty {
-                        return
-                            sCategories.map{ $0.id }.contains($0.category?.id)
-                            && $0.active
+                        return sCategories.map{ $0.id }.contains { trans.categoryIdsInCurrentAndDeepCopy.contains($0) }
                     } else {
-                        //return transEditID == nil ? !$0.title.isEmpty && $0.active : $0.active
-                        return $0.active
+                        return true
                     }
                 } else {
                     if !sCategories.isEmpty {
                         if searchWhat == .titles {
                             return
-                                $0.title.localizedStandardContains(searchText)
-                                && sCategories.map{ $0.id }.contains($0.category?.id)
-                                && $0.active
+                                trans.title.localizedStandardContains(searchText)
+                                && sCategories.map{ $0.id }.contains { trans.categoryIdsInCurrentAndDeepCopy.contains($0) }
                         } else {
                             return
-                                !$0.tags.filter { $0.tag.localizedStandardContains(searchText) }.isEmpty
-                                && sCategories.map{ $0.id }.contains($0.category?.id)
-                                && $0.active
+                                !trans.tags.filter { $0.tag.localizedStandardContains(searchText) }.isEmpty
+                                && sCategories.map{ $0.id }.contains { trans.categoryIdsInCurrentAndDeepCopy.contains($0) }
                         }
                     } else {
                         if searchWhat == .titles {
-                            return
-                                $0.title.localizedStandardContains(searchText)
-                                && $0.active
+                            return trans.title.localizedStandardContains(searchText)
                         } else {
-                            return
-                                !$0.tags.filter { $0.tag.localizedStandardContains(searchText) }.isEmpty
-                                && $0.active
+                            return !trans.tags.filter { $0.tag.localizedStandardContains(searchText) }.isEmpty
                         }
                     }
                 }
-                
-                
-                /// This double ternery is here because if I edit an exisiting transaction, and clear the title, it causes the dayView to redraw; the pop-up to close; and the transaction to disappear.
-//                searchText.isEmpty
-//                ? (transEditID == nil ? !$0.title.isEmpty && $0.active : $0.active)
-//                : searchWhat == .titles
-//                    ? ($0.title.lowercased().contains(searchText.lowercased()) && $0.active)
-//                    : ($0.active && !$0.tags.filter { $0.tag.lowercased().contains(searchText.lowercased()) }.isEmpty)
             }
-            .filter {
-                sPayMethod?.accountType == .unifiedChecking
-                ? (($0.payMethod?.accountType == .checking && $0.active) || ($0.payMethod?.accountType == .cash && $0.active) || ($0.action == .add && $0.active && $0.payMethod == nil))
-                : sPayMethod?.accountType == .unifiedCredit
-                ? (($0.payMethod?.accountType == .credit && $0.active) || ($0.action == .add && $0.active && $0.payMethod == nil))
-                : $0.payMethod?.id == sPayMethod?.id && $0.active
+            /// Filter by payment method
+            .filter { trans in
+                if sPayMethod?.accountType == .unifiedChecking {
+                    return [AccountType.checking, AccountType.cash].contains { trans.payMethodTypesInCurrentAndDeepCopy.contains($0) } || (trans.action == .add && trans.payMethod == nil)
+                    
+                } else if sPayMethod?.accountType == .unifiedCredit {
+                    return [AccountType.credit].contains { trans.payMethodTypesInCurrentAndDeepCopy.contains($0) } || (trans.action == .add && trans.payMethod == nil)
+                    
+                } else {
+                    return sPayMethod?.id == trans.payMethod?.id || sPayMethod?.id == trans.deepCopy?.payMethod?.id
+                }
             }
+            /// Sort by either enteredDate or title - user preference.
             .sorted {
                 if transactionSortMode == .title {
                     return $0.title < $1.title
@@ -312,17 +307,58 @@ class CalendarModel {
                         return $0.category?.listOrder ?? 10000000000 < $1.category?.listOrder ?? 10000000000
                     }
                 }
-                
-//                transactionSortMode == .title
-//                ? $0.title < $1.title
-//                : categorySortMode == .title
-//                ? ($0.category?.title ?? "").lowercased() < ($1.category?.title ?? "").lowercased()
-//                : $0.category?.listOrder ?? 10000000000 < $1.category?.listOrder ?? 10000000000
             }
-        
-        
     }
          
+    
+    func getTransCount(for meth: CBPaymentMethod, and cbMonth: CBMonth) -> Int {
+        return justTransactions
+            .filter { $0.active }
+            .filter { $0.dateComponents?.month == cbMonth.actualNum && $0.dateComponents?.year == cbMonth.year }
+            //.filter { $0.payMethod?.id == meth.id }
+            .filter { trans in
+                if searchText.isEmpty {
+                    if !sCategories.isEmpty {
+                        return sCategories.map{ $0.id }.contains { trans.categoryIdsInCurrentAndDeepCopy.contains($0) }
+                    } else {
+                        return true
+                    }
+                } else {
+                    if !sCategories.isEmpty {
+                        if searchWhat == .titles {
+                            return
+                                trans.title.localizedStandardContains(searchText)
+                                && sCategories.map{ $0.id }.contains { trans.categoryIdsInCurrentAndDeepCopy.contains($0) }
+                        } else {
+                            return
+                                !trans.tags.filter { $0.tag.localizedStandardContains(searchText) }.isEmpty
+                                && sCategories.map{ $0.id }.contains { trans.categoryIdsInCurrentAndDeepCopy.contains($0) }
+                        }
+                    } else {
+                        if searchWhat == .titles {
+                            return trans.title.localizedStandardContains(searchText)
+                        } else {
+                            return !trans.tags.filter { $0.tag.localizedStandardContains(searchText) }.isEmpty
+                        }
+                    }
+                }
+            }
+            .filter { trans in
+                if meth.accountType == .unifiedChecking {
+                    return [AccountType.checking, AccountType.cash].contains(trans.payMethod?.accountType)
+                    
+                } else if meth.accountType == .unifiedCredit {
+                    return [AccountType.credit].contains(trans.payMethod?.accountType)
+                    
+                } else {
+                    return trans.payMethod?.id == meth.id
+                }
+            }
+        
+            .count
+    }
+    
+    
     
     func handleTransactions(_ transactions: Array<CBTransaction>, for month: CBMonth? = nil, refreshTechnique: RefreshTechnique?) {
         for transaction in transactions {
@@ -811,6 +847,10 @@ class CalendarModel {
                 } else {
                     Task { @MainActor in
                         trans.actionBeforeSave = trans.action
+                        /// If we filter transactions by category or by payment method, and change it on the transaction, we need the line below to cause the transaction to disapear when closing it.
+                        /// The transaction filter function that provides the views with the transactions looks for both the transaction and it's deep copy. When chaning a category for example, the trans will remain due to the deep copy still having the old reference.
+                        trans.deepCopy(.clear)
+                        
                         let _ = await submit(trans)
                         showToastsForTransactionSave(showSmartTransAlert: location == .smartList, trans: trans)
                         self.handleSavingOfEventTransaction(trans: trans, eventModel: eventModel)
@@ -1138,16 +1178,17 @@ class CalendarModel {
         
         /// Starts the spinner after 2 seconds
         startDelayedLoadingSpinnerTimer()
+        LoadingManager.shared.startLongNetworkTimer()
         print("-- \(#function)")
         
         isThinking = true
         
-        var isNew = false
-        /// If the trans is new, set the flag, but put it in edit mode so the coredata trans gets prooperly updated.
-        if trans.action == .add {
-            isNew = true
-            trans.action = .edit
-        }
+//        var isNew = false
+//        /// If the trans is new, set the flag, but put it in edit mode so the coredata trans gets properly updated.
+//        if trans.action == .add {
+//            isNew = true
+//            trans.action = .edit
+//        }
         
         /// Add a temporary transaction to coredata (For when the app was already loaded, but you went back to it after entering an area of bad network connection)
         /// This way, if you add a transaction in an area of bad connection, the trans won't be lost when you try and save it.
@@ -1168,40 +1209,63 @@ class CalendarModel {
         entity.factorInCalculations = trans.factorInCalculations
         entity.notificationOffset = Int64(trans.notificationOffset ?? 0)
         entity.notifyOnDueDate = trans.notifyOnDueDate
+        //entity.action = isNew ? "add" : trans.action.rawValue
         entity.action = trans.action.rawValue
+        entity.tempAction = trans.action == .add ? "edit" : trans.action.rawValue
         entity.isPending = true
         let _ = DataManager.shared.save()
         
+        //self.tempTransactions.append(trans)
+        
         LogManager.log()
-        let model = RequestModel(requestType: isNew ? TransactionAction.add.serverKey : trans.action.serverKey, model: trans)
+        let model = RequestModel(requestType: trans.action.serverKey, model: trans)
             
         /// Used to test the snapshot data race
         //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
         
         /// Do Networking.
         typealias ResultResponse = Result<ParentChildIdModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        async let result: ResultResponse = await NetworkManager(timeout: 10).singleRequest(requestModel: model)
                     
         switch await result {
         case .success(let model):
             LogManager.networkingSuccessful()
+            
+            //tempTransactions.removeAll(where: {$0.id == trans.id})
             let _ = DataManager.shared.delete(type: TempTransaction.self, predicate: .byId(.string(trans.id)))
             //print("Deleting transaction from coredata \(deleteResult)")
-            if isNew {
-                /// If a new transaction, update it with its new DBID.
-                if trans.isFromCoreData {
-                    let actualTrans = justTransactions.first(where: { $0.id == trans.id })
-                    if let actualTrans {
-                        actualTrans.id = String(model?.parentID ?? "0")
-                        actualTrans.uuid = nil
-                        actualTrans.action = .edit
-                    }
-                } else {
-                    trans.id = String(model?.parentID ?? "0")
-                    trans.uuid = nil
-                    trans.action = .edit
+            
+//            if isNew {
+//                /// If a new transaction, update it with its new DBID.
+//                if trans.isFromCoreData {
+//                    let actualTrans = justTransactions.first(where: { $0.id == trans.id })
+//                    if let actualTrans {
+//                        actualTrans.id = String(model?.parentID ?? "0")
+//                        actualTrans.uuid = nil
+//                        actualTrans.action = .edit
+//                    }
+//                } else {
+//                    trans.id = String(model?.parentID ?? "0")
+//                    trans.uuid = nil
+//                    trans.action = .edit
+//                }
+//            }
+            
+            if trans.isFromCoreData {
+                let actualTrans = justTransactions.first(where: { $0.id == trans.id })
+                if let actualTrans {
+                    actualTrans.id = String(model?.parentID ?? "0")
+                    actualTrans.uuid = nil
+                    actualTrans.action = .edit
                 }
+            } else {
+                trans.id = String(model?.parentID ?? "0")
+                trans.uuid = nil
+                trans.action = .edit
             }
+            
+            
+            
             
             /// Updated any tags that were added for the first time via this transaction with their new DBID.
             for each in model?.childIDs ?? [] {
@@ -1218,9 +1282,6 @@ class CalendarModel {
             
             /// Clear the logs since they will be refetched live when trying to view the transaction again. (Prevents dupes).
             trans.logs.removeAll()
-            
-            #warning("Idk about this... what if multiple are trying to save at the same time? Need to investigate.")
-            tempTransactions.removeAll()
                         
             print("✅Transaction successfully saved")
             /// Cancel the loading spinner if it hasn't started, otherwise hide it,
@@ -1232,6 +1293,14 @@ class CalendarModel {
             UIApplication.shared.endBackgroundTask(backgroundTaskID!)
             backgroundTaskID = .invalid
             #endif
+            
+            
+            
+            if LoadingManager.shared.showLongNetworkTaskToast {
+                AppState.shared.showToast(title: "Transaction Successfully Saved", subtitle: "Maybe the network doesn't suck", body: nil, symbol: "checkmark", symbolColor: .green)
+            }
+            
+            LoadingManager.shared.stopLongNetworkTimer()
             
             /// Return successful save result to the caller.
             return true
@@ -1247,6 +1316,7 @@ class CalendarModel {
             
             /// Cancel the loading spinner if it hasn't started, otherwise hide it,
             stopDelayedLoadingSpinnerTimer()
+            LoadingManager.shared.stopLongNetworkTimer()
             
             /// End the background task.
             #if os(iOS)
@@ -1323,9 +1393,9 @@ class CalendarModel {
                             
                         }
                     } else {
-                        let index = targetMonth.budgets.firstIndex(where: { $0.id == Int(idModel.uuid ?? "") })
+                        let index = targetMonth.budgets.firstIndex(where: { $0.id == idModel.uuid })
                         if let index {
-                            targetMonth.budgets[index].id = Int(idModel.id) ?? 0
+                            targetMonth.budgets[index].id = idModel.id
                         }
                     }
                 }
@@ -1524,15 +1594,16 @@ class CalendarModel {
         /// Used to test the snapshot data race
         //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
         
-        typealias ResultResponse = Result<ResultCompleteModel?, AppError>
+        typealias ResultResponse = Result<ReturnIdModel?, AppError>
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
         switch await result {
         case .success(let model):
             LogManager.networkingSuccessful()
                         
-            if budget.action == .add {
-                budget.id = Int(model?.result ?? "0") ?? 0
+            if budget.action == .add {                
+                budget.id = model?.id ?? "0"
+                budget.uuid = nil
                 budget.action = .edit
             }
             
@@ -1966,7 +2037,7 @@ class CalendarModel {
     
     func populate(options: PopulateOptions, repTransactions: Array<CBRepeatingTransaction>, categories: Array<CBCategory>) {
         print("-- \(#function)")
-        let dateFormatter = DateFormatter()
+        //let dateFormatter = DateFormatter()
         
         var repTransToServer: Array<CBTransaction> = []
         var budgetsToServer: Array<CBBudget> = []
@@ -2023,7 +2094,7 @@ class CalendarModel {
                             } else if when.whenType == .weekday {
                                 let weekdays = targetMonth.days
                                     .filter { $0.date != nil }
-                                    .filter { dateFormatter.weekdaySymbols[Calendar.current.component(.weekday, from: $0.date!) - 1].lowercased() == when.when.lowercased() }
+                                    .filter { AppState.shared.dateFormatter.weekdaySymbols[Calendar.current.component(.weekday, from: $0.date!) - 1].lowercased() == when.when.lowercased() }
                                 
                                 for weekday in weekdays {
                                     /// Make sure transaction was not already added via the day of the month trigger.
@@ -2046,7 +2117,6 @@ class CalendarModel {
                 let budgetExists = !sMonth.budgets.filter { $0.category?.id == cat.id }.isEmpty
                 if !budgetExists {
                     let budget = CBBudget()
-                    budget.id = Helpers.getTempID()
                     budget.month = sMonth.actualNum
                     budget.year = sMonth.year
                     budget.amountString = cat.amountString ?? ""
@@ -2094,8 +2164,8 @@ class CalendarModel {
                 
         calculateTotalForMonth(month: sMonth)
         
-        resetModel.month = sMonth.num
-        resetModel.year = sYear
+        resetModel.month = sMonth.actualNum
+        resetModel.year = sMonth.year
         
         Task {
             LogManager.log()
@@ -2594,12 +2664,14 @@ class CalendarModel {
         let targetDays = targetMonth.days
         let transactions = targetDays.flatMap({ $0.transactions })
         
-        let trans = transactions.filter {$0.id == transactionID}.first!
-                                                        
-        let index = trans.pictures?.firstIndex(where: { $0.uuid == uuid })
-        if let index {
-            trans.pictures?[index].isPlaceholder = false
+        if let trans = transactions.filter({$0.id == transactionID}).first {
+            let index = trans.pictures?.firstIndex(where: { $0.uuid == uuid })
+            if let index {
+                trans.pictures?[index].isPlaceholder = false
+            }
         }
+                                                        
+        
         
         //imageFromLibrary = nil
         #if os(iOS)
@@ -2613,13 +2685,15 @@ class CalendarModel {
         let targetDays = targetMonth.days
         let transactions = targetDays.flatMap({ $0.transactions })
         
-        let trans = transactions.filter {$0.id == transactionID}.first!
-        
-        let index = trans.pictures?.firstIndex(where: { $0.uuid == uuid })
-        if let index {
-            trans.pictures?[index].active = false
-            
+        if let trans = transactions.filter({$0.id == transactionID}).first {
+            let index = trans.pictures?.firstIndex(where: { $0.uuid == uuid })
+            if let index {
+                trans.pictures?[index].active = false
+                
+            }
         }
+        
+        
         
         //imageFromLibrary = nil
         #if os(iOS)

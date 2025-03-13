@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 
-
+// NOT USED 3/11/25
 struct StandardTextFieldStyle: ViewModifier {
     var padding: Double
     var alignment: TextAlignment
@@ -189,8 +189,10 @@ struct FormatCurrencyLiveAndOnUnFocus: ViewModifier {
                     if amountString == "$" || amountString == "-$" {
                         amountStringBinding = ""
                     } else {
+                        /// When I click submit, the amount and amountString aren't updated with the new value that the Binding contains.
+                        let localAmount = Double(amountStringBinding.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
                         let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
-                        amountStringBinding = amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? ""
+                        amountStringBinding = localAmount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
                     }
                 } else {
                     amountStringBinding = amountString ?? ""
@@ -249,12 +251,12 @@ struct ChevronMenuOverlay: ViewModifier {
                         .foregroundStyle(.gray)
                         .bold()
                         .scaleEffect(0.7)
-                        .padding(.trailing, 2)
+                        //.padding(.trailing, 2)
                 }
             }
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
-            .padding(.leading, 4)
+            //.padding(.leading, 4)
     }
 }
 
@@ -345,103 +347,144 @@ struct ViewHeightObserver: ViewModifier {
 #if os(iOS)
 struct StandardBackground: ViewModifier {
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
-    @AppStorage("darkModeBackgroundColor") var grayShade: String = "darkGray3"
+    @AppStorage("darkModeBackgroundColor") var darkModeBackgroundColor: String = "darkGray3"
+    @AppStorage("userColorScheme") var userColorScheme: UserPreferedColorScheme = .userSystem
 
     func body(content: Content) -> some View {
         content
-            .if(preferDarkMode) {
-                //$0.background(Color(.secondarySystemBackground).ignoresSafeArea(.all))
-                $0.background(Color.getGrayFromName(grayShade).ignoresSafeArea(.all))
-                //$0.background(Color.darkGray.ignoresSafeArea(.all))
-            }
+            //.preferredColorScheme(userColorScheme == .system ? nil : userColorScheme == .dark ? .dark : .light)
+//            .if(preferDarkMode) {
+//                $0.background(Color.getGrayFromName(darkModeBackgroundColor).ignoresSafeArea(.all))
+//            }
             
     }
 }
 
-struct RowBackground: ViewModifier {
+struct StandardRowBackground: ViewModifier {
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
     @AppStorage("darkModeBackgroundColor") var darkModeBackgroundColor: String = "darkGray3"
+    @AppStorage("userColorScheme") var userColorScheme: UserPreferedColorScheme = .userSystem
     
     func body(content: Content) -> some View {
         content
-            .if(preferDarkMode) {
-                //$0.listRowBackground(Color(.secondarySystemBackground))
-                $0.listRowBackground(Color.getGrayFromName(darkModeBackgroundColor))
-                //$0.listRowBackground(Color.darkGray)
-            }
+            //.preferredColorScheme(userColorScheme == .system ? nil : userColorScheme == .dark ? .dark : .light)
+//            .if(preferDarkMode) {
+//                $0.listRowBackground(Color.getGrayFromName(darkModeBackgroundColor))
+//            }
     }
 }
 
-//
-//struct RowBackgroundWithSelection: ViewModifier {
-//    //@Environment(\.colorScheme) var colorScheme
-//    @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
-//    @AppStorage("useGrayBackground") var useGrayBackground = true
-//    @AppStorage("grayShade") var grayShade: String = "darkGray"
-//    
-//    let id: Int
-//    let selectedID: Int?
-//    
-//    func body(content: Content) -> some View {
-//        content
-//            .if(id == selectedID) {
-//                $0.listRowBackground(
-//                    useGrayBackground && preferDarkMode
-//                    ? Color(.secondarySystemBackground)
-//                    : preferDarkMode ? Color.darkGray : Color(.secondarySystemBackground))
-//            }
-//            .if(id != selectedID) {
-//                $0.rowBackground()
-//            }
-//    }
-//}
 
-struct RowBackgroundWithSelection2: ViewModifier {
+struct StandardRowBackgroundWithSelection: ViewModifier {
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
     @AppStorage("darkModeSelectionColor") var darkModeSelectionColor: String = "darkGray3"
+    @AppStorage("userColorScheme") var userColorScheme: UserPreferedColorScheme = .userSystem
     
     let id: String
     let selectedID: String?
     
     func body(content: Content) -> some View {
         content
-            .if(id == selectedID) {
-//                $0.listRowBackground(
-//                    useGrayBackground && preferDarkMode
-//                    ? Color(.secondarySystemBackground)
-//                    : preferDarkMode ? Color.darkGray : Color(.secondarySystemBackground))
-                
-                
-                $0.listRowBackground(preferDarkMode ? Color.getGrayFromName(darkModeSelectionColor) : nil)
+            //.preferredColorScheme(userColorScheme == .system ? nil : userColorScheme == .dark ? .dark : .light)
+//            .if(id == selectedID) {
+//                $0.listRowBackground(preferDarkMode ? Color.getGrayFromName(darkModeSelectionColor) : Color(.tertiarySystemFill))
+//            }
+//            .if(id != selectedID) {
+//                $0.standardRowBackground()
+//            }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+struct StandardNavBackground: ViewModifier {
+    @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
+    @AppStorage("darkModeBackgroundColor") var darkModeBackgroundColor: String = "darkGray3"
+    @AppStorage("userColorScheme") var userColorScheme: UserPreferedColorScheme = .userSystem
+    @Environment(\.colorScheme) var colorScheme
+
+    func body(content: Content) -> some View {
+        content
+            //.preferredColorScheme(userColorScheme == .system ? nil : userColorScheme == .dark ? .dark : .light)
+            .if(AppState.shared.isIpad) {
+                $0.background(colorScheme == .dark ? Color.darkGray.ignoresSafeArea(.all) : Color(UIColor.systemGray6).ignoresSafeArea(.all))
             }
-            .if(id != selectedID) {
-                $0.rowBackground()
+        
+            .if(!AppState.shared.isIpad) {
+                $0.background(colorScheme == .dark ? Color.getGrayFromName(darkModeBackgroundColor) : Color.white)
+            }
+            
+    }
+}
+
+struct StandardNavRowBackground: ViewModifier {
+    @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
+    @AppStorage("darkModeBackgroundColor") var darkModeBackgroundColor: String = "darkGray3"
+    @AppStorage("userColorScheme") var userColorScheme: UserPreferedColorScheme = .userSystem
+    @Environment(\.colorScheme) var colorScheme
+    
+    func body(content: Content) -> some View {
+        content
+            //.preferredColorScheme(userColorScheme == .system ? nil : userColorScheme == .dark ? .dark : .light)
+            .if(AppState.shared.isIpad) {
+                $0.listRowBackground(colorScheme == .dark ? Color.darkGray : Color(UIColor.systemGray6))
+            }
+        
+            .if(!AppState.shared.isIpad) {
+                $0.listRowBackground(colorScheme == .dark ? Color.getGrayFromName(darkModeBackgroundColor) : Color.white)
             }
     }
 }
 
 
-//struct NavRowBackgroundWithSelection: ViewModifier {
-//    //@Environment(\.colorScheme) var colorScheme
-//    @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
-//    //@AppStorage("useGrayBackground") var useGrayBackground = true
-//    @AppStorage("darkModeBackgroundColor") var grayShade: String = "darkGray"
-//    
-//    let selection: NavDestination
-//    
-//    func body(content: Content) -> some View {
-//        content
-//            .if(selection == NavigationManager.shared.selection) {
-//                $0.listRowBackground(
-//                    useGrayBackground && preferDarkMode
-//                    ? Color(.secondarySystemBackground)
-//                    : preferDarkMode ? Color.darkGray : Color(.secondarySystemBackground))
-//            }
-//            .if(selection != NavigationManager.shared.selection) {
-//                $0.rowBackground()
-//            }
-//    }
-//}
+
+struct StandardNavRowBackgroundWithSelection: ViewModifier {
+    @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
+    @AppStorage("darkModeSelectionColor") var darkModeSelectionColor: String = "darkGray3"
+    @AppStorage("darkModeBackgroundColor") var darkModeBackgroundColor: String = "darkGray3"
+    @AppStorage("userColorScheme") var userColorScheme: UserPreferedColorScheme = .userSystem
+    @Environment(\.colorScheme) var colorScheme
+    
+    let id: String
+    let selectedID: String?
+    
+    func body(content: Content) -> some View {
+        content
+            //.preferredColorScheme(userColorScheme == .system ? nil : userColorScheme == .dark ? .dark : .light)
+            .if(id == selectedID) {
+                if AppState.shared.isIpad {
+                    $0.listRowBackground(colorScheme == .dark ? Color(.tertiarySystemFill) : Color(.tertiarySystemFill))
+                } else {
+                    $0.listRowBackground(colorScheme == .dark ? Color(.tertiarySystemFill) : Color(UIColor.systemGray4))
+                }
+            }
+            .if(id != selectedID) {
+                if AppState.shared.isIpad {
+                    $0.listRowBackground(colorScheme == .dark ? Color.darkGray : Color(UIColor.systemGray6))
+                } else {
+                    $0.listRowBackground(colorScheme == .dark ? Color.getGrayFromName(darkModeBackgroundColor) : nil)
+                }
+            }
+        
+        
+        
+            .if(id == selectedID) {
+                $0.listRowBackground(colorScheme == .dark ? Color.getGrayFromName(darkModeSelectionColor) : nil)
+            }
+            .if(id != selectedID) {
+                $0.listRowBackground(colorScheme == .dark ? Color.getGrayFromName(darkModeBackgroundColor) : nil)
+                //$0.standardRowBackground()
+            }
+    }
+}
 
 
 

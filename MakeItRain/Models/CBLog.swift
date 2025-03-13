@@ -61,6 +61,45 @@ enum LogType: String {
 
 
 @Observable
+class CBLogGroup: Decodable, Identifiable {
+    var id: String
+    var enteredBy: CBUser = AppState.shared.user!
+    var updatedBy: CBUser = AppState.shared.user!
+    var enteredDate: Date
+    var updatedDate: Date
+    var logs: Array<CBLog>
+        
+    enum CodingKeys: CodingKey { case id, entered_by, updated_by, entered_date, updated_date, logs }
+            
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
+        updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
+        
+        let enteredDate = try container.decode(String?.self, forKey: .entered_date)
+        if let enteredDate {
+            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime)!
+        } else {
+            fatalError("Could not determine enteredDate date")
+        }
+        
+        let updatedDate = try container.decode(String?.self, forKey: .updated_date)
+        if let updatedDate {
+            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
+        } else {
+            fatalError("Could not determine updatedDate date")
+        }
+        
+        logs = try container.decode(Array<CBLog>.self, forKey: .logs)
+    }
+}
+
+
+
+
+
+@Observable
 class CBLog: Codable, Identifiable, Transferable {
     var id: String
     var uuid: String?
@@ -75,7 +114,9 @@ class CBLog: Codable, Identifiable, Transferable {
     var enteredDate: Date
     var updatedDate: Date
     
-    init(itemID: String, logType: LogType, field: LogField, old: String?, new: String?) {
+    var groupID: String
+    
+    init(itemID: String, logType: LogType, field: LogField, old: String?, new: String?, groupID: String) {
         let uuid = UUID().uuidString
         self.id = uuid
         self.uuid = uuid
@@ -89,9 +130,11 @@ class CBLog: Codable, Identifiable, Transferable {
         self.updatedBy = AppState.shared.user!
         self.enteredDate = Date()
         self.updatedDate = Date()
+        
+        self.groupID = groupID
     }
     
-    init(transEntity: TempTransactionLog) {
+    init(transEntity: TempTransactionLog, groupID: String) {
         //self.isFromCoreData = true
         let uuid = UUID().uuidString
         self.id = uuid
@@ -106,16 +149,19 @@ class CBLog: Codable, Identifiable, Transferable {
         self.updatedBy = AppState.shared.user!
         self.enteredDate = Date()
         self.updatedDate = Date()
+        
+        self.groupID = groupID
     }
     
     
-    enum CodingKeys: CodingKey { case id, uuid, item_id, log_type, field, old, new, active, user_id, account_id, device_uuid, entered_by, updated_by, entered_date, updated_date }
+    enum CodingKeys: CodingKey { case id, uuid, item_id, log_type, field, old, new, active, user_id, account_id, device_uuid, entered_by, updated_by, entered_date, updated_date, group_id }
     
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(uuid, forKey: .uuid)
+        try container.encode(groupID, forKey: .group_id)
         try container.encode(itemID, forKey: .item_id)
         try container.encode(logType.rawValue, forKey: .log_type)
         try container.encode(field.rawValue, forKey: .field)
@@ -168,6 +214,8 @@ class CBLog: Codable, Identifiable, Transferable {
         } else {
             fatalError("Could not determine updatedDate date")
         }
+        
+        groupID = try container.decode(String.self, forKey: .group_id)
     }
     
     

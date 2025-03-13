@@ -33,12 +33,12 @@ struct LogSheet: View {
     
     let itemID: String
     let logType: LogType
-    @State private var logs: [CBLog] = []
+    @State private var logGroups: [CBLogGroup] = []
     
     @State private var showLoadingSpinner = true
     @State private var showNoLogs = false
     
-    let columnGrid = Array(repeating: GridItem(.flexible(), spacing: 0), count: 5)
+    let columnGrid = Array(repeating: GridItem(.flexible(), spacing: 0), count: 3)
     
     
     var refreshButton: some View {
@@ -77,30 +77,57 @@ struct LogSheet: View {
                 ContentUnavailableView("No Logs", systemImage: "square.stack.3d.up.slash.fill", description: Text("Logs will appear here when changes are made."))
             } else {
                 List {
-                    if !showLoadingSpinner {
-                        LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
-                            Text("What")
-                            Text("Old")
-                            Text("New")
-                            Text("Who")
-                            Text("When")
-                        }
-                        .font(.caption2)
-                        .bold()
-                    }
+//                    if !showLoadingSpinner {
+//                        LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
+//                            Text("What")
+//                            Text("Old")
+//                            Text("New")
+//                            //Text("Who")
+//                            //Text("When")
+//                        }
+//                        .font(.caption2)
+//                        .bold()
+//                    }
                     
-                    ForEach(logs) { log in
-                        LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
-                            Text(LogField.pretty(for: log.field) ?? "N/A")
-                            Text(log.old ?? "-")
-                            Text(log.new ?? "-")
-                            Text(log.enteredBy.initials)
-                            Text(log.enteredDate.string(to: .monthDayHrMinAmPm))
+                    ForEach(logGroups) { group in
+                        Section {
+                            ForEach(group.logs) { log in
+                                LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
+                                    Text(LogField.pretty(for: log.field) ?? "N/A")
+                                    Text(log.old ?? "-")
+                                    Text(log.new ?? "-")
+                                    //Text(log.enteredBy.initials)
+                                    //Text(log.enteredDate.string(to: .monthDayHrMinAmPm))
+                                }
+                                .font(.caption2)
+                            }
+                        } header: {
+                            VStack(alignment: .leading, spacing: 0) {
+                                Text("\(group.enteredBy.initials) - \(group.enteredDate.string(to: .monthDayShortYear)) - \(group.enteredDate.string(to: .timeAmPm))")
+                                
+//                                Text(group.enteredDate.string(to: .monthDayHrMinAmPm))
+//                                Text(group.enteredBy.initials)
+                                    .padding(.bottom, 4)
+                                
+                                LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
+                                    Text("What")
+                                    Text("Old")
+                                    Text("New")
+                                    //Text("Who")
+                                    //Text("When")
+                                }
+                                .font(.caption2)
+                                .bold()
+                                
+                            }
+                            
                         }
-                        .font(.caption2)
                     }
                 }
                 .listStyle(.plain)
+                #if os(iOS)
+                .listSectionSpacing(50)
+                #endif
             }
         }
         
@@ -116,7 +143,7 @@ struct LogSheet: View {
         LogManager.log()
         let model = RequestModel(requestType: "fetch_logs", model: FetchLogModel(itemID: itemID, logType: logType))
         
-        typealias ResultResponse = Result<Array<CBLog>?, AppError>
+        typealias ResultResponse = Result<Array<CBLogGroup>?, AppError>
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
         switch await result {
@@ -126,7 +153,7 @@ struct LogSheet: View {
                 if model.isEmpty {
                     showNoLogs = true
                 } else {
-                    logs = model.sorted { $0.enteredDate > $1.enteredDate }
+                    logGroups = model.sorted { $0.enteredDate > $1.enteredDate }
                 }
             } else {
                 showNoLogs = true

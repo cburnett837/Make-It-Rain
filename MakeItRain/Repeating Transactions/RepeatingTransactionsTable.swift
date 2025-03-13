@@ -300,7 +300,7 @@ struct RepeatingTransactionsTable: View {
                 Spacer()
                 
             }
-            .rowBackgroundWithSelection(id: repTrans.id, selectedID: repTransactionEditID)
+            .standardRowBackgroundWithSelection(id: repTrans.id, selectedID: repTransactionEditID)
             .swipeActions(allowsFullSwipe: false) {
                 Button {
                     deleteRepeatingTransaction = repTrans

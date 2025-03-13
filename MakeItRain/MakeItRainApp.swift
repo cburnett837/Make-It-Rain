@@ -45,6 +45,7 @@ struct MakeItRainApp: App {
     @AppStorage("appScreenHeight") var screenHeight: Double = 0
     @AppStorage("useBiometrics") var useBiometrics = false
     @AppStorage("startInFullScreen") var startInFullScreen = false
+    @AppStorage("userColorScheme") var userColorScheme: UserPreferedColorScheme = .userSystem
     
     @State private var appState = AppState.shared
     @State private var authState = AuthState.shared
@@ -56,23 +57,24 @@ struct MakeItRainApp: App {
     @State private var catModel: CategoryModel
     @State private var keyModel: KeywordModel
     @State private var repModel: RepeatingTransactionModel
-    @State private var eventModel: EventModel
-    //@State private var tagModel = TagModel()
+    @State private var eventModel: EventModel    
     
     @State private var isUnlocked = false
     
     init() {
-        let calModel = CalendarModel()
+        let calModel = CalendarModel.shared
                 
         /// This is now a singleton because the creditLimits are needed inside the calModel. 2/21/25
         /// However, views still access this via the environment.
         let payModel = PayMethodModel.shared
         //let payModel = PayMethodModel()
         
-        let catModel = CategoryModel()
-        let keyModel = KeywordModel()
-        let repModel = RepeatingTransactionModel()
-        let eventModel = EventModel()
+        /// All singletons because of experimenting with single window groups on iPad os.
+        /// Should be find to leave them as such
+        let catModel = CategoryModel.shared
+        let keyModel = KeywordModel.shared
+        let repModel = RepeatingTransactionModel.shared
+        let eventModel = EventModel.shared
         
         self.calModel = calModel
         self.payModel = payModel
@@ -101,30 +103,25 @@ struct MakeItRainApp: App {
                         loadingScreen
                     } else {
                         if AuthState.shared.isLoggedIn {
-                            if AppState.shared.hasBadConnection {
-                                TempTransactionList()
-                            } else {
-                                rootView
-                            }
+                            rootView
                         } else {
-                            if AppState.shared.hasBadConnection {
-                                TempTransactionList()
-                            } else {
-                                Login()
-                                    .transition(.opacity)
-                                    .onAppear {
-                                        if AuthState.shared.serverRevoked {
-                                            serverRevokedAccess()
-                                            AuthState.shared.serverRevoked = false
-                                        }
+                            Login()
+                                .transition(.opacity)
+                                .onAppear {
+                                    if AuthState.shared.serverRevoked {
+                                        serverRevokedAccess()
+                                        AuthState.shared.serverRevoked = false
                                     }
-                            }
+                                }
                         }
                     }
                 }
                 #if os(iOS)
                 .fullScreenCover(isPresented: $appState.showPaymentMethodNeededSheet, onDismiss: { downloadInitial() }) {
                     PaymentMethodRequiredView()
+                }
+                .fullScreenCover(isPresented: $appState.hasBadConnection) {
+                    TempTransactionList()
                 }
                 #else
                 .sheet(isPresented: $appState.showPaymentMethodNeededSheet, onDismiss: { downloadInitial() }) {
@@ -141,6 +138,11 @@ struct MakeItRainApp: App {
                         AppState.shared.isLandscape = true
                     } else {
                         AppState.shared.isLandscape = false
+                    }
+                    
+                    /// Set a default color scheme
+                    if UserDefaults.standard.string(forKey: "appColorTheme") == nil {
+                        UserDefaults.standard.set(Color.green.description, forKey: "appColorTheme")
                     }
                 }
                 .onRotate {
@@ -174,6 +176,11 @@ struct MakeItRainApp: App {
                             }
                         }
                     }
+                    
+                    /// Set a default color scheme
+                    if UserDefaults.standard.string(forKey: "appColorTheme") == nil {
+                        UserDefaults.standard.set(Color.blue.description, forKey: "appColorTheme")
+                    }
                 }
                 #endif
             }
@@ -184,8 +191,12 @@ struct MakeItRainApp: App {
             .environment(keyModel)
             .environment(repModel)
             .environment(eventModel)
-            .environment(\.colorScheme, preferDarkMode ? .dark : .light)
-            .preferredColorScheme(preferDarkMode ? .dark : .light)
+            //.environment(\.colorScheme, preferDarkMode ? .dark : .light)
+//            .if(userColorScheme != .userSystem) {
+//                $0.preferredColorScheme(userColorScheme == .userDark ? .dark : .light)
+//            }
+            
+            //.preferredColorScheme(preferDarkMode ? .dark : .light)
         }
         .defaultSize(width: 1000, height: 600)
         
@@ -232,7 +243,7 @@ struct MakeItRainApp: App {
                 .environment(eventModel)
         }
         #endif
-    }
+    }        
     
     var loadingScreen: some View {
         Group {
@@ -241,26 +252,11 @@ struct MakeItRainApp: App {
                 .transition(.opacity)
                 .task {
                     funcModel.setDeviceUUID()
-                    
-                    /// This will check the keychain for credentials. If it finds them, it will attempt to authenticate with the server. If not, it will take the user to the login page.
-                    /// If the user successfully authenticates with the server, this will also look if the user has payment methods, and set AppState accordingly.
-                    await AuthState.shared.checkForCredentials()
-                    
-                    if AuthState.shared.isLoggedIn {
-                        /// When the user logs in, if they have no payment methods, show the payment method required sheet.
-                        if AppState.shared.methsExist {
-                            downloadInitial()
-                        } else {
-                            LoadingManager.shared.showInitiallyLoadingSpinner = false
-                            LoadingManager.shared.showLoadingBar = false
-                            AppState.shared.showPaymentMethodNeededSheet = true
-                        }
-                                                
-                        NotificationManager.shared.registerForPushNotifications()
-                    }
+                    await login()
                 }
         }
     }
+    
     
     var rootView: some View {
         RootView()
@@ -272,7 +268,35 @@ struct MakeItRainApp: App {
     }
     
     
+    func login() async {
+        /// This will check the keychain for credentials. If it finds them, it will attempt to authenticate with the server. If not, it will take the user to the login page.
+        /// If the user successfully authenticates with the server, this will also look if the user has payment methods, and set AppState accordingly.
+        if let apiKey = await AuthState.shared.getApiKeyFromKeychain() {
+            AuthState.shared.loginTask = Task {
+                await AuthState.shared.attemptLogin(using: .apiKey, with: LoginModel(apiKey: apiKey))
+                if AuthState.shared.isLoggedIn {
+                    /// When the user logs in, if they have no payment methods, show the payment method required sheet.
+                    if AppState.shared.methsExist {
+                        downloadInitial()
+                    } else {
+                        LoadingManager.shared.showInitiallyLoadingSpinner = false
+                        LoadingManager.shared.showLoadingBar = false
+                        AppState.shared.showPaymentMethodNeededSheet = true
+                    }
+                    //await NotificationManager.shared.registerForPushNotifications()
+                }
+            }
+            
+            
+        } else {
+            AuthState.shared.isThinking = false
+            AppState.shared.appShouldShowSplashScreen = false
+        }
+    }
+    
+    
     func serverRevokedAccess() {
+        AuthState.shared.logout()
         AppState.shared.downloadedData.removeAll()
         LoadingManager.shared.showInitiallyLoadingSpinner = true
         LoadingManager.shared.downloadAmount = 0

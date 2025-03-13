@@ -102,15 +102,21 @@ struct CategoriesTable: View {
             #endif
         }
         
+        #if os(iOS)
         .sheet(item: $editCategory, onDismiss: {
             categoryEditID = nil
         }, content: { cat in
-            CategoryView(category: cat, catModel: catModel, calModel: calModel, keyModel: keyModel, editID: $categoryEditID)            
-            #if os(macOS)
+            CategoryView(category: cat, catModel: catModel, calModel: calModel, keyModel: keyModel, editID: $categoryEditID)
+        })
+        #else
+        .sheet(item: $editCategory, onDismiss: {
+            categoryEditID = nil
+        }, content: { cat in
+            CategoryView(category: cat, catModel: catModel, calModel: calModel, keyModel: keyModel, editID: $categoryEditID)
                 .frame(minWidth: 300, minHeight: 500)
                 .presentationSizing(.fitted)
-            #endif
         })
+        #endif
         
         #if os(macOS)
         .sheet(isPresented: $showReorderList) {
@@ -324,17 +330,17 @@ struct CategoriesTable: View {
                     
                     if let emoji = cat.emoji {
                         Image(systemName: emoji)
-                            .foregroundStyle(cat.color)
+                            .foregroundStyle(cat.color.gradient)
                             .frame(minWidth: labelWidth, alignment: .center)
                             .maxViewWidthObserver()
                     } else {
                         Circle()
-                            .fill(cat.color)
+                            .fill(cat.color.gradient)
                             .frame(width: 12, height: 12)
                     }
                 }
                 #if os(iOS)
-                .rowBackgroundWithSelection(id: cat.id, selectedID: categoryEditID)
+                .standardRowBackgroundWithSelection(id: cat.id, selectedID: categoryEditID)
                 .swipeActions(allowsFullSwipe: false) {
                     Button {
                         deleteCategory = cat

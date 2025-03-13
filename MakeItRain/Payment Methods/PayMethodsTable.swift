@@ -354,13 +354,13 @@ struct PayMethodsTable: View {
                         }
                         Spacer()
                     }
-                    .rowBackground()
+                    .standardRowBackground()
                     .swipeActions(allowsFullSwipe: false) {
                         SetDefaultButtonPhone(meth: meth)
                     }
                 }
             }
-            .rowBackground()
+            .standardRowBackground()
             
             Section("My Payment Methods") {
                 ForEach(filteredPayMethods) { meth in
@@ -437,7 +437,7 @@ struct PayMethodsTable: View {
                             }
                         }
                     }
-                    .rowBackgroundWithSelection(id: meth.id, selectedID: paymentMethodEditID)
+                    .standardRowBackgroundWithSelection(id: meth.id, selectedID: paymentMethodEditID)
                     .swipeActions(allowsFullSwipe: false) {
                         SetDefaultButtonPhone(meth: meth)
                         
@@ -456,7 +456,7 @@ struct PayMethodsTable: View {
                     }
                 }
             }
-            .rowBackground()
+            //.standardRowBackground()
         }
         .listStyle(.plain)
         .standardBackground()

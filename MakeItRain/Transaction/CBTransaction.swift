@@ -77,6 +77,14 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
     var isExpense: Bool { self.amount < 0 }
     var logs: Array<CBLog> = []
     
+    var categoryIdsInCurrentAndDeepCopy: Array<String?> {
+        return [self.category?.id, self.deepCopy?.category?.id]
+    }
+    
+    var payMethodTypesInCurrentAndDeepCopy: Array<AccountType?> {
+        return [self.payMethod?.accountType, self.deepCopy?.payMethod?.accountType]
+    }
+    
     deinit {
         //print("KILLING CBTransaction - \(self.id) - \(self.title)")
     }
@@ -108,6 +116,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
        // self.undoManager = TransUndoManager(trans: self)
     }
     
+    
     init(uuid: String) {
         self.id = uuid
         self.uuid = uuid
@@ -132,6 +141,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         
         //self.undoManager = TransUndoManager(trans: self)
     }
+    
     
     init(entity: TempTransaction, payMethod: CBPaymentMethod, category: CBCategory?, logs: Array<CBLog>) {
         self.isFromCoreData = true
@@ -170,7 +180,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         self.notificationOffset = Int(entity.notificationOffset)
         self.notifyOnDueDate = entity.notifyOnDueDate
         self.active = entity.active
-        self.action = TransactionAction.fromString(entity.action!)
+        self.action = TransactionAction.fromString(entity.action ?? "add")
         self.tempAction = TransactionAction.fromString(entity.tempAction ?? "add")
         self.wasAddedFromPopulate = false
         
@@ -230,6 +240,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
                 
         self.action = eventTrans.actionForRealTransaction!
     }
+    
     
     init(fitTrans: CBFitTransaction) {
         let uuid = UUID().uuidString
@@ -424,6 +435,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         return true
     }
     
+    
     func getDateChanges() -> (Date?, Date?)? {
         if let deepCopy = deepCopy {
             return (deepCopy.date, self.date)
@@ -461,59 +473,60 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
     
     
     func log(deepCopy: CBTransaction) {
-        print("Beginning Logging Process")
         if self.action == .edit || (self.action == .add && self.tempAction == .edit) {
+            
+            let groupID = UUID().uuidString
+            
             if self.title != deepCopy.title {
-                self.log(field: .title, old: deepCopy.title, new: self.title)
+                self.log(field: .title, old: deepCopy.title, new: self.title, groupID: groupID)
             }
             if self.amount != deepCopy.amount {
-                self.log(field: .amount, old: String(deepCopy.amount), new: String(self.amount))
+                self.log(field: .amount, old: String(deepCopy.amount), new: String(self.amount), groupID: groupID)
             }
             if self.payMethod?.id != deepCopy.payMethod?.id {
-                self.log(field: .payMethod, old: deepCopy.payMethod?.id, new: self.payMethod?.id)
+                self.log(field: .payMethod, old: deepCopy.payMethod?.id, new: self.payMethod?.id, groupID: groupID)
             }
             if self.category?.id != deepCopy.category?.id {
-                self.log(field: .category, old: deepCopy.category?.id, new: self.category?.id)
+                self.log(field: .category, old: deepCopy.category?.id, new: self.category?.id, groupID: groupID)
             }
             if self.notes != deepCopy.notes {
-                self.log(field: .notes, old: deepCopy.notes, new: self.notes)
+                self.log(field: .notes, old: deepCopy.notes, new: self.notes, groupID: groupID)
             }
             if self.factorInCalculations != deepCopy.factorInCalculations {
-                self.log(field: .factorInCalculations, old: deepCopy.factorInCalculations ? "true" : "false", new: self.factorInCalculations ? "true" : "false")
+                self.log(field: .factorInCalculations, old: deepCopy.factorInCalculations ? "true" : "false", new: self.factorInCalculations ? "true" : "false", groupID: groupID)
             }
             if self.color != deepCopy.color {
-                self.log(field: .color, old: deepCopy.color.description, new: self.color.description)
+                self.log(field: .color, old: deepCopy.color.description, new: self.color.description, groupID: groupID)
             }
             if self.tags != deepCopy.tags {
-                self.log(field: .tags, old: deepCopy.tags.map { $0.tag }.joined(separator: ", "), new: self.tags.map { $0.tag }.joined(separator: ", "))
+                self.log(field: .tags, old: deepCopy.tags.map { $0.tag }.joined(separator: ", "), new: self.tags.map { $0.tag }.joined(separator: ", "), groupID: groupID)
             }
             if self.notificationOffset != deepCopy.notificationOffset {
-                self.log(field: .notificationOffset, old: String(deepCopy.notificationOffset ?? 0), new: String(self.notificationOffset ?? 0))
+                self.log(field: .notificationOffset, old: String(deepCopy.notificationOffset ?? 0), new: String(self.notificationOffset ?? 0), groupID: groupID)
             }
             if self.notifyOnDueDate != deepCopy.notifyOnDueDate {
-                self.log(field: .notifyOnDueDate, old: deepCopy.notifyOnDueDate ? "true" : "false", new: self.notifyOnDueDate ? "true" : "false")
+                self.log(field: .notifyOnDueDate, old: deepCopy.notifyOnDueDate ? "true" : "false", new: self.notifyOnDueDate ? "true" : "false", groupID: groupID)
             }
             if self.trackingNumber != deepCopy.trackingNumber {
-                self.log(field: .trackingNumber, old: deepCopy.trackingNumber, new: self.trackingNumber)
+                self.log(field: .trackingNumber, old: deepCopy.trackingNumber, new: self.trackingNumber, groupID: groupID)
             }
             if self.orderNumber != deepCopy.orderNumber {
-                self.log(field: .orderNumber, old: deepCopy.orderNumber, new: self.orderNumber)
+                self.log(field: .orderNumber, old: deepCopy.orderNumber, new: self.orderNumber, groupID: groupID)
             }
             if self.url != deepCopy.url {
-                self.log(field: .url, old: deepCopy.url, new: self.url)
+                self.log(field: .url, old: deepCopy.url, new: self.url, groupID: groupID)
             }
             if self.date != deepCopy.date  {
-                self.log(field: .date, old: deepCopy.date?.string(to: .monthDayShortYear), new: self.date?.string(to: .monthDayShortYear))
+                self.log(field: .date, old: deepCopy.date?.string(to: .monthDayShortYear), new: self.date?.string(to: .monthDayShortYear), groupID: groupID)
             }
         }
     }
     
     
-    func log(field: LogField, old: String?, new: String?) {
-        let log = CBLog(itemID: self.id, logType: .transaction, field: field, old: old, new: new)
+    func log(field: LogField, old: String?, new: String?, groupID: String) {
+        let log = CBLog(itemID: self.id, logType: .transaction, field: field, old: old, new: new, groupID: groupID)
         self.logs.append(log)
     }
-    
     
     
     var deepCopy: CBTransaction?
@@ -574,6 +587,27 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
                 self.pictures = deepCopy.pictures
                 //self.action = deepCopy.action
             }
+            
+        case .clear:
+            deepCopy?.uuid = nil
+            deepCopy?.title = ""
+            deepCopy?.amountString = ""
+            deepCopy?.date = nil
+            deepCopy?.action = .add
+            deepCopy?.factorInCalculations = true
+            deepCopy?.payMethod = nil
+            deepCopy?.category = nil
+            deepCopy?.color = .primary
+            deepCopy?.active = true
+            deepCopy?.enteredDate = Date()
+            deepCopy?.updatedDate = Date()
+            deepCopy?.notificationOffset = 0
+            deepCopy?.notifyOnDueDate = false
+            deepCopy?.trackingNumber = ""
+            deepCopy?.orderNumber = ""
+            deepCopy?.url = ""
+            deepCopy?.tags = []
+            deepCopy?.wasAddedFromPopulate = false
         }
     }
     

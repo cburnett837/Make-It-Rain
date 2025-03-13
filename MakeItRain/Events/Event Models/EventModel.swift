@@ -28,6 +28,7 @@ import SwiftUI
 @MainActor
 @Observable
 class EventModel {
+    static let shared = EventModel()
     var isThinking = false
     
     var eventEditID: Int?

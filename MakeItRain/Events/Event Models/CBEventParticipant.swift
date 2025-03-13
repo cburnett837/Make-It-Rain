@@ -160,6 +160,8 @@ class CBEventParticipant: Codable, Identifiable, Hashable, Equatable {
                 self.eventName = deepCopy.eventName
                 self.status = deepCopy.status
             }
+        case .clear:
+            break
         }
     }
     

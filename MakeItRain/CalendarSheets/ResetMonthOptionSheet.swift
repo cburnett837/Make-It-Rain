@@ -42,34 +42,34 @@ class ResetOptions: Encodable {
         let formatter = NumberFormatter()
         formatter.minimumIntegerDigits = 2
         
-        var fetchMonth = -1
-        if month == 0 {
-            fetchMonth = 12
-        } else if month == 13 {
-            fetchMonth = 1
-        } else {
-            fetchMonth = month
-        }
-        
-        var fetchYear = 0
-        if month == 0 {
-            fetchYear = year - 1
-        } else if month == 13 {
-            fetchYear = year + 1
-        } else {
-            fetchYear = year
-        }
-        
-        
+//        var fetchMonth = -1
+//        if month == 0 {
+//            fetchMonth = 12
+//        } else if month == 13 {
+//            fetchMonth = 1
+//        } else {
+//            fetchMonth = month
+//        }
+//        
+//        var fetchYear = 0
+//        if month == 0 {
+//            fetchYear = year - 1
+//        } else if month == 13 {
+//            fetchYear = year + 1
+//        } else {
+//            fetchYear = year
+//        }
         
         
         
-        let optionalString = formatter.string(from: fetchMonth as NSNumber)!
+        
+        
+        let optionalString = formatter.string(from: month as NSNumber)!
         
         
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(optionalString, forKey: .month)
-        try container.encode(String(fetchYear), forKey: .year)
+        try container.encode(String(year), forKey: .year)
         
         try container.encode(paymentMethods, forKey: .payment_methods)
         try container.encode(budget ? 1 : 0, forKey: .budget)
@@ -94,17 +94,14 @@ struct ResetMonthOptionSheet: View {
     @State private var showResetMonthAlert = false
     
     var body: some View {
-        VStack {
+        SheetContainerView(.list) {
+            paymentMethodSection
+            budgetSection
+            populatedStatusSection
+        } header: {
             SheetHeader(title: "Reset Options", close: { dismiss() })
-                .padding()
-            
-            List {
-                paymentMethodSection
-                budgetSection
-                populatedStatusSection
-            }
+        } footer: {
             resetButton
-            //.listStyle(.plain)
         }
         .task {
             payModel.paymentMethods

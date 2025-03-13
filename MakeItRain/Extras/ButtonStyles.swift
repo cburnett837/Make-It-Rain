@@ -82,6 +82,7 @@ struct CodyGrowingWithHoverButtonStyle: ButtonStyle {
 }
 
 struct SheetHeaderButtonStyle: ButtonStyle {
+    @Environment(\.colorScheme) var colorScheme
     @State private var buttonColor: Color = Color(.tertiarySystemFill)
     
     func makeBody(configuration: Configuration) -> some View {
@@ -92,7 +93,11 @@ struct SheetHeaderButtonStyle: ButtonStyle {
             .imageScale(.small)
             .frame(width: 30, height: 30)
             .foregroundStyle(.gray)
+            #if os(macOS)
             .background(configuration.isPressed ? Color(.darkGray) : buttonColor)
+            #else
+            .background(configuration.isPressed ? colorScheme == .light ? Color(.systemGray3) : Color(.darkGray) : buttonColor)
+            #endif
             .clipShape(Circle())
                                                 
             .onHover { buttonColor = $0 ? Color(.systemFill) : Color(.tertiarySystemFill) }

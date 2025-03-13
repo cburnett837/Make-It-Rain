@@ -44,7 +44,7 @@ class DataManager {
     }
     
     
-    nonisolated func getMany<T: NSManagedObject>(type entity: T.Type, predicate: Predicate? = nil, sort: Array<NSSortDescriptor>? = nil, limit: Int? = nil, offset: Int? = nil) throws -> Array<T>? {
+    func getMany<T: NSManagedObject>(type entity: T.Type, predicate: Predicate? = nil, sort: Array<NSSortDescriptor>? = nil, limit: Int? = nil, offset: Int? = nil) throws -> Array<T>? {
         do {
             let fetchRequest = T.fetchRequest()
             switch predicate {
@@ -74,7 +74,7 @@ class DataManager {
     }
     
     
-    nonisolated func getOne<T: NSManagedObject>(type entity: T.Type, predicate: Predicate? = nil, sort: Array<NSSortDescriptor>? = nil, limit: Int? = nil, offset: Int? = nil, createIfNotFound: Bool) -> T? {
+    func getOne<T: NSManagedObject>(type entity: T.Type, predicate: Predicate? = nil, sort: Array<NSSortDescriptor>? = nil, limit: Int? = nil, offset: Int? = nil, createIfNotFound: Bool) -> T? {
         do {
             let fetchRequest = T.fetchRequest()
             switch predicate {

@@ -27,12 +27,14 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     let notificationCenter = UNUserNotificationCenter.current()
     
     var scheduledNotifications = [PaymentDueNotification]()
+    var notificationsAreAllowed = false
     
     private override init() {
         super.init()
         notificationCenter.delegate = self
         getNotifications()
     }
+    
     
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
             // Here we actually handle the notification
@@ -65,23 +67,47 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         }
     }
     
-    @available(iOSApplicationExtension, unavailable)
-    func registerForPushNotifications() {
-        notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) { success, error in
-            if success {
-                self.notificationCenter.getNotificationSettings { settings in
-                    guard settings.authorizationStatus == .authorized else { return }
-                    DispatchQueue.main.async {
-                        #if os(macOS)
-                        NSApplication.shared.registerForRemoteNotifications()
-                        #else
-                        UIApplication.shared.registerForRemoteNotifications()
-                        #endif
-                    }
-                }
-            } else if let error = error {
-                print(error.localizedDescription)
-            }
+    //@available(iOSApplicationExtension, unavailable)
+    func registerForPushNotifications() async {
+        print("-- \(#function)")
+        
+        do {
+             if try await notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) == true {
+                 let settings = await notificationCenter.notificationSettings()
+                 switch settings.authorizationStatus {
+                 case .notDetermined:
+                     print("Notification Status: notDetermined")
+                     notificationsAreAllowed = false
+                 case .denied:
+                     print("Notification Status: denied")
+                     notificationsAreAllowed = false
+                 case .authorized:
+                     print("Notification Status: authorized")
+                     notificationsAreAllowed = true
+                     DispatchQueue.main.async {
+                         #if os(macOS)
+                         NSApplication.shared.registerForRemoteNotifications()
+                         #else
+                         UIApplication.shared.registerForRemoteNotifications()
+                         #endif
+                     }
+                 case .provisional:
+                     print("Notification Status: provisional")
+                 case .ephemeral:
+                     print("Notification Status: ephemeral")
+                 @unknown default:
+                     print("Notification Status: unknown")
+                     notificationsAreAllowed = false
+                 }
+                 
+             } else {
+                 print("notificationCenter.requestAuthorization is unauthorized")
+                 notificationsAreAllowed = false
+             }
+        } catch {
+            print("notificationCenter.requestAuthorization failed with error")
+            print(error.localizedDescription)
+            notificationsAreAllowed = false
         }
     }
     

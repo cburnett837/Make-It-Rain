@@ -16,14 +16,51 @@ struct StartingAmountSheet: View {
     @Environment(PayMethodModel.self) var payModel
     @FocusState private var focusedField: Int?
     
-//    init() {
-//        for meth in payModel.paymentMethods.filter({ !$0.isUnified }) {
-//            calModel.prepareStartingAmount(for: meth)
-//        }
-//    }
-    
     var body: some View {
-        startingAmount
+        @Bindable var calModel = calModel
+        @Bindable var payModel = payModel
+        
+        SheetContainerView(.list) {
+            if !cashMethods.isEmpty {
+                Section("Checking / Cash") {
+                    ForEach(cashMethods.startIndex..<cashMethods.endIndex, id: \.self) { i in
+                        let focusID = i
+                        let amount = calModel.sMonth.startingAmounts.filter { $0.payMethod.id == cashMethods[i].id }.first
+                        StartingAmountLine(startingAmount: amount!, payMethod: cashMethods[i], focusID: focusID)
+                    }
+                }
+            }
+                                
+            if !creditMethods.isEmpty {
+                Section("Credit") {
+                    ForEach(creditMethods.startIndex..<creditMethods.endIndex, id: \.self) { i in
+                        let focusID = i + cashMethods.count
+                        let amount = calModel.sMonth.startingAmounts.filter { $0.payMethod.id == creditMethods[i].id }.first
+                        StartingAmountLine(startingAmount: amount!, payMethod: creditMethods[i], focusID: focusID)
+                    }
+                }
+            }
+            
+            if !otherMethods.isEmpty {
+                Section("Other") {
+                    ForEach(otherMethods.startIndex..<otherMethods.endIndex, id: \.self) { i in
+                        let focusID = i + cashMethods.count + creditMethods.count
+                        let amount = calModel.sMonth.startingAmounts.filter { $0.payMethod.id == otherMethods[i].id }.first
+                        StartingAmountLine(startingAmount: amount!, payMethod: otherMethods[i], focusID: focusID)
+                    }
+                }
+            }
+        } header: {
+            SheetHeader(
+                title: "Starting Amounts",
+                //subtitle: "\(calModel.sMonth.name) \(calModel.sMonth.year)",
+                close: { dismiss() }
+            )
+        } footer: {
+            Text("\(calModel.sMonth.name) \(String(calModel.sMonth.year))")
+               .font(.caption2)
+               .foregroundStyle(.gray)
+        }
     }
     
     var cashMethods: [CBPaymentMethod] {
@@ -41,56 +78,6 @@ struct StartingAmountSheet: View {
             && $0.accountType != .credit
             && !$0.isUnified
         }
-    }
-    
-    var startingAmount: some View {
-        Group {
-            @Bindable var calModel = calModel
-            @Bindable var payModel = payModel
-            VStack(spacing: 0) {
-                SheetHeader(title: "Starting Amounts", subtitle: "\(calModel.sMonth.name) \(calModel.sMonth.year)", close: { dismiss() })
-                    .padding()
-                
-                List {
-                    if !cashMethods.isEmpty {
-                        Section("Checking / Cash") {
-                            ForEach(cashMethods.startIndex..<cashMethods.endIndex, id: \.self) { i in
-                                let focusID = i
-                                let amount = calModel.sMonth.startingAmounts.filter { $0.payMethod.id == cashMethods[i].id }.first
-                                StartingAmountLine(startingAmount: amount!, payMethod: cashMethods[i], focusID: focusID)
-                            }
-                        }
-                    }
-                                        
-                    if !creditMethods.isEmpty {
-                        Section("Credit") {
-                            ForEach(creditMethods.startIndex..<creditMethods.endIndex, id: \.self) { i in
-                                let focusID = i + cashMethods.count
-                                let amount = calModel.sMonth.startingAmounts.filter { $0.payMethod.id == creditMethods[i].id }.first
-                                StartingAmountLine(startingAmount: amount!, payMethod: creditMethods[i], focusID: focusID)
-                            }
-                        }
-                    }
-                    
-                    if !otherMethods.isEmpty {
-                        Section("Other") {
-                            ForEach(otherMethods.startIndex..<otherMethods.endIndex, id: \.self) { i in
-                                let focusID = i + cashMethods.count + creditMethods.count
-                                let amount = calModel.sMonth.startingAmounts.filter { $0.payMethod.id == otherMethods[i].id }.first
-                                StartingAmountLine(startingAmount: amount!, payMethod: otherMethods[i], focusID: focusID)
-                            }
-                        }
-                    }
-                }
-                .scrollDismissesKeyboard(.interactively)
-            }
-        }
-        
-//        .task {
-//            for meth in payModel.paymentMethods.filter({ !$0.isUnified }) {
-//                calModel.prepareStartingAmount(for: meth)
-//            }
-//        }
     }
     
     

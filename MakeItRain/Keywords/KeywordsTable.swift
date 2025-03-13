@@ -248,7 +248,7 @@ struct KeywordsTable: View {
                     .foregroundStyle(.gray)
                     .font(.caption)
             }
-            .rowBackgroundWithSelection(id: key.id, selectedID: keywordEditID)
+            .standardRowBackgroundWithSelection(id: key.id, selectedID: keywordEditID)
             .swipeActions(allowsFullSwipe: false) {
                 Button {
                     deleteKeyword = key

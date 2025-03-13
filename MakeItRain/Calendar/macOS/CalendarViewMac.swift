@@ -12,7 +12,7 @@ import Algorithms
 struct CalendarViewMac: View {
     @AppStorage("calendarSplitViewPercentage") var calendarSplitViewPercentage = 0.0
     @AppStorage("viewMode") var viewMode = CalendarViewMode.scrollable
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     @AppStorage("alignWeekdayNamesLeft") var alignWeekdayNamesLeft = true
     
     @Environment(CalendarModel.self) private var calModel    
@@ -41,6 +41,9 @@ struct CalendarViewMac: View {
     @FocusState private var focusedField: Int?
     @State private var isHoveringOnSlider: Bool = false
     
+    let enumID: NavDestination
+
+    
     var body: some View {
         GeometryReader { geo in
             Group {
@@ -50,14 +53,6 @@ struct CalendarViewMac: View {
                 } else {
                     HStack(spacing: 0) {
                         calendarView
-                            .opacity(calModel.sMonth.num == 100000 ? 0 : 1)
-                            .overlay(
-                                ProgressView()
-                                    .transition(.opacity)
-                                    .tint(.none)
-                                    .opacity(calModel.sMonth.num == 100000 ? 1 : 0)
-                            )
-                        
                             .padding(viewMode == .split ? .horizontal : .horizontal, 15)
                             .if(viewMode == .split) {
                                 $0.frame(minWidth: calendarWidth - (extraViewsWidth / 2))
@@ -92,19 +87,19 @@ struct CalendarViewMac: View {
                 
         .toolbar {
             ToolbarItem(placement: .navigation) {
-                CalendarToolbarLeading(focusedField: $focusedField)
-                    .opacity(LoadingManager.shared.showInitiallyLoadingSpinner ? 0 : 1)
+                CalendarToolbarLeading(focusedField: $focusedField, enumID: enumID)
+                    //.opacity(LoadingManager.shared.showInitiallyLoadingSpinner ? 0 : 1)
                     .focusSection()
             }
             ToolbarItem(placement: .principal) {
-                ToolbarCenterView()
+                ToolbarCenterView(enumID: enumID)
             }
             ToolbarItem {
                 Spacer()
             }
             ToolbarItem(placement: .primaryAction) {
                 CalendarToolbarTrailing(focusedField: $focusedField, set5050: set5050)
-                    .opacity(LoadingManager.shared.showInitiallyLoadingSpinner ? 0 : 1)
+                    //.opacity(LoadingManager.shared.showInitiallyLoadingSpinner ? 0 : 1)
                     .focusSection()
             }
         }
@@ -129,7 +124,7 @@ struct CalendarViewMac: View {
 //                .tag(CalendarSearchWhat.tags)
 //        }
         .tint(Color.fromName(appColorTheme))
-        .loadingSpinner(id: calModel.sMonth.enumID, text: "Loading \(calModel.sMonth.name)…")        
+        .loadingSpinner(id: enumID, text: "Loading \(enumID.displayName)…")
         /// This is here in case you want to cancel the dragging transaction - this will unhilight the last hilighted day.
         .dropDestination(for: CBTransaction.self) { droppedTrans, location in
             calModel.dragTarget = nil
@@ -153,6 +148,13 @@ struct CalendarViewMac: View {
             VStack {
                 weekdayNames
                 dayGrid
+                    .opacity(calModel.sMonth.enumID == enumID ? 1 : 0)
+                    .overlay(
+                        ProgressView()
+                            .transition(.opacity)
+                            .tint(.none)
+                            .opacity(calModel.sMonth.enumID == enumID ? 0 : 1)
+                    )
             }
         }
     }

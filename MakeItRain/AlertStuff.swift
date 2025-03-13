@@ -45,6 +45,10 @@ struct AlertAndToastLayerView: View {
                 }
             }
         }
+//        .overlay {
+//            ProgressView()
+//                .opacity(AppState.shared.showUniversalLoadingSpinner ? 1 : 0)
+//        }
         
 //        .sheet(isPresented: $calModel.showSmartTransactionPaymentMethodSheet) {
 //            PaymentMethodSheet(
@@ -116,6 +120,17 @@ struct AlertAndToastLayerView: View {
                     .overlay { CustomAlert(config: config) }
                     .opacity(appState.showCustomAlert ? 1 : 0)
                                         
+            }
+        }
+        .fullScreenCover(isPresented: $calModel.showMonth) {
+            if let selection = NavigationManager.shared.selection {
+                if NavDestination.justMonths.contains(selection) {
+                    CalendarViewPhone(enumID: selection, selectedDay: $selectedDay)
+                        .navigationTransition(.zoom(sourceID: selection, in: monthNavigationNamespace))
+                        .if(AppState.shared.methsExist) {
+                            $0.loadingSpinner(id: selection, text: "Loading…")
+                        }
+                }
             }
         }
     }

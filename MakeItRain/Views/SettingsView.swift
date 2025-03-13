@@ -15,8 +15,12 @@ struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
     
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
+    
+    @AppStorage("userColorScheme") var userColorScheme: UserPreferedColorScheme = .userSystem
+    
+    
     @AppStorage("darkModeBackgroundColor") var darkModeBackgroundColor: String = "darkGray3"
     @AppStorage("darkModeSelectionColor") var darkModeSelectionColor: String?
     @AppStorage("showIndividualLoadingSpinner") var showIndividualLoadingSpinner = false
@@ -105,7 +109,7 @@ struct SettingsView: View {
 //                bioType = biometricType()
 //            }
         }
-        .preferredColorScheme(preferDarkMode ? .dark : .light)
+        //.preferredColorScheme(preferDarkMode ? .dark : .light)
         .tint(Color.fromName(appColorTheme))
         .alert("Reset All Settings?", isPresented: $showResetAllSettingsAlert) {
             Button("Reset", role: .destructive, action: resetAllSettings)
@@ -304,7 +308,7 @@ struct SettingsView: View {
                     HStack {
                         Label {
                             Text("Color")
-                                .foregroundStyle(preferDarkMode ? .white : .black)
+                                .foregroundStyle(colorScheme == .dark ? .white : .black)
                         } icon: {
                             Image(systemName: "lightspectrum.horizontal")
                                 .symbolRenderingMode(.multicolor)
@@ -318,52 +322,63 @@ struct SettingsView: View {
                     }
                 }
                                     
-                Toggle(isOn: $preferDarkMode) {
-                    Label {
-                        Text("Dark mode")
-                    } icon: {
-                        Image(systemName: "moon")
-                    }
-                }
-                
-                if colorScheme == .dark || preferDarkMode {
-                    Menu {
-                        Picker("", selection: $darkModeBackgroundColor) {
-                            ForEach(grayOptions) { opt in
-                                HStack {
-                                    Text(opt.title)
-                                    Image(systemName: "circle.fill")
-                                        .foregroundStyle(opt.color, .primary, .secondary)
-                                }
-                                .tag(opt.tag)
-                            }
-                        }
-                        .labelsHidden()
-                        .pickerStyle(.inline)
-                    } label: {
-                        HStack {
-                            Label {
-                                Text("Background color")
-                                    .foregroundStyle(preferDarkMode ? .white : .black)
-                            } icon: {
-                                Image(systemName: "circle.fill")
-                                    .foregroundStyle(AngularGradient(gradient: Gradient(colors: [.gray, .darkGray, .darkGray2, .darkGray3, .black]), center: .center))
-                            }
-                            Spacer()
-                            HStack(spacing: 4) {
-                                let title = grayOptions.first { $0.tag == darkModeBackgroundColor }?.title
-                                
-                                Text(title ?? "N/A")
-                                Image(systemName: "chevron.up.chevron.down")
-                                    .font(.footnote)
-                            }
-                        }
-                    }
-                    .onChange(of: darkModeBackgroundColor, initial: true) { oldValue, newValue in
-                        let applicable = grayOptions.first { $0.tag == newValue }
-                        darkModeSelectionColor = applicable?.selectionTag
-                    }
-                }
+//                Toggle(isOn: $preferDarkMode) {
+//                    Label {
+//                        Text("Dark mode")
+//                    } icon: {
+//                        Image(systemName: "moon")
+//                    }
+//                }
+//                
+//                if colorScheme == .dark || preferDarkMode {
+//                    Menu {
+//                        Picker("", selection: $darkModeBackgroundColor) {
+//                            ForEach(grayOptions) { opt in
+//                                HStack {
+//                                    Text(opt.title)
+//                                    Image(systemName: "circle.fill")
+//                                        .foregroundStyle(opt.color, .primary, .secondary)
+//                                }
+//                                .tag(opt.tag)
+//                            }
+//                        }
+//                        .labelsHidden()
+//                        .pickerStyle(.inline)
+//                    } label: {
+//                        HStack {
+//                            Label {
+//                                Text("Background color")
+//                                    .foregroundStyle(preferDarkMode ? .white : .black)
+//                            } icon: {
+//                                Image(systemName: "circle.fill")
+//                                    .foregroundStyle(AngularGradient(gradient: Gradient(colors: [.gray, .darkGray, .darkGray2, .darkGray3, .black]), center: .center))
+//                            }
+//                            Spacer()
+//                            HStack(spacing: 4) {
+//                                let title = grayOptions.first { $0.tag == darkModeBackgroundColor }?.title
+//                                
+//                                Text(title ?? "N/A")
+//                                Image(systemName: "chevron.up.chevron.down")
+//                                    .font(.footnote)
+//                            }
+//                        }
+//                    }
+//                    .onChange(of: darkModeBackgroundColor, initial: true) { oldValue, newValue in
+//                        let applicable = grayOptions.first { $0.tag == newValue }
+//                        darkModeSelectionColor = applicable?.selectionTag
+//                    }
+//                }
+//                
+//                Picker("", selection: $userColorScheme) {
+//                    Text("Dark")
+//                        .tag(UserPreferedColorScheme.userDark)
+//                    Text("Light")
+//                        .tag(UserPreferedColorScheme.userLight)
+//                    Text("System")
+//                        .tag(UserPreferedColorScheme.userSystem)
+//                }
+//                .pickerStyle(.segmented)
+//                .labelsHidden()
                 
                 
             }
@@ -387,20 +402,40 @@ struct SettingsView: View {
             SettingsViewInsert()
 
             
-            
-                        
-            Section("Device Information") {
+            Section {
                 if let uuid = UserDefaults.fetchOneString(requestedKey: "deviceUUID") {
                     Text(uuid)
                         .foregroundStyle(.gray)
                         .font(.footnote)
                 }
                                     
-                Text(AppState.shared.user?.notificationToken ?? "N/A")
-                    .foregroundStyle(.gray)
-                    .font(.footnote)
+                if NotificationManager.shared.notificationsAreAllowed {
+                    Text(AppState.shared.user?.notificationToken ?? "N/A")
+                        .foregroundStyle(.gray)
+                        .font(.footnote)
+                } else {
+                    Button("Enable Notifications") {
+                        #if os(macOS)
+//                        if let appSettingsURL = URL(string: NSApplication.openSettingsURLString) {
+//                            NSApplication.shared.open(appSettingsURL, options: [:], completionHandler: nil)
+//                        }
+                        #else
+                        if let appSettingsURL = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(appSettingsURL, options: [:], completionHandler: nil)
+                        }
+                        #endif
+                        
+                    }
+                }
+            } header: {
+                Text("Device Information")
+            } footer: {
+                if !NotificationManager.shared.notificationsAreAllowed {
+                    Text("Notifications are used to alert you about upcoming payments, or reminders about certain transactions.")
+                }
             }
-                                                   
+
+                                              
 //            Button("Reset All Tips") {
 //                do {
 //                    try Tips.resetDatastore()
@@ -450,7 +485,7 @@ struct SettingsView: View {
         AppState.shared.downloadedData.removeAll()
         LoadingManager.shared.showInitiallyLoadingSpinner = true
         LoadingManager.shared.downloadAmount = 0
-        LoadingManager.shared.showLoadingBar = true
+        LoadingManager.shared.showLoadingBar = true        
         
         /// Cancel the long polling task.
         if let _ = funcModel.longPollTask {

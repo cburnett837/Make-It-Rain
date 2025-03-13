@@ -43,13 +43,15 @@ class NetworkManager {
  
     func arrayRequest<T: Encodable, U: Decodable>(requestModel: RequestModel<T>, ticker: Int = 3, sessionID: String = "") async -> Result<Array<U>?, AppError> {
         
-        do {
-            let apiKey = try KeychainManager().getFromKeychain(key: "user_api_key")
-            request?.setValue(apiKey, forHTTPHeaderField: "Api-Key")
-            //request?.setValue("vqHNAJ_DMzpc6YiSkyQr9wMwus5BzZljeLsJS5iSh94", forHTTPHeaderField: "Api-Key")
-        } catch {
-            print("Cannot find apiKey")
-        }
+        request?.setValue(AppState.shared.apiKey, forHTTPHeaderField: "Api-Key")
+        
+//        do {
+//            let apiKey = try KeychainManager().getFromKeychain(key: "user_api_key")
+//            request?.setValue(apiKey, forHTTPHeaderField: "Api-Key")
+//            //request?.setValue("vqHNAJ_DMzpc6YiSkyQr9wMwus5BzZljeLsJS5iSh94", forHTTPHeaderField: "Api-Key")
+//        } catch {
+//            print("Cannot find apiKey")
+//        }
         
         var sesh: String = ""
         if sessionID.isEmpty {
@@ -127,13 +129,15 @@ class NetworkManager {
     
     func singleRequest<T: Encodable, U: Decodable>(requestModel: RequestModel<T>, ticker: Int = 3, sessionID: String = "") async -> Result<U?, AppError> {
         
-        do {
-            let apiKey = try KeychainManager().getFromKeychain(key: "user_api_key")
-            request?.setValue(apiKey, forHTTPHeaderField: "Api-Key")
-            //request?.setValue("vqHNAJ_DMzpc6YiSkyQr9wMwus5BzZljeLsJS5iSh94", forHTTPHeaderField: "Api-Key")
-        } catch {
-            print("Cannot find apiKey")
-        }
+        request?.setValue(AppState.shared.apiKey, forHTTPHeaderField: "Api-Key")
+        
+//        do {
+//            let apiKey = try KeychainManager().getFromKeychain(key: "user_api_key")
+//            request?.setValue(apiKey, forHTTPHeaderField: "Api-Key")
+//            //request?.setValue("vqHNAJ_DMzpc6YiSkyQr9wMwus5BzZljeLsJS5iSh94", forHTTPHeaderField: "Api-Key")
+//        } catch {
+//            print("Cannot find apiKey")
+//        }
         
         var sesh: String = ""
         if sessionID.isEmpty {
@@ -166,21 +170,14 @@ class NetworkManager {
                     await AuthState.shared.serverAccessRevoked()
                     return .failure(.accessRevoked)
                 }
-                
-                
-                
-                
+                                                                
                 LogManager.log("should have a response from the server now", session: sesh)
                 
                 let serverText = String(data: data, encoding: .utf8) ?? ""
                 //print("GOT SERVER RESPONSE")
                 if AppState.shared.debugPrint { print(serverText) }
                 //print(serverText)
-                let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response
-                
-                if firstLine == "None" && requestModel.requestType == "budget_app_login" {
-                    return .failure(.incorrectCredentials)
-                }
+                let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response                                
                 
                 LogManager.log("decoding data", session: sesh)
                 #warning("Error handling won't work with the force unwrap")
@@ -218,6 +215,72 @@ class NetworkManager {
             }
         }
     }
+    
+    
+    
+    func login(using loginType: LoginType, with loginModel: LoginModel, ticker: Int = 3) async -> Result<CBLogin?, AppError> {
+        do {
+            let requestModel = RequestModel(requestType: "budget_app_login", model: loginModel)
+            
+            if loginType == .apiKey {
+                request?.setValue(loginModel.apiKey, forHTTPHeaderField: "Api-Key")
+            }
+        
+            let jsonData = try? JSONEncoder().encode(requestModel)
+            if AppState.shared.debugPrint { print("jsonData: \(String(data: jsonData!, encoding: .utf8)!)") }
+                        
+            request?.httpBody = jsonData
+            
+            if let session {
+                let (data, response): (Data, URLResponse) = try await session.data(for: request!)
+                let httpResponse = response as? HTTPURLResponse
+                
+                if httpResponse?.statusCode == 403 {
+                    await AuthState.shared.serverAccessRevoked()
+                    return .failure(.incorrectCredentials)
+                }
+                
+                if httpResponse?.statusCode == 401 {
+                    await AuthState.shared.serverAccessRevoked()
+                    return .failure(.accessRevoked)
+                }
+                                                                                                
+                let serverText = String(data: data, encoding: .utf8) ?? ""
+                if AppState.shared.debugPrint { print(serverText) }
+                let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response
+                
+                if firstLine == "None" && requestModel.requestType == "budget_app_login" {
+                    return .failure(.incorrectCredentials)
+                }
+                                
+                #if targetEnvironment(simulator)
+                let decodedData = try! JSONDecoder().decode(CBLogin?.self, from: data)
+                #else
+                let decodedData = try? JSONDecoder().decode(CBLogin?.self, from: data)
+                #endif
+                guard let decodedData else {
+                    return .failure(.serverError(firstLine))
+                }
+                                
+                return .success(decodedData)
+            } else {
+                return .failure(.sessionError)
+            }
+                        
+        } catch {
+            if Task.isCancelled {
+                return .failure(.taskCancelled)
+            }
+            if ticker == 0 {
+                return .failure(.connectionError)
+            } else {
+                try? await Task.sleep(for: .milliseconds(1000))
+                return await login(using: loginType, with: loginModel, ticker: ticker - 1)
+            }
+        }
+    }
+    
+    
     
     
     
@@ -542,7 +605,6 @@ class NetworkManager {
             }
         }
     }
-    
 }
 
 //

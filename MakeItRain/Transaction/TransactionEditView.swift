@@ -26,7 +26,7 @@ struct TransactionEditView: View {
     
     //@Environment(\.dismiss) var dismiss <--- NO NICE THAT ONE WITH SHEETS IN A SHEET.
     @Environment(\.colorScheme) var colorScheme
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
 
@@ -55,7 +55,7 @@ struct TransactionEditView: View {
     var isTemp: Bool
     var transLocation: WhereToLookForTransaction = .normalList
     
-    var title: String { return trans.action == .add ? "New Transaction" : "Edit Transaction" }
+    var title: String { trans.action == .add ? "New Transaction" : "Edit Transaction" }
     let symbolWidth: CGFloat = 26
         
     @State private var safariUrl: URL?
@@ -89,25 +89,38 @@ struct TransactionEditView: View {
         }
     }
     
+    var linkedLingo: String? {
+        if trans.relatedTransactionID != nil {
+            if trans.relatedTransactionType == XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction) {
+                return "(This is linked to another transaction)"
+            } else {
+                return "(This is linked to an event transaction)"
+            }
+        } else {
+            return nil
+        }
+        
+    }
+    
     var paymentMethodMissing: Bool {
         return !trans.title.isEmpty && !trans.amountString.isEmpty && trans.payMethod == nil
     }
     
-    var header: some View {
-        Group {
-            SheetHeaderView(
-                title: title,
-                trans: trans,
-                transEditID: $transEditID,
-                focusedField: $focusedField,
-                showDeleteAlert: $showDeleteAlert
-            )
-            .padding()
-            
-            Divider()
-                .padding(.horizontal)
-        }
-    }
+//    var header: some View {
+//        Group {
+//            SheetHeaderView(
+//                title: title,
+//                trans: trans,
+//                transEditID: $transEditID,
+//                focusedField: $focusedField,
+//                showDeleteAlert: $showDeleteAlert
+//            )
+//            .padding()
+//            
+//            Divider()
+//                .padding(.horizontal)
+//        }
+//    }
     
     var body: some View {
         //let _ = Self._printChanges()
@@ -117,79 +130,70 @@ struct TransactionEditView: View {
         @Bindable var keyModel = keyModel
         @Bindable var appState = AppState.shared
         
-        //NavigationStack {
-            VStack(spacing: 0) {
-                /// There's a bug in dismiss() that causes the photo sheet to open, close, and then open again. By moving the dismiss variable into a seperate view, it doesn't affect the photo sheet anymore.
-                #if os(iOS)
-                if !AppState.shared.isLandscape { header }
-                #else
-                header
-                #endif                                
-              
-                ScrollView {
-                    #if os(iOS)
-                    if AppState.shared.isLandscape { header }
-                    #endif                    
-                    VStack(spacing: 6) {
-                        titleTextField
-                        amountTextField
-                        
-                        StandardDivider()
-                        
-                        paymentMethodMenu
-                        categoryMenu
-                        
-                        StandardDivider()
-                        
-                        #if os(iOS)
-                        datePickerSection
-                        
-                        StandardDivider()
-                        #endif
-                        
-                        if trans.notifyOnDueDate {
-                            reminderSection
-                                .disabled(isTemp)
-                            StandardDivider()
-                        }
-                        
-                        trackingAndOrderSection
-                        StandardDivider()
-                        
-                        hashtags
-                            .disabled(isTemp)
-                                                
-                        StandardDivider()
-                        
-                        photoSection
-                            .disabled(isTemp)
-                        
-                        StandardDivider()
-                        
-                        notes
-                        
-                        StandardDivider()
-                                                
-                        logs
-                            .disabled(isTemp)
-                        
-                        StandardDivider()
-                        
-                        alteredBy
-                            #if os(macOS)
-                            .padding(.bottom, 12)
-                            #endif
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 12)
-                }
-                .scrollDismissesKeyboard(.interactively)
-            }
-            .interactiveDismissDisabled(paymentMethodMissing)
+        SheetContainerView {
+            titleTextField
+            amountTextField
+            
+            StandardDivider()
+            
+            paymentMethodMenu
+            categoryMenu
+            
+            StandardDivider()
+            
             #if os(iOS)
-            .toolbar(.hidden) /// To hide the nav bar
+            datePickerSection
+            
+            StandardDivider()
             #endif
-        //}
+            
+            if trans.notifyOnDueDate {
+                if !isTemp {
+                    reminderSection
+                    StandardDivider()
+                }
+            }
+            
+            trackingAndOrderSection
+            StandardDivider()
+            
+            if !isTemp {
+                hashtags
+                StandardDivider()
+            }
+                                                            
+            if !isTemp {
+                photoSection
+                StandardDivider()
+            }
+                                    
+            notes
+            
+            StandardDivider()
+            
+            if !isTemp {
+                logs
+                StandardDivider()
+            }
+                                    
+            alteredBy
+                #if os(macOS)
+                .padding(.bottom, 12)
+                #else
+                .if(AppState.shared.isIpad) {
+                    $0.padding(.bottom, 12)
+                }
+                #endif
+        } header: {
+            SheetHeaderView(title: title, trans: trans, transEditID: $transEditID, focusedField: $focusedField, showDeleteAlert: $showDeleteAlert)
+        } footer: {
+            if let linkedLingo {
+                Text(linkedLingo)
+                   .font(.caption2)
+                   .foregroundStyle(.gray)
+            }
+        }
+        .interactiveDismissDisabled(paymentMethodMissing)
         .environment(vm)
         .task {
             prepareTransactionForEditing(isTemp: isTemp)
@@ -359,6 +363,7 @@ struct TransactionEditView: View {
             
             Group {
                 #if os(iOS)
+                
                 StandardUITextField("Title", text: $trans.title, onSubmit: {
                     focusedField = 1
                 }, toolbar: {
@@ -687,42 +692,11 @@ struct TransactionEditView: View {
     var paymentMethodMenu: some View {
         HStack {
             Image(systemName: trans.payMethod?.accountType == .checking ? "banknote.fill" : "creditcard.fill")
-                .foregroundColor(trans.payMethod == nil ? .gray : trans.payMethod!.color)
+                .foregroundStyle(trans.payMethod == nil ? Color.gray.gradient : trans.payMethod!.color.gradient)
                 .frame(width: symbolWidth)
-                        
-            RoundedRectangle(cornerRadius: 8)
-                //.stroke(.gray, lineWidth: 1)
-                .fill(payMethodMenuColor)
-                #if os(macOS)
-                .frame(height: 27)
-                #else
-                .frame(height: 34)
-                #endif
-                .overlay {
-                    MenuOrListButton(title: trans.payMethod?.title, alternateTitle: "Select Payment Method") {
-                        #if os(macOS)
-                        if trans.payMethod == nil || calModel.isUnifiedPayMethod {
-                            showPaymentMethodSheet = true
-                        } else {
-                            showPaymentMethodChangeAlert = true
-                        }
-                        #else
-                        showPaymentMethodSheet = true
-                        #endif
-                    }
-                }
-                .onHover { payMethodMenuColor = $0 ? Color(.systemFill) : Color(.tertiarySystemFill) }
-        }
-        .sheet(isPresented: $showPaymentMethodSheet) {
-            #if os(macOS)
-            PaymentMethodSheet(payMethod: $trans.payMethod, trans: trans, calcAndSaveOnChange: false, whichPaymentMethods: .basedOnSelected)
-                .frame(minWidth: 300, minHeight: 500)
-                .presentationSizing(.fitted)
-            #else
-            PaymentMethodSheet(payMethod: $trans.payMethod, trans: trans, calcAndSaveOnChange: false, whichPaymentMethods: .allExceptUnified)
-                //.onAppear { UndodoManager.shared.commitChangeInTask(value: trans.payMethod?.id, field: .payMethod) }
-            #endif
-        }
+            
+            PaymentMethodSheetButton(payMethod: $trans.payMethod, trans: trans, saveOnChange: false, whichPaymentMethods: .allExceptUnified)
+        }        
     }
     
     
@@ -731,16 +705,15 @@ struct TransactionEditView: View {
             Group {
                 if lineItemIndicator == .dot {
                     Image(systemName: "books.vertical.fill")
-                        .foregroundStyle(trans.category?.color ?? .gray)
+                        .foregroundStyle((trans.category?.color ?? .gray).gradient)
+                    
+                } else if let emoji = trans.category?.emoji {
+                    Image(systemName: emoji)
+                        .foregroundStyle((trans.category?.color ?? .gray).gradient)
+                    //Text(emoji)
                 } else {
-                    if let emoji = trans.category?.emoji {
-                        Image(systemName: emoji)
-                            .foregroundStyle(trans.category?.color ?? .gray)
-                        //Text(emoji)
-                    } else {
-                        Image(systemName: "books.vertical.fill")
-                            .foregroundColor(.gray)
-                    }
+                    Image(systemName: "books.vertical.fill")
+                        .foregroundStyle(.gray.gradient)
                 }
             }
             .frame(width: symbolWidth)
@@ -969,6 +942,7 @@ struct TransactionEditView: View {
     
     struct SheetHeaderView: View {
         @Environment(\.dismiss) var dismiss
+        @Environment(CalendarModel.self) private var calModel
         
         var title: String
         @Bindable var trans: CBTransaction
@@ -988,12 +962,27 @@ struct TransactionEditView: View {
         var body: some View {
             SheetHeader(
                 title: title,
-                subtitle: trans.relatedTransactionID == nil ? nil : linkedLingo,
+                //subtitle: trans.relatedTransactionID == nil ? nil : linkedLingo,
                 close: { validateBeforeClosing() },
-                view1: { notificationButton },
-                view2: { factorInCalculationsButton },
+                view1: { theMenu },
                 view3: { deleteButton }
             )
+        }
+        
+        var theMenu: some View {
+            Menu {
+                Section {
+                    factorInCalculationsButton
+                    notificationButton
+                }
+                
+                Section {
+                    copyButton
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+            }
+
         }
         
         var deleteButton: some View {
@@ -1005,11 +994,29 @@ struct TransactionEditView: View {
             .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
         }
         
+        var copyButton: some View {
+            Button {
+                calModel.transactionToCopy = trans
+                AppState.shared.showToast(title: "Transaction Copied", symbol: "doc.on.doc.fill", symbolColor: .green)
+                
+            } label: {
+                Label {
+                    Text("Copy Transaction")
+                } icon: {
+                    Image(systemName: "doc.on.doc.fill")
+                }
+            }
+        }
+        
         var notificationButton: some View {
             Button {
                 withAnimation { trans.notifyOnDueDate.toggle() }
             } label: {
-                Image(systemName: trans.notifyOnDueDate ? "bell.slash.fill" : "bell.fill")
+                Label {
+                    Text(trans.notifyOnDueDate ? "Cancel Notification" : "Add Notification")
+                } icon: {
+                    Image(systemName: trans.notifyOnDueDate ? "bell.slash.fill" : "bell.fill")
+                }
             }
         }
         
@@ -1017,7 +1024,11 @@ struct TransactionEditView: View {
             Button {
                 withAnimation { trans.factorInCalculations.toggle() }
             } label: {
-                Image(systemName: trans.factorInCalculations ? "eye.slash.fill" : "eye.fill")
+                Label {
+                    Text(trans.factorInCalculations ? "Exclude from Calculations" : "Include in Calculations")
+                } icon: {
+                    Image(systemName: trans.factorInCalculations ? "eye.slash.fill" : "eye.fill")
+                }
             }
         }
         
@@ -1052,7 +1063,13 @@ struct TransactionEditView: View {
                     //transEditID = nil
                     dismiss()
                     calModel.tempTransactions.removeAll { $0.id == trans.id }
-                    let _ = DataManager.shared.delete(type: TempTransaction.self, predicate: .byId(.string(trans.id)))
+                    //let _ = DataManager.shared.delete(type: TempTransaction.self, predicate: .byId(.string(trans.id)))
+                    
+                    guard let entity = DataManager.shared.getOne(type: TempTransaction.self, predicate: .byId(.string(trans.id)), createIfNotFound: true) else { return }
+                    entity.action = TransactionAction.delete.rawValue
+                    entity.tempAction = TransactionAction.delete.rawValue
+                    let _ = DataManager.shared.save()
+                    
                 } else {
                     transEditID = nil
                     trans.action = .delete
@@ -1197,7 +1214,7 @@ struct TransactionEditView: View {
                 Button(action: {
                     showPhotosPicker = true
                 }, label: {
-                    RoundedRectangle(cornerRadius: 12)
+                    RoundedRectangle(cornerRadius: 8)
                         .fill(addPhotoButtonHoverColor2)
                         #if os(iOS)
                         .frame(width: photoWidth, height: (photoHeight / 2) - 3)
@@ -1222,7 +1239,7 @@ struct TransactionEditView: View {
                 Button {
                     showCamera = true
                 } label: {
-                    RoundedRectangle(cornerRadius: 12)
+                    RoundedRectangle(cornerRadius: 8)
                         .fill(addPhotoButtonHoverColor2)
                         .frame(width: photoWidth, height: (photoHeight / 2) - 3)
                         .overlay {
@@ -1275,7 +1292,7 @@ struct TransactionEditView: View {
     struct PicPlaceholder: View {
         let text: String
         var body: some View {
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 8)
                 .fill(Color.gray.opacity(0.1))
                 .frame(width: photoWidth, height: photoHeight)
                 .overlay {
@@ -1382,14 +1399,11 @@ struct TransactionEditView: View {
             /// Pre-add the transaction to the day so we can add photos to it before saving. Get's removed on cancel if title and payment method are blank.
             day.upsert(trans)
             
-        } else if isTemp {
-            if trans.tempAction == .add {
-                calModel.tempTransactions.append(trans)
-                trans.amountString = ""
-                trans.payMethod = nil
-            } else {
-                
-            }
+        } else if trans.tempAction == .add && isTemp {
+            calModel.tempTransactions.append(trans)
+            trans.amountString = ""
+            trans.payMethod = nil
+            trans.action = .add
         }
         
         if !trans.trackingNumber.isEmpty || !trans.orderNumber.isEmpty || !trans.url.isEmpty {
@@ -1403,7 +1417,7 @@ struct TransactionEditView: View {
         /// Focus on the title textfield.
         focusedField = 0
         #else
-        if trans.action == .add {
+        if (trans.action == .add && !isTemp) || (trans.tempAction == .add && isTemp) {
             //print("should run")
             //trans.title = "Hey"
             focusedField = 0

@@ -20,7 +20,7 @@ struct MenuOrListButton: View {
             Spacer()
         }
         .contentShape(Rectangle())
-        .padding(.leading, 2)
+        //.padding(.leading, 2)
         .focusable(false)
         .chevronMenuOverlay()
         .onTapGesture {

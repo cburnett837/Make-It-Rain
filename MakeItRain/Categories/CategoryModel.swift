@@ -10,6 +10,7 @@ import Foundation
 @MainActor
 @Observable
 class CategoryModel {
+    static let shared = CategoryModel()
     var isThinking = false
     
     var categoryEditID: Int?
@@ -62,7 +63,6 @@ class CategoryModel {
     func saveCategory(id: String, calModel: CalendarModel) {
         let category = getCategory(by: id)
         Task {
-            
             if category.title.isEmpty {
                 if category.action != .add && category.title.isEmpty {
                     category.title = category.deepCopy?.title ?? ""
@@ -76,33 +76,75 @@ class CategoryModel {
             if category.hasChanges() {
                 let wasSuccessful = await submit(category)
                 if wasSuccessful {
+                    
+                    var budgetsToServer: Array<CBBudget> = []
+                    
                     calModel.months.forEach { month in
+                        /// Update the transactions that are local with the new category info/.
                         month.days.forEach { day in
                             day.transactions.filter { $0.category?.id == category.id }.forEach { transaction in
                                 transaction.category = category
                             }
                         }
-                        
+                                                
                         if let index = month.budgets.firstIndex(where: { $0.category?.id == category.id }) {
+                            /// Update the months budget with the new category info (if applicable).
                             month.budgets[index].category = category
+                            
+                        } else if !month.budgets.isEmpty {
+                            /// If a budget has already been created for the month, add the new category (if applicable).
+                                                        
+                            let budget = CBBudget()
+                            budget.month = month.actualNum
+                            budget.year = month.year
+                            budget.amountString = category.amountString ?? ""
+                            budget.category = category
+                            
+                            budgetsToServer.append(budget)
+                            month.budgets.append(budget)
                         }
-                        
-                        
-                        if !month.budgets.isEmpty {
-                            /// Instead of re-writing all the logic, just call `calModel.populate()` with a blank transaction array and the category we need
-                            let options = PopulateOptions()
-                            options.budget = true
-                            options.paymentMethods = []
-                            calModel.populate(options: options, repTransactions: [], categories: [category])
+                    }
+                    
+                    if !budgetsToServer.isEmpty {
+                        let _ = await submitNewBudgets(budgets: budgetsToServer, calModel: calModel)
+                    }
+                }
+            }
+        }
+    }
+    
+    @MainActor
+    func submitNewBudgets(budgets: Array<CBBudget>, calModel: CalendarModel) async -> Bool {
+        print("-- \(#function)")
+        let model = RequestModel(requestType: "add_budgets_to_months", model: budgets)
+        
+        typealias ResultResponse = Result<Array<ReturnIdModel>?, AppError>
+        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+                    
+        switch await result {
+        case .success(let model):
+            LogManager.networkingSuccessful()
+            if let model {
+                for idModel in model {
+                    if let targetMonth = calModel.months.filter({$0.budgets.map {$0.id}.contains(idModel.uuid)}).first {
+                        let index = targetMonth.budgets.firstIndex(where: { $0.id == idModel.uuid })
+                        if let index {
+                            targetMonth.budgets[index].id = idModel.id
+                            targetMonth.budgets[index].uuid = nil
+                            targetMonth.budgets[index].action = .edit
                         }
                     }
                 }
-                
-                
-                
-                
-                
             }
+            return true
+        case .failure(let error):
+            LogManager.error(error.localizedDescription)
+            AppState.shared.showAlert("There was a problem trying to add the new budgets to the server.")
+            //showSaveAlert = true
+            #warning("Undo behavior")
+            //let listActivity = activities.filter { $0.id == activity.id }.first ?? DailyActivity.emptyActivity
+            //listActivity.deepCopy(.restore)
+            return false
         }
     }
     
@@ -406,5 +448,34 @@ class CategoryModel {
         let _ = DataManager.shared.deleteAll(for: PersistentCategory.self)
         //print("SaveResult: \(saveResult)")
         categories.removeAll()
+    }
+    
+    
+    
+    @MainActor
+    func fetchExpensesByCategory(_ category: CBCategory) async -> Array<CBBudget>? {
+        print("-- \(#function)")
+        //LoadingManager.shared.startDelayedSpinner()
+        LogManager.log()
+      
+        /// Networking
+        let model = RequestModel(requestType: "fetch_expenses_by_category", model: category)
+        
+        typealias ResultResponse = Result<Array<CBBudget>?, AppError>
+        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+                    
+        switch await result {
+        case .success(let model):
+            LogManager.networkingSuccessful()
+            return model
+
+        case .failure(let error):
+            LogManager.error(error.localizedDescription)
+            AppState.shared.showAlert("There was a problem trying to fetch the analytics.")
+            return nil
+            //showSaveAlert = true
+            #warning("Undo behavior")
+        }
+        //LoadingManager.shared.stopDelayedSpinner()
     }
 }

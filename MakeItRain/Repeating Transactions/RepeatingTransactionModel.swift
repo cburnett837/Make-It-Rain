@@ -10,6 +10,7 @@ import Foundation
 @MainActor
 @Observable
 class RepeatingTransactionModel {
+    static let shared = RepeatingTransactionModel()
     var isThinking = false
     
     var repTransactionEditID: Int?

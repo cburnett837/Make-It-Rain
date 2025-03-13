@@ -13,21 +13,33 @@ struct Toast {
     var message: String?
     var symbol: String
     var symbolColor: Color? = nil
+    var autoDismiss = true
+    var action: () -> Void = {}
 }
 
 struct ToastView: View {
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     var toast: Toast?
     let timer = Timer.publish(every: 5, on: .main, in: .common).autoconnect()
         
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: toast?.symbol ?? "")
+                .if(toast?.symbolColor == Color.white || toast?.symbolColor == Color.black) {
+                    $0.foregroundStyle(toast?.symbolColor == Color.white ? Color.black : Color.white)
+                }
                 .padding(10)
                 .background {
                     if let toast = toast {
                         RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.fromName(toast.symbolColor == nil ? appColorTheme : toast.symbolColor!.description))
+                            //.fill(Color.fromName(toast.symbolColor == nil ? appColorTheme : toast.symbolColor!.description))
+                                                
+                            .fill(
+                                toast.symbolColor == nil
+                                ? Color.fromName(appColorTheme)
+                                : Color(toast.symbolColor!)
+                            )
+                        
                             //.fill(.ultraThickMaterial)
                             .shadow(color: .black.opacity(0.06), radius: 3, x: -1, y: -3)
                             .shadow(color: .black.opacity(0.06), radius: 2, x: 1, y: 3)
@@ -63,6 +75,20 @@ struct ToastView: View {
             }
             .buttonStyle(.plain)
         }
+        .gesture(DragGesture()
+            .onEnded { value in
+                if value.translation.height < 50 {
+                    withAnimation(.bouncy) {
+                        AppState.shared.toast = nil
+                    }
+                }
+            }
+        )
+        .onTapGesture {
+            if let toast = toast {
+                toast.action()
+            }
+        }
         #if os(macOS)
             .frame(maxWidth: 400)
         #else
@@ -91,8 +117,13 @@ struct ToastView: View {
         .onReceive(timer) { _ in
             timer.upstream.connect().cancel()
             
-            withAnimation(.bouncy) {
-                AppState.shared.toast = nil
+            if let toast = toast {
+                if toast.autoDismiss {
+                    withAnimation(.bouncy) {
+                        AppState.shared.toast = nil
+                    }
+                }
+                
             }
         }
     }

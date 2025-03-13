@@ -100,10 +100,16 @@ class FuncModel {
         ///     `.viaTempListButton, .viaTempListSceneChange` will both remove any existing transactions from the calendar, as to allow a complete refresh when returning to the calendar from the temp list.
         ///     `.viaInitial, .viaButton, .viaLongPoll` are not used, and are only there for clarity.
         
+        
         print("-- \(#function)")
         let start = CFAbsoluteTimeGetCurrent()
         
         NSLog("\(file):\(line) : \(function)")
+        
+        /// Run this in case the user changes notificaiton settings, we will know about it ASAP.
+        Task {
+            await NotificationManager.shared.registerForPushNotifications()
+        }
         
         
         /// If coming from the tempList, remove all the data so it's guaranteed fresh.
@@ -160,8 +166,11 @@ class FuncModel {
                     
                     var logs: Array<CBLog> = []
                     if let logEntities = entity.logs {
+                        
+                        let groupID = UUID().uuidString
+                        
                         logEntities.forEach { entity in
-                            let log = CBLog(transEntity: entity as! TempTransactionLog)
+                            let log = CBLog(transEntity: entity as! TempTransactionLog, groupID: groupID)
                             logs.append(log)
                         }
                     }

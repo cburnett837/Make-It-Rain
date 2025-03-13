@@ -8,7 +8,7 @@
 import SwiftUI
 #if os(macOS)
 struct RootViewMac: View {
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.green.description
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
 
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) var calModel
@@ -87,7 +87,7 @@ struct RootViewMac: View {
         } detail: {
             switch navManager.selection {
             case .january, .february, .march, .april, .may, .june, .july, .august, .september, .october, .november, .december, .lastDecember, .nextJanuary:
-                CalendarViewMac()
+                CalendarViewMac(enumID: navManager.selection!)
                 
             case .repeatingTransactions:
                 RepeatingTransactionsTable()

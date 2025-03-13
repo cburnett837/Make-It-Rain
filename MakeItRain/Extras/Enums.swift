@@ -278,7 +278,7 @@ enum WhenType: String {
 }
 
 enum ShadowCopyAction {
-    case create, restore
+    case create, restore, clear
 }
 
 
@@ -403,7 +403,9 @@ enum RefreshTechnique: String {
 }
 
 
-
+enum UserPreferedColorScheme: String {
+    case userLight, userDark, userSystem
+}
 
 
 

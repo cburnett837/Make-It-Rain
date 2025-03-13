@@ -10,6 +10,7 @@ import Foundation
 @MainActor
 @Observable
 class KeywordModel {
+    static let shared = KeywordModel()
     var isThinking = false
     
     var keywordEditID: Int?

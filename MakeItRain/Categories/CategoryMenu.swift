@@ -67,7 +67,7 @@ struct CategoryMenu<Content: View>: View {
         Group {
             Button {
                 if saveOnChange && trans != nil {
-                    trans!.log(field: .category, old: trans!.category?.id, new: nil)
+                    trans!.log(field: .category, old: trans!.category?.id, new: nil, groupID: UUID().uuidString)
                     category = nil
                     calModel.saveTransaction(id: trans!.id)
                 } else {
@@ -83,7 +83,7 @@ struct CategoryMenu<Content: View>: View {
             ForEach(sortedCategories) { cat in
                 Button {
                     if saveOnChange && trans != nil {
-                        trans!.log(field: .category, old: trans!.category?.id, new: cat.id)
+                        trans!.log(field: .category, old: trans!.category?.id, new: cat.id, groupID: UUID().uuidString)
                         category = cat
                         calModel.saveTransaction(id: trans!.id)
                     } else {
