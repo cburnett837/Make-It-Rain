@@ -31,7 +31,7 @@ class EventModel {
     static let shared = EventModel()
     var isThinking = false
     
-    var eventEditID: Int?
+    //var eventEditID: Int?
     var events: Array<CBEvent> = []
     var invitations: Array<CBEventParticipant> = []
     //var pendingTransactionsToSave: Array<CBTransaction> = []

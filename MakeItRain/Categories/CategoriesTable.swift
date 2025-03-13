@@ -40,6 +40,12 @@ struct CategoriesTable: View {
             .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedStandardContains(searchText) }
             //.sorted { $0.title.lowercased() < $1.title.lowercased() }
             //.sorted { $0.listOrder ?? 0 < $1.listOrder ?? 0 }
+            .sorted {
+                categorySortMode == .title
+                ? ($0.title).lowercased() < ($1.title).lowercased()
+                : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
+            }
+        
     }
     
     var body: some View {
@@ -72,15 +78,15 @@ struct CategoriesTable: View {
         /// Setting this id forces the view to refresh and update the relevant category with the new ID.
         .id(catModel.fuckYouSwiftuiTableRefreshID)
         .navigationBarBackButtonHidden(true)
-        .task {
-            let categorySortMode = CategorySortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
-                                
-            catModel.categories.sort {
-                categorySortMode == .title
-                ? ($0.title).lowercased() < ($1.title).lowercased()
-                : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
-            }
-        }
+//        .task {
+//            let categorySortMode = CategorySortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
+//                                
+//            catModel.categories.sort {
+//                categorySortMode == .title
+//                ? ($0.title).lowercased() < ($1.title).lowercased()
+//                : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
+//            }
+//        }
         .toolbar {
             #if os(macOS)
             macToolbar()

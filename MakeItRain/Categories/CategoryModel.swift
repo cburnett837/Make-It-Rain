@@ -13,7 +13,7 @@ class CategoryModel {
     static let shared = CategoryModel()
     var isThinking = false
     
-    var categoryEditID: Int?
+    //var categoryEditID: Int?
     var categories: Array<CBCategory> = []
     //var refreshTask: Task<Void, Error>?    
     var fuckYouSwiftuiTableRefreshID: UUID = UUID()
@@ -186,7 +186,18 @@ class CategoryModel {
             if let model {
                 if !model.isEmpty {
                     var activeIds: Array<String> = []
+                    
+//                    let categorySortMode = CategorySortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
+//                                        
+//                    let cats = model.sorted {
+//                        categorySortMode == .title
+//                        ? ($0.title).lowercased() < ($1.title).lowercased()
+//                        : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
+//                    }
+                    
+                    
                     for category in model {
+                        print(category.title)
                         activeIds.append(category.id)
                         
                         /// Find the category in cache.

@@ -215,7 +215,12 @@ class FuncModel {
         //var start: Double?
         
         /// See if the user is looking at a month or an accessorial view.
-        var currentNavSelection = NavigationManager.shared.selection
+        
+        
+        var currentNavSelection = NavigationManager.shared.selection == nil ? NavigationManager.shared.selectedMonth : NavigationManager.shared.selection
+        
+        
+        
         
         /// If the user is not looking at a month or accessorial view, set it to the current month
         /// This is only applicable on iOS - when the user is on the nav menu.
@@ -476,16 +481,16 @@ class FuncModel {
         print("-- \(#function)")
         /// Populate categories from cache.
         do {
-            let categorySortMode = CategorySortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
+            //let categorySortMode = CategorySortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
             
             let cats = try DataManager.shared.getMany(type: PersistentCategory.self)
             if let cats {
                 cats
-                .sorted {
-                    categorySortMode == .title
-                    ? ($0.title ?? "").lowercased() < ($1.title ?? "").lowercased()
-                    : Int($0.listOrder) < Int($1.listOrder)
-                }
+//                .sorted {
+//                    categorySortMode == .title
+//                    ? ($0.title ?? "").lowercased() < ($1.title ?? "").lowercased()
+//                    : Int($0.listOrder) < Int($1.listOrder)
+//                }
                 .forEach { cat in
                     //print("Category Title \(cat.title) - ID \(cat.id)")
                     if catModel.categories.filter({ $0.id == cat.id! }).isEmpty {

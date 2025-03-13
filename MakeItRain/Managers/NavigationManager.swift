@@ -113,6 +113,7 @@ class NavigationManager {
     
     //#warning("not sure if the didSet is needed yet...")
     var selection: NavDestination?
+    var selectedMonth: NavDestination?
     //var monthSelection: NavDestination?
 //    {
 //        didSet {

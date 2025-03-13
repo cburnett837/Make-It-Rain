@@ -99,10 +99,23 @@ struct CalendarViewPhone: View {
     @State private var visibleDays: Array<Int> = []
     
     @State private var scrollToComplete = false
+    
+    @State private var showSideBar = false
+    @State private var sideBarView: SideBarView? = nil
+    
+    
+    enum SideBarView {
+        case categoryAnalytics, startingAmount
+    }
+    
+    
+    //var sideBarContent: () -> Content?
+    
+    
 
     
     var body: some View {
-        //let _ = Self._printChanges()
+        let _ = Self._printChanges()
         @Bindable var navManager = NavigationManager.shared
         //@Bindable var vm = vm
         @Bindable var calModel = calModel
@@ -111,11 +124,39 @@ struct CalendarViewPhone: View {
         NavigationStack {
             Group {
                 if calModel.sMonth.enumID == enumID {
-                    calendarView
+                    HStack(spacing: 0) {
+                        calendarView
+                            .if(AppState.shared.isIpad && sideBarView != nil) {
+                                $0.background(colorScheme == .dark ? Color.darkGray3.ignoresSafeArea(.all) : Color(UIColor.systemGray6).ignoresSafeArea(.all))
+                            }
+                        
+                            .if(!AppState.shared.isIpad && sideBarView != nil) {
+                                $0.background(colorScheme == .dark ? Color.darkGray3.ignoresSafeArea(.all) : Color(UIColor.systemGray6).ignoresSafeArea(.all))
+                            }
+                        
+                        
+                        if let sideBarView = sideBarView {
+                            if showSideBar {
+                                Divider()
+                                    .ignoresSafeArea(.all, edges: [.bottom])
+                                
+                                switch sideBarView {
+                                case .categoryAnalytics:
+                                    AnalysisSheet(showAnalysisSheet: $showAnalysisSheet)
+                                        .frame(maxWidth: getRect().width / 3)
+                                case .startingAmount:
+                                    Text("Starting Amount")
+                                }
+                            }
+                            
+                        }
+                    }
+                    
                     //Text("Calendar")
                 } else {
+                    //Text("\(calModel.sMonth.enumID)")
+                    //Text("\(enumID.rawValue)")
                     ProgressView()
-                    //Text("HEY")
                         .transition(.opacity)
                         .tint(.none)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -149,13 +190,18 @@ struct CalendarViewPhone: View {
             .ignoresSafeArea(.keyboard, edges: .bottom)
             .standardBackground()
 //            .task {
-//                calModel.setSelectedMonthFromNavigation(navID: enumID, prepareStartAmount: true)
-//                let month = calModel.months.filter {$0.enumID == enumID}.first!
-//                let targetDay = month.days.filter { $0.dateComponents?.day == (month.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
-//                selectedDay = targetDay
+//                print("\(#file) TASK")
+//                print(calModel.sMonth.enumID)
+//                print(enumID)
+//                
+////                calModel.setSelectedMonthFromNavigation(navID: enumID, prepareStartAmount: true)
+////                let month = calModel.months.filter {$0.enumID == enumID}.first!
+////                let targetDay = month.days.filter { $0.dateComponents?.day == (month.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
+////                selectedDay = targetDay
 //            }
             /// Using this instead of a task because the iPad doesn't reload `CalendarView`. It just changes the data source.
             .onChange(of: enumID, initial: true) {
+                print(".onChange(of: enumID, initial: true)")
                 Task {
                     calModel.setSelectedMonthFromNavigation(navID: enumID, prepareStartAmount: true)
                     let month = calModel.months.filter {$0.enumID == enumID}.first!
@@ -219,42 +265,9 @@ struct CalendarViewPhone: View {
                     /// This is needed for the drag to dismiss.
                     .onDisappear { transEditID = nil }
             }
-            
-            
-            
-            
-            
-    //        .sheet(item: $editPaymentMethod, onDismiss: {
-    //            paymentMethodEditID = nil
-    //            payModel.determineIfUserIsRequiredToAddPaymentMethod()
-    //        }, content: { meth in
-    //            PayMethodView(payMethod: meth, payModel: payModel, editID: $paymentMethodEditID)
-    //            #if os(iOS)
-    //            //.presentationDetents([.medium, .large])
-    //            #endif
-    //        })
-    //        .onChange(of: paymentMethodEditID) { oldValue, newValue in
-    //            if let newValue {
-    //                let payMethod = payModel.getPaymentMethod(by: newValue)
-    //
-    //                if payMethod.accountType == .unifiedChecking || payMethod.accountType == .unifiedCredit {
-    //                    paymentMethodEditID = nil
-    //                    AppState.shared.showAlert("Combined payment methods cannot be edited.")
-    //                } else {
-    //                    editPaymentMethod = payMethod
-    //                }
-    //            } else {
-    //                payModel.savePaymentMethod(id: oldValue!, calModel: calModel)
-    //                payModel.determineIfUserIsRequiredToAddPaymentMethod()
-    //            }
-    //        }
-            
-            
-            
-            
-            .sheet(isPresented: $showAnalysisSheet) {
-                AnalysisSheet(showAnalysisSheet: $showAnalysisSheet)
-            }
+//            .sheet(isPresented: $showAnalysisSheet) {
+//                AnalysisSheet(showAnalysisSheet: $showAnalysisSheet)
+//            }
             .sheet(isPresented: $showCalendarOptionsSheet, onDismiss: {
                 if currentPhoneLineItemDisplayItem != phoneLineItemDisplayItem {
                     currentPhoneLineItemDisplayItem = phoneLineItemDisplayItem
@@ -529,50 +542,47 @@ struct CalendarViewPhone: View {
         }
         
         ToolbarItem(placement: .topBarLeading) {
-            if !AppState.shared.isIpad {
-                backButton
-            } else {
-                if AppState.shared.isLandscape {
-                    HStack(spacing: 10) {
-                        showPaymentMethodSheetButton
-                        
-                        Button {
-                            showCategorySheet = true
-                            TouchAndHoldMonthToFilterCategoriesTip.didSelectCategoryFilter = true
-                            touchAndHoldMonthToFilterCategoriesTip.invalidate(reason: .actionPerformed)
-                        } label: {
-                            HStack(spacing: 2) {
-                                if !calModel.sCategories.isEmpty {
-                                    var categoryFilterTitle: String {
-                                        let cats = calModel.sCategories
-                                        if cats.isEmpty {
-                                            return ""
-                                            
-                                        } else if cats.count == 1 {
-                                            return cats.first!.title
-                                            
-                                        } else if cats.count == 2 {
-                                            return "\(cats[0].title), \(cats[1].title)"
-                                            
-                                        } else {
-                                            return "\(cats[0].title), \(cats[1].title), \(cats.count - 2)+"
-                                        }
-                                    }
-                                    
-                                    Text("(\(categoryFilterTitle))")
-                                        .italic()
-                                } else {
-                                    Text("Categories")
-                                }
-                            }
-                            //.font(.callout)
-                            //.foregroundStyle(.gray)
-                            .contentShape(Rectangle())
-                        }
+            HStack(spacing: 10) {
+                /// Show back button if is iPhone, or is iPad being showing in a sheet. (LIke when accessing the calendar from the category view)
+                if (!AppState.shared.isIpad) || (AppState.shared.isIpad && calModel.isShowingFullScreenCoverOnIpad){
+                    backButton
+                }
+                
+                /// Show payment method and category buttons when is iPad in landscape mode.
+                if AppState.shared.isIpad && AppState.shared.isLandscape {
                     
-                        
-                        
-                        
+                    showPaymentMethodSheetButton
+                    
+                    Button {
+                        showCategorySheet = true
+                        TouchAndHoldMonthToFilterCategoriesTip.didSelectCategoryFilter = true
+                        touchAndHoldMonthToFilterCategoriesTip.invalidate(reason: .actionPerformed)
+                    } label: {
+                        HStack(spacing: 2) {
+                            if !calModel.sCategories.isEmpty {
+                                var categoryFilterTitle: String {
+                                    let cats = calModel.sCategories
+                                    if cats.isEmpty {
+                                        return ""
+                                        
+                                    } else if cats.count == 1 {
+                                        return cats.first!.title
+                                        
+                                    } else if cats.count == 2 {
+                                        return "\(cats[0].title), \(cats[1].title)"
+                                        
+                                    } else {
+                                        return "\(cats[0].title), \(cats[1].title), \(cats.count - 2)+"
+                                    }
+                                }
+                                
+                                Text("(\(categoryFilterTitle))")
+                                    .italic()
+                            } else {
+                                Text("Categories")
+                            }
+                        }
+                        .contentShape(Rectangle())
                     }
                 }
             }
@@ -583,7 +593,7 @@ struct CalendarViewPhone: View {
             @Bindable var calModel = calModel
             HStack(spacing: 20) {
                 
-                if (!showSearchBar && AppState.shared.isIpad) || !AppState.shared.isIpad{
+                if (!showSearchBar && AppState.shared.isIpad) || !AppState.shared.isIpad {
                     if calModel.showLoadingSpinner {
                         ProgressView()
                             .tint(.none)
@@ -649,6 +659,14 @@ struct CalendarViewPhone: View {
                             .opacity(calModel.chatGptIsThinking ? 1 : 0)
                             .tint(.none)
                     }
+                    
+//                    Button {
+//                        withAnimation {
+//                            showSideBar.toggle()
+//                        }
+//                    } label: {
+//                        Image(systemName: "sidebar.right")
+//                    }
                 }
                 
                 
@@ -700,6 +718,7 @@ struct CalendarViewPhone: View {
             //@Bindable var navManager = NavigationManager.shared
             Button {
                 //navManager.navPath.removeLast()
+                calModel.isShowingFullScreenCoverOnIpad = false
                 dismiss()
                 //NavigationManager.shared.monthSelection = nil
             } label: {
@@ -792,7 +811,11 @@ struct CalendarViewPhone: View {
     
     var analysisSheetButton: some View {
         Button {
-            showAnalysisSheet = true
+            withAnimation {
+                sideBarView = .categoryAnalytics
+                showSideBar = true
+            }
+            
         } label: {
             Label {
                 Text("Analyze Categories")
@@ -824,7 +847,7 @@ struct CalendarViewPhone: View {
                 //searchFocus.wrappedValue = 0 /// 0 is the searchFields focusID
                 
                 if AppState.shared.isIpad {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.7, execute: {
                         focusedField = 0 /// 0 is the searchFields focusID
                     })
                 } else {

@@ -488,53 +488,30 @@ struct CategoryView: View {
                                 Text("\(expense.date, format: .dateTime.month(.wide)) \(String(expense.date.year))")
                                 Spacer()
                                 Text("\(expense.amountString)")
-                            }.onTapGesture {
-                                Task {
-                                    if AppState.shared.isIpad {
-                                        AppState.shared.showUniversalLoadingSpinner = true
-                                        calModel.sCategories = [category]
-                                        
-                                        editID = nil
-                                        dismiss()
-                                        
-                                        //NavigationManager.shared.navPath.removeAll()
-                                        
-                                        try? await Task.sleep(nanoseconds: UInt64(0.2 * Double(NSEC_PER_SEC)))
-                                        
-                                        NavigationManager.shared.selection = NavDestination.getMonthFromInt(expense.date.month)
-                                        calModel.sYear = expense.date.year
-                                        //calModel.sMonth = NavDestination.getMonthFromInt(expense.date.month)
-                                        
-    //                                    try? await Task.sleep(nanoseconds: UInt64(1 * Double(NSEC_PER_SEC)))
-                                        
-                                        calModel.showMonth = true
-                                        
-                                        AppState.shared.showUniversalLoadingSpinner = false
-                                    } else {
-                                        AppState.shared.showUniversalLoadingSpinner = true
-                                        calModel.sCategories = [category]
-                                        
-                                        //editID = nil
-                                        //dismiss()
-                                        
-                                        //NavigationManager.shared.navPath.removeAll()
-                                        
-                                        //try? await Task.sleep(nanoseconds: UInt64(0.2 * Double(NSEC_PER_SEC)))
-                                        
-                                        NavigationManager.shared.selection = NavDestination.getMonthFromInt(expense.date.month)
-                                        calModel.sYear = expense.date.year
-                                        //calModel.sMonth = NavDestination.getMonthFromInt(expense.date.month)
-                                        
-    //                                    try? await Task.sleep(nanoseconds: UInt64(1 * Double(NSEC_PER_SEC)))
-                                        
-                                        //calModel.showMonth = true
-                                        showMonth = true
-                                        
-                                        AppState.shared.showUniversalLoadingSpinner = false
+                            }
+                            .onTapGesture {
+                                calModel.sCategories = [category]
+                                
+                                calModel.categoryFilterWasSetByCategoryPage = true
+                                
+                                if AppState.shared.isIpad {
+                                    calModel.isShowingFullScreenCoverOnIpad = true
+                                }
+                                                                
+                                NavigationManager.shared.selectedMonth = NavDestination.getMonthFromInt(expense.date.month)
+                                calModel.sYear = expense.date.year
+                                
+                                calModel.showMonth = true                                
+                            }
+                            .onChange(of: calModel.showMonth) { oldValue, newValue in
+                                if newValue == false && oldValue == true {
+                                    Task {
+                                        await fetchHistory(setChartAsNew: false)
+                                        if calModel.categoryFilterWasSetByCategoryPage {
+                                            calModel.sCategories.removeAll()
+                                        }
                                     }
                                 }
-                                
-                                
                             }
                             
                             Divider()
@@ -571,18 +548,18 @@ struct CategoryView: View {
         .overlay { ProgressView("Loading Analytics…").tint(.none).opacity(isLoadingHistory ? 1 : 0) }
         
         
-        .fullScreenCover(isPresented: $showMonth) {
-            if let selection = NavigationManager.shared.selection {
-                if NavDestination.justMonths.contains(selection) {
-                    CalendarViewPhone(enumID: selection, selectedDay: .constant(nil))
-                        .tint(Color.fromName(appColorTheme))
-                        .navigationTransition(.zoom(sourceID: selection, in: monthNavigationNamespace))
-                        .if(AppState.shared.methsExist) {
-                            $0.loadingSpinner(id: selection, text: "Loading…")
-                        }
-                }
-            }
-        }
+//        .fullScreenCover(isPresented: $showMonth) {
+//            if let selection = NavigationManager.shared.selection {
+//                if NavDestination.justMonths.contains(selection) {
+//                    CalendarViewPhone(enumID: selection, selectedDay: .constant(nil))
+//                        .tint(Color.fromName(appColorTheme))
+//                        .navigationTransition(.zoom(sourceID: selection, in: monthNavigationNamespace))
+//                        .if(AppState.shared.methsExist) {
+//                            $0.loadingSpinner(id: selection, text: "Loading…")
+//                        }
+//                }
+//            }
+//        }
     }
     
     
@@ -601,17 +578,29 @@ struct CategoryView: View {
         }
         #endif
         
-        isLoadingHistory = true
+        await fetchHistory(setChartAsNew: true)
+    }
+    
+    func fetchHistory(setChartAsNew: Bool) async {
+        
+        if setChartAsNew {
+            isLoadingHistory = true
+        }
+        
+        
         if let expenses = await catModel.fetchExpensesByCategory(category) {
             self.expenses = expenses
-                                    
-            /// Set the scrollPosition to which ever is smaller, the idealStartDate, or the maxAvailStartDate.
-            let maxAvailStartDate = expenses.first?.date ?? Date()
-            let idealStartDate = Calendar.current.date(byAdding: .day, value: -(365 * chartVisibleYearCount.rawValue), to: expenses.last?.date ?? Date())!
-                            
-            chartScrollPosition = maxAvailStartDate < idealStartDate ? idealStartDate : maxAvailStartDate
-                        
-            isLoadingHistory = false
+        
+            
+            if setChartAsNew {
+                /// Set the scrollPosition to which ever is smaller, the idealStartDate, or the maxAvailStartDate.
+                let maxAvailStartDate = expenses.first?.date ?? Date()
+                let idealStartDate = Calendar.current.date(byAdding: .day, value: -(365 * chartVisibleYearCount.rawValue), to: expenses.last?.date ?? Date())!
+                
+                chartScrollPosition = maxAvailStartDate < idealStartDate ? idealStartDate : maxAvailStartDate
+                
+                isLoadingHistory = false
+            }
         }
     }
     

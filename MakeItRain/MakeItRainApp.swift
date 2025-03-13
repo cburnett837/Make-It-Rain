@@ -61,6 +61,12 @@ struct MakeItRainApp: App {
     
     @State private var isUnlocked = false
     
+    //#if os(iOS)
+    #warning("NOTE: This cannot be in the calendarModel because scrolling on the calendarView causes this to change (idk why), and causes the calendarView to lag. 3/13/25")
+    /// Only used in iOS.
+    @State private var selectedDay: CBDay?
+    //#endif
+    
     init() {
         let calModel = CalendarModel.shared
                 
@@ -94,7 +100,7 @@ struct MakeItRainApp: App {
         
     var body: some Scene {
         WindowGroup {
-            RootViewWrapper {
+            RootViewWrapper(selectedDay: $selectedDay) {
                 @Bindable var appState = AppState.shared
                 Group {
                     /// `AuthState.shared.isThinking` is always true when app launches from fresh state.
@@ -259,7 +265,7 @@ struct MakeItRainApp: App {
     
     
     var rootView: some View {
-        RootView()
+        RootView(selectedDay: $selectedDay)
             .frame(idealWidth: screenWidth, idealHeight: screenHeight)
             .onPreferenceChange(SizePreferenceKey.self) { value in
                 screenWidth = value.width
@@ -340,7 +346,10 @@ struct MakeItRainApp: App {
     func downloadInitial() {
         @Bindable var navManager = NavigationManager.shared
         /// Set navigation destination to current month
-        navManager.selection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+        //navManager.selection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+        navManager.selectedMonth = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+        
+        
         //navManager.monthSelection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
         
         //navManager.navPath.append(NavDestination.getMonthFromInt(AppState.shared.todayMonth)!)
@@ -349,9 +358,10 @@ struct MakeItRainApp: App {
         funcModel.refreshTask = Task {
             /// populate all months with their days.
             calModel.prepareMonths()
-            if let selection = navManager.selection {
+            //if let selection = navManager.selection {
+            if let selectedMonth = navManager.selectedMonth {
                 /// set the calendar model to use the current month (ignore starting amounts and calculations)
-                calModel.setSelectedMonthFromNavigation(navID: selection, prepareStartAmount: false)
+                calModel.setSelectedMonthFromNavigation(navID: selectedMonth, prepareStartAmount: false)
                 /// download everything, and populate the days in the respective months with transactions.
                 await funcModel.downloadEverything(setDefaultPayMethod: true, createNewStructs: true, refreshTechnique: .viaInitial)
             }
@@ -386,6 +396,13 @@ struct RootViewWrapper<Content: View>: View {
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
+    @Environment(RepeatingTransactionModel.self) private var repModel
+    @Environment(EventModel.self) private var eventModel
+    
+    #if os(iOS)
+    @Binding var selectedDay: CBDay?
+    #endif
+    
     
     var content: Content
     //var properties = UniversalOverProperties()
@@ -393,7 +410,8 @@ struct RootViewWrapper<Content: View>: View {
     @State private var window: UIWindow?
     #endif
     
-    init(@ViewBuilder content: @escaping () -> Content) {
+    init(selectedDay: Binding<CBDay?>, @ViewBuilder content: @escaping () -> Content) {
+        self._selectedDay = selectedDay
         self.content = content()
     }
     
@@ -408,12 +426,14 @@ struct RootViewWrapper<Content: View>: View {
                     window.isUserInteractionEnabled = true
                     
                     let rootViewController = UIHostingController(rootView:
-                        AlertAndToastLayerView()
+                        AlertAndToastAndCalendarLayerView(selectedDay: $selectedDay)
                             .environment(funcModel)
                             .environment(calModel)
                             .environment(payModel)
                             .environment(catModel)
                             .environment(keyModel)
+                            .environment(repModel)
+                            .environment(eventModel)
                     )
                     rootViewController.view.backgroundColor = .clear
                     
@@ -431,6 +451,8 @@ struct RootViewWrapper<Content: View>: View {
                     .environment(payModel)
                     .environment(catModel)
                     .environment(keyModel)
+                    .environment(repModel)
+                    .environment(eventModel)
             }
             #endif
 

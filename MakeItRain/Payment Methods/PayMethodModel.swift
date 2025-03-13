@@ -13,7 +13,7 @@ class PayMethodModel {
     static let shared = PayMethodModel()
     var isThinking = false
     
-    var paymentMethodEditID: Int?
+    //var paymentMethodEditID: Int?
     var paymentMethods: Array<CBPaymentMethod> = []
     //var refreshTask: Task<Void, Error>?
     var fuckYouSwiftuiTableRefreshID: UUID = UUID()

@@ -16,6 +16,7 @@
 		FD6D7F012D6682AB0026D39D /* NewTransactionAppIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD6D7F002D6682AB0026D39D /* NewTransactionAppIntent.swift */; };
 		FD6D7F032D66CD0A0026D39D /* CBFitTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD6D7F022D66CD0A0026D39D /* CBFitTransaction.swift */; };
 		FD737B212D806B9A00B6A97B /* StandardRectangle.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD737B202D806B9A00B6A97B /* StandardRectangle.swift */; };
+		FD737B412D835AAF00B6A97B /* AlertAndToastAndCalendarLayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD737B402D835AAF00B6A97B /* AlertAndToastAndCalendarLayerView.swift */; };
 		FDA579392C9E6FA9004E9B60 /* PersistentModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = FDA579372C9E6FA9004E9B60 /* PersistentModel.xcdatamodeld */; };
 		FDB066D12D4D40C40060568B /* UIDatePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDB066D02D4D40C40060568B /* UIDatePicker.swift */; };
 		FDB1ACFE2D779A29001CB2F6 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = FDB1ACFD2D779A29001CB2F6 /* Algorithms */; };
@@ -191,6 +192,7 @@
 		FD6D7F002D6682AB0026D39D /* NewTransactionAppIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTransactionAppIntent.swift; sourceTree = "<group>"; };
 		FD6D7F022D66CD0A0026D39D /* CBFitTransaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBFitTransaction.swift; sourceTree = "<group>"; };
 		FD737B202D806B9A00B6A97B /* StandardRectangle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandardRectangle.swift; sourceTree = "<group>"; };
+		FD737B402D835AAF00B6A97B /* AlertAndToastAndCalendarLayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertAndToastAndCalendarLayerView.swift; sourceTree = "<group>"; };
 		FD8DFA7C2CFB8C100056EE39 /* PersistentModel2.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = PersistentModel2.xcdatamodel; sourceTree = "<group>"; };
 		FDB066D02D4D40C40060568B /* UIDatePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIDatePicker.swift; sourceTree = "<group>"; };
 		FDC26D8C2D3E86D500B0A97C /* AdvancedSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedSearchView.swift; sourceTree = "<group>"; };
@@ -706,6 +708,7 @@
 				FDC26DBF2D3E86D500B0A97C /* FuncModel.swift */,
 				FDC26D8F2D3E86D500B0A97C /* AppTips.swift */,
 				FD07E28C2D7210EC00024B11 /* AlertStuff.swift */,
+				FD737B402D835AAF00B6A97B /* AlertAndToastAndCalendarLayerView.swift */,
 				FDC26D882D3E86D500B0A97C /* Root */,
 				FDC26D7A2D3E86D500B0A97C /* Authentication */,
 				FDC26D7B2D3E86D500B0A97C /* Budget */,
@@ -870,6 +873,7 @@
 				FDC26E352D3E86D500B0A97C /* AuthState.swift in Sources */,
 				FDC26E362D3E86D500B0A97C /* SheetHeader.swift in Sources */,
 				FDC26E372D3E86D500B0A97C /* DataManager.swift in Sources */,
+				FD737B412D835AAF00B6A97B /* AlertAndToastAndCalendarLayerView.swift in Sources */,
 				FDC26E9D2D3EA7F800B0A97C /* EventParticipantView.swift in Sources */,
 				FDC26E382D3E86D500B0A97C /* ButtonStyles.swift in Sources */,
 				FDC26E392D3E86D500B0A97C /* ToolbarNowButton.swift in Sources */,

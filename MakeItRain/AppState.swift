@@ -17,15 +17,13 @@ class AppState {
     var accountUsers: Array<CBUser> = []
     var methsExist = false
     var showPaymentMethodNeededSheet = false
-    
-    var showUniversalLoadingSpinner = false
-    
+    #if os(macOS)
     var isInFullScreen = false
     var macWindowDidBecomeMain = false
     var macSlept = false
     var macWokeUp = false
+    #endif
     var longPollFailed = false
-    
     var isLoggingInForFirstTime = false
     var hasBadConnection = false
     
@@ -57,6 +55,17 @@ class AppState {
     var longNetworkTaskTimer: Timer?
     
     
+    init() {
+        if let ud = UserDefaults.standard.data(forKey: "user") {
+            do {
+                self.user = try JSONDecoder().decode(CBUser.self, from: ud)
+
+            } catch {
+                print("Unable to Decode User (\(error))")
+            }
+        }
+    }
+    
     
     func user(is user: CBUser?) -> Bool {
         if let user {
@@ -86,7 +95,6 @@ class AppState {
         }
     }
     
-    @available(iOSApplicationExtension, unavailable)
     func alertBasedOnScenePhase(
         title: String,
         subtitle: String? = nil,
@@ -138,18 +146,7 @@ class AppState {
             //}
             
         }
-    }
-    
-    init() {
-        if let ud = UserDefaults.standard.data(forKey: "user") {
-            do {
-                self.user = try JSONDecoder().decode(CBUser.self, from: ud)
-
-            } catch {
-                print("Unable to Decode User (\(error))")
-            }
-        }
-    }
+    }        
     
         
     // MARK: - Current Date Stuff

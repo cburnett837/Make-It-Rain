@@ -28,12 +28,11 @@ struct RootView: View {
     @Environment(CategoryModel.self) var catModel
     @Environment(KeywordModel.self) var keyModel
     @Environment(RepeatingTransactionModel.self) var repModel
-    //@Environment(TagModel.self) var tagModel
     
     //@State private var showMonth = false
     
-    #if os(iOS)
-    @State private var selectedDay: CBDay?
+    #if os(iOS)    
+    @Binding var selectedDay: CBDay?
     #endif
             
     var body: some View {
@@ -46,19 +45,17 @@ struct RootView: View {
             #if os(macOS)
             RootViewMac()
             #else
-            RootViewPhone(selectedDay: $selectedDay, showMonth: $calModel.showMonth)
+            RootViewPhone(selectedDay: $selectedDay)
                 //.environment(iPhoneVm)
                 
             #endif
         }
         .task {
-            //navManager.monthSelection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
-            calModel.showMonth = true
+            if !AppState.shared.isIpad {
+                calModel.showMonth = true
+            }
         }
         .tint(Color.fromName(appColorTheme))
-//        #if os(macOS)
-//        .interactiveToasts($appState.toasts)
-//        #endif
         
         /// This is here in case you want to cancel the dragging transaction - this will unhilight the last hilighted day.
         .dropDestination(for: CBTransaction.self) { droppedTrans, location in
@@ -106,9 +103,10 @@ struct RootView: View {
         .onChange(of: calModel.showMonth) { oldValue, newValue in
             //print("onChange(of: showMonth) -- \(newValue)")
             if !newValue {
-                navManager.selection = nil
+                navManager.selectedMonth = nil
             }
         }
+        
         /// This is ONLY here to hilight open the accessorials on iPhone. It serves no other function.
         .onChange(of: navManager.navPath) { oldValue, newValue in
             //print("onChange(of: navManager.navPath) -- \(newValue)")
@@ -121,10 +119,21 @@ struct RootView: View {
         
         /// Clear out `calModel.sMonth` when `NavigationManager.selection` is set to nil, which will happen when closing the months fullScreenCover.
         /// This will also happen when leaving a accessorial list, but that is less significant - and more of a "keep the app's state clean" thing.
-        .onChange(of: navManager.selection, initial: true) { oldValue, newValue in
+//        .onChange(of: navManager.selection, initial: true) { oldValue, newValue in
+//            //print("onChange(of: navManager.selection) -- \(String(describing: newValue))")
+//            calModel.hilightTrans = nil
+//            if newValue == nil {
+//                Task {
+//                    try? await Task.sleep(nanoseconds: UInt64(0.1 * Double(NSEC_PER_SEC)))
+//                    calModel.sMonth = CBMonth(num: 100000)
+//                }
+//            }
+//        }
+        
+        /// Clear out `calModel.sMonth` when `NavigationManager.selectedMonth` is set to nil, which will happen when closing the months fullScreenCover.
+        .onChange(of: navManager.selectedMonth, initial: true) { oldValue, newValue in
             //print("onChange(of: navManager.selection) -- \(String(describing: newValue))")
             calModel.hilightTrans = nil
-            
             if newValue == nil {
                 Task {
                     try? await Task.sleep(nanoseconds: UInt64(0.1 * Double(NSEC_PER_SEC)))
@@ -132,52 +141,6 @@ struct RootView: View {
                 }
             }
         }
-        
-        
-        
-        /// Set ``sMonth`` in ``CalendarModel`` so the model is aware
-//        .onChange(of: navManager.navPath) { old, new in
-//            print(".onChange(of: navManager.navPath)")
-//            //print("PATH CHANGED")
-//            /// A month with the num of 100000 will show a loading spinner on the calendarView while it loads its line item views.
-//            //calModel.sMonth = CBMonth(num: 100000)
-//            
-//            if let newPath = navManager.navPath.last {
-//                /// I had this commented out, but put it back on 1/2/25 - I think it's needed for visuals only on iOS.
-//                navManager.selection = newPath
-//                
-//                print("NEW PATH \(newPath)")
-//                if new.count > old.count || new.count == old.count {
-//                    calModel.hilightTrans = nil
-//                    
-//                    if NavDestination.justMonths.contains(newPath) {
-//                        if new.count > old.count {
-//                            /// Only show the swipe month tip after the month has been changes via navigation 3 times.
-//                            SwipeToChangeMonthsTip.didChangeMonthViaNavList.sendDonation()
-//                        }
-//                        
-//                        /// This has to be in a task because months with a large number of line items take a while to load.
-//                        /// If we don't have this in a task, the nav link will freeze until the calendar view is fully rendered.
-//                        Task {
-//                            calModel.setSelectedMonthFromNavigation(navID: newPath, prepareStartAmount: true)
-//                        }
-//                        
-//                        /// Gotta have a selectedDay for the editing of a transaction. Since one is not always used in details view, set to the current day if in the current month, otherwise set to the first of the month.
-//                        let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
-//                        selectedDay = targetDay
-//                    }
-//                } else {
-//                    
-//                }
-//            } else {
-//                navManager.selection = nil
-//                Task {
-//                    try? await Task.sleep(nanoseconds: UInt64(0.3 * Double(NSEC_PER_SEC)))
-//                    calModel.sMonth = CBMonth(num: 100000)
-//                    
-//                }
-//            }
-//        }
         #endif
         
         /// If you add your first payment method, download all the content on save.

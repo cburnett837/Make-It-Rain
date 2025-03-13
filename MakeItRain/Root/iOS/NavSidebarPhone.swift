@@ -22,13 +22,7 @@ struct NavSidebar: View {
     @Namespace private var monthNavigationNamespace
     
     @Binding var selectedDay: CBDay?
-    @Binding var showMonth: Bool
-    //@Binding var showSettings: Bool
-    
-    
-    //let twoColumnGrid = Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .top), count: 2)
-    //let threeColumnGrid = Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .top), count: 3)
-    //let sevenColumnGrid = Array(repeating: GridItem(.flexible(), spacing: 5, alignment: .top), count: 7)
+    //@Binding var showMonth: Bool
     
     var body: some View {
         @Bindable var navManager = NavigationManager.shared
@@ -53,12 +47,6 @@ struct NavSidebar: View {
                     .standardNavRowBackground()
                 }
                 
-//                Section("Search") {
-//                    if AppState.shared.methsExist {
-//                        NavLinkPhone(destination: .search, title: "Advanced Search", image: "magnifyingglass")
-//                    }
-//                }
-                
                 Section("More") {
                     if AppState.shared.methsExist {
                         NavLinkPhone(destination: .repeatingTransactions, title: "Reoccuring Transactions", image: "repeat")
@@ -77,15 +65,9 @@ struct NavSidebar: View {
                             .listRowSeparator(.hidden)
                     }
                 }
-                
-//                Section("Settings") {
-//                    NavLinkPhone(destination: .settings, title: "Settings", image: "gear")
-//                }
             }
             .listStyle(.plain)
         }
-        //.padding(.top, 10)
-        //.frame(width: getRect().width - 90)
         .standardNavBackground()
         .frame(maxWidth: .infinity)
     }
@@ -296,31 +278,31 @@ struct NavSidebar: View {
             GridRow(alignment: .top) {
                 Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
                 Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
-                MonthNavigationLink(enumID: .lastDecember, showMonth: $showMonth)
+                MonthNavigationLink(enumID: .lastDecember)
                 
             }
             GridRow(alignment: .top) {
-                MonthNavigationLink(enumID: .january, showMonth: $showMonth)
-                MonthNavigationLink(enumID: .february, showMonth: $showMonth)
-                MonthNavigationLink(enumID: .march, showMonth: $showMonth)
+                MonthNavigationLink(enumID: .january)
+                MonthNavigationLink(enumID: .february)
+                MonthNavigationLink(enumID: .march)
             }
             GridRow(alignment: .top) {
-                MonthNavigationLink(enumID: .april, showMonth: $showMonth)
-                MonthNavigationLink(enumID: .may, showMonth: $showMonth)
-                MonthNavigationLink(enumID: .june, showMonth: $showMonth)
+                MonthNavigationLink(enumID: .april)
+                MonthNavigationLink(enumID: .may)
+                MonthNavigationLink(enumID: .june)
             }
             GridRow(alignment: .top) {
-                MonthNavigationLink(enumID: .july, showMonth: $showMonth)
-                MonthNavigationLink(enumID: .august, showMonth: $showMonth)
-                MonthNavigationLink(enumID: .september, showMonth: $showMonth)
+                MonthNavigationLink(enumID: .july)
+                MonthNavigationLink(enumID: .august)
+                MonthNavigationLink(enumID: .september)
             }
             GridRow(alignment: .top) {
-                MonthNavigationLink(enumID: .october, showMonth: $showMonth)
-                MonthNavigationLink(enumID: .november, showMonth: $showMonth)
-                MonthNavigationLink(enumID: .december, showMonth: $showMonth)
+                MonthNavigationLink(enumID: .october)
+                MonthNavigationLink(enumID: .november)
+                MonthNavigationLink(enumID: .december)
             }
             GridRow(alignment: .top) {
-                MonthNavigationLink(enumID: .nextJanuary, showMonth: $showMonth)
+                MonthNavigationLink(enumID: .nextJanuary)
                 Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
                 Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
             }
@@ -331,36 +313,36 @@ struct NavSidebar: View {
         Grid {
             GridRow(alignment: .top) {
                 Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
-                MonthNavigationLink(enumID: .lastDecember, showMonth: $showMonth)
+                MonthNavigationLink(enumID: .lastDecember)
                 
             }
             GridRow(alignment: .top) {
-                MonthNavigationLink(enumID: .january, showMonth: $showMonth)
-                MonthNavigationLink(enumID: .february, showMonth: $showMonth)
+                MonthNavigationLink(enumID: .january)
+                MonthNavigationLink(enumID: .february)
             }
             GridRow(alignment: .top) {
-                MonthNavigationLink(enumID: .march, showMonth: $showMonth)
-                MonthNavigationLink(enumID: .april, showMonth: $showMonth)
+                MonthNavigationLink(enumID: .march)
+                MonthNavigationLink(enumID: .april)
             }
             GridRow(alignment: .top) {
-                MonthNavigationLink(enumID: .may, showMonth: $showMonth)
-                MonthNavigationLink(enumID: .june, showMonth: $showMonth)
+                MonthNavigationLink(enumID: .may)
+                MonthNavigationLink(enumID: .june)
                 
             }
             GridRow(alignment: .top) {
-                MonthNavigationLink(enumID: .july, showMonth: $showMonth)
-                MonthNavigationLink(enumID: .august, showMonth: $showMonth)
+                MonthNavigationLink(enumID: .july)
+                MonthNavigationLink(enumID: .august)
             }
             GridRow(alignment: .top) {
-                MonthNavigationLink(enumID: .september, showMonth: $showMonth)
-                MonthNavigationLink(enumID: .october, showMonth: $showMonth)
+                MonthNavigationLink(enumID: .september)
+                MonthNavigationLink(enumID: .october)
             }
             GridRow(alignment: .top) {
-                MonthNavigationLink(enumID: .november, showMonth: $showMonth)
-                MonthNavigationLink(enumID: .december, showMonth: $showMonth)
+                MonthNavigationLink(enumID: .november)
+                MonthNavigationLink(enumID: .december)
             }
             GridRow(alignment: .top) {
-                MonthNavigationLink(enumID: .nextJanuary, showMonth: $showMonth)
+                MonthNavigationLink(enumID: .nextJanuary)
                 Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
             }
         }

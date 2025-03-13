@@ -13,7 +13,7 @@ class KeywordModel {
     static let shared = KeywordModel()
     var isThinking = false
     
-    var keywordEditID: Int?
+    //var keywordEditID: Int?
     var keywords: Array<CBKeyword> = []
     //var refreshTask: Task<Void, Error>?
     var fuckYouSwiftuiTableRefreshID: UUID = UUID()

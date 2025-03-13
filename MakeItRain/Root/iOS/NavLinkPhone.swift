@@ -16,24 +16,11 @@ struct NavLinkPhone: View {
     let title: String
     let image: String
     
-//    var backgroundColor: Color? {
-//        if destination == NavigationManager.shared.selection {
-//            if useGrayBackground && preferDarkMode {
-//                return Color(.tertiarySystemBackground)
-//            }
-//        } else {
-//            if preferDarkMode && useGrayBackground {
-//                return Color.darkGray
-//            }
-//        }
-//        return nil
-//    }
-                
     var body: some View {
         Group {
             if AppState.shared.isIpad {
                 Button {
-                    //NavigationManager.shared.navPath = [destination]
+                    NavigationManager.shared.selectedMonth = nil
                     NavigationManager.shared.selection = destination
                 } label: {
                     Label(
@@ -50,10 +37,7 @@ struct NavLinkPhone: View {
                 }
             }
         }
-                
-        //.navRowBackgroundWithSelection(selection: destination)
         .standardNavRowBackgroundWithSelection(id: destination.rawValue, selectedID: NavigationManager.shared.selection?.rawValue)
-        //.listRowBackground(backgroundColor)
     }
 }
 
@@ -65,71 +49,21 @@ struct MonthNavigationLink: View {
     @Namespace private var monthNavigationNamespace
     let sevenColumnGrid = Array(repeating: GridItem(.flexible(), spacing: 0, alignment: .top), count: 7)
     
-    //@Bindable var month: CBMonth
     var enumID: NavDestination
-    @Binding var showMonth: Bool
+    //@Binding var showMonth: Bool
     
     var month: CBMonth {
         calModel.months.filter {$0.enumID == enumID}.first!
     }
     
     var body: some View {
-        Button {
-            //NavigationManager.shared.navPath = [month.enumID]
-            NavigationManager.shared.selection = month.enumID
-            showMonth = true
-        } label: {
+        Button(action: navigateToMonth) {
             VStack(alignment: .leading) {
-                Group {
-                    if month.enumID == .lastDecember || month.enumID == .nextJanuary {
-                        Text("\(month.abbreviatedName) \(String(month.year))")
-                    } else {
-                        Text(month.abbreviatedName)
-                    }
-                }
-                .font(.title3)
-                .bold()
-                .if(AppState.shared.todayMonth == month.actualNum && AppState.shared.todayYear == month.year) {
-                    $0.foregroundStyle(Color.fromName(appColorTheme))
-                }
-                
-                
-                LazyVGrid(columns: sevenColumnGrid, spacing: 0) {
-                    ForEach(month.days) { day in
-                        Group {
-                            if day.date == nil {
-                                Text("")
-                                    .font(.caption2)
-                            } else {
-                                Text("\(day.dateComponents?.day ?? 0)")
-                                    .lineLimit(1)
-                                    //.minimumScaleFactor(0.5)
-                                    .font(.caption2)
-                                    //.font(.system(size: 5))
-                                    .if(AppState.shared.todayDay == (day.dateComponents?.day ?? 0) && AppState.shared.todayMonth == month.actualNum && AppState.shared.todayYear == month.year) {
-                                        $0
-                                        .bold()
-                                        .foregroundStyle(Color.fromName(appColorTheme))
-                                    }
-                            }
-                        }
-                        .padding(.bottom, 4)
-                        
-                    }
-                }
+                monthName
+                monthDayGrid
             }
             .contentShape(Rectangle())
             .matchedTransitionSource(id: month.enumID, in: monthNavigationNamespace)
-//            .dropDestination(for: CBTransaction.self) { droppedTrans, location in
-//                calModel.dragTarget = nil
-//                return true
-//            } isTargeted: { isTargeted in
-//                if isTargeted {
-//                    withAnimation {
-//                        NavigationManager.shared.selection = month.enumID
-//                    }
-//                }
-//            }
         }
         .padding(.bottom, 10)
         .buttonStyle(.plain)
@@ -138,8 +72,58 @@ struct MonthNavigationLink: View {
             $0.background(
                 RoundedRectangle(cornerRadius: 6)
                     /// Use this to only hilight the overview day.
-                    .fill(NavigationManager.shared.selection == month.enumID ? Color(.tertiarySystemFill) : Color.clear)
+                    .fill(NavigationManager.shared.selectedMonth == month.enumID ? Color(.tertiarySystemFill) : Color.clear)
             )
+        }
+    }
+    
+    var monthName: some View {
+        Group {
+            if month.enumID == .lastDecember || month.enumID == .nextJanuary {
+                Text("\(month.abbreviatedName) \(String(month.year))")
+            } else {
+                Text(month.abbreviatedName)
+            }
+        }
+        .font(.title3)
+        .bold()
+        .if(AppState.shared.todayMonth == month.actualNum && AppState.shared.todayYear == month.year) {
+            $0.foregroundStyle(Color.fromName(appColorTheme))
+        }
+    }
+    
+    var monthDayGrid: some View {
+        LazyVGrid(columns: sevenColumnGrid, spacing: 0) {
+            ForEach(month.days) { day in
+                Group {
+                    if day.date == nil {
+                        Text("")
+                            .font(.caption2)
+                    } else {
+                        Text("\(day.dateComponents?.day ?? 0)")
+                            .lineLimit(1)
+                            //.minimumScaleFactor(0.5)
+                            .font(.caption2)
+                            //.font(.system(size: 5))
+                            .if(AppState.shared.todayDay == (day.dateComponents?.day ?? 0) && AppState.shared.todayMonth == month.actualNum && AppState.shared.todayYear == month.year) {
+                                $0
+                                .bold()
+                                .foregroundStyle(Color.fromName(appColorTheme))
+                            }
+                    }
+                }
+                .padding(.bottom, 4)
+                
+            }
+        }
+    }
+    
+    func navigateToMonth() {
+        NavigationManager.shared.selectedMonth = month.enumID
+        NavigationManager.shared.selection = nil
+        
+        if !AppState.shared.isIpad {
+            calModel.showMonth = true
         }
     }
 }

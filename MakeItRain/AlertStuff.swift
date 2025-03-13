@@ -7,134 +7,6 @@
 
 import SwiftUI
 
-struct AlertAndToastLayerView: View {
-    @Environment(CalendarModel.self) private var calModel
-    
-    var body: some View {
-        @Bindable var appState = AppState.shared
-        @Bindable var calModel = calModel
-        @Bindable var undoManager = UndodoManager.shared
-        
-        Group {}
-        .toast()
-        .alert("Undo / Redo", isPresented: $undoManager.showAlert) {
-            VStack {
-                if UndodoManager.shared.canUndo {
-                    Button {
-                        if let old = UndodoManager.shared.undo() {
-                            undoManager.returnMe = old
-                        }
-                    } label: {
-                        Text("Undo")
-                    }
-                }
-                
-                if UndodoManager.shared.canRedo {
-                    Button {
-                        if let new = UndodoManager.shared.redo() {
-                            undoManager.returnMe = new
-                        }
-                    } label: {
-                        Text("Redo")
-                    }
-                }
-                
-                Button(role: .cancel) {
-                } label: {
-                    Text("Cancel")
-                }
-            }
-        }
-//        .overlay {
-//            ProgressView()
-//                .opacity(AppState.shared.showUniversalLoadingSpinner ? 1 : 0)
-//        }
-        
-//        .sheet(isPresented: $calModel.showSmartTransactionPaymentMethodSheet) {
-//            PaymentMethodSheet(
-//                payMethod: Binding(get: { CBPaymentMethod() }, set: { calModel.pendingSmartTransaction!.payMethod = $0 }),
-//                trans: calModel.pendingSmartTransaction,
-//                calcAndSaveOnChange: true,
-//                whichPaymentMethods: .allExceptUnified,
-//                isPendingSmartTransaction: true
-//            )
-//        }
-//
-//
-//        .sheet(isPresented: $calModel.showSmartTransactionDatePickerSheet, onDismiss: {
-//            if calModel.pendingSmartTransaction!.date == nil {
-//                calModel.pendingSmartTransaction!.date = Date()
-//            }
-//
-//            calModel.saveTransaction(id: calModel.pendingSmartTransaction!.id, location: .smartList)
-//            calModel.tempTransactions.removeAll()
-//            calModel.pendingSmartTransaction = nil
-//        }, content: {
-//            GeometryReader { geo in
-//                ScrollView {
-//                    VStack {
-//                        SheetHeader(title: "Select Receipt Date", subtitle: calModel.pendingSmartTransaction!.title) {
-//                            calModel.showSmartTransactionDatePickerSheet = false
-//                        }
-//
-//                        Divider()
-//
-//                        DatePicker(selection: Binding($calModel.pendingSmartTransaction)!.date ?? Date(), displayedComponents: [.date]) {
-//                            EmptyView()
-//                        }
-//                        .datePickerStyle(.graphical)
-//                        .frame(maxWidth: .infinity, alignment: .leading)
-//                        .labelsHidden()
-//
-//                        Spacer()
-//                        Button("Done") {
-//                            calModel.showSmartTransactionDatePickerSheet = false
-//                        }
-//                        .buttonStyle(.borderedProminent)
-//                        .padding(.bottom, 12)
-//                    }
-//                    .frame(minHeight: geo.size.height)
-//                }
-//                .padding([.top, .horizontal])
-//            }
-//            //.presentationDetents([.medium])
-//        })
-//        .opacity((AppState.shared.showAlert || AppState.shared.toast != nil) ? 1 : 0)
-//        .alert(AppState.shared.alertText, isPresented: $appState.showAlert) {
-//            if let function = AppState.shared.alertFunction {
-//                Button(AppState.shared.alertButtonText ?? "", action: function)
-//            }
-//            if let function = AppState.shared.alertFunction2 {
-//                Button(AppState.shared.alertButtonText2 ?? "", action: function)
-//            } else {
-//                Button("Close", action: {})
-//            }
-//        }
-        .overlay {
-            if let config = AppState.shared.alertConfig {
-                Rectangle()
-                    //.fill(.ultraThickMaterial)
-                    .fill(Color.darkGray3)
-                    .opacity(0.8)
-                    .ignoresSafeArea()
-                    .overlay { CustomAlert(config: config) }
-                    .opacity(appState.showCustomAlert ? 1 : 0)
-                                        
-            }
-        }
-        .fullScreenCover(isPresented: $calModel.showMonth) {
-            if let selection = NavigationManager.shared.selection {
-                if NavDestination.justMonths.contains(selection) {
-                    CalendarViewPhone(enumID: selection, selectedDay: $selectedDay)
-                        .navigationTransition(.zoom(sourceID: selection, in: monthNavigationNamespace))
-                        .if(AppState.shared.methsExist) {
-                            $0.loadingSpinner(id: selection, text: "Loading…")
-                        }
-                }
-            }
-        }
-    }
-}
 
 
 struct CustomAlert: View {
@@ -210,6 +82,7 @@ struct CustomAlert: View {
         .compositingGroup()
     }
 }
+
 
 struct AlertConfig {
     var title: String

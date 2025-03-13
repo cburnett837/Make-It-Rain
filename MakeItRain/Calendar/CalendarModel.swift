@@ -18,37 +18,46 @@ import UIKit
 @MainActor
 @Observable
 class CalendarModel {
-    static let shared = CalendarModel()    
-    var isThinking = false
+    static let shared = CalendarModel()
     
-    var showMonth = false
+    // MARK: - State Variables
+    //var trans: CBTransaction?
+    var isThinking = false // **EXTRACT**
+    var showMonth = false // **EXTRACT**
+    #if os(iOS)
+    var isShowingFullScreenCoverOnIpad = false // **EXTRACT**
+    var categoryFilterWasSetByCategoryPage = false // **EXTRACT**
+    //var selectedDay: CBDay?
+    #endif
     
-    var trans: CBTransaction?
-    //var transEditID: Int?
-    var transactionToCopy: CBTransaction?
-    
-    var sMonth: CBMonth = CBMonth(num: 1)
-    var sYear: Int = AppState.shared.todayYear
-    var sPayMethod: CBPaymentMethod? {
+    var sMonth: CBMonth = CBMonth(num: 1) // **EXTRACT**
+    var sYear: Int = AppState.shared.todayYear // **EXTRACT**
+    var sPayMethod: CBPaymentMethod? { // **EXTRACT**
         didSet {
             prepareStartingAmount(for: self.sPayMethod) /// Needed for the mac to prepare the unified starting amount
             calculateTotalForMonth(month: self.sMonth)
         }
     }
-    var sCategory: CBCategory?
-    var sCategories: [CBCategory] = []
-    var sCategoriesForAnalysis: [CBCategory] = []
+    var sCategory: CBCategory? // **EXTRACT**
+    var sCategories: [CBCategory] = [] // **EXTRACT**
+    var sCategoriesForAnalysis: [CBCategory] = [] // **EXTRACT**
     
-    var isUnifiedPayMethod: Bool {
-        self.sPayMethod?.accountType == .unifiedChecking || self.sPayMethod?.accountType == .unifiedCredit
-    }
+    /// This gets set to prevent that currently edited transaction from being updates by the long poll or scene change.
+    var transEditID: String? // **EXTRACT**
+    var searchText = "" // **EXTRACT**
+    var searchWhat = CalendarSearchWhat.titles // **EXTRACT**
     
-    /// Visual things
+    // MARK: - Visual things
+    var transactionToCopy: CBTransaction?
     var dragTarget: CBDay?
     var hilightTrans: CBTransaction?
     
     //var refreshTask: Task<Void, Error>?
-        
+    
+    
+    var weekdaysNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    
+    // MARK: - Data Container Variables
     var months: [CBMonth] = [
         CBMonth(num: 0),
         CBMonth(num: 1),
@@ -65,12 +74,10 @@ class CalendarModel {
         CBMonth(num: 12),
         CBMonth(num: 13)
     ]
-    
-    var weekdaysNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-    
     var tempTransactions: [CBTransaction] = []
     var searchedTransactions: [CBTransaction] = []
-    //var eventTransactions: [CBTransaction] = []
+    var tags: Array<CBTag> = []
+    var fitTrans: Array<CBFitTransaction> = []
     
     var justTransactions: Array<CBTransaction> {
         months.flatMap { $0.days }.flatMap { $0.transactions }
@@ -80,19 +87,10 @@ class CalendarModel {
         months.flatMap { $0.budgets }
     }
     
-    var transEditID: String?
-    var searchText = ""
-    var searchWhat = CalendarSearchWhat.titles
-    
-    
-    
-    var tags: Array<CBTag> = []
-    var fitTrans: Array<CBFitTransaction> = []
-    
-//    var tags: Array<CBTag> {
-//        justTransactions.flatMap { $0.tags }.uniqued()
-//    }
-    
+    var isUnifiedPayMethod: Bool {
+        self.sPayMethod?.accountType == .unifiedChecking || self.sPayMethod?.accountType == .unifiedCredit
+    }
+   
     
     
     // MARK: - Fetch From Server

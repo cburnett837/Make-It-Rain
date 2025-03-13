@@ -13,7 +13,7 @@ class RepeatingTransactionModel {
     static let shared = RepeatingTransactionModel()
     var isThinking = false
     
-    var repTransactionEditID: Int?
+    //var repTransactionEditID: Int?
     var repTransactions: Array<CBRepeatingTransaction> = []
     //var refreshTask: Task<Void, Error>?
     var fuckYouSwiftuiTableRefreshID: UUID = UUID()
