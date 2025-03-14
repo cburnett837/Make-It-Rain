@@ -32,6 +32,7 @@ struct BudgetTable: View {
     @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
     
     @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
     @Environment(CategoryModel.self) private var catModel
     
     @State private var deleteBudget: CBBudget?
@@ -247,6 +248,7 @@ struct BudgetTable: View {
         @AppStorage("threshold") var threshold = "500.0"
         @AppStorage("useWholeNumbers") var useWholeNumbers = false
         @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
         
         var maxHeaderHeight: CGFloat
         
@@ -329,6 +331,7 @@ struct BudgetTable: View {
         @AppStorage("useWholeNumbers") var useWholeNumbers = false
         @AppStorage("threshold") var threshold = "500.0"
         @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
         
         var geo: GeometryProxy
         @Binding var budgetEditID: CBBudget.ID?
@@ -437,6 +440,7 @@ struct BudgetTable: View {
         @AppStorage("useWholeNumbers") var useWholeNumbers = false
         @AppStorage("threshold") var threshold = "500.0"
         @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
         
         var geo: GeometryProxy
         @Binding var budgetEditID: CBBudget.ID?
@@ -1152,6 +1156,7 @@ extension Color {
 //    @AppStorage("useWholeNumbers") var useWholeNumbers = false
 //    
 //    @Environment(CalendarModel.self) private var calModel
+//    @Environment(CalendarViewModel.self) private var calViewModel
 //    
 //    @State private var deleteBudget: CBBudget?
 //    @State private var editBudget: CBBudget?
@@ -1273,6 +1278,7 @@ extension Color {
 //        @AppStorage("useWholeNumbers") var useWholeNumbers = false
 //        @AppStorage("threshold") var threshold = "500.0"
 //        @Environment(CalendarModel.self) private var calModel
+//    @Environment(CalendarViewModel.self) private var calViewModel
 //        
 //        var geo: GeometryProxy
 //        @Binding var budgetEditID: CBBudget.ID?
@@ -1437,6 +1443,7 @@ extension Color {
 //        @AppStorage("useWholeNumbers") var useWholeNumbers = false
 //        @AppStorage("threshold") var threshold = "500.0"
 //        @Environment(CalendarModel.self) private var calModel
+//    @Environment(CalendarViewModel.self) private var calViewModel
 //        
 //        var geo: GeometryProxy
 //        @Binding var budgetEditID: CBBudget.ID?

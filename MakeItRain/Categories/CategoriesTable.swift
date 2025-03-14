@@ -16,6 +16,7 @@ struct CategoriesTable: View {
     
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
     @Environment(EventModel.self) private var eventModel

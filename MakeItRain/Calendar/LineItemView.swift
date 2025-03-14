@@ -20,6 +20,7 @@ struct LineItemView: View {
     //@AppStorage("showAccountOnUnifiedView") var showAccountOnUnifiedView = false
     
     @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel

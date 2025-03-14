@@ -9,7 +9,7 @@ import SwiftUI
 
 #if os(iOS)
 struct RootViewPhone: View {    
-    @Environment(CalendarModel.self) var calModel
+    @Environment(CalendarModel.self) var calModel; @Environment(CalendarViewModel.self) var calViewModel
     @Environment(PayMethodModel.self) var payModel
     @Environment(CategoryModel.self) var catModel
     @Environment(KeywordModel.self) var keyModel

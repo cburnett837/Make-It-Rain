@@ -8,7 +8,8 @@
 import SwiftUI
 
 struct NavLinkMac: View {
-    @Environment(CalendarModel.self) var calModel
+    @Environment(CalendarModel.self) var calModel; @Environment(CalendarViewModel.self) var calViewModel
+    
     
     @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     @AppStorage("showIndividualLoadingSpinner") var showIndividualLoadingSpinner = false

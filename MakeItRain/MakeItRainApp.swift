@@ -100,95 +100,83 @@ struct MakeItRainApp: App {
         
     var body: some Scene {
         WindowGroup {
-            RootViewWrapper(selectedDay: $selectedDay) {
-                @Bindable var appState = AppState.shared
-                Group {
-                    /// `AuthState.shared.isThinking` is always true when app launches from fresh state.
-                    /// `AppState.shared.appShouldShowSplashScreen` is set to false in `downloadEverything()` when the current month completes.
-                    if AuthState.shared.isThinking || AppState.shared.appShouldShowSplashScreen || !AppState.shared.splashTextAnimationIsFinished/* || AppState.shared.holdSplash */{
-                        loadingScreen
-                    } else {
-                        if AuthState.shared.isLoggedIn {
-                            rootView
+            CalendarSheetLayerWrapper(selectedDay: $selectedDay) {
+                RootViewWrapper(selectedDay: $selectedDay) {
+                    @Bindable var appState = AppState.shared
+                    Group {
+                        /// `AuthState.shared.isThinking` is always true when app launches from fresh state.
+                        /// `AppState.shared.appShouldShowSplashScreen` is set to false in `downloadEverything()` when the current month completes.
+                        if AuthState.shared.isThinking || AppState.shared.appShouldShowSplashScreen || !AppState.shared.splashTextAnimationIsFinished/* || AppState.shared.holdSplash */{
+                            loadingScreen
                         } else {
-                            Login()
-                                .transition(.opacity)
-                                .onAppear {
-                                    if AuthState.shared.serverRevoked {
-                                        serverRevokedAccess()
-                                        AuthState.shared.serverRevoked = false
+                            if AuthState.shared.isLoggedIn {
+                                rootView
+                            } else {
+                                Login()
+                                    .transition(.opacity)
+                                    .onAppear {
+                                        if AuthState.shared.serverRevoked {
+                                            //serverRevokedAccess()
+                                            AuthState.shared.serverRevoked = false
+                                        }
                                     }
-                                }
-                        }
-                    }
-                }
-                #if os(iOS)
-                .fullScreenCover(isPresented: $appState.showPaymentMethodNeededSheet, onDismiss: { downloadInitial() }) {
-                    PaymentMethodRequiredView()
-                }
-                .fullScreenCover(isPresented: $appState.hasBadConnection) {
-                    TempTransactionList()
-                }
-                #else
-                .sheet(isPresented: $appState.showPaymentMethodNeededSheet, onDismiss: { downloadInitial() }) {
-                    PaymentMethodRequiredView()
-                        .padding()
-                }
-                #endif
-                
-                #if os(iOS)
-                .onAppear {
-                    let or = UIDevice.current.orientation
-                    AppState.shared.orientation = or
-                    if [.landscapeLeft, .landscapeRight].contains(or) || ([.faceUp, .faceDown].contains(or) && AppState.shared.isLandscape) {
-                        AppState.shared.isLandscape = true
-                    } else {
-                        AppState.shared.isLandscape = false
-                    }
-                    
-                    /// Set a default color scheme
-                    if UserDefaults.standard.string(forKey: "appColorTheme") == nil {
-                        UserDefaults.standard.set(Color.green.description, forKey: "appColorTheme")
-                    }
-                }
-                .onRotate {
-                    AppState.shared.orientation = $0
-                    if [.landscapeLeft, .landscapeRight].contains($0) || ([.faceUp, .faceDown].contains($0) && AppState.shared.isLandscape) {
-                        AppState.shared.isLandscape = true
-                    } else {
-                        AppState.shared.isLandscape = false
-                    }
-                }
-                #endif
-                
-                /// Create the app delegate for Mac
-                #if os(macOS)
-                .background {
-                    HostingWindowFinder { window in
-                        guard let window else { return }
-                        window.delegate = appDelegate
-                    }
-                }
-                
-                /// Set fullscreen if the app preferences call for it
-                .onAppear {
-                    if startInFullScreen {
-                        Task {
-                            await MainActor.run {
-                                AppState.shared.isInFullScreen = true
-                                if let window = NSApplication.shared.windows.last {
-                                    window.toggleFullScreen(nil)
-                                }
                             }
                         }
                     }
-                    
-                    /// Set a default color scheme
-                    if UserDefaults.standard.string(forKey: "appColorTheme") == nil {
-                        UserDefaults.standard.set(Color.blue.description, forKey: "appColorTheme")
+                    #if os(iOS)
+                    .onAppear {
+                        let or = UIDevice.current.orientation
+                        AppState.shared.orientation = or
+                        if [.landscapeLeft, .landscapeRight].contains(or) || ([.faceUp, .faceDown].contains(or) && AppState.shared.isLandscape) {
+                            AppState.shared.isLandscape = true
+                        } else {
+                            AppState.shared.isLandscape = false
+                        }
+                        
+                        /// Set a default color scheme
+                        if UserDefaults.standard.string(forKey: "appColorTheme") == nil {
+                            UserDefaults.standard.set(Color.green.description, forKey: "appColorTheme")
+                        }
                     }
+                    .onRotate {
+                        AppState.shared.orientation = $0
+                        if [.landscapeLeft, .landscapeRight].contains($0) || ([.faceUp, .faceDown].contains($0) && AppState.shared.isLandscape) {
+                            AppState.shared.isLandscape = true
+                        } else {
+                            AppState.shared.isLandscape = false
+                        }
+                    }
+                    #endif
+                    
+                    /// Create the app delegate for Mac
+                    #if os(macOS)
+                    .background {
+                        HostingWindowFinder { window in
+                            guard let window else { return }
+                            window.delegate = appDelegate
+                        }
+                    }
+                    
+                    /// Set fullscreen if the app preferences call for it
+                    .onAppear {
+                        if startInFullScreen {
+                            Task {
+                                await MainActor.run {
+                                    AppState.shared.isInFullScreen = true
+                                    if let window = NSApplication.shared.windows.last {
+                                        window.toggleFullScreen(nil)
+                                    }
+                                }
+                            }
+                        }
+                        
+                        /// Set a default color scheme
+                        if UserDefaults.standard.string(forKey: "appColorTheme") == nil {
+                            UserDefaults.standard.set(Color.blue.description, forKey: "appColorTheme")
+                        }
+                    }
+                    #endif
                 }
-                #endif
             }
             .environment(funcModel)
             .environment(calModel)
@@ -201,7 +189,6 @@ struct MakeItRainApp: App {
 //            .if(userColorScheme != .userSystem) {
 //                $0.preferredColorScheme(userColorScheme == .userDark ? .dark : .light)
 //            }
-            
             //.preferredColorScheme(preferDarkMode ? .dark : .light)
         }
         .defaultSize(width: 1000, height: 600)
@@ -256,10 +243,6 @@ struct MakeItRainApp: App {
             @Bindable var navManager = NavigationManager.shared
             SplashScreen()
                 .transition(.opacity)
-                .task {
-                    funcModel.setDeviceUUID()
-                    await login()
-                }
         }
     }
     
@@ -271,6 +254,110 @@ struct MakeItRainApp: App {
                 screenWidth = value.width
                 screenHeight = value.height
             }
+    }
+    
+    
+    private func setupTips() throws {
+        // Show all defined tips in the app.
+        // Tips.showAllTipsForTesting()
+
+        // Show some tips, but not all.
+        // Tips.showTipsForTesting([tip1, tip2, tip3])
+
+        // Hide all tips defined in the app.
+        // Tips.hideAllTipsForTesting()
+
+        // Purge all TipKit-related data.
+        //try Tips.resetDatastore()
+
+        // Configure and load all tips in the app.
+        try Tips.configure()
+        
+    }
+}
+
+
+
+struct RootViewWrapper<Content: View>: View {
+    @Environment(FuncModel.self) var funcModel
+    @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
+    @Environment(PayMethodModel.self) private var payModel
+    @Environment(CategoryModel.self) private var catModel
+    @Environment(KeywordModel.self) private var keyModel
+    @Environment(RepeatingTransactionModel.self) private var repModel
+    @Environment(EventModel.self) private var eventModel
+    
+    var content: Content
+        
+    #if os(iOS)
+    @Binding var selectedDay: CBDay?
+    @State private var window: UIWindow?
+    #endif
+    
+    init(selectedDay: Binding<CBDay?>, @ViewBuilder content: @escaping () -> Content) {
+        self._selectedDay = selectedDay
+        self.content = content()
+    }
+                        
+    var body: some View {
+        @Bindable var appState = AppState.shared
+        content
+            .environment(calViewModel)
+            #if os(iOS)
+            .onAppear {
+                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene, window == nil {
+                    let rootVC = UIHostingController(rootView:
+                        AlertAndToastLayerView(selectedDay: $selectedDay)
+                            .environment(funcModel)
+                            .environment(calModel)
+                            .environment(calViewModel)
+                            .environment(payModel)
+                            .environment(catModel)
+                            .environment(keyModel)
+                            .environment(repModel)
+                            .environment(eventModel)
+                    )
+                    rootVC.view.backgroundColor = .clear
+                    
+                    let window = PassThroughWindowPhone(windowScene: windowScene)
+                    window.isHidden = false
+                    window.isUserInteractionEnabled = true
+                    window.rootViewController = rootVC
+                    self.window = window
+                }
+            }
+            #else
+            .overlay {
+                AlertAndToastLayerView()
+                    .environment(funcModel)
+                    .environment(calModel)
+                    .environment(calViewModel)
+                    .environment(payModel)
+                    .environment(catModel)
+                    .environment(keyModel)
+                    .environment(repModel)
+                    .environment(eventModel)
+            }
+            #endif
+            .task {
+                funcModel.setDeviceUUID()
+                await login()
+            }
+            #if os(iOS)
+            .fullScreenCover(isPresented: $appState.showPaymentMethodNeededSheet, onDismiss: { downloadInitial() }) {
+                PaymentMethodRequiredView()
+            }
+            .fullScreenCover(isPresented: $appState.hasBadConnection) {
+                TempTransactionList()
+            }
+            #else
+            .sheet(isPresented: $appState.showPaymentMethodNeededSheet, onDismiss: { downloadInitial() }) {
+                PaymentMethodRequiredView()
+                    .padding()
+            }
+            #endif
+
     }
     
     
@@ -300,6 +387,28 @@ struct MakeItRainApp: App {
         }
     }
     
+    func downloadInitial() {
+        @Bindable var navManager = NavigationManager.shared
+        /// Set navigation destination to current month
+        //navManager.selection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+        navManager.selectedMonth = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+        //navManager.monthSelection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+        //navManager.navPath.append(NavDestination.getMonthFromInt(AppState.shared.todayMonth)!)
+        
+        LoadingManager.shared.showInitiallyLoadingSpinner = true
+                    
+        funcModel.refreshTask = Task {
+            /// populate all months with their days.
+            calModel.prepareMonths()
+            //if let selection = navManager.selection {
+            if let selectedMonth = navManager.selectedMonth {
+                /// set the calendar model to use the current month (ignore starting amounts and calculations)
+                calModel.setSelectedMonthFromNavigation(navID: selectedMonth, prepareStartAmount: false)
+                /// download everything, and populate the days in the respective months with transactions.
+                await funcModel.downloadEverything(setDefaultPayMethod: true, createNewStructs: true, refreshTechnique: .viaInitial)
+            }
+        }
+    }
     
     func serverRevokedAccess() {
         AuthState.shared.logout()
@@ -341,56 +450,53 @@ struct MakeItRainApp: App {
         
         let _ = DataManager.shared.save()
     }
-        
     
-    func downloadInitial() {
-        @Bindable var navManager = NavigationManager.shared
-        /// Set navigation destination to current month
-        //navManager.selection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
-        navManager.selectedMonth = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+    
+}
+
+
+struct CalendarSheetLayerView: View {
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+    @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
+    @Namespace private var monthNavigationNamespace
+    
+    @Binding var selectedDay: CBDay?
+    
+    var body: some View {
+        @Bindable var appState = AppState.shared
+        @Bindable var calModel = calModel;
+        @Bindable var calViewModel = calViewModel
         
-        
-        //navManager.monthSelection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
-        
-        //navManager.navPath.append(NavDestination.getMonthFromInt(AppState.shared.todayMonth)!)
-        LoadingManager.shared.showInitiallyLoadingSpinner = true
-                    
-        funcModel.refreshTask = Task {
-            /// populate all months with their days.
-            calModel.prepareMonths()
-            //if let selection = navManager.selection {
-            if let selectedMonth = navManager.selectedMonth {
-                /// set the calendar model to use the current month (ignore starting amounts and calculations)
-                calModel.setSelectedMonthFromNavigation(navID: selectedMonth, prepareStartAmount: false)
-                /// download everything, and populate the days in the respective months with transactions.
-                await funcModel.downloadEverything(setDefaultPayMethod: true, createNewStructs: true, refreshTechnique: .viaInitial)
+        Rectangle()
+            .fill(Color.clear)
+            .ignoresSafeArea(.all)
+            .overlay {
+                Rectangle()
+                    .fill(Color.clear)
+                    //.if(!AppState.shared.isIpad) {
+                    .fullScreenCover(isPresented: $calModel.showMonth) {
+                        if let selectedMonth = NavigationManager.shared.selectedMonth {
+                            
+                            if NavDestination.justMonths.contains(selectedMonth) {
+                                
+                                CalendarViewPhone(enumID: selectedMonth, selectedDay: $selectedDay)
+                                    .tint(Color.fromName(appColorTheme))
+                                    .navigationTransition(.zoom(sourceID: selectedMonth, in: monthNavigationNamespace))
+                                    .if(AppState.shared.methsExist) {
+                                        $0.loadingSpinner(id: selectedMonth, text: "Loading…")
+                                    }
+                            }
+                        }
+                    }
+                    //}
             }
-        }
-    }
-    
-    
-    private func setupTips() throws {
-        // Show all defined tips in the app.
-        // Tips.showAllTipsForTesting()
-
-        // Show some tips, but not all.
-        // Tips.showTipsForTesting([tip1, tip2, tip3])
-
-        // Hide all tips defined in the app.
-        // Tips.hideAllTipsForTesting()
-
-        // Purge all TipKit-related data.
-        //try Tips.resetDatastore()
-
-        // Configure and load all tips in the app.
-        try Tips.configure()
-        
     }
 }
 
 
 
-struct RootViewWrapper<Content: View>: View {
+struct CalendarSheetLayerWrapper<Content: View>: View {
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
     @Environment(PayMethodModel.self) private var payModel
@@ -399,79 +505,51 @@ struct RootViewWrapper<Content: View>: View {
     @Environment(RepeatingTransactionModel.self) private var repModel
     @Environment(EventModel.self) private var eventModel
     
-    #if os(iOS)
-    @Binding var selectedDay: CBDay?
-    #endif
-    
+    @State private var calViewModel: CalendarViewModel
     
     var content: Content
-    //var properties = UniversalOverProperties()
+        
     #if os(iOS)
+    @Binding var selectedDay: CBDay?
     @State private var window: UIWindow?
     #endif
     
     init(selectedDay: Binding<CBDay?>, @ViewBuilder content: @escaping () -> Content) {
         self._selectedDay = selectedDay
         self.content = content()
+        self.calViewModel = .init(calModel: CalendarModel.shared)
     }
-    
+                        
     var body: some View {
+        @Bindable var appState = AppState.shared
         content
-            //.environment(properties)
+            .environment(calViewModel)
             #if os(iOS)
             .onAppear {
                 if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene, window == nil {
-                    let window = PassThroughWindowPhone(windowScene: windowScene)
-                    window.isHidden = false
-                    window.isUserInteractionEnabled = true
-                    
-                    let rootViewController = UIHostingController(rootView:
-                        AlertAndToastAndCalendarLayerView(selectedDay: $selectedDay)
+                    let rootVC = UIHostingController(rootView:
+                        CalendarSheetLayerView(selectedDay: $selectedDay)
                             .environment(funcModel)
                             .environment(calModel)
+                            .environment(calViewModel)
                             .environment(payModel)
                             .environment(catModel)
                             .environment(keyModel)
                             .environment(repModel)
                             .environment(eventModel)
                     )
-                    rootViewController.view.backgroundColor = .clear
+                    rootVC.view.backgroundColor = .clear
                     
-                    window.rootViewController = rootViewController
-                    
-                    //properties.window = window
+                    let window = PassThroughWindowPhone(windowScene: windowScene)
+                    window.isHidden = false
+                    window.isUserInteractionEnabled = true
+                    window.rootViewController = rootVC
                     self.window = window
                 }
             }
-            #else
-            .overlay {
-                AlertAndToastLayerView()
-                    .environment(funcModel)
-                    .environment(calModel)
-                    .environment(payModel)
-                    .environment(catModel)
-                    .environment(keyModel)
-                    .environment(repModel)
-                    .environment(eventModel)
-            }
             #endif
-
     }
 }
-//
-//@Observable
-//class UniversalOverProperties {
-//    var window: UIWindow?
-//    var views: [OverlayView] = []
-//    
-//    struct OverlayView: Identifiable {
-//        var id: String = UUID().uuidString
-//        var view: AnyView
-//    }
-//}
-
-
-
 
 
 
@@ -504,302 +582,3 @@ class PassThroughWindowPhone: UIWindow {
     }
 }
 #endif
-
-
-
-//class PassThroughWindowOG: UIWindow {
-//    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-//        guard let hitView = super.hitTest(point, with: event), let rootView = rootViewController?.view else { return nil }
-//        print(hitView)
-//        
-////        if #available(iOS 18, *) {
-////            
-////            // Need this to click the alerts
-////            if let rootViewController, let presented = rootViewController.presentedViewController {
-////                if presented.isKind(of: UIAlertController.self) {
-////                    print("⚠️ is UIAlertController")
-////                    return hitView
-////                }
-////            }
-////            
-//////            if let rootViewController, let presented = rootViewController.presentedViewController {
-//////                if presented.isKind(of: UISheetPresentationController.self) {
-//////                    print("⚠️ is UIPresentationController")
-//////                    return hitView
-//////                }
-//////            }
-////            
-////            
-////            /// Need this to click the toasts (but can't click the paymethod sheet(via smart trans) in the normal trans sheet
-////            for subview in rootView.subviews.reversed() {
-////                print(subview)
-////                let pointInSubView = subview.convert(point, from: rootView)
-////                if subview.hitTest(pointInSubView, with: event) == subview {
-////                    return hitView
-////                }
-////            }
-////            
-////            return nil
-////        } else {
-////            return hitView == rootView ? nil : hitView
-////        }
-//        
-//        //Alert works, toast does not, inner sheet does
-//        return hitView == rootView ? nil : hitView
-//    }
-//}
-//
-//extension View {
-//    @ViewBuilder func universalOverlay<Content: View>(animation: Animation = .snappy, show: Binding<Bool>, @ViewBuilder content: @escaping () -> Content) -> some View {
-//        self.modifier(UniversalOverlayModifier(animation: animation, show: show, viewContent: content))
-//    }
-//}
-//
-//
-//struct UniversalOverlayModifier<ViewContent: View>: ViewModifier {
-//    var animation: Animation
-//    @Binding var show: Bool
-//    @ViewBuilder var viewContent: ViewContent
-//    
-//    func body(content: Content) -> some View {
-//        content
-//    }
-//}
-//
-
-
-//@main
-//struct MakeItRainApp: App {
-//    #if os(macOS)
-//    @NSApplicationDelegateAdaptor(AppDelegateMac.self) var appDelegate
-//    //@State private var windowDelegate = MyWindowDelegate()
-//    #else
-//    @UIApplicationDelegateAdaptor(AppDelegatePhone.self) var appDelegate
-//    @Environment(\.scenePhase) var scenePhase
-//    #endif
-//    
-//    @Environment(\.colorScheme) var colorScheme
-//    @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
-//    @AppStorage("appScreenWidth") var screenWidth: Double = 0
-//    @AppStorage("appScreenHeight") var screenHeight: Double = 0
-//    @AppStorage("useBiometrics") var useBiometrics = false
-//    @AppStorage("startInFullScreen") var startInFullScreen = false
-//    
-//    @State private var appState = AppState.shared
-//    @State private var authState = AuthState.shared
-//    @State private var funcModel: FuncModel
-//    @State private var calModel: CalendarModel
-//    @State private var payModel: PayMethodModel
-//    @State private var catModel: CategoryModel
-//    @State private var keyModel: KeywordModel
-//    @State private var repModel: RepeatingTransactionModel
-//    //@State private var tagModel = TagModel()
-//    
-//    let keychainManager = KeychainManager()
-//    @State private var isUnlocked = false
-//    
-//    
-//    init() {
-//        let calModel = CalendarModel()
-//        let payModel = PayMethodModel()
-//        let catModel = CategoryModel()
-//        let keyModel = KeywordModel()
-//        let repModel = RepeatingTransactionModel()
-//        
-//        self.calModel = calModel
-//        self.payModel = payModel
-//        self.catModel = catModel
-//        self.keyModel = keyModel
-//        self.repModel = repModel
-//        
-//        self.funcModel = .init(calModel: calModel, payModel: payModel, catModel: catModel, keyModel: keyModel, repModel: repModel)
-//    }
-//        
-//    var body: some Scene {
-//        WindowGroup {
-//            @Bindable var appState = AppState.shared
-//            Group {
-////                if useBiometrics && !AuthState.shared.isBioAuthed {
-////                    Text("")
-////                        .task {
-////                            //AppState.shared.setDateToYesterday()
-////                            funcModel.setDeviceUUID()
-////                            funcModel.authenticate()
-////                        }
-////                } else {
-//                    Group {
-//                        if AuthState.shared.isThinking { /// always true when app launches from fresh state.
-//                            loadingScreen
-//                        } else {
-//                            if AuthState.shared.isLoggedIn {
-//                                rootView
-//                            } else {
-//                                if AppState.shared.hasBadConnection {
-//                                    tempTransList
-//                                } else {
-//                                    Login()
-//                                }
-//                            }
-//                        }
-//                    }
-//                //}
-//            }
-//            .environment(funcModel)
-//            .environment(calModel)
-//            .environment(payModel)
-//            .environment(catModel)
-//            .environment(keyModel)
-//            .environment(repModel)
-//            .environment(\.colorScheme, preferDarkMode ? .dark : .light)
-//            .preferredColorScheme(preferDarkMode ? .dark : .light)
-//            
-//            #if os(iOS)
-//            .onAppear {
-//                let or = UIDevice.current.orientation
-//                AppState.shared.orientation = or
-//                if [.landscapeLeft, .landscapeRight].contains(or) || ([.faceUp, .faceDown].contains(or) && AppState.shared.isLandscape) {
-//                    AppState.shared.isLandscape = true
-//                } else {
-//                    AppState.shared.isLandscape = false
-//                }
-//            }
-//            .onRotate {
-//                AppState.shared.orientation = $0
-//                if [.landscapeLeft, .landscapeRight].contains($0) || ([.faceUp, .faceDown].contains($0) && AppState.shared.isLandscape) {
-//                    AppState.shared.isLandscape = true
-//                } else {
-//                    AppState.shared.isLandscape = false
-//                }
-//            }
-//            #endif
-//        
-//            /// Create the app delegate for Mac
-//            #if os(macOS)
-//            .background {
-//                HostingWindowFinder { window in
-//                    guard let window else { return }
-//                    window.delegate = appDelegate
-//                }
-//            }
-//        
-//            /// Set fullscreen if the app preferences call for it
-//            .onAppear {
-//                if startInFullScreen {
-//                    Task {
-//                        await MainActor.run {
-//                            AppState.shared.isInFullScreen = true
-//                            if let window = NSApplication.shared.windows.last {
-//                                window.toggleFullScreen(nil)
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//            #endif
-//        
-//            /// Univseral alert
-//            .alert(AppState.shared.alertText, isPresented: $appState.showAlert) {
-//                if let function = AppState.shared.alertFunction {
-//                    Button(AppState.shared.alertButtonText) {
-//                        function()
-//                    }
-//                }
-//                
-//                Button("Close") {}
-//            }
-//        }
-//        .defaultSize(width: 1000, height: 600)
-//        
-//        #if os(macOS)
-//        .windowStyle(.hiddenTitleBar)
-//        .windowToolbarStyle(.unified)
-//        .commands {
-//            CommandGroup(replacing: .newItem, addition: { })
-//            SidebarCommands()
-//            TextFormattingCommands()
-//            ToolbarCommands()
-//        }
-//        #endif
-//        
-//        #if os(macOS)
-//        Settings {
-//            SettingsView(showSettings: .constant(false))
-//                .frame(maxWidth: 400, minHeight: 600)
-//                .environment(funcModel)
-//                .environment(calModel)
-//                .environment(payModel)
-//                .environment(catModel)
-//                .environment(keyModel)
-//                .environment(repModel)
-//                //.environment(tagModel)
-//        }
-//        #endif
-//        
-//    }
-//    
-//    var loadingScreen: some View {
-//        VStack {
-//            ProgressView()
-//                .tint(.none)
-//            //Text("Authenticating…")
-//            Text("Loading…")
-//        }
-//        #if os(iOS)
-//        .frame(maxWidth: .infinity, maxHeight: .infinity)
-//        .standardBackground()
-//        #endif
-//        .task {
-//            funcModel.setDeviceUUID()
-//            await funcModel.checkForCredentials()
-////            do {
-////                AuthState.shared.logout()
-////                try keychainManager.removeFromKeychain()
-////            } catch {
-////                print(error.localizedDescription)
-////            }
-//        }
-//        //ProgressView()
-//    }
-//    
-//    var rootView: some View {
-//        RootView()
-//            .frame(idealWidth: screenWidth, idealHeight: screenHeight)
-//        //.environment(tagModel)
-//        //.toolbar(.hidden, for: .windowToolbar)
-//            .onPreferenceChange(SizePreferenceKey.self) { value in
-//                screenWidth = value.width
-//                screenHeight = value.height
-//            }
-//    }
-//    
-//    var tempTransList: some View {
-//        TempTransactionList()
-//            #if os(iOS)
-//            .onChange(of: scenePhase) { oldPhrase, newPhase in
-//                if newPhase == .inactive {
-//                    print("scenePhase: Inactive")
-//                } else if newPhase == .active {
-//                    print("scenePhase: Active")
-//                    Task {
-//                        //authState.isThinking = true
-//                        await funcModel.checkForCredentials()
-//                    }
-//                } else if newPhase == .background {
-//                    print("scenePhase: Background")
-//                }
-//            }
-//            #else
-//            // MARK: - Handling Lifecycles (Mac)
-//            .onChange(of: AppState.shared.macWokeUp) { oldValue, newValue in
-//                if newValue { Task { await funcModel.checkForCredentials() } }
-//            }
-//            .onChange(of: AppState.shared.macSlept) { oldValue, newValue in
-//                if newValue { Task { await funcModel.checkForCredentials() } }
-//            }
-//            .onChange(of: AppState.shared.macWindowDidBecomeMain) { oldValue, newValue in
-//                if newValue { Task { await funcModel.checkForCredentials() } }
-//            }
-//            #endif
-//    }
-//    
-//}

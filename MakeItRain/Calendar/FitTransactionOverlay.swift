@@ -15,6 +15,7 @@ struct FitTransactionOverlay: View {
     @Environment(\.dismiss) private var dismiss
     #endif
     @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
     @Environment(PayMethodModel.self) private var payModel
     
     @Binding var showFitTransactions: Bool

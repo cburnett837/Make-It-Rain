@@ -15,7 +15,8 @@ struct CalendarViewMac: View {
     @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     @AppStorage("alignWeekdayNamesLeft") var alignWeekdayNamesLeft = true
     
-    @Environment(CalendarModel.self) private var calModel    
+    @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel    
     var divideBy: CGFloat {
         let cellCount = calModel.sMonth.firstWeekdayOfMonth - 1 + calModel.sMonth.dayCount
         if cellCount > 35 {
@@ -144,7 +145,7 @@ struct CalendarViewMac: View {
     
     var calendarView: some View {
         Group {
-            @Bindable var calModel = calModel
+            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
             VStack {
                 weekdayNames
                 dayGrid
@@ -205,7 +206,7 @@ struct CalendarViewMac: View {
     
     var dayGrid: some View {
         Group {
-            @Bindable var calModel = calModel
+            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
             GeometryReader { geo in
                 LazyVGrid(columns: sevenColumnGrid, spacing: 0) {
                     ForEach($calModel.sMonth.days) { $day in

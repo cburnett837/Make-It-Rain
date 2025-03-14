@@ -30,7 +30,8 @@ struct SettingsViewInsert: View {
     
     @AppStorage("showHashTagsOnLineItems") var showHashTagsOnLineItems: Bool = true
     @Environment(CategoryModel.self) var catModel
-    @Environment(CalendarModel.self) var calModel
+    @Environment(CalendarModel.self) var calModel; @Environment(CalendarViewModel.self) var calViewModel
+    
 
     
     @State private var demoDay = CBDay(date: Date())

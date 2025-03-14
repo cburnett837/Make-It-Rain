@@ -185,6 +185,7 @@ struct Login: View {
         
         await AuthState.shared.attemptLogin(using: .emailAndPassword, with: LoginModel(email: email, password: password))
         
+        
         switch AuthState.shared.error {
         case .incorrectCredentials, .accessRevoked: // calling .credentialsIncorrect because credentials can't be revoked at this stage. I mean they can, but this is a better alert.
             attemptingLogin = false

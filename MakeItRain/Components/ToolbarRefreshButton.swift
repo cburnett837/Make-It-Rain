@@ -10,6 +10,7 @@ import SwiftUI
 struct ToolbarRefreshButton: View {
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
     
     
     var body: some View {

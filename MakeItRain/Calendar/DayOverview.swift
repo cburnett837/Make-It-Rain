@@ -11,6 +11,7 @@ import SwiftUI
 struct DayOverviewView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
     @Environment(EventModel.self) private var eventModel
     
     @Binding var day: CBDay?

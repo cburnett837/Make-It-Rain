@@ -42,7 +42,8 @@ struct NavLinkPhone: View {
 }
 
 struct MonthNavigationLink: View {
-    @Environment(CalendarModel.self) var calModel
+    @Environment(CalendarModel.self) var calModel; @Environment(CalendarViewModel.self) var calViewModel
+    
     
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
     @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description

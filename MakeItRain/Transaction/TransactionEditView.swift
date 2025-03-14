@@ -34,6 +34,7 @@ struct TransactionEditView: View {
     @Environment(\.openURL) var openURL
     #endif
     @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
@@ -124,7 +125,7 @@ struct TransactionEditView: View {
     
     var body: some View {
         //let _ = Self._printChanges()
-        @Bindable var calModel = calModel
+        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
         @Bindable var payModel = payModel
         @Bindable var catModel = catModel
         @Bindable var keyModel = keyModel
@@ -943,6 +944,7 @@ struct TransactionEditView: View {
     struct SheetHeaderView: View {
         @Environment(\.dismiss) var dismiss
         @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
         
         var title: String
         @Bindable var trans: CBTransaction
@@ -1052,6 +1054,7 @@ struct TransactionEditView: View {
     
     struct DeleteYesButton: View {
         @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
         @Environment(\.dismiss) var dismiss
         @Bindable var trans: CBTransaction
         @Binding var transEditID: String?
@@ -1086,7 +1089,7 @@ struct TransactionEditView: View {
     // MARK: - Photo Views
     var photoSection: some View {
         Group {
-            @Bindable var calModel = calModel
+            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
             
             HStack(alignment: .top) {
                 Button {
@@ -1191,7 +1194,7 @@ struct TransactionEditView: View {
     
     var photoPickerButton: some View {
         Group {
-            @Bindable var calModel = calModel
+            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
             VStack(spacing: 6) {
 //                PhotosPicker(selection: $calModel.imageFromLibrary, matching: .images, photoLibrary: .shared()) {
 //                    RoundedRectangle(cornerRadius: 12)

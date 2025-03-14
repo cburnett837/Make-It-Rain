@@ -11,6 +11,7 @@ struct DayContextMenu: View {
     @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     
     @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
     
     @Bindable var day: CBDay
     

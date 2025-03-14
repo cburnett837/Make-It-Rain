@@ -15,6 +15,44 @@ import AppKit
 import UIKit
 #endif
 
+
+@MainActor
+@Observable
+class CalendarViewModel {    
+    var calModel: CalendarModel
+    
+    init(calModel: CalendarModel) {
+        self.calModel = calModel
+    }
+    
+    //var trans: CBTransaction?
+    var isThinking = false // **EXTRACT**
+    var showMonth = false // **EXTRACT**
+    #if os(iOS)
+    var isShowingFullScreenCoverOnIpad = false // **EXTRACT**
+    var categoryFilterWasSetByCategoryPage = false // **EXTRACT**
+    //var selectedDay: CBDay?
+    #endif
+    
+    var sMonth: CBMonth = CBMonth(num: 1) // **EXTRACT**
+    var sYear: Int = AppState.shared.todayYear // **EXTRACT**
+    var sPayMethod: CBPaymentMethod? { // **EXTRACT**
+        didSet {
+            calModel.prepareStartingAmount(for: self.sPayMethod) /// Needed for the mac to prepare the unified starting amount
+            calModel.calculateTotalForMonth(month: self.sMonth)
+        }
+    }
+    var sCategory: CBCategory? // **EXTRACT**
+    var sCategories: [CBCategory] = [] // **EXTRACT**
+    var sCategoriesForAnalysis: [CBCategory] = [] // **EXTRACT**
+    
+    /// This gets set to prevent that currently edited transaction from being updates by the long poll or scene change.
+    var transEditID: String? // **EXTRACT**
+    var searchText = "" // **EXTRACT**
+    var searchWhat = CalendarSearchWhat.titles // **EXTRACT**
+}
+
+
 @MainActor
 @Observable
 class CalendarModel {

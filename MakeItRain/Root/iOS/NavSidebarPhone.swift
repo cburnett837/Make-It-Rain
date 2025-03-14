@@ -14,7 +14,8 @@ struct NavSidebar: View {
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
     @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
 
-    @Environment(CalendarModel.self) var calModel
+    @Environment(CalendarModel.self) var calModel; @Environment(CalendarViewModel.self) var calViewModel
+    
     @Environment(PayMethodModel.self) var payModel
     @Environment(CategoryModel.self) var catModel
     @Environment(KeywordModel.self) var keyModel
@@ -26,7 +27,7 @@ struct NavSidebar: View {
     
     var body: some View {
         @Bindable var navManager = NavigationManager.shared
-        @Bindable var calModel = calModel
+        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
         
         VStack(spacing: 0) {
             List {
@@ -76,7 +77,7 @@ struct NavSidebar: View {
     
     var fakeNavHeader: some View {
         HStack {
-            @Bindable var calModel = calModel
+            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
             Menu {
                 if (![calModel.sYear-1, calModel.sYear, calModel.sYear+1].contains(AppState.shared.todayYear)) {
                     Section {
@@ -354,7 +355,8 @@ struct NavSidebar: View {
 
 
 struct NavSidebarOG: View {
-    @Environment(CalendarModel.self) var calModel
+    @Environment(CalendarModel.self) var calModel; @Environment(CalendarViewModel.self) var calViewModel
+    
     @Environment(PayMethodModel.self) var payModel
     @Environment(CategoryModel.self) var catModel
     @Environment(KeywordModel.self) var keyModel
@@ -364,7 +366,7 @@ struct NavSidebarOG: View {
     
     var body: some View {
         @Bindable var navManager = NavigationManager.shared
-        @Bindable var calModel = calModel
+        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
         
         VStack {
             List {

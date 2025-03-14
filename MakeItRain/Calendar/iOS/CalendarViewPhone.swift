@@ -28,6 +28,7 @@ struct CalendarViewPhone: View {
         
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
@@ -118,7 +119,7 @@ struct CalendarViewPhone: View {
         let _ = Self._printChanges()
         @Bindable var navManager = NavigationManager.shared
         //@Bindable var vm = vm
-        @Bindable var calModel = calModel
+        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
         
         /// The geometry reader is needed for the keyboard avoidance
         NavigationStack {
@@ -338,7 +339,7 @@ struct CalendarViewPhone: View {
     
     var calendarView: some View {
         Group {
-            @Bindable var calModel = calModel
+            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
             VStack(spacing: 0) {
                 if !AppState.shared.isLandscape {
                     //TipView(swipeToChangeMonthsTip, arrowEdge: .bottom)
@@ -590,7 +591,7 @@ struct CalendarViewPhone: View {
         
         
         ToolbarItemGroup(placement: .topBarTrailing) {
-            @Bindable var calModel = calModel
+            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
             HStack(spacing: 20) {
                 
                 if (!showSearchBar && AppState.shared.isIpad) || !AppState.shared.isIpad {
@@ -672,7 +673,7 @@ struct CalendarViewPhone: View {
                 
                 if showSearchBar && AppState.shared.isIpad {
                     HStack(spacing: 0) {
-                        @Bindable var calModel = calModel
+                        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
                         
                         Picker("", selection: $calModel.searchWhat) {
                             Text("Title")
@@ -935,7 +936,7 @@ struct CalendarViewPhone: View {
                 
     var fakeNavHeader: some View {
         HStack {
-            @Bindable var calModel = calModel
+            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
             Menu {
                 Section("Payment Methods") {
                     Button(calModel.sPayMethod?.title ?? "Select Payment Method") {
@@ -1144,7 +1145,7 @@ struct CalendarViewPhone: View {
     
     var searchBarOverlay: some View {
         VStack {
-            @Bindable var calModel = calModel
+            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
             VStack {
                 /// Opting for this since using ``StandardUITextField`` won't close the keyboard when clicking the return button.
                 /// I also don't need the toolbar for this textField.

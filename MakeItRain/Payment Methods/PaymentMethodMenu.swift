@@ -29,6 +29,7 @@ struct PaymentMethodMenu<Content: View>: View {
     @Environment(\.colorScheme) var colorScheme
     
     @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
     @Environment(PayMethodModel.self) private var payModel
     
     

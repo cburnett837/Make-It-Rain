@@ -15,6 +15,7 @@ struct CalendarToolbarLeading: View {
     
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(RepeatingTransactionModel.self) private var repModel
@@ -44,7 +45,7 @@ struct CalendarToolbarLeading: View {
 //    }()
     
     var body: some View {
-        @Bindable var calModel = calModel
+        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
         @Bindable var navManager = NavigationManager.shared
         
         HStack {
@@ -178,7 +179,7 @@ struct CalendarToolbarLeading: View {
     
     var categoryButton: some View {
         Group {
-            @Bindable var calModel = calModel
+            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
             Button {
                 showCategorySheet = true
             } label: {
@@ -225,7 +226,7 @@ struct CalendarToolbarLeading: View {
     
     var paymentMethodButton: some View {
         Group {
-            @Bindable var calModel = calModel
+            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
             Button {
                 showPaymentMethodSheet = true
             } label: {
@@ -254,7 +255,7 @@ struct CalendarToolbarLeading: View {
     
     var startingAmountTextFields: some View {
         Group {
-            @Bindable var calModel = calModel
+            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
             let sMeth: CBPaymentMethod? = calModel.sPayMethod
                                                             
             Button {
@@ -351,6 +352,7 @@ struct CalendarToolbarLeading: View {
 
 struct ToolbarCenterView: View {
     @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
     
     var enumID: NavDestination = NavigationManager.shared.selection ?? .placeholderMonth
     
@@ -391,6 +393,7 @@ struct CalendarToolbarTrailing: View {
     
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
     
     //@Binding var searchText: String
     //@Binding var searchWhat: CalendarSearchWhat
@@ -405,7 +408,7 @@ struct CalendarToolbarTrailing: View {
     @State private var showFitTransactions = false
     
     var body: some View {
-        @Bindable var calModel = calModel
+        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
         HStack {
             Spacer()
             if AppState.shared.longPollFailed { longPollButton }

@@ -16,6 +16,7 @@ struct EventsTable: View {
     
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
     @Environment(EventModel.self) private var eventModel
     
     @State private var searchText = ""

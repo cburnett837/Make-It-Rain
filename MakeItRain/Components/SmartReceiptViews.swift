@@ -11,9 +11,10 @@ import SwiftUI
 struct SmartReceiptDatePicker: View {
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
     @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
     
     var body: some View {
-        @Bindable var calModel = calModel
+        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
         
         Text("\((calModel.pendingSmartTransaction?.date ?? Date()).string(to: .monthDayShortYear))")
             //.fontWeight(.bold)
@@ -37,9 +38,10 @@ struct SmartReceiptDatePicker: View {
 struct SmartReceiptPaymentMethodMenu: View {
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
     @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
     
     var body: some View {
-        @Bindable var calModel = calModel
+        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
         
         PaymentMethodMenu(
             payMethod: Binding(

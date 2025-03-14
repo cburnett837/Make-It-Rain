@@ -15,6 +15,7 @@ struct AnalysisSheet: View {
     #endif
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
     @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
     @Environment(EventModel.self) private var eventModel
     @Binding var showAnalysisSheet: Bool
         
@@ -60,7 +61,7 @@ struct AnalysisSheet: View {
     }
     
     var body: some View {
-        @Bindable var calModel = calModel        
+        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel        
         SheetContainerView(.list) {
             Section {
                 HStack {

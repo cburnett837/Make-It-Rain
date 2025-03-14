@@ -23,7 +23,7 @@ struct RootView: View {
     @Environment(\.scenePhase) var scenePhase
 
     @Environment(FuncModel.self) var funcModel
-    @Environment(CalendarModel.self) var calModel
+    @Environment(CalendarModel.self) var calModel; @Environment(CalendarViewModel.self) var calViewModel
     @Environment(PayMethodModel.self) var payModel
     @Environment(CategoryModel.self) var catModel
     @Environment(KeywordModel.self) var keyModel
@@ -31,13 +31,14 @@ struct RootView: View {
     
     //@State private var showMonth = false
     
-    #if os(iOS)    
+    #if os(iOS)
     @Binding var selectedDay: CBDay?
     #endif
+    
             
     var body: some View {
         @Bindable var navManager = NavigationManager.shared
-        @Bindable var calModel = calModel
+        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
         @Bindable var funcModel = funcModel
         //@Bindable var appState = AppState.shared
         
@@ -50,7 +51,13 @@ struct RootView: View {
                 
             #endif
         }
+        .environment(calViewModel)
         .task {
+            /// set the calendar model to use the current month (ignore starting amounts and calculations)
+//            if let selectedMonth = navManager.selectedMonth {
+//                calViewModel.setSelectedMonthFromNavigation(navID: selectedMonth, prepareStartAmount: false)
+//            }
+            
             if !AppState.shared.isIpad {
                 calModel.showMonth = true
             }

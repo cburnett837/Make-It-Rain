@@ -23,6 +23,7 @@ struct LineItemMiniView2: View {
     //@AppStorage("phoneLineItemTotalPosition") var phoneLineItemTotalPosition: PhoneLineItemTotalPosition = .below
     
     @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
 
     @State private var labelWidth: CGFloat = 20.0
     @Binding var transEditID: String?
@@ -62,7 +63,7 @@ struct LineItemMiniView2: View {
     
     
     var body: some View {
-        @Bindable var calModel = calModel
+        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
         
         HStack(spacing: 2) {
             accessoryIndicator
@@ -197,6 +198,7 @@ struct LineItemMiniView: View {
     @AppStorage("phoneLineItemTotalPosition") var phoneLineItemTotalPosition: PhoneLineItemTotalPosition = .below
     
     @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
 
     @State private var labelWidth: CGFloat = 20.0
     @Binding var transEditID: String?
@@ -236,7 +238,7 @@ struct LineItemMiniView: View {
     
     
     var body: some View {
-        @Bindable var calModel = calModel
+        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
         Group {
             detailsLineItem
                 //.transition(.opacity)

@@ -11,7 +11,8 @@ struct RootViewMac: View {
     @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
 
     @Environment(FuncModel.self) var funcModel
-    @Environment(CalendarModel.self) var calModel
+    @Environment(CalendarModel.self) var calModel; @Environment(CalendarViewModel.self) var calViewModel
+    
     @Environment(PayMethodModel.self) var payModel
     @Environment(CategoryModel.self) var catModel
     @Environment(KeywordModel.self) var keyModel
@@ -19,7 +20,7 @@ struct RootViewMac: View {
             
     var body: some View {
         @Bindable var navManager = NavigationManager.shared
-        @Bindable var calModel = calModel
+        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
         @Bindable var appState = AppState.shared
         
         NavigationSplitView {

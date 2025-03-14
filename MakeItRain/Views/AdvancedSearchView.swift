@@ -50,7 +50,8 @@ struct AdvancedSearchView: View {
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
 
     
-    @Environment(CalendarModel.self) var calModel
+    @Environment(CalendarModel.self) var calModel; @Environment(CalendarViewModel.self) var calViewModel
+    
     @Environment(PayMethodModel.self) var payModel
     @Environment(CategoryModel.self) var catModel
     @Environment(EventModel.self) private var eventModel

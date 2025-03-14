@@ -22,6 +22,7 @@ struct DayViewPhone: View {
     
     
     @Environment(CalendarModel.self) private var calModel
+    @Environment(CalendarViewModel.self) private var calViewModel
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
@@ -63,7 +64,7 @@ struct DayViewPhone: View {
    
     var body: some View {
         //let _ = Self._printChanges()
-        @Bindable var calModel = calModel
+        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
         Group {
             if day.date == nil {
                 VStack {
