@@ -197,7 +197,6 @@ class CategoryModel {
                     
                     
                     for category in model {
-                        print(category.title)
                         activeIds.append(category.id)
                         
                         /// Find the category in cache.

@@ -11,7 +11,7 @@ import SwiftUI
 struct DayOverviewView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
     @Environment(EventModel.self) private var eventModel
     
     @Binding var day: CBDay?
@@ -21,6 +21,8 @@ struct DayOverviewView: View {
     @Binding var showTransferSheet: Bool
     @Binding var showCamera: Bool
     @Binding var showPhotosPicker: Bool
+    @Binding var sheetHeight: CGFloat
+    @Binding var bottomPanelContent: BottomPanelContent?
     
     @State private var showDropActions = false
     @State private var showDailyActions = false
@@ -62,21 +64,7 @@ struct DayOverviewView: View {
                     }
                 }
             }
-            #if os(iOS)
-            .background {
-                //Color.darkGray.ignoresSafeArea(edges: .bottom)
-                Color(.secondarySystemBackground)
-                    .clipShape(
-                        .rect(
-                            topLeadingRadius: 15,
-                            bottomLeadingRadius: 0,
-                            bottomTrailingRadius: 0,
-                            topTrailingRadius: 15
-                        )
-                    )
-                    .ignoresSafeArea(edges: .bottom)
-            }
-            #endif
+            
             .dropDestination(for: CBTransaction.self) { droppedTrans, location in
                 let trans = droppedTrans.first
                 if let trans {
@@ -118,6 +106,9 @@ struct DayOverviewView: View {
             } message: {
                 Text("\(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())")
             }
+        } else {
+            Text("")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
     
@@ -127,13 +118,17 @@ struct DayOverviewView: View {
             title: day!.displayDate,
             close: {
                 /// When closing, set the selected day back to today or the first of the month if not viewing the current month (which would be the default)
-                withAnimation { self.day = nil }
+                withAnimation {
+                    bottomPanelContent = nil
+                    self.day = nil
+                }
                 let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
                 selectedDay = targetDay
             },
             view1: { moreButton }
         )
         .padding()
+        .sheetHeightAdjuster(height: $sheetHeight)
     }
     
     

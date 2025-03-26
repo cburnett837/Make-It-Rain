@@ -15,7 +15,7 @@ struct CalendarToolbarLeading: View {
     
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(RepeatingTransactionModel.self) private var repModel
@@ -33,6 +33,8 @@ struct CalendarToolbarLeading: View {
     //@FocusState var focusedField: Int?
     
     var enumID: NavDestination = NavigationManager.shared.selection ?? .placeholderMonth
+    
+    var isInWindow: Bool
         
     @State private var double = 0.0
     @State private var text = ""
@@ -45,7 +47,7 @@ struct CalendarToolbarLeading: View {
 //    }()
     
     var body: some View {
-        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+        @Bindable var calModel = calModel
         @Bindable var navManager = NavigationManager.shared
         
         HStack {
@@ -55,28 +57,32 @@ struct CalendarToolbarLeading: View {
 //                    .scaleEffect(0.5)
 //            }
             
-            previousMonthButton
-            nextMonthButton
-            
-            //if calModel.sYear != AppState.shared.todayYear || calModel.sMonth.num != AppState.shared.todayMonth {
-            ToolbarNowButton()
-                .disabled(calModel.sYear == AppState.shared.todayYear && calModel.sMonth.num == AppState.shared.todayMonth)
-            //}
-            Divider()
-            
-            populateButton
-            
-            ToolbarRefreshButton()
-                .toolbarBorder()
-            
-            Divider()
-            
-            categoryButton
+            if !isInWindow {
+                previousMonthButton
+                nextMonthButton
+                
+                //if calModel.sYear != AppState.shared.todayYear || calModel.sMonth.num != AppState.shared.todayMonth {
+                ToolbarNowButton()
+                    .disabled(calModel.sYear == AppState.shared.todayYear && calModel.sMonth.num == AppState.shared.todayMonth)
+                //}
+                Divider()
+                
+                populateButton
+                
+                ToolbarRefreshButton()
+                    .toolbarBorder()
+                
+                Divider()
+                
+                categoryButton
+            }
+                                    
             paymentMethodButton
             
             Divider()
                         
             startingAmountTextFields
+                .disabled(isInWindow)
         }
         .alert("Woah!", isPresented: $showPopulateAlert) {
             Button("Options") {
@@ -179,7 +185,7 @@ struct CalendarToolbarLeading: View {
     
     var categoryButton: some View {
         Group {
-            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+            @Bindable var calModel = calModel
             Button {
                 showCategorySheet = true
             } label: {
@@ -226,7 +232,7 @@ struct CalendarToolbarLeading: View {
     
     var paymentMethodButton: some View {
         Group {
-            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+            @Bindable var calModel = calModel
             Button {
                 showPaymentMethodSheet = true
             } label: {
@@ -255,7 +261,7 @@ struct CalendarToolbarLeading: View {
     
     var startingAmountTextFields: some View {
         Group {
-            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+            @Bindable var calModel = calModel
             let sMeth: CBPaymentMethod? = calModel.sPayMethod
                                                             
             Button {
@@ -352,32 +358,16 @@ struct CalendarToolbarLeading: View {
 
 struct ToolbarCenterView: View {
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
     
-    var enumID: NavDestination = NavigationManager.shared.selection ?? .placeholderMonth
+    var enumID: NavDestination
     
     var body: some View {
         @Bindable var navManager = NavigationManager.shared
-        
-        if let selection = navManager.selection {
-            VStack(spacing: 2) {
-                if [.lastDecember, .january, .february, .march, .april, .may, .june, .july, .august, .september, .october, .november, .december, .nextJanuary].contains(selection) {
-                    Text(enumID.displayName)
-                        .font(.title)
-//                    if calModel.sMonth.num == 100000 {
-//                        Text("Loading…")
-//                            .font(.title)
-//                    } else {
-//                        Text((calModel.sMonth.name) + " \(calModel.sMonth.year)")
-//                            .font(.title)
-//                    }
-                } else {
-                    Text(selection.displayName)
-                        .font(.title)
-                }
-            }
-            .padding()
+        VStack(spacing: 2) {
+            Text(enumID.displayName)
+                .font(.title)
         }
+        .padding()
     }
 }
 
@@ -393,7 +383,7 @@ struct CalendarToolbarTrailing: View {
     
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
     
     //@Binding var searchText: String
     //@Binding var searchWhat: CalendarSearchWhat
@@ -402,51 +392,54 @@ struct CalendarToolbarTrailing: View {
         
     let set5050: () -> Void
     
+    var isInWindow: Bool
+    
     @State private var showResetMonthAlert = false
     @State private var showResetOptionsSheet = false
     @State private var showAnalysisSheet = false
     @State private var showFitTransactions = false
     
     var body: some View {
-        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+        @Bindable var calModel = calModel
         HStack {
             Spacer()
-            if AppState.shared.longPollFailed { longPollButton }
-            
-            if !calModel.fitTrans.filter({ !$0.isAcknowledged }).isEmpty {
+            if !isInWindow {
+                if AppState.shared.longPollFailed { longPollButton }
+                
+                if !calModel.fitTrans.filter({ !$0.isAcknowledged }).isEmpty {
+                    Button {
+                        openWindow(id: "pendingFitTransactions")
+                        //showFitTransactions = true
+                    } label: {
+                        Image(systemName: "clock.badge.exclamationmark")
+                            .foregroundStyle(.orange)
+                    }
+                    .toolbarBorder()
+                }
                 
                 Button {
-                    openWindow(id: "pendingFitTransactions")
-                    //showFitTransactions = true
+                    openWindow(id: "analysisSheet")
+                    //showAnalysisSheet = true
                 } label: {
-                    Image(systemName: "clock.badge.exclamationmark")
-                        .foregroundStyle(.orange)
+                    Image(systemName: "brain")
                 }
                 .toolbarBorder()
+                
+                displayModePicker
+                
+                if viewMode == .split && calendarSplitViewPercentage != 50 {
+                    Button("50/50", action: set5050)
+                        .toolbarBorder()
+                        .help("Reset the calendar and chart view ratios")
+                }
+                
+                Divider()
+                
+                resetButton
+                //infoButton
+                
+                Divider()
             }
-            
-            Button {
-                openWindow(id: "analysisSheet")
-                //showAnalysisSheet = true
-            } label: {
-                Image(systemName: "brain")
-            }
-            .toolbarBorder()
-            
-            displayModePicker
-            
-            if viewMode == .split && calendarSplitViewPercentage != 50 {
-                Button("50/50", action: set5050)
-                    .toolbarBorder()
-                    .help("Reset the calendar and chart view ratios")
-            }
-            
-            Divider()
-            
-            resetButton
-            //infoButton
-            
-            Divider()
             
             ToolbarTextField("Search by \(calModel.searchWhat == .titles ? "title" : "tag")", text: $calModel.searchText, keyboardType: .text, isSearchField: true)
                 .frame(minWidth: 150, maxWidth: 300)

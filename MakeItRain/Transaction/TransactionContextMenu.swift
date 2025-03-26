@@ -9,7 +9,7 @@ import SwiftUI
 
 struct TransactionContextMenu: View {
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
     
     @Bindable var trans: CBTransaction
     @Binding var transEditID: String?

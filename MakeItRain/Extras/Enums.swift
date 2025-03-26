@@ -194,6 +194,29 @@ enum EventItemAction: String {
 }
 
 
+enum EventCategoryAction: String {
+    case add, edit, delete
+    
+    var serverKey: String {
+        switch self {
+        case .add:      return "add_cb_event_category"
+        case .edit:     return "edit_cb_event_category"
+        case .delete:   return "delete_cb_event_category"
+        }
+    }
+    
+    static func fromString(_ theString: String) -> Self {
+        switch theString {
+        case "add": return .add
+        case "edit": return .edit
+        case "delete": return .delete
+        default: return .add
+        }
+    }
+}
+
+
+
 enum EventTransactionAction: String {
     case add, edit, delete
     

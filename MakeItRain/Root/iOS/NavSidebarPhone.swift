@@ -7,6 +7,21 @@
 
 import SwiftUI
 
+struct MaxNavHeightPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = .zero
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+struct MaxNavWidthPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = .zero
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 #if os(iOS)
 struct NavSidebar: View {
     @Environment(\.colorScheme) var colorScheme
@@ -14,27 +29,30 @@ struct NavSidebar: View {
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
     @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
 
-    @Environment(CalendarModel.self) var calModel; @Environment(CalendarViewModel.self) var calViewModel
-    
+    @Environment(CalendarModel.self) var calModel
     @Environment(PayMethodModel.self) var payModel
     @Environment(CategoryModel.self) var catModel
     @Environment(KeywordModel.self) var keyModel
     @Environment(RepeatingTransactionModel.self) var repModel
     @Namespace private var monthNavigationNamespace
-    
-    @Binding var selectedDay: CBDay?
     //@Binding var showMonth: Bool
+    
+    @State private var linkWidth: CGFloat = 20.0
+    @State private var linkHeight: CGFloat = 20.0
     
     var body: some View {
         @Bindable var navManager = NavigationManager.shared
-        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+        @Bindable var calModel = calModel
         
         VStack(spacing: 0) {
-            List {
+            //fakeNavHeader.standardNavBackground()
+            ScrollView {
                 fakeNavHeader
-                    .listRowInsets(EdgeInsets())
-                    .listRowSeparator(.hidden)
+                    .padding(.leading, -13) /// Negate the scrollContent margins
                     .standardNavBackground()
+                    //.listRowInsets(EdgeInsets())
+                    //.listRowSeparator(.hidden)
+                    
                 
                 if AppState.shared.methsExist {
                     Group {
@@ -48,36 +66,46 @@ struct NavSidebar: View {
                     .standardNavRowBackground()
                 }
                 
-                Section("More") {
+                Spacer()
+                    .frame(height: 20)
+                
+                VStack(spacing: 0) {
                     if AppState.shared.methsExist {
-                        NavLinkPhone(destination: .repeatingTransactions, title: "Reoccuring Transactions", image: "repeat")
+                        NavLinkPhone(destination: .repeatingTransactions, title: "Reoccuring Transactions", image: "repeat", linkWidth: linkWidth, linkHeight: linkHeight)
                             .listRowSeparator(.hidden)
                     }
                     
-                    NavLinkPhone(destination: .paymentMethods, title: "Payment Methods", image: "creditcard")
+                    NavLinkPhone(destination: .paymentMethods, title: "Payment Methods", image: "creditcard", linkWidth: linkWidth, linkHeight: linkHeight)
                         .listRowSeparator(.hidden)
                     
                     if AppState.shared.methsExist {
-                        NavLinkPhone(destination: .categories, title: "Categories", image: "books.vertical")
+                        NavLinkPhone(destination: .categories, title: "Categories", image: "books.vertical", linkWidth: linkWidth, linkHeight: linkHeight)
                             .listRowSeparator(.hidden)
-                        NavLinkPhone(destination: .keywords, title: "Keywords", image: "textformat.abc.dottedunderline")
+                        
+                        NavLinkPhone(destination: .keywords, title: "Keywords", image: "textformat.abc.dottedunderline", linkWidth: linkWidth, linkHeight: linkHeight)
                             .listRowSeparator(.hidden)
-                        NavLinkPhone(destination: .events, title: "Events", image: "beach.umbrella")
+                        
+                        NavLinkPhone(destination: .events, title: "Events", image: "beach.umbrella", linkWidth: linkWidth, linkHeight: linkHeight)
                             .listRowSeparator(.hidden)
                     }
                 }
             }
+            //.padding(.horizontal, 15)
             .listStyle(.plain)
+            .contentMargins(.horizontal, 15, for: .scrollContent)
+            //.contentMargins(.top, 10, for: .scrollContent)
         }
         .standardNavBackground()
         .frame(maxWidth: .infinity)
+        .onPreferenceChange(MaxNavWidthPreferenceKey.self) { linkWidth = max(linkWidth, $0) }
+        .onPreferenceChange(MaxNavHeightPreferenceKey.self) { linkHeight = max(linkHeight, $0) }
     }
     
     
     
     var fakeNavHeader: some View {
         HStack {
-            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+            @Bindable var calModel = calModel
             Menu {
                 if (![calModel.sYear-1, calModel.sYear, calModel.sYear+1].contains(AppState.shared.todayYear)) {
                     Section {
@@ -206,7 +234,7 @@ struct NavSidebar: View {
             
         }
         //.background(.ultraThinMaterial)
-        .padding(.bottom, 10)
+        //.padding(.bottom, 10)
         .contentShape(Rectangle())
         
         
@@ -314,8 +342,7 @@ struct NavSidebar: View {
         Grid {
             GridRow(alignment: .top) {
                 Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
-                MonthNavigationLink(enumID: .lastDecember)
-                
+                MonthNavigationLink(enumID: .lastDecember)                
             }
             GridRow(alignment: .top) {
                 MonthNavigationLink(enumID: .january)
@@ -352,65 +379,62 @@ struct NavSidebar: View {
 }
 
 
-
-
-struct NavSidebarOG: View {
-    @Environment(CalendarModel.self) var calModel; @Environment(CalendarViewModel.self) var calViewModel
-    
-    @Environment(PayMethodModel.self) var payModel
-    @Environment(CategoryModel.self) var catModel
-    @Environment(KeywordModel.self) var keyModel
-    @Environment(RepeatingTransactionModel.self) var repModel
-    
-    @Binding var selectedDay: CBDay?
-    
-    var body: some View {
-        @Bindable var navManager = NavigationManager.shared
-        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
-        
-        VStack {
-            List {
-                if AppState.shared.methsExist {
-                    Section("Months") {
-                        let lastDec = calModel.months.filter { $0.enumID == .lastDecember }.first!
-                        let nextJan = calModel.months.filter { $0.enumID == .nextJanuary }.first!
-                        
-                        NavLinkPhone(destination: .lastDecember, title: "\(lastDec.name) \(lastDec.year)", image: "12.circle")
-                        
-                        ForEach(calModel.months.filter{![.lastDecember, .nextJanuary].contains($0.enumID)}, id: \.self) { month in
-                            NavLinkPhone(destination: month.enumID, title: month.name, image: "\(month.num).circle")
-                        }
-                        
-                        NavLinkPhone(destination: .nextJanuary, title: "\(nextJan.name) \(nextJan.year)", image: "1.circle")
-                    }
-                }
-                
-                Section("Search") {
-                    if AppState.shared.methsExist {
-                        NavLinkPhone(destination: .search, title: "Advanced Search", image: "magnifyingglass")
-                    }
-                }
-                
-                Section("Misc") {
-                    if AppState.shared.methsExist {
-                        NavLinkPhone(destination: .repeatingTransactions, title: "Reoccuring Transactions", image: "repeat")
-                    }
-                    
-                    NavLinkPhone(destination: .paymentMethods, title: "Payment Methods", image: "creditcard")
-                    
-                    if AppState.shared.methsExist {
-                        NavLinkPhone(destination: .categories, title: "Categories", image: "books.vertical")
-                        NavLinkPhone(destination: .keywords, title: "Keywords", image: "textformat.abc.dottedunderline")
-                        NavLinkPhone(destination: .events, title: "Events", image: "beach.umbrella")
-                    }
-                }
-            }
-            .listStyle(.plain)
-        }
-        //.frame(width: getRect().width - 90)
-        .standardBackground()
-        .frame(maxWidth: .infinity)
-    }
-}
+//
+//
+//struct NavSidebarOG: View {
+//    @Environment(CalendarModel.self) var calModel
+//    @Environment(PayMethodModel.self) var payModel
+//    @Environment(CategoryModel.self) var catModel
+//    @Environment(KeywordModel.self) var keyModel
+//    @Environment(RepeatingTransactionModel.self) var repModel
+//    
+//    var body: some View {
+//        @Bindable var navManager = NavigationManager.shared
+//        @Bindable var calModel = calModel
+//        
+//        VStack {
+//            List {
+//                if AppState.shared.methsExist {
+//                    Section("Months") {
+//                        let lastDec = calModel.months.filter { $0.enumID == .lastDecember }.first!
+//                        let nextJan = calModel.months.filter { $0.enumID == .nextJanuary }.first!
+//                        
+//                        NavLinkPhone(destination: .lastDecember, title: "\(lastDec.name) \(lastDec.year)", image: "12.circle", labelWidth: labelWidth)
+//                        
+//                        ForEach(calModel.months.filter{![.lastDecember, .nextJanuary].contains($0.enumID)}, id: \.self) { month in
+//                            NavLinkPhone(destination: month.enumID, title: month.name, image: "\(month.num).circle", labelWidth: labelWidth)
+//                        }
+//                        
+//                        NavLinkPhone(destination: .nextJanuary, title: "\(nextJan.name) \(nextJan.year)", image: "1.circle")
+//                    }
+//                }
+//                
+//                Section("Search") {
+//                    if AppState.shared.methsExist {
+//                        NavLinkPhone(destination: .search, title: "Advanced Search", image: "magnifyingglass")
+//                    }
+//                }
+//                
+//                Section("Misc") {
+//                    if AppState.shared.methsExist {
+//                        NavLinkPhone(destination: .repeatingTransactions, title: "Reoccuring Transactions", image: "repeat")
+//                    }
+//                    
+//                    NavLinkPhone(destination: .paymentMethods, title: "Payment Methods", image: "creditcard")
+//                    
+//                    if AppState.shared.methsExist {
+//                        NavLinkPhone(destination: .categories, title: "Categories", image: "books.vertical")
+//                        NavLinkPhone(destination: .keywords, title: "Keywords", image: "textformat.abc.dottedunderline")
+//                        NavLinkPhone(destination: .events, title: "Events", image: "beach.umbrella")
+//                    }
+//                }
+//            }
+//            .listStyle(.plain)
+//        }
+//        //.frame(width: getRect().width - 90)
+//        .standardBackground()
+//        .frame(maxWidth: .infinity)
+//    }
+//}
 
 #endif

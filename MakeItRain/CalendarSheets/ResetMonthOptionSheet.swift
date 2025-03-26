@@ -86,7 +86,7 @@ struct ResetMonthOptionSheet: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
     
-    @Environment(CalendarModel.self) var calModel; @Environment(CalendarViewModel.self) var calViewModel
+    @Environment(CalendarModel.self) var calModel
     
     @Environment(PayMethodModel.self) var payModel
     

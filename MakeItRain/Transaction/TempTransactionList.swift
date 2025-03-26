@@ -14,7 +14,7 @@ struct TempTransactionList: View {
     
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
@@ -28,7 +28,7 @@ struct TempTransactionList: View {
     @State private var editTrans: CBTransaction?
     
     var body: some View {
-        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+        @Bindable var calModel = calModel
         @Bindable var appState = AppState.shared
         NavigationStack {
             VStack {

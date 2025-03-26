@@ -10,14 +10,12 @@ import SwiftUI
 struct AlertAndToastLayerView: View {
     @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
-    @Namespace private var monthNavigationNamespace
     
-    @Binding var selectedDay: CBDay?
+    @Namespace private var monthNavigationNamespace    
     
     var body: some View {
         @Bindable var appState = AppState.shared
-        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+        @Bindable var calModel = calModel
         @Bindable var undoManager = UndodoManager.shared
         
         Rectangle()
@@ -67,26 +65,5 @@ struct AlertAndToastLayerView: View {
                                             
                 }
             }
-            /// Calendar full screen cover. (Main calendar view for iPhone, accessory calendar view for iPad).
-//            .overlay {
-//                Rectangle()
-//                    .fill(Color.clear)
-//                    //.if(!AppState.shared.isIpad) {
-//                    .fullScreenCover(isPresented: $calModel.showrMonth) {
-//                        if let selectedMonth = NavigationManager.shared.selectedMonth {
-//                            
-//                            if NavDestination.justMonths.contains(selectedMonth) {
-//                                
-//                                CalendarViewPhone(enumID: selectedMonth, selectedDay: $selectedDay)
-//                                    .tint(Color.fromName(appColorTheme))
-//                                    .navigationTransition(.zoom(sourceID: selectedMonth, in: monthNavigationNamespace))
-//                                    .if(AppState.shared.methsExist) {
-//                                        $0.loadingSpinner(id: selectedMonth, text: "Loading…")
-//                                    }
-//                            }
-//                        }
-//                    }
-//                    //}
-//            }
     }
 }

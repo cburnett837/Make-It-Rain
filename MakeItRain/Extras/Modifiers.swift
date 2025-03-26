@@ -261,6 +261,40 @@ struct ChevronMenuOverlay: ViewModifier {
 }
 
 
+
+struct SheetHeightAdjuster: ViewModifier {
+    
+    @Binding var height: CGFloat
+    
+    func body(content: Content) -> some View {
+        content
+            .gesture(DragGesture()
+                .onEnded { value in
+                    if value.translation.height < 50 { /// Make Bigger
+                        withAnimation(.bouncy) {
+                            if height == 300 {
+                                height = UIScreen.main.bounds.height / 2
+                            } else {
+                                height = UIScreen.main.bounds.height - 100
+                            }
+                        }
+                    } else if value.translation.height > 50 { /// Make Smaller
+                        withAnimation(.bouncy) {
+                            if height == UIScreen.main.bounds.height - 100 {
+                                height = UIScreen.main.bounds.height / 2
+                            } else {
+                                height = 300
+                            }
+                            
+                        }
+                    }
+                }
+            )
+    }
+}
+
+
+
 struct ToolbarKeyboard: ViewModifier {
     var padding: Double
     var alignment: TextAlignment

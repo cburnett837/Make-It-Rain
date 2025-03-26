@@ -48,9 +48,10 @@ class PhotoModel {
    
     static func uploadPicture<U: Decodable>(
         imageData: Data,
-        relatedID: String,
+        relatedID: String?,
         uuid: String,
         isSmartTransaction: Bool = false,
+        smartTransactionDate: Date? = nil,
         responseType: Result<U?, AppError>.Type
     ) async -> U? {
         /// There's only 3 things that need to be changed to add photo abilities to another project - indicated by a **
@@ -73,7 +74,8 @@ class PhotoModel {
             relatedTypeID: "5",
             uuid: uuid,
             imageData: imageData,
-            isSmartTransaction: isSmartTransaction
+            isSmartTransaction: isSmartTransaction,
+            smartTransactionDate: smartTransactionDate
         )
         
         switch await result {

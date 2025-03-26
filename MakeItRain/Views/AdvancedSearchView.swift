@@ -50,7 +50,7 @@ struct AdvancedSearchView: View {
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
 
     
-    @Environment(CalendarModel.self) var calModel; @Environment(CalendarViewModel.self) var calViewModel
+    @Environment(CalendarModel.self) var calModel
     
     @Environment(PayMethodModel.self) var payModel
     @Environment(CategoryModel.self) var catModel
@@ -227,7 +227,7 @@ struct AdvancedSearchView: View {
         }
         
         ToolbarItem(placement: .principal) {
-            ToolbarCenterView()
+            ToolbarCenterView(enumID: .search)
         }
         ToolbarItem {
             Spacer()

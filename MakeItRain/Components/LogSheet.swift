@@ -74,7 +74,9 @@ struct LogSheet: View {
             Divider()
             
             if showNoLogs {
+                Spacer()
                 ContentUnavailableView("No Logs", systemImage: "square.stack.3d.up.slash.fill", description: Text("Logs will appear here when changes are made."))
+                Spacer()
             } else {
                 List {
 //                    if !showLoadingSpinner {

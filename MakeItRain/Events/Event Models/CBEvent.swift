@@ -35,6 +35,7 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
     var participants: [CBEventParticipant]
     var items: [CBEventItem]
     var transactions: Array<CBEventTransaction>
+    var categories: Array<CBEventCategory>
     
     var pendingRealTransactionsToSave: [CBTransaction] = []
     //var invitationsToSend: Array<CBEventInvite> = []
@@ -53,6 +54,7 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
         self.participants = []
         self.items = []
         self.transactions = []
+        self.categories = []
         
         self.enteredDate = Date()
         self.updatedDate = Date()
@@ -69,12 +71,13 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
         self.participants = []
         self.items = []
         self.transactions = []
+        self.categories = []
         
         self.enteredDate = Date()
         self.updatedDate = Date()
     }
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, event_type, start_date, end_date, active, entered_by, updated_by, entered_date, updated_date, user_id, account_id, device_uuid, participants, items, transactions }
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, event_type, start_date, end_date, active, entered_by, updated_by, entered_date, updated_date, user_id, account_id, device_uuid, participants, items, transactions, categories }
     
     
     func encode(to encoder: Encoder) throws {
@@ -91,6 +94,7 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
         try container.encode(participants, forKey: .participants)
         try container.encode(items, forKey: .items)
         try container.encode(transactions, forKey: .transactions)
+        try container.encode(categories, forKey: .categories)
         
         try container.encode(enteredBy, forKey: .entered_by)
         try container.encode(updatedBy, forKey: .updated_by)
@@ -137,9 +141,12 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
             //fatalError("Could not determine transaction date")
         }
         
-        participants = try container.decode(Array<CBEventParticipant>.self, forKey: .participants)
-        items = try container.decode(Array<CBEventItem>.self, forKey: .items)
+        self.participants = try container.decode(Array<CBEventParticipant>.self, forKey: .participants)
+        self.items = try container.decode(Array<CBEventItem>.self, forKey: .items)
         self.transactions = try container.decode(Array<CBEventTransaction>.self, forKey: .transactions)
+        self.categories = try container.decode(Array<CBEventCategory>.self, forKey: .categories)
+        
+        
         //invitationsToSend = try container.decode(Array<CBEventInvite>.self, forKey: .invitations_to_send)
         //participantsToRemove = try container.decode(Array<CBUser>.self, forKey: .participants_to_remove)
         
@@ -177,6 +184,7 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
             && self.endDate == deepCopy.endDate
             && self.participants == deepCopy.participants
             && self.transactions == deepCopy.transactions
+            && self.categories == deepCopy.categories
             //&& self.invitationsToSend == deepCopy.invitationsToSend
             //&& self.participantsToRemove == deepCopy.participantsToRemove
             && self.items == deepCopy.items {
@@ -215,6 +223,11 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
                 return $0.deepCopy!
             }
             
+            copy.categories = self.categories.map {
+                $0.deepCopy(.create)
+                return $0.deepCopy!
+            }
+            
 //            copy.invitationsToSend = self.invitationsToSend.map {
 //                $0.deepCopy(.create)
 //                return $0.deepCopy!
@@ -239,6 +252,7 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
                 self.participants = deepCopy.participants
                 self.items = deepCopy.items
                 self.transactions = deepCopy.transactions
+                self.categories = deepCopy.categories
                 self.active = deepCopy.active
             }
         case .clear:
@@ -284,6 +298,14 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
             }
             return trans
         }
+        
+        self.categories = event.categories.map { cat in
+            if let index = self.categories.firstIndex(where: {$0.id == cat.id}) {
+                self.categories[index].setFromAnotherInstance(category: cat)
+                return self.categories[index]
+            }
+            return cat
+        }
     }
     
     
@@ -311,6 +333,17 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
                 }
                 return item
             }
+            
+            
+            self.categories = event.categories.map { cat in
+                if let index = self.categories.firstIndex(where: { $0.id == cat.id }) {
+                    self.categories[index].setFromAnotherInstance(category: cat)
+                    return self.categories[index]
+                }
+                return cat
+            }
+            
+            
                         
             for each in event.participants {
                 print("Processing Participant ID \(each.id)")
@@ -389,6 +422,7 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
         && lhs.participants == rhs.participants
         && lhs.items == rhs.items
         && lhs.transactions == rhs.transactions
+        && lhs.categories == rhs.categories
         //&& lhs.invitationsToSend == rhs.invitationsToSend
         //&& lhs.participantsToRemove == rhs.participantsToRemove
         && lhs.active == rhs.active {
@@ -411,6 +445,8 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
     }
     
     
+    
+    // MARK: - Items
     func upsert(_ item: CBEventItem) {
         if !doesExist(item) {
             items.append(item)
@@ -434,6 +470,10 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
             } else {
                 items.removeAll { $0.id == id }
             }
+        } else {
+            transactions.filter{$0.item?.id == id}.forEach { trans in
+                trans.item = item
+            }
         }
     }
     
@@ -442,11 +482,64 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
         if let index {
             items[index].active = false
             items[index].action = .delete
-            
+        }
+        
+        transactions.filter{$0.item?.id == id}.forEach { trans in
+            trans.item = nil
         }
     }
     
     
+    
+    
+    // MARK: - Categories
+    func upsert(_ category: CBEventCategory) {
+        if !doesExist(category) {
+            categories.append(category)
+        }
+    }
+    
+    func doesExist(_ category: CBEventCategory) -> Bool {
+        return !categories.filter { $0.id == category.id }.isEmpty
+    }
+    
+    func getCategory(by id: String) -> CBEventCategory {
+        return categories.filter { $0.id == id }.first ?? CBEventCategory(uuid: id)
+    }
+    
+    func saveCategory(id: String) {
+        let category = getCategory(by: id)
+        if category.title.isEmpty {
+            if category.action != .add && category.title.isEmpty {
+                category.title = category.deepCopy?.title ?? ""
+                AppState.shared.showAlert("Removing a title is not allowed. If you want to delete \(category.title), please use the delete button instead.")
+            } else {
+                categories.removeAll { $0.id == id }
+            }
+        } else {
+            transactions.filter{$0.category?.id == id}.forEach { trans in
+                trans.category = category
+            }
+        }
+    }
+    
+    func deleteCategory(id: String) {
+        let index = categories.firstIndex(where: {$0.id == id})
+        if let index {
+            categories[index].active = false
+            categories[index].action = .delete
+        }
+        
+        transactions.filter{$0.category?.id == id}.forEach { trans in
+            trans.category = nil
+        }
+        
+    }
+    
+    
+    
+    
+    // MARK: - Transactions
     func upsert(_ trans: CBEventTransaction) {
         if !doesExist(trans) {
             transactions.append(trans)

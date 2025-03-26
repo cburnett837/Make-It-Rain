@@ -13,7 +13,7 @@ struct CategorySheet: View {
     @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
     
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
     
@@ -94,6 +94,9 @@ struct CategorySheet: View {
         } subHeader: {
             SearchTextField(title: "Categories", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)
                 .padding(.horizontal, -20)
+                #if os(macOS)
+                .focusable(false) /// prevent mac from auto focusing
+                #endif
         }
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
         .sheet(item: $editCategory, onDismiss: {

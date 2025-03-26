@@ -16,7 +16,7 @@ struct CalendarViewMac: View {
     @AppStorage("alignWeekdayNamesLeft") var alignWeekdayNamesLeft = true
     
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel    
+        
     var divideBy: CGFloat {
         let cellCount = calModel.sMonth.firstWeekdayOfMonth - 1 + calModel.sMonth.dayCount
         if cellCount > 35 {
@@ -43,6 +43,7 @@ struct CalendarViewMac: View {
     @State private var isHoveringOnSlider: Bool = false
     
     let enumID: NavDestination
+    var isInWindow: Bool = false
 
     
     var body: some View {
@@ -83,12 +84,15 @@ struct CalendarViewMac: View {
                 chartWidth = fullWidth - calendarWidth
             }
         }
+        .task {
+            calModel.setSelectedMonthFromNavigation(navID: enumID, prepareStartAmount: true)
+        }
         .onPreferenceChange(ViewWidthKey.self) { extraViewsWidth = $0 }
         //.onPreferenceChange(MaxSizePreferenceKey.self) { maxHeaderHeight = max(maxHeaderHeight, $0) }
                 
         .toolbar {
             ToolbarItem(placement: .navigation) {
-                CalendarToolbarLeading(focusedField: $focusedField, enumID: enumID)
+                CalendarToolbarLeading(focusedField: $focusedField, enumID: enumID, isInWindow: isInWindow)
                     //.opacity(LoadingManager.shared.showInitiallyLoadingSpinner ? 0 : 1)
                     .focusSection()
             }
@@ -99,7 +103,7 @@ struct CalendarViewMac: View {
                 Spacer()
             }
             ToolbarItem(placement: .primaryAction) {
-                CalendarToolbarTrailing(focusedField: $focusedField, set5050: set5050)
+                CalendarToolbarTrailing(focusedField: $focusedField, set5050: set5050, isInWindow: isInWindow)
                     //.opacity(LoadingManager.shared.showInitiallyLoadingSpinner ? 0 : 1)
                     .focusSection()
             }
@@ -145,18 +149,18 @@ struct CalendarViewMac: View {
     
     var calendarView: some View {
         Group {
-            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+            @Bindable var calModel = calModel
             VStack {
                 weekdayNames
                 dayGrid
-                    .opacity(calModel.sMonth.enumID == enumID ? 1 : 0)
-                    .overlay(
-                        ProgressView()
-                            .transition(.opacity)
-                            .tint(.none)
-                            .opacity(calModel.sMonth.enumID == enumID ? 0 : 1)
-                    )
             }
+            .opacity(calModel.sMonth.enumID == enumID ? 1 : 0)
+            .overlay(
+                ProgressView()
+                    .transition(.opacity)
+                    .tint(.none)
+                    .opacity(calModel.sMonth.enumID == enumID ? 0 : 1)
+            )
         }
     }
     
@@ -206,7 +210,7 @@ struct CalendarViewMac: View {
     
     var dayGrid: some View {
         Group {
-            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+            @Bindable var calModel = calModel
             GeometryReader { geo in
                 LazyVGrid(columns: sevenColumnGrid, spacing: 0) {
                     ForEach($calModel.sMonth.days) { $day in

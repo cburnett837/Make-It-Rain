@@ -19,7 +19,11 @@ struct CategoryView: View {
     
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
     @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
-
+   
+    #if os(macOS)
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.dismissWindow) private var dismissWindow
+    #endif
     @Environment(\.dismiss) var dismiss
     @Environment(EventModel.self) private var eventModel
     
@@ -50,6 +54,7 @@ struct CategoryView: View {
     
     @State private var rawSelectedDate: Date?
     @State private var chartScrollPosition: Date = Date()
+    @AppStorage("showAllCategoryChartData") var showAllChartData = false
     
     @Namespace private var monthNavigationNamespace
     
@@ -85,11 +90,11 @@ struct CategoryView: View {
                 
         return idealDomain > maxAvailDomain ? maxAvailDomain : idealDomain
     }
-    
-    
+        
     var minExpense: Double {
         expenses.map {$0.amount}.min() ?? 0
     }
+    
     var maxExpense: Double {
         expenses.map {$0.amount}.max() ?? 0
     }
@@ -105,17 +110,59 @@ struct CategoryView: View {
     
     var body: some View {
         Group {
+            #if os(iOS)
             TabView(selection: $selectedCategoryTab) {
                 categoryPage
                     .tabItem { Label("Details", systemImage: "list.bullet") }
                     .tag("details")
                     //.standardBackground()
                 chartPage
-                    .tabItem { Label("Analytics", systemImage: "chart.pie.fill") }
+                    .tabItem { Label("Analytics", systemImage: "chart.xyaxis.line") }
                     .tag("analytics")
                     //.standardBackground()
             }
             .tint(category.color)
+            #else
+            
+            VStack {
+                Group {
+                    if selectedCategoryTab == "details" {
+                        categoryPage
+                    } else {
+                        chartPage
+                    }
+                }
+                .frame(maxHeight: .infinity)
+                
+                HStack(spacing: 0) {
+                    Rectangle()
+                        .fill(.clear)
+                        .frame(height: 50)
+                        .contentShape(Rectangle())
+                        .overlay {
+                            Label("Details", systemImage: "list.bullet")
+                                .foregroundStyle(selectedCategoryTab == "details" ? category.color : .gray)
+                        }
+                        .onTapGesture {
+                            selectedCategoryTab = "details"
+                        }
+                    Rectangle()
+                        .fill(.clear)
+                        .frame(height: 50)
+                        .contentShape(Rectangle())
+                        .overlay {
+                            Label("Analytics", systemImage: "chart.xyaxis.line")
+                                .foregroundStyle(selectedCategoryTab == "analytics" ? category.color : .gray)
+                        }
+                        .onTapGesture {
+                            selectedCategoryTab = "analytics"
+                        }
+                }
+                //.fixedSize(horizontal: false, vertical: true)
+                .frame(height: 50)
+            }
+            
+            #endif
         }
         .task {
             await prepareCategoryView()
@@ -238,7 +285,7 @@ struct CategoryView: View {
           
             
         } header: {
-            SheetHeader(title: title, close: { editID = nil; dismiss() }, view3: { deleteButton })
+            SheetHeader(title: title, close: { closeSheet() }, view3: { deleteButton })
         }
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
                 
@@ -446,9 +493,7 @@ struct CategoryView: View {
                 chartBody
                     //.rowBackground()
                     .padding(.vertical, 30)
-                
-                
-                
+                                                
                 Text("Options")
                     .foregroundStyle(.gray)
                     .font(.subheadline)
@@ -471,74 +516,50 @@ struct CategoryView: View {
             Spacer()
                 .frame(minHeight: 10)
             
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text("Data")
                     .foregroundStyle(.gray)
                     .font(.subheadline)
                     //.padding(.leading, 6)
                 Divider()
                 
-                DisclosureGroup {
-                    Divider()
-                        .padding(.leading, 25)
-                    
-                    ForEach(expenses) { expense in
-                        VStack {
-                            HStack {
-                                Text("\(expense.date, format: .dateTime.month(.wide)) \(String(expense.date.year))")
-                                Spacer()
-                                Text("\(expense.amountString)")
-                            }
-                            .onTapGesture {
-                                calModel.sCategories = [category]
-                                
-                                calModel.categoryFilterWasSetByCategoryPage = true
-                                
-                                if AppState.shared.isIpad {
-                                    calModel.isShowingFullScreenCoverOnIpad = true
-                                }
-                                                                
-                                NavigationManager.shared.selectedMonth = NavDestination.getMonthFromInt(expense.date.month)
-                                calModel.sYear = expense.date.year
-                                
-                                calModel.showMonth = true                                
-                            }
-                            .onChange(of: calModel.showMonth) { oldValue, newValue in
-                                if newValue == false && oldValue == true {
-                                    Task {
-                                        await fetchHistory(setChartAsNew: false)
-                                        if calModel.categoryFilterWasSetByCategoryPage {
-                                            calModel.sCategories.removeAll()
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            Divider()
-                        }
-                        .padding(.leading, 25)
+                DisclosureGroup(isExpanded: $showAllChartData) {
+                    VStack(spacing: 0) {
+                        Divider()
+                            .padding(.leading, 25)
                         
+                        ForEach(expenses) { expense in
+                            RawDataLineItem(category: category, expense: expense)
+                                .padding(.leading, 25)
+                        }
                     }
+                    
                 } label: {
                     Text("Show All")
+                        .onTapGesture {
+                            showAllChartData.toggle()
+                        }
                 }
                 //.foregroundStyle(category.color)
                 .tint(category.color)
                 //.padding(.vertical, 8)
                 .padding(.bottom, 10)
                 //.rowBackground()
-                
-                
-//                StandardRectangle {
-//                    
-//                }
-                
+                .onChange(of: calModel.showMonth) { oldValue, newValue in
+                    if newValue == false && oldValue == true {
+                        Task {
+                            await fetchHistory(setChartAsNew: false)
+                        }
+                    }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .updateCategoryAnalytics, object: nil)) { _ in
+                    Task {
+                        await fetchHistory(setChartAsNew: false)
+                    }
+                }
             }
-            
-            
-            
         } header: {
-            SheetHeader(title: title, close: { editID = nil; dismiss() }, view3: { deleteButton })
+            SheetHeader(title: title, close: { closeSheet() }, view3: { deleteButton })
         }
         .listStyle(.plain)
         #if os(iOS)
@@ -546,20 +567,18 @@ struct CategoryView: View {
         #endif
         .opacity(isLoadingHistory ? 0 : 1)
         .overlay { ProgressView("Loading Analytics…").tint(.none).opacity(isLoadingHistory ? 1 : 0) }
-        
-        
-//        .fullScreenCover(isPresented: $showMonth) {
-//            if let selection = NavigationManager.shared.selection {
-//                if NavDestination.justMonths.contains(selection) {
-//                    CalendarViewPhone(enumID: selection, selectedDay: .constant(nil))
-//                        .tint(Color.fromName(appColorTheme))
-//                        .navigationTransition(.zoom(sourceID: selection, in: monthNavigationNamespace))
-//                        .if(AppState.shared.methsExist) {
-//                            $0.loadingSpinner(id: selection, text: "Loading…")
-//                        }
-//                }
-//            }
-//        }
+        .focusable(false)
+    }
+    
+    func closeSheet() {
+        if calModel.categoryFilterWasSetByCategoryPage {
+            calModel.sCategories.removeAll()
+        }
+        editID = nil
+        dismiss()
+        #if os(macOS)
+        dismissWindow(id: "monthlyWindow")
+        #endif
     }
     
     
@@ -581,12 +600,11 @@ struct CategoryView: View {
         await fetchHistory(setChartAsNew: true)
     }
     
+    
     func fetchHistory(setChartAsNew: Bool) async {
-        
         if setChartAsNew {
             isLoadingHistory = true
         }
-        
         
         if let expenses = await catModel.fetchExpensesByCategory(category) {
             self.expenses = expenses
@@ -605,11 +623,55 @@ struct CategoryView: View {
     }
     
     
-//    func setVisibleDomain() {
-//        let maxAvailDomain = 3600 * 24 * (Calendar.current.dateComponents([.day], from: expenses.first?.date ?? Date(), to: expenses.last?.date ?? Date()).day ?? 0)
-//        
-//        let idealDomain = 3600 * 24 * (365 * chartVisibleYearCount.rawValue)
-//                
-//        visibleDomain = idealDomain > maxAvailDomain ? maxAvailDomain : idealDomain
-//    }
+    struct RawDataLineItem: View {
+        #if os(macOS)
+        @Environment(\.openWindow) private var openWindow
+        @Environment(\.dismissWindow) private var dismissWindow
+        #endif
+        @Environment(CalendarModel.self) var calModel
+        
+        @Bindable var category: CBCategory
+        var expense: CBBudget
+        
+        @State private var backgroundColor: Color = .clear
+        
+        var body: some View {
+            VStack(spacing: 0) {
+                HStack {
+                    Text("\(expense.date, format: .dateTime.month(.wide)) \(String(expense.date.year))")
+                    Spacer()
+                    Text("\(expense.amountString)")
+                }
+                .padding(.vertical, 6)
+                Divider()
+            }
+            .contentShape(Rectangle())
+            .background(backgroundColor)
+            .onHover { backgroundColor = $0 ? .gray.opacity(0.2) : .clear }
+            .onTapGesture {
+                calModel.sCategories = [category]
+                
+                calModel.categoryFilterWasSetByCategoryPage = true
+                let monthEnum = NavDestination.getMonthFromInt(expense.date.month)
+                calModel.sYear = expense.date.year
+                
+                #if os(iOS)
+                if AppState.shared.isIpad {
+                    calModel.isShowingFullScreenCoverOnIpad = true
+                }
+                
+                NavigationManager.shared.selectedMonth = monthEnum
+                calModel.showMonth = true
+                
+                #else
+                AppState.shared.monthlySheetWindowTitle = "\(category.title) Expenses For \(monthEnum?.displayName ?? "N/A") \(String(calModel.sYear))"
+                dismissWindow(id: "monthlyWindow")
+                openWindow(id: "monthlyWindow", value: monthEnum)
+                //calModel.windowMonth = monthEnum
+                //openWindow(id: "monthlyWindow")
+                #endif
+            }
+        }
+    }
+    
 }

@@ -11,10 +11,13 @@ import SwiftUI
 struct NavLinkPhone: View {
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
     @AppStorage("useGrayBackground") var useGrayBackground = true
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
         
     let destination: NavDestination
     let title: String
     let image: String
+    var linkWidth: CGFloat
+    var linkHeight: CGFloat
     
     var body: some View {
         Group {
@@ -23,18 +26,62 @@ struct NavLinkPhone: View {
                     NavigationManager.shared.selectedMonth = nil
                     NavigationManager.shared.selection = destination
                 } label: {
-                    Label(
-                        title: { Text(title) },
-                        icon: { Image(systemName: image) }
-                    )
+                    HStack {
+                        Image(systemName: image)
+                            .foregroundStyle(Color.fromName(appColorTheme))
+                            .frame(minWidth: linkWidth, alignment: .center)
+                            .background { GeometryReader { Color.clear.preference(key: MaxNavWidthPreferenceKey.self, value: $0.size.width) } }
+                            .font(.title3)
+                        
+                        Text(title)
+                            .foregroundStyle(.primary)
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(Color.gray)
+                           // .padding(.trailing, 10)
+                    }
+                    .contentShape(Rectangle())
+                    //.frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .buttonStyle(.plain)
+                .frame(height: linkHeight)
+                .background { GeometryReader { Color.clear.preference(key: MaxNavHeightPreferenceKey.self, value: $0.size.height) } }
+                .padding(.vertical, 10)
+                .padding(.trailing, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(NavigationManager.shared.selection == destination ? Color(.tertiarySystemFill) : Color.clear)
+                )
+                
+
             } else {
                 NavigationLink(value: destination) {
-                    Label(
-                        title: { Text(title) },
-                        icon: { Image(systemName: image) }
-                    )
+                    HStack {
+                        Image(systemName: image)
+                            .foregroundStyle(Color.fromName(appColorTheme))
+                            .frame(minWidth: linkWidth, alignment: .center)
+                            .background { GeometryReader { Color.clear.preference(key: MaxNavWidthPreferenceKey.self, value: $0.size.width) } }
+                            .font(.title3)
+                        
+                        Text(title)
+                            .foregroundStyle(.primary)
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(Color.gray)
+                            //.padding(.trailing, 10)
+                    }
+                    .contentShape(Rectangle())
+                    //.frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .buttonStyle(.plain)
+                .frame(height: linkHeight)
+                .background { GeometryReader { Color.clear.preference(key: MaxNavHeightPreferenceKey.self, value: $0.size.height) } }
+                .padding(.vertical, 10)
+                .padding(.trailing, 10)
             }
         }
         .standardNavRowBackgroundWithSelection(id: destination.rawValue, selectedID: NavigationManager.shared.selection?.rawValue)
@@ -42,13 +89,16 @@ struct NavLinkPhone: View {
 }
 
 struct MonthNavigationLink: View {
-    @Environment(CalendarModel.self) var calModel; @Environment(CalendarViewModel.self) var calViewModel
+    @Environment(CalendarModel.self) var calModel
     
     
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
     @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     @Namespace private var monthNavigationNamespace
     let sevenColumnGrid = Array(repeating: GridItem(.flexible(), spacing: 0, alignment: .top), count: 7)
+    
+    @State private var blinkView = false
+    @State private var blinkTimer: Timer?
     
     var enumID: NavDestination
     //@Binding var showMonth: Bool
@@ -57,26 +107,82 @@ struct MonthNavigationLink: View {
         calModel.months.filter {$0.enumID == enumID}.first!
     }
     
-    var body: some View {
-        Button(action: navigateToMonth) {
-            VStack(alignment: .leading) {
-                monthName
-                monthDayGrid
+    @State private var likeCount = 1
+    
+    private enum AnimationPhase: CaseIterable {
+        case initial
+        case pulse
+        case end
+        
+        var backgroundColor: Color {
+            switch self {
+            case .initial: .clear
+            case .pulse: .green
+            case .end: .clear
             }
-            .contentShape(Rectangle())
-            .matchedTransitionSource(id: month.enumID, in: monthNavigationNamespace)
         }
+    }
+
+    
+    
+    
+    var body: some View {
+//        Button(action: navigateToMonth) {
+//            VStack(alignment: .leading) {
+//                monthName
+//                monthDayGrid
+//            }
+//            .contentShape(Rectangle())
+//            .matchedTransitionSource(id: month.enumID, in: monthNavigationNamespace)
+//        }
+        VStack(alignment: .leading) {
+            monthName
+            monthDayGrid
+        }
+        .contentShape(Rectangle())
+        .matchedTransitionSource(id: month.enumID, in: monthNavigationNamespace)
+        
         .padding(.bottom, 10)
         .buttonStyle(.plain)
         .padding(4)
         .if(AppState.shared.isIpad) {
             $0.background(
                 RoundedRectangle(cornerRadius: 6)
-                    /// Use this to only hilight the overview day.
-                    .fill(NavigationManager.shared.selectedMonth == month.enumID ? Color(.tertiarySystemFill) : Color.clear)
+                    .fill(blinkView ? Color.fromName(appColorTheme) : NavigationManager.shared.selectedMonth == month.enumID ? Color(.tertiarySystemFill) : Color.clear)
             )
         }
+        .onTapGesture {
+            navigateToMonth()
+        }
+        .dropDestination(for: CBTransaction.self) { droppedTrans, location in
+            AppState.shared.dragMonthTarget = nil
+            return true
+        } isTargeted: {
+            if $0 {
+                AppState.shared.dragOnMonthTimer?.invalidate()
+                                
+                AppState.shared.dragOnMonthTimer = Timer(fire: Date.now.addingTimeInterval(1), interval: 0, repeats: false) { _ in
+                    withAnimation(.easeInOut(duration: 0.1).repeatCount(2)) {
+                        blinkView.toggle()
+                    } completion: {
+                        AppState.shared.dragMonthTarget = enumID
+                        NavigationManager.shared.selectedMonth = enumID
+                        blinkView = false
+                    }
+                }
+                                                        
+                if let dragOnMonthTimer = AppState.shared.dragOnMonthTimer {
+                    RunLoop.main.add(dragOnMonthTimer, forMode: .common)
+                }
+            } else {
+                AppState.shared.dragOnMonthTimer?.invalidate()
+            }
+        }
     }
+    
+    
+    
+    
     
     var monthName: some View {
         Group {

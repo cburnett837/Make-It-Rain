@@ -71,6 +71,10 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
     var url: String
     var relatedTransactionType: XrefItem?
     
+    var isSmartTransaction: Bool?
+    var smartTransactionIssue: XrefItem?
+    var smartTransactionIsAcknowledged: Bool?
+    
     
     var isBudgetable: Bool { self.payMethod?.accountType == .cash || self.payMethod?.accountType == .checking }
     var isIncome: Bool { self.amount > 0 }
@@ -226,7 +230,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         //self.action = .add
         self.factorInCalculations = true
         self.payMethod = eventTrans.payMethod
-        self.category = eventTrans.category
+        //self.category = eventTrans.category
         self.date = eventTrans.date
         self.color = .primary
         self.active = true
@@ -269,7 +273,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
     }
     
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, entered_date, updated_date, pictures, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, related_transaction_type_id, fit_id }
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, entered_date, updated_date, pictures, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, related_transaction_type_id, fit_id, is_smart_transaction, smart_transaction_issue_id, smart_transaction_is_acknowledged }
     
     
     func encode(to encoder: Encoder) throws {
@@ -307,6 +311,10 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         try container.encode(relatedTransactionType?.id, forKey: .related_transaction_type_id)
         
         try container.encode(fitID, forKey: .fit_id)
+                
+        try container.encode((smartTransactionIsAcknowledged ?? false) ? 1 : 0, forKey: .smart_transaction_is_acknowledged)
+        try container.encode((isSmartTransaction ?? false) ? 1 : 0, forKey: .is_smart_transaction) // for the Transferable protocol
+        try container.encode(smartTransactionIssue?.id, forKey: .smart_transaction_issue_id) // for the Transferable protocol
     }
     
     
@@ -416,6 +424,31 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         } else {
             self.wasAddedFromPopulate = wasAddedFromPopulate == 1
         }
+        
+        
+        /// Smart Transaction Stuff
+        let isSmartTransaction = try container.decode(Int?.self, forKey: .is_smart_transaction)
+        if isSmartTransaction == nil {
+            self.isSmartTransaction = false
+        } else {
+            self.isSmartTransaction = isSmartTransaction == 1
+        }
+        
+        /// Smart Transaction Stuff
+        let smartTransactionIssueID = try container.decode(Int?.self, forKey: .smart_transaction_issue_id)
+        if let smartTransactionIssueID = smartTransactionIssueID {
+            self.smartTransactionIssue = XrefModel.getItem(from: .smartTransactionIssues, byID: smartTransactionIssueID)
+        }
+        
+        /// Smart Transaction Stuff
+        let smartTransactionIsAcknowledged = try container.decode(Int?.self, forKey: .smart_transaction_is_acknowledged)
+        if let smartTransactionIsAcknowledged = smartTransactionIsAcknowledged {
+            self.smartTransactionIsAcknowledged = smartTransactionIsAcknowledged == 1
+        }
+        
+        
+        
+        
         
         //self.undoManager = TransUndoManager(trans: self)
     }
@@ -650,7 +683,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         self.relatedTransactionID = eventTrans.id
         self.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .eventTransaction)
         self.payMethod = eventTrans.payMethod
-        self.category = eventTrans.category
+        //self.category = eventTrans.category
         self.enteredDate = Date()
         self.updatedDate = Date()
     }

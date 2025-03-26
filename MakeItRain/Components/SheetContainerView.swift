@@ -177,6 +177,8 @@ struct SheetContainerView<Content: View, Content2: View, Content3: View, Content
                             
                 List { content }
                     .scrollDismissesKeyboard(.immediately)
+                    .scrollContentBackground(.hidden)
+                    
                                 
                 footer()
                     .padding(.top, 10)

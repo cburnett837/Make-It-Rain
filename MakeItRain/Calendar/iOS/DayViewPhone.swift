@@ -22,7 +22,7 @@ struct DayViewPhone: View {
     
     
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
@@ -48,7 +48,7 @@ struct DayViewPhone: View {
     @Binding var showPhotosPicker: Bool
     @Binding var showCamera: Bool
     @Binding var overviewDay: CBDay?
-    @Binding var transHeight: CGFloat
+    @Binding var bottomPanelContent: BottomPanelContent?
     
     @State private var showDropActions = false
     @State private var showDailyActions = false
@@ -64,7 +64,7 @@ struct DayViewPhone: View {
    
     var body: some View {
         //let _ = Self._printChanges()
-        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+        @Bindable var calModel = calModel
         Group {
             if day.date == nil {
                 VStack {
@@ -96,6 +96,8 @@ struct DayViewPhone: View {
                             /// (Since `TransactionEditView` and `TransferSheet` use `selectedDate` as their default date.)
                             selectedDay = day
                             
+                            bottomPanelContent = .overviewDay
+                            
                         }
                     }
                 }
@@ -109,7 +111,7 @@ struct DayViewPhone: View {
                 .background(
                     RoundedRectangle(cornerRadius: 6)
                         /// Use this to only hilight the overview day.
-                        .fill(overviewDay == day || calModel.dragTarget == day ? Color(.tertiarySystemFill) : Color.clear)
+                        .fill((overviewDay == day && bottomPanelContent == .overviewDay) || calModel.dragTarget == day ? Color(.tertiarySystemFill) : Color.clear)
                         /// Offset the overlay divider line in `CalendarViewPhone` that separates the weeks.
                         .padding(.bottom, 2)
                 )
@@ -131,7 +133,11 @@ struct DayViewPhone: View {
                     return true
                     
                 } isTargeted: {
-                    if $0 { withAnimation { calModel.dragTarget = day } }
+                    if $0 {
+                        withAnimation { calModel.dragTarget = day }
+                    } else {
+                        withAnimation { calModel.dragTarget = nil }
+                    }
                 }
                 
                 .confirmationDialog("\(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())\n\(calModel.transactionToCopy?.title ?? "N/A")", isPresented: $showDropActions) {
@@ -238,20 +244,7 @@ struct DayViewPhone: View {
                 && phoneLineItemDisplayItem == .both
             {
                 ForEach(filteredTrans.prefix(5)) { trans in
-                    LineItemMiniView(
-                        transEditID: $transEditID,
-                        trans: trans,
-                        day: day
-                        //putBackToBottomPanelViewOnRotate: $putBackToBottomPanelViewOnRotate,
-                        //transHeight: $transHeight
-                    )
-                                    
-    //                LineItemMiniView2(
-    //                    transEditID: $transEditID,
-    //                    trans: trans,
-    //                    day: day
-    //                )
-                    //.padding(.vertical, 0)
+                    LineItemMiniView(transEditID: $transEditID, trans: trans, day: day)
                 }
                 HStack(spacing: 2) {
                     Canvas { context, size in
@@ -286,48 +279,14 @@ struct DayViewPhone: View {
                 
                 if showMoreTrans {
                     ForEach(filteredTrans.suffix(filteredTrans.count - 5)) { trans in
-                        LineItemMiniView(
-                            transEditID: $transEditID,
-                            trans: trans,
-                            day: day
-                            //putBackToBottomPanelViewOnRotate: $putBackToBottomPanelViewOnRotate,
-                            //transHeight: $transHeight
-                        )
-                                        
-        //                LineItemMiniView2(
-        //                    transEditID: $transEditID,
-        //                    trans: trans,
-        //                    day: day
-        //                )
-                        //.padding(.vertical, 0)
+                        LineItemMiniView(transEditID: $transEditID, trans: trans, day: day)
                     }
                 }
             } else {
                 ForEach(filteredTrans) { trans in
-                    LineItemMiniView(
-                        transEditID: $transEditID,
-                        trans: trans,
-                        day: day
-                        //putBackToBottomPanelViewOnRotate: $putBackToBottomPanelViewOnRotate,
-                        //transHeight: $transHeight
-                    )
-                                    
-    //                LineItemMiniView2(
-    //                    transEditID: $transEditID,
-    //                    trans: trans,
-    //                    day: day
-    //                )
-                    //.padding(.vertical, 0)
+                    LineItemMiniView(transEditID: $transEditID, trans: trans, day: day)
                 }
             }
-            
-            
-            
-            
-            
-            
-            
-            
             
             Spacer()
         }

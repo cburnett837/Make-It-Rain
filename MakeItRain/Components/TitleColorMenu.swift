@@ -11,7 +11,7 @@ struct TitleColorMenu<Content: View>: View {
     @Environment(\.colorScheme) var colorScheme
 
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
     
     var trans: CBTransaction
     let saveOnChange: Bool

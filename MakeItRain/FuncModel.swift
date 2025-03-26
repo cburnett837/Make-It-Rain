@@ -101,10 +101,13 @@ class FuncModel {
         ///     `.viaInitial, .viaButton, .viaLongPoll` are not used, and are only there for clarity.
         
         
-        print("-- \(#function)")
+        print("-- \(#function) -- Called from: \(file):\(line) : \(function)")
+        
+        AppState.shared.lastNetworkTime = .now
+        
         let start = CFAbsoluteTimeGetCurrent()
         
-        NSLog("\(file):\(line) : \(function)")
+        //NSLog("\(file):\(line) : \(function)")
         
         /// Run this in case the user changes notificaiton settings, we will know about it ASAP.
         Task {
@@ -230,6 +233,8 @@ class FuncModel {
         }
         #endif
         
+        print("Current Nav Selection: \(currentNavSelection)")
+        
         if let currentNavSelection {
             /// If viewing a month, determine current and adjacent months.
             if NavDestination.justMonths.contains(currentNavSelection) {
@@ -257,12 +262,7 @@ class FuncModel {
                 await downloadAdjacentMonths(next: next, prev: prev, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
                 /// Download other months and accessorials.
                 await downloadOtherMonthsAndAccessorials(viewingMonth: viewingMonth, next: next, prev: prev, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
-                
-                if AppState.shared.user?.id == 1 {
-                    await calModel.fetchFitTransactionsFromServer()
-                }
-                
-                
+                                
             } else {
                 /// Run this code if we come back from a sceneChange and are not viewing a month.
                 /// If we're not viewing a month, then we must be viewing an accessorial view, so download those first.
@@ -274,6 +274,8 @@ class FuncModel {
                     await downloadOtherMonths(viewingMonth: calModel.sMonth, next: next, prev: prev, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
                 }
             }
+        } else {
+            fatalError("Nav Selection is nil")
         }
                 
         withAnimation {
@@ -558,14 +560,14 @@ class FuncModel {
         if longPollTask == nil {
             print("Longpoll task does not exist. Creating.")
             longPollTask = Task {
-                await longPollServer()
+                await longPollServer(lastReturnTime: nil)
             }
         } else {
             print("Longpoll task exists")
             if longPollTask!.isCancelled {
                 print("Long poll task has been cancelled. Restarting")
                 longPollTask = Task {
-                    await longPollServer()
+                    await longPollServer(lastReturnTime: nil)
                 }
             } else {
                 print("Long poll task has not been cancelled and is running. Ignoring.")
@@ -573,12 +575,12 @@ class FuncModel {
         }
         
         @MainActor
-        func longPollServer() async {
+        func longPollServer(lastReturnTime: Int?) async {
             //return
             print("-- \(#function)")
             LogManager.log()
                                 
-            let model = RequestModel(requestType: "longpoll_server", model: CodablePlaceHolder())
+            let model = RequestModel(requestType: "longpoll_server", model: LongPollSubscribeModel(lastReturnTime: lastReturnTime))
             typealias ResultResponse = Result<LongPollModel?, AppError>
             async let result: ResultResponse = await NetworkManager().longPollServer(requestModel: model)
             
@@ -586,31 +588,57 @@ class FuncModel {
             case .success(let model):
                 LogManager.networkingSuccessful()
                 
+                AppState.shared.lastNetworkTime = .now
+                
+                var lastReturnTimeFromServer: Int?
+                
                 if let model {
-                    if let transactions = model.transactions { self.handleLongPollTransactions(transactions) }
+                    lastReturnTimeFromServer = model.returnTime
                     
-                    if AppState.shared.user?.id == 1 {
-                        if let fitTransactions = model.fitTransactions { self.handleLongPollFitTransactions(fitTransactions) }
+                    if model.transactions != nil
+                    || model.fitTransactions != nil
+                    || model.startingAmounts != nil
+                    || model.repeatingTransactions != nil
+                    || model.payMethods != nil
+                    || model.categories != nil
+                    || model.keywords != nil
+                    || model.budgets != nil
+                    || model.events != nil
+                    || model.invitations != nil {
+                        if let transactions = model.transactions { self.handleLongPollTransactions(transactions) }
+                        
+                        if AppState.shared.user?.id == 1 {
+                            if let fitTransactions = model.fitTransactions { self.handleLongPollFitTransactions(fitTransactions) }
+                        }
+                        
+                        if let startingAmounts = model.startingAmounts { self.handleLongPollStartingAmounts(startingAmounts) }
+                        if let repeatingTransactions = model.repeatingTransactions { await self.handleLongPollRepeatingTransactions(repeatingTransactions) }
+                        if let payMethods = model.payMethods { await self.handleLongPollPaymentMethods(payMethods) }
+                        if let categories = model.categories { await self.handleLongPollCategories(categories) }
+                        if let keywords = model.keywords { await self.handleLongPollKeywords(keywords) }
+                        if let budgets = model.budgets { self.handleLongPollBudgets(budgets) }
+                        if let events = model.events { await self.handleLongPollEvents(events) }
+                        if let invitations = model.invitations { await self.handleLongPollInvitations(invitations) }
+                    } else {
+                        print("LONGPOLL TIMEOUT")
                     }
-                    
-                    if let startingAmounts = model.startingAmounts { self.handleLongPollStartingAmounts(startingAmounts) }
-                    if let repeatingTransactions = model.repeatingTransactions { await self.handleLongPollRepeatingTransactions(repeatingTransactions) }
-                    if let payMethods = model.payMethods { await self.handleLongPollPaymentMethods(payMethods) }
-                    if let categories = model.categories { await self.handleLongPollCategories(categories) }
-                    if let keywords = model.keywords { await self.handleLongPollKeywords(keywords) }
-                    if let budgets = model.budgets { self.handleLongPollBudgets(budgets) }
-                    if let events = model.events { await self.handleLongPollEvents(events) }
-                    if let invitations = model.invitations { await self.handleLongPollInvitations(invitations) }
+                } else {
+                    lastReturnTimeFromServer = lastReturnTime
                 }
                 
+                
+                //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
+                
                 print("restarting longpoll - \(Date())")
-                await longPollServer()
+                await longPollServer(lastReturnTime: lastReturnTimeFromServer)
                 
             case .failure (let error):
                 switch error {
                 case .taskCancelled:
                     /// Task gets cancelled when logging out. So only show the alert if the error is not related to the task being cancelled.
                     print("Task Cancelled")
+                case .incorrectCredentials:
+                    print("NO LONG POLL PERMISSION")
                 default:
                     LogManager.error(error.localizedDescription)
                     print(error.localizedDescription)
@@ -640,7 +668,7 @@ class FuncModel {
     @MainActor private func handleLongPollTransactions(_ transactions: Array<CBTransaction>) {
         calModel.handleTransactions(transactions, refreshTechnique: .viaLongPoll)
         
-        let months = transactions.map { $0.dateComponents?.month }.uniqued()
+        let months = transactions.filter { $0.date != nil }.map { $0.dateComponents?.month }.uniqued()
         months.forEach { month in
             let montObj = calModel.months.filter{ $0.num == month }.first!
             calModel.calculateTotalForMonth(month: montObj)
@@ -1010,22 +1038,73 @@ class FuncModel {
         }
     }
     
+        
+    
+    
+    // MARK: - Initial Download
+    func downloadInitial() {
+        @Bindable var navManager = NavigationManager.shared
+        /// Set navigation destination to current month
+        //navManager.selection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+        #if os(iOS)
+        navManager.selectedMonth = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+        #else
+        navManager.selection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+        #endif
+        //navManager.monthSelection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+        //navManager.navPath.append(NavDestination.getMonthFromInt(AppState.shared.todayMonth)!)
+        
+        LoadingManager.shared.showInitiallyLoadingSpinner = true
+                    
+        refreshTask = Task {
+            /// populate all months with their days.
+            await calModel.prepareMonths()
+            #if os(iOS)
+            if let selectedMonth = navManager.selectedMonth {
+                /// set the calendar model to use the current month (ignore starting amounts and calculations)
+                await calModel.setSelectedMonthFromNavigation(navID: selectedMonth, prepareStartAmount: false)
+                /// download everything, and populate the days in the respective months with transactions.
+                await downloadEverything(setDefaultPayMethod: true, createNewStructs: true, refreshTechnique: .viaInitial)
+            } else {
+                print("Selected Month Not Set")
+            }
+            #else
+            if let selectedMonth = navManager.selection {
+                /// set the calendar model to use the current month (ignore starting amounts and calculations)
+                await calModel.setSelectedMonthFromNavigation(navID: selectedMonth, prepareStartAmount: false)
+                /// download everything, and populate the days in the respective months with transactions.
+                await downloadEverything(setDefaultPayMethod: true, createNewStructs: true, refreshTechnique: .viaInitial)
+            }
+            #endif
+        }
+    }
+    
+    
+    
     
     // MARK: - Logout
     @MainActor func logout() {
         print("-- \(#function)")
-        /// Clearing all ssssion data related to login and loading indicators.
-        AuthState.shared.logout()
+        /// Clearing all session data related to login and loading indicators.
+        AuthState.shared.clearLoginState()
         AppState.shared.downloadedData.removeAll()
         LoadingManager.shared.showInitiallyLoadingSpinner = true
         LoadingManager.shared.downloadAmount = 0
         LoadingManager.shared.showLoadingBar = true
         
         /// Cancel the long polling task.
-        longPollTask?.cancel()
-        self.longPollTask = nil
+        if let _ = longPollTask {
+            longPollTask!.cancel()
+            longPollTask = nil
+        }
         
-        /// Remove all transactions, budgets, and starting amounts for all months.
+        /// Cancel the long polling task.
+        if let _ = refreshTask {
+            refreshTask!.cancel()
+            refreshTask = nil
+        }
+        
+        /// Remove all transactions and starting amounts for all months.
         calModel.months.forEach { month in
             month.startingAmounts.removeAll()
             month.days.forEach { $0.transactions.removeAll() }
@@ -1039,13 +1118,19 @@ class FuncModel {
         keyModel.keywords.removeAll()
         eventModel.events.removeAll()
         eventModel.invitations.removeAll()
-                        
+        
         /// Remove all from cache.
-        let _ = DataManager.shared.deleteAll(for: PersistentPaymentMethod.self)
+        let _ = DataManager.shared.deleteAll(for: PersistentPaymentMethod.self, shouldSave: false)
         //print(saveResult1)
-        let _ = DataManager.shared.deleteAll(for: PersistentCategory.self)
+        let _ = DataManager.shared.deleteAll(for: PersistentCategory.self, shouldSave: false)
         //print(saveResult2)
-        let _ = DataManager.shared.deleteAll(for: PersistentKeyword.self)
+        let _ = DataManager.shared.deleteAll(for: PersistentKeyword.self, shouldSave: false)
         //print(saveResult3)
+        
+        let _ = DataManager.shared.save()
+        
+        NavigationManager.shared.selectedMonth = nil
+        NavigationManager.shared.selection = nil
+        NavigationManager.shared.navPath.removeAll()
     }
 }

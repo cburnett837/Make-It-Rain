@@ -23,7 +23,7 @@ struct LineItemMiniView2: View {
     //@AppStorage("phoneLineItemTotalPosition") var phoneLineItemTotalPosition: PhoneLineItemTotalPosition = .below
     
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
 
     @State private var labelWidth: CGFloat = 20.0
     @Binding var transEditID: String?
@@ -63,7 +63,7 @@ struct LineItemMiniView2: View {
     
     
     var body: some View {
-        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+        @Bindable var calModel = calModel
         
         HStack(spacing: 2) {
             accessoryIndicator
@@ -198,7 +198,7 @@ struct LineItemMiniView: View {
     @AppStorage("phoneLineItemTotalPosition") var phoneLineItemTotalPosition: PhoneLineItemTotalPosition = .below
     
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
 
     @State private var labelWidth: CGFloat = 20.0
     @Binding var transEditID: String?
@@ -238,7 +238,7 @@ struct LineItemMiniView: View {
     
     
     var body: some View {
-        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+        @Bindable var calModel = calModel
         Group {
             detailsLineItem
                 //.transition(.opacity)
@@ -255,10 +255,12 @@ struct LineItemMiniView: View {
         }
         .padding(.horizontal, preferDarkMode ? 0 : 1)
         .contentShape(Rectangle())
-        .draggable(trans) { dragPreview }
+        
         //.allowsHitTesting(phoneLineItemDisplayItem == .both)
         .if(phoneLineItemDisplayItem == .both) {
-            $0.onTapGesture {
+            $0
+            .draggable(trans) { dragPreview }
+            .onTapGesture {
                 calModel.hilightTrans = trans
                 transEditID = trans.id
             }
@@ -295,7 +297,7 @@ struct LineItemMiniView: View {
                         //.minimumScaleFactor(0.8)
                         .lineLimit(1)
                         .foregroundStyle(trans.color == .white || trans.color == .black ? .primary : trans.color)
-                        //.frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .overlay { ExcludeFromTotalsLine(trans: trans) }
                         .italic(wasUpdatedByAnotherUser)
                         .bold(wasUpdatedByAnotherUser)
@@ -303,7 +305,7 @@ struct LineItemMiniView: View {
                 } else if phoneLineItemDisplayItem == .total {
                     totalText
                         .font(.caption)
-                        //.frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .overlay { ExcludeFromTotalsLine(trans: trans) }
                         .italic(wasUpdatedByAnotherUser)
                         .bold(wasUpdatedByAnotherUser)
@@ -360,8 +362,8 @@ struct LineItemMiniView: View {
         Capsule()
             .fill(
                 calModel.isUnifiedPayMethod && lineItemIndicator == .paymentMethod
-                ? (trans.payMethod?.color ?? .gray).gradient
-                : (trans.category?.color ?? .gray).gradient
+                ? (trans.payMethod?.color ?? .gray)//.gradient
+                : (trans.category?.color ?? .gray)//.gradient
             )
             .frame(width: 3)
             //.frame(maxHeight: .infinity)

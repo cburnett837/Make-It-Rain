@@ -65,8 +65,10 @@ class LoadingManager {
     }
             
     func startLongNetworkTimer() {
-        longNetworkTaskTimer = Timer(fireAt: Date.now.addingTimeInterval(5), interval: 0, target: self, selector: #selector(showLongNetworkToast), userInfo: nil, repeats: false)
-        if let longNetworkTaskTimer { RunLoop.main.add(longNetworkTaskTimer, forMode: .common) }
+        if longNetworkTaskTimer == nil {
+            longNetworkTaskTimer = Timer(fireAt: Date.now.addingTimeInterval(5), interval: 0, target: self, selector: #selector(showLongNetworkToast), userInfo: nil, repeats: false)
+            if let longNetworkTaskTimer { RunLoop.main.add(longNetworkTaskTimer, forMode: .common) }
+        }
     }
     
     func stopLongNetworkTimer() {
@@ -74,6 +76,7 @@ class LoadingManager {
         showLoadingSpinner = false
         if let longNetworkTaskTimer = self.longNetworkTaskTimer {
             longNetworkTaskTimer.invalidate()
+            self.longNetworkTaskTimer = nil
         }
     }
 }

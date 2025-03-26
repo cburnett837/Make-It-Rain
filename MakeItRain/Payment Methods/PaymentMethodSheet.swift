@@ -12,7 +12,7 @@ struct PaymentMethodSheet: View {
     @Environment(\.dismiss) var dismiss
     
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
     @Environment(PayMethodModel.self) private var payModel
         
     @Binding var payMethod: CBPaymentMethod?
@@ -62,6 +62,9 @@ struct PaymentMethodSheet: View {
         } subHeader: {
             SearchTextField(title: "Payment Methods", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)
                 .padding(.horizontal, -20)
+                #if os(macOS)
+                .focusable(false) /// prevent mac from auto focusing
+                #endif
         }
         .task {
             sections = getApplicablePayMethods(type: whichPaymentMethods)
@@ -109,9 +112,9 @@ struct PaymentMethodSheet: View {
                                 calModel.saveTransaction(id: trans!.id, location: isPendingSmartTransaction ? .smartList : .normalList)
                                 calModel.tempTransactions.removeAll()
                                 
-                                if isPendingSmartTransaction {
-                                    calModel.pendingSmartTransaction = nil
-                                }
+//                                if isPendingSmartTransaction {
+//                                    calModel.pendingSmartTransaction = nil
+//                                }
                             } else {
                                 payMethod = meth
                             }

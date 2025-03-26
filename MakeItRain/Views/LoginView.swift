@@ -8,7 +8,7 @@
 import SwiftUI
 
 @MainActor
-struct Login: View {
+struct LoginView: View {
     enum Field: Hashable {
         case email
         case password
@@ -18,6 +18,8 @@ struct Login: View {
         case email, password, invalid, server
     }
     
+    @Environment(FuncModel.self) var funcModel
+    @Environment(CalendarModel.self) private var calModel
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @State private var email = ""
     @State private var password = ""
@@ -156,7 +158,7 @@ struct Login: View {
         })
     }
     
-    func activateAlert(_ type: AlertType) {
+    func showAlert(_ type: AlertType) {
         AuthState.shared.isThinking = false
         attemptingLogin = false
         switch type {
@@ -175,30 +177,80 @@ struct Login: View {
         guard !email.isEmpty, !password.isEmpty else {
             if email.isEmpty {
                 focusedField = .email
-                activateAlert(.email)
+                showAlert(.email)
             } else if password.isEmpty {
                 focusedField = .password
-                activateAlert(.password)
+                showAlert(.password)
             }
             return
         }
         
+        /// Sets `AuthState.isThinking`
+        /// Sets `AuthState.isLoggedIn`
+        /// Sets `AppState.appShouldShowSplashScreen`
         await AuthState.shared.attemptLogin(using: .emailAndPassword, with: LoginModel(email: email, password: password))
         
         
         switch AuthState.shared.error {
         case .incorrectCredentials, .accessRevoked: // calling .credentialsIncorrect because credentials can't be revoked at this stage. I mean they can, but this is a better alert.
             attemptingLogin = false
-            activateAlert(.invalid)
+            showAlert(.invalid)
             
         case .connectionError, .serverError:
             attemptingLogin = false
-            activateAlert(.server)
+            showAlert(.server)
             
         default:
             attemptingLogin = false
+//            if AuthState.shared.isLoggedIn {
+//                /// When the user logs in, if they have no payment methods, show the payment method required sheet.
+//                if AppState.shared.methsExist {
+//                    funcModel.downloadInitial()
+//                } else {
+//                    LoadingManager.shared.showInitiallyLoadingSpinner = false
+//                    LoadingManager.shared.showLoadingBar = false
+//                    AppState.shared.showPaymentMethodNeededSheet = true
+//                }
+//                //await NotificationManager.shared.registerForPushNotifications()
+//            }
         }
-                
     }
+    
+    
+    
+//    func downloadInitial() {
+//        @Bindable var navManager = NavigationManager.shared
+//        /// Set navigation destination to current month
+//        //navManager.selection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+//        #if os(iOS)
+//        navManager.selectedMonth = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+//        #else
+//        navManager.selection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+//        #endif
+//        //navManager.monthSelection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+//        //navManager.navPath.append(NavDestination.getMonthFromInt(AppState.shared.todayMonth)!)
+//        
+//        LoadingManager.shared.showInitiallyLoadingSpinner = true
+//                    
+//        funcModel.refreshTask = Task {
+//            /// populate all months with their days.
+//            calModel.prepareMonths()
+//            #if os(iOS)
+//            if let selectedMonth = navManager.selectedMonth {
+//                /// set the calendar model to use the current month (ignore starting amounts and calculations)
+//                calModel.setSelectedMonthFromNavigation(navID: selectedMonth, prepareStartAmount: false)
+//                /// download everything, and populate the days in the respective months with transactions.
+//                await funcModel.downloadEverything(setDefaultPayMethod: true, createNewStructs: true, refreshTechnique: .viaInitial)
+//            }
+//            #else
+//            if let selectedMonth = navManager.selection {
+//                /// set the calendar model to use the current month (ignore starting amounts and calculations)
+//                calModel.setSelectedMonthFromNavigation(navID: selectedMonth, prepareStartAmount: false)
+//                /// download everything, and populate the days in the respective months with transactions.
+//                await funcModel.downloadEverything(setDefaultPayMethod: true, createNewStructs: true, refreshTechnique: .viaInitial)
+//            }
+//            #endif
+//        }
+//    }
 }
 

@@ -12,14 +12,16 @@ class EventIdModel: Decodable {
     let participantIds: Array<ReturnIdModel>?
     let items: Array<ReturnIdModel>?
     let transactions: Array<ReturnIdModel>?
+    let categories: Array<ReturnIdModel>?
     
-    enum CodingKeys: CodingKey { case event_id, participant_ids, items, transactions }
+    enum CodingKeys: CodingKey { case event_id, participant_ids, items, transactions, categories }
     
     init() {
         self.eventID = UUID().uuidString
         self.participantIds = []
         self.items = []
         self.transactions = []
+        self.categories = []
     }
     
     required init(from decoder: Decoder) throws {
@@ -28,6 +30,7 @@ class EventIdModel: Decodable {
         participantIds = try container.decodeIfPresent(Array<ReturnIdModel>.self, forKey: .participant_ids)
         items = try container.decodeIfPresent(Array<ReturnIdModel>.self, forKey: .items)
         transactions = try container.decodeIfPresent(Array<ReturnIdModel>.self, forKey: .transactions)
+        categories = try container.decodeIfPresent(Array<ReturnIdModel>.self, forKey: .categories)
     }
 }
 

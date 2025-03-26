@@ -11,7 +11,7 @@ struct RootViewMac: View {
     @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
 
     @Environment(FuncModel.self) var funcModel
-    @Environment(CalendarModel.self) var calModel; @Environment(CalendarViewModel.self) var calViewModel
+    @Environment(CalendarModel.self) var calModel
     
     @Environment(PayMethodModel.self) var payModel
     @Environment(CategoryModel.self) var catModel
@@ -20,7 +20,7 @@ struct RootViewMac: View {
             
     var body: some View {
         @Bindable var navManager = NavigationManager.shared
-        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+        @Bindable var calModel = calModel
         @Bindable var appState = AppState.shared
         
         NavigationSplitView {
@@ -35,12 +35,12 @@ struct RootViewMac: View {
                             let lastDec = calModel.months.filter { $0.enumID == .lastDecember }.first!
                             NavLinkMac(destination: lastDec.enumID, title: lastDec.name, image: "12.circle")
                                 .italic()
-                                                                                    
+                            
                             ForEach(calModel.months.filter{![.lastDecember, .nextJanuary].contains($0.enumID)}, id: \.self) { month in
                                 NavLinkMac(destination: month.enumID, title: month.name, image: "\(month.num).circle")
                                 
                             }
-                                                        
+                            
                             let nextJan = calModel.months.filter { $0.enumID == .nextJanuary }.first!
                             NavLinkMac(destination: nextJan.enumID, title: nextJan.name, image: "1.circle")
                                 .italic()
@@ -67,24 +67,26 @@ struct RootViewMac: View {
                         }
                     }
                 }
-            }
-            
-            Spacer()
-            /// removed because of flashing when the view loads
-            #warning("PUT ME BACK")
-//
-//            if LoadingManager.shared.showLoadingBar {
-//                ProgressView(value: LoadingManager.shared.downloadAmount, total: 150)
-//                    .padding(.horizontal, 12)
-//            }
-            
-            HStack {
+                
+                
                 Spacer()
-                Button("Logout", action: funcModel.logout)
-                Spacer()
+                /// removed because of flashing when the view loads
+                #warning("PUT ME BACK")
+                //
+                //            if LoadingManager.shared.showLoadingBar {
+                //                ProgressView(value: LoadingManager.shared.downloadAmount, total: 150)
+                //                    .padding(.horizontal, 12)
+                //            }
+                
+                HStack {
+                    Spacer()
+                    Button("Logout", action: funcModel.logout)
+                    Spacer()
+                }
+                .padding(.bottom, 15)
             }
-            .padding(.bottom, 15)
-            
+            //.toolbarBackground(Color.darkGray2)
+            //.background(Color.darkGray2)
         } detail: {
             switch navManager.selection {
             case .january, .february, .march, .april, .may, .june, .july, .august, .september, .october, .november, .december, .lastDecember, .nextJanuary:
@@ -118,6 +120,8 @@ struct RootViewMac: View {
                EmptyView()
             }
         }
+        //.toolbarBackground(Color.darkGray2)
+        //.background(Color.darkGray2)
         .tint(Color.fromName(appColorTheme))
         .toast()
     }

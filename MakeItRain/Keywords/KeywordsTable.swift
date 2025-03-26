@@ -145,7 +145,7 @@ struct KeywordsTable: View {
         }
         
         ToolbarItem(placement: .principal) {
-            ToolbarCenterView()
+            ToolbarCenterView(enumID: .keywords)
         }
         ToolbarItem {
             Spacer()

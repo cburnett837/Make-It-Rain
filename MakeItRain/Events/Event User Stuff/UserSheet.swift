@@ -13,7 +13,7 @@ struct UserSheet: View {
     @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
     
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
     

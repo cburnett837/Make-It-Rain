@@ -6,6 +6,9 @@
 //
 
 import Foundation
+#if os(iOS)
+import UIKit
+#endif
 
 class RequestModel<T: Encodable>: Encodable {
     var sessionID = ""
@@ -111,7 +114,7 @@ class ParentChildIdModel: Decodable {
     
     enum CodingKeys: CodingKey { case parent_id, child_ids }
     
-    init(){
+    init() {
         self.parentID = UUID().uuidString
         self.childIDs = []
     }
@@ -126,7 +129,31 @@ class ParentChildIdModel: Decodable {
 
 
 
-
+class CheckIfShouldDownloadModel: Codable {
+    var shouldDownload: Bool = false
+    var lastNetworkTime: String?
+    
+    enum CodingKeys: CodingKey { case user_id, account_id, device_uuid, should_download, last_network_time }
+    
+    init(lastNetworkTime: Date) {
+        self.lastNetworkTime = lastNetworkTime.string(to: .serverDateTime)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(AppState.shared.user?.id, forKey: .user_id)
+        try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
+        try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
+        try container.encode(lastNetworkTime, forKey: .last_network_time)
+    }
+    
+    
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let result = try container.decode(Int?.self, forKey: .should_download)
+        self.shouldDownload = result == 1 ? true : false
+    }
+}
 
 
 
@@ -134,10 +161,40 @@ class CodablePlaceHolder: Codable {
     let thing: String?
     var deviceName: String = UserDefaults.standard.string(forKey: "deviceName") ?? "device name undetermined"
     
-    init(){
+    init() {
         self.thing = nil
     }
 }
+
+
+class LongPollSubscribeModel: Encodable {
+    let lastReturnTime: Int?
+    var deviceName: String = UserDefaults.standard.string(forKey: "deviceName") ?? "device name undetermined"
+    
+    enum CodingKeys: CodingKey { case last_return_time, user_id, account_id, device_uuid, device_os, device_name }
+        
+    init(lastReturnTime: Int?) {
+        self.lastReturnTime = lastReturnTime
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(lastReturnTime, forKey: .last_return_time)
+        try container.encode(AppState.shared.user?.id, forKey: .user_id)
+        try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
+        try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
+                
+        #if os(macOS)
+        try container.encode(String(ProcessInfo.processInfo.operatingSystemVersionString), forKey: .device_os)
+        try container.encode(String(ProcessInfo.processInfo.hostName), forKey: .device_name)
+        #else
+        try container.encode(String(UIDevice.current.systemVersion), forKey: .device_os)
+        try container.encode(String(UIDevice.current.name), forKey: .device_name)
+        #endif
+    }
+}
+
+
 
 
 class TransactionAndStartingAmountModel: Decodable {

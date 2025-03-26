@@ -13,7 +13,7 @@ struct TransferSheet2: View {
     
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
     
     @State var date: Date
     

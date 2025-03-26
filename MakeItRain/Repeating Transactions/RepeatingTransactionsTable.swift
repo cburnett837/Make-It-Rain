@@ -153,7 +153,7 @@ struct RepeatingTransactionsTable: View {
         }
         
         ToolbarItem(placement: .principal) {
-            ToolbarCenterView()
+            ToolbarCenterView(enumID: .repeatingTransactions)
         }
         ToolbarItem {
             Spacer()

@@ -22,6 +22,7 @@ class AppState {
     var macWindowDidBecomeMain = false
     var macSlept = false
     var macWokeUp = false
+    var monthlySheetWindowTitle = ""
     #endif
     var longPollFailed = false
     var isLoggingInForFirstTime = false
@@ -53,6 +54,15 @@ class AppState {
     var splashTextAnimationIsFinished: Bool = false
     
     var longNetworkTaskTimer: Timer?
+    
+    var lastNetworkTime: Date?
+    
+    var dragOnMonthTimer: Timer?
+    var dragMonthTarget: NavDestination?
+    
+    func showDragTarget(for month: NavDestination) {
+        self.dragMonthTarget = month
+    }
     
     
     init() {
@@ -91,6 +101,27 @@ class AppState {
             LogManager.error(error.localizedDescription)
             AppState.shared.hasBadConnection = true
             AppState.shared.showAlert("Connection Problem")
+            return true
+        }
+    }
+    
+    func checkIfDownloadingDataIsNeeded() async -> Bool {
+        print("-- \(#function)")
+        
+        let model = RequestModel(requestType: "check_for_changes", model: CheckIfShouldDownloadModel(lastNetworkTime: AppState.shared.lastNetworkTime ?? Date()))
+        typealias ResultResponse = Result<CheckIfShouldDownloadModel?, AppError>
+        async let result: ResultResponse = await NetworkManager(timeout: 10).singleRequest(requestModel: model, retainTime: false)
+        
+        switch await result {
+        case .success(let model):
+            if let model = model {
+                return model.shouldDownload
+            } else {
+                return true
+            }
+            
+        case .failure(let error):
+            LogManager.error(error.localizedDescription)
             return true
         }
     }

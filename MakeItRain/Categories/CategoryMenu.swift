@@ -13,7 +13,7 @@ struct CategoryMenu<Content: View>: View {
 
     
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
     @Environment(CategoryModel.self) private var catModel
     
     @Binding var category: CBCategory?

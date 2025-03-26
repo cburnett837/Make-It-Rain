@@ -16,7 +16,7 @@ struct CategoriesTable: View {
     
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
     @Environment(EventModel.self) private var eventModel
@@ -108,6 +108,13 @@ struct CategoriesTable: View {
             }
             #endif
         }
+        .onChange(of: categoryEditID) { oldValue, newValue in
+            if let newValue {
+                editCategory = catModel.getCategory(by: newValue)
+            } else {
+                catModel.saveCategory(id: oldValue!, calModel: calModel)
+            }
+        }
         
         #if os(iOS)
         .sheet(item: $editCategory, onDismiss: {
@@ -120,7 +127,7 @@ struct CategoriesTable: View {
             categoryEditID = nil
         }, content: { cat in
             CategoryView(category: cat, catModel: catModel, calModel: calModel, keyModel: keyModel, editID: $categoryEditID)
-                .frame(minWidth: 300, minHeight: 500)
+                .frame(minWidth: 500, minHeight: 700)
                 .presentationSizing(.fitted)
         })
         #endif
@@ -139,13 +146,6 @@ struct CategoriesTable: View {
         
         .onChange(of: sortOrder) { _, sortOrder in
             catModel.categories.sort(using: sortOrder)
-        }
-        .onChange(of: categoryEditID) { oldValue, newValue in
-            if let newValue {
-                editCategory = catModel.getCategory(by: newValue)
-            } else {
-                catModel.saveCategory(id: oldValue!, calModel: calModel)                
-            }
         }
                 
         .confirmationDialog("Delete \"\(deleteCategory == nil ? "N/A" : deleteCategory!.title)\"?", isPresented: $showDeleteAlert, actions: {
@@ -218,7 +218,7 @@ struct CategoriesTable: View {
         }
         
         ToolbarItem(placement: .principal) {
-            ToolbarCenterView()
+            ToolbarCenterView(enumID: .categories)
         }
         ToolbarItem {
             Spacer()

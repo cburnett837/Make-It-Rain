@@ -16,7 +16,7 @@ struct CalendarOptionsSheet: View {
 
     @Environment(FuncModel.self) var funcModel
     //@Environment(RootViewModelPhone.self) var vm
-    @Environment(CalendarModel.self) var calModel; @Environment(CalendarViewModel.self) var calViewModel
+    @Environment(CalendarModel.self) var calModel
     
     @Environment(PayMethodModel.self) var payModel
     @Environment(CategoryModel.self) var catModel
@@ -35,7 +35,7 @@ struct CalendarOptionsSheet: View {
     
         
     var body: some View {
-        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+        @Bindable var calModel = calModel
         
         SheetContainerView(.list) {
             Section {
@@ -94,7 +94,7 @@ struct CalendarOptionsSheet: View {
     
 //    var startingAmount: some View {
 //        Group {
-//            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+//            @Bindable var calModel = calModel
 //            
 //            VStack(alignment: .leading, spacing: 2) {
 //                Text("STARTING AMOUNT\(calModel.isUnifiedPayMethod ? " (read only)" : "")")
@@ -152,7 +152,7 @@ struct CalendarOptionsSheet: View {
 //    
 //    var paymentMethodMenu: some View {
 //        Group {
-//            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+//            @Bindable var calModel = calModel
 //            
 //            VStack(alignment: .leading, spacing: 2) {
 //                Text("PAYMENT METHOD")
@@ -188,7 +188,7 @@ struct CalendarOptionsSheet: View {
 //    
 //    var categoryMenu: some View {
 //        Group {
-//            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+//            @Bindable var calModel = calModel
 //            
 //            VStack(alignment: .leading, spacing: 2) {
 //                Text("CATEGORY")
@@ -262,7 +262,7 @@ struct CalendarOptionsSheetOG: View {
 
     @Environment(FuncModel.self) var funcModel
     //@Environment(RootViewModelPhone.self) var vm
-    @Environment(CalendarModel.self) var calModel; @Environment(CalendarViewModel.self) var calViewModel
+    @Environment(CalendarModel.self) var calModel
     
     @Environment(PayMethodModel.self) var payModel
     @Environment(CategoryModel.self) var catModel
@@ -283,7 +283,7 @@ struct CalendarOptionsSheetOG: View {
     
         
     var body: some View {
-        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+        @Bindable var calModel = calModel
         NavigationStack {
             VStack(spacing: 0) {
                 SheetHeader(title: "Monthly Options", close: { dismiss() })
@@ -373,7 +373,7 @@ struct CalendarOptionsSheetOG: View {
     
 //    var startingAmount: some View {
 //        Group {
-//            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+//            @Bindable var calModel = calModel
 //
 //            VStack(alignment: .leading, spacing: 2) {
 //                Text("STARTING AMOUNT\(calModel.isUnifiedPayMethod ? " (read only)" : "")")
@@ -431,7 +431,7 @@ struct CalendarOptionsSheetOG: View {
 //
 //    var paymentMethodMenu: some View {
 //        Group {
-//            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+//            @Bindable var calModel = calModel
 //
 //            VStack(alignment: .leading, spacing: 2) {
 //                Text("PAYMENT METHOD")
@@ -467,7 +467,7 @@ struct CalendarOptionsSheetOG: View {
 //
 //    var categoryMenu: some View {
 //        Group {
-//            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+//            @Bindable var calModel = calModel
 //
 //            VStack(alignment: .leading, spacing: 2) {
 //                Text("CATEGORY")

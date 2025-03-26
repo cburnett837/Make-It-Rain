@@ -8,11 +8,28 @@
 import Foundation
 
 enum RefType {
-    case eventTransactionStatuses, relatedTransactionType, photoTypes, eventInviteStatus
+    case eventTransactionStatuses
+    case relatedTransactionType
+    case photoTypes
+    case eventInviteStatus
+    case smartTransactionIssues
 }
 
 enum XrefEnum {
-    case pending, claimed, transaction, eventTransaction, accepted, rejected
+    case pending
+    case claimed
+    
+    case transaction
+    case eventTransaction
+    
+    case accepted
+    case rejected
+    
+    /// Smart Transaction Errors
+    case missingPaymentMethod
+    case missingDate
+    case missingPaymentMethodAndDate
+    case funkyDate
 }
 
 struct XrefItem: Identifiable, Equatable {
@@ -49,22 +66,35 @@ struct XrefModel {
         XrefItem(id: 6, refType: "photo_type", description: "Event Transaction", enumID: .eventTransaction)
     ]
     
-    static let eventInviteStatue: Array<XrefItem> = [
+    static let eventInviteStatuses: Array<XrefItem> = [
         XrefItem(id: 7, refType: "event_invite_status", description: "Pending", enumID: .pending),
         XrefItem(id: 8, refType: "event_invite_status", description: "Accepted", enumID: .accepted),
         XrefItem(id: 9, refType: "event_invite_status", description: "Rejected", enumID: .rejected)
+    ]
+    
+    static let smartTransactionIssues: Array<XrefItem> = [
+        XrefItem(id: 10, refType: "smart_transaction_issue", description: "Missing Payment Method", enumID: .missingPaymentMethod),
+        XrefItem(id: 11, refType: "smart_transaction_issue", description: "Missing Date", enumID: .missingDate),
+        XrefItem(id: 12, refType: "smart_transaction_issue", description: "Missing Payment Method And Date", enumID: .missingPaymentMethodAndDate),
+        XrefItem(id: 13, refType: "smart_transaction_issue", description: "Funky Date", enumID: .funkyDate)
     ]
     
     static func getItems(forRefType refType: RefType) -> Array<XrefItem> {
         switch refType {
         case .eventTransactionStatuses:
             return eventTransactionStatuses
+            
         case .relatedTransactionType:
             return relatedTransactionType
+            
         case .photoTypes:
             return photoTypes
+            
         case .eventInviteStatus:
-            return eventInviteStatue
+            return eventInviteStatuses
+            
+        case .smartTransactionIssues:
+            return smartTransactionIssues
         }
     }
     

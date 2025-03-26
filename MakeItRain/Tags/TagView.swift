@@ -12,7 +12,7 @@ struct TagView: View {
     @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
     //@Environment(TagModel.self) private var tagModel
     @Bindable var trans: CBTransaction
     

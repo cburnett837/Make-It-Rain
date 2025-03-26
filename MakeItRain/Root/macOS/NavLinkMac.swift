@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct NavLinkMac: View {
-    @Environment(CalendarModel.self) var calModel; @Environment(CalendarViewModel.self) var calViewModel
+    @Environment(CalendarModel.self) var calModel
     
     
     @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description

@@ -13,7 +13,7 @@ struct DayViewMac: View {
     @AppStorage("alignWeekdayNamesLeft") var alignWeekdayNamesLeft = true
     
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
@@ -245,7 +245,7 @@ struct DayViewMac: View {
     var notTodayNumber: some View {
         Text("\(day.dateComponents?.day ?? 0)")
             .font(.title2)
-            .foregroundColor(.white)
+            //.foregroundColor(.white)
             .padding(.horizontal, 8)
             .padding(.bottom, 10)
             .padding(.top, 10)

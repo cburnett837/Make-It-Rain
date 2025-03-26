@@ -1,27 +1,27 @@
 //
-//  FitTransactionSheet.swift
+//  SmartTransactionsWithIssuesOverlay.swift
 //  MakeItRain
 //
-//  Created by Cody Burnett on 2/21/25.
+//  Created by Cody Burnett on 3/24/25.
 //
 
-import Foundation
 import SwiftUI
 
-struct FitTransactionOverlay: View {
+struct SmartTransactionsWithIssuesOverlay: View {
     @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
-    
     #if os(macOS)
     @Environment(\.dismiss) private var dismiss
     #endif
     @Environment(CalendarModel.self) private var calModel
-    
     @Environment(PayMethodModel.self) private var payModel
     
     @Binding var bottomPanelContent: BottomPanelContent?
+    @Binding var transEditID: String?
+    @Binding var findTransactionWhere: WhereToLookForTransaction
     @Binding var sheetHeight: CGFloat
     
     var body: some View {
+        let _ = Self._printChanges()
         VStack {
             #if os(iOS)
             if AppState.shared.isIpad || AppState.shared.isIphoneInPortrait { header }
@@ -35,19 +35,37 @@ struct FitTransactionOverlay: View {
                     #endif
                     Divider()
                     
-                    if calModel.fitTrans.filter({ !$0.isAcknowledged }).isEmpty {
-                        ContentUnavailableView("No Fit Transactions", systemImage: "bag.fill.badge.questionmark")
+                    if calModel.tempTransactions.filter({ $0.isSmartTransaction ?? false }).isEmpty {
+                        ContentUnavailableView("No Smart Transactions With Issues", systemImage: "bag.fill.badge.questionmark")
                     } else {
                         VStack(spacing: 0) {
-                            ForEach(calModel.fitTrans.filter { !$0.isAcknowledged }) { trans in
+                            ForEach(calModel.tempTransactions.filter {$0.isSmartTransaction ?? false}) { trans in
                                 VStack(spacing: 0) {
                                     HStack {
                                         VStack(alignment: .leading, spacing: 0) {
                                             
-                                            HStack(spacing: 0) {
-                                                CircleDot(color: trans.category?.color, width: 10)
-                                                Text(trans.title)
+                                            Text(trans.title)
+                                            
+                                            Group {
+                                                if trans.smartTransactionIssue?.enumID == .missingPaymentMethod {
+                                                    Text("Missing Payment Method")
+                                                        .foregroundStyle(.red)
+                                                    
+                                                } else if trans.smartTransactionIssue?.enumID == .missingDate {
+                                                    Text("Missing Date")
+                                                        .foregroundStyle(.red)
+                                                    
+                                                } else if trans.smartTransactionIssue?.enumID == .missingPaymentMethodAndDate {
+                                                    Text("Missing Payment Method and Date")
+                                                        .foregroundStyle(.red)
+                                                    
+                                                } else if trans.smartTransactionIssue?.enumID == .funkyDate {
+                                                    Text("Date Seems Weird")
+                                                        .foregroundStyle(.orange)
+                                                }
                                             }
+                                            .font(.footnote)
+                                            
                                             
                                             HStack(spacing: 0) {
                                                 CircleDot(color: trans.payMethod?.color, width: 10)
@@ -60,42 +78,25 @@ struct FitTransactionOverlay: View {
                                             Text(trans.date?.string(to: .monthDayShortYear) ?? "N/A")
                                                 .foregroundStyle(.gray)
                                                 .font(.caption2)
+                                                                                                             
+                                        
+                                            
+                                            
+                                            
                                         }
                                         
                                         Spacer()
-                                        Button("Accept") {
-                                            trans.isAcknowledged = true
-                                            
-                                            if trans.payMethod?.id == "10" {
-                                                if trans.amountString.contains("-") {
-                                                    trans.amountString = trans.amountString.replacingOccurrences(of: "-", with: "")
-                                                } else {
-                                                    trans.amountString = "-\(trans.amountString)"
-                                                }
-                                            }
-                                            
-                                            let realTrans = CBTransaction(fitTrans: trans)
-                                            if let targetDay = calModel
-                                                .sMonth
-                                                .days
-                                                .filter({
-                                                    $0.dateComponents?.month == realTrans.date?.month
-                                                    && $0.dateComponents?.day == realTrans.date?.day
-                                                    && $0.dateComponents?.year == realTrans.date?.year
-                                                }).first {
-                                                targetDay.upsert(realTrans)
-                                            }
-                                            
-                                            calModel.tempTransactions.append(realTrans)
-                                            calModel.saveTransaction(id: realTrans.id, location: .tempList)
+                                        Button("Fix") {
+                                            trans.smartTransactionIsAcknowledged = true
+                                            findTransactionWhere = .smartList
+                                            transEditID = trans.id
                                         }
                                         .buttonStyle(.borderedProminent)
                                         .tint(Color.fromName(appColorTheme))
                                         
                                         Button("Ignore") {
-                                            trans.isAcknowledged = true
                                             Task {
-                                                await calModel.denyFitTransaction(trans)
+                                                await calModel.denySmartTransaction(trans)
                                             }
                                         }
                                         .buttonStyle(.borderedProminent)
@@ -113,20 +114,11 @@ struct FitTransactionOverlay: View {
                 }
             }
         }
-        
-        
-        
-        //            .confirmationDialog("Pending Fit Transactions", isPresented: $showDropActions) {
-        //
-        //            } message: {
-        //                Text("\(calModel.transactionToCopy?.title ?? "N/A")\nDropped on \(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())")
-        //            }
-                
     }
     
     var header: some View {
         SheetHeader(
-            title: "Pending Fit Transactions",
+            title: "Pending Smart Transactions",
             close: {
                 #if os(iOS)
                 withAnimation {
@@ -135,16 +127,12 @@ struct FitTransactionOverlay: View {
                 #else
                 dismiss()
                 #endif
-            },
-            view1: {
-                Button {
-                    Task { await calModel.fetchFitTransactionsFromServer() }
-                } label: {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                }
             }
         )
         .padding()
         .sheetHeightAdjuster(height: $sheetHeight)
     }
 }
+
+
+

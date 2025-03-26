@@ -13,9 +13,10 @@ struct AnalysisSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.appearsActive) var appearsActive
     #endif
+    @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
     @Environment(EventModel.self) private var eventModel
     @Binding var showAnalysisSheet: Bool
         
@@ -25,7 +26,7 @@ struct AnalysisSheet: View {
     }
     
     struct ChartData: Identifiable {
-        let id = UUID().uuidString
+        var id: String { return category.id }
         let category: CBCategory
         var budget: Double
         var expenses: Double
@@ -60,158 +61,27 @@ struct AnalysisSheet: View {
         }
     }
     
-    var body: some View {
-        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel        
-        SheetContainerView(.list) {
-            Section {
-                HStack {
-                    Text("Total Items:")
-                    Spacer()
-                    Text("\(transactions.count)")
-                }
-                
-                HStack {
-                    Text("Total Budget:")
-                    Spacer()
-                    Text(budget.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                }
-                
-                HStack {
-                    Text("Total Expenses:")
-                    Spacer()
-                    Text((totalSpent * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                }
-                
-                HStack {
-                    Text("Over/Under:")
-                    Spacer()
-                    Text((budget - (totalSpent * -1)).currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                        .foregroundStyle(budget - (totalSpent * -1) < 0 ? .red : .green)
-                }
-                
-                chartSection
-            } header: {
-                Text("Details")
-            }
-                                            
-            Section {
-                LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
-                    Text("Category")
-                    Text("Budget")
-                    Text("Expenses")
-                    Text("Over/Under")
-                }
-                .font(.caption2)
-                
-                ForEach(chartData) { metric in
-                    LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
-                        Group {
-                            HStack(alignment: .circleAndTitle, spacing: 5) {
-                                
-                                ChartCircleDot(
-                                    budget: metric.budget,
-                                    expenses: metric.expenses,
-                                    color: metric.category.color,
-                                    size: 12
-                                )
-                                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-                                
-                                
-                                
-                                
-//                                Circle()
-//                                    .fill(metric.category.color)
-//                                    .frame(maxWidth: 8, maxHeight: 8) // 8 seems to be the default from charts
-//                                    .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-//                                
-                                
-                                Text(metric.category.title)
-                                    .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-                            }
-                            
-                            Text(metric.budget.currencyWithDecimals(2))
-                            Text((metric.expenses * -1).currencyWithDecimals(2))
-                            let overUnder = metric.budget + (metric.expenses)
-                            
-                            Text(abs(overUnder).currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                                .foregroundStyle(overUnder < 0 ? .red : .green)
-                        }
-                        .onTapGesture {
-                            if let objc = metric.budgetObject {
-                                budgetEditID = objc.id
-                            }
-
-                        }
+    var showCalendarButton: some View {
+        Button {
+            calModel.sCategories = calModel.sCategoriesForAnalysis
                         
-                    }
-                    .font(.caption2)
-                }
-            } header: {
-                Text("Breakdown")
-            }
+            #if os(iOS)
+            withAnimation { showAnalysisSheet = false }
+            #else
+            dismiss()
+            #endif
             
-            
-                                
-            ForEach(calModel.sMonth.days) { day in
-                let doesHaveTransactions = transactions
-                    .filter { $0.dateComponents?.day == day.date?.day }
-                    .count > 0
-                
-                let dailyTotal = transactions
-                    .filter { $0.dateComponents?.day == day.date?.day }
-                    .map { $0.payMethod?.accountType == .credit ? $0.amount * -1 : $0.amount }
-                    .reduce(0.0, +)
-                
-                let dailyCount = transactions
-                    .filter { $0.dateComponents?.day == day.date?.day }
-                    .count
-                
-                
-                if day.date?.day == AppState.shared.todayDay && day.date?.month == AppState.shared.todayMonth && day.date?.year == AppState.shared.todayYear {
-                    Section {
-                        if doesHaveTransactions {
-                            ForEach(transactions.filter { $0.dateComponents?.day == day.date?.day }) { trans in
-                                TransactionListLine(trans: trans)
-                                    .onTapGesture {
-                                        self.transDay = day
-                                        self.transEditID = trans.id
-                                    }
-                            }
-                        } else {
-                            EmptyView()
-                        }
-                    } header: {
-                        HStack {
-                            Text("TODAY")
-                                .foregroundStyle(.green)
-                            VStack {
-                                Divider()
-                                    .overlay(.green)
-                            }
-                        }
-                    } footer: {
-                        if doesHaveTransactions {
-                            SectionFooter(day: day, dailyCount: dailyCount, dailyTotal: dailyTotal, cumTotals: cumTotals)
-                        }
-                    }
-                } else {
-                    if doesHaveTransactions {
-                        Section {
-                            ForEach(transactions.filter { $0.dateComponents?.day == day.date?.day }) { trans in
-                                TransactionListLine(trans: trans)
-                                    .onTapGesture {
-                                        self.transDay = day
-                                        self.transEditID = trans.id
-                                    }
-                            }
-                        } header: {
-                            Text(day.date?.string(to: .monthDayShortYear) ?? "")
-                        } footer: {
-                            SectionFooter(day: day, dailyCount: dailyCount, dailyTotal: dailyTotal, cumTotals: cumTotals)
-                        }
-                    }
-                }
-            }
+        } label: {
+            Image(systemName: "calendar")
+        }
+    }
+    
+    var body: some View {
+        @Bindable var calModel = calModel        
+        SheetContainerView(.list) {
+            detailSection
+            breakdownSection
+            transactionList
         } header: {
             SheetHeader(
                 title: "Analyze Categories",
@@ -222,7 +92,8 @@ struct AnalysisSheet: View {
                     dismiss()
                     #endif
                 },
-                view1: { showCategorySheetButton }
+                view1: { showCategorySheetButton },
+                view2: { showCalendarButton }
             )
         }
         .task {
@@ -251,9 +122,6 @@ struct AnalysisSheet: View {
         .onChange(of: appearsActive) {
             if $1 { prepareData() }
         }
-//        .onChange(of: calModel.sMonth.transactionTotals) {
-//            prepareData()
-//        }
         #endif
         
         .sheet(item: $editTrans) { trans in
@@ -272,9 +140,7 @@ struct AnalysisSheet: View {
             }
         })        
         .sensoryFeedback(.selection, trigger: transEditID) { $1 != nil }
-        
-        
-        
+                        
         .onChange(of: budgetEditID) { oldValue, newValue in
             if let newValue {
                 editBudget = calModel.sMonth.budgets.filter { $0.id == newValue }.first!
@@ -306,6 +172,155 @@ struct AnalysisSheet: View {
         
     }
     
+    var detailSection: some View {
+        Section {
+            HStack {
+                Text("Total Items:")
+                Spacer()
+                Text("\(transactions.count)")
+            }
+            
+            HStack {
+                Text("Total Budget:")
+                Spacer()
+                Text(budget.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+            }
+            
+            HStack {
+                Text("Total Expenses:")
+                Spacer()
+                Text((totalSpent * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+            }
+            
+            HStack {
+                Text("Over/Under:")
+                Spacer()
+                Text((budget - (totalSpent * -1)).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                    .foregroundStyle(budget - (totalSpent * -1) < 0 ? .red : .green)
+            }
+            
+            chartSection
+        } header: {
+            Text("Details")
+        }
+    }
+    
+    
+    var breakdownSection: some View {
+        Section {
+            LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
+                Text("Category")
+                Text("Budget")
+                Text("Expenses")
+                Text("Over/Under")
+            }
+            .font(.caption2)
+            
+            ForEach(chartData) { metric in
+                LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
+                    Group {
+                        HStack(alignment: .circleAndTitle, spacing: 5) {
+                            ChartCircleDot(
+                                budget: metric.budget,
+                                expenses: metric.expenses,
+                                color: metric.category.color,
+                                size: 12
+                            )
+                            .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+
+//                                Circle()
+//                                    .fill(metric.category.color)
+//                                    .frame(maxWidth: 8, maxHeight: 8) // 8 seems to be the default from charts
+//                                    .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                            
+                            Text(metric.category.title)
+                                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                        }
+                        
+                        Text(metric.budget.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                        Text((metric.expenses == 0 ? 0 : metric.expenses * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                        let overUnder = metric.budget + (metric.expenses)
+                        
+                        Text(abs(overUnder).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                            .foregroundStyle(overUnder < 0 ? .red : .green)
+                    }
+                    .onTapGesture {
+                        if let objc = metric.budgetObject {
+                            budgetEditID = objc.id
+                        }
+                    }
+                }
+                .font(.caption2)
+            }
+        } header: {
+            Text("Breakdown")
+        }
+    }
+    
+    
+    var transactionList: some View {
+        ForEach(calModel.sMonth.days) { day in
+            let doesHaveTransactions = transactions
+                .filter { $0.dateComponents?.day == day.date?.day }
+                .count > 0
+            
+            let dailyTotal = transactions
+                .filter { $0.dateComponents?.day == day.date?.day }
+                .map { $0.payMethod?.accountType == .credit ? $0.amount * -1 : $0.amount }
+                .reduce(0.0, +)
+            
+            let dailyCount = transactions
+                .filter { $0.dateComponents?.day == day.date?.day }
+                .count
+            
+            
+            if day.date?.day == AppState.shared.todayDay && day.date?.month == AppState.shared.todayMonth && day.date?.year == AppState.shared.todayYear {
+                Section {
+                    if doesHaveTransactions {
+                        ForEach(transactions.filter { $0.dateComponents?.day == day.date?.day }) { trans in
+                            TransactionListLine(trans: trans)
+                                .onTapGesture {
+                                    self.transDay = day
+                                    self.transEditID = trans.id
+                                }
+                        }
+                    } else {
+                        EmptyView()
+                    }
+                } header: {
+                    HStack {
+                        Text("TODAY")
+                            .foregroundStyle(.green)
+                        VStack {
+                            Divider()
+                                .overlay(.green)
+                        }
+                    }
+                } footer: {
+                    if doesHaveTransactions {
+                        SectionFooter(day: day, dailyCount: dailyCount, dailyTotal: dailyTotal, cumTotals: cumTotals)
+                    }
+                }
+            } else {
+                if doesHaveTransactions {
+                    Section {
+                        ForEach(transactions.filter { $0.dateComponents?.day == day.date?.day }) { trans in
+                            TransactionListLine(trans: trans)
+                                .onTapGesture {
+                                    self.transDay = day
+                                    self.transEditID = trans.id
+                                }
+                        }
+                    } header: {
+                        Text(day.date?.string(to: .monthDayShortYear) ?? "")
+                    } footer: {
+                        SectionFooter(day: day, dailyCount: dailyCount, dailyTotal: dailyTotal, cumTotals: cumTotals)
+                    }
+                }
+            }
+        }
+    }
+    
     
     struct SectionFooter: View {
         @AppStorage("useWholeNumbers") var useWholeNumbers = false
@@ -331,7 +346,6 @@ struct AnalysisSheet: View {
     
     var chartSection: some View {
         Group {
-            
             VStack {
                 Chart(chartData) { metric in
                     BarMark(
@@ -420,14 +434,7 @@ struct AnalysisSheet: View {
         
     }
     
-    
-    func graphColors(for data: [ChartData]) -> [Color] {
-        var returnColors = [Color]()
-        for metric in data {
-            returnColors.append(metric.category.color)
-        }
-        return returnColors
-    }
+   
     
     
     func prepareData() {
@@ -448,27 +455,34 @@ struct AnalysisSheet: View {
             .map { $0.amount }
             .reduce(0.0, +)
         
-        chartData = calModel.sCategoriesForAnalysis.map { cat in
-            let budget = calModel.justBudgets
-                .filter { $0.month == calModel.sMonth.actualNum && $0.year == calModel.sMonth.year && $0.category?.id == cat.id }
-                .first
+        chartData = calModel.sCategoriesForAnalysis
+            .sorted {
+                categorySortMode == .title
+                ? $0.title.lowercased() < $1.title.lowercased()
+                : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
+            }
+            .map { cat in
+                let budget = calModel.justBudgets
+                    .filter { $0.month == calModel.sMonth.actualNum && $0.year == calModel.sMonth.year && $0.category?.id == cat.id }
+                    .first
+                
+                let budgetAmount = budget?.amount ?? 0.0
+                
+                let expenses = calModel.justTransactions
+                    .filter {
+                        calModel.sCategoriesForAnalysis.map{ $0.id }.contains($0.category?.id)
+                        && $0.dateComponents?.month == calModel.sMonth.actualNum
+                        && $0.dateComponents?.year == calModel.sMonth.year
+                        && $0.category?.id == cat.id
+                    }
+                    .sorted { $0.dateComponents?.day ?? 0 < $1.dateComponents?.day ?? 0 }
+                    .map { $0.payMethod?.accountType == .credit ? $0.amount * -1 : $0.amount }
+                    .reduce(0.0, +)
+                
+                return ChartData(category: cat, budget: budgetAmount, expenses: expenses, budgetObject: budget)
+                
+            }
             
-            let budgetAmount = budget?.amount ?? 0.0
-            
-           let expenses = calModel.justTransactions
-                .filter {
-                    calModel.sCategoriesForAnalysis.map{ $0.id }.contains($0.category?.id)
-                    && $0.dateComponents?.month == calModel.sMonth.actualNum
-                    && $0.dateComponents?.year == calModel.sMonth.year
-                    && $0.category?.id == cat.id
-                }
-                .sorted { $0.dateComponents?.day ?? 0 < $1.dateComponents?.day ?? 0 }
-                .map { $0.payMethod?.accountType == .credit ? $0.amount * -1 : $0.amount }
-                .reduce(0.0, +)
-            
-            return ChartData(category: cat, budget: budgetAmount, expenses: expenses, budgetObject: budget)
-            
-        }
         
         /// Analyze Data
         cumTotals.removeAll()
@@ -489,26 +503,5 @@ struct AnalysisSheet: View {
 
         }
     }
-    
-//    func analyzeTransactions() {
-//        cumTotals.removeAll()
-//        
-//        var total: Double = 0.0
-//        calModel.sMonth.days.forEach { day in
-//            let doesHaveTransactions = !transactions.filter { $0.dateComponents?.day == day.date?.day }.isEmpty
-//            let dailyTotal = transactions
-//                .filter { $0.dateComponents?.day == day.date?.day }
-//                .map { $0.payMethod?.accountType == .credit ? $0.amount * -1 : $0.amount }
-//                .reduce(0.0, +)
-//            
-//            
-//            if doesHaveTransactions {
-//                total += dailyTotal
-//                cumTotals.append(CumTotal(day: day.date!.day, total: total))
-//            }
-//
-//        }
-//    }
-    
-    
+   
 }

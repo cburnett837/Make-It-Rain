@@ -41,7 +41,7 @@ class NetworkManager {
         LogManager.log()
     }
  
-    func arrayRequest<T: Encodable, U: Decodable>(requestModel: RequestModel<T>, ticker: Int = 3, sessionID: String = "") async -> Result<Array<U>?, AppError> {
+    func arrayRequest<T: Encodable, U: Decodable>(requestModel: RequestModel<T>, ticker: Int = 3, sessionID: String = "", retainTime: Bool = true) async -> Result<Array<U>?, AppError> {
         
         request?.setValue(AppState.shared.apiKey, forHTTPHeaderField: "Api-Key")
         
@@ -72,6 +72,8 @@ class NetworkManager {
             if let session {
                 let (data, response): (Data, URLResponse) = try await session.data(for: request!)
                 let httpResponse = response as? HTTPURLResponse
+                
+                if retainTime { AppState.shared.lastNetworkTime = .now }
                 
                 if httpResponse?.statusCode == 403 {
                     await AuthState.shared.serverAccessRevoked()
@@ -127,7 +129,7 @@ class NetworkManager {
     }
     
     
-    func singleRequest<T: Encodable, U: Decodable>(requestModel: RequestModel<T>, ticker: Int = 3, sessionID: String = "") async -> Result<U?, AppError> {
+    func singleRequest<T: Encodable, U: Decodable>(requestModel: RequestModel<T>, ticker: Int = 3, sessionID: String = "", retainTime: Bool = true) async -> Result<U?, AppError> {
         
         request?.setValue(AppState.shared.apiKey, forHTTPHeaderField: "Api-Key")
         
@@ -158,6 +160,8 @@ class NetworkManager {
             if let session {
                 let (data, response): (Data, URLResponse) = try await session.data(for: request!)
                 let httpResponse = response as? HTTPURLResponse
+                
+                if retainTime { AppState.shared.lastNetworkTime = .now }
                 
                 //print(httpResponse?.statusCode)
                 
@@ -307,15 +311,16 @@ class NetworkManager {
             subRequest.setValue("Application/json", forHTTPHeaderField: "Content-Type")
             subRequest.setValue(Keys.authPhrase, forHTTPHeaderField: "Auth-Phrase")
             subRequest.setValue(Keys.authID, forHTTPHeaderField: "Auth-ID")
-            subRequest.setValue(String(AppState.shared.user!.accountID), forHTTPHeaderField: "Account-ID")
-            subRequest.setValue(String(AppState.shared.user!.id), forHTTPHeaderField: "User-ID")
-            subRequest.setValue(String(AppState.shared.deviceUUID!), forHTTPHeaderField: "Device-UUID")
+            subRequest.setValue(AppState.shared.apiKey, forHTTPHeaderField: "Api-Key")
+            //subRequest.setValue(String(AppState.shared.user!.accountID), forHTTPHeaderField: "Account-ID")
+            //subRequest.setValue(String(AppState.shared.user!.id), forHTTPHeaderField: "User-ID")
+            //subRequest.setValue(String(AppState.shared.deviceUUID!), forHTTPHeaderField: "Device-UUID")
             #if os(macOS)
-            subRequest.setValue(String(ProcessInfo.processInfo.operatingSystemVersionString), forHTTPHeaderField: "Device-OS")
-            subRequest.setValue(String(ProcessInfo.processInfo.hostName), forHTTPHeaderField: "Device-Name")
+            //subRequest.setValue(String(ProcessInfo.processInfo.operatingSystemVersionString), forHTTPHeaderField: "Device-OS")
+            //subRequest.setValue(String(ProcessInfo.processInfo.hostName), forHTTPHeaderField: "Device-Name")
             #else
-            await subRequest.setValue(String(UIDevice.current.systemVersion), forHTTPHeaderField: "Device-OS")
-            await subRequest.setValue(String(UIDevice.current.name), forHTTPHeaderField: "Device-Name")
+            //await subRequest.setValue(String(UIDevice.current.systemVersion), forHTTPHeaderField: "Device-OS")
+            //await subRequest.setValue(String(UIDevice.current.name), forHTTPHeaderField: "Device-Name")
             #endif
             
             subRequest.timeoutInterval = 130
@@ -348,7 +353,10 @@ class NetworkManager {
                 
                 if httpResponse?.statusCode == 504 {
                     return .success(nil)
+                } else if httpResponse?.statusCode == 403 {
+                    return .failure(.incorrectCredentials)
                 } else {
+                    print(httpResponse?.statusCode)
                     #if targetEnvironment(simulator)
                     let decodedData = try! JSONDecoder().decode(U?.self, from: data)
                     #else
@@ -391,11 +399,12 @@ class NetworkManager {
     
     func uploadPicture<U: Decodable>(
         application: String,
-        recordID: String,
+        recordID: String?,
         relatedTypeID: String,
         uuid: String,
         imageData: Data,
         isSmartTransaction: Bool = false,
+        smartTransactionDate: Date? = nil,
         ticker: Int = 3
     ) async -> Result<U?, AppError> {
         do {
@@ -409,13 +418,14 @@ class NetworkManager {
             let metadata: [String: String] = [
                 "application": application,
                 "type": "photo",
-                "recordID": recordID,
+                "recordID": recordID ?? "",
                 "relatedTypeID": relatedTypeID,
                 "uuid": uuid,
                 "userID": String(AppState.shared.user?.id ?? 0),
                 "accountID": String(AppState.shared.user?.accountID ?? 0),
                 "deviceID": String(AppState.shared.deviceUUID ?? ""),
-                "isSmartTransaction": isSmartTransaction.description
+                "isSmartTransaction": isSmartTransaction.description,
+                "smartTransactionDate": smartTransactionDate?.string(to: .serverDate) ?? ""
             ]
             
             guard
@@ -479,132 +489,132 @@ class NetworkManager {
     
     
     
-    func uploadPictureThatTheServerDoesntLike<U: Decodable>(application: String, recordID: String, uuid: String, imageString: String, isSmartTransaction: Bool = false, ticker: Int = 3) async -> Result<U?, AppError> {
-        do {
-            //let paramString = "application=\(application)&type=photo&recordID=\(recordID)&uuid=\(uuid)&image=\(imageString)&userID=\(String(AppState.shared.user?.id ?? 0))&accountID=\(String(AppState.shared.user?.accountID ?? 0))&deviceID=\(String(AppState.shared.deviceUUID ?? ""))&isSmartTransaction=\(isSmartTransaction.description)"
-            
-            
-            do {
-                let apiKey = try KeychainManager().getFromKeychain(key: "api_key")
-                request?.setValue(apiKey, forHTTPHeaderField: "Api-Key")
-            } catch {
-                print("Cannot find apiKey")
-            }
-            
-            
-            let metadata: [String: String] = [
-                "application": application,
-                "type": "photo",
-                "recordID": recordID,
-                "uuid": uuid,
-                "userID": String(AppState.shared.user?.id ?? 0),
-                "accountID": String(AppState.shared.user?.accountID ?? 0),
-                "deviceID": String(AppState.shared.deviceUUID ?? ""),
-                "isSmartTransaction": isSmartTransaction.description
-            ]
-            
-            guard
-                let jsonData = try? JSONSerialization.data(withJSONObject: metadata),
-                let jsonString = String(data: jsonData, encoding: .utf8)
-            else { return .failure(.failedToUploadPhoto)}
-            
-            let bodyString = "image=\(imageString)&json=\(jsonString)"
-            
-            
-            
-            let paramData = bodyString.data(using: .utf8)
-            request?.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-            request?.setValue("yes", forHTTPHeaderField: "This-Is-A-Photo-For-Budget-App")
-            request?.httpBody = paramData
-            
-            let (data, response): (Data, URLResponse) = try await URLSession.shared.data(for: request!)
-            let httpResponse = response as? HTTPURLResponse
-        
-            let serverText = String(data: data, encoding: .utf8) ?? ""
-            if AppState.shared.debugPrint { print(serverText) }
-            
-            print(serverText)
-            
-            let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response
-                                                            
-            let decodedData = try? JSONDecoder().decode(U?.self, from: data)
-            if decodedData == nil && httpResponse?.statusCode == 200 {
-                return .success(nil)
-            } else {
-                guard let decodedData else { return .failure(.serverError(firstLine)) }
-                return .success(decodedData)
-            }
-            
-            
-            
-        } catch {
-            if Task.isCancelled { return .failure(.taskCancelled) }
-            if ticker == 0 {
-                return .failure(.connectionError)
-            } else {
-                try? await Task.sleep(for: .milliseconds(1000))
-                return await uploadPictureThatTheServerDoesntLike(application: application, recordID: recordID, uuid: uuid, imageString: imageString, ticker: ticker - 1)
-            }
-        }
-    }
-    
-    
-    
-    func uploadPictureOG<U: Decodable>(application: String, recordID: String, uuid: String, imageString: String, isSmartTransaction: Bool = false, ticker: Int = 3) async -> Result<U?, AppError> {
-        do {
-            let paramString = "application=\(application)&type=photo&recordID=\(recordID)&uuid=\(uuid)&image=\(imageString)&userID=\(String(AppState.shared.user?.id ?? 0))&accountID=\(String(AppState.shared.user?.accountID ?? 0))&deviceID=\(String(AppState.shared.deviceUUID ?? ""))&isSmartTransaction=\(isSmartTransaction.description)"
-            
-            let paramData = paramString.data(using: .utf8)
-            
-            let earl = String(format: "https://\(Keys.baseURL):8681/upload_photo")
-            
-            let URL = URL(string: earl)
-            var request = URLRequest(url: URL!)
-            
-            request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-            request.setValue("yes", forHTTPHeaderField: "This-Is-A-Photo-For-Budget-App")
-            request.httpBody = paramData
-            
-            request.httpMethod = "POST"
-            request.setValue(Keys.authPhrase, forHTTPHeaderField: "Auth-Phrase")
-            request.setValue(Keys.authID, forHTTPHeaderField: "Auth-ID")
-            request.timeoutInterval = 60
-            request.setValue(Keys.userAgent, forHTTPHeaderField: "User-Agent")
-
-            
-            
-            
-            let (data, response): (Data, URLResponse) = try await URLSession.shared.data(for: request)
-            let httpResponse = response as? HTTPURLResponse
-                        
-            let serverText = String(data: data, encoding: .utf8) ?? ""
-            if AppState.shared.debugPrint { print(serverText) }
-            
-            print(serverText)
-            
-            let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response
-            
-            let decodedData = try? JSONDecoder().decode(U?.self, from: data)
-            
-            if decodedData == nil && httpResponse?.statusCode == 200 {
-                return .success(nil)
-            } else {
-                guard let decodedData else { return .failure(.serverError(firstLine)) }
-                return .success(decodedData)
-            }
-            
-            
-            
-        } catch {
-            if Task.isCancelled { return .failure(.taskCancelled) }
-            if ticker == 0 {
-                return .failure(.connectionError)
-            } else {
-                try? await Task.sleep(for: .milliseconds(1000))
-                return await uploadPictureOG(application: application, recordID: recordID, uuid: uuid, imageString: imageString, ticker: ticker - 1)
-            }
-        }
-    }
+//    func uploadPictureThatTheServerDoesntLike<U: Decodable>(application: String, recordID: String, uuid: String, imageString: String, isSmartTransaction: Bool = false, ticker: Int = 3) async -> Result<U?, AppError> {
+//        do {
+//            //let paramString = "application=\(application)&type=photo&recordID=\(recordID)&uuid=\(uuid)&image=\(imageString)&userID=\(String(AppState.shared.user?.id ?? 0))&accountID=\(String(AppState.shared.user?.accountID ?? 0))&deviceID=\(String(AppState.shared.deviceUUID ?? ""))&isSmartTransaction=\(isSmartTransaction.description)"
+//            
+//            
+//            do {
+//                let apiKey = try KeychainManager().getFromKeychain(key: "api_key")
+//                request?.setValue(apiKey, forHTTPHeaderField: "Api-Key")
+//            } catch {
+//                print("Cannot find apiKey")
+//            }
+//            
+//            
+//            let metadata: [String: String] = [
+//                "application": application,
+//                "type": "photo",
+//                "recordID": recordID,
+//                "uuid": uuid,
+//                "userID": String(AppState.shared.user?.id ?? 0),
+//                "accountID": String(AppState.shared.user?.accountID ?? 0),
+//                "deviceID": String(AppState.shared.deviceUUID ?? ""),
+//                "isSmartTransaction": isSmartTransaction.description
+//            ]
+//            
+//            guard
+//                let jsonData = try? JSONSerialization.data(withJSONObject: metadata),
+//                let jsonString = String(data: jsonData, encoding: .utf8)
+//            else { return .failure(.failedToUploadPhoto)}
+//            
+//            let bodyString = "image=\(imageString)&json=\(jsonString)"
+//            
+//            
+//            
+//            let paramData = bodyString.data(using: .utf8)
+//            request?.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+//            request?.setValue("yes", forHTTPHeaderField: "This-Is-A-Photo-For-Budget-App")
+//            request?.httpBody = paramData
+//            
+//            let (data, response): (Data, URLResponse) = try await URLSession.shared.data(for: request!)
+//            let httpResponse = response as? HTTPURLResponse
+//        
+//            let serverText = String(data: data, encoding: .utf8) ?? ""
+//            if AppState.shared.debugPrint { print(serverText) }
+//            
+//            print(serverText)
+//            
+//            let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response
+//                                                            
+//            let decodedData = try? JSONDecoder().decode(U?.self, from: data)
+//            if decodedData == nil && httpResponse?.statusCode == 200 {
+//                return .success(nil)
+//            } else {
+//                guard let decodedData else { return .failure(.serverError(firstLine)) }
+//                return .success(decodedData)
+//            }
+//            
+//            
+//            
+//        } catch {
+//            if Task.isCancelled { return .failure(.taskCancelled) }
+//            if ticker == 0 {
+//                return .failure(.connectionError)
+//            } else {
+//                try? await Task.sleep(for: .milliseconds(1000))
+//                return await uploadPictureThatTheServerDoesntLike(application: application, recordID: recordID, uuid: uuid, imageString: imageString, ticker: ticker - 1)
+//            }
+//        }
+//    }
+//    
+//    
+//    
+//    func uploadPictureOG<U: Decodable>(application: String, recordID: String, uuid: String, imageString: String, isSmartTransaction: Bool = false, ticker: Int = 3) async -> Result<U?, AppError> {
+//        do {
+//            let paramString = "application=\(application)&type=photo&recordID=\(recordID)&uuid=\(uuid)&image=\(imageString)&userID=\(String(AppState.shared.user?.id ?? 0))&accountID=\(String(AppState.shared.user?.accountID ?? 0))&deviceID=\(String(AppState.shared.deviceUUID ?? ""))&isSmartTransaction=\(isSmartTransaction.description)"
+//            
+//            let paramData = paramString.data(using: .utf8)
+//            
+//            let earl = String(format: "https://\(Keys.baseURL):8681/upload_photo")
+//            
+//            let URL = URL(string: earl)
+//            var request = URLRequest(url: URL!)
+//            
+//            request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+//            request.setValue("yes", forHTTPHeaderField: "This-Is-A-Photo-For-Budget-App")
+//            request.httpBody = paramData
+//            
+//            request.httpMethod = "POST"
+//            request.setValue(Keys.authPhrase, forHTTPHeaderField: "Auth-Phrase")
+//            request.setValue(Keys.authID, forHTTPHeaderField: "Auth-ID")
+//            request.timeoutInterval = 60
+//            request.setValue(Keys.userAgent, forHTTPHeaderField: "User-Agent")
+//
+//            
+//            
+//            
+//            let (data, response): (Data, URLResponse) = try await URLSession.shared.data(for: request)
+//            let httpResponse = response as? HTTPURLResponse
+//                        
+//            let serverText = String(data: data, encoding: .utf8) ?? ""
+//            if AppState.shared.debugPrint { print(serverText) }
+//            
+//            print(serverText)
+//            
+//            let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response
+//            
+//            let decodedData = try? JSONDecoder().decode(U?.self, from: data)
+//            
+//            if decodedData == nil && httpResponse?.statusCode == 200 {
+//                return .success(nil)
+//            } else {
+//                guard let decodedData else { return .failure(.serverError(firstLine)) }
+//                return .success(decodedData)
+//            }
+//            
+//            
+//            
+//        } catch {
+//            if Task.isCancelled { return .failure(.taskCancelled) }
+//            if ticker == 0 {
+//                return .failure(.connectionError)
+//            } else {
+//                try? await Task.sleep(for: .milliseconds(1000))
+//                return await uploadPictureOG(application: application, recordID: recordID, uuid: uuid, imageString: imageString, ticker: ticker - 1)
+//            }
+//        }
+//    }
 }
 
 //

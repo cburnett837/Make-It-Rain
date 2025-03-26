@@ -9,7 +9,7 @@ import SwiftUI
 
 #if os(iOS)
 struct RootViewPhone: View {    
-    @Environment(CalendarModel.self) var calModel; @Environment(CalendarViewModel.self) var calViewModel
+    @Environment(CalendarModel.self) var calModel
     @Environment(PayMethodModel.self) var payModel
     @Environment(CategoryModel.self) var catModel
     @Environment(KeywordModel.self) var keyModel
@@ -17,8 +17,9 @@ struct RootViewPhone: View {
     
     //@FocusState private var focusedField: Int?
     //@FocusState private var searchFocus: Int?
-    @Binding var selectedDay: CBDay?
     @Namespace private var monthNavigationNamespace
+    
+    //@State private var columnVisibility = NavigationSplitViewVisibility.doubleColumn
         
     var body: some View {
         Group {
@@ -35,16 +36,20 @@ struct RootViewPhone: View {
         Group {
             @Bindable var navManager = NavigationManager.shared
             NavigationStack(path: $navManager.navPath) {
-                NavSidebar(selectedDay: $selectedDay)
+                NavSidebar()
                     .navigationTitle("")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         if calModel.sMonth.actualNum != AppState.shared.todayMonth && calModel.sYear != AppState.shared.todayYear {
                             ToolbarItemGroup(placement: .topBarLeading) {
                                 Button {
-                                    navManager.selectedMonth = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
-                                    calModel.sYear = AppState.shared.todayYear
-                                    calModel.showMonth = true
+                                    withAnimation {
+                                        navManager.selection = nil
+                                        navManager.selectedMonth = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+                                        calModel.sYear = AppState.shared.todayYear
+                                        calModel.showMonth = true
+                                    }
+                                    
                                 } label: {
                                     Text("Now")
                                 }
@@ -102,16 +107,20 @@ struct RootViewPhone: View {
     var navIpad: some View {
         Group {
             @Bindable var navManager = NavigationManager.shared
-            NavigationSplitView {
-                NavSidebar(selectedDay: $selectedDay)
+            NavigationSplitView(columnVisibility: $navManager.columnVisibility) {
+                NavSidebar()
                     .navigationTitle("")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         if calModel.sMonth.actualNum != AppState.shared.todayMonth && calModel.sYear != AppState.shared.todayYear {
                             ToolbarItemGroup(placement: .topBarLeading) {
                                 Button {
-                                    navManager.selectedMonth = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
-                                    calModel.sYear = AppState.shared.todayYear
+                                    withAnimation {
+                                        navManager.selection = nil
+                                        navManager.selectedMonth = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+                                        calModel.sYear = AppState.shared.todayYear
+                                    }
+                                    
                                 } label: {
                                     Text("Now")
                                 }
@@ -137,13 +146,13 @@ struct RootViewPhone: View {
             } detail: {
                 
                 if let selectedMonth = navManager.selectedMonth, calModel.isShowingFullScreenCoverOnIpad == false {
-                    CalendarViewPhone(enumID: selectedMonth, selectedDay: $selectedDay)
+                    CalendarViewPhone(enumID: selectedMonth)
                         .if(AppState.shared.methsExist) {
                             $0.loadingSpinner(id: selectedMonth, text: "Loading…")
                         }
                     
                 } else if let selection = navManager.selection {
-                    switch navManager.selection {
+                    switch selection {
                     case .repeatingTransactions:
                         RepeatingTransactionsTable()
                         
@@ -168,54 +177,10 @@ struct RootViewPhone: View {
                     case .settings:
                         SettingsView(showSettings: .constant(true))
                         
-                    case .none:
-                        EmptyView()
-                        
                     default:
                         EmptyView()
                     }
                 }
-                
-//                switch navManager.selection {
-//                case .january, .february, .march, .april, .may, .june, .july, .august, .september, .october, .november, .december, .lastDecember, .nextJanuary:
-//                    
-//                    if let selection = navManager.selection {
-//                        CalendarViewPhone(enumID: navManager.selection!, selectedDay: $selectedDay)
-//                            .if(AppState.shared.methsExist) {
-//                                $0.loadingSpinner(id: selection, text: "Loading…")
-//                            }
-//                    }
-//                    
-//                case .repeatingTransactions:
-//                    RepeatingTransactionsTable()
-//                    
-//                case .paymentMethods:
-//                    PayMethodsTable()
-//                    
-//                case .categories:
-//                    CategoriesTable()
-//                    
-//                case .keywords:
-//                    KeywordsTable()
-//                    
-//                case .search:
-//                    AdvancedSearchView()
-//                    
-//                case .analytics:
-//                    Text("analytics")
-//                    
-//                case .events:
-//                    EventsTable()
-//                    
-//                case .settings:
-//                    SettingsView(showSettings: .constant(true))
-//                    
-//                case .none:
-//                    EmptyView()
-//                    
-//                @unknown default:
-//                    EmptyView()
-//                }
             }
         }
     }

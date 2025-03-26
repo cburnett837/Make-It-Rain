@@ -39,35 +39,15 @@ struct BudgetEditView: View {
                         #endif
                         //.focused($focusedField, equals: .amount)
                 }
-                
-//                LabeledRow("Emoji", labelWidth) {
-//                    StandardTextField("Emoji", text: $category.emoji ?? "", keyboardType: .text)
-//                        .focused($focusedField, equals: .emoji)
-//                        .onChange(of: category.emoji ?? "") { oldValue, newValue in
-//                            if newValue.count > 1 {
-//                                category.emoji! = newValue.first?.description ?? ""
-//                            }
-//                        }
-//                }
             }
             .padding()
             .transaction { $0.animation = .none } /// stops a floater view above the keyboard toolbar
             
             List(calModel.sMonth.days.flatMap{$0.transactions.filter {$0.category?.id == budget.category?.id}}) { trans in
-                
-                LineItemView(trans: trans, day: .init(date: Date()))
-//                
-//                HStack {
-//                    Text(trans.title)
-//                    Spacer()
-//                    Text(trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-//                }
+                LineItemView(trans: trans, day: .init(date: Date()), isOnCalendarView: false)
             }
             
         }
-//        #if os(iOS)
-//        .keyboardToolbar(amountString: .constant(""), focusedField: _focusedField, fields: [.title, .emoji])
-//        #endif
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
         //.frame(maxWidth: .infinity)
         

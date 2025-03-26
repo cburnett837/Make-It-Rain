@@ -164,7 +164,7 @@ struct FakeTransEditView: View {
                     }
                 }
                 
-                Section("Section / Category / Etc") {
+                Section("Section / Category") {
                     HStack {
                         Text("Item")
                         Spacer()
@@ -186,6 +186,31 @@ struct FakeTransEditView: View {
                         .labelsHidden()
                         .pickerStyle(.menu)
                     }
+                    
+                    
+                    HStack {
+                        Text("Category")
+                        Spacer()
+                        
+                        Picker(selection: $trans.category) {
+                            Section {
+                                Text("None")
+                                    .tag(nil as CBEventCategory?)
+                            }
+                            Section {
+                                ForEach(event.categories.filter { $0.active }) { cat in
+                                    Text(cat.title)
+                                        .tag(cat)
+                                }
+                            }
+                        } label: {
+                            Text(trans.category?.title ?? "Select Item")
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.menu)
+                    }
+                    
+                    
                 }
                 
                 Section {
@@ -193,7 +218,6 @@ struct FakeTransEditView: View {
                         if trans.status.enumID == .claimed {
                             trans.paidBy = nil
                             trans.payMethod = nil
-                            trans.category = nil
                             trans.status = XrefModel.getItem(from: .eventTransactionStatuses, byEnumID: .pending)
                             trans.isBeingClaimed = false
                             trans.isBeingUnClaimed = true
@@ -222,11 +246,6 @@ struct FakeTransEditView: View {
                                 .frame(minWidth: 300, minHeight: 500)
                                 .presentationSizing(.fitted)
                             #endif
-                        }
-                        
-                        HStack {
-                            Text("Category")
-                            Spacer()
                         }
                     }
                 } header: {

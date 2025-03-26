@@ -8,6 +8,11 @@
 import Foundation
 import SwiftUI
 
+extension Notification.Name {
+    static let updateCategoryAnalytics = Notification.Name("updateCategoryAnalytics")
+}
+
+
 #if os(iOS)
 // The notification we'll send when a shake gesture happens.
 extension UIDevice {
@@ -232,7 +237,9 @@ extension View {
     }
     
     
-    
+    func sheetHeightAdjuster(height: Binding<CGFloat>) -> some View {
+        modifier(SheetHeightAdjuster(height: height))
+    }
     
     
     #if os(iOS)
@@ -678,70 +685,70 @@ extension Color {
     static var darkGray3 = Color(UIColor(red: 0.05, green: 0.05, blue: 0.05, alpha: 1.00))
 #endif
     
-    struct Standard {
-        struct Dark {
-            static let background: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
-            
-            struct Row {
-                static let background: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
-                
-//                struct WithSelection {
-//                    static let background: Color = Color(.systemGray4)
+//    struct Standard {
+//        struct Dark {
+//            static let background: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
+//            
+//            struct Row {
+//                static let background: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
+//                
+////                struct WithSelection {
+////                    static let background: Color = Color(.systemGray4)
+////                }
+//            }
+//            
+//            struct Nav {
+//                static let backgroundIpad: Color = Color.darkGray
+//                static let backgroundIphone: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
+//                
+//                struct Row {
+//                    static let backgroundIpad: Color = Color.darkGray
+//                    static let backgroundIphone: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
+//                    
+//                    struct WithSelection {
+//                        static let backgroundIpadSelected: Color = Color(.systemGray6)
+//                        static let backgroundIpadNotSelected: Color = Color.darkGray
+//                        static let backgroundIphoneSelected: Color = Color(.systemGray5)
+//                        static let backgroundIphoneNotSelected: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
+//                    }
 //                }
-            }
-            
-            struct Nav {
-                static let backgroundIpad: Color = Color.darkGray
-                static let backgroundIphone: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
-                
-                struct Row {
-                    static let backgroundIpad: Color = Color.darkGray
-                    static let backgroundIphone: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
-                    
-                    struct WithSelection {
-                        static let backgroundIpadSelected: Color = Color(.systemGray6)
-                        static let backgroundIpadNotSelected: Color = Color.darkGray
-                        static let backgroundIphoneSelected: Color = Color(.systemGray5)
-                        static let backgroundIphoneNotSelected: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
-                    }
-                }
-            }
-        }
-        
-        struct Light {
-            static let background: Color = Color.white
-            
-            struct Row {
-                static let background: Color = Color.white
-                
-//                struct WithSelection {
-//                    static let background: Color = Color(.systemGray4)
+//            }
+//        }
+//        
+//        struct Light {
+//            static let background: Color = Color.white
+//            
+//            struct Row {
+//                static let background: Color = Color.white
+//                
+////                struct WithSelection {
+////                    static let background: Color = Color(.systemGray4)
+////                }
+//            }
+//            
+//            struct Nav {
+//                static let backgroundIpad: Color = Color(.systemGray6)
+//                static let backgroundIphone: Color = Color.white
+//                
+//                struct Row {
+//                    static let backgroundIpad: Color = Color(.systemGray6)
+//                    static let backgroundIphone: Color = Color.white
+//                    
+//                    struct WithSelection {                        
+//                        static let backgroundIpadSelected: Color = Color(.tertiarySystemFill)
+//                        static let backgroundIpadNotSelected: Color = Color(.systemGray6)
+//                        static let backgroundIphoneSelected: Color = Color(.systemGray6)
+//                        static let backgroundIphoneNotSelected: Color = Color.white
+//                    }
 //                }
-            }
-            
-            struct Nav {
-                static let backgroundIpad: Color = Color(.systemGray6)
-                static let backgroundIphone: Color = Color.white
-                
-                struct Row {
-                    static let backgroundIpad: Color = Color(.systemGray6)
-                    static let backgroundIphone: Color = Color.white
-                    
-                    struct WithSelection {                        
-                        static let backgroundIpadSelected: Color = Color(.tertiarySystemFill)
-                        static let backgroundIpadNotSelected: Color = Color(.systemGray6)
-                        static let backgroundIphoneSelected: Color = Color(.systemGray6)
-                        static let backgroundIphoneNotSelected: Color = Color.white
-                    }
-                }
-                
-                
-            }
-            
-            
-            
-        }
-    }
+//                
+//                
+//            }
+//            
+//            
+//            
+//        }
+//    }
     
     
     

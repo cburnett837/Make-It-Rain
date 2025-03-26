@@ -8,6 +8,8 @@
 import Foundation
 
 class LongPollModel: Decodable {
+    let returnTime: Int?
+    
     let transactions: Array<CBTransaction>?
     let startingAmounts: Array<CBStartingAmount>?
     let repeatingTransactions: Array<CBRepeatingTransaction>?
@@ -19,9 +21,10 @@ class LongPollModel: Decodable {
     let invitations: Array<CBEventParticipant>?
     let fitTransactions: Array<CBFitTransaction>?
     
-    enum CodingKeys: CodingKey { case transactions, starting_amounts, repeating_transactions, pay_methods, categories, keywords, budgets, events, invitations, fit_transactions }
+    enum CodingKeys: CodingKey { case return_time, transactions, starting_amounts, repeating_transactions, pay_methods, categories, keywords, budgets, events, invitations, fit_transactions }
     
     init () {
+        self.returnTime = nil
         self.transactions = nil
         self.startingAmounts = nil
         self.repeatingTransactions = nil
@@ -37,15 +40,16 @@ class LongPollModel: Decodable {
     
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.transactions = try container.decode(Array<CBTransaction>?.self, forKey: .transactions)
-        self.startingAmounts = try container.decode(Array<CBStartingAmount>?.self, forKey: .starting_amounts)
-        self.repeatingTransactions = try container.decode(Array<CBRepeatingTransaction>?.self, forKey: .repeating_transactions)
-        self.payMethods = try container.decode(Array<CBPaymentMethod>?.self, forKey: .pay_methods)
-        self.categories = try container.decode(Array<CBCategory>?.self, forKey: .categories)
-        self.keywords = try container.decode(Array<CBKeyword>?.self, forKey: .keywords)
-        self.budgets = try container.decode(Array<CBBudget>?.self, forKey: .budgets)
-        self.events = try container.decode(Array<CBEvent>?.self, forKey: .events)
-        self.invitations = try container.decode(Array<CBEventParticipant>?.self, forKey: .invitations)
-        self.fitTransactions = try container.decode(Array<CBFitTransaction>?.self, forKey: .fit_transactions)
+        self.returnTime = try container.decode(Int.self, forKey: .return_time)
+        self.transactions = try container.decodeIfPresent(Array<CBTransaction>.self, forKey: .transactions)
+        self.startingAmounts = try container.decodeIfPresent(Array<CBStartingAmount>.self, forKey: .starting_amounts)
+        self.repeatingTransactions = try container.decodeIfPresent(Array<CBRepeatingTransaction>.self, forKey: .repeating_transactions)
+        self.payMethods = try container.decodeIfPresent(Array<CBPaymentMethod>.self, forKey: .pay_methods)
+        self.categories = try container.decodeIfPresent(Array<CBCategory>.self, forKey: .categories)
+        self.keywords = try container.decodeIfPresent(Array<CBKeyword>.self, forKey: .keywords)
+        self.budgets = try container.decodeIfPresent(Array<CBBudget>.self, forKey: .budgets)
+        self.events = try container.decodeIfPresent(Array<CBEvent>.self, forKey: .events)
+        self.invitations = try container.decodeIfPresent(Array<CBEventParticipant>.self, forKey: .invitations)
+        self.fitTransactions = try container.decodeIfPresent(Array<CBFitTransaction>.self, forKey: .fit_transactions)
     }
 }

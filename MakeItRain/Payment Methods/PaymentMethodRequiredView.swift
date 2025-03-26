@@ -12,7 +12,7 @@ struct PaymentMethodRequiredView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(FuncModel.self) private var funcModel
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
     @Environment(PayMethodModel.self) private var payModel
     
     @State private var editPaymentMethod: CBPaymentMethod?

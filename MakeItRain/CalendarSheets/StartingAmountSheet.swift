@@ -12,13 +12,13 @@ struct StartingAmountSheet: View {
     @Environment(\.dismiss) var dismiss
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
     
-    @Environment(CalendarModel.self) var calModel; @Environment(CalendarViewModel.self) var calViewModel
+    @Environment(CalendarModel.self) var calModel
     
     @Environment(PayMethodModel.self) var payModel
     @FocusState private var focusedField: Int?
     
     var body: some View {
-        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+        @Bindable var calModel = calModel
         @Bindable var payModel = payModel
         
         SheetContainerView(.list) {
@@ -87,7 +87,7 @@ struct StartingAmountSheet: View {
         @AppStorage("useWholeNumbers") var useWholeNumbers = false
     
         @Environment(\.layoutDirection) private var layoutDirection: LayoutDirection
-        @Environment(CalendarModel.self) var calModel; @Environment(CalendarViewModel.self) var calViewModel
+        @Environment(CalendarModel.self) var calModel
         
         
         @Bindable var startingAmount: CBStartingAmount

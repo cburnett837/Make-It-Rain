@@ -49,10 +49,14 @@ class AuthState {
     }
     
     
-    
-    
     func attemptLogin(using loginType: LoginType, with loginModel: LoginModel) async {
         print("-- \(#function)")
+        
+        //error = nil
+        self.error = nil
+        //self.isLoggedIn = false
+        //self.isThinking = true
+        
         typealias ResultResponse = Result<CBLogin?, AppError>
         
         /// Set the ticker to 0 so it doesn't try and reattempt.
@@ -89,7 +93,7 @@ class AuthState {
                         self.isThinking = false
                         //self.isBioAuthed = false
                         AppState.shared.appShouldShowSplashScreen = false
-                        logout()
+                        clearLoginState()
                         AppState.shared.showAlert("Problem getting api key from the server.")
                     }
                 }
@@ -109,7 +113,7 @@ class AuthState {
             
             switch error {
             case .incorrectCredentials, .accessRevoked:
-                logout()
+                clearLoginState()
                 
             case .taskCancelled:
                 AppState.shared.hasBadConnection = true
@@ -122,29 +126,52 @@ class AuthState {
     }
     
     
-    func logout() {
+    func clearLoginState() {
         withAnimation {
             self.isLoggedIn = false
         }        
         do {
-            //try keychainManager.removeFromKeychain(key: "user_email")
-            //try keychainManager.removeFromKeychain(key: "user_password")
             try keychainManager.removeFromKeychain(key: "user_api_key")
             AppState.shared.apiKey = nil
             UserDefaults.standard.set(nil, forKey: "user")
-//            UserDefaults.standard.set("", forKey: "userEmail")
-//            UserDefaults.standard.set("", forKey: "userAccountID")
-//            UserDefaults.standard.set("", forKey: "userID")
-//            UserDefaults.standard.set("", forKey: "userName")
         } catch {
             print(error.localizedDescription)
         }
     }
-    
+        
     
     func serverAccessRevoked() {
-        logout()
-        serverRevoked = true        
+        /// This is called via ``NetworkManager``.
+        /// This calls `clearLoginState()`, which causes the if block in ``MakeItRainApp`` to switch to ``LoginView``.
+        /// On Appear of ``LoginView``,  `serverRevoked` being set will cause `funcModel.logout()` to run and force the user out.
+        serverRevoked = true
+        clearLoginState()
+    }
+    
+    
+    func loginViaKeychain(funcModel: FuncModel) async {
+        print("-- \(#function)")
+        /// This will check the keychain for credentials. If it finds them, it will attempt to authenticate with the server. If not, it will take the user to the login page.
+        /// If the user successfully authenticates with the server, this will also look if the user has payment methods, and set AppState accordingly.
+        if let apiKey = await self.getApiKeyFromKeychain() {
+            self.loginTask = Task {
+                await self.attemptLogin(using: .apiKey, with: LoginModel(apiKey: apiKey))
+                if self.isLoggedIn {
+                    /// When the user logs in, if they have no payment methods, show the payment method required sheet.
+                    if AppState.shared.methsExist {
+                        funcModel.downloadInitial()
+                    } else {
+                        LoadingManager.shared.showInitiallyLoadingSpinner = false
+                        LoadingManager.shared.showLoadingBar = false
+                        AppState.shared.showPaymentMethodNeededSheet = true
+                    }
+                    //await NotificationManager.shared.registerForPushNotifications()
+                }
+            }
+        } else {
+            self.isThinking = false
+            AppState.shared.appShouldShowSplashScreen = false
+        }
     }
     
     

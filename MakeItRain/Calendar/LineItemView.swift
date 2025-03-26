@@ -20,7 +20,7 @@ struct LineItemView: View {
     //@AppStorage("showAccountOnUnifiedView") var showAccountOnUnifiedView = false
     
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
@@ -31,6 +31,7 @@ struct LineItemView: View {
 
     @Bindable var trans: CBTransaction
     @Bindable var day: CBDay
+    var isOnCalendarView: Bool = true
     
     @FocusState var focusedField: Int?
     
@@ -186,12 +187,12 @@ struct LineItemView: View {
             
         }
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
-        .padding(.leading, 8)
+        .padding(.leading, isOnCalendarView ? 8 : 0)
         #if os(iOS)
-        .padding(.trailing, 8)
-        .padding(.vertical, 4)
+        .padding(.trailing, isOnCalendarView ? 8 : 0)
+        .padding(.vertical, isOnCalendarView ? 4 : 0)
         #else
-        .padding(.trailing, 2)
+        .padding(.trailing, isOnCalendarView ? 2 : 0)
         #endif
         .contentShape(Rectangle())
         .draggable(trans) { dragPreview }

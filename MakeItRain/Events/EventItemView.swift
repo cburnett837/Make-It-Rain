@@ -10,7 +10,7 @@ import SwiftUI
 struct EventItemView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
     @Environment(EventModel.self) private var eventModel
     
     @Bindable var event: CBEvent
@@ -47,7 +47,7 @@ struct EventItemView: View {
                         .uiClearButtonMode(.whileEditing)
                         .uiStartCursorAtEnd(true)
                         #else
-                        TextField("Item Title", text: $event.title)
+                        TextField("Item Title", text: $item.title)
                             .multilineTextAlignment(.leading)
                         #endif
                     }

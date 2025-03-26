@@ -9,8 +9,8 @@ import SwiftUI
 
 struct Toast {
     var header: String
-    var title: String?
-    var message: String?
+    var title: String? = nil
+    var message: String? = nil
     var symbol: String
     var symbolColor: Color? = nil
     var autoDismiss = true
@@ -75,6 +75,7 @@ struct ToastView: View {
             }
             .buttonStyle(.plain)
         }
+        .contentShape(Rectangle())
         .gesture(DragGesture()
             .onEnded { value in
                 if value.translation.height < 50 {
@@ -102,7 +103,7 @@ struct ToastView: View {
         .padding(.trailing, 10)
         .background {
             RoundedRectangle(cornerRadius: 15)
-                .fill(.ultraThickMaterial)
+                .fill(.ultraThinMaterial)
                 .shadow(color: .black.opacity(0.06), radius: 3, x: -1, y: -3)
                 .shadow(color: .black.opacity(0.06), radius: 2, x: 1, y: 3)
         }

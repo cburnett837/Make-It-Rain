@@ -30,7 +30,7 @@ struct SettingsViewInsert: View {
     
     @AppStorage("showHashTagsOnLineItems") var showHashTagsOnLineItems: Bool = true
     @Environment(CategoryModel.self) var catModel
-    @Environment(CalendarModel.self) var calModel; @Environment(CalendarViewModel.self) var calViewModel
+    @Environment(CalendarModel.self) var calModel
     
 
     

@@ -12,7 +12,7 @@ struct MultiPaymentMethodSheet: View {
     @Environment(\.dismiss) var dismiss
     
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
     @Environment(PayMethodModel.self) private var payModel
         
     @Binding var payMethods: Array<CBPaymentMethod>

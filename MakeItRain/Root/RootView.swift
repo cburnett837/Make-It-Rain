@@ -7,38 +7,20 @@
 
 import SwiftUI
 
-//@Observable
-//class RootViewModelPhone {
-//    //var selectedDay: CBDay?
-//    //var showMenu: Bool = false
-//    //var showInfo: Bool = false
-//    //var didRespondToDrag = false
-//    //var offset: CGFloat = 0
-//    //var showSearchBar: Bool = false
-//}
-
 struct RootView: View {
     @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     
     @Environment(\.scenePhase) var scenePhase
 
     @Environment(FuncModel.self) var funcModel
-    @Environment(CalendarModel.self) var calModel; @Environment(CalendarViewModel.self) var calViewModel
+    @Environment(CalendarModel.self) var calModel
     @Environment(PayMethodModel.self) var payModel
     @Environment(CategoryModel.self) var catModel
     @Environment(KeywordModel.self) var keyModel
     @Environment(RepeatingTransactionModel.self) var repModel
-    
-    //@State private var showMonth = false
-    
-    #if os(iOS)
-    @Binding var selectedDay: CBDay?
-    #endif
-    
-            
+        
     var body: some View {
         @Bindable var navManager = NavigationManager.shared
-        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
         @Bindable var funcModel = funcModel
         //@Bindable var appState = AppState.shared
         
@@ -46,21 +28,21 @@ struct RootView: View {
             #if os(macOS)
             RootViewMac()
             #else
-            RootViewPhone(selectedDay: $selectedDay)
+            RootViewPhone()
                 //.environment(iPhoneVm)
                 
             #endif
         }
-        .environment(calViewModel)
         .task {
             /// set the calendar model to use the current month (ignore starting amounts and calculations)
 //            if let selectedMonth = navManager.selectedMonth {
 //                calViewModel.setSelectedMonthFromNavigation(navID: selectedMonth, prepareStartAmount: false)
 //            }
-            
+            #if os(iOS)
             if !AppState.shared.isIpad {
                 calModel.showMonth = true
             }
+            #endif
         }
         .tint(Color.fromName(appColorTheme))
         
@@ -70,25 +52,9 @@ struct RootView: View {
             return true
         }
         
-        .onReceive(AppState.shared.currentDateTimer) { input in
-            let isDayChange = AppState.shared.setNow()
-            #if os(iOS)
-            /// If on iPhone, and the day changes, change the selected day as well otherwise it will be blank on day change and cause a crash.
-            if isDayChange {
-                let month = calModel.months.filter { $0.num == AppState.shared.todayMonth && $0.year == AppState.shared.todayYear }.first
-                if let month {
-                    let day = month.days.filter { $0.dateComponents?.day == AppState.shared.todayDay }.first
-                    if let day {
-                        selectedDay = day
-                    }
-                }
-            }
-            #endif
-        }
-        
         #if os(macOS)
         /// Set ``sMonth`` in ``CalendarModel`` so the model is aware
-        .onChange(of: navManager.selection, { oldValue, newValue in
+        .onChange(of: navManager.selection) { oldValue, newValue in
             print("onChange(of: navManager.selection)")
             calModel.sMonth = CBMonth(num: 100000)
             calModel.hilightTrans = nil
@@ -100,7 +66,7 @@ struct RootView: View {
                     }
                 }
             }
-        })
+        }
         #endif
         
         #if os(iOS)
@@ -152,7 +118,7 @@ struct RootView: View {
         
         /// If you add your first payment method, download all the content on save.
         /// `AppState.shared.methsExist` will get set by either `determineIfUserIsRequiredToAddPaymentMethod()` in the ``PayMethodModel``, or by `AuthState.attemptLogin`
-        .onChange(of: AppState.shared.methsExist, { oldValue, newValue in
+        .onChange(of: AppState.shared.methsExist) { oldValue, newValue in
             if newValue && !oldValue {
                 funcModel.refreshTask = Task {
                     calModel.prepareMonths()
@@ -160,9 +126,9 @@ struct RootView: View {
                 }
                 funcModel.longPollServerForChanges()
             }
-        })
+        }
         
-        .onChange(of: calModel.sYear, { oldValue, newValue in
+        .onChange(of: calModel.sYear) { oldValue, newValue in
             LoadingManager.shared.showInitiallyLoadingSpinner = true
             AppState.shared.downloadedData.removeAll()
             
@@ -186,43 +152,63 @@ struct RootView: View {
                 //calModel.prepareStartingAmount()
                 await funcModel.downloadEverything(setDefaultPayMethod: true, createNewStructs: true, refreshTechnique: .viaButton)
             }
-        })
+        }
         
         // MARK: - Handling Lifecycles (iPhone)
+        #if os(iOS)
         .onChange(of: scenePhase) { oldPhrase, newPhase in
             if newPhase == .inactive {
                 print("scenePhase: Inactive")
                 
             } else if newPhase == .active {
                 print("scenePhase: Active")
-                if funcModel.refreshTask == nil {
-                    funcModel.refreshTask = Task {
-                        AppState.shared.startNewNowTimer()
-                        await funcModel.downloadEverything(setDefaultPayMethod: false, createNewStructs: false, refreshTechnique: .viaSceneChange)
-                    }
-                }
                 
+                AppState.shared.startNewNowTimer()
+                
+                if funcModel.refreshTask == nil {
+                    print("funcModel.refreshTask does not exist")
+                    funcModel.refreshTask = Task {
+                        
+                        let shouldDownload = await AppState.shared.checkIfDownloadingDataIsNeeded()
+                        if shouldDownload {
+                            print("YES NEW DATA TO DOWNLOAD")
+                            await funcModel.downloadEverything(setDefaultPayMethod: false, createNewStructs: false, refreshTechnique: .viaSceneChange)
+                        } else {
+                            print("NO NEW DATA TO DOWNLOAD")
+                            funcModel.longPollServerForChanges()
+                        }
+                    }
+                } else {
+                    print("funcModel.refreshTask already exists")
+                }
             } else if newPhase == .background {
                 AppState.shared.cancelNowTimer()
                 funcModel.longPollTask?.cancel()
                 funcModel.longPollTask = nil
+                funcModel.refreshTask?.cancel()
+                funcModel.refreshTask = nil
                 print("scenePhase: Background")
             }
         }
+        #endif
         
         
         #if os(macOS)
         // MARK: - Handling Lifecycles (Mac)
         .onChange(of: AppState.shared.macWokeUp) { oldValue, newValue in
             if newValue {
+                AppState.shared.startNewNowTimer()
+                
                 if funcModel.refreshTask == nil {
                     funcModel.refreshTask = Task {
-                        
-                        /// Need this so the app doesn't try and access the keychain before the system has made it available.
-                        try? await Task.sleep(nanoseconds: UInt64(5 * Double(NSEC_PER_SEC)))
-                        
-                        AppState.shared.startNewNowTimer()
-                        await funcModel.downloadEverything(setDefaultPayMethod: false, createNewStructs: false, refreshTechnique: .viaSceneChange)
+                        let shouldDownload = await AppState.shared.checkIfDownloadingDataIsNeeded()
+                        if shouldDownload {
+                            print("YES NEW DATA TO DOWNLOAD")
+                            await funcModel.downloadEverything(setDefaultPayMethod: false, createNewStructs: false, refreshTechnique: .viaSceneChange)
+                        } else {
+                            print("NO NEW DATA TO DOWNLOAD")
+                            funcModel.longPollServerForChanges()
+                        }
                     }
                 }
             }

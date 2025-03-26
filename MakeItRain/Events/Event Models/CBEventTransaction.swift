@@ -35,7 +35,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
         return nil
     }
     var payMethod: CBPaymentMethod?
-    var category: CBCategory?
+    var category: CBEventCategory?
     var item: CBEventItem?
     var notes: String = ""
     var active: Bool
@@ -161,7 +161,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
         self.amountString = amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
         
         self.payMethod = try container.decode(CBPaymentMethod?.self, forKey: .payment_method)
-        self.category = try container.decode(CBCategory?.self, forKey: .category)
+        self.category = try container.decode(CBEventCategory?.self, forKey: .category)
         self.item = try container.decode(CBEventItem?.self, forKey: .item)
         self.notes = try container.decode(String?.self, forKey: .notes) ?? ""
         
@@ -381,7 +381,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
         self.relatedTransactionID = transaction.id
         //self.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .eventTransaction)
         self.payMethod = transaction.payMethod
-        self.category = transaction.category
+        //self.category = transaction.category
         self.enteredDate = Date()
         self.updatedDate = Date()
     }

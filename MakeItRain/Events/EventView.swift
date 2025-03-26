@@ -19,7 +19,7 @@ struct EventView: View {
 
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
     @Environment(EventModel.self) private var eventModel
     
     @Bindable var event: CBEvent
@@ -37,6 +37,7 @@ struct EventView: View {
     @State private var showNoParticipantAlert = false
     
     @State private var showItemsSheet = false
+    @State private var showCategoriesSheet = false
     
     @State private var deleteTrans: CBEventTransaction?
     @State private var editTrans: CBEventTransaction?
@@ -63,13 +64,19 @@ struct EventView: View {
         return event.enteredBy.id == AppState.shared.user!.id
     }
     
-    var addItemButton: some View {
+    var optionMenu: some View {
         Menu {
             if(isAdmin) {
                 Button {
                     showItemsSheet = true
                 } label: {
                     Text("Manage Sections")
+                }
+                
+                Button {
+                    showCategoriesSheet = true
+                } label: {
+                    Text("Manage Categories")
                 }
             }
             
@@ -100,7 +107,7 @@ struct EventView: View {
                         title: title,
                         //subtitle: "Created by \(event.enteredBy.name)",
                         close: { validateParticipantsOnDimiss() },
-                        view1: { addItemButton },
+                        view1: { optionMenu },
                         view3: { deleteButton }
                     )
                 } else {
@@ -108,7 +115,7 @@ struct EventView: View {
                         title: title,
                         //subtitle: "Created by \(event.enteredBy.name)",
                         close: { validateParticipantsOnDimiss() },
-                        view1: { addItemButton }
+                        view1: { optionMenu }
                     )
                 }
             }
@@ -283,18 +290,30 @@ struct EventView: View {
                             Button {
                                 transEditID = trans.id
                             } label: {
-                                HStack {
-                                    VStack(alignment: .leading) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    HStack {
                                         Text(trans.title)
-                                        if let paidBy = trans.paidBy {
-                                            Text(paidBy.name)
-                                                .font(.footnote)
-                                                .foregroundStyle(.gray)
-                                        }
-                                        
+                                        Spacer()
+                                        Text(trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
                                     }
-                                    Spacer()
-                                    Text(trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                                    
+                                    HStack(spacing: 4) {
+                                        Circle()
+                                            .frame(width: 6, height: 6)
+                                            .foregroundStyle(trans.category?.color ?? .primary)
+                                        
+                                        Text(trans.category?.title ?? "N/A")
+                                            .foregroundStyle(.gray)
+                                            .font(.caption)
+                                    }
+                                    
+                                    
+                                    if let paidBy = trans.paidBy {
+                                        Text(paidBy.name)
+                                            .font(.footnote)
+                                            .foregroundStyle(.gray)
+                                    }
+                                    
                                 }
                             }
                             .foregroundStyle(.primary)
@@ -318,18 +337,28 @@ struct EventView: View {
                         Button {
                             transEditID = trans.id
                         } label: {
-                            HStack {
-                                VStack(alignment: .leading) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack {
                                     Text(trans.title)
-                                    if let paidBy = trans.paidBy {
-                                        Text(paidBy.name)
-                                            .font(.footnote)
-                                            .foregroundStyle(.gray)
-                                    }
+                                    Spacer()
+                                    Text(trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
                                 }
                                 
-                                Spacer()
-                                Text(trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                                HStack(spacing: 4) {
+                                    Circle()
+                                        .frame(width: 6, height: 6)
+                                        .foregroundStyle(trans.category?.color ?? .primary)
+                                    
+                                    Text(trans.category?.title ?? "N/A")
+                                        .foregroundStyle(.gray)
+                                        .font(.caption)
+                                }
+                                
+                                if let paidBy = trans.paidBy {
+                                    Text(paidBy.name)
+                                        .font(.footnote)
+                                        .foregroundStyle(.gray)
+                                }
                             }
                         }
                         .foregroundStyle(.primary)
@@ -354,7 +383,6 @@ struct EventView: View {
         #endif
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
         .task {
-            
             prepareData()
             
             event.deepCopy(.create)
@@ -378,7 +406,7 @@ struct EventView: View {
             #if os(macOS)
             /// Focus on the title textfield.
             focusedField = 0
-            #else
+            #endif
             if event.action == .add {
                 focusedField = 0
                 
@@ -388,7 +416,7 @@ struct EventView: View {
                 event.participants.append(admin)
                 localEventUsers.append(AppState.shared.user!)
             }
-            #endif
+            
         }
         .onChange(of: event.participants.count) { oldValue, newValue in
             localEventUsers.removeAll()
@@ -466,6 +494,15 @@ struct EventView: View {
             #endif
         }
         
+        .sheet(isPresented: $showCategoriesSheet) {
+            EventCategoriesTable(event: event)
+            #if os(macOS)
+                .frame(minWidth: 300, minHeight: 500)
+                .presentationSizing(.fitted)
+            #endif
+        }
+        
+        
         .sheet(item: $editTrans, onDismiss: {
             transEditID = nil
         }, content: { trans in
@@ -518,8 +555,6 @@ struct EventView: View {
     
     var chartSection: some View {
         Section {
-            
-            
             Chart {
                 BarMark(
                     x: .value("Amount", chartData.budget),

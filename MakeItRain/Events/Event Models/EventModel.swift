@@ -57,8 +57,7 @@ class EventModel {
     func getEventThatContainsTransaction(transactionID: String) -> CBEvent? {
         return events.filter { $0.transactions.map {$0.id}.contains(transactionID) }.first
     }
-    
-    
+        
     func doesExist(_ event: CBEvent) -> Bool {
         return !events.filter { $0.id == event.id }.isEmpty
     }
@@ -212,13 +211,16 @@ class EventModel {
                     case .delete:
                         /// if deleting, delete.
                         eventTrans.actionForRealTransaction = .delete
-                        
-                        /// If the transaction exists locally, remove it.
-                        if calModel.doesTransactionExist(with: relatedID!, from: .normalList) {
-                            print("realTrans \(String(describing: relatedID)) does exist in cal Model")
-                            event.transactions.removeAll(where: { $0.id == eventTrans.id })
+                        if let relatedID = relatedID {
+                            /// If the transaction exists locally, remove it.
+                            if calModel.doesTransactionExist(with: relatedID, from: .normalList) {
+                                print("realTrans \(relatedID) does exist in cal Model")
+                                event.transactions.removeAll(where: { $0.id == eventTrans.id })
+                            } else {
+                                print("realTrans \(relatedID) does NOT exist in calModel")
+                            }
                         } else {
-                            print("realTrans \(String(describing: relatedID)) does NOT exist in calModel")
+                            print("realTrans does NOT exist in calModel (related ID is nil)")
                         }
                     }
                     
@@ -384,6 +386,18 @@ class EventModel {
                     }
                 }
                 
+                for each in model?.categories ?? [] {
+                    let index = event.categories.firstIndex(where: { $0.uuid == each.uuid })
+                    if let index {
+                        let cat = event.categories[index]
+                        if cat.action == .add {
+                            cat.id = String(each.id)
+                            cat.uuid = nil
+                            cat.action = .edit
+                        }
+                    }
+                }
+                
                 
                 for each in model?.transactions ?? [] {
                     let index = event.transactions.firstIndex(where: { $0.uuid == each.uuid })
@@ -455,8 +469,7 @@ class EventModel {
     @MainActor
     func leave(_ event: CBEvent) async -> Bool {
         print("-- \(#function)")
-        
-        
+                
         event.action = .delete        
         events.removeAll { $0.id == event.id }
         
@@ -547,55 +560,5 @@ enum InvitationVerificationResult {
         case "already_invited": return .alreadyInvited
         default: return .notFound
         }
-    }
-}
-
-
-struct CBEventUserVerificationModel: Decodable {
-    var verificationResult: InvitationVerificationResult
-    var user: CBUser?
-    
-    
-    enum CodingKeys: CodingKey { case result, user }
-    
-    
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let result = try container.decode(String.self, forKey: .result)
-        self.verificationResult = InvitationVerificationResult.fromString(result)
-        
-        user = try container.decode(CBUser?.self, forKey: .user)
-    }
-}
-
-struct CBEventInviteResponse: Encodable {
-    var id: String
-    var uuid: String?
-    var participantID: String
-    var eventID: String
-    var isAccepted: Bool = false
-
-    init(eventID: String, participantID: String, isAccepted: Bool) {
-        let uuid = UUID().uuidString
-        self.id = uuid
-        self.uuid = uuid
-        self.eventID = eventID
-        self.participantID = participantID
-        self.isAccepted = isAccepted
-    }
-
-    enum CodingKeys: CodingKey { case id, uuid, event_id, participant_id, user_id, account_id, device_uuid, is_accepted }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(id, forKey: .id)
-        try container.encode(uuid, forKey: .uuid)
-        try container.encode(participantID, forKey: .participant_id)
-        try container.encode(eventID, forKey: .event_id)
-
-        try container.encode(AppState.shared.user?.id, forKey: .user_id)
-        try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
-        try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
-        try container.encode(isAccepted ? 1 : 0, forKey: .is_accepted)
     }
 }

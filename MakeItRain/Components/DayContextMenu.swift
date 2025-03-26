@@ -11,8 +11,7 @@ struct DayContextMenu: View {
     @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
-    
+        
     @Bindable var day: CBDay
     
     @Binding var selectedDay: CBDay?
@@ -24,8 +23,8 @@ struct DayContextMenu: View {
     var body: some View {
         Section {
             Button {
-                transEditID = UUID().uuidString
                 selectedDay = day
+                transEditID = UUID().uuidString
             } label: {
                 Label {
                     Text("New Transaction")
@@ -49,11 +48,15 @@ struct DayContextMenu: View {
     
         Section {
             Button {
-                let newID = UUID().uuidString
-                let trans = CBTransaction(uuid: newID)
-                trans.date = day.date!
-                calModel.pendingSmartTransaction = trans
-                calModel.pictureTransactionID = newID
+                //let newID = UUID().uuidString
+                //let trans = CBTransaction(uuid: newID)
+                //trans.date = day.date!
+                //calModel.pendingSmartTransaction = trans
+                //calModel.pictureTransactionID = newID
+                
+                calModel.smartTransactionDate = day.date!
+                calModel.isUploadingSmartTransactionPicture = true
+                
                 showCamera = true
             } label: {
                 Label {
@@ -64,11 +67,13 @@ struct DayContextMenu: View {
             }
             
             Button {
-                let newID = UUID().uuidString
-                let trans = CBTransaction(uuid: newID)
-                trans.date = day.date!
-                calModel.pendingSmartTransaction = trans
-                calModel.pictureTransactionID = newID
+                //let newID = UUID().uuidString
+                //let trans = CBTransaction(uuid: newID)
+                //trans.date = day.date!
+                calModel.smartTransactionDate = day.date!
+                calModel.isUploadingSmartTransactionPicture = true
+                //calModel.pendingSmartTransaction = trans
+                //calModel.pictureTransactionID = newID
                 showPhotosPicker = true
             } label: {
                 Label {
@@ -79,7 +84,7 @@ struct DayContextMenu: View {
             }
         }
         
-        if let trans = calModel.getCopyOfTransaction() {
+        if let _ = calModel.getCopyOfTransaction() {
             Section {
                 Button {
                     withAnimation {

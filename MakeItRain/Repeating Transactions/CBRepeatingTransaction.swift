@@ -253,8 +253,10 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         #if os(iOS)
         if hexCode == "FFFFFF" && UserDefaults.fetchOneBool(requestedKey: "preferDarkMode") == true {
             self.color = .white
-        } else {
+        } else if hexCode == "FFFFFF" && UserDefaults.fetchOneBool(requestedKey: "preferDarkMode") == false {
             self.color = .black
+        } else {
+            self.color = Color.fromHex(hexCode) ?? .primary
         }
         #else
         self.color = .white

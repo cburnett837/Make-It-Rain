@@ -111,32 +111,10 @@ enum NavDestination: String, Codable, Hashable, Identifiable {
 class NavigationManager {
     static let shared: NavigationManager = NavigationManager()
     
-    //#warning("not sure if the didSet is needed yet...")
     var selection: NavDestination?
     var selectedMonth: NavDestination?
-    //var monthSelection: NavDestination?
-//    {
-//        didSet {
-//            if let selection = selection {
-//                self.navPath.append(selection)
-//            }
-    
-//
-//        }
-//    }
-    
     
     var navPath: Array<NavDestination> = []
     
-    //var navPath = NavigationPath()
-//    func navigate(to destination: NavDestination) {
-//        selection = destination
-//        navPath.append(destination)
-//    }
-//    func navigateBack() {
-//        navPath.removeLast()
-//    }
-//    func navigateToRoot() {
-//        navPath.removeLast(navPath.count)
-//    }
+    var columnVisibility: NavigationSplitViewVisibility = .all
 }

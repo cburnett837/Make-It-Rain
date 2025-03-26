@@ -34,7 +34,7 @@ struct TransactionEditView: View {
     @Environment(\.openURL) var openURL
     #endif
     @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
@@ -125,7 +125,7 @@ struct TransactionEditView: View {
     
     var body: some View {
         //let _ = Self._printChanges()
-        @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+        @Bindable var calModel = calModel
         @Bindable var payModel = payModel
         @Bindable var catModel = catModel
         @Bindable var keyModel = keyModel
@@ -643,19 +643,28 @@ struct TransactionEditView: View {
     
     var datePickerSection: some View {
         HStack {
-            Image(systemName: "calendar")
-                .foregroundColor(.gray)
+            Image(systemName: trans.date != nil ? "calendar" : "exclamationmark.circle.fill")
+                .foregroundColor(trans.date != nil ? .gray : Color.fromName(appColorTheme) == Color.red ? Color.orange : Color.red)
                 .frame(width: symbolWidth)
             
-            #if os(iOS)
-            UIKitDatePicker(date: $trans.date, alignment: .leading) // Have to use because of reformatting issue
-                .frame(height: 40)
-            #else
-            DatePicker("", selection: $trans.date ?? Date(), displayedComponents: [.date])
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .labelsHidden()
-            #endif
-                                                                
+            
+            if trans.date == nil && (trans.isSmartTransaction ?? false) {
+                Button("A Date Is Required") {
+                    trans.date = day.date!
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Color.fromName(appColorTheme) == Color.red ? Color.orange : Color.red)
+                
+            } else {
+                #if os(iOS)
+                UIKitDatePicker(date: $trans.date, alignment: .leading) // Have to use because of reformatting issue
+                    .frame(height: 40)
+                #else
+                DatePicker("", selection: $trans.date ?? Date(), displayedComponents: [.date])
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .labelsHidden()
+                #endif
+            }
         }
     }
     
@@ -944,7 +953,7 @@ struct TransactionEditView: View {
     struct SheetHeaderView: View {
         @Environment(\.dismiss) var dismiss
         @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
         
         var title: String
         @Bindable var trans: CBTransaction
@@ -980,6 +989,16 @@ struct TransactionEditView: View {
                 
                 Section {
                     copyButton
+                }
+                
+                Section {
+                    TitleColorMenu(trans: trans, saveOnChange: false) {
+                        Label {
+                            Text("Title Color")
+                        } icon: {
+                            Image(systemName: "paintbrush.fill")
+                        }
+                    }
                 }
             } label: {
                 Image(systemName: "ellipsis")
@@ -1036,12 +1055,21 @@ struct TransactionEditView: View {
         
         func validateBeforeClosing() {
             if !trans.title.isEmpty && !trans.amountString.isEmpty && trans.payMethod == nil {
-                let config = AlertConfig(
-                    title: "Missing Payment Method",
-                    subtitle: "Please add a payment method or delete this transaction.",
-                    symbol: .init(name: "creditcard.trianglebadge.exclamationmark.fill", color: .orange)
-                )
-                AppState.shared.showAlert(config: config)
+                
+                if trans.payMethod == nil && (trans.isSmartTransaction ?? false) {
+                    focusedField.wrappedValue = nil
+                    transEditID = nil
+                    dismiss()
+                } else {
+                    let config = AlertConfig(
+                        title: "Missing Payment Method",
+                        subtitle: "Please add a payment method or delete this transaction.",
+                        symbol: .init(name: "creditcard.trianglebadge.exclamationmark.fill", color: .orange)
+                    )
+                    AppState.shared.showAlert(config: config)
+                }
+                
+                
                 
             } else {
                 focusedField.wrappedValue = nil
@@ -1054,7 +1082,7 @@ struct TransactionEditView: View {
     
     struct DeleteYesButton: View {
         @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarViewModel.self) private var calViewModel
+    
         @Environment(\.dismiss) var dismiss
         @Bindable var trans: CBTransaction
         @Binding var transEditID: String?
@@ -1089,7 +1117,7 @@ struct TransactionEditView: View {
     // MARK: - Photo Views
     var photoSection: some View {
         Group {
-            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+            @Bindable var calModel = calModel
             
             HStack(alignment: .top) {
                 Button {
@@ -1180,12 +1208,31 @@ struct TransactionEditView: View {
             }
             .photosPicker(isPresented: $showPhotosPicker, selection: $calModel.imagesFromLibrary, matching: .images, photoLibrary: .shared())
             .onChange(of: showPhotosPicker) { oldValue, newValue in
-                if !newValue { calModel.uploadPictures() }
+                if !newValue {
+                    if calModel.imagesFromLibrary.isEmpty {
+                        calModel.isUploadingSmartTransactionPicture = false
+                        calModel.smartTransactionDate = nil
+                    } else {
+                        calModel.uploadPictures()
+                    }
+                }
             }
             #if os(iOS)
             .fullScreenCover(isPresented: $showCamera) {
                 AccessCameraView(selectedImage: $calModel.imageFromCamera)
                     .background(.black)
+            }
+            .onChange(of: showCamera) { oldValue, newValue in
+                if !newValue {
+                    Task {
+                        if let imageFromCamera = calModel.imageFromCamera, let imageData = PhotoModel.prepareDataFromUIImage(image: imageFromCamera) {
+                            await calModel.uploadPicture(with: imageData)
+                        } else {
+                            calModel.isUploadingSmartTransactionPicture = false
+                            calModel.smartTransactionDate = nil
+                        }
+                    }
+                }
             }
             #endif
         }
@@ -1194,7 +1241,7 @@ struct TransactionEditView: View {
     
     var photoPickerButton: some View {
         Group {
-            @Bindable var calModel = calModel; @Bindable var calViewModel = calViewModel
+            @Bindable var calModel = calModel
             VStack(spacing: 6) {
 //                PhotosPicker(selection: $calModel.imageFromLibrary, matching: .images, photoLibrary: .shared()) {
 //                    RoundedRectangle(cornerRadius: 12)
@@ -1379,7 +1426,7 @@ struct TransactionEditView: View {
         titleColorButtonHoverColor = trans.color == .primary ? .gray : trans.color
         /// Set the transaction date to the date of the passed in day.
         
-        if trans.date == nil {
+        if trans.date == nil && !(trans.isSmartTransaction ?? false) {
             trans.date = day.date!
         }
         
@@ -1426,6 +1473,15 @@ struct TransactionEditView: View {
             focusedField = 0
         }
         #endif
+        
+        
+        /// Remove the date from the deepCopy if editing from a smart transaction that has a date as a problem.
+        /// Today's date gets assigned by default when the trans date is nil, so if the date is the only issue, the save function won't see the trans as being valid to save.
+        /// By removing the date from the deepCopy, it causes the trans and it's deep copy to fail the equatble check, which will make the app save the transaction.
+//        if (trans.isSmartTransaction ?? false) && (trans.smartTransactionIssue?.enumID == .missingDate || trans.smartTransactionIssue?.enumID == .missingPaymentMethodAndDate)  {
+//            trans.deepCopy?.date = nil
+//        }
+        
         
         calModel.transEditID = transEditID
     }

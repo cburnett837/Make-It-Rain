@@ -67,6 +67,7 @@ struct SheetHeader<Content: View, Content2: View, Content3: View>: View {
             .overlay { theOverlay }
             
         }
+        .contentShape(Rectangle())
         .frame(maxWidth: .infinity)
         .padding(.top, 8)
     }

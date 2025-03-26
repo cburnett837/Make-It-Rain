@@ -7,12 +7,19 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FD001B842D91952300E5D90D /* SmartTransactionsWithIssuesOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD001B832D91952300E5D90D /* SmartTransactionsWithIssuesOverlay.swift */; };
+		FD001B862D91B43C00E5D90D /* BottomPanelContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD001B852D91B43C00E5D90D /* BottomPanelContainerView.swift */; };
 		FD07E24C2D68B53500024B11 /* FitTransactionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD07E24B2D68B53500024B11 /* FitTransactionOverlay.swift */; };
 		FD07E24E2D68B5BE00024B11 /* DayOverview.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD07E24D2D68B5BE00024B11 /* DayOverview.swift */; };
 		FD07E28D2D7210EC00024B11 /* AlertStuff.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD07E28C2D7210EC00024B11 /* AlertStuff.swift */; };
 		FD07E28F2D72137800024B11 /* PaymentMethodRequiredView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD07E28E2D72137800024B11 /* PaymentMethodRequiredView.swift */; };
 		FD2FC7F92D7A267100501D41 /* SheetContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2FC7F82D7A267100501D41 /* SheetContainerView.swift */; };
 		FD2FC7FD2D7CB3C600501D41 /* ChartCircleDot.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2FC7FC2D7CB3C600501D41 /* ChartCircleDot.swift */; };
+		FD4BABC02D944E0400384AB3 /* CBEventCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD4BABBF2D944E0400384AB3 /* CBEventCategory.swift */; };
+		FD4BABC22D94511300384AB3 /* CBEventUserVerificationModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD4BABC12D94511300384AB3 /* CBEventUserVerificationModel.swift */; };
+		FD4BABC42D94512300384AB3 /* CBEventInviteResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD4BABC32D94512300384AB3 /* CBEventInviteResponse.swift */; };
+		FD4BABC62D94576B00384AB3 /* EventCategoriesTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD4BABC52D94576B00384AB3 /* EventCategoriesTable.swift */; };
+		FD4BABC82D945C6200384AB3 /* EventCategoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD4BABC72D945C6200384AB3 /* EventCategoryView.swift */; };
 		FD6D7F012D6682AB0026D39D /* NewTransactionAppIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD6D7F002D6682AB0026D39D /* NewTransactionAppIntent.swift */; };
 		FD6D7F032D66CD0A0026D39D /* CBFitTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD6D7F022D66CD0A0026D39D /* CBFitTransaction.swift */; };
 		FD737B212D806B9A00B6A97B /* StandardRectangle.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD737B202D806B9A00B6A97B /* StandardRectangle.swift */; };
@@ -64,7 +71,7 @@
 		FDC26E3C2D3E86D500B0A97C /* BudgetModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26D942D3E86D500B0A97C /* BudgetModel.swift */; };
 		FDC26E3D2D3E86D500B0A97C /* CBPicture.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DAA2D3E86D500B0A97C /* CBPicture.swift */; };
 		FDC26E3E2D3E86D500B0A97C /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DC42D3E86D500B0A97C /* KeychainManager.swift */; };
-		FDC26E3F2D3E86D500B0A97C /* Login.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DCE2D3E86D500B0A97C /* Login.swift */; };
+		FDC26E3F2D3E86D500B0A97C /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DCE2D3E86D500B0A97C /* LoginView.swift */; };
 		FDC26E402D3E86D500B0A97C /* CircleDot.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DB12D3E86D500B0A97C /* CircleDot.swift */; };
 		FDC26E412D3E86D500B0A97C /* CBRepeatingTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DAB2D3E86D500B0A97C /* CBRepeatingTransaction.swift */; };
 		FDC26E422D3E86D500B0A97C /* Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DBA2D3E86D500B0A97C /* Enums.swift */; };
@@ -180,6 +187,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		FD001B832D91952300E5D90D /* SmartTransactionsWithIssuesOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartTransactionsWithIssuesOverlay.swift; sourceTree = "<group>"; };
+		FD001B852D91B43C00E5D90D /* BottomPanelContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomPanelContainerView.swift; sourceTree = "<group>"; };
 		FD07E24B2D68B53500024B11 /* FitTransactionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitTransactionOverlay.swift; sourceTree = "<group>"; };
 		FD07E24D2D68B5BE00024B11 /* DayOverview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayOverview.swift; sourceTree = "<group>"; };
 		FD07E28C2D7210EC00024B11 /* AlertStuff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertStuff.swift; sourceTree = "<group>"; };
@@ -187,6 +196,11 @@
 		FD292E0E2C9B248B003C18D2 /* MakeItRain.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MakeItRain.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FD2FC7F82D7A267100501D41 /* SheetContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SheetContainerView.swift; sourceTree = "<group>"; };
 		FD2FC7FC2D7CB3C600501D41 /* ChartCircleDot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartCircleDot.swift; sourceTree = "<group>"; };
+		FD4BABBF2D944E0400384AB3 /* CBEventCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBEventCategory.swift; sourceTree = "<group>"; };
+		FD4BABC12D94511300384AB3 /* CBEventUserVerificationModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBEventUserVerificationModel.swift; sourceTree = "<group>"; };
+		FD4BABC32D94512300384AB3 /* CBEventInviteResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBEventInviteResponse.swift; sourceTree = "<group>"; };
+		FD4BABC52D94576B00384AB3 /* EventCategoriesTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventCategoriesTable.swift; sourceTree = "<group>"; };
+		FD4BABC72D945C6200384AB3 /* EventCategoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventCategoryView.swift; sourceTree = "<group>"; };
 		FD6D7ECA2D667B4A0026D39D /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		FD6D7ECC2D667B4A0026D39D /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		FD6D7F002D6682AB0026D39D /* NewTransactionAppIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTransactionAppIntent.swift; sourceTree = "<group>"; };
@@ -259,7 +273,7 @@
 		FDC26DCA2D3E86D500B0A97C /* LineItemMiniView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineItemMiniView.swift; sourceTree = "<group>"; };
 		FDC26DCC2D3E86D500B0A97C /* LineItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineItemView.swift; sourceTree = "<group>"; };
 		FDC26DCD2D3E86D500B0A97C /* LoadingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingManager.swift; sourceTree = "<group>"; };
-		FDC26DCE2D3E86D500B0A97C /* Login.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Login.swift; sourceTree = "<group>"; };
+		FDC26DCE2D3E86D500B0A97C /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		FDC26DCF2D3E86D500B0A97C /* LogManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogManager.swift; sourceTree = "<group>"; };
 		FDC26DD02D3E86D500B0A97C /* LogSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogSheet.swift; sourceTree = "<group>"; };
 		FDC26DD12D3E86D500B0A97C /* LongPollModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LongPollModel.swift; sourceTree = "<group>"; };
@@ -426,9 +440,12 @@
 			children = (
 				FDC26E982D3E9BCA00B0A97C /* EventModel.swift */,
 				FDC26E942D3E935A00B0A97C /* CBEvent.swift */,
+				FD4BABBF2D944E0400384AB3 /* CBEventCategory.swift */,
 				FDC26E9E2D3ECC1900B0A97C /* CBEventParticipant.swift */,
 				FDC26EA02D3F134600B0A97C /* CBEventItem.swift */,
 				FDC26EA82D40175C00B0A97C /* CBEventTransaction.swift */,
+				FD4BABC12D94511300384AB3 /* CBEventUserVerificationModel.swift */,
+				FD4BABC32D94512300384AB3 /* CBEventInviteResponse.swift */,
 				FDC26EA42D3FF61900B0A97C /* EventIdModel.swift */,
 			);
 			path = "Event Models";
@@ -475,6 +492,7 @@
 				FD07E2542D6E539200024B11 /* macOS */,
 				FDC26DCC2D3E86D500B0A97C /* LineItemView.swift */,
 				FD07E24B2D68B53500024B11 /* FitTransactionOverlay.swift */,
+				FD001B832D91952300E5D90D /* SmartTransactionsWithIssuesOverlay.swift */,
 				FD07E24D2D68B5BE00024B11 /* DayOverview.swift */,
 			);
 			path = Calendar;
@@ -540,6 +558,7 @@
 				FDC26E092D3E86D500B0A97C /* ToolbarRefreshButton.swift */,
 				FDB066D02D4D40C40060568B /* UIDatePicker.swift */,
 				FDC26E0F2D3E86D500B0A97C /* YearPicker.swift */,
+				FD001B852D91B43C00E5D90D /* BottomPanelContainerView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -552,6 +571,8 @@
 				FDC26E962D3E9B2F00B0A97C /* EventsTable.swift */,
 				FDC26E9A2D3E9D5700B0A97C /* EventView.swift */,
 				FDC26EA22D3FE6C100B0A97C /* EventItemView.swift */,
+				FD4BABC52D94576B00384AB3 /* EventCategoriesTable.swift */,
+				FD4BABC72D945C6200384AB3 /* EventCategoryView.swift */,
 				FDC26EA62D40139100B0A97C /* EventTransactionView.swift */,
 			);
 			path = Events;
@@ -689,7 +710,7 @@
 		FDC26D8B2D3E86D500B0A97C /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				FDC26DCE2D3E86D500B0A97C /* Login.swift */,
+				FDC26DCE2D3E86D500B0A97C /* LoginView.swift */,
 				FDC26DB92D3E86D500B0A97C /* DollarParticalEmitterView.swift */,
 				FDC26D8C2D3E86D500B0A97C /* AdvancedSearchView.swift */,
 				FDC26DFC2D3E86D500B0A97C /* SplashScreen.swift */,
@@ -876,6 +897,7 @@
 				FD737B412D835AAF00B6A97B /* AlertAndToastAndCalendarLayerView.swift in Sources */,
 				FDC26E9D2D3EA7F800B0A97C /* EventParticipantView.swift in Sources */,
 				FDC26E382D3E86D500B0A97C /* ButtonStyles.swift in Sources */,
+				FD4BABC22D94511300384AB3 /* CBEventUserVerificationModel.swift in Sources */,
 				FDC26E392D3E86D500B0A97C /* ToolbarNowButton.swift in Sources */,
 				FDC26E3A2D3E86D500B0A97C /* StartingAmountSheet.swift in Sources */,
 				FDC26E3B2D3E86D500B0A97C /* ResetMonthOptionSheet.swift in Sources */,
@@ -883,15 +905,17 @@
 				FDC26E3D2D3E86D500B0A97C /* CBPicture.swift in Sources */,
 				FD07E24E2D68B5BE00024B11 /* DayOverview.swift in Sources */,
 				FDC26E3E2D3E86D500B0A97C /* KeychainManager.swift in Sources */,
-				FDC26E3F2D3E86D500B0A97C /* Login.swift in Sources */,
+				FDC26E3F2D3E86D500B0A97C /* LoginView.swift in Sources */,
 				FDC26E402D3E86D500B0A97C /* CircleDot.swift in Sources */,
 				FD2FC7FD2D7CB3C600501D41 /* ChartCircleDot.swift in Sources */,
+				FD4BABC42D94512300384AB3 /* CBEventInviteResponse.swift in Sources */,
 				FDC26E412D3E86D500B0A97C /* CBRepeatingTransaction.swift in Sources */,
 				FDC26E422D3E86D500B0A97C /* Enums.swift in Sources */,
 				FDC26E432D3E86D500B0A97C /* CBKeyword.swift in Sources */,
 				FDC26E442D3E86D500B0A97C /* CBTransaction.swift in Sources */,
 				FDC26E452D3E86D500B0A97C /* PaymentMethodMenu.swift in Sources */,
 				FDC26EC82D413B8900B0A97C /* XrefModel.swift in Sources */,
+				FD001B862D91B43C00E5D90D /* BottomPanelContainerView.swift in Sources */,
 				FD6D7F012D6682AB0026D39D /* NewTransactionAppIntent.swift in Sources */,
 				FDB066D12D4D40C40060568B /* UIDatePicker.swift in Sources */,
 				FDC26E462D3E86D500B0A97C /* Toasts.swift in Sources */,
@@ -904,6 +928,7 @@
 				FDC26EA72D40139100B0A97C /* EventTransactionView.swift in Sources */,
 				FDC26E4B2D3E86D500B0A97C /* RepeatingTransactionsTable.swift in Sources */,
 				FDC26E4C2D3E86D500B0A97C /* ResetMonthModel.swift in Sources */,
+				FD4BABC82D945C6200384AB3 /* EventCategoryView.swift in Sources */,
 				FDC26E4D2D3E86D500B0A97C /* CBTransfer.swift in Sources */,
 				FDC26E4E2D3E86D500B0A97C /* KeyboardToolbar.swift in Sources */,
 				FDC26E4F2D3E86D500B0A97C /* ColorPickerView.swift in Sources */,
@@ -920,6 +945,7 @@
 				FDC26E582D3E86D500B0A97C /* MultiCategorySheet.swift in Sources */,
 				FDC26E592D3E86D500B0A97C /* CategoriesTable.swift in Sources */,
 				FDC26E5A2D3E86D500B0A97C /* PayMethodsTable.swift in Sources */,
+				FD4BABC62D94576B00384AB3 /* EventCategoriesTable.swift in Sources */,
 				FDC26E5B2D3E86D500B0A97C /* KeywordView.swift in Sources */,
 				FDC26E5E2D3E86D500B0A97C /* NavigationManager.swift in Sources */,
 				FDC26E5F2D3E86D500B0A97C /* NotificationManager.swift in Sources */,
@@ -940,6 +966,7 @@
 				FDC26E6B2D3E86D500B0A97C /* PayMethodView.swift in Sources */,
 				FDC26E6C2D3E86D500B0A97C /* CalendarOptionsSheet.swift in Sources */,
 				FDC26E6D2D3E86D500B0A97C /* BudgetEditView.swift in Sources */,
+				FD4BABC02D944E0400384AB3 /* CBEventCategory.swift in Sources */,
 				FDC26E6E2D3E86D500B0A97C /* TransactionListLine.swift in Sources */,
 				FDC26E6F2D3E86D500B0A97C /* ColorPickerButton.swift in Sources */,
 				FDC26E702D3E86D500B0A97C /* PopulateMonthOptionsSheet.swift in Sources */,
@@ -953,6 +980,7 @@
 				FDC26E782D3E86D500B0A97C /* TagLayout.swift in Sources */,
 				FDC26E792D3E86D500B0A97C /* CategoryView.swift in Sources */,
 				FDC26E7A2D3E86D500B0A97C /* ToolbarViews.swift in Sources */,
+				FD001B842D91952300E5D90D /* SmartTransactionsWithIssuesOverlay.swift in Sources */,
 				FDE4E7D82D56AA0100A883EE /* PhotoModel.swift in Sources */,
 				FDC26E7B2D3E86D500B0A97C /* YearPicker.swift in Sources */,
 				FDC26E7C2D3E86D500B0A97C /* NavSidebarPhone.swift in Sources */,
@@ -1122,8 +1150,8 @@
 				INFOPLIST_KEY_NSCameraUsageDescription = "Take photos for transactions";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Secure your transactions";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Access photos to be able to upload pictures of receipts";
-				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = NO;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = NO;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
@@ -1135,7 +1163,8 @@
 				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
@@ -1175,8 +1204,8 @@
 				INFOPLIST_KEY_NSCameraUsageDescription = "Take photos for transactions";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Secure your transactions";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Access photos to be able to upload pictures of receipts";
-				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = NO;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = NO;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
@@ -1188,7 +1217,8 @@
 				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
