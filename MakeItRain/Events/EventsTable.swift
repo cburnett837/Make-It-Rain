@@ -90,21 +90,13 @@ struct EventsTable: View {
             #endif
         }
         
-        .sheet(item: $editEvent, onDismiss: {
-            eventEditID = nil
-        }, content: { event in
-            EventView(event: event, editID: $eventEditID)
-            #if os(macOS)
-                .frame(minWidth: 300, minHeight: 500)
-                .presentationSizing(.fitted)
-            #endif
-        })
         .sheet(isPresented: $showPendingInviteSheet) {
             EventPendingInviteView()
         }
         .onChange(of: sortOrder) { _, sortOrder in
             eventModel.events.sort(using: sortOrder)
         }
+        
         .onChange(of: eventEditID) { oldValue, newValue in
             if let newValue {
                 editEvent = eventModel.getEvent(by: newValue)
@@ -116,10 +108,22 @@ struct EventsTable: View {
                     } else {
                         eventModel.saveEvent(id: oldValue, calModel: calModel)
                     }
-                }
-                
+                    
+                    Task {
+                        let _ = await eventModel.markEvent(as: .closed, eventID: oldValue)
+                    }
+                }                
             }
         }
+        .sheet(item: $editEvent, onDismiss: {
+            eventEditID = nil
+        }, content: { event in
+            EventView(event: event, editID: $eventEditID)
+            #if os(macOS)
+                .frame(minWidth: 300, minHeight: 500)
+                .presentationSizing(.fitted)
+            #endif
+        })
         
         /// If an event gets revoked while being viewed, close the page.
         .onChange(of: eventModel.revokedEvent) { oldValue, newValue in

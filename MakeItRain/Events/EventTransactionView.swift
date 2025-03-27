@@ -327,6 +327,8 @@ struct FakeTransEditView: View {
 //                trans.paidBy = AppState.shared.user!
 //            }
             
+            //trans.changedDate = Date()
+            
             if trans.date == nil {
                 trans.date = Date()
             }
@@ -336,7 +338,7 @@ struct FakeTransEditView: View {
             }
             event.upsert(trans)
             
-            if trans.action == .add {
+            if trans.action == .add && trans.title.isEmpty {
                 focusedField = 0
             }
         }

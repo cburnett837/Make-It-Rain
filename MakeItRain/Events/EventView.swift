@@ -134,7 +134,7 @@ struct EventView: View {
                 HStack {
                     Text("Title")
                     Spacer()
-                    #if os(iOS)
+#if os(iOS)
                     UITextFieldWrapper(placeholder: "Event Title", text: $event.title, toolbar: {
                         KeyboardToolbarView(focusedField: $focusedField)
                     })
@@ -142,10 +142,10 @@ struct EventView: View {
                     .uiTextAlignment(.right)
                     .uiClearButtonMode(.whileEditing)
                     .uiStartCursorAtEnd(true)
-                    #else
+#else
                     TextField("Event Title", text: $event.title)
                         .multilineTextAlignment(.trailing)
-                    #endif
+#endif
                 }
                 .focused($focusedField, equals: 0)
                 .disabled(!isAdmin)
@@ -154,7 +154,7 @@ struct EventView: View {
                     Text("Budget")
                     Spacer()
                     
-                    #if os(iOS)
+#if os(iOS)
                     UITextFieldWrapper(placeholder: "Event Budget", text: $event.amountString ?? "", toolbar: {
                         KeyboardToolbarView(
                             focusedField: $focusedField,
@@ -168,11 +168,11 @@ struct EventView: View {
                     .uiTextAlignment(.right)
                     .uiClearButtonMode(.whileEditing)
                     .uiStartCursorAtEnd(true)
-                    #else
+#else
                     TextField("Budget", text: $event.amountString ?? "")
                         .multilineTextAlignment(.trailing)
-                    #endif
-                                                            
+#endif
+                    
                 }
                 .focused($focusedField, equals: 1)
                 .disabled(!isAdmin)
@@ -182,12 +182,12 @@ struct EventView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     
                     if isAdmin {
-                        #if os(iOS)
+#if os(iOS)
                         UIKitDatePicker(date: $event.startDate, alignment: .trailing) // Have to use because of reformatting issue
-                        #else
+#else
                         DatePicker("", selection: $event.startDate ?? Date(), displayedComponents: [.date])
                             .labelsHidden()
-                        #endif
+#endif
                     } else {
                         Spacer()
                         Text(event.startDate?.string(to: .datePickerDateOnlyDefault) ?? "N/A")
@@ -201,12 +201,12 @@ struct EventView: View {
                     
                     
                     if isAdmin {
-                        #if os(iOS)
+#if os(iOS)
                         UIKitDatePicker(date: $event.endDate, alignment: .trailing) // Have to use because of reformatting issue
-                        #else
+#else
                         DatePicker("", selection: $event.endDate ?? Date(), displayedComponents: [.date])
                             .labelsHidden()
-                        #endif
+#endif
                     } else {
                         Spacer()
                         Text(event.endDate?.string(to: .datePickerDateOnlyDefault) ?? "N/A")
@@ -215,11 +215,11 @@ struct EventView: View {
                     
                     //UIKitDatePicker(date: $event.endDate, alignment: .trailing) // Have to use because of reformatting issue
                     
-//                    DatePicker("", selection: $event.endDate ?? Date(), displayedComponents: [.date])
-//                        .labelsHidden()
+                    //                    DatePicker("", selection: $event.endDate ?? Date(), displayedComponents: [.date])
+                    //                        .labelsHidden()
                 }
                 .disabled(!isAdmin)
-                                
+                
                 chartSection
                 
                 Section("Participants") {
@@ -233,7 +233,7 @@ struct EventView: View {
                                 .foregroundStyle(part.user.id == AppState.shared.user!.id ? Color.primary : Color.gray)
                             Spacer()
                             
-                            #if os(iOS)
+#if os(iOS)
                             UITextFieldWrapper(placeholder: "Contribution", text: $part.amountString ?? "", toolbar: {
                                 KeyboardToolbarView(focusedField: $focusedField)
                             })
@@ -243,10 +243,10 @@ struct EventView: View {
                             .uiClearButtonMode(.whileEditing)
                             .uiStartCursorAtEnd(true)
                             .uiTextColor(part.user.id == AppState.shared.user!.id ? UIColor(.primary) : UIColor(.gray))
-                            #else
+#else
                             TextField("Contribution", text: $part.amountString ?? "")
                                 .multilineTextAlignment(.trailing)
-                            #endif
+#endif
                         }
                         .focused($focusedField, equals: focusID)
                         .disabled(part.user.id != AppState.shared.user!.id)
@@ -261,15 +261,15 @@ struct EventView: View {
                             default: return StatusItem(color: .gray, icon: "questionmark")
                             }
                         }
-                                                
+                        
                         HStack {
                             Image(systemName: statusPieces.icon)
                                 .foregroundStyle(statusPieces.color)
                             VStack(alignment: .leading) {
                                 Text(invite.email ?? "N/A")
-//                                Text(invite.id)
-//                                    .foregroundStyle(.gray)
-//                                    .font(.caption2)
+                                //                                Text(invite.id)
+                                //                                    .foregroundStyle(.gray)
+                                //                                    .font(.caption2)
                             }
                             
                             Spacer()
@@ -283,7 +283,7 @@ struct EventView: View {
                         }
                     }
                 }
-                                
+                
                 ForEach(event.items.filter { $0.active }) { item in
                     Section {
                         ForEach(event.transactions.filter { $0.active && $0.item?.id == item.id }) { trans in
@@ -377,6 +377,30 @@ struct EventView: View {
                 }
             }
             .scrollDismissesKeyboard(.immediately)
+            
+            
+            
+            if !eventModel.openEvents.isEmpty {
+                if eventModel.openEvents.map({$0.eventID}).contains(event.id) {
+                    if !eventModel.openEvents.filter({$0.eventID == event.id && $0.user.id != AppState.shared.user?.id}).isEmpty {
+                        HStack {
+                            Text("Currently Viewed By:")
+                                .font(.caption2)
+                                                    
+                            //ScrollView(.horizontal) {
+                                HStack {
+                                    ForEach(eventModel.openEvents.filter{$0.eventID == event.id && $0.user.id != AppState.shared.user?.id}, id: \.id) { openEvent in
+                                        Text(openEvent.user.name)
+                                            .font(.caption2)
+                                            .foregroundStyle(.green)
+                                    }
+                                }
+                            //}
+                        }
+                        
+                    }
+                }
+            }
         }
         #if os(macOS)
         .padding(.bottom, 10)
@@ -416,6 +440,21 @@ struct EventView: View {
                 event.participants.append(admin)
                 localEventUsers.append(AppState.shared.user!)
             }
+            
+            
+            
+            
+            print("⚠️categories from object")
+            for each in event.categories {
+                print(each.id)
+            }
+            print("⚠️categories from deepcopy")
+            for each in event.deepCopy!.categories {
+                print(each.id)
+            }
+            
+            let _ = await eventModel.markEvent(as: .open, eventID: event.id)
+            
             
         }
         .onChange(of: event.participants.count) { oldValue, newValue in
@@ -524,6 +563,10 @@ struct EventView: View {
                     if !AppState.shared.user(is: paidBy) {
                         return
                     }
+                }
+                
+                if trans.hasChanges() {
+                    trans.changedDate = Date()
                 }
                                                                 
                 event.saveTransaction(id: oldValue!) /// pretty much just validates right now. 2/5/25               

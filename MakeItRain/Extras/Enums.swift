@@ -432,6 +432,12 @@ enum UserPreferedColorScheme: String {
 
 
 
+enum EventViewMode: String {
+    case open, closed
+}
+
+
+
 
 //MARK: Core Data Stuff
 

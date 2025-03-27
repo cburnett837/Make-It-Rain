@@ -20,8 +20,9 @@ class LongPollModel: Decodable {
     let events: Array<CBEvent>?
     let invitations: Array<CBEventParticipant>?
     let fitTransactions: Array<CBFitTransaction>?
+    let openEvents: Array<CBEventViewMode>?
     
-    enum CodingKeys: CodingKey { case return_time, transactions, starting_amounts, repeating_transactions, pay_methods, categories, keywords, budgets, events, invitations, fit_transactions }
+    enum CodingKeys: CodingKey { case return_time, transactions, starting_amounts, repeating_transactions, pay_methods, categories, keywords, budgets, events, invitations, fit_transactions, open_events }
     
     init () {
         self.returnTime = nil
@@ -35,6 +36,7 @@ class LongPollModel: Decodable {
         self.events = nil
         self.invitations = nil
         self.fitTransactions = nil
+        self.openEvents = nil
     }
     
     
@@ -51,5 +53,6 @@ class LongPollModel: Decodable {
         self.events = try container.decodeIfPresent(Array<CBEvent>.self, forKey: .events)
         self.invitations = try container.decodeIfPresent(Array<CBEventParticipant>.self, forKey: .invitations)
         self.fitTransactions = try container.decodeIfPresent(Array<CBFitTransaction>.self, forKey: .fit_transactions)
+        self.openEvents = try container.decodeIfPresent(Array<CBEventViewMode>.self, forKey: .open_events)
     }
 }

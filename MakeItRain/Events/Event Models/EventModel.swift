@@ -30,6 +30,7 @@ import SwiftUI
 class EventModel {
     static let shared = EventModel()
     var isThinking = false
+    var openEvents: Array<CBEventViewMode> = []
     
     //var eventEditID: Int?
     var events: Array<CBEvent> = []
@@ -154,7 +155,7 @@ class EventModel {
                 for eventTrans in event.transactions {
                     var relatedID = relatedIDs.filter {$0.eventTransID == eventTrans.id}.first!.relatedID
                     
-                    print("eventTrans Title: \(eventTrans.title) - ID: \(eventTrans.id) - Active: \(eventTrans.active) ActionBeforeSave: \(eventTrans.actionBeforeSave)")
+                    //print("eventTrans Title: \(eventTrans.title) - ID: \(eventTrans.id) - Active: \(eventTrans.active) ActionBeforeSave: \(eventTrans.actionBeforeSave)")
                                         
                     
                     /// Determine what to do to the realTransaction
@@ -162,7 +163,7 @@ class EventModel {
                     case .add:
                         if eventTrans.isBeingClaimed {
                             /// If adding and claiming.
-                            print("eventTrans \(eventTrans.id) is being claimed")
+                            //print("eventTrans \(eventTrans.id) is being claimed")
                             eventTrans.actionForRealTransaction = .add
                             
                             /// Create a related ID that will be used for the realTrans that will be created.
@@ -181,29 +182,29 @@ class EventModel {
                     case .edit:
                         if eventTrans.isBeingClaimed {
                             /// If editing and claiming
-                            print("eventTrans \(eventTrans.id) is being claimed")
+                            //print("eventTrans \(eventTrans.id) is being claimed")
                             eventTrans.actionForRealTransaction = .add
                             
                             /// Create a related ID that will be used for the realTrans that will be created.
                             if relatedID == nil {
-                                print("Creating realTrans ID for eventTrans \(eventTrans.id)")
+                                //print("Creating realTrans ID for eventTrans \(eventTrans.id)")
                                 let uuid = UUID().uuidString
                                 eventTrans.relatedTransactionID = uuid
                                 relatedID = uuid
                             }
                             
                         } else if eventTrans.isBeingUnClaimed {
-                            print("eventTrans \(eventTrans.id) is being unclaimed")
+                            //print("eventTrans \(eventTrans.id) is being unclaimed")
                             /// if editing and unclaiming
                             eventTrans.actionForRealTransaction = .delete
                                                                                
                         } else if relatedID != nil {
-                            print("eventTrans \(eventTrans.id) relatedID \(relatedID!) is not nil")
+                            //print("eventTrans \(eventTrans.id) relatedID \(relatedID!) is not nil")
                             /// if doing nothing regarding claim, but the transaction appears to exist.
                             eventTrans.actionForRealTransaction = .edit
                             
                         } else {
-                            print("else ignore")
+                            //print("else ignore")
                             /// if doing nothing regarding claim, and the transaction does not exist.
                             eventTrans.actionForRealTransaction = nil
                         }
@@ -214,13 +215,13 @@ class EventModel {
                         if let relatedID = relatedID {
                             /// If the transaction exists locally, remove it.
                             if calModel.doesTransactionExist(with: relatedID, from: .normalList) {
-                                print("realTrans \(relatedID) does exist in cal Model")
+                                //print("realTrans \(relatedID) does exist in cal Model")
                                 event.transactions.removeAll(where: { $0.id == eventTrans.id })
                             } else {
-                                print("realTrans \(relatedID) does NOT exist in calModel")
+                                //print("realTrans \(relatedID) does NOT exist in calModel")
                             }
                         } else {
-                            print("realTrans does NOT exist in calModel (related ID is nil)")
+                            //print("realTrans does NOT exist in calModel (related ID is nil)")
                         }
                     }
                     
@@ -260,12 +261,15 @@ class EventModel {
                     for event in model {
                         activeIds.append(event.id)
                         
+                        print("😡EVENTS")
+                        print(events)
+                        
                         let index = events.firstIndex(where: { $0.id == event.id })
                         if let index {
-                            /// If the payment method is already in the list, update it from the server.
+                            print("😡 found existing event \(event.id)")
                             events[index].setFromAnotherInstance(event: event)
                         } else {
-                            /// Add the payment method to the list (like when the payment method was added on another device).
+                            print("😡 did not found existing event \(event.id)")
                             events.append(event)
                         }
                     }
@@ -313,6 +317,7 @@ class EventModel {
 
             LogManager.networkingSuccessful()
             if let model {
+                self.invitations.removeAll()
                 self.invitations = model
             }
             /// Update the progress indicator.
@@ -486,12 +491,74 @@ class EventModel {
             
         case .failure(let error):
             LogManager.error(error.localizedDescription)
-            AppState.shared.showAlert("There was a problem trying to save the repeating transaction.")
+            AppState.shared.showAlert("There was a problem trying to leave the event.")
+            #warning("Undo behavior")
+            return false
+        }
+        //LoadingManager.shared.stopDelayedSpinner()
+    }        
+    
+    @MainActor
+    func markEvent(as mode: EventViewMode, eventID: String) async -> Bool {
+        print("-- \(#function)")
+        
+        LogManager.log()
+        let model = RequestModel(requestType: "mark_event", model: CBEventViewMode(eventID: eventID, mode: mode))
+        
+        typealias ResultResponse = Result<ResultCompleteModel?, AppError>
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+                    
+        switch await result {
+        case .success:
+            LogManager.networkingSuccessful()
+            
+            if mode == .closed {
+                openEvents.removeAll { $0.id == eventID || $0.user.id == AppState.shared.user?.id}
+            }
+            
+            
+            return true
+            
+        case .failure(let error):
+            LogManager.error(error.localizedDescription)
+            AppState.shared.showAlert("There was a problem trying to mark the event as open or closed")
             #warning("Undo behavior")
             return false
         }
         //LoadingManager.shared.stopDelayedSpinner()
     }
+    
+    
+    
+    @MainActor
+    func fetchOpenOrClosed() async {
+        print("-- \(#function)")
+        
+        LogManager.log()
+        let model = RequestModel(requestType: "fetch_open_or_closed", model: AppState.shared.user!)
+        
+        typealias ResultResponse = Result<Array<CBEventViewMode>?, AppError>
+        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+                    
+        switch await result {
+        case .success(let model):
+            LogManager.networkingSuccessful()
+            
+            if let model = model {
+                withAnimation {
+                    openEvents = model
+                }                
+            }
+            
+        case .failure(let error):
+            LogManager.error(error.localizedDescription)
+            AppState.shared.showAlert("There was a problem trying to fetch the open or closed events.")
+            #warning("Undo behavior")
+        }
+        //LoadingManager.shared.stopDelayedSpinner()
+    }
+    
+    
     
     
     @MainActor
@@ -510,7 +577,7 @@ class EventModel {
             
         case .failure(let error):
             LogManager.error(error.localizedDescription)
-            AppState.shared.showAlert("There was a problem trying to save the repeating transaction.")
+            AppState.shared.showAlert("There was a problem trying to respond to the invitation.")
             #warning("Undo behavior")
             return false
         }
@@ -540,7 +607,7 @@ class EventModel {
             
         case .failure(let error):
             LogManager.error(error.localizedDescription)
-            AppState.shared.showAlert("There was a problem trying to save the repeating transaction.")
+            AppState.shared.showAlert("There was a problem trying to verify the email exists.")
             #warning("Undo behavior")
             return nil
         }

@@ -124,8 +124,8 @@ class FuncModel {
         }
         
         
-        eventModel.invitations.removeAll()
-        eventModel.events.removeAll()
+        //eventModel.invitations.removeAll()
+        //eventModel.events.removeAll()
         
         Task {
             let hasBadConnection = await AppState.shared.hasBadConnection()
@@ -369,6 +369,8 @@ class FuncModel {
             group.addTask { await self.eventModel.fetchEvents() }
             /// Grab Invitations.
             group.addTask { await self.eventModel.fetchInvitations() }
+            /// Grab Open Events.
+            group.addTask { await self.eventModel.fetchOpenOrClosed() }
         }
         
         let everytingElseElapsed = CFAbsoluteTimeGetCurrent() - everythingElseStart
@@ -409,6 +411,8 @@ class FuncModel {
             group.addTask { await self.eventModel.fetchEvents() }
             /// Grab Event Invitations
             group.addTask { await self.eventModel.fetchInvitations() }
+            /// Grab Open Events.
+            group.addTask { await self.eventModel.fetchOpenOrClosed() }
             
 //            group.addTask {
 //                let model = RequestModel(requestType: "fetch_accessorials", model: CodablePlaceHolder())
@@ -604,7 +608,9 @@ class FuncModel {
                     || model.keywords != nil
                     || model.budgets != nil
                     || model.events != nil
-                    || model.invitations != nil {
+                    || model.invitations != nil
+                    || model.openEvents != nil
+                    {
                         if let transactions = model.transactions { self.handleLongPollTransactions(transactions) }
                         
                         if AppState.shared.user?.id == 1 {
@@ -619,6 +625,7 @@ class FuncModel {
                         if let budgets = model.budgets { self.handleLongPollBudgets(budgets) }
                         if let events = model.events { await self.handleLongPollEvents(events) }
                         if let invitations = model.invitations { await self.handleLongPollInvitations(invitations) }
+                        if let openEvents = model.openEvents { await self.handleLongPollOpenEvents(openEvents) }
                     } else {
                         print("LONGPOLL TIMEOUT")
                     }
@@ -851,19 +858,14 @@ class FuncModel {
     
     @MainActor private func handleLongPollEvents(_ events: Array<CBEvent>) async {
         print("-- \(#function)")
-        //print(events.map {$0.title})
-        
         
         for event in events {
-            
             //let participantCount = event.participants.count
-            
-            
-            print("INITIAL PARTS")
-            print("userNames: \(event.participants.map {$0.user.name})")
-            print("actives: \(event.participants.map {$0.active})")
-            print("statuses: \(event.participants.map {$0.status?.description})")
-            print("ids: \(event.participants.map {$0.id})")
+            //print("INITIAL PARTS")
+            //print("userNames: \(event.participants.map {$0.user.name})")
+            //print("actives: \(event.participants.map {$0.active})")
+            //print("statuses: \(event.participants.map {$0.status?.description})")
+            //print("ids: \(event.participants.map {$0.id})")
             
             /// See if the user has an active participant record.
             let doesUserHavePermission = event.participants
@@ -884,60 +886,14 @@ class FuncModel {
                             eventModel.revoke(event)
                         }
                         AppState.shared.showToast(title: "Event Revoked", subtitle: event.title, body: "You have been removed by the host.", symbol: "person.slash.fill")
-                        
                         continue
                     }
                                                             
                     /// Find the event in the users data.
                     if let index = eventModel.getIndex(for: event) {
                         let actualEvent = eventModel.events[index]
-                        
-                        //print(event.items.map{$0.title})
-                        //print(event.items.map{$0.active})
-                        
                         actualEvent.updateFromLongPoll(event: event)
                         actualEvent.deepCopy?.setFromAnotherInstance(event: event)
-                        
-                        
-                        for item in actualEvent.items {
-                            if !item.active {
-                                actualEvent.deleteItem(id: item.id)
-                            }
-                        }
-                        
-                        for transaction in actualEvent.transactions {
-                            if !transaction.active {
-                                actualEvent.deleteTransaction(id: transaction.id)
-                            }
-                        }
-                        
-                                                
-                        /// Check the participant array from the newly updated event, and see if they are part of the list of invitations.
-//                        var acceptingUsers: [String] = []
-//                        for each in actualEvent.participants {
-//                            let participantEmail = each.user.email.lowercased()
-//                            
-//                            /// If the user is now in participants, and was found in the invite array, that means they have accepted the invitation.
-//                            /// Remove the user from the invitation array, and append to the `acceptingUsers` array. (Only used for the toast)
-////                            if actualEvent.invitationsToSend.map({ $0.email?.lowercased() }).contains(participantEmail) {
-////                                actualEvent.invitationsToSend.removeAll(where: { $0.email?.lowercased() == participantEmail })
-////                                acceptingUsers.append(each.user.name)
-////                            }
-//                        }
-                                                                        
-                        /// Show the toast for accepted invitations.
-                        //if !acceptingUsers.isEmpty {
-                            //AppState.shared.showToast(header: "Invite Accepted", title: actualEvent.title, message: "\(acceptingUsers.joined(separator: ", ")) just accepted your invitation", symbol: "calendar.badge.checkmark")
-                        
-//                        let newParticipantCount = actualEvent.participants.count
-//                        
-//                        if participantCount > newParticipantCount {
-//                            AppState.shared.showToast(header: "Somebody left", title: actualEvent.title, message: "Someone just left the event", symbol: "person.fill.xmark")
-//                        } else {
-//                            AppState.shared.showToast(header: "Invite Accepted", title: actualEvent.title, message: "Someone just accepted your invitation", symbol: "calendar.badge.checkmark")
-//                        }
-                        
-                        //}
                     }
                 }
             } else {
@@ -946,7 +902,6 @@ class FuncModel {
                 if event.active {
                     if doesUserHavePermission {
                         eventModel.upsert(event)
-                        //eventModel.invitations.removeAll(where: {$0.id == part.id})
                         eventModel.invitations.removeAll(where: {$0.eventID == event.id})
                     }
                 }
@@ -1014,6 +969,13 @@ class FuncModel {
                     eventModel.invitations.removeAll(where: {$0.id == part.id})
                 }
             }
+        }
+    }
+    
+    
+    @MainActor private func handleLongPollOpenEvents(_ openEvents: Array<CBEventViewMode>) async {
+        withAnimation {
+            eventModel.openEvents = openEvents
         }
     }
     

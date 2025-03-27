@@ -189,54 +189,58 @@ struct SettingsView: View {
                         Text("N/A")
                     }
                 }
-//                
-//                HStack {
-//                    Label {
-//                        Text("Account Users")
-//                    } icon: {
-//                        Image(systemName: "person.3.fill")
-//                    }
-//                    
-//                    VStack {
-//                        ForEach(AppState.shared.accountUsers) { user in
-//                            Text(user.email)
-//                        }
-//                    }
-//                }
+                //
+                //                HStack {
+                //                    Label {
+                //                        Text("Account Users")
+                //                    } icon: {
+                //                        Image(systemName: "person.3.fill")
+                //                    }
+                //
+                //                    VStack {
+                //                        ForEach(AppState.shared.accountUsers) { user in
+                //                            Text(user.email)
+                //                        }
+                //                    }
+                //                }
             }
             
-            Section("Additional Account Users") {
-                ForEach(AppState.shared.accountUsers.filter { $0.id != AppState.shared.user?.id }) { user in
-                    HStack {
-                        
-                        Link(destination: URL(string: "mailto:?to=\(user.email)")!) {
-                            //Label { Text("Email (via Mail)") } icon: { Image(systemName: "envelope.fill") }
+            if !AppState.shared.accountUsers.filter { $0.id != AppState.shared.user?.id }.isEmpty {
+                Section("Additional Account Users") {
+                    ForEach(AppState.shared.accountUsers.filter { $0.id != AppState.shared.user?.id }) { user in
+                        HStack {
                             
-                            Label {
-                                HStack {
-                                    VStack(alignment: .leading) {
-                                        Text(user.name)
-                                            .foregroundStyle(.primary)
-                                        Text(user.email)
-                                            .foregroundStyle(.gray)
-                                            .font(.caption2)
+                            Link(destination: URL(string: "mailto:?to=\(user.email)")!) {
+                                //Label { Text("Email (via Mail)") } icon: { Image(systemName: "envelope.fill") }
+                                
+                                Label {
+                                    HStack {
+                                        VStack(alignment: .leading) {
+                                            Text(user.name)
+                                                .foregroundStyle(.primary)
+                                            Text(user.email)
+                                                .foregroundStyle(.gray)
+                                                .font(.caption2)
+                                        }
+                                        
+                                        Spacer()
+                                        
+                                        Image(systemName: "envelope.fill")
                                     }
                                     
-                                    Spacer()
                                     
-                                    Image(systemName: "envelope.fill")
+                                } icon: {
+                                    Image(systemName: "person.crop.circle")
                                 }
                                 
-                                
-                            } icon: {
-                                Image(systemName: "person.crop.circle")
                             }
-                            
+                            .focusable(false)
                         }
-                        .focusable(false)
                     }
                 }
             }
+            
+            
             
             Section("General Settings") {
                 #if os(macOS)

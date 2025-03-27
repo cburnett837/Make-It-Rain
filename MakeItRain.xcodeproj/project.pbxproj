@@ -20,6 +20,7 @@
 		FD4BABC42D94512300384AB3 /* CBEventInviteResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD4BABC32D94512300384AB3 /* CBEventInviteResponse.swift */; };
 		FD4BABC62D94576B00384AB3 /* EventCategoriesTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD4BABC52D94576B00384AB3 /* EventCategoriesTable.swift */; };
 		FD4BABC82D945C6200384AB3 /* EventCategoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD4BABC72D945C6200384AB3 /* EventCategoryView.swift */; };
+		FD4BABCA2D94EE1600384AB3 /* CBEventMark.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD4BABC92D94EE1300384AB3 /* CBEventMark.swift */; };
 		FD6D7F012D6682AB0026D39D /* NewTransactionAppIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD6D7F002D6682AB0026D39D /* NewTransactionAppIntent.swift */; };
 		FD6D7F032D66CD0A0026D39D /* CBFitTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD6D7F022D66CD0A0026D39D /* CBFitTransaction.swift */; };
 		FD737B212D806B9A00B6A97B /* StandardRectangle.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD737B202D806B9A00B6A97B /* StandardRectangle.swift */; };
@@ -201,6 +202,7 @@
 		FD4BABC32D94512300384AB3 /* CBEventInviteResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBEventInviteResponse.swift; sourceTree = "<group>"; };
 		FD4BABC52D94576B00384AB3 /* EventCategoriesTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventCategoriesTable.swift; sourceTree = "<group>"; };
 		FD4BABC72D945C6200384AB3 /* EventCategoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventCategoryView.swift; sourceTree = "<group>"; };
+		FD4BABC92D94EE1300384AB3 /* CBEventMark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBEventMark.swift; sourceTree = "<group>"; };
 		FD6D7ECA2D667B4A0026D39D /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		FD6D7ECC2D667B4A0026D39D /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		FD6D7F002D6682AB0026D39D /* NewTransactionAppIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTransactionAppIntent.swift; sourceTree = "<group>"; };
@@ -446,6 +448,7 @@
 				FDC26EA82D40175C00B0A97C /* CBEventTransaction.swift */,
 				FD4BABC12D94511300384AB3 /* CBEventUserVerificationModel.swift */,
 				FD4BABC32D94512300384AB3 /* CBEventInviteResponse.swift */,
+				FD4BABC92D94EE1300384AB3 /* CBEventMark.swift */,
 				FDC26EA42D3FF61900B0A97C /* EventIdModel.swift */,
 			);
 			path = "Event Models";
@@ -957,6 +960,7 @@
 				FDC26E632D3E86D500B0A97C /* StandardDivider.swift in Sources */,
 				FDC26E642D3E86D500B0A97C /* KeywordModel.swift in Sources */,
 				FDC26E652D3E86D500B0A97C /* LineItemMiniView.swift in Sources */,
+				FD4BABCA2D94EE1600384AB3 /* CBEventMark.swift in Sources */,
 				FDC26EA92D40175C00B0A97C /* CBEventTransaction.swift in Sources */,
 				FDC26E662D3E86D500B0A97C /* CategorySheet.swift in Sources */,
 				FDC26ED02D42898D00B0A97C /* EventInviteView.swift in Sources */,

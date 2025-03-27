@@ -66,7 +66,10 @@ struct AnalysisSheet: View {
             calModel.sCategories = calModel.sCategoriesForAnalysis
                         
             #if os(iOS)
-            withAnimation { showAnalysisSheet = false }
+            if !AppState.shared.isIpad {
+                withAnimation { showAnalysisSheet = false }
+            }
+            
             #else
             dismiss()
             #endif

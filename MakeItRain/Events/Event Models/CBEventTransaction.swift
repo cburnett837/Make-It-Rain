@@ -51,6 +51,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
     
     var enteredDate: Date
     var updatedDate: Date
+    var changedDate: Date
     
     var pictures: Array<CBPicture>?
     
@@ -80,6 +81,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
         self.active = true
         self.enteredDate = Date()
         self.updatedDate = Date()
+        self.changedDate = Date()
         self.trackingNumber = ""
         self.orderNumber = ""
         self.url = ""
@@ -99,6 +101,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
         self.active = true
         self.enteredDate = Date()
         self.updatedDate = Date()
+        self.changedDate = Date()
         self.trackingNumber = ""
         self.orderNumber = ""
         self.url = ""
@@ -108,7 +111,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
     
     
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, paid_by, entered_date, updated_date, pictures, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, action, status_id, item }
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, paid_by, entered_date, updated_date, pictures, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, action, status_id, item, changed_date }
     
     
     func encode(to encoder: Encoder) throws {
@@ -135,6 +138,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
         try container.encode(paidBy, forKey: .paid_by)
         try container.encode(enteredDate.string(to: .serverDateTime), forKey: .entered_date)
         try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date)
+        try container.encode(changedDate.string(to: .serverDateTime), forKey: .changed_date)
         try container.encode(pictures, forKey: .pictures)
         try container.encode(action.serverKey, forKey: .action)
         
@@ -222,6 +226,13 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
             self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
         } else {
             fatalError("Could not determine updatedDate date")
+        }
+        
+        let changedDate = try container.decode(String?.self, forKey: .changed_date)
+        if let changedDate {
+            self.changedDate = changedDate.toDateObj(from: .serverDateTime)!
+        } else {
+            fatalError("Could not determine changedDate date")
         }
         
         do {
@@ -348,9 +359,27 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
         let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
         self.amountString = transaction.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
         
-        self.payMethod = transaction.payMethod
-        self.category = transaction.category
-        self.item = transaction.item
+        //self.payMethod = transaction.payMethod
+        //self.category = transaction.category
+        
+        if let payMethod = transaction.payMethod {
+            self.payMethod?.setFromAnotherInstance(payMethod: payMethod)
+        } else {
+            self.payMethod = nil
+        }
+        
+        if let category = transaction.category {
+            self.category?.setFromAnotherInstance(category: category)
+        } else {
+            self.category = nil
+        }
+        
+        if let item = transaction.item {
+            self.item?.setFromAnotherInstance(item: item)
+        } else {
+            self.item = nil
+        }
+        
         self.date = transaction.date
         self.notes = transaction.notes
         //self.color = transaction.color
