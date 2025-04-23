@@ -13,6 +13,8 @@ enum RefType {
     case photoTypes
     case eventInviteStatus
     case smartTransactionIssues
+    case openRecords
+    case locationTypes
 }
 
 enum XrefEnum {
@@ -20,7 +22,9 @@ enum XrefEnum {
     case claimed
     
     case transaction
+    case event
     case eventTransaction
+    case eventTransactionOption
     
     case accepted
     case rejected
@@ -30,6 +34,8 @@ enum XrefEnum {
     case missingDate
     case missingPaymentMethodAndDate
     case funkyDate
+    
+    
 }
 
 struct XrefItem: Identifiable, Equatable {
@@ -63,7 +69,9 @@ struct XrefModel {
     
     static let photoTypes: Array<XrefItem> = [
         XrefItem(id: 5, refType: "photo_type", description: "Transaction", enumID: .transaction),
-        XrefItem(id: 6, refType: "photo_type", description: "Event Transaction", enumID: .eventTransaction)
+        XrefItem(id: 6, refType: "photo_type", description: "Event Transaction", enumID: .eventTransaction),
+        XrefItem(id: 17, refType: "photo_type", description: "Event", enumID: .event),
+        XrefItem(id: 18, refType: "photo_type", description: "Event Transaction Option", enumID: .eventTransactionOption)
     ]
     
     static let eventInviteStatuses: Array<XrefItem> = [
@@ -78,6 +86,20 @@ struct XrefModel {
         XrefItem(id: 12, refType: "smart_transaction_issue", description: "Missing Payment Method And Date", enumID: .missingPaymentMethodAndDate),
         XrefItem(id: 13, refType: "smart_transaction_issue", description: "Funky Date", enumID: .funkyDate)
     ]
+    
+    static let openRecords: Array<XrefItem> = [
+        XrefItem(id: 14, refType: "open_record_type", description: "Event", enumID: .event),
+        XrefItem(id: 15, refType: "open_record_type", description: "Event Transaction", enumID: .eventTransaction),
+        XrefItem(id: 16, refType: "open_record_type", description: "Event Transaction Option", enumID: .eventTransactionOption)
+    ]
+    
+    static let locationTypes: Array<XrefItem> = [
+        XrefItem(id: 19, refType: "location_type", description: "Transaction", enumID: .transaction),
+        XrefItem(id: 20, refType: "photo_type", description: "Event", enumID: .event),
+        XrefItem(id: 21, refType: "location_type", description: "Event Transaction", enumID: .eventTransaction),
+        XrefItem(id: 22, refType: "location_type", description: "Event Transaction Option", enumID: .eventTransactionOption)
+    ]
+    
     
     static func getItems(forRefType refType: RefType) -> Array<XrefItem> {
         switch refType {
@@ -95,6 +117,12 @@ struct XrefModel {
             
         case .smartTransactionIssues:
             return smartTransactionIssues
+            
+        case .openRecords:
+            return openRecords
+            
+        case .locationTypes:
+            return locationTypes
         }
     }
     

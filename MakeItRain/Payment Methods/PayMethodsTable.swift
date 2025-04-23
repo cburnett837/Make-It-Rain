@@ -293,25 +293,30 @@ struct PayMethodsTable: View {
         
         ToolbarItem(placement: .topBarLeading) {
             if !AppState.shared.isIpad {
-                Button {
-                    dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chevron.left")
-                        Text("Back")
+                HStack {
+                    Button {
+                        dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                            Text("Back")
+                        }
                     }
+                    ToolbarLongPollButton()
                 }
+                
             } else {
                 HStack {
-                    ToolbarRefreshButton()
-                        .disabled(!AppState.shared.methsExist)
-                    
                     Button {
                         paymentMethodEditID = UUID().uuidString
                     } label: {
                         Image(systemName: "plus")
                     }
                     //.disabled(payModel.isThinking)
+                    
+                    ToolbarRefreshButton()
+                        .disabled(!AppState.shared.methsExist)
+                    ToolbarLongPollButton()
                 }
             }
         }

@@ -10,26 +10,14 @@ import SwiftUI
 struct EventPendingInviteView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(EventModel.self) private var eventModel
-    
-    var header: some View {
-        Group {
-            SheetHeader(
-                title: "Pending Invites",
-                close: { dismiss() }
-            )
-            .padding()
-            
-            Divider()
-                .padding(.horizontal)
-        }
-    }
-    
+       
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            List(eventModel.invitations.filter { $0.status?.enumID == .pending }) { part in
+        StandardContainer(.list) {
+            ForEach(eventModel.invitations.filter { $0.status?.enumID == .pending }) { part in
                 InviteLine(part: part)
             }
+        } header: {
+            SheetHeader(title: "Pending Invites", close: { dismiss() } )
         }
     }
 }

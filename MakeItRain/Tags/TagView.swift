@@ -41,7 +41,7 @@ struct TagView: View {
     
     
     var body: some View {
-        SheetContainerView {
+        StandardContainer {
             if !calModel.tags.isEmpty {
                 GroupBox {
                     if filteredTags.isEmpty {

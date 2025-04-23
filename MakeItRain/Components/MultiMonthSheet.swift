@@ -27,27 +27,24 @@ struct MultiMonthSheet: View {
     ]
     
     var body: some View {
-        SheetHeader(
-            title: "Months",
-            close: { dismiss() },
-            view1: { selectButton }
-        )
-        .padding(.bottom, 12)
-        .padding(.horizontal, 20)
-        .padding(.top)
-        
-        Divider()
-        
-        List(monthOptions) { month in
-            HStack {
-                Text(month.name)
-                Spacer()
-                Image(systemName: "checkmark")
-                    .opacity(months.contains(month) ? 1 : 0)
+        StandardContainer(.list) {
+            ForEach(monthOptions) { month in
+                HStack {
+                    Text(month.name)
+                    Spacer()
+                    Image(systemName: "checkmark")
+                        .opacity(months.contains(month) ? 1 : 0)
+                }
+                .contentShape(Rectangle())
+                .onTapGesture { doIt(month) }
             }
-            .contentShape(Rectangle())
-            .onTapGesture { doIt(month) }
-        }
+        } header: {
+            SheetHeader(
+                title: "Months",
+                close: { dismiss() },
+                view1: { selectButton }
+            )
+        }        
     }
     
     var selectButton: some View {

@@ -48,7 +48,7 @@ struct TransferSheet2: View {
     }
     
     var body: some View {
-        SheetContainerView {
+        StandardContainer {
             LabeledRow("From", labelWidth) {
                 PaymentMethodSheetButton(payMethod: $transfer.from, whichPaymentMethods: .allExceptUnified)
             }
@@ -164,6 +164,7 @@ struct TransferSheet2: View {
             fromTrans.payMethod = transfer.from
             fromTrans.category = transfer.category
             fromTrans.updatedBy = AppState.shared.user!
+            fromTrans.updatedDate = Date()
             fromTrans.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
                         
             let toTrans = calModel.getTransaction(by: UUID().uuidString, from: .normalList)
@@ -180,6 +181,7 @@ struct TransferSheet2: View {
             toTrans.payMethod = transfer.to
             toTrans.category = transfer.category
             toTrans.updatedBy = AppState.shared.user!
+            toTrans.updatedDate = Date()
                                     
             let transferMonth = date.month
             let transferDay = date.day

@@ -16,7 +16,7 @@ struct SettingsViewInsert: View {
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
     @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
     @AppStorage("creditEodView") var creditEodView: CreditEodView = .remainingBalance
-    
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     
     @AppStorage("threshold") var threshold: Double = 500.00
     @State private var thresholdString: String = "500.00"
@@ -80,44 +80,8 @@ struct SettingsViewInsert: View {
             lineItemIndicatorPicker
             
             updatedByOtherPerson
-            
-            
-            Section {
-                Picker("Sort transactions by…", selection: $transactionSortMode.animation()) {
-                    Text("Title")
-                        .tag(TransactionSortMode.title)
-                    Text("Category")
-                        .tag(TransactionSortMode.category)
-                    Text("Entered Date")
-                        .tag(TransactionSortMode.enteredDate)
-                }
-                
-                
-                if transactionSortMode == .category {
-                    Picker("Sort categories by…", selection: $categorySortMode.animation()) {
-                        Text("Title")
-                            .tag(CategorySortMode.title)
-                        Text("Custom Order")
-                            .tag(CategorySortMode.listOrder)
-                    }
-                    /// Only needed if we change the sort order from the settings modal, while on the category page in macOS
-                    #if os(macOS)
-                    .onChange(of: categorySortMode) { oldValue, newValue in
-                        catModel.categories.sort {
-                            categorySortMode == .title
-                            ? ($0.title).lowercased() < ($1.title).lowercased()
-                            : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
-                        }
-                    }
-                    #endif
-                }
-                
-                
-            } header: {
-                Text("Sorting Options")
-            } footer: {
-                EmptyView()
-            }
+                    
+            sortingOptions
             
             
             Section {
@@ -172,9 +136,9 @@ struct SettingsViewInsert: View {
                 }
             }
         }
+        .tint(Color.fromName(appColorTheme))
         
         .task {
-            print("TASk")
             let trans1 = CBTransaction()
             let cat1 = CBCategory()
             cat1.color = .red
@@ -258,10 +222,10 @@ struct SettingsViewInsert: View {
             #if os(macOS)
             LabeledContent {
                 Picker("", selection: $lineItemIndicator) {
-                    Text("Category Dot")
-                        .tag(LineItemIndicator.dot)
-                    Text("Category Symbol")
-                        .tag(LineItemIndicator.emoji)
+                    ForEach(LineItemIndicator.allCases, id: \.self) { opt in
+                        Text(opt.prettyValue)
+                            .tag(opt)
+                    }
                 }
             } label: {
                 VStack(alignment: .leading) {
@@ -273,14 +237,15 @@ struct SettingsViewInsert: View {
             }
             #else
             Section {
-                Picker("Display as…", selection: $lineItemIndicator) {
-                    Text("Category Dot")
-                        .tag(LineItemIndicator.dot)
-                    Text("Category Symbol")
-                        .tag(LineItemIndicator.emoji)
-                    Text("Payment Method")
-                        .tag(LineItemIndicator.paymentMethod)
+                SettingsMenuPickerContainer(title: "Display as…", selectedTitle: lineItemIndicator.prettyValue) {
+                    Picker("", selection: $lineItemIndicator) {
+                        ForEach(LineItemIndicator.allCases, id: \.self) { opt in
+                            Text(opt.prettyValue)
+                                .tag(opt)
+                        }
+                    }
                 }
+                
             } header: {
                 Text("Category / Payment Method Indicator")
             } footer: {
@@ -291,6 +256,7 @@ struct SettingsViewInsert: View {
             #endif
         }
     }
+    
     
     var lineItemIndicatorPickerAddendum: some View {
         Group {
@@ -310,26 +276,29 @@ struct SettingsViewInsert: View {
             
         }
     }
-                
+             
+    
     var updatedByOtherPerson: some View {
         #if os(macOS)
         LabeledContent {
             Picker("", selection: $updatedByOtherUserDisplayMode) {
-                Text("Bold & italic title")
-                    .tag(UpdatedByOtherUserDisplayMode.concise)
-                Text("Their name")
-                    .tag(UpdatedByOtherUserDisplayMode.full)
+                ForEach(UpdatedByOtherUserDisplayMode.allCases, id: \.self) { opt in
+                    Text(opt.prettyValue)
+                        .tag(opt)
+                }
             }
         } label: {
             Text("Display transactions edited by someone else as…")
         }
         #else
         Section {
-            Picker("Display as…", selection: $updatedByOtherUserDisplayMode) {
-                Text("Bold & italic title")
-                    .tag(UpdatedByOtherUserDisplayMode.concise)
-                Text("Their name")
-                    .tag(UpdatedByOtherUserDisplayMode.full)
+            SettingsMenuPickerContainer(title: "Display as…", selectedTitle: updatedByOtherUserDisplayMode.prettyValue) {
+                Picker("", selection: $updatedByOtherUserDisplayMode) {
+                    ForEach(UpdatedByOtherUserDisplayMode.allCases, id: \.self) { opt in
+                        Text(opt.prettyValue)
+                            .tag(opt)
+                    }
+                }
             }
         } header: {
             Text("Edits from others")
@@ -339,8 +308,11 @@ struct SettingsViewInsert: View {
         #endif
     }
             
+    
     var incomeColorPicker: some View {
+        /// Wrap in a menu so we can style the colors properly.
         Menu {
+            /// Using a picker so we get the checkmark on the selected item.
             Picker("", selection: $incomeColor) {
                 ForEach(AppState.shared.colorMenuOptions, id: \.self) { color in
                     Button {
@@ -377,14 +349,16 @@ struct SettingsViewInsert: View {
     
     var creditEodPicker: some View {
         Section {
-            Picker("Display as…", selection: $creditEodView) {
-                Text("Remaining Balance")
-                    .tag(CreditEodView.remainingBalance)
-                Text("Available Credit")
-                    .tag(CreditEodView.availableCredit)
-            }
-            .onChange(of: creditEodView) {
-                calModel.calculateTotalForMonth(month: calModel.sMonth)
+            SettingsMenuPickerContainer(title: "Display as…", selectedTitle: creditEodView.prettyValue) {
+                Picker("", selection: $creditEodView) {
+                    ForEach(CreditEodView.allCases, id: \.self) { opt in
+                        Text(opt.prettyValue)
+                            .tag(opt)
+                    }
+                }
+                .onChange(of: creditEodView) {
+                    calModel.calculateTotalForMonth(month: calModel.sMonth)
+                }
             }
         } header: {
             Text("Credit Account EOD's")
@@ -407,23 +381,23 @@ struct SettingsViewInsert: View {
     #if os(iOS)
     var phoneLineItemDisplay: some View {
         Section {
-            Picker("Display as…", selection: $phoneLineItemDisplayItem.animation()) {
-                Text("Title")
-                    .tag(PhoneLineItemDisplayItem.title)
-                Text("Total")
-                    .tag(PhoneLineItemDisplayItem.total)
-                Text("Category")
-                    .tag(PhoneLineItemDisplayItem.category)
-                Text("Category, Title, & Total")
-                    .tag(PhoneLineItemDisplayItem.both)
+            SettingsMenuPickerContainer(title: "Display as…", selectedTitle: phoneLineItemDisplayItem.prettyValue) {
+                Picker("", selection: $phoneLineItemDisplayItem.animation()) {
+                    ForEach(PhoneLineItemDisplayItem.allCases, id: \.self) { opt in
+                        Text(opt.prettyValue)
+                            .tag(opt)
+                    }
+                }
             }
-            
+                        
             if phoneLineItemDisplayItem == .both {
-                Picker("Display totals…", selection: $phoneLineItemTotalPosition) {
-                    Text("Next to title")
-                        .tag(PhoneLineItemTotalPosition.inline)
-                    Text("Below title")
-                        .tag(PhoneLineItemTotalPosition.below)
+                SettingsMenuPickerContainer(title: "Display totals…", selectedTitle: phoneLineItemTotalPosition.prettyValue) {
+                    Picker("Display totals…", selection: $phoneLineItemTotalPosition) {
+                        ForEach(PhoneLineItemTotalPosition.allCases, id: \.self) { opt in
+                            Text(opt.prettyValue)
+                                .tag(opt)
+                        }
+                    }
                 }
             }
         } header: {
@@ -444,7 +418,48 @@ struct SettingsViewInsert: View {
     }
     #endif
     
-   
+    
+    var sortingOptions: some View {
+        Section {
+            SettingsMenuPickerContainer(title: "Sort transactions by…", selectedTitle: transactionSortMode.prettyValue) {
+                Picker("", selection: $transactionSortMode) {
+                    ForEach(TransactionSortMode.allCases, id: \.self) { opt in
+                        Text(opt.prettyValue)
+                            .tag(opt)
+                    }
+                }
+            }
+            
+            
+            
+            if transactionSortMode == .category {
+                SettingsMenuPickerContainer(title: "Sort categories by…", selectedTitle: categorySortMode.prettyValue) {
+                    Picker("", selection: $categorySortMode) {
+                        ForEach(CategorySortMode.allCases, id: \.self) { opt in
+                            Text(opt.prettyValue)
+                                .tag(opt)
+                        }
+                    }
+                    /// Only needed if we change the sort order from the settings modal, while on the category page in macOS
+                    #if os(macOS)
+                    .onChange(of: categorySortMode) { oldValue, newValue in
+                        catModel.categories.sort {
+                            categorySortMode == .title
+                            ? ($0.title).lowercased() < ($1.title).lowercased()
+                            : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
+                        }
+                    }
+                    #endif
+                }
+            }
+            
+            
+        } header: {
+            Text("Sorting Options")
+        } footer: {
+            EmptyView()
+        }
+    }
 }
 
 
@@ -550,7 +565,6 @@ struct DemoDay: View {
         .minimumScaleFactor(0.5)
         .lineLimit(1)
     }
-            
 }
 
 

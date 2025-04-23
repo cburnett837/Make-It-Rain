@@ -24,6 +24,7 @@ struct TitleColorMenu<Content: View>: View {
                 Button {
                     trans.color = .primary
                     trans.updatedBy = AppState.shared.user!
+                    trans.updatedDate = Date()
                     if saveOnChange {
                         //Task { await calModel.submit(trans) }
                         calModel.saveTransaction(id: trans.id)
@@ -42,6 +43,7 @@ struct TitleColorMenu<Content: View>: View {
                     Button {
                         trans.color = color
                         trans.updatedBy = AppState.shared.user!
+                        trans.updatedDate = Date()
                         if saveOnChange {
                             //Task { await calModel.submit(trans) }
                             calModel.saveTransaction(id: trans.id)

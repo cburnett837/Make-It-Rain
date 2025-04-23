@@ -27,6 +27,7 @@ struct PayMethodView: View {
     @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
 
     @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
     @Environment(CalendarModel.self) private var calModel
     @Environment(EventModel.self) private var eventModel
     
@@ -96,7 +97,7 @@ struct PayMethodView: View {
     
     
     var body: some View {
-        SheetContainerView {
+        StandardContainer {
             LabeledRow("Name", labelWidth) {
                 #if os(iOS)
                 StandardUITextField("Name", text: $payMethod.title, toolbar: {
@@ -121,7 +122,7 @@ struct PayMethodView: View {
                     } label: {
                         HStack {
                             Text(payMethod.accountType.rawValue.capitalized)
-                                .foregroundStyle(preferDarkMode ? .white : .black)
+                                .foregroundStyle(colorScheme == .dark ? .white : .black)
                             Spacer()
                         }                        
                     }

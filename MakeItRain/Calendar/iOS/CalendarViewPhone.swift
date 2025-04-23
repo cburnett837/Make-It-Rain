@@ -11,8 +11,9 @@ import Charts
 import TipKit
 
 enum BottomPanelContent {
-    case overviewDay, fitTransactions, smartTransactionsWithIssues
+    case overviewDay, fitTransactions, smartTransactionsWithIssues, categoryAnalysis
 }
+
 
 #if os(iOS)
 struct CalendarViewPhone: View {
@@ -53,7 +54,8 @@ struct CalendarViewPhone: View {
     
     @State private var overviewDay: CBDay?
     @State private var scrollHeight: CGFloat = 0
-    @State private var customSheetHeight: CGFloat = 300
+    @State private var bottomPanelHeight: CGFloat = 300
+    @State private var scrollContentMargins: CGFloat = 300
     
     @State private var showTransferSheet = false
     @State private var showPaymentMethodSheet = false
@@ -64,15 +66,10 @@ struct CalendarViewPhone: View {
     @State private var showAnalysisSheet = false
     @State private var showPhotosPicker = false
     @State private var showCamera = false
-    //@State private var showFitTransactions = false
-    //@State private var showSmartTransactionsWithIssues = false
     @State private var showSideBar = false
     
     @State private var bottomPanelContent: BottomPanelContent?
-    
-    
-    
-    
+                
     @State private var findTransactionWhere = WhereToLookForTransaction.normalList
     
     var divideBy: CGFloat {
@@ -85,11 +82,20 @@ struct CalendarViewPhone: View {
             return 4
         }
     }
+    
+    var calendarBackground: some View {
+        AppState.shared.isIpad && (showAnalysisSheet || bottomPanelContent != nil)
+        ? colorScheme == .dark
+        ? Color.darkGray3.ignoresSafeArea(.all)
+        : Color(UIColor.systemGray6).ignoresSafeArea(.all)
+        : colorScheme == .dark ? Color.black.ignoresSafeArea(.all) : Color.white.ignoresSafeArea(.all)
+    }
             
     var body: some View {
-        let _ = Self._printChanges()
+        //let _ = Self._printChanges()
         @Bindable var navManager = NavigationManager.shared
         @Bindable var calModel = calModel
+        @Bindable var photoModel = PhotoModel.shared
         
         NavigationStack {
             Group {
@@ -101,19 +107,12 @@ struct CalendarViewPhone: View {
                             }
                             calendarView
                         }
-                        .background(
-                            AppState.shared.isIpad && (showAnalysisSheet || bottomPanelContent != nil)
-                            ? colorScheme == .dark
-                            ? Color.darkGray3.ignoresSafeArea(.all)
-                            : Color(UIColor.systemGray6).ignoresSafeArea(.all)
-                            : nil
-                        )
+                        .background(calendarBackground)
                         
                         if AppState.shared.isIpad {
                             iPadSideBar
                         }
                     }
-                    
                 } else {
                     ProgressView()
                         .transition(.opacity)
@@ -128,7 +127,8 @@ struct CalendarViewPhone: View {
             
             .if(AppState.shared.isIpad) { $0.toolbar(.hidden) }
             .if(!AppState.shared.isIpad) { $0.toolbar { calendarToolbar() } }
-            
+            //.toolbar { calendarToolbar() }
+                        
             /// Using this instead of a task because the iPad doesn't reload `CalendarView`. It just changes the data source.
             .onChange(of: enumID, initial: true, onChangeOfMonthEnumID)
             
@@ -136,13 +136,37 @@ struct CalendarViewPhone: View {
             
             /// This exists in 2 place - purely for visual effect. See ``LineItemView``
             /// This is needed (passing the ID instead of the trans) because you can close the popover without actually clicking the close button. So I need somewhere to do cleanup.
+//            .onChange(of: transEditID) { transEditIdChanged(oldValue: $0, newValue: $1) }
+//            .sensoryFeedback(.selection, trigger: transEditID) { $1 != nil }
+//            .sheet(item: $editTrans) { trans in
+//                TransactionEditView(trans: trans, transEditID: $transEditID, day: selectedDay!, isTemp: false)
+//                    /// This is needed for the drag to dismiss.
+//                    .onDisappear {
+//                        print("ONDisappear \(transEditID)")
+//                        transEditID = nil
+//                    }
+//            }
+            
+            
+            
             .onChange(of: transEditID) { transEditIdChanged(oldValue: $0, newValue: $1) }
             .sensoryFeedback(.selection, trigger: transEditID) { $1 != nil }
-            .sheet(item: $editTrans) { trans in
+            .sheet(item: $editTrans, onDismiss: {
+                transEditIdChanged(oldValue: $0, newValue: $1)
+            }) { trans in
                 TransactionEditView(trans: trans, transEditID: $transEditID, day: selectedDay!, isTemp: false)
                     /// This is needed for the drag to dismiss.
-                    .onDisappear { transEditID = nil }
+                    .onDisappear {
+                        print("ONDisappear \(transEditID)")
+                        transEditID = nil
+                    }
             }
+            
+            
+            
+            
+            
+            
             
             .if(!AppState.shared.isIpad) {
                 $0.sheet(isPresented: $showAnalysisSheet) {
@@ -170,37 +194,60 @@ struct CalendarViewPhone: View {
                 StartingAmountSheet()
             }
             
-            #if os(iOS)
-            .photosPicker(isPresented: $showPhotosPicker, selection: $calModel.imagesFromLibrary, maxSelectionCount: 1, matching: .images, photoLibrary: .shared())
+//            #if os(iOS)
+//            .photosPicker(isPresented: $showPhotosPicker, selection: $calModel.imagesFromLibrary, maxSelectionCount: 1, matching: .images, photoLibrary: .shared())
+//            .onChange(of: showPhotosPicker) { oldValue, newValue in
+//                if !newValue {
+//                    if calModel.imagesFromLibrary.isEmpty {
+//                        calModel.isUploadingSmartTransactionPicture = false
+//                        calModel.smartTransactionDate = nil
+//                    } else {
+//                        calModel.uploadPictures()
+//                    }
+//                }
+//            }
+//            
+//            .fullScreenCover(isPresented: $showCamera) {
+//                AccessCameraView(selectedImage: $calModel.imageFromCamera)
+//                    .background(.black)
+//            }
+//            .onChange(of: showCamera) { oldValue, newValue in
+//                if !newValue {
+//                    Task {
+//                        if let imageFromCamera = calModel.imageFromCamera, let imageData = PhotoModel.prepareDataFromUIImage(image: imageFromCamera) {
+//                            await calModel.uploadPicture(with: imageData)
+//                        } else {
+//                            calModel.isUploadingSmartTransactionPicture = false
+//                            calModel.smartTransactionDate = nil
+//                        }
+//                    }
+//                }
+//            }
+//            #endif
+            
+            /// Only allow 1 photo since this is happening only for smart transactions.
+            .photosPicker(isPresented: $showPhotosPicker, selection: $photoModel.imagesFromLibrary, maxSelectionCount: 1, matching: .images, photoLibrary: .shared())
             .onChange(of: showPhotosPicker) { oldValue, newValue in
                 if !newValue {
-                    if calModel.imagesFromLibrary.isEmpty {
-                        calModel.isUploadingSmartTransactionPicture = false
-                        calModel.smartTransactionDate = nil
+                    if PhotoModel.shared.imagesFromLibrary.isEmpty {
+                        calModel.cleanUpPhotoVariables()
                     } else {
-                        calModel.uploadPictures()
+                        PhotoModel.shared.uploadPicturesFromLibrary(delegate: calModel, photoType: XrefModel.getItem(from: .photoTypes, byEnumID: .transaction))
                     }
                 }
             }
-            
+            #if os(iOS)
             .fullScreenCover(isPresented: $showCamera) {
-                AccessCameraView(selectedImage: $calModel.imageFromCamera)
+                AccessCameraView(selectedImage: $photoModel.imageFromCamera)
                     .background(.black)
             }
             .onChange(of: showCamera) { oldValue, newValue in
                 if !newValue {
-                    Task {
-                        if let imageFromCamera = calModel.imageFromCamera, let imageData = PhotoModel.prepareDataFromUIImage(image: imageFromCamera) {
-                            await calModel.uploadPicture(with: imageData)
-                        } else {
-                            calModel.isUploadingSmartTransactionPicture = false
-                            calModel.smartTransactionDate = nil
-                        }
-                    }
+                    PhotoModel.shared.uploadPictureFromCamera(delegate: calModel, photoType: XrefModel.getItem(from: .photoTypes, byEnumID: .transaction))
                 }
             }
             #endif
-            
+                                    
             .onReceive(AppState.shared.currentDateTimer) { input in
                 let isDayChange = AppState.shared.setNow()
                 #if os(iOS)
@@ -217,17 +264,20 @@ struct CalendarViewPhone: View {
                 #endif
             }
         }
-        
+        .disableZoomeInteractiveDismiss()
         .overlay {
             if (!AppState.shared.isIpad) {
                 searchBarOverlay
             }
         }
+        /// This can't be a sheet because...
+        /// 1. It will lag when resizing due to the scroll content margins changing. (This will only work if you do the passThrough window thing to the calendar view.)
+        /// 2. It will dismiss when other sheets open (payMethod, settings, etc).
         .overlay {
             Group {
                 if !AppState.shared.isIpad {
                     if let content = bottomPanelContent {
-                        BottomPanelContainerView($customSheetHeight) {
+                        BottomPanelContainerView($bottomPanelHeight) {
                             switch content {
                             case .overviewDay:
                                 DayOverviewView(
@@ -237,20 +287,24 @@ struct CalendarViewPhone: View {
                                     showTransferSheet: $showTransferSheet,
                                     showCamera: $showCamera,
                                     showPhotosPicker: $showPhotosPicker,
-                                    sheetHeight: $customSheetHeight,
+                                    bottomPanelHeight: $bottomPanelHeight,
+                                    scrollContentMargins: $scrollContentMargins,
                                     bottomPanelContent: $bottomPanelContent
                                 )
                                 
                             case .fitTransactions:
-                                FitTransactionOverlay(bottomPanelContent: $bottomPanelContent, sheetHeight: $customSheetHeight)
+                                FitTransactionOverlay(bottomPanelContent: $bottomPanelContent, bottomPanelHeight: $bottomPanelHeight, scrollContentMargins: $scrollContentMargins)
                                 
                             case .smartTransactionsWithIssues:
                                 SmartTransactionsWithIssuesOverlay(
                                     bottomPanelContent: $bottomPanelContent,
                                     transEditID: $transEditID,
                                     findTransactionWhere: $findTransactionWhere,
-                                    sheetHeight: $customSheetHeight
+                                    bottomPanelHeight: $bottomPanelHeight,
+                                    scrollContentMargins: $scrollContentMargins
                                 )
+                            case .categoryAnalysis:
+                                EmptyView()
                             }
                         }
                     }
@@ -299,25 +353,29 @@ struct CalendarViewPhone: View {
         }
     }
     
+    
     var weekdayNameGrid: some View {
         LazyVGrid(columns: sevenColumnGrid, spacing: 0) {
             ForEach(days, id: \.self) { name in
                 Text(name)
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, alignment: AppState.shared.isIpad ? .leading : .center)
+                    //.frame(maxWidth: .infinity)
                     .font(.subheadline)
                     .foregroundStyle(.gray)
+                    .padding(.leading, AppState.shared.isIpad ? 6 : 0)
             }
         }
         .padding(.bottom, 4)
         .overlay(Rectangle().frame(width: nil, height: 2, alignment: .bottom).foregroundColor(Color(.tertiarySystemFill)), alignment: .bottom)
     }
         
+    
     var calendarGrid: some View {
+        @Bindable var calModel = calModel
         /// The geometry reader is needed for the keyboard avoidance
-        GeometryReader { geo in
+        return GeometryReader { geo in
             ScrollViewReader { scroll in
                 ScrollView {
-                    @Bindable var calModel = calModel
                     LazyVGrid(columns: sevenColumnGrid, spacing: 0) {
                         ForEach($calModel.sMonth.days) { $day in
                             VStack(spacing: 0) {
@@ -344,14 +402,10 @@ struct CalendarViewPhone: View {
                         }
                     }
                 }
+                //.contentMargins(.bottom, (overviewDay == nil && !showFitTransactions) ? 0 : scrollContentMargins, for: .scrollContent)
                 //.contentMargins(.bottom, (overviewDay == nil && !showFitTransactions) ? 0 : (AppState.shared.isLandscape ? AppState.shared.isIpad ? 300 : 150 : AppState.shared.isIpad ? 500 : 300), for: .scrollContent)
                 
-                .contentMargins(.bottom, bottomPanelContent == nil ? 0 : (AppState.shared.isLandscape ? AppState.shared.isIpad ? 300 : 150 : AppState.shared.isIpad ? 500 : customSheetHeight), for: .scrollContent)
-                
-                
-                
-                
-                //.contentMargins(.bottom, (overviewDay == nil && !showFitTransactions) ? 0 : scrollContentMargins, for: .scrollContent)
+                .contentMargins(.bottom, (bottomPanelContent == nil || AppState.shared.isIpad) ? 0 : scrollContentMargins, for: .scrollContent)
                 
                 .frame(height: scrollHeight)
                 .scrollIndicators(.hidden)
@@ -360,11 +414,18 @@ struct CalendarViewPhone: View {
                         withAnimation { calModel.hilightTrans = nil }
                     }
                 }
+                
+                .onChange(of: overviewDay) {
+                    if let day = $1 {
+                        withAnimation { scroll.scrollTo(day.date?.day) }
+                    }
+                }
             }
         }
         /// Only for the pref key
         .viewHeightObserver()
         .onPreferenceChange(ViewHeightKey.self) {
+            print("Setting scroll height to \($0)")
             scrollHeight = $0
         }
 //        .sheet(isPresented: $showFitTransactions) {
@@ -447,14 +508,16 @@ struct CalendarViewPhone: View {
                 /// Show payment method and category buttons when is iPad in landscape mode.
                 if AppState.shared.isIpad && AppState.shared.isLandscape {
                     showPaymentMethodSheetButton
+                        .contentShape(Rectangle())
                     categorySheetButtonIpad
+                        .contentShape(Rectangle())
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             
             monthName
             
-            HStack(spacing: 20) {
+            HStack(spacing: 27) {
                 if showSearchBar && AppState.shared.isIpad {
                     searchBarOverlayIpad
                 } else {
@@ -467,7 +530,7 @@ struct CalendarViewPhone: View {
                         
                         smartTransactionWithIssuesButton
                             .font(.title2)
-                        longPollToolbarButton
+                        ToolbarLongPollButton()
                             .font(.title2)
                         fitTransactionButton
                             .font(.title2)
@@ -490,6 +553,7 @@ struct CalendarViewPhone: View {
                             Image(systemName: "ellipsis.circle")
                                 .foregroundStyle(Color.accentColor)
                                 .font(.title2)
+                                .contentShape(Rectangle())
                         }
                         
                         searchButton
@@ -508,6 +572,7 @@ struct CalendarViewPhone: View {
                         } label: {
                             Image(systemName: "plus")
                                 .font(.title2)
+                                .contentShape(Rectangle())
                         } primaryAction: {
                             transEditID = UUID().uuidString
                         }
@@ -525,6 +590,9 @@ struct CalendarViewPhone: View {
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 20)
+        /// The buttons in the trailing edge don't seem to be touchable without this background...
+        //.background(colorScheme == .dark ? Color.black : Color.white)
+        //.background(Color.red.ignoresSafeArea(.all))
     }
             
     @ToolbarContentBuilder
@@ -532,18 +600,18 @@ struct CalendarViewPhone: View {
         ToolbarItem(placement: .topBarLeading) {
             HStack(spacing: 10) {
                 /// Show back button if is iPhone, or is iPad being showing in a sheet. (LIke when accessing the calendar from the category view)
-                if (!AppState.shared.isIpad) || (AppState.shared.isIpad && calModel.isShowingFullScreenCoverOnIpad){
+                if (!AppState.shared.isIpad) || (AppState.shared.isIpad && calModel.isShowingFullScreenCoverOnIpad) {
                     backButton
                 } else {
-                    if (AppState.shared.isIpad && !calModel.isShowingFullScreenCoverOnIpad) {
-                        Button {
-                            withAnimation {
-                                NavigationManager.shared.columnVisibility = NavigationManager.shared.columnVisibility == .all ? .detailOnly : .all
-                            }
-                        } label: {
-                            Image(systemName: "sidebar.left")
-                        }
-                    }
+//                    if (AppState.shared.isIpad && !calModel.isShowingFullScreenCoverOnIpad) {
+//                        Button {
+//                            withAnimation {
+//                                NavigationManager.shared.columnVisibility = NavigationManager.shared.columnVisibility == .all ? .detailOnly : .all
+//                            }
+//                        } label: {
+//                            Image(systemName: "sidebar.left")
+//                        }
+//                    }
                 }
                 
                 /// Show payment method and category buttons when is iPad in landscape mode.
@@ -601,9 +669,9 @@ struct CalendarViewPhone: View {
                             .tint(.none)
                     }
                     
-                    longPollToolbarButton
-                    fitTransactionButton
+                    ToolbarLongPollButton()
                     smartTransactionWithIssuesButton
+                    fitTransactionButton
                     
                     Menu {
                         Section("Analytics") {
@@ -719,6 +787,7 @@ struct CalendarViewPhone: View {
         }
     }
     
+    
     var fitTransactionButton: some View {
         Group {
             if !calModel.fitTrans.filter({ !$0.isAcknowledged }).isEmpty {
@@ -731,11 +800,13 @@ struct CalendarViewPhone: View {
                     } label: {
                         Image(systemName: "clock.badge.exclamationmark")
                             .foregroundStyle(Color.fromName(appColorTheme) == .orange ? .red : .orange)
+                            .contentShape(Rectangle())
                     }
                 }
             }
         }
     }
+    
     
     var monthName: some View {
         if calModel.sMonth.year != AppState.shared.todayYear {
@@ -746,6 +817,7 @@ struct CalendarViewPhone: View {
                 .bold()
         }
     }
+    
     
     var backButton: some View {
         Group {
@@ -767,29 +839,6 @@ struct CalendarViewPhone: View {
 //        }
     }
     
-    var longPollToolbarButton: some View {
-        Group {
-            if AppState.shared.longPollFailed {
-                Button {
-                    let config = AlertConfig(
-                        title: "Attempting to resubscribe to multi-device updates",
-                        subtitle: "If this keeps failing please contact the developer.",
-                        symbol: .init(name: "ipad.and.iphone", color: .green)
-                    )
-                    AppState.shared.showAlert(config: config)
-                    
-                    Task {
-                        AppState.shared.longPollFailed = false
-                        await funcModel.downloadEverything(setDefaultPayMethod: true, createNewStructs: false, refreshTechnique: .viaButton)
-                        //funcModel.longPollServerForChanges()
-                    }
-                } label: {
-                    Image(systemName: "ipad.and.iphone.slash")
-                        .foregroundStyle(Color.fromName(appColorTheme) == .red ? .orange : .red)
-                }
-            }
-        }
-    }
     
     var showPaymentMethodSheetButton: some View {
         Button {
@@ -798,6 +847,7 @@ struct CalendarViewPhone: View {
             Text("\(calModel.sPayMethod?.title ?? "")")
         }
     }
+    
     
     var categorySheetButtonIpad: some View {
         Button {
@@ -833,6 +883,7 @@ struct CalendarViewPhone: View {
         }
     }
     
+    
     var budgetSheetButton: some View {
         Button {
             showBudgetSheet = true
@@ -846,6 +897,7 @@ struct CalendarViewPhone: View {
             }
         }
     }
+    
     
     var startingAmountSheetButton: some View {
         Button {
@@ -861,6 +913,7 @@ struct CalendarViewPhone: View {
             }
         }
     }
+    
     
     var refreshButton: some View {
         Button {
@@ -881,10 +934,14 @@ struct CalendarViewPhone: View {
         }
     }
     
+    
     var analysisSheetButton: some View {
         Button {
             withAnimation {
                 showAnalysisSheet = true
+                if AppState.shared.isIpad {
+                    bottomPanelContent = .categoryAnalysis
+                }
             }
         } label: {
             Label {
@@ -894,6 +951,7 @@ struct CalendarViewPhone: View {
             }
         }
     }
+    
     
     var settingsSheetButton: some View {
         Button {
@@ -906,6 +964,7 @@ struct CalendarViewPhone: View {
             }
         }
     }
+    
     
     var searchButton: some View {
         Button {
@@ -928,11 +987,14 @@ struct CalendarViewPhone: View {
 //            }
         } label: {
             Image(systemName: "magnifyingglass")
+                .tint(calModel.searchText.isEmpty ? Color.fromName(appColorTheme) : Color.fromName(appColorTheme) == .orange ? .red : .orange)
+                .scaleEffect(!calModel.searchText.isEmpty ? 1.2 : 1)
+                .animation(!calModel.searchText.isEmpty ? .easeInOut(duration: 1).repeatForever(autoreverses: true) : .default, value: calModel.searchText.isEmpty )
+                .contentShape(Rectangle())
         }
-        .tint(calModel.searchText.isEmpty ? Color.fromName(appColorTheme) : Color.fromName(appColorTheme) == .orange ? .red : .orange)
-        .scaleEffect(!calModel.searchText.isEmpty ? 1.2 : 1)
-        .animation(!calModel.searchText.isEmpty ? .easeInOut(duration: 1).repeatForever(autoreverses: true) : .default, value: calModel.searchText.isEmpty )
+        
     }
+    
     
     var newTransactionButton: some View {
         Button {
@@ -948,6 +1010,7 @@ struct CalendarViewPhone: View {
         }
     }
     
+    
     var newTransferButton: some View {
         Button {
             showTransferSheet = true
@@ -961,6 +1024,7 @@ struct CalendarViewPhone: View {
             }
         }
     }
+    
     
     var takePhotoButton: some View {
         Button {
@@ -980,6 +1044,7 @@ struct CalendarViewPhone: View {
         }
     }
     
+    
     var selectPhotoButton: some View {
         Button {
             //let newID = UUID().uuidString
@@ -997,7 +1062,8 @@ struct CalendarViewPhone: View {
             }
         }
     }
-                
+          
+    
     var fakeNavHeader: some View {
         HStack {
             @Bindable var calModel = calModel
@@ -1139,7 +1205,6 @@ struct CalendarViewPhone: View {
 
             
         }
-        //.background(.ultraThinMaterial)
         .padding(.bottom, 10)
         .contentShape(Rectangle())
         
@@ -1238,7 +1303,7 @@ struct CalendarViewPhone: View {
             //.background(.ultraThickMaterial)
             
             .background {
-                Color.darkGray
+                Color(.secondarySystemBackground)
                     .clipShape(
                         .rect(
                             topLeadingRadius: 0,
@@ -1319,47 +1384,52 @@ struct CalendarViewPhone: View {
     
     var iPadSideBar: some View {
         Group {
-            if showAnalysisSheet {
+            if let content = bottomPanelContent {
                 Divider()
                     .ignoresSafeArea(.all, edges: [.vertical])
                 
-                AnalysisSheet(showAnalysisSheet: $showAnalysisSheet)
-                    .frame(maxWidth: getRect().width / 3)
-                
-            } else if bottomPanelContent == .overviewDay {
-                Divider()
-                    .ignoresSafeArea(.all, edges: [.vertical])
-                
-                DayOverviewView(
-                    day: $overviewDay,
-                    selectedDay: $selectedDay,
-                    transEditID: $transEditID,
-                    showTransferSheet: $showTransferSheet,
-                    showCamera: $showCamera,
-                    showPhotosPicker: $showPhotosPicker,
-                    sheetHeight: $customSheetHeight,
-                    bottomPanelContent: $bottomPanelContent
-                )
-                .frame(maxWidth: getRect().width / 4)
-                
-            } else if bottomPanelContent == .fitTransactions {
-                Divider()
-                    .ignoresSafeArea(.all, edges: [.vertical])
-                
-                FitTransactionOverlay(bottomPanelContent: $bottomPanelContent, sheetHeight: $customSheetHeight)
+                switch content {
+                case .overviewDay:
+                    DayOverviewView(
+                        day: $overviewDay,
+                        selectedDay: $selectedDay,
+                        transEditID: $transEditID,
+                        showTransferSheet: $showTransferSheet,
+                        showCamera: $showCamera,
+                        showPhotosPicker: $showPhotosPicker,
+                        bottomPanelHeight: $bottomPanelHeight,
+                        scrollContentMargins: $scrollContentMargins,
+                        bottomPanelContent: $bottomPanelContent
+                    )
                     .frame(maxWidth: getRect().width / 4)
-                
-            } else if bottomPanelContent == .smartTransactionsWithIssues {
-                Divider()
-                    .ignoresSafeArea(.all, edges: [.vertical])
-                
-                SmartTransactionsWithIssuesOverlay(
-                    bottomPanelContent: $bottomPanelContent,
-                    transEditID: $transEditID,
-                    findTransactionWhere: $findTransactionWhere,
-                    sheetHeight: $customSheetHeight
-                )
-                .frame(maxWidth: getRect().width / 4)
+                    
+                case .fitTransactions:
+                    FitTransactionOverlay(bottomPanelContent: $bottomPanelContent, bottomPanelHeight: $bottomPanelHeight, scrollContentMargins: $scrollContentMargins)
+                        .frame(maxWidth: getRect().width / 3)
+                    
+                case .smartTransactionsWithIssues:
+                    SmartTransactionsWithIssuesOverlay(
+                        bottomPanelContent: $bottomPanelContent,
+                        transEditID: $transEditID,
+                        findTransactionWhere: $findTransactionWhere,
+                        bottomPanelHeight: $bottomPanelHeight,
+                        scrollContentMargins: $scrollContentMargins
+                    )
+                    .frame(maxWidth: getRect().width / 3)
+                    
+                case .categoryAnalysis:
+                    AnalysisSheet(showAnalysisSheet: $showAnalysisSheet)
+                        .frame(maxWidth: getRect().width / 3)
+                    
+                        /// This is here since AnalysisSheet is in a sheet on iPhone and is triggered by a boolean
+                        .onChange(of: showAnalysisSheet) { oldValue, newValue in
+                            if newValue == false {
+                                withAnimation {
+                                    bottomPanelContent = nil
+                                }
+                            }
+                        }
+                }
             }
         }
     }
@@ -1383,7 +1453,7 @@ struct CalendarViewPhone: View {
     }
     
     func transEditIdChanged(oldValue: String?, newValue: String?) {
-        print(".onChange(of: transEditID)")
+        print(".onChange(of: transEditID) -- \(newValue)")
         /// When `newValue` is false, save to the server. We have to use this because `.popover(isPresented:)` has no onDismiss option.
         if oldValue != nil && newValue == nil {
             
@@ -1407,13 +1477,14 @@ struct CalendarViewPhone: View {
                 selectedDay = targetDay
             }
             /// Keep the model clean, and show alert for a photo that may be taking a long time to upload.
-            calModel.pictureTransactionID = nil                                    
+            //calModel.pictureTransactionID = nil
+            PhotoModel.shared.pictureParent = nil
             
             /// Force this to `.normalList` since smart transactions will change the variable to look in the temp list.
             findTransactionWhere = .normalList
                                                             
-        } else {
-            editTrans = calModel.getTransaction(by: transEditID!, from: findTransactionWhere)
+        } else if newValue != nil {
+            editTrans = calModel.getTransaction(by: newValue!, from: findTransactionWhere)
         }
     }
     

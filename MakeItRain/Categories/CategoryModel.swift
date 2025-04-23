@@ -36,29 +36,7 @@ class CategoryModel {
         return categories.firstIndex(where: { $0.id == category.id })
     }
     
-    func setListOrders(calModel: CalendarModel) {
-        var index = 0
-        for category in categories {
-            category.listOrder = index
-            index += 1
-                                
-            calModel.months.forEach { month in
-                month.days.forEach { day in
-                    day.transactions.filter { $0.category?.id == category.id }.forEach { transaction in
-                        transaction.category?.listOrder = category.listOrder
-                    }
-                }
-                
-                if let index = month.budgets.firstIndex(where: { $0.category?.id == category.id }) {
-                    month.budgets[index].category?.listOrder = category.listOrder
-                }
-            }
-        }
-        
-        Task {
-            await submitListOrders()
-        }
-    }
+    
     
     func saveCategory(id: String, calModel: CalendarModel) {
         let category = getCategory(by: id)
@@ -74,6 +52,8 @@ class CategoryModel {
             }
                                                     
             if category.hasChanges() {
+                category.updatedBy = AppState.shared.user!
+                category.updatedDate = Date()
                 let wasSuccessful = await submit(category)
                 if wasSuccessful {
                     
@@ -186,16 +166,6 @@ class CategoryModel {
             if let model {
                 if !model.isEmpty {
                     var activeIds: Array<String> = []
-                    
-//                    let categorySortMode = CategorySortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
-//                                        
-//                    let cats = model.sorted {
-//                        categorySortMode == .title
-//                        ? ($0.title).lowercased() < ($1.title).lowercased()
-//                        : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
-//                    }
-                    
-                    
                     for category in model {
                         activeIds.append(category.id)
                         
@@ -236,6 +206,9 @@ class CategoryModel {
             
                     /// Save the cache.
                     let _ = DataManager.shared.save()
+                    
+                } else {
+                    categories.removeAll()
                 }
             }
             
@@ -374,59 +347,98 @@ class CategoryModel {
     
     
     
-    @MainActor
-    func submitListOrders() async -> Bool {
-        print("-- \(#function)")
-                        
+    func setListOrders(calModel: CalendarModel) -> Array<ListOrderUpdate> {
+        var updates: Array<ListOrderUpdate> = []
+        var index = 0
+        
         for category in categories {
+            category.listOrder = index
+            updates.append(ListOrderUpdate(id: category.id, listorder: index))
+            index += 1
+                                
+            calModel.months.forEach { month in
+                month.days.forEach { day in
+                    day.transactions.filter { $0.category?.id == category.id }.forEach { transaction in
+                        transaction.category?.listOrder = category.listOrder
+                    }
+                }
+                
+                if let index = month.budgets.firstIndex(where: { $0.category?.id == category.id }) {
+                    month.budgets[index].category?.listOrder = category.listOrder
+                }
+            }
+            
+            /// Update in CoreData.
             if let listOrder = category.listOrder {
-                guard let entity = DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(category.id)), createIfNotFound: false) else { return false }
-                entity.listOrder = Int64(listOrder)
+                if let entity = DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(category.id)), createIfNotFound: false) {
+                    entity.listOrder = Int64(listOrder)
+                }
             }
         }
+       
                                                                         
         let saveResult = DataManager.shared.save()
         print(saveResult)
         
-        //LoadingManager.shared.startDelayedSpinner()
-        LogManager.log()
-        let model = RequestModel(requestType: "alter_category_list_orders", model: CategoryListOrderUpdatModel(categories: categories))
-            
-        /// Used to test the snapshot data race
-        //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
-        
-        typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
-                    
-        switch await result {
-        case .success:
-            LogManager.networkingSuccessful()
-                                                
-            #if os(macOS)
-            fuckYouSwiftuiTableRefreshID = UUID()
-            #endif
-            return true
-            
-        case .failure(let error):
-            LogManager.error(error.localizedDescription)
-            AppState.shared.showAlert("There was a problem syncing the category. Will try again at a later time.")
-            //AppState.shared.showAlert("There was a problem trying to save the category.")
-//            category.deepCopy(.restore)
-//
-//            switch category.action {
-//            case .add: categories.removeAll { $0.id == category.id }
-//            case .edit: break
-//            case .delete: categories.append(category)
-//            }
-            
-            #if os(macOS)
-            fuckYouSwiftuiTableRefreshID = UUID()
-            #endif
-            return false
-        }
-        
-        
+        return updates
+
     }
+    
+    
+    
+//    @MainActor
+//    func submitListOrders() async -> Bool {
+//        print("-- \(#function)")
+//                        
+//        for category in categories {
+//            if let listOrder = category.listOrder {
+//                guard let entity = DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(category.id)), createIfNotFound: false) else { return false }
+//                entity.listOrder = Int64(listOrder)
+//            }
+//        }
+//                                                                        
+//        let saveResult = DataManager.shared.save()
+//        print(saveResult)
+//        
+//        //LoadingManager.shared.startDelayedSpinner()
+//        LogManager.log()
+//        let model = RequestModel(requestType: "alter_category_list_orders", model: CategoryListOrderUpdateModel(categories: categories))
+//            
+//        /// Used to test the snapshot data race
+//        //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
+//        
+//        typealias ResultResponse = Result<ResultCompleteModel?, AppError>
+//        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+//                    
+//        switch await result {
+//        case .success:
+//            LogManager.networkingSuccessful()
+//                                                
+//            #if os(macOS)
+//            fuckYouSwiftuiTableRefreshID = UUID()
+//            #endif
+//            return true
+//            
+//        case .failure(let error):
+//            LogManager.error(error.localizedDescription)
+//            AppState.shared.showAlert("There was a problem syncing the category. Will try again at a later time.")
+//            //AppState.shared.showAlert("There was a problem trying to save the category.")
+////            category.deepCopy(.restore)
+////
+////            switch category.action {
+////            case .add: categories.removeAll { $0.id == category.id }
+////            case .edit: break
+////            case .delete: categories.append(category)
+////            }
+//            
+//            #if os(macOS)
+//            fuckYouSwiftuiTableRefreshID = UUID()
+//            #endif
+//            return false
+//        }
+//        
+//        
+//    }
     
     
     

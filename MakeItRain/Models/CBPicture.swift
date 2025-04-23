@@ -19,12 +19,12 @@ class CBPicture: Codable, Identifiable, Hashable {
     
     enum CodingKeys: CodingKey { case id, related_id, related_type_id, uuid, active, user_id, account_id, device_uuid }
     
-    init(relatedID: String, uuid: String) {
+    init(relatedID: String, uuid: String, photoType: XrefEnum) {
         self.id = UUID().uuidString
         self.relatedID = relatedID
         self.uuid = uuid
         self.active = true
-        self.relatedRecordType = XrefModel.getItem(from: .photoTypes, byEnumID: .transaction)
+        self.relatedRecordType = XrefModel.getItem(from: .photoTypes, byEnumID: photoType)
     }
     
     func encode(to encoder: Encoder) throws {

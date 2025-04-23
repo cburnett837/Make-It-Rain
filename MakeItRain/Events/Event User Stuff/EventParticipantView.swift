@@ -1,188 +1,102 @@
 //
-//  EventParticipantSheet.swift
+//  EventParticipantCiew.swift
 //  MakeItRain
 //
-//  Created by Cody Burnett on 1/20/25.
+//  Created by Cody Burnett on 3/27/25.
 //
 
 import SwiftUI
 
-
 struct EventParticipantView: View {
-    
-    private struct StatusItem {
-        var color: Color
-        var icon: String
-    }
-    
+    @AppStorage("useWholeNumbers") var useWholeNumbers = false
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+   
+    #if os(macOS)
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.dismissWindow) private var dismissWindow
+    #endif
     @Environment(\.dismiss) var dismiss
     @Environment(EventModel.self) private var eventModel
     
-    @Binding var users: Array<CBUser>
-    var availableUsers: Array<CBUser>
-    var showInviteButton: Bool
+    @Bindable var part: CBEventParticipant
     @Bindable var event: CBEvent
-                
-    @FocusState private var focusedField: Int?
-    @State private var searchText = ""
+    
+    /// This is only here to blank out the selection hilight on the iPhone list
+    //@Binding var editID: String?
+    
+    @State private var showDeleteAlert = false
     @State private var labelWidth: CGFloat = 20.0
     
-    @State private var showInviteSheet = false    
+    var title: String { part.action == .add ? "New Participant" : "Edit Participant" }
     
-    var filteredUsers: Array<CBUser> {
-        if searchText.isEmpty {
-            return availableUsers
-                .sorted { $0.name.lowercased() < $1.name.lowercased() }
-        } else {
-            return availableUsers
-                .filter { $0.name.localizedStandardContains(searchText) }
-                .sorted { $0.name.lowercased() < $1.name.lowercased() }
-        }
-    }
-
-    
-    var body: some View {
-        SheetHeader(
-            title: "Users",
-            close: { dismiss() },
-            view1: { selectButton }
-        )
-        .padding(.bottom, 12)
-        .padding(.horizontal, 20)
-        .padding(.top)
-        
-        SearchTextField(title: "Users", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)                
-        
-        List {
-            Section("Available Users") {
-                ForEach(filteredUsers) { user in
-                    EventParticipantSheetLineItem(user: user, users: $users, event: event, labelWidth: labelWidth)
-                }
-            }
-            
-            if showInviteButton {
-                
-                Section {
-                    ForEach(event.participants.filter { $0.status?.enumID == .pending }) { invite in
+    @FocusState private var focusedField: Int?
                         
-                        var statusPieces: StatusItem {
-                            switch invite.status?.enumID {
-                            case .pending: return StatusItem(color: .orange, icon: "person.crop.circle.badge.questionmark")
-                            case .accepted: return StatusItem(color: .green, icon: "person.crop.circle.badge.checkmark")
-                            case .rejected: return StatusItem(color: .red, icon: "person.crop.circle.badge.xmark")
-                            default: return StatusItem(color: .gray, icon: "questionmark")
-                            }
-                        }
-                                                
-                        HStack {
-                            Image(systemName: statusPieces.icon)
-                                .foregroundStyle(statusPieces.color)
-                            Text(invite.email ?? "N/A")
-                            Spacer()
-                        }
-                    }
-                    
-                    Button("Create Invite") {
-                        showInviteSheet = true
-                    }
-                } header: {
-                    Text("Invited Users")
-                } footer: {
-                    if !event.participants.filter({ $0.status?.enumID == .pending }).isEmpty {
-                        Text("Invitations will be sent when you close the event.")
-                    }
-                    
-                }
+    var body: some View {
+        StandardContainer {
+            LabeledRow("Group Amount", labelWidth) {
+                #if os(iOS)
+                StandardUITextField("Group Amount", text: $part.groupAmountString ?? "", toolbar: {
+                    KeyboardToolbarView(
+                        focusedField: $focusedField,
+                        accessoryImage3: "plus.forwardslash.minus",
+                        accessoryFunc3: {
+                            Helpers.plusMinus($part.groupAmountString ?? "")
+                        })
+                })
+                .cbClearButtonMode(.whileEditing)
+                .cbFocused(_focusedField, equals: 0)
+                .cbKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
+                #else
+                StandardTextField("Group Amount", text: $part.groupAmountString ?? "", focusedField: $focusedField, focusValue: 0)
+                #endif
             }
+            .focused($focusedField, equals: 0)
+            
+            
+            LabeledRow("Personal Amount", labelWidth) {
+                #if os(iOS)
+                StandardUITextField("Personal Amount", text: $part.personalAmountString ?? "", toolbar: {
+                    KeyboardToolbarView(
+                        focusedField: $focusedField,
+                        accessoryImage3: "plus.forwardslash.minus",
+                        accessoryFunc3: {
+                            Helpers.plusMinus($part.personalAmountString ?? "")
+                        })
+                })
+                .cbClearButtonMode(.whileEditing)
+                .cbFocused(_focusedField, equals: 1)
+                .cbKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
+                #else
+                StandardTextField("Personal Amount", text: $part.personalAmountString ?? "", focusedField: $focusedField, focusValue: 1)
+                #endif
+            }
+            .focused($focusedField, equals: 1)
+            
+            
+        } header: {
+            SheetHeader(title: title, close: { dismiss() })
+        }
+        .task {
+            part.deepCopy(.create)
+            focusedField = 0
         }
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
-        .sheet(isPresented: $showInviteSheet) {
-            EventInviteView(event: event)
-            #if os(macOS)
-                .frame(minWidth: 300, minHeight: 500)
-                .presentationSizing(.fitted)
-            #endif
-        }
-    }
-            
-    var selectButton: some View {
-        Button {
-            users = users.isEmpty ? availableUsers : []
-        } label: {
-            Image(systemName: users.isEmpty ? "checklist.checked" : "checklist.unchecked")
-        }
-    }
-}
-
-
-fileprivate struct EventParticipantSheetLineItem: View {
-    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
-    
-    var user: CBUser
-    @Binding var users: [CBUser]
-    @Bindable var event: CBEvent
-    var labelWidth: CGFloat
-    
-    @State private var showConfirmationAlert = false
-    @State private var showAdminErrorAlert = false
-    
-    
-    var body: some View {
-        HStack {
-            Text(user.name)
-            Spacer()
-            Image(systemName: "checkmark")
-                .opacity(users.contains(user) ? 1 : 0)
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            if !AppState.shared.user(is: user) {
-                doIt(user)
-            } else {
-                showAdminErrorAlert = true
-            }
-        }
-        .alert("Remove \(user.name)?", isPresented: $showConfirmationAlert) {
+        .confirmationDialog("Delete \"\(part.user.name)\"?", isPresented: $showDeleteAlert, actions: {
             Button("Yes", role: .destructive) {
-                
-                let records = event.participants.filter { $0.user.id == user.id && $0.active }
-                records.forEach { part in
-                    if let index = event.participants.firstIndex(where: { $0.id == part.id }) {
-                        withAnimation {
-                            event.participants[index].active = false
-                            users.removeAll(where: { $0.id == user.id })
-                        }
-                    }
-                }
-                
-                
-//                if let index = event.participants.firstIndex(where: { $0.user.id == user.id && $0.active }) {
-//                    withAnimation {
-//                        event.participants[index].active = false
-//                        users.removeAll(where: { $0.id == user.id })
-//                    }
-//                }
+                dismiss()
+                event.deleteParticipant(id: part.id)
             }
             
-            Button("No", role: .cancel) {}
-        }
-        .alert("The creator of the event cannot be removed", isPresented: $showAdminErrorAlert) {
-            Button("OK", role: .cancel) {}
-        }
-    }
-    
-    func doIt(_ user: CBUser) {
-        print("-- \(#function)")
-        if users.contains(user) {
-            if user.accountID != AppState.shared.user?.accountID {
-                showConfirmationAlert = true
-            } else {
-                users.removeAll(where: { $0.id == user.id })
+            Button("No", role: .cancel) {
+                showDeleteAlert = false
             }
-            
-        } else {
-            users.append(user)
-        }
+        }, message: {
+            #if os(iOS)
+            Text("Delete \"\(part.user.name)\"?\nThis will not delete any associated transactions.")
+            #else
+            Text("This will not delete any associated transactions.")
+            #endif
+        })
     }
 }
 

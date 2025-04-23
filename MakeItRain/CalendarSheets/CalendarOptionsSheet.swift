@@ -22,10 +22,10 @@ struct CalendarOptionsSheet: View {
     @Environment(CategoryModel.self) var catModel
     @Environment(RepeatingTransactionModel.self) var repModel
         
-    @State private var showResetMonthAlert = false
+    @State private var buzzForResetMonth = false
     @State private var showResetOptionsSheet = false
     
-    @State private var showPopulateAlert = false
+    @State private var buzzForPopulate = false
     @State private var showPopulateOptionsSheet = false
     
     @Binding var selectedDay: CBDay?
@@ -37,7 +37,7 @@ struct CalendarOptionsSheet: View {
     var body: some View {
         @Bindable var calModel = calModel
         
-        SheetContainerView(.list) {
+        StandardContainer(.list) {
             Section {
                 populateButton
             } footer: {
@@ -68,27 +68,27 @@ struct CalendarOptionsSheet: View {
         //.standardBackground()
         //.frame(maxWidth: .infinity)
         
-        .alert("Woah!", isPresented: $showPopulateAlert) {
-            Button("Options") {
-                showPopulateOptionsSheet = true
-                //calModel.populate(repTransactions: repModel.repTransactions, categories: catModel.categories)
-            }
-            Button("Cancel", role: .cancel) {
-                
-            }
-        } message: {
-            Text("You have already created a budget and populated this month with reoccuring transactions. If you proceed, reoccuring transactions will be duplicated.")
-        }
+//        .alert("Woah!", isPresented: $showPopulateAlert) {
+//            Button("Options") {
+//                showPopulateOptionsSheet = true
+//                //calModel.populate(repTransactions: repModel.repTransactions, categories: catModel.categories)
+//            }
+//            Button("Cancel", role: .cancel) {
+//                
+//            }
+//        } message: {
+//            Text("You have already created a budget and populated this month with reoccuring transactions. If you proceed, reoccuring transactions will be duplicated.")
+//        }
         
-        .alert("Reset \(calModel.sMonth.name) \(String(calModel.sMonth.year))", isPresented: $showResetMonthAlert) {
-            Button("Options", role: .destructive) {
-                //calModel.resetMonth()
-                showResetOptionsSheet = true
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("You will be able to choose what to reset on the next page.")
-        }
+//        .alert("Reset \(calModel.sMonth.name) \(String(calModel.sMonth.year))", isPresented: $showResetMonthAlert) {
+//            Button("Options", role: .destructive) {
+//                //calModel.resetMonth()
+//                showResetOptionsSheet = true
+//            }
+//            Button("Cancel", role: .cancel) {}
+//        } message: {
+//            Text("You will be able to choose what to reset on the next page.")
+//        }
     }
     
     
@@ -223,7 +223,17 @@ struct CalendarOptionsSheet: View {
         Button {
             //buzzPhone(.warning)
             if calModel.sMonth.hasBeenPopulated {
-                showPopulateAlert = true
+                buzzForPopulate = true
+                let buttonConfig = AlertConfig.ButtonConfig(text: "Options", role: .primary) { showPopulateOptionsSheet = true }
+                let config = AlertConfig(
+                    title: "Woah!",
+                    subtitle: "You have already created a budget and populated this month with reoccuring transactions. If you proceed, reoccuring transactions will be duplicated.",
+                    primaryButton: AlertConfig.AlertButton(config: buttonConfig)
+                )
+                
+                AppState.shared.showAlert(config: config)
+                
+                
             } else {
                 showPopulateOptionsSheet = true
                 //calModel.populate(repTransactions: repModel.repTransactions, categories: catModel.categories)
@@ -231,20 +241,33 @@ struct CalendarOptionsSheet: View {
         } label: {
             Text("Prepare Month")
         }
-        .sensoryFeedback(.warning, trigger: showPopulateAlert) { oldValue, newValue in
+        .sensoryFeedback(.warning, trigger: buzzForPopulate) { oldValue, newValue in
             !oldValue && newValue
         }
         .tint(calModel.sMonth.hasBeenPopulated ? .gray : Color.accentColor)
     }
         
+    
     var resetButton: some View {
         Button {
-            showResetMonthAlert = true
+            buzzForResetMonth = true
+            
+            let buttonConfig = AlertConfig.ButtonConfig(text: "Options", role: .primary) { showResetOptionsSheet = true }
+            let config = AlertConfig(
+                title: "Reset \(calModel.sMonth.name) \(String(calModel.sMonth.year))",
+                subtitle: "You will be able to choose what to reset on the next page.",
+                symbol: .init(name: "exclamationmark.triangle.fill", color: .red),
+                primaryButton: AlertConfig.AlertButton(config: buttonConfig)
+            )
+            
+            AppState.shared.showAlert(config: config)
+            
+            
         } label: {
             Text("Reset Month")
         }
         .tint(.red)
-        .sensoryFeedback(.warning, trigger: showResetMonthAlert) { oldValue, newValue in
+        .sensoryFeedback(.warning, trigger: buzzForResetMonth) { oldValue, newValue in
             !oldValue && newValue
         }
     }

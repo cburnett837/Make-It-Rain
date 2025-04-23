@@ -478,11 +478,11 @@ struct CalendarToolbarTrailing: View {
 //                .presentationSizing(.fitted)
 //        }
         
-        .sheet(isPresented: $showFitTransactions) {
-            FitTransactionOverlay(showFitTransactions: $showFitTransactions)
-                .frame(minWidth: 300, minHeight: 500)
-                .presentationSizing(.fitted)
-        }
+//        .sheet(isPresented: $showFitTransactions) {
+//            FitTransactionOverlay(showFitTransactions: $showFitTransactions)
+//                .frame(minWidth: 300, minHeight: 500)
+//                .presentationSizing(.fitted)
+//        }
         
         
         

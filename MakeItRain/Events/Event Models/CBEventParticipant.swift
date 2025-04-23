@@ -12,10 +12,15 @@ class CBEventParticipant: Codable, Identifiable, Hashable, Equatable {
     var id: String
     var uuid: String?
     var user: CBUser
-    var amount: Double? {
-        Double(amountString?.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "") ?? "0.0") ?? 0.0
+    var groupAmount: Double? {
+        Double(groupAmountString?.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "") ?? "0.0") ?? 0.0
     }
-    var amountString: String?
+    var groupAmountString: String?
+    
+    var personalAmount: Double? {
+        Double(personalAmountString?.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "") ?? "0.0") ?? 0.0
+    }
+    var personalAmountString: String?
     
     var inviteFrom: CBUser?
     var inviteTo: CBUser?
@@ -28,14 +33,15 @@ class CBEventParticipant: Codable, Identifiable, Hashable, Equatable {
     var active: Bool
     var action: EventParticipantAction
     
-    enum CodingKeys: CodingKey { case id, uuid, user, amount, active, invite_from, invite_to, email, status_id, event_id, event_name, user_id, account_id, device_uuid }
+    enum CodingKeys: CodingKey { case id, uuid, user, group_amount, personal_amount, active, invite_from, invite_to, email, status_id, event_id, event_name, user_id, account_id, device_uuid }
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(uuid, forKey: .uuid)
         try container.encode(user, forKey: .user)
-        try container.encode(amount, forKey: .amount)
+        try container.encode(groupAmount, forKey: .group_amount)
+        try container.encode(personalAmount, forKey: .personal_amount)
         try container.encode(active ? 1 : 0, forKey: .active)
         try container.encode(inviteFrom, forKey: .invite_from)
         try container.encode(inviteTo, forKey: .invite_to)
@@ -63,6 +69,20 @@ class CBEventParticipant: Codable, Identifiable, Hashable, Equatable {
         self.status = XrefModel.getItem(from: .eventInviteStatus, byEnumID: .pending)
     }
     
+    init(user: CBUser, eventID: String) {
+        let uuid = UUID().uuidString
+        self.id = uuid
+        self.uuid = uuid
+        self.user = user
+        self.active = true
+        self.action = .add
+        self.inviteFrom = AppState.shared.user!
+        //self.inviteTo = AppState.shared.user!
+        self.eventID = eventID
+        self.email = user.email
+        self.status = XrefModel.getItem(from: .eventInviteStatus, byEnumID: .pending)
+    }
+    
     
         
     required init(from decoder: Decoder) throws {
@@ -74,9 +94,14 @@ class CBEventParticipant: Codable, Identifiable, Hashable, Equatable {
         }
         user = try container.decode(CBUser.self, forKey: .user)
         
-        let amount = try container.decode(Double.self, forKey: .amount)
+        
         let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
-        self.amountString = amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        let groupAmount = try container.decode(Double.self, forKey: .group_amount)
+        self.groupAmountString = groupAmount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        let personalAmount = try container.decode(Double.self, forKey: .personal_amount)
+        self.personalAmountString = personalAmount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        
+        
         
         let isActive = try container.decode(Int?.self, forKey: .active)
         self.active = isActive == 1 ? true : false
@@ -84,10 +109,10 @@ class CBEventParticipant: Codable, Identifiable, Hashable, Equatable {
         inviteFrom = try container.decode(CBUser.self, forKey: .invite_from)
         inviteTo = try container.decode(CBUser.self, forKey: .invite_to)
         email = try container.decode(String?.self, forKey: .email)
-        let statusID = try container.decode(Int.self, forKey: .status_id)
         
         eventName = try container.decodeIfPresent(String.self, forKey: .event_name)
         
+        let statusID = try container.decode(Int.self, forKey: .status_id)
         self.status = XrefModel.getItem(from: .eventInviteStatus, byID: statusID)
         
         do {
@@ -102,13 +127,16 @@ class CBEventParticipant: Codable, Identifiable, Hashable, Equatable {
     
     
     func setFromAnotherInstance(part: CBEventParticipant) {
+        self.id = part.id
+        self.uuid = part.uuid
+        self.eventID = part.eventID
         self.user = part.user
-        self.amountString = part.amountString
+        self.groupAmountString = part.groupAmountString
+        self.personalAmountString = part.personalAmountString
         self.active = part.active
         self.inviteFrom = part.inviteFrom
         self.inviteTo = part.inviteTo
         self.email = part.email
-        self.eventID = part.eventID
         self.eventName = part.eventName
         self.status = part.status
         
@@ -117,7 +145,8 @@ class CBEventParticipant: Codable, Identifiable, Hashable, Equatable {
     func updateFromLongPoll(part: CBEventParticipant) {
         if AppState.shared.user(is: part.user) {
             self.user = part.user
-            self.amountString = part.amountString
+            self.groupAmountString = part.groupAmountString
+            self.personalAmountString = part.personalAmountString
             self.active = part.active
             self.inviteFrom = part.inviteFrom
             self.inviteTo = part.inviteTo
@@ -137,7 +166,8 @@ class CBEventParticipant: Codable, Identifiable, Hashable, Equatable {
             copy.id = self.id
             copy.uuid = self.uuid
             copy.user = self.user
-            copy.amountString = self.amountString
+            copy.groupAmountString = self.groupAmountString
+            copy.personalAmountString = self.personalAmountString
             copy.active = self.active
             copy.inviteFrom = self.inviteFrom
             copy.inviteTo = self.inviteTo
@@ -151,7 +181,8 @@ class CBEventParticipant: Codable, Identifiable, Hashable, Equatable {
                 self.id = deepCopy.id
                 self.uuid = deepCopy.uuid
                 self.user = deepCopy.user
-                self.amountString = deepCopy.amountString
+                self.groupAmountString = deepCopy.groupAmountString
+                self.personalAmountString = deepCopy.personalAmountString
                 self.active = deepCopy.active
                 self.inviteFrom = deepCopy.inviteFrom
                 self.inviteTo = deepCopy.inviteTo
@@ -165,13 +196,27 @@ class CBEventParticipant: Codable, Identifiable, Hashable, Equatable {
         }
     }
     
+    func hasChanges() -> Bool {
+        if let deepCopy = deepCopy {
+            if self.groupAmount == deepCopy.groupAmount
+            && self.personalAmount == deepCopy.personalAmount
+            && self.active == deepCopy.active
+            {
+                return false
+            }
+        }
+        
+        return true
+    }
+    
     
     
     
     static func == (lhs: CBEventParticipant, rhs: CBEventParticipant) -> Bool {
         if lhs.id == rhs.id
         && lhs.user == rhs.user
-        && lhs.amount == rhs.amount
+        && lhs.groupAmount == rhs.groupAmount
+        && lhs.personalAmount == rhs.personalAmount
         && lhs.inviteFrom == rhs.inviteFrom
         && lhs.inviteTo == rhs.inviteTo
         && lhs.email == rhs.email

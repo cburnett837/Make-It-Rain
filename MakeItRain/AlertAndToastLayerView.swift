@@ -21,8 +21,6 @@ struct AlertAndToastLayerView: View {
         Rectangle()
             .fill(Color.clear)
             .ignoresSafeArea(.all)
-            /// Toasts.
-            .toast()
             /// Undo / Redo options.
             .alert("Undo / Redo", isPresented: $undoManager.showAlert) {
                 VStack {
@@ -65,5 +63,7 @@ struct AlertAndToastLayerView: View {
                                             
                 }
             }
+            /// Toasts.
+            .toast()
     }
 }

@@ -34,7 +34,7 @@ struct CustomAlert: View {
                     Text(subtitle)
                         .font(.callout)
                         .multilineTextAlignment(.center)
-                        .lineLimit(3)
+                        .lineLimit(5)
                         .foregroundStyle(.gray)
                     //.padding(.vertical, 4)
                 }
@@ -125,16 +125,25 @@ struct AlertConfig {
     
     struct AlertButton: View {
         @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
+        var closeOnFunction: Bool = true
+        var showSpinnerOnClick: Bool = false
         var config: ButtonConfig
+        
+        @State private var showSpinner: Bool = false
         
         var body: some View {
             Button {
-                AppState.shared.closeAlert()
+                if closeOnFunction {
+                    AppState.shared.closeAlert()
+                }
+                if showSpinnerOnClick {
+                    showSpinner = true
+                }
                 config.function()
             } label: {
                 Text(config.text)
                     .fontWeight(config.role == .primary ? .bold : .regular)
-                    .foregroundStyle(config.role == .destructive ? .red : (preferDarkMode ? .white : .black))
+                    .foregroundStyle(config.role == .destructive ? .red : .primary)
                     //.padding(.vertical, 14)
                     //.frame(maxWidth: .infinity)
                     //.background(config.color/*.gradient*/, in: .rect(cornerRadius: 10))
@@ -148,12 +157,15 @@ struct AlertConfig {
                     topTrailingRadius: 0
                 )
             )
+            .opacity(showSpinner ? 0 : 1)
+            .overlay(ProgressView().opacity(showSpinner ? 1 : 0))
+            .disabled(showSpinner)
         }
         
     }
     
     struct CancelButton: View {
-        @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
+        //@AppStorage("preferDarkMode") var preferDarkMode: Bool = true
         var isAlone: Bool
         
         var body: some View {
@@ -174,3 +186,24 @@ struct AlertConfig {
         }
     }
 }
+
+
+
+let alertConfigExample = AlertConfig(
+    title: "Title",
+    subtitle: "Subtitle",
+    symbol: .init(name: "calendar.badge.exclamationmark", color: .orange),
+    primaryButton:
+        AlertConfig.AlertButton(config: .init(text: "Change", role: .primary, function: {
+        /// actions here
+    })),
+    secondaryButton:
+        AlertConfig.AlertButton(config: .init(text: "Don't Change", function: {
+        ///actions here
+    })),
+    views: [
+        AlertConfig.ViewConfig(content: AnyView(Text("hey"))),
+        AlertConfig.ViewConfig(content: AnyView(Text("hey")))
+    ]
+)
+//AppState.shared.showAlert(config: alertConfigExample)

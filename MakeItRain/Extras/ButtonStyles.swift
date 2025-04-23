@@ -109,11 +109,11 @@ struct SheetHeaderButtonStyle: ButtonStyle {
 
 
 struct AlertButtonStyle: ButtonStyle {
-    @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
+    //@AppStorage("preferDarkMode") var preferDarkMode: Bool = true
     
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundStyle(preferDarkMode ? .white : .black)
+            .foregroundStyle(.primary)
             .padding(.vertical, 14)
             .frame(maxWidth: .infinity)
             .background(configuration.isPressed ? Material.ultraThinMaterial : Material.ultraThickMaterial)

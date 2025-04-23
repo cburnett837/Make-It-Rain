@@ -351,9 +351,8 @@ class NetworkManager {
                 LogManager.log("decoding data", session: sesh)
                 
                 
-                if httpResponse?.statusCode == 504 {
-                    return .success(nil)
-                } else if httpResponse?.statusCode == 403 {
+                if httpResponse?.statusCode == 403 {
+                    print(httpResponse?.statusCode)
                     return .failure(.incorrectCredentials)
                 } else {
                     print(httpResponse?.statusCode)
@@ -399,8 +398,7 @@ class NetworkManager {
     
     func uploadPicture<U: Decodable>(
         application: String,
-        recordID: String?,
-        relatedTypeID: String,
+        pictureParent: PictureParent?,
         uuid: String,
         imageData: Data,
         isSmartTransaction: Bool = false,
@@ -418,8 +416,8 @@ class NetworkManager {
             let metadata: [String: String] = [
                 "application": application,
                 "type": "photo",
-                "recordID": recordID ?? "",
-                "relatedTypeID": relatedTypeID,
+                "recordID": pictureParent?.id ?? "",
+                "relatedTypeID": String(pictureParent?.type.id ?? 0),
                 "uuid": uuid,
                 "userID": String(AppState.shared.user?.id ?? 0),
                 "accountID": String(AppState.shared.user?.accountID ?? 0),
@@ -477,8 +475,7 @@ class NetworkManager {
                 try? await Task.sleep(for: .milliseconds(1000))
                 return await uploadPicture(
                     application: application,
-                    recordID: recordID,
-                    relatedTypeID: relatedTypeID,
+                    pictureParent: pictureParent,
                     uuid: uuid,
                     imageData: imageData,
                     ticker: ticker - 1

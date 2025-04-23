@@ -222,23 +222,28 @@ struct RepeatingTransactionsTable: View {
     func phoneToolbar() -> some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
             if !AppState.shared.isIpad {
-                Button {
-                    dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chevron.left")
-                        Text("Back")
+                HStack {
+                    Button {
+                        dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                            Text("Back")
+                        }
                     }
+                    ToolbarLongPollButton()
                 }
+                
             } else {
                 HStack {
-                    ToolbarRefreshButton()
                     Button {
                         repTransactionEditID = UUID().uuidString
                     } label: {
                         Image(systemName: "plus")
                     }
                     //.disabled(repModel.isThinking)
+                    ToolbarRefreshButton()
+                    ToolbarLongPollButton()
                 }
             }
         }

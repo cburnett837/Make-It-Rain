@@ -44,7 +44,7 @@ struct KeywordView: View {
     
     
     var body: some View {
-        SheetContainerView {
+        StandardContainer {
             GroupBox {
                 HStack(spacing: 0) {
                     Text("If the transaction title ")

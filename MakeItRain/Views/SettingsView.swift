@@ -205,7 +205,7 @@ struct SettingsView: View {
                 //                }
             }
             
-            if !AppState.shared.accountUsers.filter { $0.id != AppState.shared.user?.id }.isEmpty {
+            if !AppState.shared.accountUsers.filter({ $0.id != AppState.shared.user?.id }).isEmpty {
                 Section("Additional Account Users") {
                     ForEach(AppState.shared.accountUsers.filter { $0.id != AppState.shared.user?.id }) { user in
                         HStack {
@@ -270,11 +270,7 @@ struct SettingsView: View {
                     }
                 }
                 #endif
-                
-                
-                
-                
-                
+                                
                 Toggle(isOn: $debugPrint) {
                     Label {
                         VStack(alignment: .leading) {
@@ -297,30 +293,31 @@ struct SettingsView: View {
             
             #if os(iOS)
             Section("App Theme") {
-                Menu {
-                    Picker("", selection: $appColorTheme) {
-                        ForEach(AppState.shared.colorMenuOptions, id: \.self) { color in
-                            HStack {
-                                Text(color.description.capitalized)
-                                Image(systemName: "circle.fill")
-                                    .foregroundStyle(color, .primary, .secondary)
-                            }
-                            .tag(color.description)
-                        }
+                HStack {
+                    Label {
+                        Text("Color")
+                            .foregroundStyle(colorScheme == .dark ? .white : .black)
+                    } icon: {
+                        Image(systemName: "lightspectrum.horizontal")
+                            .symbolRenderingMode(.multicolor)
                     }
-                    .labelsHidden()
-                    .pickerStyle(.inline)
+                    Spacer()
                     
-                } label: {
-                    HStack {
-                        Label {
-                            Text("Color")
-                                .foregroundStyle(colorScheme == .dark ? .white : .black)
-                        } icon: {
-                            Image(systemName: "lightspectrum.horizontal")
-                                .symbolRenderingMode(.multicolor)
+                    Menu {
+                        Picker("", selection: $appColorTheme) {
+                            ForEach(AppState.shared.colorMenuOptions, id: \.self) { color in
+                                HStack {
+                                    Text(color.description.capitalized)
+                                    Image(systemName: "circle.fill")
+                                        .foregroundStyle(color, .primary, .secondary)
+                                }
+                                .tag(color.description)
+                            }
                         }
-                        Spacer()
+                        .labelsHidden()
+                        .pickerStyle(.inline)
+                        
+                    } label: {
                         HStack(spacing: 4) {
                             Text(appColorTheme.capitalized)
                             Image(systemName: "chevron.up.chevron.down")
@@ -328,6 +325,8 @@ struct SettingsView: View {
                         }
                     }
                 }
+                
+                
                                     
 //                Toggle(isOn: $preferDarkMode) {
 //                    Label {

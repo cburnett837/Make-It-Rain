@@ -17,6 +17,10 @@ class CBKeyword: Codable, Identifiable {
     var category: CBCategory?
     var active: Bool
     var action: KeywordAction
+    var enteredBy: CBUser = AppState.shared.user!
+    var updatedBy: CBUser = AppState.shared.user!
+    var enteredDate: Date
+    var updatedDate: Date
     
     
     /// For deep copies
@@ -29,6 +33,10 @@ class CBKeyword: Codable, Identifiable {
         self.category = CBCategory()
         self.active = true
         self.action = .add
+        self.enteredBy = AppState.shared.user!
+        self.updatedBy = AppState.shared.user!
+        self.enteredDate = Date()
+        self.updatedDate = Date()
     }
     
     /// For new
@@ -40,6 +48,10 @@ class CBKeyword: Codable, Identifiable {
         self.category = CBCategory()
         self.active = true
         self.action = .add
+        self.enteredBy = AppState.shared.user!
+        self.updatedBy = AppState.shared.user!
+        self.enteredDate = Date()
+        self.updatedDate = Date()
     }
     
     init(entity: PersistentKeyword) {
@@ -56,6 +68,10 @@ class CBKeyword: Codable, Identifiable {
         self.action = .edit
         self.active = true
         self.action = KeywordAction.fromString(entity.action!)
+        self.enteredBy = AppState.shared.user!
+        self.updatedBy = AppState.shared.user!
+        self.enteredDate = Date()
+        self.updatedDate = Date()
     }
     
 //    init(entity: TempKeyword) {
@@ -74,7 +90,7 @@ class CBKeyword: Codable, Identifiable {
 //    }
 //    
     
-    enum CodingKeys: CodingKey { case id, uuid, keyword, trigger_type, category, active, user_id, account_id, device_uuid }
+    enum CodingKeys: CodingKey { case id, uuid, keyword, trigger_type, category, active, user_id, account_id, device_uuid, entered_by, updated_by, entered_date, updated_date }
     
     
     func encode(to encoder: Encoder) throws {
@@ -88,7 +104,10 @@ class CBKeyword: Codable, Identifiable {
         try container.encode(AppState.shared.user?.id, forKey: .user_id)
         try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
         try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
-        
+        try container.encode(enteredBy, forKey: .entered_by) // for the Transferable protocol
+        try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
+        try container.encode(enteredDate.string(to: .serverDateTime), forKey: .entered_date) // for the Transferable protocol
+        try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date) // for the Transferable protocol
     }
     
     
@@ -106,6 +125,23 @@ class CBKeyword: Codable, Identifiable {
         self.active = isActive == 1 ? true : false
         
         action = .edit
+        
+        enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
+        updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
+        
+        let enteredDate = try container.decode(String?.self, forKey: .entered_date)
+        if let enteredDate {
+            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime)!
+        } else {
+            fatalError("Could not determine enteredDate date")
+        }
+        
+        let updatedDate = try container.decode(String?.self, forKey: .updated_date)
+        if let updatedDate {
+            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
+        } else {
+            fatalError("Could not determine updatedDate date")
+        }
     }
     
     

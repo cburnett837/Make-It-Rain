@@ -236,10 +236,11 @@ extension View {
         modifier(LoadingSpinner(id: id))
     }
     
-    
-    func sheetHeightAdjuster(height: Binding<CGFloat>) -> some View {
-        modifier(SheetHeightAdjuster(height: height))
+    #if os(iOS)
+    func bottomPanelAndScrollViewHeightAdjuster(bottomPanelHeight: Binding<CGFloat>, scrollContentMargins: Binding<CGFloat>) -> some View {
+        modifier(SheetHeightAdjuster(bottomPanelHeight: bottomPanelHeight, scrollContentMargins: scrollContentMargins))
     }
+    #endif
     
     
     #if os(iOS)
@@ -678,11 +679,13 @@ extension Color {
     static var darkGray = Color(NSColor(red: 0.1, green: 0.1, blue: 0.1, alpha: 1.00))
     static var darkGray2 = Color(NSColor(red: 0.08, green: 0.08, blue: 0.08, alpha: 1.00))
     static var darkGray3 = Color(NSColor(red: 0.05, green: 0.05, blue: 0.05, alpha: 1.00))
+    static var brainPink = Color(NSColor(red: 0.85, green: 0.65, blue: 0.70, alpha: 1.00))
 #else
     static var totalDarkGray = Color(UIColor(red: 0.35, green: 0.35, blue: 0.37, alpha: 1.00))
     static var darkGray = Color(UIColor(red: 0.1, green: 0.1, blue: 0.1, alpha: 1.00))
     static var darkGray2 = Color(UIColor(red: 0.08, green: 0.08, blue: 0.08, alpha: 1.00))
     static var darkGray3 = Color(UIColor(red: 0.05, green: 0.05, blue: 0.05, alpha: 1.00))
+    static var brainPink = Color(UIColor(red: 0.85, green: 0.65, blue: 0.70, alpha: 1.00))
 #endif
     
 //    struct Standard {
@@ -829,3 +832,48 @@ extension Array where Element: FloatingPoint {
 //        .foregroundStyle(.red)
 //    }
 //}
+
+
+
+
+
+#if os(iOS)
+extension View {
+    func disableZoomeInteractiveDismiss() -> some View {
+        self
+            .background(RemoveZoomDismissGestures())
+    }
+}
+
+extension UIView {
+    var viewController: UIViewController? {
+        sequence(first: self) { $0.next }
+            .compactMap({$0 as? UIViewController})
+            .first
+    }
+}
+
+fileprivate struct RemoveZoomDismissGestures: UIViewRepresentable {
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView(frame: .zero)
+        view.backgroundColor = .clear
+        removeGestures(from: view)
+        return view
+    }
+    
+    func updateUIView(_ uiView: UIView, context: Context) {}
+    
+    private func removeGestures(from view: UIView) {
+        DispatchQueue.main.async {
+            
+            if let zoomViewController = view.viewController {
+                print(zoomViewController.view.gestureRecognizers?.compactMap({$0.name}))
+            }
+            
+            if let zoomViewControllerView = view.viewController?.view {
+                zoomViewControllerView.gestureRecognizers?.removeAll(where: {$0.name == "com.apple.UIKit.ZoomInteractiveDismissSwipeDown" || $0.name == "com.apple.UIKit.ZoomInteractiveDismissPinch"})
+            }
+        }
+    }
+}
+#endif

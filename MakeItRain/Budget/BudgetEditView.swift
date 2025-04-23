@@ -23,34 +23,32 @@ struct BudgetEditView: View {
     @State private var showKeyboardToolbar = false
 
     var body: some View {
-        VStack {
-            VStack {
-                SheetHeader(title: title, close: { dismiss() })
-                Divider()
-                
-                LabeledRow("Name", labelWidth) {
-                    Text(budget.category?.title ?? "")
-                }
-                
-                LabeledRow("Budget", labelWidth) {
-                    StandardTextField("Montly Amount", text: $budget.amountString, focusedField: $focusedField, focusValue: 0)
-                        #if os(iOS)
-                        .keyboardType(.decimalPad)
-                        #endif
-                        //.focused($focusedField, equals: .amount)
-                }
-            }
-            .padding()
-            .transaction { $0.animation = .none } /// stops a floater view above the keyboard toolbar
-            
-            List(calModel.sMonth.days.flatMap{$0.transactions.filter {$0.category?.id == budget.category?.id}}) { trans in
-                LineItemView(trans: trans, day: .init(date: Date()), isOnCalendarView: false)
+        StandardContainer {
+            LabeledRow("Name", labelWidth) {
+                Text(budget.category?.title ?? "")
             }
             
+            LabeledRow("Budget", labelWidth) {
+                StandardTextField("Montly Amount", text: $budget.amountString, focusedField: $focusedField, focusValue: 0)
+                    #if os(iOS)
+                    .keyboardType(.decimalPad)
+                    #endif
+                    //.focused($focusedField, equals: .amount)
+            }
+            
+            
+            StandardDivider()
+            
+            ForEach(calModel.sMonth.days.flatMap{$0.transactions.filter {$0.category?.id == budget.category?.id}}) { trans in
+                VStack(spacing: 0) {
+                    LineItemView(trans: trans, day: .init(date: Date()), isOnCalendarView: false)
+                    Divider()
+                }
+            }
+        } header: {
+            SheetHeader(title: title, close: { dismiss() })
         }
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
-        //.frame(maxWidth: .infinity)
-        
         .task {
             budget.deepCopy(.create)
             /// Just for formatting.

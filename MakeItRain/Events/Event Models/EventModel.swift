@@ -7,30 +7,18 @@
 
 import Foundation
 import SwiftUI
-
-//
-//struct CBEventFetchModel: Decodable {
-//    var events: Array<CBEvent>
-//    var invitations: Array<CBEventParticipant>
-//    
-//    
-//    enum CodingKeys: CodingKey { case events, invitations }
-//    
-//    
-//    init(from decoder: Decoder) throws {
-//        let container = try decoder.container(keyedBy: CodingKeys.self)
-//        events = try container.decode(Array<CBEvent>.self, forKey: .events)
-//        invitations = try container.decode(Array<CBEventInvite>.self, forKey: .invitations)
-//    }
-//}
-
+import PhotosUI
+#if canImport(AppKit)
+import AppKit
+#else
+import UIKit
+#endif
 
 @MainActor
 @Observable
-class EventModel {
+class EventModel: PhotoUploadCompletedDelegate {
     static let shared = EventModel()
     var isThinking = false
-    var openEvents: Array<CBEventViewMode> = []
     
     //var eventEditID: Int?
     var events: Array<CBEvent> = []
@@ -90,6 +78,10 @@ class EventModel {
         return invitations.filter { $0.id == id }.first!
     }
     
+    func removeInvitation(by partID: String) {
+        return invitations.removeAll(where: { $0.id == partID })
+    }
+    
     func upsert(_ participant: CBEventParticipant) {
         if !doesExist(participant) {
             invitations.append(participant)
@@ -99,27 +91,26 @@ class EventModel {
     func getIndex(for participant: CBEventParticipant) -> Int? {
         return invitations.firstIndex(where: { $0.id == participant.id })
     }
-    
         
     
-    func saveEvent(id: String, calModel: CalendarModel) {
+    func saveEvent(id: String, calModel: CalendarModel) -> Bool {
         let event = getEvent(by: id)
-        Task {
-            /// Validate that the title is not empty.
-            if event.title.isEmpty {
-                if event.action != .add && event.title.isEmpty {
-                    event.title = event.deepCopy?.title ?? ""
-                    AppState.shared.showAlert("Removing a title is not allowed. If you want to delete \(event.title), please use the delete button instead.")
-                } else {
-                    #warning("idk if this makes sense...")
-                    events.removeAll { $0.id == id }
-                }
-                return
+        
+        /// Validate that the title is not empty.
+        if event.title.isEmpty {
+            if event.action != .add && event.title.isEmpty {
+                event.title = event.deepCopy?.title ?? ""
+                AppState.shared.showAlert("Removing a title is not allowed. If you want to delete \(event.title), please use the delete button instead.")
+            } else {
+                #warning("idk if this makes sense...")
+                events.removeAll { $0.id == id }
             }
-                                
-            if event.hasChanges() {
-                print("The event has changes")
-                
+            return false
+        }
+        
+        if event.hasChanges() {
+            print("The event has changes")
+            Task {
                 var relatedIDs: [TempRelatedID] = []
                 
                 struct TempRelatedID {
@@ -174,6 +165,7 @@ class EventModel {
                             }
                             
                             
+                            
                         } else {
                             /// If adding doing nothing regarding claim.
                             eventTrans.actionForRealTransaction = nil
@@ -225,19 +217,20 @@ class EventModel {
                         }
                     }
                     
-                    
-                    
                     if let _ = eventTrans.actionForRealTransaction, let relatedID = relatedID {
                         calModel.saveTransactionFromEvent(eventTrans: eventTrans, relatedID: relatedID)
                     }
                 }
-            } else {
-                print("The event has no changes")
             }
+            return true
+        } else {
+            print("The event has no changes")
+            return false
         }
     }
     
     
+    // MARK: - Fetch Functions
     @MainActor
     func fetchEvents(file: String = #file, line: Int = #line, function: String = #function) async {
         NSLog("\(file):\(line) : \(function)")
@@ -260,16 +253,11 @@ class EventModel {
                     var activeIds: Array<String> = []
                     for event in model {
                         activeIds.append(event.id)
-                        
-                        print("😡EVENTS")
-                        print(events)
-                        
+                                                
                         let index = events.firstIndex(where: { $0.id == event.id })
                         if let index {
-                            print("😡 found existing event \(event.id)")
                             events[index].setFromAnotherInstance(event: event)
                         } else {
-                            print("😡 did not found existing event \(event.id)")
                             events.append(event)
                         }
                     }
@@ -337,9 +325,10 @@ class EventModel {
     
     
     
-    
+    // MARK: - Submit Functions
     @MainActor
-    func submit(_ event: CBEvent) async -> Bool {
+    func submitOG(_ event: CBEvent) async -> Bool {
+        print("-- \(#function)")
         isThinking = true
         
         //LoadingManager.shared.startDelayedSpinner()
@@ -379,42 +368,42 @@ class EventModel {
                     }
                 }
                 
-                for each in model?.items ?? [] {
-                    let index = event.items.firstIndex(where: { $0.uuid == each.uuid })
-                    if let index {
-                        let item = event.items[index]
-                        if item.action == .add {
-                            item.id = String(each.id)
-                            item.uuid = nil
-                            item.action = .edit
-                        }
-                    }
-                }
+//                for each in model?.items ?? [] {
+//                    let index = event.items.firstIndex(where: { $0.uuid == each.uuid })
+//                    if let index {
+//                        let item = event.items[index]
+//                        if item.action == .add {
+//                            item.id = String(each.id)
+//                            item.uuid = nil
+//                            item.action = .edit
+//                        }
+//                    }
+//                }
                 
-                for each in model?.categories ?? [] {
-                    let index = event.categories.firstIndex(where: { $0.uuid == each.uuid })
-                    if let index {
-                        let cat = event.categories[index]
-                        if cat.action == .add {
-                            cat.id = String(each.id)
-                            cat.uuid = nil
-                            cat.action = .edit
-                        }
-                    }
-                }
+//                for each in model?.categories ?? [] {
+//                    let index = event.categories.firstIndex(where: { $0.uuid == each.uuid })
+//                    if let index {
+//                        let cat = event.categories[index]
+//                        if cat.action == .add {
+//                            cat.id = String(each.id)
+//                            cat.uuid = nil
+//                            cat.action = .edit
+//                        }
+//                    }
+//                }
+//                
                 
-                
-                for each in model?.transactions ?? [] {
-                    let index = event.transactions.firstIndex(where: { $0.uuid == each.uuid })
-                    if let index {
-                        let trans = event.transactions[index]
-                        if trans.action == .add {
-                            trans.id = String(each.id)
-                            //trans.uuid = nil /// Don't blank this out because I need it to update the temp list related to saving realTrans.
-                            trans.action = .edit
-                        }
-                    }
-                }
+//                for each in model?.transactions ?? [] {
+//                    let index = event.transactions.firstIndex(where: { $0.uuid == each.uuid })
+//                    if let index {
+//                        let trans = event.transactions[index]
+//                        if trans.action == .add {
+//                            trans.id = String(each.id)
+//                            //trans.uuid = nil /// Don't blank this out because I need it to update the temp list related to saving realTrans.
+//                            trans.action = .edit
+//                        }
+//                    }
+//                }
             }
             
             //event.participantsToRemove.removeAll()
@@ -447,18 +436,408 @@ class EventModel {
         return false
     }
     
+        
+    
+    @MainActor
+    func submit(_ event: CBEvent) async -> Bool {
+        print("-- \(#function)")
+        isThinking = true
+        
+        //LoadingManager.shared.startDelayedSpinner()
+        LogManager.log()
+        
+        let model = RequestModel(requestType: event.action.serverKey, model: event)
+        /// Used to test the snapshot data race
+        //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
+         
+        typealias ResultResponse = Result<ReturnIdModel?, AppError>
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        
+        
+        //print(event.action)
+                    
+        switch await result {
+        case .success(let model):
+            print("🥰 Event update successful")
+            LogManager.networkingSuccessful()
+            /// Get the new ID from the server after adding a new activity.
+            ///
+            if event.action == .add {
+                event.id = model?.id ?? "0"
+                event.uuid = nil
+                event.action = .edit
+            }
+            
+            isThinking = false
+            event.action = .edit
+            #if os(macOS)
+            fuckYouSwiftuiTableRefreshID = UUID()
+            #endif
+            return true
+            
+        case .failure(let error):
+            LogManager.error(error.localizedDescription)
+            AppState.shared.showAlert("There was a problem syncing the event. Will try again at a later time.")
+//            event.deepCopy(.restore)
+//
+//            switch event.action {
+//            case .add: events.removeAll { $0.id == event.id }
+//            case .edit: break
+//            case .delete: events.append(event)
+//            }
+        }
+        
+        isThinking = false
+        event.action = .edit
+        #if os(macOS)
+        fuckYouSwiftuiTableRefreshID = UUID()
+        #endif
+        return false
+    }
+    
+    
+    @MainActor
+    func submit(_ trans: CBEventTransaction) async -> Bool {
+        print("-- \(#function)")
+        isThinking = true
+        //LoadingManager.shared.startDelayedSpinner()
+        LogManager.log()
+        
+        let model = RequestModel(requestType: trans.action.serverKey, model: trans)
+        
+        /// Used to test the snapshot data race
+        //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
+         
+        typealias ResultResponse = Result<ParentChildIdModel?, AppError>
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        switch await result {
+        case .success(let model):
+            print("🥰 Event trans update successful")
+            LogManager.networkingSuccessful()
+            /// Get the new ID from the server after adding a new activity.
+            if trans.action == .add {
+                trans.id = model?.parentID.id ?? "0"
+                trans.uuid = nil
+                trans.action = .edit
+            }
+            
+            
+            for each in trans.locations {
+                if each.action == .add {
+                    let realId = model?.childIDs.filter {$0.uuid == each.uuid}.first
+                    if let realId {
+                        each.id = realId.id
+                        each.uuid = nil
+                        each.action = .edit
+                    }
+                }                
+            }
+            
+            isThinking = false
+            trans.action = .edit
+            #if os(macOS)
+            fuckYouSwiftuiTableRefreshID = UUID()
+            #endif
+            return true
+            
+        case .failure(let error):
+            LogManager.error(error.localizedDescription)
+            AppState.shared.showAlert("There was a problem saving the event transaction.")
+//            event.deepCopy(.restore)
+//
+//            switch event.action {
+//            case .add: events.removeAll { $0.id == event.id }
+//            case .edit: break
+//            case .delete: events.append(event)
+//            }
+        }
+        
+        isThinking = false
+        trans.action = .edit
+        #if os(macOS)
+        fuckYouSwiftuiTableRefreshID = UUID()
+        #endif
+        return false
+    }
+    
+    
+    @MainActor
+    func submit(_ category: CBEventCategory) async -> Bool {
+        print("-- \(#function)")
+        isThinking = true
+        //LoadingManager.shared.startDelayedSpinner()
+        LogManager.log()
+        
+        let model = RequestModel(requestType: category.action.serverKey, model: category)
+        
+        /// Used to test the snapshot data race
+        //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
+         
+        typealias ResultResponse = Result<ReturnIdModel?, AppError>
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        switch await result {
+        case .success(let model):
+            print("🥰 Event category update successful")
+            LogManager.networkingSuccessful()
+            /// Get the new ID from the server after adding a new activity.
+            if category.action == .add {
+                category.id = model?.id ?? "0"
+                category.uuid = nil
+                category.action = .edit
+            }
+            
+            isThinking = false
+            category.action = .edit
+            #if os(macOS)
+            fuckYouSwiftuiTableRefreshID = UUID()
+            #endif
+            return true
+            
+        case .failure(let error):
+            LogManager.error(error.localizedDescription)
+            AppState.shared.showAlert("There was a problem saving the event category.")
+//            event.deepCopy(.restore)
+//
+//            switch event.action {
+//            case .add: events.removeAll { $0.id == event.id }
+//            case .edit: break
+//            case .delete: events.append(event)
+//            }
+        }
+        
+        isThinking = false
+        category.action = .edit
+        #if os(macOS)
+        fuckYouSwiftuiTableRefreshID = UUID()
+        #endif
+        return false
+    }
+    
+        
+    @MainActor
+    func submit(_ item: CBEventItem) async -> Bool {
+        print("-- \(#function)")
+        isThinking = true
+        //LoadingManager.shared.startDelayedSpinner()
+        LogManager.log()
+        
+        let model = RequestModel(requestType: item.action.serverKey, model: item)
+        
+        /// Used to test the snapshot data race
+        //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
+         
+        typealias ResultResponse = Result<ReturnIdModel?, AppError>
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        switch await result {
+        case .success(let model):
+            print("🥰 Event item update successful")
+            LogManager.networkingSuccessful()
+            /// Get the new ID from the server after adding a new activity.
+            if item.action == .add {
+                item.id = model?.id ?? "0"
+                item.uuid = nil
+                item.action = .edit
+            }
+            
+            isThinking = false
+            item.action = .edit
+            #if os(macOS)
+            fuckYouSwiftuiTableRefreshID = UUID()
+            #endif
+            return true
+            
+        case .failure(let error):
+            LogManager.error(error.localizedDescription)
+            AppState.shared.showAlert("There was a problem saving the event item.")
+//            event.deepCopy(.restore)
+//
+//            switch event.action {
+//            case .add: events.removeAll { $0.id == event.id }
+//            case .edit: break
+//            case .delete: events.append(event)
+//            }
+        }
+        
+        isThinking = false
+        item.action = .edit
+        #if os(macOS)
+        fuckYouSwiftuiTableRefreshID = UUID()
+        #endif
+        return false
+    }
+        
+    
+    @MainActor
+    func submit(_ participant: CBEventParticipant) async -> Bool {
+        print("-- \(#function)")
+        isThinking = true
+        //LoadingManager.shared.startDelayedSpinner()
+        LogManager.log()
+        
+        let model = RequestModel(requestType: participant.action.serverKey, model: participant)
+        
+        /// Used to test the snapshot data race
+        //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
+         
+        typealias ResultResponse = Result<ReturnIdModel?, AppError>
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        switch await result {
+        case .success(let model):
+            print("🥰 Event participant update successful")
+            LogManager.networkingSuccessful()
+            /// Get the new ID from the server after adding a new activity.
+            if participant.action == .add {
+                participant.id = model?.id ?? "0"
+                participant.uuid = nil
+                participant.action = .edit
+            }
+            
+            isThinking = false
+            participant.action = .edit
+            #if os(macOS)
+            fuckYouSwiftuiTableRefreshID = UUID()
+            #endif
+            return true
+            
+        case .failure(let error):
+            LogManager.error(error.localizedDescription)
+            AppState.shared.showAlert("There was a problem saving the event participant.")
+//            event.deepCopy(.restore)
+//
+//            switch event.action {
+//            case .add: events.removeAll { $0.id == event.id }
+//            case .edit: break
+//            case .delete: events.append(event)
+//            }
+        }
+        
+        isThinking = false
+        participant.action = .edit
+        #if os(macOS)
+        fuckYouSwiftuiTableRefreshID = UUID()
+        #endif
+        return false
+    }
+    
+    
+    @MainActor
+    func submit(_ option: CBEventTransactionOption) async -> Bool {
+        print("-- \(#function)")
+        isThinking = true
+        //LoadingManager.shared.startDelayedSpinner()
+        LogManager.log()
+        
+        let model = RequestModel(requestType: option.action.serverKey, model: option)
+        
+        /// Used to test the snapshot data race
+        //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
+         
+        typealias ResultResponse = Result<ParentChildIdModel?, AppError>
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        switch await result {
+        case .success(let model):
+            print("🥰 Event transaction option update successful")
+            LogManager.networkingSuccessful()
+            /// Get the new ID from the server after adding a new activity.
+            if option.action == .add {
+                option.id = model?.parentID.id ?? "0"
+                option.uuid = nil
+                option.action = .edit
+            }
+            
+            
+            for each in option.locations {
+                if each.action == .add {
+                    let realId = model?.childIDs.filter {$0.uuid == each.uuid}.first
+                    if let realId {
+                        each.id = realId.id
+                        each.uuid = nil
+                        each.action = .edit
+                    }
+                }
+            }
+            
+            
+            
+            isThinking = false
+            option.action = .edit
+            #if os(macOS)
+            fuckYouSwiftuiTableRefreshID = UUID()
+            #endif
+            return true
+            
+        case .failure(let error):
+            LogManager.error(error.localizedDescription)
+            AppState.shared.showAlert("There was a problem saving the transaction item.")
+//            event.deepCopy(.restore)
+//
+//            switch event.action {
+//            case .add: events.removeAll { $0.id == event.id }
+//            case .edit: break
+//            case .delete: events.append(event)
+//            }
+        }
+        
+        isThinking = false
+        option.action = .edit
+        #if os(macOS)
+        fuckYouSwiftuiTableRefreshID = UUID()
+        #endif
+        return false
+    }
+    
+    
+    
+    
+    
+    
+    // MARK: - Delete Functions
     
     func delete(_ event: CBEvent, andSubmit: Bool) async {
         event.action = .delete
         event.participants.forEach { $0.action = .delete }
         event.items.forEach { $0.action = .delete }
+        event.categories.forEach { $0.action = .delete }
+        event.transactions.forEach { $0.action = .delete }
         events.removeAll { $0.id == event.id }
         
         if andSubmit {
             let _ = await submit(event)
         }
     }
+        
     
+    func delete(_ trans: CBEventTransaction, andSubmit: Bool) async {
+        trans.action = .delete
+        if andSubmit {
+            let _ = await submit(trans)
+        }
+    }
+    
+    
+    func delete(_ category: CBEventCategory, andSubmit: Bool) async {
+        category.action = .delete
+        if andSubmit {
+            let _ = await submit(category)
+        }
+    }
+    
+    
+    func delete(_ item: CBEventItem, andSubmit: Bool) async {
+        item.action = .delete
+        if andSubmit {
+            let _ = await submit(item)
+        }
+    }
+    
+    
+    func delete(_ part: CBEventParticipant, andSubmit: Bool) async {
+        part.action = .delete
+        if andSubmit {
+            let _ = await submit(part)
+        }
+    }
+        
     
     func deleteAll() async {
         for event in events {
@@ -471,15 +850,20 @@ class EventModel {
     }
     
     
+    
+    // MARK: - Invitation Functions
     @MainActor
-    func leave(_ event: CBEvent) async -> Bool {
+    func leave(_ part: CBEventParticipant) async -> Bool {
         print("-- \(#function)")
                 
-        event.action = .delete        
-        events.removeAll { $0.id == event.id }
+        part.action = .delete
+        
+        if part.user.id == AppState.shared.user?.id {
+            events.removeAll { $0.id == part.eventID }
+        }
         
         LogManager.log()
-        let model = RequestModel(requestType: "budget_app_leave_event", model: event)
+        let model = RequestModel(requestType: "budget_app_leave_event", model: part)
         
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
@@ -497,68 +881,6 @@ class EventModel {
         }
         //LoadingManager.shared.stopDelayedSpinner()
     }        
-    
-    @MainActor
-    func markEvent(as mode: EventViewMode, eventID: String) async -> Bool {
-        print("-- \(#function)")
-        
-        LogManager.log()
-        let model = RequestModel(requestType: "mark_event", model: CBEventViewMode(eventID: eventID, mode: mode))
-        
-        typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
-                    
-        switch await result {
-        case .success:
-            LogManager.networkingSuccessful()
-            
-            if mode == .closed {
-                openEvents.removeAll { $0.id == eventID || $0.user.id == AppState.shared.user?.id}
-            }
-            
-            
-            return true
-            
-        case .failure(let error):
-            LogManager.error(error.localizedDescription)
-            AppState.shared.showAlert("There was a problem trying to mark the event as open or closed")
-            #warning("Undo behavior")
-            return false
-        }
-        //LoadingManager.shared.stopDelayedSpinner()
-    }
-    
-    
-    
-    @MainActor
-    func fetchOpenOrClosed() async {
-        print("-- \(#function)")
-        
-        LogManager.log()
-        let model = RequestModel(requestType: "fetch_open_or_closed", model: AppState.shared.user!)
-        
-        typealias ResultResponse = Result<Array<CBEventViewMode>?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
-                    
-        switch await result {
-        case .success(let model):
-            LogManager.networkingSuccessful()
-            
-            if let model = model {
-                withAnimation {
-                    openEvents = model
-                }                
-            }
-            
-        case .failure(let error):
-            LogManager.error(error.localizedDescription)
-            AppState.shared.showAlert("There was a problem trying to fetch the open or closed events.")
-            #warning("Undo behavior")
-        }
-        //LoadingManager.shared.stopDelayedSpinner()
-    }
-    
-    
     
     
     @MainActor
@@ -585,13 +907,17 @@ class EventModel {
     }
     
     
-    
-    
     @MainActor
-    func verifyInviteEmailExists(_ invite: CBEventParticipant) async -> CBEventUserVerificationModel? {
+    func invitePersonViaEmail(event: CBEvent, email: String) async -> Bool {
         print("-- \(#function)")
         LogManager.log()
-        let model = RequestModel(requestType: "budget_app_verify_event_invite_email", model: invite)
+        
+        
+        var part = CBEventParticipant(user: AppState.shared.user!, eventID: event.id, email: email)
+        part.status = XrefModel.getItem(from: .eventInviteStatus, byEnumID: .pending)
+        
+        
+        let model = RequestModel(requestType: "invite_person", model: part)
         
         typealias ResultResponse = Result<CBEventUserVerificationModel?, AppError>
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
@@ -600,18 +926,136 @@ class EventModel {
         case .success(let model):
             LogManager.networkingSuccessful()
             if let model {
-                return model
+                switch model.verificationResult {
+                case .found:
+                    if let _ = model.participant {
+                        part = model.participant!
+                        part.user = model.user!
+                        part.inviteTo = model.user!
+                        event.participants.append(part)
+                    }
+                    return true
+                    
+                case .notFound:
+                    AppState.shared.showAlert("That email is not available to invite.")
+                    return false
+                    
+                case .alreadyInvited:
+                    AppState.shared.showAlert("That person has already been invited.")
+                    return false
+                }
+                
             } else {
-                return nil
+                AppState.shared.showAlert("Problem adding person to event.")
+                return false
             }
             
         case .failure(let error):
             LogManager.error(error.localizedDescription)
             AppState.shared.showAlert("There was a problem trying to verify the email exists.")
             #warning("Undo behavior")
-            return nil
+            return false
         }
         //LoadingManager.shared.stopDelayedSpinner()
+    }
+    
+    
+    // MARK: - Photo Stuff
+    func addPlaceholderPicture(recordID: String, uuid: String, photoType: XrefItem) {
+        let picture = CBPicture(relatedID: recordID, uuid: uuid, photoType: photoType.enumID)
+        picture.isPlaceholder = true
+        
+        if photoType.enumID == .eventTransaction {
+            if let index = justTransactions.firstIndex(where: { $0.id == recordID }) {
+                let trans = justTransactions[index]
+                
+                if let _ = trans.pictures {
+                    trans.pictures!.append(picture)
+                } else {
+                    trans.pictures = [picture]
+                }
+                
+            }
+        }
+        
+        if photoType.enumID == .event {
+            if let index = events.firstIndex(where: { $0.id == recordID }) {
+                let event = events[index]
+                
+                if let _ = event.pictures {
+                    event.pictures!.append(picture)
+                } else {
+                    event.pictures = [picture]
+                }
+            }
+        }
+    }
+    
+    func markPlaceholderPictureAsReadyForDownload(recordID: String, uuid: String, photoType: XrefItem) {
+        if photoType.enumID == .eventTransaction {
+            if let trans = justTransactions.filter({ $0.id == recordID }).first {
+                let index = trans.pictures?.firstIndex(where: { $0.uuid == uuid })
+                if let index {
+                    trans.pictures?[index].isPlaceholder = false
+                }
+            }
+        }
+        
+        if photoType.enumID == .event {
+            if let event = events.filter({ $0.id == recordID }).first {
+                let index = event.pictures?.firstIndex(where: { $0.uuid == uuid })
+                if let index {
+                    event.pictures?[index].isPlaceholder = false
+                }
+            }
+        }
+    }
+    
+    func markPictureAsFailedToUpload(recordID: String, uuid: String, photoType: XrefItem) {
+        if photoType.enumID == .eventTransaction {
+            if let trans = justTransactions.filter({ $0.id == recordID }).first {
+                let index = trans.pictures?.firstIndex(where: { $0.uuid == uuid })
+                if let index {
+                    trans.pictures?[index].active = false
+                }
+            }
+        }
+        
+        if photoType.enumID == .event {
+            if let event = events.filter({ $0.id == recordID }).first {
+                let index = event.pictures?.firstIndex(where: { $0.uuid == uuid })
+                if let index {
+                    event.pictures?[index].active = false
+                }
+            }
+        }
+    }
+    
+    func displayCompleteAlert(recordID: String, photoType: XrefItem) {
+        
+    }
+    
+    func delete(picture: CBPicture, photoType: XrefItem) async {
+        if await PhotoModel.shared.delete(picture) {
+            if photoType.enumID == .eventTransaction {
+                if let trans = justTransactions.filter({ $0.id == picture.relatedID }).first {
+                    if let index = trans.pictures?.firstIndex(where: { $0.id == picture.id }) {
+                        trans.pictures?.removeAll { $0.id == picture.id || $0.uuid == picture.uuid }
+                    }
+                }
+            }
+            
+            if photoType.enumID == .event {
+                if let event = events.filter({ $0.id == picture.relatedID }).first {
+                    if let index = event.pictures?.firstIndex(where: { $0.id == picture.id }) {
+                        event.pictures?.removeAll { $0.id == picture.id || $0.uuid == picture.uuid }
+                    }
+                }
+            }
+            
+        } else {
+            AppState.shared.showAlert("There was a problem trying to delete the picture.")
+        }
     }
 }
 

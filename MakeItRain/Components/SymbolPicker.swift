@@ -165,7 +165,7 @@ struct SymbolPicker: View {
     
     var body: some View {
         
-        SheetContainerView(.list) {
+        StandardContainer(.list) {
             ForEach(filteredSections.sorted { $0.title < $1.title }) { section in
                 Section(section.title) {
                     LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {

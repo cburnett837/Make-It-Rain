@@ -260,40 +260,58 @@ struct ChevronMenuOverlay: ViewModifier {
     }
 }
 
+#if os(iOS)
+extension UIApplication {
+    var keyWindow: UIWindow? {
+        connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow }
+    }
+}
+
 
 
 struct SheetHeightAdjuster: ViewModifier {
     
-    @Binding var height: CGFloat
+    @Binding var bottomPanelHeight: CGFloat
+    @Binding var scrollContentMargins: CGFloat
     
     func body(content: Content) -> some View {
         content
+            //.background(Color.red)
+            .overlay {
+                VStack {
+                    Capsule()
+                        .fill(Color(.tertiarySystemFill))
+                        .frame(width: 50, height: 6)
+                        .padding(.top, 5)
+                    Spacer()
+                }
+                
+            }
             .gesture(DragGesture()
-                .onEnded { value in
-                    if value.translation.height < 50 { /// Make Bigger
-                        withAnimation(.bouncy) {
-                            if height == 300 {
-                                height = UIScreen.main.bounds.height / 2
-                            } else {
-                                height = UIScreen.main.bounds.height - 100
-                            }
-                        }
-                    } else if value.translation.height > 50 { /// Make Smaller
-                        withAnimation(.bouncy) {
-                            if height == UIScreen.main.bounds.height - 100 {
-                                height = UIScreen.main.bounds.height / 2
-                            } else {
-                                height = 300
-                            }
-                            
-                        }
+                .onChanged { value in
+                    if value.translation.height < 0 { /// Make Bigger
+                        let oldHeight = bottomPanelHeight
+                        let newHeight = oldHeight + abs(value.translation.height)
+                        let maxAllowedHeight = (UIScreen.main.bounds.height - (UIApplication.shared.keyWindow?.safeAreaInsets.top ?? 0)) - 30
+                        bottomPanelHeight = min(maxAllowedHeight, newHeight)
+                        
+                    } else if value.translation.height > 0 { /// Make Smaller
+                        let oldHeight = bottomPanelHeight
+                        let newHeight = oldHeight - abs(value.translation.height)
+                        bottomPanelHeight = max(300, newHeight)
                     }
+                }
+                .onEnded { value in
+                    scrollContentMargins = bottomPanelHeight
                 }
             )
     }
 }
 
-
+#endif
 
 struct ToolbarKeyboard: ViewModifier {
     var padding: Double

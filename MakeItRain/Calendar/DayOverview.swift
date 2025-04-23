@@ -21,90 +21,23 @@ struct DayOverviewView: View {
     @Binding var showTransferSheet: Bool
     @Binding var showCamera: Bool
     @Binding var showPhotosPicker: Bool
-    @Binding var sheetHeight: CGFloat
+    @Binding var bottomPanelHeight: CGFloat
+    @Binding var scrollContentMargins: CGFloat
     @Binding var bottomPanelContent: BottomPanelContent?
     
     @State private var showDropActions = false
     @State private var showDailyActions = false
     
     var body: some View {
-        if let day {
-            var filteredTrans: Array<CBTransaction> {
-                calModel.filteredTrans(day: day)
-            }
-            VStack {
-                #if os(iOS)
-                if !AppState.shared.isLandscape { header }
-                #else
-                header
-                #endif
-                ScrollView {
-                    VStack(spacing: 0) {
-                        #if os(iOS)
-                        if AppState.shared.isLandscape { header }
-                        #endif
-                        Divider()
-                        
-                        if filteredTrans.isEmpty {
-                            ContentUnavailableView("No Transactions", systemImage: "bag.fill.badge.questionmark")
-                            Button("Add") {
-                                transEditID = UUID().uuidString
-                            }
-                        } else {
-                            VStack(spacing: 0) {
-                                ForEach(filteredTrans) { trans in
-                                    VStack(spacing: 0) {
-                                        LineItemView(trans: trans, day: day)
-                                        Divider()
-                                    }
-                                    .listRowInsets(EdgeInsets())
-                                }
-                            }
-                        }
-                    }
+        if day != nil {
+            StandardContainer(AppState.shared.isIpad ? .sidebarScrolling : .bottomPanel) {
+                content
+            } header: {
+                if AppState.shared.isIpad {
+                    sidebarHeader
+                } else {
+                    sheetHeader
                 }
-            }
-            
-            .dropDestination(for: CBTransaction.self) { droppedTrans, location in
-                let trans = droppedTrans.first
-                if let trans {
-                    if trans.date == day.date {
-                        calModel.dragTarget = nil
-                        AppState.shared.showToast(title: "Operation Cancelled", subtitle: "Can't copy or move to the original day", body: "Please try again", symbol: "hand.raised.fill", symbolColor: .orange)
-                        return true
-                    }
-                                            
-                    calModel.transactionToCopy = trans
-                    showDropActions = true
-                }
-                
-                return true
-                
-            } isTargeted: {
-                if $0 { withAnimation { calModel.dragTarget = day } }
-            }
-            
-            .confirmationDialog("\(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())\n\(calModel.transactionToCopy?.title ?? "N/A")", isPresented: $showDropActions) {
-                moveButton
-                copyAndPasteButton
-                Button("Cancel", role: .cancel) {
-                    calModel.dragTarget = nil
-                }
-            } message: {
-                Text("\(calModel.transactionToCopy?.title ?? "N/A")\nDropped on \(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())")
-            }
-            
-            .confirmationDialog("\(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())", isPresented: $showDailyActions) {
-                DayContextMenu(
-                    day: day,
-                    selectedDay: $day,
-                    transEditID: $transEditID,
-                    showTransferSheet: $showTransferSheet,
-                    showCamera: $showCamera,
-                    showPhotosPicker: $showPhotosPicker
-                )
-            } message: {
-                Text("\(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())")
             }
         } else {
             Text("")
@@ -113,7 +46,84 @@ struct DayOverviewView: View {
     }
     
     
-    var header: some View {
+    var content: some View {
+        Group {
+            if let day {
+                Group {
+                    var filteredTrans: Array<CBTransaction> {
+                        calModel.filteredTrans(day: day)
+                    }
+                    
+                    if filteredTrans.isEmpty {
+                        ContentUnavailableView("No Transactions", systemImage: "bag.fill.badge.questionmark")
+                        Button("Add") {
+                            transEditID = UUID().uuidString
+                        }
+                        .frame(maxWidth: .infinity)
+                        
+                    } else {
+                        VStack(spacing: 0) {
+                            ForEach(filteredTrans) { trans in
+                                VStack(spacing: 0) {
+                                    LineItemView(trans: trans, day: day)
+                                    Divider()
+                                }
+                                .if(!AppState.shared.isIpad) {
+                                    $0.listRowInsets(EdgeInsets())
+                                }
+                                
+                            }
+                        }
+                    }
+                }
+                .dropDestination(for: CBTransaction.self) { droppedTrans, location in
+                    let trans = droppedTrans.first
+                    if let trans {
+                        if trans.date == day.date {
+                            calModel.dragTarget = nil
+                            AppState.shared.showToast(title: "Operation Cancelled", subtitle: "Can't copy or move to the original day", body: "Please try again", symbol: "hand.raised.fill", symbolColor: .orange)
+                            return true
+                        }
+                        
+                        calModel.transactionToCopy = trans
+                        showDropActions = true
+                    }
+                    
+                    return true
+                    
+                } isTargeted: {
+                    if $0 { withAnimation { calModel.dragTarget = day } }
+                }
+                
+                .confirmationDialog("\(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())\n\(calModel.transactionToCopy?.title ?? "N/A")", isPresented: $showDropActions) {
+                    moveButton
+                    copyAndPasteButton
+                    Button("Cancel", role: .cancel) {
+                        calModel.dragTarget = nil
+                    }
+                } message: {
+                    Text("\(calModel.transactionToCopy?.title ?? "N/A")\nDropped on \(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())")
+                }
+                
+                .confirmationDialog("\(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())", isPresented: $showDailyActions) {
+                    DayContextMenu(
+                        day: day,
+                        selectedDay: $day,
+                        transEditID: $transEditID,
+                        showTransferSheet: $showTransferSheet,
+                        showCamera: $showCamera,
+                        showPhotosPicker: $showPhotosPicker
+                    )
+                } message: {
+                    Text("\(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())")
+                }
+            }
+        }
+    }
+    
+    
+    
+    var sheetHeader: some View {
         SheetHeader(
             title: day!.displayDate,
             close: {
@@ -127,18 +137,30 @@ struct DayOverviewView: View {
             },
             view1: { moreButton }
         )
-        .padding()
-        .sheetHeightAdjuster(height: $sheetHeight)
+        #if os(iOS)
+        .bottomPanelAndScrollViewHeightAdjuster(bottomPanelHeight: $bottomPanelHeight, scrollContentMargins: $scrollContentMargins)
+        #endif
+    }
+    
+    
+    var sidebarHeader: some View {
+        SidebarHeader(
+            title: day!.displayDate,
+            close: {
+                /// When closing, set the selected day back to today or the first of the month if not viewing the current month (which would be the default)
+                withAnimation {
+                    bottomPanelContent = nil
+                    self.day = nil
+                }
+                let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
+                selectedDay = targetDay
+            },
+            view1: { moreButton }
+        )
     }
     
     
     var moreButton: some View {
-//            Button {
-//                showDailyActions = true
-//            } label: {
-//                Image(systemName: "ellipsis")
-//            }
-                    
         Menu {
             DayContextMenu(
                 day: day!,
@@ -149,9 +171,11 @@ struct DayOverviewView: View {
                 showPhotosPicker: $showPhotosPicker
             )
         } label: {
-            Image(systemName: "ellipsis")
+            Image(systemName: AppState.shared.isIpad ? "ellipsis.circle" : "ellipsis")
+                .contentShape(Rectangle())
         }
     }
+    
     
     var moveButton: some View {
         Button("Move") {
@@ -175,6 +199,7 @@ struct DayOverviewView: View {
             }
         }
     }
+    
     
     var copyAndPasteButton: some View {
         Button {

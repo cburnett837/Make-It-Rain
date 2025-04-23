@@ -214,6 +214,7 @@ struct DayViewPhone: View {
         }
     }
         
+    
     var dayNumber: some View {
         Text("\(day.dateComponents?.day ?? 0)")
             .contentShape(Rectangle())
@@ -235,6 +236,7 @@ struct DayViewPhone: View {
             .padding(.leading, AppState.shared.isIpad ? 6 : 0)
             .frame(maxWidth: .infinity, alignment: AppState.shared.isIpad ? .leading : .center)
     }
+    
     
     var dailyTransactionList: some View {
         VStack(alignment: .leading, spacing: 2) {

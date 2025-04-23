@@ -26,12 +26,15 @@ struct LineItemView: View {
     @Environment(KeywordModel.self) private var keyModel
     
     @State private var transEditID: String?
+    @State private var transDeleteID: String?
     @State private var showDeleteAlert = false
     @State private var labelWidth: CGFloat = 20.0
 
     @Bindable var trans: CBTransaction
     @Bindable var day: CBDay
     var isOnCalendarView: Bool = true
+    
+    @State private var showEditSheet = false
     
     @FocusState var focusedField: Int?
     
@@ -201,12 +204,14 @@ struct LineItemView: View {
                 #if os(iOS)
                 .fill(calModel.hilightTrans == trans ? .gray.opacity(0.2) : .clear)
                 #else
-                .fill(transEditID == trans.id ? .gray.opacity(0.2) : .clear)
+                //.fill(transEditID == trans.id ? .gray.opacity(0.2) : .clear)
+                .fill(showEditSheet ? .gray.opacity(0.2) : .clear)
                 #endif
         }
         .onTapGesture(count: 1) {
             calModel.hilightTrans = trans
-            transEditID = trans.id
+            //transEditID = trans.id
+            showEditSheet = true
         }
         .confirmationDialog("Delete \"\(trans.title)\"?", isPresented: $showDeleteAlert) {
             Button("Yes", role: .destructive) {
@@ -225,16 +230,69 @@ struct LineItemView: View {
         }
         
         /// This `.popover(item: $transEditID) & .onChange(of: transEditID)` are used for editing existing transactions. They also exist in ``LineItemViewMac``, which are used to add new transactions.
-        .popover(item: $transEditID, arrowEdge: .trailing, content: { id in
-            TransactionEditView(trans: trans, transEditID: $transEditID, day: day, isTemp: false)
+//        .popover(item: $transEditID, arrowEdge: .trailing) { id in
+//            TransactionEditView(trans: trans, transEditID: $transEditID, day: day, isTemp: false)
+//                .frame(minWidth: 320)
+//                //.interactiveDismissDisabled(true)
+//        }
+        
+//        .popover(item: .init(get: { transEditID }, set: { thing(oldValue: transEditID, newValue: $0); transEditID = $0 }), arrowEdge: .trailing) { id in
+//            TransactionEditView(trans: trans, transEditID: $transEditID, day: day, isTemp: false)
+//                .frame(minWidth: 320)
+//                //.interactiveDismissDisabled(true)
+//        }
+        
+        
+        .popover(isPresented: .init(
+            get: { showEditSheet },
+            set: { onDismissOfEditSheet(oldValue: showEditSheet, newValue: $0); showEditSheet = $0 }
+        ), arrowEdge: .trailing) {
+            TransactionEditView(trans: trans, transEditID: .constant(trans.id), day: day, isTemp: false)
                 .frame(minWidth: 320)
-        })
+                //.interactiveDismissDisabled(true)
+        }
+        
+        
+        
         #else
-        .sheet(item: $transEditID, content: { id in
+        .sheet(item: $transEditID, onDismiss: {
+            /// Only run this if deleteting to preserve animation behavior.
+            if let transDeleteID = transDeleteID {
+                calModel.saveTransaction(id: transDeleteID, day: day)
+            } else {
+                /// Just some cleanup to make sure it stays blank
+                if transDeleteID != nil {
+                    transDeleteID = nil
+                }
+            }
+        }) { id in
             TransactionEditView(trans: trans, transEditID: $transEditID, day: day, isTemp: false)
                 .frame(minWidth: 320)                
-        })
+        }
         #endif
+        
+        /// This onChange is needed because you can close the popover without actually clicking the close button.
+        /// `popover()` has no `onDismiss()` optiion, so I need somewhere to do cleanup.
+//        .onChange(of: transEditID) { oldValue, newValue in
+//            if oldValue == nil && newValue != nil {
+//                focusedField = nil
+//            }
+//            
+//            if oldValue != nil && newValue == nil {
+//                /// FOR iOS...
+//                /// Since this view has its own `TransactionEditView` sheet, when you delete this trans, it will destory this view and mess up the animation of the sheet closing.
+//                /// So when deleting, retain the id and delete the transaction in the sheets `onDismiss`.
+//                #if os(iOS)
+//                if trans.action == .delete {
+//                    transDeleteID = oldValue!
+//                } else {
+//                    calModel.saveTransaction(id: oldValue!, day: day)
+//                }
+//                #else
+//                calModel.saveTransaction(id: oldValue!, day: day)
+//                #endif
+//            }
+//        }
         
         .task {
             /// `calModel.hilightTrans` should always be nil during a task. The only time it shouldn't should be is when a transaction was moved to a new day via a different device.
@@ -243,18 +301,32 @@ struct LineItemView: View {
                 transEditID = trans.id
             }
         }
+    }
+    
+    
+    func onDismissOfEditSheet(oldValue: Bool, newValue: Bool) {
+        print("POPOVER$ CHANGED FROM \(oldValue) -> \(newValue)")
         
-        /// This onChange is needed because you can close the popover without actually clicking the close button.
-        /// `popover()` has no `onDismiss()` optiion, so I need somewhere to do cleanup.
-        .onChange(of: transEditID, { oldValue, newValue in
-            if oldValue == nil && newValue != nil {
-                focusedField = nil
+        if oldValue == false && newValue == true {
+            focusedField = nil
+        }
+        
+        if oldValue == true && newValue == false {
+            /// FOR iOS...
+            /// Since this view has its own `TransactionEditView` sheet, when you delete this trans, it will destroy this view and mess up the animation of the sheet closing.
+            /// So when deleting, retain the id and delete the transaction in the sheets `onDismiss`.
+            #if os(iOS)
+            if trans.action == .delete {
+                transDeleteID = trans.id
+            } else {
+                calModel.saveTransaction(id: trans.id, day: day)
             }
-            
-            if oldValue != nil && newValue == nil {
-                calModel.saveTransaction(id: oldValue!, day: day)
-            }
-        })
+            #else
+            calModel.saveTransaction(id: trans.id, day: day)
+            #endif
+        }
+        
+        
     }
     
     

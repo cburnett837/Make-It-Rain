@@ -13,6 +13,7 @@ struct AnalysisSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.appearsActive) var appearsActive
     #endif
+    @AppStorage("transactionSortMode") var transactionSortMode: TransactionSortMode = .title
     @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
     @AppStorage("useWholeNumbers") var useWholeNumbers = false
     @Environment(CalendarModel.self) private var calModel
@@ -53,51 +54,40 @@ struct AnalysisSheet: View {
     
     let columnGrid = Array(repeating: GridItem(.flexible(), spacing: 0), count: 4)
     
-    var showCategorySheetButton: some View {
-        Button {
-            showCategorySheet = true
-        } label: {
-            Image(systemName: "list.bullet")
-        }
-    }
-    
-    var showCalendarButton: some View {
-        Button {
-            calModel.sCategories = calModel.sCategoriesForAnalysis
-                        
-            #if os(iOS)
-            if !AppState.shared.isIpad {
-                withAnimation { showAnalysisSheet = false }
-            }
-            
-            #else
-            dismiss()
-            #endif
-            
-        } label: {
-            Image(systemName: "calendar")
-        }
-    }
-    
     var body: some View {
         @Bindable var calModel = calModel        
-        SheetContainerView(.list) {
+        StandardContainer(AppState.shared.isIpad ? .sidebarList : .list) {
             detailSection
             breakdownSection
             transactionList
         } header: {
-            SheetHeader(
-                title: "Analyze Categories",
-                close: {
-                    #if os(iOS)
-                    withAnimation { showAnalysisSheet = false }
-                    #else
-                    dismiss()
-                    #endif
-                },
-                view1: { showCategorySheetButton },
-                view2: { showCalendarButton }
-            )
+            if AppState.shared.isIpad {
+                SidebarHeader(
+                    title: "Analyze Categories",
+                    close: {
+                        #if os(iOS)
+                        withAnimation { showAnalysisSheet = false }
+                        #else
+                        dismiss()
+                        #endif
+                    },
+                    view1: { showCategorySheetButton },
+                    view2: { showCalendarButton }
+                )
+            } else {
+                SheetHeader(
+                    title: "Analyze Categories",
+                    close: {
+                        #if os(iOS)
+                        withAnimation { showAnalysisSheet = false }
+                        #else
+                        dismiss()
+                        #endif
+                    },
+                    view1: { showCategorySheetButton },
+                    view2: { showCalendarButton }
+                )
+            }
         }
         .task {
             if calModel.sCategoriesForAnalysis.isEmpty {
@@ -129,19 +119,23 @@ struct AnalysisSheet: View {
         
         .sheet(item: $editTrans) { trans in
             TransactionEditView(trans: trans, transEditID: $transEditID, day: transDay!, isTemp: false)
+                /// This is needed for the drag to dismiss.
                 .onDisappear { transEditID = nil }
+            #warning("produces a race condition when swiping to close and opening another trans too quickly. Causes transDays to be nil and crashes the app.")
         }
-        .onChange(of: transEditID, { oldValue, newValue in
+        .onChange(of: transEditID) { oldValue, newValue in
             print(".onChange(of: CategoryAnalysisSheet.transEditID)")
             /// When `newValue` is false, save to the server. We have to use this because `.popover(isPresented:)` has no onDismiss option.
             if oldValue != nil && newValue == nil {
-                calModel.saveTransaction(id: oldValue!, day: transDay!, eventModel: eventModel)
+                let theDay = transDay
                 transDay = nil
-                calModel.pictureTransactionID = nil
+                calModel.saveTransaction(id: oldValue!, day: theDay, eventModel: eventModel)
+                //calModel.pictureTransactionID = nil
+                PhotoModel.shared.pictureParent = nil
             } else {
                 editTrans = calModel.getTransaction(by: transEditID!, from: .normalList)
             }
-        })        
+        }
         .sensoryFeedback(.selection, trigger: transEditID) { $1 != nil }
                         
         .onChange(of: budgetEditID) { oldValue, newValue in
@@ -276,11 +270,10 @@ struct AnalysisSheet: View {
                 .filter { $0.dateComponents?.day == day.date?.day }
                 .count
             
-            
             if day.date?.day == AppState.shared.todayDay && day.date?.month == AppState.shared.todayMonth && day.date?.year == AppState.shared.todayYear {
                 Section {
                     if doesHaveTransactions {
-                        ForEach(transactions.filter { $0.dateComponents?.day == day.date?.day }) { trans in
+                        ForEach(getTransactions(for: day)) { trans in
                             TransactionListLine(trans: trans)
                                 .onTapGesture {
                                     self.transDay = day
@@ -307,7 +300,7 @@ struct AnalysisSheet: View {
             } else {
                 if doesHaveTransactions {
                     Section {
-                        ForEach(transactions.filter { $0.dateComponents?.day == day.date?.day }) { trans in
+                        ForEach(getTransactions(for: day)) { trans in
                             TransactionListLine(trans: trans)
                                 .onTapGesture {
                                     self.transDay = day
@@ -322,6 +315,27 @@ struct AnalysisSheet: View {
                 }
             }
         }
+    }
+    
+    
+    func getTransactions(for day: CBDay) -> Array<CBTransaction> {
+        transactions
+            .filter { $0.dateComponents?.day == day.date?.day }
+            .sorted {
+                if transactionSortMode == .title {
+                    return $0.title < $1.title
+                    
+                } else if transactionSortMode == .enteredDate {
+                    return $0.enteredDate < $1.enteredDate
+                    
+                } else {
+                    if categorySortMode == .title {
+                        return ($0.category?.title ?? "").lowercased() < ($1.category?.title ?? "").lowercased()
+                    } else {
+                        return $0.category?.listOrder ?? 10000000000 < $1.category?.listOrder ?? 10000000000
+                    }
+                }
+            }
     }
     
     
@@ -427,14 +441,40 @@ struct AnalysisSheet: View {
                 }
                 .scrollBounceBehavior(.basedOnSize)
                 .contentMargins(.bottom, 10, for: .scrollContent)
-                
-                
+            }
+        }
+    }
+    
+    
+    var showCategorySheetButton: some View {
+        Button {
+            showCategorySheet = true
+        } label: {
+            Image(systemName: "list.bullet")
+                .contentShape(Rectangle())
+        }
+        .contentShape(Rectangle())
+        //.buttonStyle(.borderedProminent)
+        //.buttonStyle(.sheetHeader)
+    }
+    
+    var showCalendarButton: some View {
+        Button {
+            calModel.sCategories = calModel.sCategoriesForAnalysis
+                        
+            #if os(iOS)
+            if !AppState.shared.isIpad {
+                withAnimation { showAnalysisSheet = false }
             }
             
-                                        
-        }
+            #else
+            //dismiss()
+            #endif
             
-        
+        } label: {
+            Image(systemName: "calendar")
+                .contentShape(Rectangle())
+        }
     }
     
    

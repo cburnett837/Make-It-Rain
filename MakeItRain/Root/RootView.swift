@@ -18,6 +18,7 @@ struct RootView: View {
     @Environment(CategoryModel.self) var catModel
     @Environment(KeywordModel.self) var keyModel
     @Environment(RepeatingTransactionModel.self) var repModel
+    @Environment(EventModel.self) var eventModel
         
     var body: some View {
         @Bindable var navManager = NavigationManager.shared
@@ -176,18 +177,33 @@ struct RootView: View {
                         } else {
                             print("NO NEW DATA TO DOWNLOAD")
                             funcModel.longPollServerForChanges()
+                            
+                            Task {
+                                await OpenRecordManager.shared.fetchOpenOrClosed()
+                            }                                                        
                         }
                     }
                 } else {
                     print("funcModel.refreshTask already exists")
                 }
+                
+                
+                Task {
+                    let _ = await OpenRecordManager.shared.batchMark(.open)
+                }
+                
+                
             } else if newPhase == .background {
+                print("scenePhase: Background")
                 AppState.shared.cancelNowTimer()
                 funcModel.longPollTask?.cancel()
                 funcModel.longPollTask = nil
                 funcModel.refreshTask?.cancel()
                 funcModel.refreshTask = nil
-                print("scenePhase: Background")
+                
+                Task {
+                    let _ = await OpenRecordManager.shared.batchMark(.closed)
+                }
             }
         }
         #endif

@@ -9,14 +9,13 @@ import SwiftUI
 
 struct EventsTable: View {
     @Environment(\.dismiss) var dismiss
-    
+    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
     #if os(macOS)
     @AppStorage("eventsTableColumnOrder") private var columnCustomization: TableColumnCustomization<CBEvent>
     #endif
     
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
-    
     @Environment(EventModel.self) private var eventModel
     
     @State private var searchText = ""
@@ -32,6 +31,8 @@ struct EventsTable: View {
     @State private var showDeleteAlert = false
     @State private var showPendingInviteSheet = false
     @State private var labelWidth: CGFloat = 20.0
+    
+    @State private var newEventTitle = ""
     
     var filteredEvents: [CBEvent] {
         eventModel.events
@@ -97,22 +98,62 @@ struct EventsTable: View {
             eventModel.events.sort(using: sortOrder)
         }
         
+        
+        // MARK: - Event Sheet
+        
         .onChange(of: eventEditID) { oldValue, newValue in
             if let newValue {
-                editEvent = eventModel.getEvent(by: newValue)
+                //editEvent = eventModel.getEvent(by: newValue)
+                let editEvent = eventModel.getEvent(by: newValue)
+                if editEvent.action == .add {
+                    let alertConfig = AlertConfig(
+                        title: "Create New Event",
+                        subtitle: "Enter a title below to get started",
+                        symbol: .init(name: "beach.umbrella", color: Color.fromName(appColorTheme)),
+                        primaryButton:
+                            AlertConfig.AlertButton(closeOnFunction: false, showSpinnerOnClick: true, config: .init(text: "Create", role: .primary, function: {
+                                Task {
+                                    if newEventTitle.isEmpty {
+                                        AppState.shared.showToast(title: "Title cannot be blank")
+                                    } else {
+                                        eventModel.events.append(editEvent)
+                                        editEvent.title = newEventTitle
+                                        editEvent.startDate = .now
+                                        editEvent.endDate = .now
+                                        let _ = await eventModel.invitePersonViaEmail(event: editEvent, email: AppState.shared.user!.email)
+                                        let _ = await eventModel.submit(editEvent)
+                                        newEventTitle = ""
+                                        AppState.shared.closeAlert()
+                                    }
+                                }
+                            })),
+                        views: [
+                            AlertConfig.ViewConfig(content: AnyView(textField))
+                        ]
+                    )
+                    
+                    AppState.shared.showAlert(config: alertConfig)
+                    
+                } else {
+                    self.editEvent = editEvent
+                }
+                
             } else {
                 /// If the event was being viewed when it was revoked, clear the revoked event object and don't save.
                 if let oldValue {
                     if eventModel.revokedEvent?.id == oldValue {
                         eventModel.revokedEvent = nil
                     } else {
-                        eventModel.saveEvent(id: oldValue, calModel: calModel)
+                        if !eventModel.saveEvent(id: oldValue, calModel: calModel) {
+                            Task {
+                                let recordType = XrefModel.getItem(from: .openRecords, byEnumID: .event)
+                                let mode = CBOpenOrClosedRecord(recordID: oldValue, recordType: recordType, openOrClosed: .closed)
+                                let _ = await OpenRecordManager.shared.markRecordAsOpenOrClosed(mode)
+                                
+                            }
+                        }
                     }
-                    
-                    Task {
-                        let _ = await eventModel.markEvent(as: .closed, eventID: oldValue)
-                    }
-                }                
+                }
             }
         }
         .sheet(item: $editEvent, onDismiss: {
@@ -155,22 +196,22 @@ struct EventsTable: View {
         })
         .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
         
-        .confirmationDialog("Leave event \(leaveEvent == nil ? "N/A" : leaveEvent!.title)?", isPresented: $showLeaveAlert, actions: {
-            Button("Yes", role: .destructive) {
-                if let leaveEvent = leaveEvent {
-                    Task { await eventModel.leave(leaveEvent) }
-                }
-            }
-            
-            Button("No", role: .cancel) {
-                leaveEvent = nil
-                showLeaveAlert = false
-            }
-        }, message: {
-            #if os(iOS)
-            Text("Leave event \"\(leaveEvent == nil ? "N/A" : leaveEvent!.title)\"?")
-            #endif
-        })
+//        .confirmationDialog("Leave event \(leaveEvent == nil ? "N/A" : leaveEvent!.title)?", isPresented: $showLeaveAlert, actions: {
+//            Button("Yes", role: .destructive) {
+//                if let leaveEvent = leaveEvent {
+//                    Task { await eventModel.leave(leaveEvent) }
+//                }
+//            }
+//            
+//            Button("No", role: .cancel) {
+//                leaveEvent = nil
+//                showLeaveAlert = false
+//            }
+//        }, message: {
+//            #if os(iOS)
+//            Text("Leave event \"\(leaveEvent == nil ? "N/A" : leaveEvent!.title)\"?")
+//            #endif
+//        })
         .sensoryFeedback(.warning, trigger: showLeaveAlert) { !$0 && $1 }
         
     }
@@ -223,19 +264,28 @@ struct EventsTable: View {
     }
     #endif
     
+    var textField: some View {
+        TextField("Title", text: $newEventTitle)
+            .multilineTextAlignment(.center)
+    }
+    
     #if os(iOS)
     @ToolbarContentBuilder
     func phoneToolbar() -> some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
             if !AppState.shared.isIpad {
-                Button {
-                    dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chevron.left")
-                        Text("Back")
+                HStack {
+                    Button {
+                        dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                            Text("Back")
+                        }
                     }
+                    ToolbarLongPollButton()
                 }
+                
             } else {
                 HStack {
                     if !eventModel.invitations.isEmpty {
@@ -246,14 +296,16 @@ struct EventsTable: View {
                                 .foregroundStyle(.red)
                         }
                     }
-                    
-                    ToolbarRefreshButton()
+                                        
                     Button {
                         eventEditID = UUID().uuidString
                     } label: {
                         Image(systemName: "plus")
                     }
                     //.disabled(eventModel.isThinking)
+                    
+                    ToolbarRefreshButton()
+                    ToolbarLongPollButton()
                 }
             }
         }
@@ -284,13 +336,17 @@ struct EventsTable: View {
     
     var phoneList: some View {
         List(filteredEvents, selection: $eventEditID) { event in
-            HStack(alignment: .center) {
+            HStack(alignment: .top) {
                 VStack(alignment: .leading) {
                     Text(event.title)
                     HStack {
-                        Image(systemName: "person.fill")
                         let partCount = event.participants.filter { $0.status?.enumID == .accepted && $0.active }.count
-                        Text("\(partCount)")
+                        if partCount > 1 {
+                            Image(systemName: "person.2.fill")
+                            Text("\(partCount)")
+                        }
+                        
+                        //Text(event.id)
                     }
                     .foregroundStyle(.gray)
                     .font(.footnote)
@@ -298,9 +354,11 @@ struct EventsTable: View {
                 
                 Spacer()
                 
+                (
                 Text(event.startDate?.string(to: .monthDayShortYear) ?? "N/A") +
                 Text(" - ") +
                 Text(event.endDate?.string(to: .monthDayShortYear) ?? "N/A")
+                ).font(.footnote)
             }
             .standardRowBackgroundWithSelection(id: event.id, selectedID: eventEditID)
             .swipeActions(allowsFullSwipe: false) {
@@ -317,17 +375,17 @@ struct EventsTable: View {
                     }
                     .tint(.red)
                 } else {
-                    Button {
-                        leaveEvent = event
-                        showLeaveAlert = true
-                    } label: {
-                        Label {
-                            Text("Leave")
-                        } icon: {
-                            Image(systemName: "hand.raised.fill")
-                        }
-                    }
-                    .tint(.orange)
+//                    Button {
+//                        leaveEvent = event
+//                        showLeaveAlert = true
+//                    } label: {
+//                        Label {
+//                            Text("Leave")
+//                        } icon: {
+//                            Image(systemName: "hand.raised.fill")
+//                        }
+//                    }
+//                    .tint(.orange)
                 }
             }
             

@@ -369,8 +369,8 @@ class FuncModel {
             group.addTask { await self.eventModel.fetchEvents() }
             /// Grab Invitations.
             group.addTask { await self.eventModel.fetchInvitations() }
-            /// Grab Open Events.
-            group.addTask { await self.eventModel.fetchOpenOrClosed() }
+            /// Grab Open Records.
+            group.addTask { await OpenRecordManager.shared.fetchOpenOrClosed() }
         }
         
         let everytingElseElapsed = CFAbsoluteTimeGetCurrent() - everythingElseStart
@@ -411,8 +411,8 @@ class FuncModel {
             group.addTask { await self.eventModel.fetchEvents() }
             /// Grab Event Invitations
             group.addTask { await self.eventModel.fetchInvitations() }
-            /// Grab Open Events.
-            group.addTask { await self.eventModel.fetchOpenOrClosed() }
+            /// Grab Open Records.
+            group.addTask { await OpenRecordManager.shared.fetchOpenOrClosed() }
             
 //            group.addTask {
 //                let model = RequestModel(requestType: "fetch_accessorials", model: CodablePlaceHolder())
@@ -581,7 +581,7 @@ class FuncModel {
         @MainActor
         func longPollServer(lastReturnTime: Int?) async {
             //return
-            print("-- \(#function)")
+            print("-- \(#function) -- starting with lastReturnTime: \(String(describing: lastReturnTime))")
             LogManager.log()
                                 
             let model = RequestModel(requestType: "longpoll_server", model: LongPollSubscribeModel(lastReturnTime: lastReturnTime))
@@ -597,6 +597,7 @@ class FuncModel {
                 var lastReturnTimeFromServer: Int?
                 
                 if let model {
+                    //print("GOT SUccessful long poll model with return time \(String(describing: model.returnTime))")
                     lastReturnTimeFromServer = model.returnTime
                     
                     if model.transactions != nil
@@ -608,9 +609,17 @@ class FuncModel {
                     || model.keywords != nil
                     || model.budgets != nil
                     || model.events != nil
+                    || model.eventTransactions != nil
+                    || model.eventTransactionOptions != nil
+                    || model.eventCategories != nil
+                    || model.eventItems != nil
+                    || model.eventParticipants != nil
                     || model.invitations != nil
-                    || model.openEvents != nil
+                    || model.openRecords != nil
                     {
+                        
+                        //try? await Task.sleep(nanoseconds: UInt64(5 * Double(NSEC_PER_SEC)))
+                        
                         if let transactions = model.transactions { self.handleLongPollTransactions(transactions) }
                         
                         if AppState.shared.user?.id == 1 {
@@ -623,13 +632,19 @@ class FuncModel {
                         if let categories = model.categories { await self.handleLongPollCategories(categories) }
                         if let keywords = model.keywords { await self.handleLongPollKeywords(keywords) }
                         if let budgets = model.budgets { self.handleLongPollBudgets(budgets) }
+                        
                         if let events = model.events { await self.handleLongPollEvents(events) }
+                        if let eventTransactions = model.eventTransactions { await self.handleLongPollEventTransactions(eventTransactions) }
+                        if let eventTransactionOptions = model.eventTransactionOptions { await self.handleLongPollEventTransactionOptions(eventTransactionOptions) }
+                        if let eventCategories = model.eventCategories { await self.handleLongPollEventCategories(eventCategories) }
+                        if let eventItems = model.eventItems { await self.handleLongPollEventItems(eventItems) }
+                        if let eventParticipants = model.eventParticipants { await self.handleLongPollEventParticipants(eventParticipants) }
+                        
                         if let invitations = model.invitations { await self.handleLongPollInvitations(invitations) }
-                        if let openEvents = model.openEvents { await self.handleLongPollOpenEvents(openEvents) }
-                    } else {
-                        print("LONGPOLL TIMEOUT")
+                        if let openRecords = model.openRecords { await self.handleLongPollOpenRecords(openRecords) }
                     }
                 } else {
+                    //print("GOT UNNNNSUccessful long poll model with return time \(String(describing: model?.returnTime))")
                     lastReturnTimeFromServer = lastReturnTime
                 }
                 
@@ -682,8 +697,24 @@ class FuncModel {
         }
     }
     
+    
     @MainActor private func handleLongPollFitTransactions(_ transactions: Array<CBFitTransaction>) {
-        calModel.fitTrans = transactions
+        for trans in transactions {
+            if calModel.doesExist(trans) {
+                if trans.isAcknowledged {
+                    calModel.delete(trans)
+                    continue
+                } else {
+                    if let index = calModel.getIndex(for: trans) {
+                        calModel.fitTrans[index].setFromAnotherInstance(trans: trans)
+                    }
+                }
+            } else {
+                if !trans.isAcknowledged {
+                    calModel.upsert(trans)
+                }
+            }
+        }
     }
     
     
@@ -860,23 +891,19 @@ class FuncModel {
         print("-- \(#function)")
         
         for event in events {
-            //let participantCount = event.participants.count
-            //print("INITIAL PARTS")
-            //print("userNames: \(event.participants.map {$0.user.name})")
-            //print("actives: \(event.participants.map {$0.active})")
-            //print("statuses: \(event.participants.map {$0.status?.description})")
-            //print("ids: \(event.participants.map {$0.id})")
-            
-            /// See if the user has an active participant record.
-            let doesUserHavePermission = event.participants
-                .filter { $0.active }
-                .filter { $0.status?.enumID == .accepted }
-                .contains(where: { $0.user.id == AppState.shared.user?.id ?? 0 })
+            let doesUserHavePermission = event.activeParticipantUserIds.contains(AppState.shared.user!.id)
             
             if eventModel.doesExist(event) {
+                
                 /// If the event has been deleted, remove it.
                 if !event.active {
-                    AppState.shared.showToast(title: "Event Removed", subtitle: event.title, body: "The event has been removed by the host.", symbol: "calendar.badge.minus")
+                    withAnimation {
+                        eventModel.revoke(event)
+                    }
+                    
+                    if !event.amIAdmin() {
+                        AppState.shared.showToast(title: "Event Removed", subtitle: event.title, body: "The event has been removed by the host.", symbol: "calendar.badge.minus")
+                    }
                     await eventModel.delete(event, andSubmit: false)
                     continue
                 } else {
@@ -888,18 +915,19 @@ class FuncModel {
                         AppState.shared.showToast(title: "Event Revoked", subtitle: event.title, body: "You have been removed by the host.", symbol: "person.slash.fill")
                         continue
                     }
-                                                            
+//                                                            
                     /// Find the event in the users data.
                     if let index = eventModel.getIndex(for: event) {
-                        let actualEvent = eventModel.events[index]
-                        actualEvent.updateFromLongPoll(event: event)
-                        actualEvent.deepCopy?.setFromAnotherInstance(event: event)
+                        eventModel.events[index].setFromAnotherInstanceForLongPoll(event: event)
+                        eventModel.events[index].deepCopy?.setFromAnotherInstanceForLongPoll(event: event)
                     }
                 }
             } else {
                 /// If the event is active, check to make sure the user is allowed to see it.
                 /// If they are, upsert the event.
                 if event.active {
+                    /// See if the user has an active participant record.
+                    
                     if doesUserHavePermission {
                         eventModel.upsert(event)
                         eventModel.invitations.removeAll(where: {$0.eventID == event.id})
@@ -910,72 +938,308 @@ class FuncModel {
     }
     
     
-    @MainActor private func handleLongPollInvitations(_ participants: Array<CBEventParticipant>) async {
+    @MainActor private func handleLongPollEventTransactions(_ transactions: Array<CBEventTransaction>) async {
         print("-- \(#function)")
-        print(participants.map {$0.email})
-        print(participants.map {$0.active})
-        print(participants.map {$0.id})
-        print(participants.map {$0.status?.description})
-        
-        for part in participants {
-            if eventModel.doesExist(part) {
-                /// If the invite is inactive, that means the invitee rejected it.
-                if !part.active {
-                    /// Remove the invitation from the invitation list.
-                    eventModel.invitations.removeAll { $0.id == part.id }
-                    /// Remove the pending invitation from the associated event.
-                    if let targetEvent = eventModel.events.filter({ $0.id == part.eventID }).first {
-                        targetEvent.participants.removeAll(where: { $0.id == part.id })
-                    }
-                    
-                    continue
-                } else {
-                    /// The event is active, so update the invitation in the model.
-                    print("THE PART IS ACTIVE")
-                    if let index = eventModel.getIndex(for: part) {
-                        //eventModel.invitations[index] = part
-                                                                        
-                        print("FOUND IT")
-                        if part.status?.enumID == .rejected {
-                            eventModel.invitations.removeAll(where: { $0.id == part.id })
-                        } else {
-                            eventModel.invitations[index].setFromAnotherInstance(part: part)
-                        }
-                        
-                    }
-                }
-            } else {
-                /// Upsert the invite if it doesn't exist.
-                if part.active {
-                    print("Participant is active")
-                    if part.status?.enumID == .rejected {
-                        /// Remove the invitation from the invitation list.
-                        eventModel.invitations.removeAll { $0.id == part.id }
-                        /// Remove the pending invitation from the associated event.
-                        if let targetEvent = eventModel.events.filter({ $0.id == part.eventID }).first {
-                            targetEvent.participants.removeAll(where: { $0.id == part.id })
-                        }
+        for trans in transactions {
+            print(trans.title)
+            if let index = eventModel.events.firstIndex(where: {$0.id == trans.eventID}) {
+                let event = eventModel.events[index]
+                
+                if event.doesExist(trans) {
+                    if !trans.active {
+                        event.deleteTransaction(id: trans.id)
+                        await eventModel.delete(trans, andSubmit: false)
+                        continue
                     } else {
-                        print("UPSERTING")
-                        withAnimation {
-                            eventModel.upsert(part)
+                        if let index = event.getIndex(for: trans) {                            
+                            if event.transactions[index].updatedDate < trans.updatedDate {
+                                event.transactions[index].setFromAnotherInstance(transaction: trans)
+                                event.transactions[index].deepCopy?.setFromAnotherInstance(transaction: trans)
+                            }
                         }
-                        
                     }
                 } else {
-                    print("SHOUD REMOVE INVITE")
-                    print(eventModel.invitations.map {$0.id})
-                    print("\(part.id) - \(String(describing: part.email)) - \(part.eventID)")
-                    eventModel.invitations.removeAll(where: {$0.id == part.id})
+                    if trans.active {
+                        event.upsert(trans)
+                    }
                 }
             }
         }
     }
     
     
-    @MainActor private func handleLongPollOpenEvents(_ openEvents: Array<CBEventViewMode>) async {
-        withAnimation {
-            eventModel.openEvents = openEvents
+    @MainActor private func handleLongPollEventTransactionOptions(_ options: Array<CBEventTransactionOption>) async {
+        print("-- \(#function)")
+        for option in options {
+            if let index = eventModel.justTransactions.firstIndex(where: {$0.id == option.transactionID}) {
+                let trans = eventModel.justTransactions[index]
+                
+                
+                //print("found trans id \(trans.id) for item id \(item.id)")
+                
+                if trans.doesExist(option) {
+                    if !option.active {
+                        trans.deleteOption(id: option.id)
+                        continue
+                    } else {
+                        if let index = trans.getIndex(for: option) {
+                            trans.options?[index].setFromAnotherInstance(option: option)
+                            trans.options?[index].deepCopy?.setFromAnotherInstance(option: option)
+                        }
+                    }
+                } else {
+                    //print("item does not exist")
+                    if option.active {
+                        //print("upserting")
+                        trans.upsert(option)
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    @MainActor private func handleLongPollEventCategories(_ categories: Array<CBEventCategory>) async {
+        var eventIdsThatGotChanged: Array<String> = []
+        
+        for cat in categories {
+            if let index = eventModel.events.firstIndex(where: {$0.id == cat.eventID}) {
+                let event = eventModel.events[index]
+                
+                eventIdsThatGotChanged.append(event.id)
+                
+                if event.doesExist(cat) {
+                    if !cat.active {
+                        event.deleteCategory(id: cat.id)
+                        await eventModel.delete(cat, andSubmit: false)
+                        continue
+                    } else {
+                        if let index = event.getIndex(for: cat) {
+                            event.categories[index].setFromAnotherInstance(category: cat)
+                            event.categories[index].deepCopy?.setFromAnotherInstance(category: cat)
+                        }
+                    }
+                } else {
+                    if cat.active {
+                        event.upsert(cat)
+                    }
+                }
+            }
+        }
+        
+        for id in eventIdsThatGotChanged {
+            if let index = eventModel.events.firstIndex(where: {$0.id == id}) {
+                withAnimation {
+                    eventModel.events[index].categories.sort { $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000 }
+                }
+            }
+        }
+    }
+    
+    
+    @MainActor private func handleLongPollEventItems(_ items: Array<CBEventItem>) async {
+        var eventIdsThatGotChanged: Array<String> = []
+        for item in items {
+            if let index = eventModel.events.firstIndex(where: {$0.id == item.eventID}) {
+                let event = eventModel.events[index]
+                
+                eventIdsThatGotChanged.append(event.id)
+                
+                if event.doesExist(item) {
+                    if !item.active {
+                        event.deleteItem(id: item.id)
+                        await eventModel.delete(item, andSubmit: false)
+                        continue
+                    } else {
+                        if let index = event.getIndex(for: item) {
+                            event.items[index].setFromAnotherInstance(item: item)
+                            event.items[index].deepCopy?.setFromAnotherInstance(item: item)
+                        }
+                    }
+                } else {
+                    if item.active {
+                        event.upsert(item)
+                    }
+                }
+            }
+        }
+        
+        for id in eventIdsThatGotChanged {
+            if let index = eventModel.events.firstIndex(where: {$0.id == id}) {
+                withAnimation {
+                    eventModel.events[index].items.sort { $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000 }
+                }
+            }
+        }
+    }
+    
+    
+    @MainActor private func handleLongPollEventParticipants(_ parts: Array<CBEventParticipant>) async {
+        for part in parts {
+            if let index = eventModel.events.firstIndex(where: {$0.id == part.eventID}) {
+                let event = eventModel.events[index]
+                
+                if event.doesExist(part) {
+                    if !part.active {
+                        event.deleteParticipant(id: part.id)
+                        await eventModel.delete(part, andSubmit: false)
+                        
+                        /// Revoke the event from the user if applicable
+                        if part.user.id == AppState.shared.user!.id {
+                            withAnimation {
+                                eventModel.revoke(event)
+                            }
+                            AppState.shared.showToast(title: "Event Revoked", subtitle: event.title, body: "You have been removed by the host.", symbol: "person.slash.fill")
+                        }
+                        
+                        continue
+                    } else {
+                        if let index = event.getIndex(for: part) {
+                            event.participants[index].setFromAnotherInstance(part: part)
+                            event.participants[index].deepCopy?.setFromAnotherInstance(part: part)
+                        }
+                    }
+                } else {
+                    if part.active {
+                        event.upsert(part)
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    @MainActor private func handleLongPollInvitations(_ participants: Array<CBEventParticipant>) async {
+        print("-- \(#function)")
+        //print(participants.map {$0.email})
+        //print(participants.map {$0.active})
+        //print(participants.map {$0.id})
+        //print(participants.map {$0.status?.description})
+        
+        for part in participants {
+            if eventModel.doesExist(part) {
+                /// If the invite is inactive, that means the invitee rejected it.
+                if !part.active {
+                    /// Remove the invitation from the invitation list.
+                    eventModel.removeInvitation(by: part.id)
+                    
+                    /// Remove the pending invitation from the associated event.
+//                    if let targetEvent = eventModel.events.filter({ $0.id == part.eventID }).first {
+//                        targetEvent.deleteParticipant(id: part.id)
+//                    }
+//                    
+                    let event = eventModel.getEvent(by: part.eventID)
+                    event.deleteParticipant(id: part.id)
+                    
+                    continue
+                } else {
+                    /// The event is active, so update the invitation in the model.
+                    if let index = eventModel.getIndex(for: part) {
+                        if part.status?.enumID == .rejected {
+                            eventModel.removeInvitation(by: part.id)
+                        } else {
+                            eventModel.invitations[index].setFromAnotherInstance(part: part)
+                        }
+                    }
+                }
+            } else {
+                /// Upsert the invite if it doesn't exist.
+                if part.active {
+                    if part.status?.enumID == .rejected {
+                        /// Remove the invitation from the invitation list.
+                        eventModel.removeInvitation(by: part.id)
+                        /// Remove the pending invitation from the associated event.
+//                        if let targetEvent = eventModel.events.filter({ $0.id == part.eventID }).first {
+//                            targetEvent.deleteParticipant(id: part.id)
+//                        }
+                        let event = eventModel.getEvent(by: part.eventID)
+                        event.deleteParticipant(id: part.id)
+                    } else {
+                        AppState.shared.showToast(title: "Invitation Received", subtitle: part.eventName, body: "Invited by \(part.inviteFrom?.name ?? "N/A")", symbol: "calendar.badge.plus")
+                        withAnimation {
+                            eventModel.upsert(part)
+                        }
+                        
+                    }
+                } else {
+                    eventModel.removeInvitation(by: part.id)
+                }
+            }
+        }
+    }
+    
+    
+//    @MainActor private func handleLongPollOpenEvents(_ openEvents: Array<CBEventViewMode>) async {
+//        print("-- \(#function)")
+//        
+//        print(eventModel.openEvents.map {"\($0.user.id) - \($0.id)"})
+//        
+//        withAnimation {
+//            for openEvent in openEvents {
+//                if eventModel.doesExist(openEvent, what: .event) {
+//                    if !openEvent.active {
+//                        eventModel.deleteOpen(id: openEvent.id, what: .event)
+//                        continue
+//                    } else {
+//                        if let index = eventModel.getIndex(for: openEvent, what: .event) {
+//                            eventModel.openEvents[index].setFromAnotherInstance(openEvent: openEvent)
+//                        }
+//                    }
+//                } else {
+//                    if openEvent.active {
+//                        eventModel.upsert(openEvent, what: .event)
+//                    }
+//                }
+//            }
+//        }
+//    }
+//    
+//    @MainActor private func handleLongPollOpenEventTransactions(_ openEventTransactions: Array<CBEventViewMode>) async {
+//        print("-- \(#function)")
+//        withAnimation {
+//            for openEventTrans in openEventTransactions {
+//                if eventModel.doesExist(openEventTrans, what: .transaction) {
+//                    if !openEventTrans.active {
+//                        eventModel.deleteOpen(id: openEventTrans.id, what: .transaction)
+//                        continue
+//                    } else {
+//                        if let index = eventModel.getIndex(for: openEventTrans, what: .transaction) {
+//                            eventModel.openEvents[index].setFromAnotherInstance(openEvent: openEventTrans)
+//                        }
+//                    }
+//                } else {
+//                    if openEventTrans.active {
+//                        eventModel.upsert(openEventTrans, what: .transaction)
+//                    }
+//                }
+//            }
+//        }
+//    }
+    
+    
+    @MainActor private func handleLongPollOpenRecords(_ openRecords: Array<CBOpenOrClosedRecord>) async {
+        print("-- \(#function)")
+        
+        //print(eventModel.openEvents.map {"\($0.user.id) - \($0.id)"})
+        
+        
+        for openRecord in openRecords {
+            let recordType = openRecord.recordType.enumID
+            
+            if OpenRecordManager.shared.doesExist(openRecord, what: recordType) {
+                if !openRecord.active {
+                    OpenRecordManager.shared.deleteOpen(id: openRecord.id, what: recordType)
+                    continue
+                } else {
+                    if let index = OpenRecordManager.shared.getIndex(for: openRecord, what: recordType) {
+                        OpenRecordManager.shared.openOrClosedRecords[index].setFromAnotherInstance(openEvent: openRecord)
+                    }
+                }
+            } else {
+                if openRecord.active {
+                    OpenRecordManager.shared.upsert(openRecord, what: recordType)
+                }
+            }
         }
     }
     
@@ -1039,6 +1303,32 @@ class FuncModel {
             }
             #endif
         }
+    }
+    
+    
+    
+    
+    @MainActor
+    func submitListOrders(items: Array<ListOrderUpdate>, for updateType: ListOrderUpdateType) async -> Bool {
+        print("-- \(#function)")
+        LogManager.log()
+        let model = RequestModel(requestType: "alter_list_orders", model: ListOrderUpdateModel(items: items, updateType: updateType))
+        
+        typealias ResultResponse = Result<ResultCompleteModel?, AppError>
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+                    
+        switch await result {
+        case .success:
+            LogManager.networkingSuccessful()
+            return true
+            
+        case .failure(let error):
+            LogManager.error(error.localizedDescription)
+            AppState.shared.showAlert("There was a problem syncing the category. Will try again at a later time.")
+            return false
+        }
+        
+        
     }
     
     

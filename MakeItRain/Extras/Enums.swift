@@ -193,6 +193,27 @@ enum EventItemAction: String {
     }
 }
 
+enum EventTransactionOptionAction: String {
+    case add, edit, delete
+    
+    var serverKey: String {
+        switch self {
+        case .add:      return "add_cb_event_transaction_option"
+        case .edit:     return "edit_cb_event_transaction_option"
+        case .delete:   return "delete_cb_event_transaction_option"
+        }
+    }
+    
+    static func fromString(_ theString: String) -> Self {
+        switch theString {
+        case "add": return .add
+        case "edit": return .edit
+        case "delete": return .delete
+        default: return .add
+        }
+    }
+}
+
 
 enum EventCategoryAction: String {
     case add, edit, delete
@@ -212,7 +233,7 @@ enum EventCategoryAction: String {
         case "delete": return .delete
         default: return .add
         }
-    }
+    }    
 }
 
 
@@ -280,6 +301,28 @@ enum CategoryAction: String {
     }
 }
 
+
+enum LocationAction: String {
+    case add, edit, delete
+    
+    var serverKey: String {
+        switch self {
+        case .add:      return "add_cb_location"
+        case .edit:     return "edit_cb_location"
+        case .delete:   return "delete_cb_location"
+        }
+    }
+    
+    static func fromString(_ theString: String) -> Self {
+        switch theString {
+        case "add": return .add
+        case "edit": return .edit
+        case "delete": return .delete
+        default: return .add
+        }
+    }
+}
+
 enum BudgetAction {
     case add, edit, delete
     
@@ -325,15 +368,23 @@ enum AccountType: String {
     
 }
 
-enum LineItemIndicator: String {
+enum LineItemIndicator: String, CaseIterable {
     case dot, emoji, paymentMethod
+    
+    var prettyValue: String {
+        switch self {
+        case .dot: return "Category Dot"
+        case .emoji: return "Category Symbol"
+        case .paymentMethod: return "Payment Method"
+        }
+    }
 }
 
 //enum MacCategoryDisplayMode: String {
 //    case dot, emoji
 //}
 
-enum CategorySortMode: String {
+enum CategorySortMode: String, CaseIterable {
     case title, listOrder
     
     static func fromString(_ theString: String) -> Self {
@@ -343,9 +394,18 @@ enum CategorySortMode: String {
         default: return .title
         }
     }
+    
+    var prettyValue: String {
+        switch self {
+        case .title:
+            "Title"
+        case .listOrder:
+            "Custom Order"
+        }
+    }
 }
 
-enum TransactionSortMode: String {
+enum TransactionSortMode: String, CaseIterable {
     case title, category, enteredDate
     
     static func fromString(_ theString: String) -> Self {
@@ -356,23 +416,47 @@ enum TransactionSortMode: String {
         default: return .title
         }
     }
+    
+    var prettyValue: String {
+        switch self {
+        case .title:
+            "Title"
+        case .category:
+            "Category"
+        case .enteredDate:
+            "Entered Date"
+        }
+    }
 }
 
-enum PhoneLineItemDisplayItem: String {
-    case title, total, both, category
+enum PhoneLineItemDisplayItem: String, CaseIterable {
+    case title, total, category, both
     
     static func fromString(_ theString: String) -> Self {
         switch theString {
         case "title": return .title
         case "total": return .total
-        case "both": return .both
         case "category": return .category
+        case "both": return .both
         default: return .title
+        }
+    }
+    
+    var prettyValue: String {
+        switch self {
+        case .title:
+            "Title"
+        case .total:
+            "Total"
+        case .category:
+            "Category"
+        case .both:
+            "Category, Title, & Total"
         }
     }
 }
 
-enum CreditEodView: String {
+enum CreditEodView: String, CaseIterable {
     case availableCredit, remainingBalance
     
     static func fromString(_ theString: String) -> Self {
@@ -382,18 +466,45 @@ enum CreditEodView: String {
         default: return .remainingBalance
         }
     }
+    
+    var prettyValue: String {
+        switch self {
+        case .availableCredit:
+            "Available Credit"
+        case .remainingBalance:
+            "Remaining Balance"
+        }
+    }
 }
 
-enum PhoneLineItemTotalPosition: String {
+enum PhoneLineItemTotalPosition: String, CaseIterable {
     case inline, below
+    
+    var prettyValue: String {
+        switch self {
+        case .inline:
+            "Next to title"
+        case .below:
+            "Below title"
+        }
+    }
 }
 
 enum LineItemInteractionMode: String {
     case open, preview
 }
 
-enum UpdatedByOtherUserDisplayMode: String {
+enum UpdatedByOtherUserDisplayMode: String, CaseIterable {
     case concise, full
+    
+    var prettyValue: String {
+        switch self {
+        case .concise:
+            "Bold & italic title"
+        case .full:
+            "Their Name"
+        }
+    }
 }
 
 enum SearchScope: String, CaseIterable {
@@ -430,10 +541,31 @@ enum UserPreferedColorScheme: String {
     case userLight, userDark, userSystem
 }
 
+enum ListOrderUpdateType: String {
+    case categories = "categories"
+    case eventCategories = "event_categories"
+    case eventItems = "event_items"
+}
 
 
-enum EventViewMode: String {
+enum OpenOrClosed: String {
     case open, closed
+}
+
+enum OpenRecordViewType: String {
+    case event, transaction, eventTransactionOption
+}
+
+
+
+enum PhotoUploadProgress {
+    case performCleanup
+    case readyForPlaceholder(String?, String)
+    case uploaded(String?, String)
+    case displayCompleteAlert(String?, String)
+    case readyForDownload(String?, String)
+    case failedToUpload(String?, String)
+    case done(String?, String)
 }
 
 

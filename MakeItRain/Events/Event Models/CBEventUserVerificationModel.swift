@@ -12,9 +12,10 @@ import SwiftUI
 struct CBEventUserVerificationModel: Decodable {
     var verificationResult: InvitationVerificationResult
     var user: CBUser?
+    var participant: CBEventParticipant?
     
     
-    enum CodingKeys: CodingKey { case result, user }
+    enum CodingKeys: CodingKey { case result, user, participant }
     
     
     init(from decoder: Decoder) throws {
@@ -23,5 +24,6 @@ struct CBEventUserVerificationModel: Decodable {
         self.verificationResult = InvitationVerificationResult.fromString(result)
         
         user = try container.decode(CBUser?.self, forKey: .user)
+        participant = try container.decode(CBEventParticipant?.self, forKey: .participant)
     }
 }

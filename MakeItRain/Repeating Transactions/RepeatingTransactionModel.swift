@@ -51,6 +51,8 @@ class RepeatingTransactionModel {
             
             if repTransaction.hasChanges() {
                 print("HAS CHANGES")
+                repTransaction.updatedBy = AppState.shared.user!
+                repTransaction.updatedDate = Date()
                 await submit(repTransaction)
             } else {
                 print("DOES NOT HAVE CHANGES")
@@ -97,6 +99,8 @@ class RepeatingTransactionModel {
                             repTransactions.removeAll { $0.id == repTransaction.id }
                         }
                     }
+                } else {
+                    repTransactions.removeAll()
                 }
             }
             

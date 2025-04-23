@@ -7,116 +7,249 @@
 
 import SwiftUI
 
+struct SheetHeaderPlaceHolderButton: View {
+    var body: some View {
+        Button { } label: { Text("") }
+            .buttonStyle(.sheetHeader)
+            .opacity(0)
+    }
+}
+
 struct SheetHeader<Content: View, Content2: View, Content3: View>: View {
     let title: String
-    //let subtitle: String?
     var close: (() -> Void)?
     var view1: () -> Content?
     var view2: () -> Content2?
     var view3: () -> Content3?
-    var titlePosition: Alignment
-    
     
     init(title: String,
-         //subtitle: String? = nil,
          close: @escaping (() -> Void),
-         @ViewBuilder view1: @escaping () -> Content? = { EmptyView() },
-         @ViewBuilder view2: @escaping () -> Content2? = { EmptyView() },
-         @ViewBuilder view3: @escaping () -> Content3? = { EmptyView() },
-         titlePosition: Alignment = .center
+         @ViewBuilder view1: @escaping () -> Content? = { SheetHeaderPlaceHolderButton() },
+         @ViewBuilder view2: @escaping () -> Content2? = { SheetHeaderPlaceHolderButton() },
+         @ViewBuilder view3: @escaping () -> Content3? = { SheetHeaderPlaceHolderButton() }
     ) {
         self.title = title
-        //self.subtitle = subtitle
         self.close = close
         self.view1 = view1
         self.view2 = view2
         self.view3 = view3
-        self.titlePosition = titlePosition
     }
                 
     var body: some View {
-        Group {
-//            if let subtitle = subtitle {
-//                VStack(spacing: 0) {
-//                    Text(title)
-//                        .frame(maxWidth: .infinity)
-//                        .font(.title3)
-//                        .overlay { theOverlay }
-//                    
-//                    Text(subtitle)
-//                        .font(.caption2)
-//                        .foregroundStyle(.gray)
-//                }
-//            } else {
-//                Text(title)
-//                    .frame(maxWidth: .infinity)
-//                    .font(.title3)
-//                    .overlay { theOverlay }
-//            }
-            
+        HStack(spacing: 0) {
+            HStack {
+                view1()
+                view2()
+            }
+                                                
+            Text(title)
+                .frame(maxWidth: .infinity)
+                .font(.body)
+                .bold()
+                .lineLimit(1)
             
             HStack {
-                Text(title)
-                if titlePosition == .leading {
-                    Spacer()
+                view3()
+                
+                Button {
+                    close?()
+                } label: {
+                    Image(systemName: "xmark")
                 }
+                .keyboardShortcut(.return, modifiers: [.command]) /// Just because I am used to it from the original app.
             }
-            .frame(maxWidth: .infinity)
-            .font(.body)
-            .bold()
-            .overlay { theOverlay }
-            
         }
-        .contentShape(Rectangle())
-        .frame(maxWidth: .infinity)
-        .padding(.top, 8)
-    }
-        
-    
-    var theOverlay: some View {
-        HStack {
-            if titlePosition == .leading {
-                Spacer()
-            }
-            
-            if let view1 = view1() {
-                view1
-                    .buttonStyle(.sheetHeader)
-                    .focusable(false)
-            }
-            
-            if let view2 = view2() {
-                view2
-                    .buttonStyle(.sheetHeader)
-                    .focusable(false)
-            }
-                    
-            if titlePosition == .center {
-                Spacer()
-            }
-            
-                        
-            if let view3 = view3() {
-                view3
-                    .buttonStyle(.sheetHeader)
-                    .focusable(false)
-            }
-            
-            Button {
-                if let close {
-                    close()
-                }
-            } label: {
-                Image(systemName: "xmark")
-            }
-            .buttonStyle(.sheetHeader)
-            .focusable(false)
-            .keyboardShortcut(.return, modifiers: [.command]) /// Just because I am used to it from the original app.
-        }
-        //.padding(.top, 4)
-        //.padding(.trailing, 8)
+        .buttonStyle(.sheetHeader)
+        .focusable(false)
+        .padding()
     }
 }
+
+
+struct SidebarHeader<Content: View, Content2: View, Content3: View>: View {
+    @Environment(\.colorScheme) var colorScheme
+    let title: String
+    var close: (() -> Void)?
+    var view1: () -> Content?
+    var view2: () -> Content2?
+    var view3: () -> Content3?
+    
+    init(title: String,
+         close: @escaping (() -> Void),
+         @ViewBuilder view1: @escaping () -> Content? = { EmptyView() },
+         @ViewBuilder view2: @escaping () -> Content2? = { EmptyView() },
+         @ViewBuilder view3: @escaping () -> Content3? = { EmptyView() },
+    ) {
+        self.title = title
+        self.close = close
+        self.view1 = view1
+        self.view2 = view2
+        self.view3 = view3
+    }
+                
+    var body: some View {
+        HStack(spacing: 0) {
+            HStack(spacing: 27) {
+                view1()
+                    .contentShape(Rectangle())
+                    .focusable(false)
+                    .font(.title2)
+                                
+                view2()
+                    .focusable(false)
+                    .contentShape(Rectangle())
+                    .font(.title2)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+                                      
+            Text(title)
+                .frame(maxWidth: .infinity)
+                .font(.body)
+                .bold()
+                .lineLimit(1)
+                         
+            HStack(spacing: 27) {
+                view3()
+                    .focusable(false)
+                    .contentShape(Rectangle())
+                    .font(.title2)
+                
+                Button {
+                    close?()
+                } label: {
+                    Text("Close")
+                }
+                .contentShape(Rectangle())
+                .focusable(false)
+                .keyboardShortcut(.return, modifiers: [.command]) /// Just because I am used to it from the original app.
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            
+        }
+        .background(colorScheme == .dark ? Color.black.ignoresSafeArea(.all) : Color.white.ignoresSafeArea(.all))
+        .padding(.top, 14)
+        .padding(.bottom, 5)
+        .padding(.horizontal, 20)
+    }
+}
+
+
+//
+//
+//struct SheetHeaderOG<Content: View, Content2: View, Content3: View>: View {
+//    let title: String
+//    //let subtitle: String?
+//    var close: (() -> Void)?
+//    var view1: () -> Content?
+//    var view2: () -> Content2?
+//    var view3: () -> Content3?
+//    var titlePosition: Alignment
+//    
+//    init(title: String,
+//         //subtitle: String? = nil,
+//         close: @escaping (() -> Void),
+//         @ViewBuilder view1: @escaping () -> Content? = { EmptyView() },
+//         @ViewBuilder view2: @escaping () -> Content2? = { EmptyView() },
+//         @ViewBuilder view3: @escaping () -> Content3? = { EmptyView() },
+//         titlePosition: Alignment = .center
+//    ) {
+//        self.title = title
+//        //self.subtitle = subtitle
+//        self.close = close
+//        self.view1 = view1
+//        self.view2 = view2
+//        self.view3 = view3
+//        self.titlePosition = titlePosition
+//    }
+//                
+//    var body: some View {
+//        Group {
+////            if let subtitle = subtitle {
+////                VStack(spacing: 0) {
+////                    Text(title)
+////                        .frame(maxWidth: .infinity)
+////                        .font(.title3)
+////                        .overlay { theOverlay }
+////
+////                    Text(subtitle)
+////                        .font(.caption2)
+////                        .foregroundStyle(.gray)
+////                }
+////            } else {
+////                Text(title)
+////                    .frame(maxWidth: .infinity)
+////                    .font(.title3)
+////                    .overlay { theOverlay }
+////            }
+//            
+//            HStack {
+//                Text(title)
+//                if titlePosition == .leading {
+//                    Spacer()
+//                }
+//            }
+//            .frame(maxWidth: .infinity)
+//            .font(.body)
+//            .bold()
+//            .overlay { theOverlay }
+//            
+//        }
+//        .contentShape(Rectangle())
+//        .frame(maxWidth: .infinity)
+//        .padding(.top, 8)
+//    }
+//        
+//    
+//    var theOverlay: some View {
+//        HStack {
+//            if titlePosition == .leading {
+//                Spacer()
+//            }
+//            
+//            if let view1 = view1() {
+//                view1
+//                    .buttonStyle(.sheetHeader)
+//                    .focusable(false)
+//            }
+//            
+//            if let view2 = view2() {
+//                view2
+//                    .buttonStyle(.sheetHeader)
+//                    .focusable(false)
+//            }
+//                    
+//            if titlePosition == .center {
+//                Spacer()
+//            }
+//            
+//                        
+//            if let view3 = view3() {
+//                view3
+//                    .buttonStyle(.sheetHeader)
+//                    .focusable(false)
+//            }
+//            
+//            Button {
+//                if let close {
+//                    close()
+//                }
+//            } label: {
+//                Image(systemName: "xmark")
+//            }
+//            .buttonStyle(.sheetHeader)
+//            .focusable(false)
+//            .keyboardShortcut(.return, modifiers: [.command]) /// Just because I am used to it from the original app.
+//        }
+//        //.padding(.top, 4)
+//        //.padding(.trailing, 8)
+//    }
+//}
+//
+//
+//
+
+
+
 
 //
 //

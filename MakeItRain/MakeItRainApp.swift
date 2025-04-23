@@ -34,6 +34,7 @@ struct MakeItRainApp: App {
     @State private var appState = AppState.shared
     @State private var authState = AuthState.shared
     @State private var undoManager = UndodoManager.shared
+    @State private var openRecordManager = OpenRecordManager.shared
     
     @State private var funcModel: FuncModel
     @State private var calModel: CalendarModel
@@ -41,7 +42,11 @@ struct MakeItRainApp: App {
     @State private var catModel: CategoryModel
     @State private var keyModel: KeywordModel
     @State private var repModel: RepeatingTransactionModel
-    @State private var eventModel: EventModel    
+    @State private var eventModel: EventModel
+    
+    @State private var photoModel = PhotoModel.shared
+    @State private var locationManager = LocationManager.shared
+    @State private var mapModel = MapModel()
     
     @State private var isUnlocked = false
     
@@ -78,8 +83,8 @@ struct MakeItRainApp: App {
         
     var body: some Scene {
         WindowGroup {
-            CalendarSheetLayerWrapper {
-                RootViewWrapper {
+            RootViewWrapper {
+                CalendarSheetLayerWrapper {
                     @Bindable var appState = AppState.shared
                     Group {
                         /// `AuthState.shared.isThinking` is always true when app launches from fresh state.
@@ -137,6 +142,21 @@ struct MakeItRainApp: App {
                     #endif
                 }
             }
+//            .onChange(of: openRecordManager.openOrClosedRecords.count, { oldValue, newValue in
+//                OpenRecordManager.shared.openOrClosedRecords.forEach {
+//                    print($0.user.id)
+//                    print($0.recordID)
+//                    print($0.recordType.enumID)
+//                    print($0.active)
+//                    print("----")
+//                }
+//                print("")
+//                print("")
+//                print("")
+//                print("")
+//                print("")
+//            })
+            
             #if os(macOS)
             .toolbar(.visible, for: .windowToolbar)
             #endif
@@ -147,6 +167,7 @@ struct MakeItRainApp: App {
             .environment(keyModel)
             .environment(repModel)
             .environment(eventModel)
+            //.environment(mapModel)
             //.environment(\.colorScheme, preferDarkMode ? .dark : .light)
 //            .if(userColorScheme != .userSystem) {
 //                $0.preferredColorScheme(userColorScheme == .userDark ? .dark : .light)
@@ -169,7 +190,7 @@ struct MakeItRainApp: App {
         
         #if os(macOS)
         Window("Pending Fit Transactions", id: "pendingFitTransactions") {
-            FitTransactionOverlay(showFitTransactions: .constant(true))
+            FitTransactionOverlay(bottomPanelContent: .constant(.fitTransactions), bottomPanelHeight: .constant(0), scrollContentMargins: .constant(0))
                 .frame(minWidth: 300, minHeight: 200)
                 .environment(calModel)
                 .environment(payModel)
@@ -188,6 +209,7 @@ struct MakeItRainApp: App {
                 .environment(keyModel)
                 .environment(repModel)
                 .environment(eventModel)
+                //.environment(mapModel)
         }
         //.defaultLaunchBehavior(.suppressed) --> Not using because we terminate the app when the last window closes.
         .restorationBehavior(.disabled)
@@ -212,6 +234,7 @@ struct MakeItRainApp: App {
                     .environment(keyModel)
                     .environment(repModel)
                     .environment(eventModel)
+                    //.environment(mapModel)
                     .onAppear {
                         if let window = NSApp.windows.first(where: {$0.title.contains("MonthlyWindowPlaceHolder")}) {
                             window.title = AppState.shared.monthlySheetWindowTitle
@@ -240,6 +263,7 @@ struct MakeItRainApp: App {
                 .environment(keyModel)
                 .environment(repModel)
                 .environment(eventModel)
+                //.environment(mapModel)
         }
         #endif
     }        
@@ -319,6 +343,7 @@ struct RootViewWrapper<Content: View>: View {
     @Environment(KeywordModel.self) private var keyModel
     @Environment(RepeatingTransactionModel.self) private var repModel
     @Environment(EventModel.self) private var eventModel
+    //@Environment(MapModel.self) private var mapModel
     
     var content: Content
         
@@ -345,6 +370,7 @@ struct RootViewWrapper<Content: View>: View {
                             .environment(keyModel)
                             .environment(repModel)
                             .environment(eventModel)
+                            //.environment(mapModel)
                     )
                     rootVC.view.backgroundColor = .clear
                     
@@ -365,6 +391,7 @@ struct RootViewWrapper<Content: View>: View {
                     .environment(keyModel)
                     .environment(repModel)
                     .environment(eventModel)
+                    //.environment(mapModel)
             }
             #endif
 //            .task {
@@ -508,12 +535,13 @@ struct CalendarSheetLayerView: View {
             .overlay {
                 Rectangle()
                     .fill(Color.clear)
+                    .ignoresSafeArea(.all)
                     //.if(!AppState.shared.isIpad) {
                     #if os(iOS)
                     .fullScreenCover(isPresented: $calModel.showMonth) {
                         if let selectedMonth = NavigationManager.shared.selectedMonth {
                             if NavDestination.justMonths.contains(selectedMonth) {
-                                CalendarViewPhone(enumID: selectedMonth)
+                                CalendarViewPhone(enumID: selectedMonth)                                    
                                     .tint(Color.fromName(appColorTheme))
                                     .navigationTransition(.zoom(sourceID: selectedMonth, in: monthNavigationNamespace))
                                     .if(AppState.shared.methsExist) {
@@ -559,6 +587,7 @@ struct CalendarSheetLayerWrapper<Content: View>: View {
     @Environment(KeywordModel.self) private var keyModel
     @Environment(RepeatingTransactionModel.self) private var repModel
     @Environment(EventModel.self) private var eventModel
+    //@Environment(MapModel.self) private var mapModel
     
     
     var content: Content
@@ -588,6 +617,7 @@ struct CalendarSheetLayerWrapper<Content: View>: View {
                             .environment(keyModel)
                             .environment(repModel)
                             .environment(eventModel)
+                            //.environment(mapModel)
                     )
                     rootVC.view.backgroundColor = .clear
                     

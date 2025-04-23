@@ -208,6 +208,7 @@ struct CalendarViewMac: View {
         }
     }
     
+    
     var dayGrid: some View {
         Group {
             @Bindable var calModel = calModel

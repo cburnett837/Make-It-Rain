@@ -95,7 +95,7 @@ struct ResetMonthOptionSheet: View {
     @State private var showResetMonthAlert = false
     
     var body: some View {
-        SheetContainerView(.list) {
+        StandardContainer(.list) {
             paymentMethodSection
             budgetSection
             populatedStatusSection

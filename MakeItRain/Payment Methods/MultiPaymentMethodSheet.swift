@@ -29,51 +29,54 @@ struct MultiPaymentMethodSheet: View {
         }
     }
     
-    var body: some View {
-        SheetHeader(
-            title: "Payment Methods",
-            close: { dismiss() },
-            view1: { selectButton }
-        )
-        .padding(.bottom, 12)
-        .padding(.horizontal, 20)
-        .padding(.top)
-                
-        SearchTextField(title: "Payment Methods", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)                
-                
-        List {
-            ForEach(filteredSections) { section in
-                if !section.payMethods.isEmpty {
-                    Section(section.kind.rawValue) {
-                        ForEach(searchText.isEmpty ? section.payMethods : section.payMethods.filter { $0.title.localizedStandardContains(searchText) }) { meth in
-                            HStack {
-                                Image(systemName: "circle.fill")
-                                    .if(meth.isUnified) {
-                                        $0.foregroundStyle(AngularGradient(gradient: Gradient(colors: [.red, .yellow, .green, .blue, .purple, .red]), center: .center))
-                                    }
-                                    .if(!meth.isUnified) {
-                                        $0.foregroundStyle(meth.isUnified ? (colorScheme == .dark ? .white : .black) : meth.color, .primary, .secondary)
-                                    }
-                                Text(meth.title)
-                                    //.bold(meth.isUnified)
-                                Spacer()
-                                
-                                Image(systemName: "checkmark")
-                                    .opacity(payMethods.contains(meth) ? 1 : 0)
-                            }
-                            .contentShape(Rectangle())
-                            .onTapGesture { doIt(meth) }
-                        }
-                    }
-                }
-            }
+    var body: some View {        
+        StandardContainer(.list) {
+            content
+        } header: {
+            SheetHeader(
+                title: "Payment Methods",
+                close: { dismiss() },
+                view1: { selectButton }
+            )
+        } subHeader: {
+            SearchTextField(title: "Payment Methods", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)
+                .padding(.horizontal, -20)
         }
+                
         .task {
             sections = [
                 PaySection(kind: .debit, payMethods: payModel.paymentMethods.filter { $0.accountType == .checking }),
                 PaySection(kind: .credit, payMethods: payModel.paymentMethods.filter { $0.accountType == .credit }),
                 PaySection(kind: .other, payMethods: payModel.paymentMethods.filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking].contains($0.accountType) })
             ]
+        }
+    }
+    
+    var content: some View {
+        ForEach(filteredSections) { section in
+            if !section.payMethods.isEmpty {
+                Section(section.kind.rawValue) {
+                    ForEach(searchText.isEmpty ? section.payMethods : section.payMethods.filter { $0.title.localizedStandardContains(searchText) }) { meth in
+                        HStack {
+                            Image(systemName: "circle.fill")
+                                .if(meth.isUnified) {
+                                    $0.foregroundStyle(AngularGradient(gradient: Gradient(colors: [.red, .yellow, .green, .blue, .purple, .red]), center: .center))
+                                }
+                                .if(!meth.isUnified) {
+                                    $0.foregroundStyle(meth.isUnified ? (colorScheme == .dark ? .white : .black) : meth.color, .primary, .secondary)
+                                }
+                            Text(meth.title)
+                                //.bold(meth.isUnified)
+                            Spacer()
+                            
+                            Image(systemName: "checkmark")
+                                .opacity(payMethods.contains(meth) ? 1 : 0)
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture { doIt(meth) }
+                    }
+                }
+            }
         }
     }
     

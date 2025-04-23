@@ -21,7 +21,7 @@ struct StartingAmountSheet: View {
         @Bindable var calModel = calModel
         @Bindable var payModel = payModel
         
-        SheetContainerView(.list) {
+        StandardContainer(.list) {
             if !cashMethods.isEmpty {
                 Section("Checking / Cash") {
                     ForEach(cashMethods.startIndex..<cashMethods.endIndex, id: \.self) { i in

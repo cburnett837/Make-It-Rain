@@ -50,7 +50,8 @@ class PayMethodModel {
                                                 
 //                    payModel.upsert(payMethod)
         if payMethod.hasChanges() {
-            
+            payMethod.updatedBy = AppState.shared.user!
+            payMethod.updatedDate = Date()
             calModel.justTransactions.filter { $0.payMethod?.id == payMethod.id }.forEach {
                 $0.payMethod?.color = payMethod.color
             }
@@ -161,6 +162,9 @@ class PayMethodModel {
             
                     /// Save the cache.
                     let _ = DataManager.shared.save()
+                    
+                } else {
+                    paymentMethods.removeAll()
                 }
             }
             

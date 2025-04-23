@@ -61,81 +61,62 @@ struct LogSheet: View {
     }
     
     var body: some View {
-        VStack {
-            SheetHeader(
-                title: "Change Logs",
-                close: { dismiss() },
-                view1: { refreshButton }
-            )
-            .padding(.bottom, 12)
-            .padding(.horizontal, 20)
-            .padding(.top)
-            
-            Divider()
-            
+        StandardContainer(.plainList) {
             if showNoLogs {
                 Spacer()
                 ContentUnavailableView("No Logs", systemImage: "square.stack.3d.up.slash.fill", description: Text("Logs will appear here when changes are made."))
                 Spacer()
             } else {
-                List {
-//                    if !showLoadingSpinner {
-//                        LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
-//                            Text("What")
-//                            Text("Old")
-//                            Text("New")
-//                            //Text("Who")
-//                            //Text("When")
-//                        }
-//                        .font(.caption2)
-//                        .bold()
-//                    }
-                    
-                    ForEach(logGroups) { group in
-                        Section {
-                            ForEach(group.logs) { log in
-                                LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
-                                    Text(LogField.pretty(for: log.field) ?? "N/A")
-                                    Text(log.old ?? "-")
-                                    Text(log.new ?? "-")
-                                    //Text(log.enteredBy.initials)
-                                    //Text(log.enteredDate.string(to: .monthDayHrMinAmPm))
-                                }
-                                .font(.caption2)
-                            }
-                        } header: {
-                            VStack(alignment: .leading, spacing: 0) {
-                                Text("\(group.enteredBy.initials) - \(group.enteredDate.string(to: .monthDayShortYear)) - \(group.enteredDate.string(to: .timeAmPm))")
-                                
-//                                Text(group.enteredDate.string(to: .monthDayHrMinAmPm))
-//                                Text(group.enteredBy.initials)
-                                    .padding(.bottom, 4)
-                                
-                                LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
-                                    Text("What")
-                                    Text("Old")
-                                    Text("New")
-                                    //Text("Who")
-                                    //Text("When")
-                                }
-                                .font(.caption2)
-                                .bold()
-                                
-                            }
-                            
-                        }
-                    }
-                }
-                .listStyle(.plain)
-                #if os(iOS)
-                .listSectionSpacing(50)
-                #endif
+                content
             }
+        } header: {
+            SheetHeader(
+                title: "Change Logs",
+                close: { dismiss() },
+                view1: { refreshButton }
+            )
         }
-        
         .task {
             await fetchLogs()
         }
+    }
+    
+    var content: some View {
+        ForEach(logGroups) { group in
+            Section {
+                ForEach(group.logs) { log in
+                    LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
+                        Text(LogField.pretty(for: log.field) ?? "N/A")
+                        Text(log.old ?? "-")
+                        Text(log.new ?? "-")
+                        //Text(log.enteredBy.initials)
+                        //Text(log.enteredDate.string(to: .monthDayHrMinAmPm))
+                    }
+                    .font(.caption2)
+                }
+            } header: {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("\(group.enteredBy.initials) - \(group.enteredDate.string(to: .monthDayShortYear)) - \(group.enteredDate.string(to: .timeAmPm))")
+                    
+//                                Text(group.enteredDate.string(to: .monthDayHrMinAmPm))
+//                                Text(group.enteredBy.initials)
+                        .padding(.bottom, 4)
+                    
+                    LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
+                        Text("What")
+                        Text("Old")
+                        Text("New")
+                        //Text("Who")
+                        //Text("When")
+                    }
+                    .font(.caption2)
+                    .bold()
+                }
+            }
+        }
+        #if os(iOS)
+        .listSectionSpacing(50)
+        #endif
     }
     
     

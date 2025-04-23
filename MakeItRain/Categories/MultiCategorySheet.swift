@@ -44,7 +44,7 @@ struct MultiCategorySheet: View {
 
     
     var body: some View {
-        SheetContainerView(.list) {
+        StandardContainer(.list) {
             Section("Your Categories") {
                 ForEach(filteredCategories) { cat in
                     LineItem(cat: cat, categories: $categories, labelWidth: labelWidth)

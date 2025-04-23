@@ -10,6 +10,7 @@ import SwiftUI
 
 struct EventCategoriesTable: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(FuncModel.self) private var funcModel
     @Environment(CalendarModel.self) private var calModel
     @Environment(EventModel.self) private var eventModel
     
@@ -37,56 +38,31 @@ struct EventCategoriesTable: View {
                     }
                 }
             )
-            .padding()
-            
-            Divider()
-                .padding(.horizontal)
         }
     }
     
     var body: some View {
-        VStack(spacing: 0) {
+        StandardContainer(.plainWithSelection, selectionID: $categoryEditID) {
+            if event.categories.isEmpty {
+                ContentUnavailableView("No Categories", systemImage: "bag.fill.badge.questionmark")
+                Button("Add") {
+                    categoryEditID = UUID().uuidString
+                }
+                .frame(maxWidth: .infinity)
+                
+            } else {
+                listForPhone
+            }
+        } header: {
             header
-            listForPhone
-//            List {
-//                ForEach($event.categories.filter {$0.wrappedValue.active}) { $category in
-//                    Group {
-//                        #if os(iOS)
-//                        UITextFieldWrapper(placeholder: "Category Title", text: $category.title, toolbar: {
-//                            KeyboardToolbarView(focusedField: $focusedField)
-//                        })
-//                        .uiTag(0)
-//                        .uiTextAlignment(.left)
-//                        .uiClearButtonMode(.whileEditing)
-//                        .uiStartCursorAtEnd(true)
-//                        #else
-//                        TextField("Category Title", text: $category.title)
-//                            .multilineTextAlignment(.leading)
-//                        #endif
-//                    }
-//                    .swipeActions(allowsFullSwipe: false) {
-//                        Button {
-//                            deleteCategory = category
-//                            showDeleteAlert = true
-//                        } label: {
-//                            Image(systemName: "trash")
-//                                .tint(.red)
-//                        }
-//                    }
-//                    .focused($focusedField, equals: getFocusIndex(for: category))
-//                    
-//                }
-//                
-//                Button("Add Category") {
-//                    let category = CBEventCategory()
-//                    event.upsert(category)
-//                }
-//            }
         }
         .confirmationDialog("Delete \"\(deleteCategory?.title ?? "N.A")\"?", isPresented: $showDeleteAlert, actions: {
             if let deleteCategory {
                 Button("Yes", role: .destructive) {
                     event.deleteCategory(id: deleteCategory.id)
+                    Task {
+                        await eventModel.submit(deleteCategory)
+                    }
                 }
             }
             Button("No", role: .cancel) {
@@ -103,7 +79,13 @@ struct EventCategoriesTable: View {
             if let newValue {
                 editCategory = event.getCategory(by: newValue)
             } else {
-                event.saveCategory(id: oldValue!)
+                if event.saveCategory(id: oldValue!) {
+                    let cat = event.getCategory(by: oldValue!)
+                    Task {
+                        await eventModel.submit(cat)
+                    }
+                }
+                
             }
         }
         .sheet(item: $editCategory, onDismiss: {
@@ -121,7 +103,7 @@ struct EventCategoriesTable: View {
     
     
     var listForPhone: some View {
-        List(selection: $categoryEditID) {
+        //List(selection: $categoryEditID) {
             ForEach(event.categories.filter {$0.active}) { cat in
                 HStack(alignment: .center) {
                     Text(cat.title)
@@ -157,23 +139,25 @@ struct EventCategoriesTable: View {
                 .selectionDisabled()
                 #endif
             }
-        }
-        .listStyle(.plain)
-        #if os(iOS)
-        .standardBackground()
-        #endif
+            .onMove(perform: move)
+//        }
+//        .listStyle(.plain)
+//        #if os(iOS)
+//        .standardBackground()
+//        #endif
     }
-    
-    
-    
-    
-    
-    
-    
-    
     
     func getFocusIndex(for category: CBEventCategory) -> Int {
         return (event.categories.firstIndex(of: category) ?? 0) + 2
     }
     
+    
+    func move(from source: IndexSet, to destination: Int) {
+        event.categories.move(fromOffsets: source, toOffset: destination)
+        let listOrderUpdates = event.setListOrdersForCategories()
+        
+        Task {
+            await funcModel.submitListOrders(items: listOrderUpdates, for: .eventCategories)
+        }
+    }
 }

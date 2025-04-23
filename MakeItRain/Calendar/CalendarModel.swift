@@ -18,7 +18,7 @@ import UIKit
 
 @MainActor
 @Observable
-class CalendarModel {
+class CalendarModel: PhotoUploadCompletedDelegate {
     static let shared = CalendarModel()
     
     // MARK: - State Variables
@@ -150,9 +150,7 @@ class CalendarModel {
             
             #warning("need snapshot code")
             if let model {
-                
                 month.hasBeenPopulated = model.hasPopulated
-                
                 
                 if !createNewStructs {
                     self.handleTransactions(model.transactions, for: month, refreshTechnique: refreshTechnique)
@@ -382,7 +380,6 @@ class CalendarModel {
                     return trans.payMethod?.id == meth.id
                 }
             }
-        
             .count
     }
     
@@ -401,6 +398,7 @@ class CalendarModel {
             
             var ogObject: CBTransaction?
             
+            /// Handle smart transactions.
             if let isSmartTransaction = transaction.isSmartTransaction {
                 if isSmartTransaction && !(transaction.smartTransactionIsAcknowledged ?? true) {
                     if transaction.smartTransactionIssue != nil {
@@ -408,10 +406,18 @@ class CalendarModel {
                             tempTransactions.append(transaction)
                         }
                         continue
+                    } else {
+                        if transaction.active {
+                            AppState.shared.showToast(title: "Smart Transaction Added", subtitle: transaction.title, body: "\(transaction.prettyDate ?? "N/A")", symbol: "checkmark", symbolColor: .green)
+                        }
                     }
+                } else {
+                    /// Is acknowledged (do this to remove from other devices via long poll)
+                    tempTransactions.removeAll { $0.id == transaction.id }
                 }
             }
             
+            /// Check if the transaction exists locally.
             var dateChanged = false
             var exists = false
             months.forEach { month in
@@ -427,15 +433,18 @@ class CalendarModel {
                             
                             exists = true
                             
+                            /// Delete the transaction if applicable.
                             if !transaction.active {
                                 day.remove(transaction)
                             } else {
+                                /// Find the transaction in the appropriate day and update if applicable.
                                 if let index = day.getIndex(for: transaction) {
                                     ogObject = day.transactions[index]
                                     ogObject!.setFromAnotherInstance(transaction: transaction)
                                     ogObject!.deepCopy?.setFromAnotherInstance(transaction: transaction)
                                 }
                                 
+                                /// Set a flag that the date changed if applicable.
                                 if date != day.date {
                                     dateChanged = true
                                 }
@@ -451,25 +460,34 @@ class CalendarModel {
             if !exists {
                 ogObject = transaction
             }
-                                    
+                          
+            /// If the transaction was not found locally, or the date changed, add it to the applicable day if the month and year match the local scope.
             if !exists || dateChanged {
-                var targetMonthNum = month
-                if month == 1 && year == sYear + 1 {
-                    targetMonthNum = 13
-                } else if month == 12 && year == sYear - 1 {
-                    targetMonthNum = 0
-                }
-                
-                
-                if let targetMonth = months.filter({ $0.num == targetMonthNum }).first {
-                    if let targetDay = targetMonth.days.filter({ $0.dateComponents?.day == dayNum }).first {
-                        targetDay.upsert(ogObject!)
+//                var proceed: Bool
+//                var targetMonthNum = month
+//                if month == 1 && year == sYear + 1 {
+//                    targetMonthNum = 13
+//                    proceed = true
+//                } else if month == 12 && year == sYear - 1 {
+//                    targetMonthNum = 0
+//                    proceed = true
+//                } else if year != sYear {
+//                    proceed = false
+//                } else {
+//                    proceed = true
+//                }
+//                
+//                if proceed {
+                    if let targetMonth = months.filter({ $0.actualNum == month && $0.year == year }).first {
+                        if let targetDay = targetMonth.days.filter({ $0.dateComponents?.day == dayNum }).first {
+                            targetDay.upsert(ogObject!)
+                        }
                     }
-                }
+//                }
             }
             
+            /// Remove the transaction from the former day if the transaction date changed.
             if dateChanged {
-                /// Remove the transaction from the former day if the transaction date changed.
                 months
                 .flatMap { $0.days }
                 .filter { day in day.transactions.contains { $0.id == id && $0.date != day.date } }
@@ -494,10 +512,9 @@ class CalendarModel {
             }
         }
         
-        
+        /// Throw up the toolbar button for smart transactions that need attention.
         let newPendingSmartTransactionCount = tempTransactions.filter({ $0.isSmartTransaction ?? false }).count
-        
-        if newPendingSmartTransactionCount != pendingSmartTransactionCount {
+        if newPendingSmartTransactionCount > pendingSmartTransactionCount {
             AppState.shared.showToast(title: "Smart Transaction Issues", subtitle: "\(newPendingSmartTransactionCount) require attention", body: "", symbol: "exclamationmark.triangle", symbolColor: .orange)
         }
     }
@@ -550,8 +567,8 @@ class CalendarModel {
     
     
     func transactionIsValid(trans: CBTransaction, day: CBDay? = nil) -> Bool {
-        
         if trans.action == .delete {
+            print("-- \(#function) -- Trans is in delete mode")
             day?.remove(trans)
             return true
         }
@@ -579,6 +596,7 @@ class CalendarModel {
         
         
         if trans.date == nil && (trans.isSmartTransaction ?? false) {
+            print("-- \(#function) -- Trans date is nil and isSmartTransaction")
             Task {
                 try? await Task.sleep(nanoseconds: UInt64(0.5 * Double(NSEC_PER_SEC)))
                 AppState.shared.showToast(title: "Failed To Save", subtitle: "Date was missing", body: "", symbol: "exclamationmark.triangle", symbolColor: .orange)
@@ -736,7 +754,7 @@ class CalendarModel {
                 LogManager.networkingSuccessful()
                                 
                 if isNew {
-                    trans.id = String(model?.parentID ?? "0")
+                    trans.id = String(model?.parentID.id ?? "0")
                     trans.uuid = nil
                     trans.action = .edit
                     
@@ -788,7 +806,7 @@ class CalendarModel {
     
     
     func saveTransaction(id: String, day: CBDay? = nil, location: WhereToLookForTransaction = .normalList, eventModel: EventModel? = nil) {
-        print("-- \(#function)")
+        print("-- \(#function) - looking in \(location)")
         self.transEditID = nil
         cleanTags()
         //hilightTrans = nil
@@ -830,8 +848,9 @@ class CalendarModel {
         
         if transactionIsValid(trans: trans, day: day) {
             print("✅ Trans is valid to save")
-            /// Set the updated by user
+            /// Set the updated by user and date
             trans.updatedBy = AppState.shared.user!
+            trans.updatedDate = Date()
             
             /// Move the transaction if applicable
             if trans.dateChanged() { changeDate(trans) }
@@ -865,6 +884,7 @@ class CalendarModel {
                     let trans2 = getTransaction(by: trans.relatedTransactionID!, from: .normalList)
                     trans2.deepCopy(.create)
                     trans2.updatedBy = AppState.shared.user!
+                    trans2.updatedDate = Date()
                     
                     /// Update the linked date
                     if trans.dateChanged() {
@@ -1155,12 +1175,12 @@ class CalendarModel {
             if trans.isFromCoreData {
                 let actualTrans = justTransactions.first(where: { $0.id == trans.id })
                 if let actualTrans {
-                    actualTrans.id = String(model?.parentID ?? "0")
+                    actualTrans.id = String(model?.parentID.id ?? "0")
                     actualTrans.uuid = nil
                     actualTrans.action = .edit
                 }
             } else {
-                trans.id = String(model?.parentID ?? "0")
+                trans.id = String(model?.parentID.id ?? "0")
                 trans.uuid = nil
                 trans.action = .edit
             }
@@ -1168,12 +1188,20 @@ class CalendarModel {
             
             
             
-            /// Updated any tags that were added for the first time via this transaction with their new DBID.
+            /// Updated any tags / locations that were added for the first time via this transaction with their new DBID.
             for each in model?.childIDs ?? [] {
-                let index = tags.firstIndex(where: { $0.uuid == each.uuid })
-                if let index {
-                    tags[index].id = String(each.id)
+                if each.type == "tag" {
+                    let index = tags.firstIndex(where: { $0.uuid == each.uuid })
+                    if let index {
+                        tags[index].id = String(each.id)
+                    }
+                } else if each.type == "transaction_location" {
+                    let index = trans.locations.firstIndex(where: { $0.uuid == each.uuid })
+                    if let index {
+                        trans.locations[index].id = String(each.id)
+                    }
                 }
+                
             }
             
             isThinking = false
@@ -1386,41 +1414,6 @@ class CalendarModel {
     
     
     
-    
-    
-    @MainActor
-    func threadTestForFlask() async {
-        print("-- \(#function)")
-        //LoadingManager.shared.startDelayedSpinner()
-        LogManager.log()
-        let model = RequestModel(requestType: "thread_test", model: CodablePlaceHolder())
-            
-        /// Used to test the snapshot data race
-        //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
-        
-        typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
-                    
-        switch await result {
-        case .success(let model):
-            LogManager.networkingSuccessful()
-            print(model?.result)
-            
-        case .failure(let error):
-            LogManager.error(error.localizedDescription)
-            AppState.shared.showAlert("There was a problem trying to thread in flask.")
-            #warning("Undo behavior")
-        }
-        //LoadingManager.shared.stopDelayedSpinner()
-    }
-    
-    
-    
-    
-    
-    
-    
-    
     func createCopy(of transaction: CBTransaction) {
         print("-- \(#function)")
         #warning("Update when adding new properties to CBTransaction")
@@ -1461,7 +1454,25 @@ class CalendarModel {
         }
         return nil
     }
-            
+        
+    // MARK: - Fit Trans
+    func doesExist(_ trans: CBFitTransaction) -> Bool {
+        return !fitTrans.filter { $0.id == trans.id }.isEmpty
+    }        
+    
+    func upsert(_ trans: CBFitTransaction) {
+        if !doesExist(trans) {
+            fitTrans.append(trans)
+        }
+    }
+    
+    func getIndex(for trans: CBFitTransaction) -> Int? {
+        return fitTrans.firstIndex { $0.id == trans.id }
+    }
+    
+    func delete(_ trans: CBFitTransaction) {
+        fitTrans.removeAll { $0.id == trans.id }
+    }
     
     
     // MARK: - Budget Stuff
@@ -2188,139 +2199,71 @@ class CalendarModel {
     //var showSmartTransactionDatePickerSheet: Bool = false
     
     /// SmartTrans abandons this variable immediately after it is set and the upload starts.
-    var pictureTransactionID: String?
-    
-    
+    //var pictureTransactionID: String?
     var isUploadingSmartTransactionPicture: Bool = false
     var smartTransactionDate: Date?
         
-    /// This is the photo from the photo library.
-    var imagesFromLibrary: Array<PhotosPickerItem> = []
-    func uploadPictures() {
-        if imagesFromLibrary.isEmpty { return }
-        alertUploadingSmartReceiptIfApplicable()
-        Task {
-            await withTaskGroup(of: Void.self) { group in
-                for each in imagesFromLibrary {
-                    imagesFromLibrary.removeAll(where: { $0 == each })
-                    group.addTask {
-                        if let imageData = await PhotoModel.prepareDataFromPhotoPickerItem(image: each) {
-                            await self.uploadPicture(with: imageData)
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    
-    #if os(iOS)
-    /// This is the photo from the camera.
-    var imageFromCamera: UIImage?
-    func uploadPicture(with imageData: Data) async {
-        alertUploadingSmartReceiptIfApplicable()
-        
-        /// Capture the set variable because if you start uploading a picture on a trans, and switch to another trans before the upload completes, you will change the pictureTransactionID before the async task completes.
-        let pictureTransactionID = self.pictureTransactionID
-        let smartTransactionDate = self.smartTransactionDate
-        let isUploadingSmartTransactionPicture = self.isUploadingSmartTransactionPicture
-        
-        /// Clean up the variables so other actions can use them.
-        self.isUploadingSmartTransactionPicture = false
-        self.smartTransactionDate = nil
-        
-        let uuid = UUID().uuidString
-        //alertUploadingSmartReceiptIfApplicable()
-        
-        typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        
-        if !isUploadingSmartTransactionPicture, let pictureTransactionID = pictureTransactionID {
-            addPlaceholderPicture(transactionID: pictureTransactionID, uuid: uuid)
-        }
-                
-        if let _ = await PhotoModel.uploadPicture(
-            imageData: imageData,
-            relatedID: pictureTransactionID, //--> will be nil when uploading a smart receipt.
-            uuid: uuid,
-            isSmartTransaction: isUploadingSmartTransactionPicture,
-            smartTransactionDate: smartTransactionDate,
-            responseType: ResultResponse.self
-        ) {
-            if !isUploadingSmartTransactionPicture, let pictureTransactionID = pictureTransactionID {
-                markPlaceholderPictureAsReadyForDownload(transactionID: pictureTransactionID, uuid: uuid)
-            }
-            
-            /// Alert if the transaction has changed, or the user left the app.
-            #if os(iOS)
-            let state = UIApplication.shared.applicationState
-            if pictureTransactionID != self.pictureTransactionID || (state == .background || state == .inactive) {
-                var transTitle: String?
-                if let trans = justTransactions.filter({$0.id == pictureTransactionID}).first {
-                    transTitle = trans.title
-                }
-                
-                if !isUploadingSmartTransactionPicture {
-                    AppState.shared.alertBasedOnScenePhase(
-                        title: "Picture Successfully Uploaded",
-                        subtitle: transTitle,
-                        symbol: "photo.badge.checkmark",
-                        symbolColor: .green,
-                        inAppPreference: .toast
-                    )
-                }
-            }
-            #else
-            if pictureTransactionID != self.pictureTransactionID {
-                AppState.shared.showAlert("Picture Successfully Uploaded")
-            }
-            #endif
-            
-        } else {
-            if !isUploadingSmartTransactionPicture, let pictureTransactionID = pictureTransactionID {
-                markPictureAsFailedToUpload(transactionID: pictureTransactionID, uuid: uuid)
-            }
-            AppState.shared.alertBasedOnScenePhase(
-                title: "There was a problem uploading the picture",
-                subtitle: "Please try again.",
-                symbol: "photo",
-                symbolColor: .orange,
-                inAppPreference: .alert
-            )
-        }
-    }
-    #endif
-    
-    
-    
-//    private func uploadPictureOG(with imageData: Data) async {
-//        /// Capture the set variable because if you start uploading a picture on a trans, and switch to another trans before the upload completes, you will change the pictureTransactionID before the async task completes.
-//        let pictureTransactionID = self.pictureTransactionID
-//        
-//        let uuid = UUID().uuidString
-//        //alertUploadingSmartReceiptIfApplicable()
-//        
-//        /// Normal Photos
-//        if self.pendingSmartTransaction == nil {
-//            typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-//            addPlaceholderPicture(transactionID: pictureTransactionID!, uuid: uuid)
-//            
-//            if let _ = await PhotoModel.uploadPicture(
-//                imageData: imageData,
-//                relatedID: pictureTransactionID!,
-//                uuid: uuid,
-//                responseType: ResultResponse.self
-//            ) {
-//                markPlaceholderPictureAsReadyForDownload(transactionID: pictureTransactionID!, uuid: uuid)
-//                
-//                /// Alert if the transaction has changed, or the user left the app.
-//                #if os(iOS)
-//                let state = UIApplication.shared.applicationState
-//                if pictureTransactionID != self.pictureTransactionID || (state == .background || state == .inactive) {
-//                    var transTitle: String?
-//                    if let trans = justTransactions.filter({$0.id == pictureTransactionID}).first {
-//                        transTitle = trans.title
+//    /// This is the photo from the photo library.
+//    var imagesFromLibrary: Array<PhotosPickerItem> = []
+//    func uploadPicturesFromLibrary() {
+//        if imagesFromLibrary.isEmpty { return }
+//        alertUploadingSmartReceiptIfApplicable()
+//        Task {
+//            await withTaskGroup(of: Void.self) { group in
+//                for each in imagesFromLibrary {
+//                    imagesFromLibrary.removeAll(where: { $0 == each })
+//                    group.addTask {
+//                        if let imageData = await PhotoModel.prepareDataFromPhotoPickerItem(image: each) {
+//                            await self.uploadPhoto(with: imageData)
+//                        }
 //                    }
-//                    
+//                }
+//            }
+//        }
+//    }
+//    
+//    
+//    #if os(iOS)
+//    /// This is the photo from the camera.
+//    var imageFromCamera: UIImage?
+//    #endif
+//    func uploadPictureFromCamera() {
+//        if let imageFromCamera = imageFromCamera, let imageData = PhotoModel.prepareDataFromUIImage(image: imageFromCamera) {
+//            Task {
+//                await uploadPhoto(with: imageData)
+//            }
+//            
+//        } else {
+//            isUploadingSmartTransactionPicture = false
+//            smartTransactionDate = nil
+//        }
+//    }
+//    
+//    
+//    
+//    func uploadPhoto(with imageData: Data) async {
+//        //calModel.uploadPicture(with: imageData)
+//        for await status in PhotoModel.uploadPicture(with: imageData, delegate: self) {
+//            switch status {
+//            case .performCleanup:
+//                cleanUpPhotoVariables()
+//                
+//            case .readyForPlaceholder(let transactionID, let uuid):
+//                if let transactionID = transactionID {
+//                    addPlaceholderPicture(recordID: transactionID, uuid: uuid)
+//                }
+//                
+//            case .uploaded:
+//                break
+//                //calModel.markPlaceholderPictureAsReadyForDownload(recordID: transactionID, uuid: uuid)
+//                
+//            case .displayCompleteAlert(let transactionID, let uuid):
+//                var transTitle: String?
+//                if let trans = justTransactions.filter({ $0.id == transactionID }).first {
+//                    transTitle = trans.title
+//                }
+//                
+//                if !isUploadingSmartTransactionPicture {
 //                    AppState.shared.alertBasedOnScenePhase(
 //                        title: "Picture Successfully Uploaded",
 //                        subtitle: transTitle,
@@ -2329,330 +2272,115 @@ class CalendarModel {
 //                        inAppPreference: .toast
 //                    )
 //                }
-//                #else
-//                if pictureTransactionID != self.pictureTransactionID {
-//                    AppState.shared.showAlert("Picture Successfully Uploaded")
+//                
+//            case .readyForDownload(let transactionID, let uuid):
+//                if let transactionID = transactionID {
+//                    markPlaceholderPictureAsReadyForDownload(recordID: transactionID, uuid: uuid)
 //                }
-//                #endif
 //                
-//            } else {
-//                markPictureAsFailedToUpload(transactionID: pictureTransactionID!, uuid: uuid)
-//                AppState.shared.alertBasedOnScenePhase(
-//                    title: "There was a problem uploading the picture",
-//                    subtitle: "Please try again.",
-//                    symbol: "photo",
-//                    symbolColor: .orange,
-//                    inAppPreference: .alert
-//                )
-//            }
-//            
-//        /// Smart Receipt Photos
-//        } else {
-//            typealias ResultResponse = Result<CBTransaction?, AppError>
-//            chatGptIsThinking = true
-//            
-//            if let transaction = await PhotoModel.uploadPicture(
-//                imageData: imageData,
-//                relatedID: pictureTransactionID!,
-//                uuid: uuid,
-//                isSmartTransaction: true,
-//                responseType: ResultResponse.self
-//            ) {
-//                processSmartTransactionResult(trans: transaction)
-//                                
-//            } else {
-//                cleanUpPhotoVariables(includingTrans: true)
+//            case .failedToUpload(let transactionID, let uuid):
+//                if let transactionID = transactionID {
+//                    markPictureAsFailedToUpload(recordID: transactionID, uuid: uuid)
+//                }
 //                
-//                #if os(iOS)
-//                AppState.shared.alertBasedOnScenePhase(
-//                    title: "There was a problem analyzing the receipt",
-//                    inAppPreference: .alert
-//                )
-//                #else
-//                AppState.shared.showAlert("There was a problem analyzing the receipt.")
-//                #endif
+//            case .done:
+//                print("done")
 //            }
 //        }
 //    }
 //    
 //    
-//    private func processSmartTransactionResult(trans: CBTransaction) {
-//        @Bindable var calModel = self
+//    func uploadPictureOG(with imageData: Data) async {
+//        alertUploadingSmartReceiptIfApplicable()
 //        
-//        if self.pendingSmartTransaction?.date != nil {
-//            trans.date = self.pendingSmartTransaction?.date
+//        /// Capture the set variable because if you start uploading a picture on a trans, and switch to another trans before the upload completes, you will change the pictureTransactionID before the async task completes.
+//        let pictureTransactionID = self.pictureTransactionID
+//        let smartTransactionDate = self.smartTransactionDate
+//        let isUploadingSmartTransactionPicture = self.isUploadingSmartTransactionPicture
+//        
+//        /// Clean up the variables so other actions can use them.
+//        self.isUploadingSmartTransactionPicture = false
+//        self.smartTransactionDate = nil
+//        
+//        let uuid = UUID().uuidString
+//        //alertUploadingSmartReceiptIfApplicable()
+//        
+//        if !isUploadingSmartTransactionPicture, let pictureTransactionID = pictureTransactionID {
+//            addPlaceholderPicture(recordID: pictureTransactionID, uuid: uuid)
 //        }
-//        
-//        self.pendingSmartTransaction = trans
-//        
-//        /// Check if ChatGPT was able to determine the payment method
-//        
-//        if self.pendingSmartTransaction?.payMethod == nil && (self.pendingSmartTransaction?.date == nil || isDateFunky() != nil) {
-//            self.tempTransactions.append(self.pendingSmartTransaction!)
+//                
+//        typealias ResultResponse = Result<ResultCompleteModel?, AppError>
+//        if let _ = await PhotoModel.uploadPicture(
+//            imageData: imageData,
+//            relatedID: pictureTransactionID, //--> will be nil when uploading a smart receipt.
+//            uuid: uuid,
+//            isSmartTransaction: isUploadingSmartTransactionPicture,
+//            smartTransactionDate: smartTransactionDate,
+//            responseType: ResultResponse.self
+//        ) {
+//            if !isUploadingSmartTransactionPicture, let pictureTransactionID = pictureTransactionID {
+//                markPlaceholderPictureAsReadyForDownload(recordID: pictureTransactionID, uuid: uuid)
+//            }
 //            
+//            /// Alert if the transaction has changed, or the user left the app.
 //            #if os(iOS)
 //            let state = UIApplication.shared.applicationState
-//            if state == .background || state == .inactive {
-//                NotificationManager.shared.sendNotification(title: "Could not determine payment method for \(trans.title)", subtitle: "", body: "Please open the app to select a payment method")
+//            if pictureTransactionID != self.pictureTransactionID || (state == .background || state == .inactive) {
+//                var transTitle: String?
+//                if let trans = justTransactions.filter({$0.id == pictureTransactionID}).first {
+//                    transTitle = trans.title
+//                }
+//                
+//                if !isUploadingSmartTransactionPicture {
+//                    AppState.shared.alertBasedOnScenePhase(
+//                        title: "Picture Successfully Uploaded",
+//                        subtitle: transTitle,
+//                        symbol: "photo.badge.checkmark",
+//                        symbolColor: .green,
+//                        inAppPreference: .toast
+//                    )
+//                }
+//            }
+//            #else
+//            if pictureTransactionID != self.pictureTransactionID {
+//                AppState.shared.showAlert("Picture Successfully Uploaded")
 //            }
 //            #endif
 //            
-//            
-//            let alertConfig = AlertConfig(
-//                title: "Receipt Payment Method & Date",
-//                subtitle: "Both the payment method and date for the receipt were not determined. Would you like to alter them?",
-//                symbol: .init(name: "creditcard.trianglebadge.exclamationmark.fill", color: .orange),
-//                primaryButton:
-//                    AlertConfig.AlertButton(config: .init(text: "Save", role: .primary, function: {
-//                    AppState.shared.closeAlert()
-//                    
-//                    /// Update the date
-//                    if self.pendingSmartTransaction!.date == nil {
-//                        self.pendingSmartTransaction!.date = Date()
-//                    }
-//                    
-//                    /// Save the transaction
-//                    self.pendingSmartTransaction!.action = .edit
-//                    self.saveTransaction(id: self.pendingSmartTransaction!.id, location: .smartList)
-//                    self.cleanUpPhotoVariables(includingTrans: true)
-//                    self.tempTransactions.removeAll()
-//                    self.pendingSmartTransaction = nil
-//                })),
-//                secondaryButton:
-//                    AlertConfig.AlertButton(config: .init(text: "Cancel", role: .cancel, function: {
-//                    AppState.shared.showToast(
-//                        title: "Rejecting \(trans.title)",
-//                        subtitle: "\(trans.date?.string(to: .monthDayShortYear) ?? "Date: N/A")",
-//                        body: "Payment Method: N/A\n\(trans.amountString)",
-//                        symbol: "creditcard.trianglebadge.exclamationmark.fill",
-//                        symbolColor: .orange
-//                    )
-//                    
-//                    let trans = self.getTransaction(by: self.pendingSmartTransaction!.id, from: .smartList)
-//                    trans.action = .delete
-//                    self.saveTransaction(id: self.pendingSmartTransaction!.id, location: .smartList)
-//                    self.cleanUpPhotoVariables(includingTrans: true)
-//                    self.tempTransactions.removeAll()
-//                })),
-//                views: [
-//                    //AlertConfig.ViewConfig(content: AnyView(SmartReceiptDatePicker())),
-//                    AlertConfig.ViewConfig(content: AnyView(SmartReceiptPaymentMethodMenu()))
-//                ]
-//            )
-//            AppState.shared.showAlert(config: alertConfig)
-//            
-//            
-//            
-//            
-//            
-//            
-//        } else if self.pendingSmartTransaction?.payMethod == nil {
-//            self.tempTransactions.append(self.pendingSmartTransaction!)
-//            
-//            #if os(iOS)
-//            let state = UIApplication.shared.applicationState
-//            if state == .background || state == .inactive {
-//                NotificationManager.shared.sendNotification(title: "Could not determine payment method for \(trans.title)", subtitle: "", body: "Please open the app to select a payment method")
-//            }
-//            #endif
-//            
-//            
-//            let alertConfig = AlertConfig(
-//                title: "Receipt Payment Method",
-//                subtitle: "The payment method for the receipt was not determined. Would you like to select it?",
-//                symbol: .init(name: "creditcard.trianglebadge.exclamationmark.fill", color: .orange),
-//                primaryButton:
-//                    AlertConfig.AlertButton(config: .init(text: "Save", role: .primary, function: {
-//                    AppState.shared.closeAlert()
-//                    /// Save the transaction
-//                    self.pendingSmartTransaction!.action = .edit
-//                    self.saveTransaction(id: self.pendingSmartTransaction!.id, location: .smartList)
-//                    self.cleanUpPhotoVariables(includingTrans: true)
-//                    self.tempTransactions.removeAll()
-//                    self.pendingSmartTransaction = nil
-//                })),
-//                secondaryButton:
-//                    AlertConfig.AlertButton(config: .init(text: "Cancel", role: .cancel, function: {
-//                    AppState.shared.showToast(
-//                        title: "Rejecting \(trans.title)",
-//                        subtitle: "\(trans.date?.string(to: .monthDayShortYear) ?? "Date: N/A")",
-//                        body: "Payment Method: N/A\n\(trans.amountString)",
-//                        symbol: "creditcard.trianglebadge.exclamationmark.fill",
-//                        symbolColor: .orange
-//                    )
-//                    
-//                    let trans = self.getTransaction(by: self.pendingSmartTransaction!.id, from: .smartList)
-//                    trans.action = .delete
-//                    self.saveTransaction(id: self.pendingSmartTransaction!.id, location: .smartList)
-//                    self.cleanUpPhotoVariables(includingTrans: true)
-//                    self.tempTransactions.removeAll()
-//                })),
-//                views: [
-//                    AlertConfig.ViewConfig(content: AnyView(SmartReceiptPaymentMethodMenu())),
-//                    AlertConfig.ViewConfig(content: AnyView(Divider()))
-//                ]
-//            )
-//            AppState.shared.showAlert(config: alertConfig)
-//            
-//        /// Check if ChatGPT was able to determine the date
-//        } else if self.pendingSmartTransaction?.date == nil || isDateFunky() != nil {
-//            self.tempTransactions.append(self.pendingSmartTransaction!)
-//            
-//            /// Determine what went wrong
-//            if self.pendingSmartTransaction?.date == nil {
-//                #if os(iOS)
-//                let state = UIApplication.shared.applicationState
-//                if state == .background || state == .inactive {
-//                    NotificationManager.shared.sendNotification(title: "Could not determine date for \(trans.title)", subtitle: "", body: "Please open the app to select a date")
-//                }
-//                #endif
-//
-//                let alertConfig = AlertConfig(
-//                    title: "Receipt Date",
-//                    subtitle: "The date for the receipt was not determined. Would you like to select it?",
-//                    symbol: .init(name: "calendar.badge.exclamationmark", color: .orange),
-//                    primaryButton:
-//                        AlertConfig.AlertButton(config: .init(text: "Save", role: .primary, function: {
-//                        AppState.shared.closeAlert()
-//                        /// Update the date
-//                        if self.pendingSmartTransaction!.date == nil {
-//                            self.pendingSmartTransaction!.date = Date()
-//                        }
-//                        /// Save the transaction
-//                        self.pendingSmartTransaction!.action = .edit
-//                        self.saveTransaction(id: self.pendingSmartTransaction!.id, location: .smartList)
-//                        self.cleanUpPhotoVariables(includingTrans: true)
-//                        self.tempTransactions.removeAll()
-//                        self.pendingSmartTransaction = nil
-//                    })),
-//                    secondaryButton:
-//                        AlertConfig.AlertButton(config: .init(text: "Cancel", role: .cancel, function: {
-//                        AppState.shared.showToast(
-//                            title: "Rejecting \(trans.title)",
-//                            subtitle: "Date: N/A",
-//                            body: "\(trans.payMethod?.title ?? "N/A")\n\(trans.amountString)",
-//                            symbol: "creditcard",
-//                            symbolColor: .orange
-//                        )
-//                                                    
-//                        let trans = self.getTransaction(by: self.pendingSmartTransaction!.id, from: .smartList)
-//                        trans.action = .delete
-//                        self.saveTransaction(id: self.pendingSmartTransaction!.id, location: .smartList)
-//                        self.cleanUpPhotoVariables(includingTrans: true)
-//                        self.tempTransactions.removeAll()
-//                    })),
-//                    views: [
-//                        //AlertConfig.ViewConfig(content: AnyView(SmartReceiptDatePicker())),
-//                        AlertConfig.ViewConfig(content: AnyView(Divider()))
-//                    ]
-//                )
-//                AppState.shared.showAlert(config: alertConfig)
-//                
-//                
-//                
-//            } else {
-//                let funkyDateError = isDateFunky()
-//                var alertLingo = ""
-//                var notificationLingo = ""
-//                let funkyMonth = self.pendingSmartTransaction!.dateComponents!.month ?? 0
-//                let funkyYear = self.pendingSmartTransaction!.dateComponents!.year ?? 0
-//                                                    
-//                if funkyDateError == .funkyMonth {
-//                    alertLingo = "The month for the receipt (\(funkyMonth)) seems strange. Would you like to change it?"
-//                    notificationLingo = "The determined month (\(funkyMonth)) for \"\(trans.title)\" was strange"
-//                } else {
-//                    alertLingo = "The year for the receipt (\(funkyYear)) seems strange. Would you like to change it?"
-//                    notificationLingo = "The determined year (\(funkyYear)) for \"\(trans.title)\" was strange"
-//                }
-//                
-//                #if os(iOS)
-//                let state = UIApplication.shared.applicationState
-//                if state == .background || state == .inactive {
-//                    NotificationManager.shared.sendNotification(title: notificationLingo, subtitle: "", body: "Please open the app to select a date")
-//                }
-//                #endif
-//                                
-//                let alertConfig = AlertConfig(
-//                    title: "Receipt Date",
-//                    subtitle: alertLingo,
-//                    symbol: .init(name: "calendar.badge.exclamationmark", color: .orange),
-//                    primaryButton:
-//                        AlertConfig.AlertButton(config: .init(text: "Change", role: .primary, function: {
-//                        AppState.shared.closeAlert()
-//                        /// Update the date
-//                        if self.pendingSmartTransaction!.date == nil {
-//                            self.pendingSmartTransaction!.date = Date()
-//                        }
-//                        /// Save the transaction
-//                        self.pendingSmartTransaction!.action = .edit
-//                        self.saveTransaction(id: self.pendingSmartTransaction!.id, location: .smartList)
-//                        self.cleanUpPhotoVariables(includingTrans: true)
-//                        self.tempTransactions.removeAll()
-//                        self.pendingSmartTransaction = nil
-//                    })),
-//                    secondaryButton:
-//                        AlertConfig.AlertButton(config: .init(text: "Don't Change", function: {
-//                        self.cleanUpPhotoVariables(includingTrans: true)
-//                        self.tempTransactions.removeAll()
-//                                                            
-//                        AppState.shared.showToast(
-//                            title: "Successfully Added \(trans.title)",
-//                            subtitle: "\(trans.date?.string(to: .monthDayShortYear) ?? "Date: N/A")",
-//                            body: "\(trans.payMethod?.title ?? "N/A")\n\(trans.amountString)",
-//                            symbol: "creditcard"
-//                        )
-//                    })),
-//                    views: [
-//                        //AlertConfig.ViewConfig(content: AnyView(SmartReceiptDatePicker())),
-//                        AlertConfig.ViewConfig(content: AnyView(Divider()))
-//                    ]
-//                )
-//                AppState.shared.showAlert(config: alertConfig)
-//            }
 //        } else {
-//            self.handleTransactions([trans], refreshTechnique: .viaLongPoll)
-//            
-//            #if os(iOS)
+//            if !isUploadingSmartTransactionPicture, let pictureTransactionID = pictureTransactionID {
+//                markPictureAsFailedToUpload(recordID: pictureTransactionID, uuid: uuid)
+//            }
 //            AppState.shared.alertBasedOnScenePhase(
-//                title: "Successfully Added \(trans.title)",
-//                subtitle: "\(trans.date?.string(to: .monthDayShortYear) ?? "Date: N/A")",
-//                body: "\(trans.payMethod?.title ?? "N/A")\n\(trans.amountString)",
-//                symbol: "creditcard",
-//                inAppPreference: .toast
+//                title: "There was a problem uploading the picture",
+//                subtitle: "Please try again.",
+//                symbol: "photo",
+//                symbolColor: .orange,
+//                inAppPreference: .alert
 //            )
-//            #endif
-//                                                                            
-//            self.saveTransaction(id: self.pendingSmartTransaction!.id)
-//            self.cleanUpPhotoVariables(includingTrans: true)
 //        }
-//            
-//        
-//        func isDateFunky() -> FunkyChatGptDateError? {
-//            if let date = self.pendingSmartTransaction?.date {
-//                let month = date.month
-//                let year = date.year
-//                                                
-//                if year < self.sYear || year > self.sYear {
-//                    return .funkyYear
-//                    
-//                } else if month > self.sMonth.num + 1 || month < self.sMonth.num - 1 {
-//                    return .funkyMonth
-//                } else {
-//                    return nil
-//                }
-//                
-//            } else {
-//                return nil
-//            }
-//        }
-//        
-//        
-//        
 //    }
-//       
 //    
     
-    private func alertUploadingSmartReceiptIfApplicable() {
+    
+    func displayCompleteAlert(recordID: String, photoType: XrefItem) {
+        var transTitle: String?
+        if let trans = justTransactions.filter({ $0.id == recordID }).first {
+            transTitle = trans.title
+        }
+        
+        if !isUploadingSmartTransactionPicture {
+            AppState.shared.alertBasedOnScenePhase(
+                title: "Picture Successfully Uploaded",
+                subtitle: transTitle,
+                symbol: "photo.badge.checkmark",
+                symbolColor: .green,
+                inAppPreference: .toast
+            )
+        }
+    }
+    
+    func alertUploadingSmartReceiptIfApplicable() {
         if self.isUploadingSmartTransactionPicture {
             AppState.shared.showToast(
                 title: "Analyzing Receipt",
@@ -2663,28 +2391,24 @@ class CalendarModel {
         }
     }
     
-    private func cleanUpPhotoVariables(includingTrans: Bool) {
-        //self.chatGptIsThinking = false
-        //if includingTrans { self.pendingSmartTransaction = nil }
-        //self.imageFromLibrary = nil
+    func cleanUpPhotoVariables() {
+        self.isUploadingSmartTransactionPicture = false
+        self.smartTransactionDate = nil
         #if os(iOS)
-        self.imageFromCamera = nil
+        PhotoModel.shared.imageFromCamera = nil
         #endif
-        
-        /// Don't kill this.
-        /// Example why: If you start a smart upload, and then open a transaction, and then the smart upload says it could not determine the payment method and asks if you want to select it, and you say no - this will clear the pictureTransactionID. So if you try and upload a regular picture on the transaction you are viewing, it will fail because the pictureTransactionID is no longer set.
-        //self.pictureTransactionID = nil
     }
     
-    private func addPlaceholderPicture(transactionID: String, uuid: String) {
-        let picture = CBPicture(relatedID: transactionID, uuid: uuid)
+    
+    func addPlaceholderPicture(recordID: String, uuid: String, photoType: XrefItem) {
+        let picture = CBPicture(relatedID: recordID, uuid: uuid, photoType: photoType.enumID)
         picture.isPlaceholder = true
         
         let targetMonth = months.filter { $0.enumID == sMonth.enumID }.first!
         let targetDays = targetMonth.days
         let transactions = targetDays.flatMap({ $0.transactions })
                                                         
-        let index = transactions.firstIndex(where: { $0.id == transactionID })
+        let index = transactions.firstIndex(where: { $0.id == recordID })
         if let index {
             if let _ = transactions[index].pictures {
                 transactions[index].pictures!.append(picture)
@@ -2694,52 +2418,38 @@ class CalendarModel {
         }
     }
             
-    private func markPlaceholderPictureAsReadyForDownload(transactionID: String, uuid: String) {
+    
+    func markPlaceholderPictureAsReadyForDownload(recordID: String, uuid: String, photoType: XrefItem) {
         let targetMonth = months.filter { $0.enumID == sMonth.enumID }.first!
         let targetDays = targetMonth.days
         let transactions = targetDays.flatMap({ $0.transactions })
         
-        if let trans = transactions.filter({$0.id == transactionID}).first {
+        if let trans = transactions.filter({$0.id == recordID}).first {
             let index = trans.pictures?.firstIndex(where: { $0.uuid == uuid })
             if let index {
                 trans.pictures?[index].isPlaceholder = false
             }
         }
-                                                        
-        
-        
-        //imageFromLibrary = nil
-        #if os(iOS)
-        imageFromCamera = nil
-        #endif
-        //imageState = .empty
     }
         
-    private func markPictureAsFailedToUpload(transactionID: String, uuid: String) {
+    
+    func markPictureAsFailedToUpload(recordID: String, uuid: String, photoType: XrefItem) {
         let targetMonth = months.filter { $0.enumID == sMonth.enumID }.first!
         let targetDays = targetMonth.days
         let transactions = targetDays.flatMap({ $0.transactions })
         
-        if let trans = transactions.filter({$0.id == transactionID}).first {
+        if let trans = transactions.filter({$0.id == recordID}).first {
             let index = trans.pictures?.firstIndex(where: { $0.uuid == uuid })
             if let index {
                 trans.pictures?[index].active = false
-                
             }
         }
-        
-        
-        
-        //imageFromLibrary = nil
-        #if os(iOS)
-        imageFromCamera = nil
-        #endif
     }
     
     
-    @MainActor
-    func delete(picture: CBPicture) async {
-        if await PhotoModel.delete(picture) {
+    
+    func delete(picture: CBPicture, photoType: XrefItem) async {
+        if await PhotoModel.shared.delete(picture) {
             let targetMonth = months.filter { $0.enumID == sMonth.enumID }.first!
             let targetDays = targetMonth.days
             let transactions = targetDays.flatMap({ $0.transactions })
@@ -2752,637 +2462,4 @@ class CalendarModel {
             AppState.shared.showAlert("There was a problem trying to delete the picture.")
         }
     }
-    
-    
-//    #if os(iOS)
-//    /// This is the photo from the camera.
-//    var selectedImageOG: UIImage? {
-//        didSet {
-//            if let selectedImage {
-//                let imageData = selectedImage.jpegData(compressionQuality: 0.8) ?? Data()
-//                uploadPictureUniversal(from: imageData, pictureRelatedID: pictureTransactionID!)
-//            }
-//        }
-//    }
-//    #endif
-//    /// This is the photo from the photo library.
-//    var imageSelectionOG: PhotosPickerItem? = nil {
-//        didSet {
-//            if let imageSelection {
-//                Task {
-//                    guard let ogImageData = try await imageSelection.loadTransferable(type: Data.self) else { return }
-//                    
-//                    #if os(iOS)
-//                    guard let inputImage = UIImage(data: ogImageData) else { return }
-//                    let imageData = inputImage.jpegData(compressionQuality: 0.8) ?? Data()
-//
-//                    #else
-//                    guard let inputImage = NSImage(data: ogImageData) else { return }
-//                    let cgImage = inputImage.cgImage(forProposedRect: nil, context: nil, hints: nil)!
-//                    let bitmapRep = NSBitmapImageRep(cgImage: cgImage)
-//                    let imageData = bitmapRep.representation(using: NSBitmapImageRep.FileType.jpeg, properties: [:]) ?? Data()
-//                    #endif
-//
-//                    uploadPictureUniversal(from: imageData, pictureRelatedID: pictureTransactionID!)
-//                }
-//            }
-//        }
-//    }
-//
-//    
-//    private func uploadPictureUniversal(from imageData: Data, pictureRelatedID: String) {
-//        if self.pendingSmartTransaction != nil {
-//            AppState.shared.showToast(
-//                title: "Analyzing Receipt",
-//                subtitle: "You will be alerted when analysis is complete",
-//                body: "(Powered by ChatGPT)",
-//                symbol: "brain.fill"
-//            )
-//        }
-//        
-//        
-//        DispatchQueue.main.async {
-//            Task {
-//                let application = "budget_app" /// ** 2. Change me to add to another project
-//                let uuid = UUID().uuidString
-//                
-//                if self.pendingSmartTransaction == nil {
-//                    self.addPlaceholderPicture(transactionID: pictureRelatedID, uuid: uuid)
-//                } else {
-//                    self.chatGptIsThinking = true
-//                }
-//
-//                                                
-//                #if os(iOS)
-//                var backgroundTaskID: UIBackgroundTaskIdentifier?
-//                backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: "Upload Photo") {
-//                    UIApplication.shared.endBackgroundTask(backgroundTaskID!)
-//                    backgroundTaskID = .invalid
-//                }
-//                #endif
-//                                
-//                /// Upload to Server. If successful, add image to persons gift array. If fails, throw up a warning on the page
-//                if self.pendingSmartTransaction != nil {
-//                    typealias ResultResponse = Result<CBTransaction?, AppError>
-//                                                
-//                    async let result: ResultResponse = await NetworkManager().uploadPicture(
-//                        application: application,
-//                        recordID: pictureRelatedID,
-//                        relatedTypeID: "5",
-//                        uuid: uuid,
-//                        imageData: imageData,
-//                        isSmartTransaction: true
-//                    )
-//                                        
-//                    switch await result {
-//                    case .success(let model):
-//                        if let model {
-//                            if self.pendingSmartTransaction?.date != nil {
-//                                model.date = self.pendingSmartTransaction?.date
-//                            }
-//                            
-//                            self.pendingSmartTransaction = model
-//                            
-//                            /// Check if ChatGPT was able to determine the payment method
-//                            if self.pendingSmartTransaction?.payMethod == nil {
-//                                self.tempTransactions.append(self.pendingSmartTransaction!)
-//                                
-//                                #if os(iOS)
-//                                let state = UIApplication.shared.applicationState
-//                                if state == .background || state == .inactive {
-//                                    NotificationManager.shared.sendNotification(title: "Could not determine payment method for \(model.title)", subtitle: "", body: "Please open the app to select a payment method")
-//                                }
-//                                #endif
-//                                
-//                                AppState.shared.showAlert(
-//                                    "The payment method for the receipt was not determined. Would you like to select it?",
-//                                    buttonText1: "Yes", buttonFunction1: {
-//                                        self.showSmartTransactionPaymentMethodSheet = true
-//                                        self.cleanUpPhotoVariables(includingTrans: false)
-//                                    },
-//                                    buttonText2: "No", buttonFunction2: {
-//                                        AppState.shared.showToast(
-//                                            title: "Rejecting \(model.title)",
-//                                            subtitle: "\(model.date?.string(to: .monthDayShortYear) ?? "Date: N/A")",
-//                                            body: "Payment Method: N/A\n\(model.amountString)",
-//                                            symbol: "creditcard",
-//                                            symbolColor: .orange
-//                                        )
-//                                        
-//                                        let trans = self.getTransaction(by: self.pendingSmartTransaction!.id, from: .smartList)
-//                                        trans.action = .delete
-//                                        self.saveTransaction(id: self.pendingSmartTransaction!.id, location: .smartList)
-//                                        self.cleanUpPhotoVariables(includingTrans: true)
-//                                        self.tempTransactions.removeAll()
-//                                    }
-//                                )
-//                                
-//                            /// Check if ChatGPT was able to determine the date
-//                            } else if self.pendingSmartTransaction?.date == nil || isDateFunky() != nil {
-//                                self.tempTransactions.append(self.pendingSmartTransaction!)
-//                                
-//                                /// Determine what went wrong
-//                                if self.pendingSmartTransaction?.date == nil {
-//                                    #if os(iOS)
-//                                    let state = UIApplication.shared.applicationState
-//                                    if state == .background || state == .inactive {
-//                                        NotificationManager.shared.sendNotification(title: "Could not determine date for \(model.title)", subtitle: "", body: "Please open the app to select a date")
-//                                    }
-//                                    #endif
-//
-//                                    AppState.shared.showAlert(
-//                                        "The date for the receipt was not determined. Would you like to select it?",
-//                                        buttonText1: "Yes", buttonFunction1: {
-//                                            self.showSmartTransactionDatePickerSheet = true
-//                                            self.cleanUpPhotoVariables(includingTrans: false)
-//                                            //self.pendingSmartTransaction = nil <--- This will happen the when date picker sheet closes.
-//                                        },
-//                                        buttonText2: "No", buttonFunction2: {
-//                                            //cleanUpVariables(includingTrans: true)
-//                                            //self.tempTransactions.removeAll()
-//                                            AppState.shared.showToast(
-//                                                title: "Rejecting \(model.title)",
-//                                                subtitle: "Date: N/A",
-//                                                body: "\(model.payMethod?.title ?? "N/A")\n\(model.amountString)",
-//                                                symbol: "creditcard",
-//                                                symbolColor: .orange
-//                                            )
-//                                            
-//                                            
-//                                            let trans = self.getTransaction(by: self.pendingSmartTransaction!.id, from: .smartList)
-//                                            trans.action = .delete
-//                                            self.saveTransaction(id: self.pendingSmartTransaction!.id, location: .smartList)
-//                                            self.cleanUpPhotoVariables(includingTrans: true)
-//                                            self.tempTransactions.removeAll()
-//                                        }
-//                                    )
-//                                    
-//                                } else {
-//                                    let funkyDateError = isDateFunky()
-//                                    var alertLingo = ""
-//                                    var notificationLingo = ""
-//                                    let funkyMonth = self.pendingSmartTransaction!.dateComponents!.month ?? 0
-//                                    let funkyYear = self.pendingSmartTransaction!.dateComponents!.year ?? 0
-//                                                                        
-//                                    if funkyDateError == .funkyMonth {
-//                                        alertLingo = "The month for the receipt (\(funkyMonth)) seems strange. Would you like to change it?"
-//                                        notificationLingo = "The determined month (\(funkyMonth)) for \"\(model.title)\" was strange"
-//                                    } else {
-//                                        alertLingo = "The year for the receipt (\(funkyYear)) seems strange. Would you like to change it?"
-//                                        notificationLingo = "The determined year (\(funkyYear)) for \"\(model.title)\" was strange"
-//                                    }
-//                                    
-//                                    #if os(iOS)
-//                                    let state = UIApplication.shared.applicationState
-//                                    if state == .background || state == .inactive {
-//                                        NotificationManager.shared.sendNotification(title: notificationLingo, subtitle: "", body: "Please open the app to select a date")
-//                                    }
-//                                    #endif
-//
-//
-//                                    AppState.shared.showAlert(
-//                                        alertLingo,
-//                                        buttonText1: "Yes",
-//                                        buttonFunction1: {
-//                                            self.showSmartTransactionDatePickerSheet = true
-//                                            self.cleanUpPhotoVariables(includingTrans: false)
-//                                            //self.pendingSmartTransaction = nil <--- This will happen the when date picker sheet closes.
-//                                        },
-//                                        buttonText2: "No"
-//                                    ) {
-//                                        self.cleanUpPhotoVariables(includingTrans: true)
-//                                        self.tempTransactions.removeAll()
-//                                                                            
-//                                        AppState.shared.showToast(
-//                                            title: "Successfully Added \(model.title)",
-//                                            subtitle: "\(model.date?.string(to: .monthDayShortYear) ?? "Date: N/A")",
-//                                            body: "\(model.payMethod?.title ?? "N/A")\n\(model.amountString)",
-//                                            symbol: "creditcard"
-//                                        )
-//                                    }
-//                                }
-//                            } else {
-//                                self.handleTransactions([model], refreshTechnique: .viaLongPoll)
-//                                
-//                                #if os(iOS)
-//                                AppState.shared.alertBasedOnScenePhase(
-//                                    title: "Successfully Added \(model.title)",
-//                                    subtitle: "\(model.date?.string(to: .monthDayShortYear) ?? "Date: N/A")",
-//                                    body: "\(model.payMethod?.title ?? "N/A")\n\(model.amountString)",
-//                                    symbol: "creditcard",
-//                                    inAppPreference: .toast
-//                                )
-//                                #endif
-//                                                                                                
-//                                self.saveTransaction(id: self.pendingSmartTransaction!.id)
-//                                self.cleanUpPhotoVariables(includingTrans: true)
-//                            }
-//                        } else {
-//                            self.cleanUpPhotoVariables(includingTrans: true)
-//                            
-//                            #if os(iOS)
-//                            AppState.shared.alertBasedOnScenePhase(
-//                                title: "There was a problem analyzing the receipt.",
-//                                inAppPreference: .alert
-//                            )
-//                            #else
-//                            AppState.shared.showAlert("There was a problem analyzing the receipt.")
-//                            #endif
-//                        }
-//                        
-//                    case .failure(let error):
-//                        print(error)
-//                        self.cleanUpPhotoVariables(includingTrans: true)
-//                        AppState.shared.alertBasedOnScenePhase(
-//                            title: "There was a problem analyzing the receipt. Most likely could not determine payment method.\(error)",
-//                            inAppPreference: .alert
-//                        )
-//                    }
-//                    
-//                } else {
-//                    typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-//                    async let result: ResultResponse = await NetworkManager().uploadPicture(
-//                        application: application,
-//                        recordID: pictureRelatedID,
-//                        relatedTypeID: "5",
-//                        uuid: uuid,
-//                        imageData: imageData,
-//                        isSmartTransaction: false
-//                    )
-//                                            
-//                    switch await result {
-//                    case .success:
-//                        self.markPlaceholderPictureAsReadyForDownload(transactionID: pictureRelatedID, uuid: uuid)
-//                        
-//                    case .failure(let error):
-//                        print(error)
-//                        self.imageSelection = nil
-//                        self.pictureTransactionID = nil
-//                        //self.imageState = .failure(error)
-//                    }
-//                }
-//                
-//                #if os(iOS)
-//                UIApplication.shared.endBackgroundTask(backgroundTaskID!)
-//                backgroundTaskID = .invalid
-//                #endif
-//            }
-//        }
-//        
-//        func isDateFunky() -> FunkyChatGptDateError? {
-//            if let date = self.pendingSmartTransaction?.date {
-//                
-////                struct AcceptableCombo {
-////                    var month: Int
-////                    var year: Int
-////                }
-////                var acceptableCombos: [AcceptableCombo] = []
-////
-////                if self.sMonth.num == 12 {
-////                    acceptableCombos.append(AcceptableCombo(month: 12, year: self.sYear))
-////                    acceptableCombos.append(AcceptableCombo(month: 11, year: self.sYear))
-////                    acceptableCombos.append(AcceptableCombo(month: 13, year: self.sYear + 1))
-////                } else if self.sMonth.num == 13 {
-////                    acceptableCombos.append(AcceptableCombo(month: 12, year: self.sYear))
-////                    acceptableCombos.append(AcceptableCombo(month: 13, year: self.sYear + 1))
-////                } else if self.sMonth.num == 0 {
-////                    return .funkyMonth
-////                }
-////
-//                
-//                let month = date.month
-//                let year = date.year
-//                                                
-//                if year < self.sYear || year > self.sYear {
-//                    return .funkyYear
-//                    
-//                } else if month > self.sMonth.num + 1 || month < self.sMonth.num - 1 {
-//                    return .funkyMonth
-//                } else {
-//                    return nil
-//                }
-//                
-//            } else {
-//                return nil
-//            }
-//        }
-//        
-//        
-//    }
-//    
-//                
-//    private func uploadPictureUniversalSAFE(from imageData: Data, pictureRelatedID: String) {
-//        if self.pendingSmartTransaction != nil {
-//            AppState.shared.showToast(
-//                title: "Analyzing Receipt",
-//                subtitle: "You will be alerted when analysis is complete",
-//                body: "(Powered by ChatGPT)",
-//                symbol: "brain.fill"
-//            )
-//        }
-//        
-//        
-//        DispatchQueue.main.async {
-//            Task {
-//                let application = "budget_app" /// ** 2. Change me to add to another project
-//                let uuid = UUID().uuidString
-//                
-//                if self.pendingSmartTransaction == nil {
-//                    self.addPlaceholderPicture(transactionID: pictureRelatedID, uuid: uuid)
-//                } else {
-//                    self.chatGptIsThinking = true
-//                }
-//
-//                                                
-//                #if os(iOS)
-//                var backgroundTaskID: UIBackgroundTaskIdentifier?
-//                backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: "Upload Photo") {
-//                    UIApplication.shared.endBackgroundTask(backgroundTaskID!)
-//                    backgroundTaskID = .invalid
-//                }
-//                #endif
-//                                
-//                /// Upload to Server. If successful, add image to persons gift array. If fails, throw up a warning on the page
-//                if self.pendingSmartTransaction != nil {
-//                    typealias ResultResponse = Result<CBTransaction?, AppError>
-//                                                
-//                    async let result: ResultResponse = await NetworkManager().uploadPicture(
-//                        application: application,
-//                        recordID: pictureRelatedID,
-//                        relatedTypeID: "5",
-//                        uuid: uuid,
-//                        imageData: imageData,
-//                        isSmartTransaction: true
-//                    )
-//                                        
-//                    switch await result {
-//                    case .success(let model):
-//                        if let model {
-//                            if self.pendingSmartTransaction?.date != nil {
-//                                model.date = self.pendingSmartTransaction?.date
-//                            }
-//                            
-//                            self.pendingSmartTransaction = model
-//                            
-//                            /// Check if ChatGPT was able to determine the payment method
-//                            if self.pendingSmartTransaction?.payMethod == nil {
-//                                self.tempTransactions.append(self.pendingSmartTransaction!)
-//                                
-//                                #if os(iOS)
-//                                let state = UIApplication.shared.applicationState
-//                                if state == .background || state == .inactive {
-//                                    NotificationManager.shared.sendNotification(title: "Could not determine payment method for \(model.title)", subtitle: "", body: "Please open the app to select a payment method")
-//                                }
-//                                #endif
-//                                
-//                                AppState.shared.showAlert(
-//                                    "The payment method for the receipt was not determined. Would you like to select it?",
-//                                    buttonText1: "Yes", buttonFunction1: {
-//                                        self.showSmartTransactionPaymentMethodSheet = true
-//                                        cleanUpVariables(includingTrans: false)
-//                                    },
-//                                    buttonText2: "No", buttonFunction2: {
-//                                        AppState.shared.showToast(
-//                                            title: "Rejecting \(model.title)",
-//                                            subtitle: "\(model.date?.string(to: .monthDayShortYear) ?? "Date: N/A")",
-//                                            body: "Payment Method: N/A\n\(model.amountString)",
-//                                            symbol: "creditcard",
-//                                            symbolColor: .orange
-//                                        )
-//                                        
-//                                        let trans = self.getTransaction(by: self.pendingSmartTransaction!.id, from: .smartList)
-//                                        trans.action = .delete
-//                                        self.saveTransaction(id: self.pendingSmartTransaction!.id, location: .smartList)
-//                                        cleanUpVariables(includingTrans: true)
-//                                        self.tempTransactions.removeAll()
-//                                    }
-//                                )
-//                                
-//                            /// Check if ChatGPT was able to determine the date
-//                            } else if self.pendingSmartTransaction?.date == nil || isDateFunky() != nil {
-//                                self.tempTransactions.append(self.pendingSmartTransaction!)
-//                                
-//                                /// Determine what went wrong
-//                                if self.pendingSmartTransaction?.date == nil {
-//                                    #if os(iOS)
-//                                    let state = UIApplication.shared.applicationState
-//                                    if state == .background || state == .inactive {
-//                                        NotificationManager.shared.sendNotification(title: "Could not determine date for \(model.title)", subtitle: "", body: "Please open the app to select a date")
-//                                    }
-//                                    #endif
-//
-//                                    AppState.shared.showAlert(
-//                                        "The date for the receipt was not determined. Would you like to select it?",
-//                                        buttonText1: "Yes", buttonFunction1: {
-//                                            self.showSmartTransactionDatePickerSheet = true
-//                                            cleanUpVariables(includingTrans: false)
-//                                            //self.pendingSmartTransaction = nil <--- This will happen the when date picker sheet closes.
-//                                        },
-//                                        buttonText2: "No", buttonFunction2: {
-//                                            //cleanUpVariables(includingTrans: true)
-//                                            //self.tempTransactions.removeAll()
-//                                            AppState.shared.showToast(
-//                                                title: "Rejecting \(model.title)",
-//                                                subtitle: "Date: N/A",
-//                                                body: "\(model.payMethod?.title ?? "N/A")\n\(model.amountString)",
-//                                                symbol: "creditcard",
-//                                                symbolColor: .orange
-//                                            )
-//                                            
-//                                            
-//                                            let trans = self.getTransaction(by: self.pendingSmartTransaction!.id, from: .smartList)
-//                                            trans.action = .delete
-//                                            self.saveTransaction(id: self.pendingSmartTransaction!.id, location: .smartList)
-//                                            cleanUpVariables(includingTrans: true)
-//                                            self.tempTransactions.removeAll()
-//                                        }
-//                                    )
-//                                    
-//                                } else {
-//                                    let funkyDateError = isDateFunky()
-//                                    var alertLingo = ""
-//                                    var notificationLingo = ""
-//                                    let funkyMonth = self.pendingSmartTransaction!.dateComponents!.month ?? 0
-//                                    let funkyYear = self.pendingSmartTransaction!.dateComponents!.year ?? 0
-//                                                                        
-//                                    if funkyDateError == .funkyMonth {
-//                                        alertLingo = "The month for the receipt (\(funkyMonth)) seems strange. Would you like to change it?"
-//                                        notificationLingo = "The determined month (\(funkyMonth)) for \"\(model.title)\" was strange"
-//                                    } else {
-//                                        alertLingo = "The year for the receipt (\(funkyYear)) seems strange. Would you like to change it?"
-//                                        notificationLingo = "The determined year (\(funkyYear)) for \"\(model.title)\" was strange"
-//                                    }
-//                                    
-//                                    #if os(iOS)
-//                                    let state = UIApplication.shared.applicationState
-//                                    if state == .background || state == .inactive {
-//                                        NotificationManager.shared.sendNotification(title: notificationLingo, subtitle: "", body: "Please open the app to select a date")
-//                                    }
-//                                    #endif
-//
-//
-//                                    AppState.shared.showAlert(
-//                                        alertLingo,
-//                                        buttonText1: "Yes",
-//                                        buttonFunction1: {
-//                                            self.showSmartTransactionDatePickerSheet = true
-//                                            cleanUpVariables(includingTrans: false)
-//                                            //self.pendingSmartTransaction = nil <--- This will happen the when date picker sheet closes.
-//                                        },
-//                                        buttonText2: "No"
-//                                    ) {
-//                                        cleanUpVariables(includingTrans: true)
-//                                        self.tempTransactions.removeAll()
-//                                                                            
-//                                        AppState.shared.showToast(
-//                                            title: "Successfully Added \(model.title)",
-//                                            subtitle: "\(model.date?.string(to: .monthDayShortYear) ?? "Date: N/A")",
-//                                            body: "\(model.payMethod?.title ?? "N/A")\n\(model.amountString)",
-//                                            symbol: "creditcard"
-//                                        )
-//                                    }
-//                                }
-//                            } else {
-//                                self.handleTransactions([model], refreshTechnique: .viaLongPoll)
-//                                
-//                                #if os(iOS)
-//                                AppState.shared.alertBasedOnScenePhase(
-//                                    title: "Successfully Added \(model.title)",
-//                                    subtitle: "\(model.date?.string(to: .monthDayShortYear) ?? "Date: N/A")",
-//                                    body: "\(model.payMethod?.title ?? "N/A")\n\(model.amountString)",
-//                                    symbol: "creditcard",
-//                                    inAppPreference: .toast
-//                                )
-//                                #endif
-//                                                                                                
-//                                self.saveTransaction(id: self.pendingSmartTransaction!.id)
-//                                cleanUpVariables(includingTrans: true)
-//                            }
-//                        } else {
-//                            cleanUpVariables(includingTrans: true)
-//                            
-//                            #if os(iOS)
-//                            AppState.shared.alertBasedOnScenePhase(
-//                                title: "There was a problem analyzing the receipt.",
-//                                inAppPreference: .alert
-//                            )
-//                            #else
-//                            AppState.shared.showAlert("There was a problem analyzing the receipt.")
-//                            #endif
-//                        }
-//                        
-//                    case .failure(let error):
-//                        print(error)
-//                        cleanUpVariables(includingTrans: true)
-//                        AppState.shared.alertBasedOnScenePhase(
-//                            title: "There was a problem analyzing the receipt. Most likely could not determine payment method.\(error)",
-//                            inAppPreference: .alert
-//                        )
-//                    }
-//                    
-//                } else {
-//                    typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-//                    async let result: ResultResponse = await NetworkManager().uploadPicture(
-//                        application: application,
-//                        recordID: pictureRelatedID,
-//                        relatedTypeID: "5",
-//                        uuid: uuid,
-//                        imageData: imageData,
-//                        isSmartTransaction: false
-//                    )
-//                                            
-//                    switch await result {
-//                    case .success:
-//                        self.markPlaceholderPictureAsReadyForDownload(transactionID: pictureRelatedID, uuid: uuid)
-//                        
-//                    case .failure(let error):
-//                        print(error)
-//                        self.imageSelection = nil
-//                        self.pictureTransactionID = nil
-//                        //self.imageState = .failure(error)
-//                    }
-//                }
-//                
-//                #if os(iOS)
-//                UIApplication.shared.endBackgroundTask(backgroundTaskID!)
-//                backgroundTaskID = .invalid
-//                #endif
-//            }
-//        }
-//        
-//        func isDateFunky() -> FunkyChatGptDateError? {
-//            if let date = self.pendingSmartTransaction?.date {
-//                
-////                struct AcceptableCombo {
-////                    var month: Int
-////                    var year: Int
-////                }
-////                var acceptableCombos: [AcceptableCombo] = []
-////
-////                if self.sMonth.num == 12 {
-////                    acceptableCombos.append(AcceptableCombo(month: 12, year: self.sYear))
-////                    acceptableCombos.append(AcceptableCombo(month: 11, year: self.sYear))
-////                    acceptableCombos.append(AcceptableCombo(month: 13, year: self.sYear + 1))
-////                } else if self.sMonth.num == 13 {
-////                    acceptableCombos.append(AcceptableCombo(month: 12, year: self.sYear))
-////                    acceptableCombos.append(AcceptableCombo(month: 13, year: self.sYear + 1))
-////                } else if self.sMonth.num == 0 {
-////                    return .funkyMonth
-////                }
-////
-//                
-//                let month = date.month
-//                let year = date.year
-//                                                
-//                if year < self.sYear || year > self.sYear {
-//                    return .funkyYear
-//                    
-//                } else if month > self.sMonth.num + 1 || month < self.sMonth.num - 1 {
-//                    return .funkyMonth
-//                } else {
-//                    return nil
-//                }
-//                
-//            } else {
-//                return nil
-//            }
-//        }
-//        
-//        func cleanUpVariables(includingTrans: Bool) {
-//            self.chatGptIsThinking = false
-//            if includingTrans { self.pendingSmartTransaction = nil }
-//            self.imageSelection = nil
-//            //self.pictureTransactionID = nil
-//        }
-//    }
-//    
-//
-//    
-//    struct TransferableImage: Transferable {
-//        #if os(macOS)
-//            let image: NSImage
-//        #else
-//            let image: UIImage
-//        #endif
-//        
-//        static var transferRepresentation: some TransferRepresentation {
-//            DataRepresentation(importedContentType: .image) { data in
-//            #if os(macOS)
-//                guard let nsImage = NSImage(data: data) else {
-//                    throw TransferError.importFailed
-//                }
-//                return TransferableImage(image: nsImage)
-//                
-//            #elseif canImport(UIKit)
-//                guard let uiImage = UIImage(data: data) else {
-//                    throw TransferError.importFailed
-//                }
-//                return TransferableImage(image: uiImage)
-//            #else
-//                throw TransferError.importFailed
-//            #endif
-//            }
-//        }
-//    }
-//                
 }

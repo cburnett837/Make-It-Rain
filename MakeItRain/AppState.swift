@@ -46,6 +46,8 @@ class AppState {
     var isIpad: Bool { UIDevice.current.userInterfaceIdiom == .pad }
     var isIphoneInLandscape: Bool { UIDevice.current.userInterfaceIdiom == .phone && isLandscape }
     var isIphoneInPortrait: Bool { UIDevice.current.userInterfaceIdiom == .phone && !isLandscape }
+    #else
+    var isIpad: Bool = false
     #endif
 
     //var holdSplash = true
@@ -65,6 +67,10 @@ class AppState {
     }
     
     
+    var openOrClosedRecords: Array<CBOpenOrClosedRecord> = []
+    
+    
+    
     init() {
         if let ud = UserDefaults.standard.data(forKey: "user") {
             do {
@@ -82,6 +88,14 @@ class AppState {
             return AppState.shared.user!.id == user.id
         } else {
             return false
+        }
+    }
+    
+    func user(isNot user: CBUser?) -> Bool {
+        if let user {
+            return AppState.shared.user!.id != user.id
+        } else {
+            return true
         }
     }
     
@@ -125,6 +139,10 @@ class AppState {
             return true
         }
     }
+    
+    
+    
+    
     
     func alertBasedOnScenePhase(
         title: String,
@@ -278,5 +296,22 @@ class AppState {
             self.showCustomAlert = true
         }
     }
+    
+    
+    #if os(iOS)
+    func beginBackgroundTask() -> UIBackgroundTaskIdentifier? {
+        var backgroundTaskID: UIBackgroundTaskIdentifier?
+        backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: "markEvent") {
+            UIApplication.shared.endBackgroundTask(backgroundTaskID!)
+            backgroundTaskID = .invalid
+        }
+        return backgroundTaskID
+    }
+    
+    func endBackgroundTask(_ backgroundTaskID: inout UIBackgroundTaskIdentifier) {
+        UIApplication.shared.endBackgroundTask(backgroundTaskID)
+        backgroundTaskID = .invalid
+    }
+    #endif
 }
 

@@ -68,7 +68,7 @@ struct EventCategoryView: View {
     
     
     var categoryPage: some View {
-        SheetContainerView {
+        StandardContainer {
             LabeledRow("Name", labelWidth) {
                 #if os(iOS)
                 StandardUITextField("Title", text: $category.title, toolbar: {

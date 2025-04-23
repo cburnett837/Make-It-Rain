@@ -66,29 +66,32 @@ struct NavSidebar: View {
                     .standardNavRowBackground()
                 }
                 
-                Spacer()
-                    .frame(height: 20)
-                
-                VStack(spacing: 0) {
-                    if AppState.shared.methsExist {
-                        NavLinkPhone(destination: .repeatingTransactions, title: "Reoccuring Transactions", image: "repeat", linkWidth: linkWidth, linkHeight: linkHeight)
-                            .listRowSeparator(.hidden)
-                    }
+                if AppState.shared.isIpad {
+                    Spacer()
+                        .frame(height: 20)
                     
-                    NavLinkPhone(destination: .paymentMethods, title: "Payment Methods", image: "creditcard", linkWidth: linkWidth, linkHeight: linkHeight)
-                        .listRowSeparator(.hidden)
-                    
-                    if AppState.shared.methsExist {
-                        NavLinkPhone(destination: .categories, title: "Categories", image: "books.vertical", linkWidth: linkWidth, linkHeight: linkHeight)
+                    VStack(spacing: 0) {
+                        if AppState.shared.methsExist {
+                            NavLinkPhone(destination: .repeatingTransactions, title: "Reoccuring Transactions", image: "repeat", linkWidth: linkWidth, linkHeight: linkHeight)
+                                .listRowSeparator(.hidden)
+                        }
+                        
+                        NavLinkPhone(destination: .paymentMethods, title: "Payment Methods", image: "creditcard", linkWidth: linkWidth, linkHeight: linkHeight)
                             .listRowSeparator(.hidden)
                         
-                        NavLinkPhone(destination: .keywords, title: "Keywords", image: "textformat.abc.dottedunderline", linkWidth: linkWidth, linkHeight: linkHeight)
-                            .listRowSeparator(.hidden)
-                        
-                        NavLinkPhone(destination: .events, title: "Events", image: "beach.umbrella", linkWidth: linkWidth, linkHeight: linkHeight)
-                            .listRowSeparator(.hidden)
+                        if AppState.shared.methsExist {
+                            NavLinkPhone(destination: .categories, title: "Categories", image: "books.vertical", linkWidth: linkWidth, linkHeight: linkHeight)
+                                .listRowSeparator(.hidden)
+                            
+                            NavLinkPhone(destination: .keywords, title: "Keywords", image: "textformat.abc.dottedunderline", linkWidth: linkWidth, linkHeight: linkHeight)
+                                .listRowSeparator(.hidden)
+                            
+                            NavLinkPhone(destination: .events, title: "Events", image: "beach.umbrella", linkWidth: linkWidth, linkHeight: linkHeight)
+                                .listRowSeparator(.hidden)
+                        }
                     }
                 }
+                
             }
             //.padding(.horizontal, 15)
             .listStyle(.plain)

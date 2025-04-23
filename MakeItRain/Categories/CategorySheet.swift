@@ -86,7 +86,7 @@ struct CategorySheet: View {
     
     
     var body: some View {
-        SheetContainerView(.list) {
+        StandardContainer(.list) {
             noneSection
             yourCategoriesSection
         } header: {
@@ -195,3 +195,8 @@ struct CategorySheet: View {
         dismiss()
     }
 }
+
+
+
+
+

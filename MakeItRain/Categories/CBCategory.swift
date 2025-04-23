@@ -23,8 +23,12 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
     var action: CategoryAction
     var isIncome: Bool
     var listOrder: Int?
+    var enteredBy: CBUser = AppState.shared.user!
+    var updatedBy: CBUser = AppState.shared.user!
+    var enteredDate: Date
+    var updatedDate: Date
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, hex_code, emoji, active, user_id, account_id, device_uuid, is_income, list_order }
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, hex_code, emoji, active, user_id, account_id, device_uuid, is_income, list_order, entered_by, updated_by, entered_date, updated_date }
         
     init() {
         let uuid = UUID().uuidString
@@ -37,6 +41,10 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         self.active = true
         self.action = .add
         self.isIncome = false
+        self.enteredBy = AppState.shared.user!
+        self.updatedBy = AppState.shared.user!
+        self.enteredDate = Date()
+        self.updatedDate = Date()
     }
     
     init(uuid: String) {
@@ -49,6 +57,10 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         self.active = true
         self.action = .add
         self.isIncome = false
+        self.enteredBy = AppState.shared.user!
+        self.updatedBy = AppState.shared.user!
+        self.enteredDate = Date()
+        self.updatedDate = Date()
     }
     
     
@@ -65,6 +77,10 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         self.amountString = entity.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
         self.isIncome = entity.isIncome
         self.listOrder = Int(entity.listOrder)
+        self.enteredBy = AppState.shared.user!
+        self.updatedBy = AppState.shared.user!
+        self.enteredDate = Date()
+        self.updatedDate = Date()
     }
     
 //    init(entity: TempCategory) {
@@ -94,6 +110,10 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
         try container.encode(isIncome ? 1 : 0, forKey: .is_income)
         try container.encode(listOrder, forKey: .list_order)
+        try container.encode(enteredBy, forKey: .entered_by) // for the Transferable protocol
+        try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
+        try container.encode(enteredDate.string(to: .serverDateTime), forKey: .entered_date) // for the Transferable protocol
+        try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date) // for the Transferable protocol
     }
     
     
@@ -126,6 +146,23 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         listOrder = try container.decode(Int?.self, forKey: .list_order)
         
         action = .edit
+        
+        enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
+        updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
+        
+        let enteredDate = try container.decode(String?.self, forKey: .entered_date)
+        if let enteredDate {
+            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime)!
+        } else {
+            fatalError("Could not determine enteredDate date")
+        }
+        
+        let updatedDate = try container.decode(String?.self, forKey: .updated_date)
+        if let updatedDate {
+            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
+        } else {
+            fatalError("Could not determine updatedDate date")
+        }
     }
     
     

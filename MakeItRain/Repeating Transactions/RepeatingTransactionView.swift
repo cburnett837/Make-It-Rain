@@ -54,7 +54,7 @@ struct RepeatingTransactionView: View {
 //    }
         
     var body: some View {
-        SheetContainerView {
+        StandardContainer {
             LabeledRow("Name", labelWidth) {
                 #if os(iOS)
                 StandardUITextField("Amount", text: $repTransaction.title, onSubmit: {

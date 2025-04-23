@@ -11,7 +11,7 @@ struct PaymentMethodSheetButton: View {
     @State private var showPayMethodSheet = false
     @State private var payMethodMenuColor: Color = Color(.tertiarySystemFill)
     @Binding var payMethod: CBPaymentMethod?
-    var trans: CBTransaction?
+    var trans: CBTransaction? = nil
     var saveOnChange: Bool = false
     let whichPaymentMethods: ApplicablePaymentMethods
     
@@ -31,3 +31,6 @@ struct PaymentMethodSheetButton: View {
         }
     }
 }
+
+
+

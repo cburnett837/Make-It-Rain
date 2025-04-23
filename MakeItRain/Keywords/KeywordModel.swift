@@ -38,8 +38,7 @@ class KeywordModel {
     
     func saveKeyword(id: String) {
         let keyword = getKeyword(by: id)
-        Task {
-            
+        Task {            
             if keyword.keyword.isEmpty {
                 if keyword.action != .add && keyword.keyword.isEmpty {
                     keyword.keyword = keyword.deepCopy?.keyword ?? ""
@@ -51,6 +50,8 @@ class KeywordModel {
             }
                                 
             if keyword.hasChanges() {
+                keyword.updatedBy = AppState.shared.user!
+                keyword.updatedDate = Date()
                 let _ = await submit(keyword)
             }
         }
@@ -147,6 +148,9 @@ class KeywordModel {
             
                     /// Save the cache.
                     let _ = DataManager.shared.save()
+                    
+                } else {
+                    keywords.removeAll()
                 }
             }
             
@@ -172,11 +176,7 @@ class KeywordModel {
         
         //LoadingManager.shared.startDelayedSpinner()
         LogManager.log()
-        
-        
-        
-        
-        
+                                        
         guard let entity = DataManager.shared.getOne(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: true) else { return false }
                         
         entity.id = keyword.id

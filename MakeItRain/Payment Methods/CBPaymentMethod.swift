@@ -34,6 +34,10 @@ class CBPaymentMethod: Codable, Identifiable {
     var notificationOffset: Int? = 0
     var notifyOnDueDate: Bool = false
     var last4: String?
+    var enteredBy: CBUser = AppState.shared.user!
+    var updatedBy: CBUser = AppState.shared.user!
+    var enteredDate: Date
+    var updatedDate: Date
     
     var isUnified: Bool {
         accountType == .unifiedChecking || accountType == .unifiedCredit
@@ -53,6 +57,10 @@ class CBPaymentMethod: Codable, Identifiable {
         self.notificationOffset = 0
         self.notifyOnDueDate = false
         self.last4 = nil
+        self.enteredBy = AppState.shared.user!
+        self.updatedBy = AppState.shared.user!
+        self.enteredDate = Date()
+        self.updatedDate = Date()
     }
     
     init(uuid: String) {
@@ -67,6 +75,10 @@ class CBPaymentMethod: Codable, Identifiable {
         self.notificationOffset = 0
         self.notifyOnDueDate = false
         self.last4 = nil
+        self.enteredBy = AppState.shared.user!
+        self.updatedBy = AppState.shared.user!
+        self.enteredDate = Date()
+        self.updatedDate = Date()
     }
     
 //    init(unifiedAccountType: AccountType) {
@@ -86,8 +98,7 @@ class CBPaymentMethod: Codable, Identifiable {
 //        self.action = .edit
 //        self.color = .white
 //        self.active = true
-//    }
-    
+//    
     init(entity: PersistentPaymentMethod) {
         self.id = entity.id!
         self.title = entity.title ?? ""
@@ -105,10 +116,14 @@ class CBPaymentMethod: Codable, Identifiable {
         self.notificationOffset = Int(entity.notificationOffset)
         self.notifyOnDueDate = entity.notifyOnDueDate
         self.last4 = entity.last4
+        self.enteredBy = AppState.shared.user!
+        self.updatedBy = AppState.shared.user!
+        self.enteredDate = Date()
+        self.updatedDate = Date()
     }
     
     
-    enum CodingKeys: CodingKey { case id, uuid, title, due_date, limit, account_type, hex_code, is_default, active, user_id, account_id, device_uuid, notification_offset, notify_on_due_date, last_4_digits }
+    enum CodingKeys: CodingKey { case id, uuid, title, due_date, limit, account_type, hex_code, is_default, active, user_id, account_id, device_uuid, notification_offset, notify_on_due_date, last_4_digits, entered_by, updated_by, entered_date, updated_date }
     
     
     func encode(to encoder: Encoder) throws {
@@ -129,6 +144,10 @@ class CBPaymentMethod: Codable, Identifiable {
         try container.encode(notificationOffset, forKey: .notification_offset)
         try container.encode(notifyOnDueDate ? 1 : 0, forKey: .notify_on_due_date)
         try container.encode(last4, forKey: .last_4_digits)
+        try container.encode(enteredBy, forKey: .entered_by) // for the Transferable protocol
+        try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
+        try container.encode(enteredDate.string(to: .serverDateTime), forKey: .entered_date) // for the Transferable protocol
+        try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date) // for the Transferable protocol
     }
     
     
@@ -175,6 +194,23 @@ class CBPaymentMethod: Codable, Identifiable {
         self.last4 = try container.decode(String?.self, forKey: .last_4_digits)
         
         action = .edit
+        
+        enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
+        updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
+        
+        let enteredDate = try container.decode(String?.self, forKey: .entered_date)
+        if let enteredDate {
+            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime)!
+        } else {
+            fatalError("Could not determine enteredDate date")
+        }
+        
+        let updatedDate = try container.decode(String?.self, forKey: .updated_date)
+        if let updatedDate {
+            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
+        } else {
+            fatalError("Could not determine updatedDate date")
+        }
     }
     
     

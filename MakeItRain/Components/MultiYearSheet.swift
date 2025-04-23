@@ -15,18 +15,7 @@ struct MultiYearSheet: View {
     var nowishYears: [Int] { [AppState.shared.todayYear - 1, AppState.shared.todayYear, AppState.shared.todayYear + 1] }
     
     var body: some View {
-        SheetHeader(
-            title: "Years",
-            close: { dismiss() },
-            view1: { selectButton }
-        )
-        .padding(.bottom, 12)
-        .padding(.horizontal, 20)
-        .padding(.top)
-        
-        Divider()
-        
-        List {
+        StandardContainer(.list) {
             Section("Now(ish) Years") {
                 ForEach(nowishYears) { year in
                     LineItem(year: year, years: $years)
@@ -38,6 +27,12 @@ struct MultiYearSheet: View {
                     LineItem(year: year, years: $years)
                 }
             }
+        } header: {
+            SheetHeader(
+                title: "Years",
+                close: { dismiss() },
+                view1: { selectButton }
+            )
         }
         .task {
             if !years.contains(AppState.shared.todayYear) {

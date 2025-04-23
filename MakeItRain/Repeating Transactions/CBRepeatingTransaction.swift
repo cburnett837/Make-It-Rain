@@ -28,6 +28,10 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
     var when: Array<CBRepeatingTransactionWhen>
     var active: Bool
     var action: RepeatingTransactionAction
+    var enteredBy: CBUser = AppState.shared.user!
+    var updatedBy: CBUser = AppState.shared.user!
+    var enteredDate: Date
+    var updatedDate: Date
     
     init() {
         let uuid = UUID().uuidString
@@ -42,6 +46,10 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         self.category = nil
         self.active = true
         self.action = .add
+        self.enteredBy = AppState.shared.user!
+        self.updatedBy = AppState.shared.user!
+        self.enteredDate = Date()
+        self.updatedDate = Date()
         self.when = [
             CBRepeatingTransactionWhen(when: "sunday", displayTitle: "Sun", whenType: .weekday),
             CBRepeatingTransactionWhen(when: "monday", displayTitle: "Mon", whenType: .weekday),
@@ -109,6 +117,10 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         self.category = nil
         self.active = true
         self.action = .add
+        self.enteredBy = AppState.shared.user!
+        self.updatedBy = AppState.shared.user!
+        self.enteredDate = Date()
+        self.updatedDate = Date()
         self.when = [
             CBRepeatingTransactionWhen(when: "sunday", displayTitle: "Sun", whenType: .weekday),
             CBRepeatingTransactionWhen(when: "monday", displayTitle: "Mon", whenType: .weekday),
@@ -163,7 +175,7 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         ]
     }
         
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, title_hex_code, payment_method, category, active, user_id, account_id, device_uuid, when, sunday, monday, tuesday, wednesday, thursday, friday, saturday, january, february, march, april, may, june, july, august, september, october, november, december, day1, day2, day3, day4, day5, day6, day7, day8, day9, day10, day11, day12, day13, day14, day15, day16, day17, day18, day19, day20, day21, day22, day23, day24, day25, day26, day27, day28, day29, day30, day31
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, title_hex_code, payment_method, category, active, user_id, account_id, device_uuid, when, sunday, monday, tuesday, wednesday, thursday, friday, saturday, january, february, march, april, may, june, july, august, september, october, november, december, day1, day2, day3, day4, day5, day6, day7, day8, day9, day10, day11, day12, day13, day14, day15, day16, day17, day18, day19, day20, day21, day22, day23, day24, day25, day26, day27, day28, day29, day30, day31, entered_by, updated_by, entered_date, updated_date
         }
     
     
@@ -233,6 +245,10 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         try container.encode(AppState.shared.user?.id, forKey: .user_id)
         try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
         try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
+        try container.encode(enteredBy, forKey: .entered_by) // for the Transferable protocol
+        try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
+        try container.encode(enteredDate.string(to: .serverDateTime), forKey: .entered_date) // for the Transferable protocol
+        try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date) // for the Transferable protocol
     }
     
     
@@ -269,6 +285,23 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         self.active = isActive == 1 ? true : false
         
         action = .edit
+        
+        enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
+        updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
+        
+        let enteredDate = try container.decode(String?.self, forKey: .entered_date)
+        if let enteredDate {
+            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime)!
+        } else {
+            fatalError("Could not determine enteredDate date")
+        }
+        
+        let updatedDate = try container.decode(String?.self, forKey: .updated_date)
+        if let updatedDate {
+            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
+        } else {
+            fatalError("Could not determine updatedDate date")
+        }
     }
     
     

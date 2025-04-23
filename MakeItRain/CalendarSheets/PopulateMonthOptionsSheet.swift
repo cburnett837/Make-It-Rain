@@ -35,7 +35,7 @@ struct PopulateMonthOptionsSheet: View {
     @State private var model = PopulateOptions()
     
     var body: some View {
-        SheetContainerView(.list) {
+        StandardContainer(.list) {
             paymentMethodSection
             budgetSection
         } header: {

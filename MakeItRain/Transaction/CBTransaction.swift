@@ -10,9 +10,7 @@ import UniformTypeIdentifiers
 import SwiftUI
 
 @Observable
-class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
-    //var undoManager: TransUndoManager?
-    
+class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, CanEditTitleWithLocation, CanEditAmount {    
     var id: String
     var uuid: String?
     var fitID: String?
@@ -23,6 +21,14 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         Double(amountString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
     }
     var amountString: String
+    var amountTypeLingo: String {
+        if payMethod?.accountType == .credit {
+            amountString.contains("-") ? "Payment" : "Expense"
+        } else {
+            amountString.contains("-") ? "Expense" : "Income"
+        }
+    }
+    
     var date: Date?
     
     var prettyDate: String? {
@@ -57,6 +63,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
     var enteredDate: Date
     var updatedDate: Date
     
+    var locations: Array<CBLocation>
     var pictures: Array<CBPicture>?
     var tags: Array<CBTag>
     
@@ -115,6 +122,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         self.orderNumber = ""
         self.url = ""
         self.tags = []
+        self.locations = []
         self.wasAddedFromPopulate = false
         
        // self.undoManager = TransUndoManager(trans: self)
@@ -141,6 +149,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         self.orderNumber = ""
         self.url = ""
         self.tags = []
+        self.locations = []
         self.wasAddedFromPopulate = false
         
         //self.undoManager = TransUndoManager(trans: self)
@@ -178,6 +187,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         }
 
         self.tags = []
+        self.locations = []
         self.enteredDate = entity.enteredDate ?? Date()
         self.updatedDate = entity.updatedDate ?? Date()
         self.factorInCalculations = entity.factorInCalculations
@@ -214,6 +224,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         self.orderNumber = ""
         self.url = ""
         self.tags = []
+        self.locations = []
         self.wasAddedFromPopulate = true
         
         //self.undoManager = TransUndoManager(trans: self)
@@ -240,6 +251,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         self.orderNumber = ""
         self.url = ""
         self.tags = []
+        self.locations = []
         self.wasAddedFromPopulate = false
                 
         self.action = eventTrans.actionForRealTransaction!
@@ -267,13 +279,14 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         self.url = ""
         self.notes = "(Added via F.I.T.)"
         self.tags = []
+        self.locations = []
         self.wasAddedFromPopulate = false
                 
         self.action = .add
     }
     
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, entered_date, updated_date, pictures, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, related_transaction_type_id, fit_id, is_smart_transaction, smart_transaction_issue_id, smart_transaction_is_acknowledged }
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, entered_date, updated_date, pictures, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, related_transaction_type_id, fit_id, is_smart_transaction, smart_transaction_issue_id, smart_transaction_is_acknowledged, locations }
     
     
     func encode(to encoder: Encoder) throws {
@@ -300,6 +313,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date) // for the Transferable protocol
         try container.encode(pictures, forKey: .pictures)
         try container.encode(tags, forKey: .tags)
+        try container.encode(locations, forKey: .locations)
         try container.encode(notificationOffset, forKey: .notification_offset)
         try container.encode(notifyOnDueDate ? 1 : 0, forKey: .notify_on_due_date)
         
@@ -369,11 +383,12 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         self.notifyOnDueDate = notifyOnDueDate == 1
         
         
-        enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
-        updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
+        self.enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
+        self.updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
         
-        pictures = try container.decode(Array<CBPicture>?.self, forKey: .pictures)
-        tags = try container.decode(Array<CBTag>?.self, forKey: .tags) ?? []
+        self.pictures = try container.decode(Array<CBPicture>?.self, forKey: .pictures)
+        self.tags = try container.decode(Array<CBTag>?.self, forKey: .tags) ?? []
+        self.locations = try container.decode(Array<CBLocation>.self, forKey: .locations)
         
         let relatedTransactionTypeID = try container.decode(Int?.self, forKey: .related_transaction_type_id)
         if let relatedTransactionTypeID = relatedTransactionTypeID {
@@ -382,7 +397,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         
 
         
-        action = .edit
+        self.action = .edit
         //factorInCalculations = true
         
         let date = try container.decode(String?.self, forKey: .date)
@@ -487,6 +502,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
             && self.factorInCalculations == deepCopy.factorInCalculations
             && self.color == deepCopy.color
             && self.tags == deepCopy.tags
+            && self.locations == deepCopy.locations
             && self.notificationOffset == deepCopy.notificationOffset
             && self.notifyOnDueDate == deepCopy.notifyOnDueDate
             && self.trackingNumber == deepCopy.trackingNumber
@@ -578,6 +594,8 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
             copy.factorInCalculations = self.factorInCalculations
             copy.color = self.color
             copy.tags = self.tags
+            //copy.locations = self.locations
+            copy.locations = self.locations.compactMap ({ $0.deepCopy(.create); return $0.deepCopy })
             copy.enteredDate = self.enteredDate
             copy.updatedDate = self.updatedDate
             copy.enteredBy = self.enteredBy
@@ -606,6 +624,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
                 self.factorInCalculations = deepCopy.factorInCalculations
                 self.color = deepCopy.color
                 self.tags = deepCopy.tags
+                self.locations = deepCopy.locations
                 self.enteredDate = deepCopy.enteredDate
                 self.updatedDate = deepCopy.updatedDate
                 self.enteredBy = deepCopy.enteredBy
@@ -640,6 +659,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
             deepCopy?.orderNumber = ""
             deepCopy?.url = ""
             deepCopy?.tags = []
+            deepCopy?.locations = []
             deepCopy?.wasAddedFromPopulate = false
         }
     }
@@ -662,6 +682,17 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         self.enteredBy = transaction.enteredBy
         self.updatedBy = transaction.updatedBy
         self.pictures = transaction.pictures
+        
+        #warning("If I add the ability to rename these locations manually, then we need to change the setting to preserve the object identity.")
+        self.locations = transaction.locations
+//        self.locations.forEach {
+//            $0.setFromAnotherInstance(location: <#T##CBLocation#>)
+//        }
+//        
+//        self.locations = transaction.locations.compactMap ({
+//            $0.setFromAnotherInstance(location: $0)
+//            return $0
+//        })
         self.factorInCalculations = transaction.factorInCalculations
         self.notificationOffset = transaction.notificationOffset
         self.notifyOnDueDate = transaction.notifyOnDueDate
@@ -755,6 +786,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         && lhs.factorInCalculations == rhs.factorInCalculations
         && lhs.color == rhs.color
         && lhs.tags == rhs.tags
+        && lhs.locations == rhs.locations
         && lhs.date == rhs.date
         && lhs.enteredDate == rhs.enteredDate
         && lhs.updatedDate == rhs.updatedDate
@@ -771,6 +803,41 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
         }
         return false
     }
+    
+    
+    // MARK: - Locations
+    func doesExist(_ location: CBLocation) -> Bool {
+        return !locations.filter { $0.id == location.id }.isEmpty
+    }
+    
+    func upsert(_ location: CBLocation) {
+        if !doesExist(location) {
+            /// Enforce only allowing 1 item
+            for each in locations {
+                if each.action == .add {
+                    locations.removeAll(where: {$0.id == each.id})
+                } else {
+                    each.action = .delete
+                    each.active = false
+                }
+            }
+            
+            locations.append(location)
+        }
+    }
+    
+    func deleteLocation(id: String) {
+        let index = locations.firstIndex(where: {$0.id == id})
+        if let index {
+            locations[index].active = false
+            locations[index].action = .delete
+        } else {
+            print("CANT FIND LOCATION")
+        }
+    }
+    
+    
+    
     
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)

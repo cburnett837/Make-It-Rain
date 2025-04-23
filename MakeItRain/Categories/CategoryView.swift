@@ -10,6 +10,7 @@ import Charts
 
 struct CategoryView: View {
     enum ChartRange: Int {
+        case yearToDate = 0
         case year1 = 1
         case year2 = 2
         case year3 = 3
@@ -65,11 +66,42 @@ struct CategoryView: View {
         }
     }
     
+//    var visibleRange: ClosedRange<Date> {
+//        /// Check if the date range of the expenses is within the visibleRange. Crop accordingly.
+//        let maxAvailEndDate = expenses.last?.date ?? Date()
+//        let idealEndDate = Calendar.current.date(byAdding: .day, value: (365 * chartVisibleYearCount.rawValue), to: chartScrollPosition)!
+//        
+//        let endRange = idealEndDate > maxAvailEndDate ? maxAvailEndDate : idealEndDate
+//        
+//        print("Visible Range: \(chartScrollPosition) -- \(endRange)")
+//        
+//        guard chartScrollPosition < endRange else { return endRange...endRange }
+//        
+//        return chartScrollPosition...endRange
+//    }
+    
     var visibleRange: ClosedRange<Date> {
         /// Check if the date range of the expenses is within the visibleRange. Crop accordingly.
         let maxAvailEndDate = expenses.last?.date ?? Date()
-        let idealEndDate = Calendar.current.date(byAdding: .day, value: (365 * chartVisibleYearCount.rawValue), to: chartScrollPosition)!
-        let endRange = idealEndDate > maxAvailEndDate ? maxAvailEndDate : idealEndDate
+        var idealEndDate: Date = Date()
+        
+        if visibleYearCount != 0 {
+            idealEndDate = Calendar.current.date(byAdding: .day, value: (365 * visibleYearCount), to: chartScrollPosition)!
+        }
+        
+        var endRange: Date
+        
+        if visibleYearCount == 0 {
+            endRange = idealEndDate
+        } else {
+            endRange = idealEndDate > maxAvailEndDate ? maxAvailEndDate : idealEndDate
+        }
+        
+        
+        
+        print("\(chartScrollPosition) -- \(maxAvailEndDate) -- \(idealEndDate)")
+        
+        guard chartScrollPosition < endRange else { return endRange...endRange }
         
         return chartScrollPosition...endRange
     }
@@ -82,13 +114,28 @@ struct CategoryView: View {
             .reduce(0, +)
     }
     
+    var visibleYearCount: Int {
+        chartVisibleYearCount.rawValue == 0 ? 1 : chartVisibleYearCount.rawValue
+    }
+    
     var visibleDomain: Int {
         /// Check if the date range of the expenses is within the visibleDomain. Crop accordingly.
-        let maxAvailDomain = 3600 * 24 * (Calendar.current.dateComponents([.day], from: expenses.first?.date ?? Date(), to: expenses.last?.date ?? Date()).day ?? 0)
+        let firstExpense = expenses.first?.date ?? Date()
+        let lastExpense = expenses.last?.date ?? Date()
         
-        let idealDomain = 3600 * 24 * (365 * chartVisibleYearCount.rawValue)
+        let maxAvailDomain = 3600 * 24 * (Calendar.current.dateComponents([.day], from: firstExpense, to: lastExpense).day ?? 0)
+        
+        let idealDomain = 3600 * 24 * (365 * visibleYearCount)
+        
+        print("DOMAIN \(idealDomain) -- \(maxAvailDomain) -- \(firstExpense) -- \(lastExpense)")
+        
+        if maxAvailDomain == 0 {
+            return  3600 * 24 * 30
+        } else {
+            return idealDomain > maxAvailDomain ? maxAvailDomain : idealDomain
+        }
                 
-        return idealDomain > maxAvailDomain ? maxAvailDomain : idealDomain
+        
     }
         
     var minExpense: Double {
@@ -190,16 +237,20 @@ struct CategoryView: View {
     
     
     var categoryPage: some View {
-        SheetContainerView {
+        StandardContainer {
             LabeledRow("Name", labelWidth) {
                 #if os(iOS)
-                StandardUITextField("Title", text: $category.title, toolbar: {
+                StandardUITextField("Title", text: $category.title, onSubmit: {
+                    focusedField = 1
+                }, toolbar: {
                     KeyboardToolbarView(focusedField: $focusedField)
                 })
                 .cbFocused(_focusedField, equals: 0)
                 .cbClearButtonMode(.whileEditing)
+                .cbSubmitLabel(.next)
                 #else
                 StandardTextField("Title", text: $category.title, focusedField: $focusedField, focusValue: 0)
+                    .onSubmit { focusedField = 1 }
                 #endif
             }
             
@@ -375,10 +426,8 @@ struct CategoryView: View {
                             .frame(width: 6, height: 6)
                             //.opacity(rawSelectedDate == nil || start.date == selectedStartingAmount?.date ? 1 : 0.3)
                     }
-                    
                 }
-                
-                
+                                
                 AreaMark(
                     x: .value("Date", expense.date, unit: .month),
                     yStart: .value("Max", expense.amount),
@@ -390,8 +439,6 @@ struct CategoryView: View {
                     startPoint: .top,
                     endPoint: .bottom)
                 )
-                
-                
             }
         }
         .frame(minHeight: 150)
@@ -455,6 +502,7 @@ struct CategoryView: View {
     
     var chartVisibleYearPicker: some View {
         Picker("", selection: $chartVisibleYearCount.animation()) {
+            Text("YTD").tag(ChartRange.yearToDate)
             Text("1Y").tag(ChartRange.year1)
             Text("2Y").tag(ChartRange.year2)
             Text("3Y").tag(ChartRange.year3)
@@ -466,7 +514,7 @@ struct CategoryView: View {
         .onChange(of: chartVisibleYearCount) { oldValue, newValue in
             /// Set the scrollPosition to which ever is smaller, the targetDate, or the minDate.
             let minDate = expenses.first?.date ?? Date()
-            let targetDate = Calendar.current.date(byAdding: .day, value: -(365 * newValue.rawValue), to: expenses.last?.date ?? Date())!
+            let targetDate = Calendar.current.date(byAdding: .day, value: -(365 * (newValue.rawValue == 0 ? 1 : newValue.rawValue)), to: expenses.last?.date ?? Date())!
             
             if targetDate < minDate {
                 chartScrollPosition = minDate
@@ -480,95 +528,105 @@ struct CategoryView: View {
         
     
     var chartPage: some View {
-        SheetContainerView {
-            chartVisibleYearPicker
-                //.rowBackground()
-            
-            Section {
-                chartHeader
-                    //.rowBackground()
-                            
-                Divider()
-                
-                chartBody
-                    //.rowBackground()
-                    .padding(.vertical, 30)
-                                                
-                Text("Options")
-                    .foregroundStyle(.gray)
-                    .font(.subheadline)
-                    //.padding(.leading, 6)
-                Divider()
-                
-                Toggle(isOn: $showAverageOnCategoryChart.animation()) {
-                    Text("Show Average")
-                }
-                //.rowBackground()
-                
-                Toggle(isOn: $showBudgetOnCategoryChart.animation()) {
-                    Text("Show Budget")
-                }
-                //.rowBackground()
-            }
-            
-            Divider()
-            
-            Spacer()
-                .frame(minHeight: 10)
-            
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Data")
-                    .foregroundStyle(.gray)
-                    .font(.subheadline)
-                    //.padding(.leading, 6)
-                Divider()
-                
-                DisclosureGroup(isExpanded: $showAllChartData) {
-                    VStack(spacing: 0) {
+        Group {
+            if category.action == .add {
+                ContentUnavailableView("Analytics are not available when adding a new category", systemImage: "square.stack.3d.up.slash.fill")
+            } else {
+                StandardContainer {
+                    chartVisibleYearPicker
+                        //.rowBackground()
+                    
+                    Section {
+                        chartHeader
+                            //.rowBackground()
+                                    
                         Divider()
-                            .padding(.leading, 25)
                         
-                        ForEach(expenses) { expense in
-                            RawDataLineItem(category: category, expense: expense)
-                                .padding(.leading, 25)
+                        chartBody
+                            //.rowBackground()
+                            .padding(.vertical, 30)
+                                                        
+                        Text("Options")
+                            .foregroundStyle(.gray)
+                            .font(.subheadline)
+                            //.padding(.leading, 6)
+                        Divider()
+                        
+                        Toggle(isOn: $showAverageOnCategoryChart.animation()) {
+                            Text("Show Average")
                         }
+                        //.rowBackground()
+                        
+                        Toggle(isOn: $showBudgetOnCategoryChart.animation()) {
+                            Text("Show Budget")
+                        }
+                        //.rowBackground()
                     }
                     
-                } label: {
-                    Text("Show All")
-                        .onTapGesture {
-                            showAllChartData.toggle()
+                    Divider()
+                    
+                    Spacer()
+                        .frame(minHeight: 10)
+                    
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Data")
+                            .foregroundStyle(.gray)
+                            .font(.subheadline)
+                            //.padding(.leading, 6)
+                        Divider()
+                        
+                        DisclosureGroup(isExpanded: $showAllChartData) {
+                            VStack(spacing: 0) {
+                                Divider()
+                                    .padding(.leading, 25)
+                                
+                                ForEach(expenses) { expense in
+                                    RawDataLineItem(category: category, expense: expense)
+                                        .padding(.leading, 25)
+                                }
+                            }
+                            
+                        } label: {
+                            Text("Show All")
+                                .onTapGesture {
+                                    showAllChartData.toggle()
+                                }
                         }
-                }
-                //.foregroundStyle(category.color)
-                .tint(category.color)
-                //.padding(.vertical, 8)
-                .padding(.bottom, 10)
-                //.rowBackground()
-                .onChange(of: calModel.showMonth) { oldValue, newValue in
-                    if newValue == false && oldValue == true {
-                        Task {
-                            await fetchHistory(setChartAsNew: false)
+                        //.foregroundStyle(category.color)
+                        .tint(category.color)
+                        //.padding(.vertical, 8)
+                        .padding(.bottom, 10)
+                        //.rowBackground()
+                        .onChange(of: calModel.showMonth) { oldValue, newValue in
+                            if newValue == false && oldValue == true {
+                                Task {
+                                    await fetchHistory(setChartAsNew: false)
+                                }
+                            }
+                        }
+                        .onReceive(NotificationCenter.default.publisher(for: .updateCategoryAnalytics, object: nil)) { _ in
+                            Task {
+                                await fetchHistory(setChartAsNew: false)
+                            }
                         }
                     }
+                } header: {
+                    SheetHeader(title: title, close: { closeSheet() }, view3: { deleteButton })
                 }
-                .onReceive(NotificationCenter.default.publisher(for: .updateCategoryAnalytics, object: nil)) { _ in
-                    Task {
-                        await fetchHistory(setChartAsNew: false)
-                    }
-                }
+                .listStyle(.plain)
+                #if os(iOS)
+                .listSectionSpacing(50)
+                #endif
+                .opacity(isLoadingHistory ? 0 : 1)
+                .overlay { ProgressView("Loading Analytics…").tint(.none).opacity(isLoadingHistory ? 1 : 0) }
+                .focusable(false)
             }
-        } header: {
-            SheetHeader(title: title, close: { closeSheet() }, view3: { deleteButton })
         }
-        .listStyle(.plain)
-        #if os(iOS)
-        .listSectionSpacing(50)
-        #endif
-        .opacity(isLoadingHistory ? 0 : 1)
-        .overlay { ProgressView("Loading Analytics…").tint(.none).opacity(isLoadingHistory ? 1 : 0) }
-        .focusable(false)
+        
+        
+        
     }
+    
     
     func closeSheet() {
         if calModel.categoryFilterWasSetByCategoryPage {
@@ -597,7 +655,13 @@ struct CategoryView: View {
         }
         #endif
         
-        await fetchHistory(setChartAsNew: true)
+        if category.action == .add {
+            selectedCategoryTab = "details"
+        }
+        
+        if category.action != .add {
+            await fetchHistory(setChartAsNew: true)
+        }
     }
     
     
@@ -613,9 +677,14 @@ struct CategoryView: View {
             if setChartAsNew {
                 /// Set the scrollPosition to which ever is smaller, the idealStartDate, or the maxAvailStartDate.
                 let maxAvailStartDate = expenses.first?.date ?? Date()
-                let idealStartDate = Calendar.current.date(byAdding: .day, value: -(365 * chartVisibleYearCount.rawValue), to: expenses.last?.date ?? Date())!
+                let idealStartDate = Calendar.current.date(byAdding: .day, value: -(365 * visibleYearCount), to: expenses.last?.date ?? Date())!
+                
+                
+                
                 
                 chartScrollPosition = maxAvailStartDate < idealStartDate ? idealStartDate : maxAvailStartDate
+                
+                print("\(chartScrollPosition) -- \(maxAvailStartDate) -- \(idealStartDate)")
                 
                 isLoadingHistory = false
             }

@@ -39,14 +39,7 @@ struct CategoriesTable: View {
     var filteredCategories: [CBCategory] {
         catModel.categories
             .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedStandardContains(searchText) }
-            //.sorted { $0.title.lowercased() < $1.title.lowercased() }
-            //.sorted { $0.listOrder ?? 0 < $1.listOrder ?? 0 }
-            .sorted {
-                categorySortMode == .title
-                ? ($0.title).lowercased() < ($1.title).lowercased()
-                : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
-            }
-        
+            /// NOTE: Sorting must be done in the task and not in the computed property. If done in the computed property, when reording, they get all messed up.
     }
     
     var body: some View {
@@ -79,15 +72,16 @@ struct CategoriesTable: View {
         /// Setting this id forces the view to refresh and update the relevant category with the new ID.
         .id(catModel.fuckYouSwiftuiTableRefreshID)
         .navigationBarBackButtonHidden(true)
-//        .task {
-//            let categorySortMode = CategorySortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
-//                                
-//            catModel.categories.sort {
-//                categorySortMode == .title
-//                ? ($0.title).lowercased() < ($1.title).lowercased()
-//                : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
-//            }
-//        }
+        .task {
+            /// NOTE: Sorting must be done here and not in the computed property. If done in the computed property, when reording, they get all messed up.
+            let categorySortMode = CategorySortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
+                                
+            catModel.categories.sort {
+                categorySortMode == .title
+                ? ($0.title).lowercased() < ($1.title).lowercased()
+                : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
+            }
+        }
         .toolbar {
             #if os(macOS)
             macToolbar()
@@ -282,17 +276,20 @@ struct CategoriesTable: View {
     func phoneToolbar() -> some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
             if !AppState.shared.isIpad {
-                Button {
-                    dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chevron.left")
-                        Text("Back")
+                HStack {
+                    Button {
+                        dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                            Text("Back")
+                        }
                     }
+                    ToolbarLongPollButton()
                 }
+                
             } else {
                 HStack {
-                    ToolbarRefreshButton()
                     Button {
                         categoryEditID = UUID().uuidString
                     } label: {
@@ -301,6 +298,8 @@ struct CategoriesTable: View {
                     
                     sortMenu
                     //.disabled(catModel.isThinking)
+                    ToolbarRefreshButton()
+                    ToolbarLongPollButton()
                 }
             }
         }
@@ -421,7 +420,11 @@ struct CategoriesTable: View {
     
     func move(from source: IndexSet, to destination: Int) {
         catModel.categories.move(fromOffsets: source, toOffset: destination)
-        catModel.setListOrders(calModel: calModel)
+        let listOrderUpdates = catModel.setListOrders(calModel: calModel)
+        
+        Task {
+            await funcModel.submitListOrders(items: listOrderUpdates, for: .categories)
+        }
     }
 }
 

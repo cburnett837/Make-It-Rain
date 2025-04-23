@@ -20,13 +20,6 @@ class CBUser: Codable, Identifiable, Hashable, Equatable {
     
     enum CodingKeys: CodingKey { case id, account_id, name, initials, email, device_uuid, notification_token }
     
-//    init() {
-//        self.id = 0
-//        self.accountID = 0
-//        self.name = ""
-//        self.email = ""
-//    }
-//    
     init() {
         self.id = 0
         self.accountID = 0
@@ -97,6 +90,32 @@ class CBUser: Codable, Identifiable, Hashable, Equatable {
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
+    
+    
+    var isLoggedIn: Bool {
+        AppState.shared.user?.id == self.id
+    }
+    
+    var isNotLoggedIn: Bool {
+        AppState.shared.user?.id != self.id
+    }
+    
+    func `is`(_ user: CBUser?) -> Bool {
+        if let user {
+            return self.id == user.id
+        } else {
+            return false
+        }
+    }
+    
+    func isNot(_ user: CBUser?) -> Bool {
+        if let user {
+            return self.id != user.id
+        } else {
+            return true
+        }
+    }
+    
 }
 
 

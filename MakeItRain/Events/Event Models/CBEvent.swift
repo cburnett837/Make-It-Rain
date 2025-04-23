@@ -31,18 +31,18 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
     
     var enteredDate: Date
     var updatedDate: Date
-        
+    
+    var activeParticipantUserIds: [Int]
     var participants: [CBEventParticipant]
-    var items: [CBEventItem]
+    var pictures: Array<CBPicture>?
+    var items: Array<CBEventItem>
     var transactions: Array<CBEventTransaction>
     var categories: Array<CBEventCategory>
     
     var pendingRealTransactionsToSave: [CBTransaction] = []
     //var invitationsToSend: Array<CBEventInvite> = []
-    //var participantsToRemove: Array<CBUser> = []
+    //var participantsToRemove: Array<CBUser> = []    
     
-    
-    /// For deep copies
     init() {
         let uuid = UUID().uuidString
         self.id = uuid
@@ -55,12 +55,13 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
         self.items = []
         self.transactions = []
         self.categories = []
+        self.activeParticipantUserIds = [AppState.shared.user!.id]
         
         self.enteredDate = Date()
         self.updatedDate = Date()
     }
     
-    /// For new
+    
     init(uuid: String) {
         self.id = uuid
         self.uuid = uuid
@@ -72,12 +73,13 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
         self.items = []
         self.transactions = []
         self.categories = []
+        self.activeParticipantUserIds = [AppState.shared.user!.id]
         
         self.enteredDate = Date()
         self.updatedDate = Date()
     }
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, event_type, start_date, end_date, active, entered_by, updated_by, entered_date, updated_date, user_id, account_id, device_uuid, participants, items, transactions, categories }
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, event_type, start_date, end_date, active, entered_by, updated_by, entered_date, updated_date, user_id, account_id, device_uuid, participants, items, transactions, categories, pictures, active_participant_user_ids }
     
     
     func encode(to encoder: Encoder) throws {
@@ -95,6 +97,7 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
         try container.encode(items, forKey: .items)
         try container.encode(transactions, forKey: .transactions)
         try container.encode(categories, forKey: .categories)
+        try container.encode(pictures, forKey: .pictures)
         
         try container.encode(enteredBy, forKey: .entered_by)
         try container.encode(updatedBy, forKey: .updated_by)
@@ -141,11 +144,12 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
             //fatalError("Could not determine transaction date")
         }
         
-        self.participants = try container.decode(Array<CBEventParticipant>.self, forKey: .participants)
-        self.items = try container.decode(Array<CBEventItem>.self, forKey: .items)
-        self.transactions = try container.decode(Array<CBEventTransaction>.self, forKey: .transactions)
-        self.categories = try container.decode(Array<CBEventCategory>.self, forKey: .categories)
-        
+        self.participants = try container.decodeIfPresent(Array<CBEventParticipant>.self, forKey: .participants) ?? []
+        self.items = try container.decodeIfPresent(Array<CBEventItem>.self, forKey: .items) ?? []
+        self.transactions = try container.decodeIfPresent(Array<CBEventTransaction>.self, forKey: .transactions) ?? []
+        self.categories = try container.decodeIfPresent(Array<CBEventCategory>.self, forKey: .categories) ?? []
+        self.activeParticipantUserIds = try container.decodeIfPresent(Array<Int>.self, forKey: .active_participant_user_ids) ?? []
+        self.pictures = try container.decode(Array<CBPicture>?.self, forKey: .pictures)
         
         //invitationsToSend = try container.decode(Array<CBEventInvite>.self, forKey: .invitations_to_send)
         //participantsToRemove = try container.decode(Array<CBUser>.self, forKey: .participants_to_remove)
@@ -181,50 +185,11 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
             && self.amountString == deepCopy.amountString
             && self.eventType == deepCopy.eventType
             && self.startDate == deepCopy.startDate
-            && self.endDate == deepCopy.endDate
-            && self.participants == deepCopy.participants
-            && self.transactions == deepCopy.transactions
-            && self.categories == deepCopy.categories
-            //&& self.invitationsToSend == deepCopy.invitationsToSend
-            //&& self.participantsToRemove == deepCopy.participantsToRemove
-            && self.items == deepCopy.items {
+            && self.pictures == deepCopy.pictures
+            && self.endDate == deepCopy.endDate {
                 return false
             }
-        } else {
-            print("⚠️ Deep copy not set")
         }
-        
-        
-        if self.title != deepCopy?.title {print("⚠️ Title change prompted save")}
-        if amountString != deepCopy?.amountString {print("⚠️amountString change prompted save")}
-        if eventType != deepCopy?.eventType {print("⚠️eventType change prompted save")}
-        if startDate != deepCopy?.startDate {print("⚠️startDate change prompted save")}
-        if endDate != deepCopy?.endDate {print("⚠️endDate change prompted save")}
-        if participants != deepCopy?.participants {print("⚠️participants change prompted save")}
-        if transactions != deepCopy?.transactions {print("⚠️transactions change prompted save")}
-        if categories != deepCopy?.categories {
-            print("⚠️categories change prompted save")
-            print("⚠️categories from object")
-            for each in categories {
-                print(each.id)
-            }
-            print("⚠️categories from deepcopy")
-            if let deepCopy = deepCopy {
-                for each in deepCopy.categories {
-                    print(each.id)
-                }
-            }
-            
-        }
-        if items != deepCopy?.items {
-            print("⚠️items change prompted save")
-        }
-        
-        
-        
-        
-        
-        
         return true
     }
     
@@ -241,6 +206,8 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
             copy.eventType = self.eventType
             copy.startDate = self.startDate
             copy.endDate = self.endDate
+            copy.activeParticipantUserIds = self.activeParticipantUserIds
+            copy.pictures = self.pictures
             
             copy.participants = self.participants.map {
                 $0.deepCopy(.create)
@@ -289,293 +256,157 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
                 self.transactions = deepCopy.transactions
                 self.categories = deepCopy.categories
                 self.active = deepCopy.active
+                self.activeParticipantUserIds = deepCopy.activeParticipantUserIds
+                self.pictures = deepCopy.pictures
             }
         case .clear:
             break
         }
     }
     
-    
+    /// This one will only be used when doing a full refresh from the server/
     func setFromAnotherInstance(event: CBEvent) {
+        self.id = event.id
+        self.uuid = event.uuid
         self.title = event.title
         self.amountString = event.amountString
         self.eventType = event.eventType
         self.startDate = event.startDate
         self.endDate = event.endDate
-        //self.participants = event.participants
-        //self.invitationsToSend = event.invitationsToSend
-        //self.participantsToRemove = event.participantsToRemove
-        //self.items = event.items
         self.active = event.active
         self.action = event.action
+        self.activeParticipantUserIds = event.activeParticipantUserIds
+        self.pictures = event.pictures
+        
+        var activeIds: Array<String> = []
         
         
-//        self.participants = event.participants.map { part in
-//            if let index = self.participants.firstIndex(where: {$0.id == part.id}) {
-//                self.participants[index].setFromAnotherInstance(part: part)
-//                return self.participants[index]
-//            }
-//            return part
-//        }
-//        
-//        self.items = event.items.map { item in
-//            if let index = self.items.firstIndex(where: {$0.id == item.id}) {
-//                self.items[index].setFromAnotherInstance(item: item)
-//                return self.items[index]
-//            }
-//            return item
-//        }
-//        
-//        self.transactions = event.transactions.map { trans in
-//            if let index = self.transactions.firstIndex(where: {$0.id == trans.id}) {
-//                self.transactions[index].setFromAnotherInstance(transaction: trans)
-//                return self.transactions[index]
-//            }
-//            return trans
-//        }
-//        
-//        self.categories = event.categories.map { cat in
-//            if let index = self.categories.firstIndex(where: {$0.id == cat.id}) {
-//                self.categories[index].setFromAnotherInstance(category: cat)
-//                return self.categories[index]
-//            }
-//            return cat
-//        }
-        
-        
-        
-        
-        for item in event.items {
-            if let index = self.items.firstIndex(where: { $0.id == item.id }) {
-                self.items[index].setFromAnotherInstance(item: item)
+        // MARK: - Handle Items
+        activeIds.removeAll()
+        for each in event.items {
+            activeIds.append(each.id)
+            if let index = self.items.firstIndex(where: { $0.id == each.id }) {
+                self.items[index].setFromAnotherInstance(item: each)
             } else {
-                self.items.append(item)
-            }
-            
-            if let index = self.deepCopy?.items.firstIndex(where: { $0.id == item.id }) {
-                self.deepCopy?.items[index].setFromAnotherInstance(item: item)
-            } else {
-                self.deepCopy?.items.append(item)
-            }
-        }
-                
-        for cat in event.categories {
-            if let index = self.categories.firstIndex(where: { $0.id == cat.id }) {
-                self.categories[index].setFromAnotherInstance(category: cat)
-            } else {
-                self.categories.append(cat)
-            }
-            
-            if let index = self.deepCopy?.categories.firstIndex(where: { $0.id == cat.id }) {
-                self.deepCopy?.categories[index].setFromAnotherInstance(category: cat)
-            } else {
-                self.deepCopy?.categories.append(cat)
+                self.items.append(each)
             }
         }
         
+        /// Delete from model if deleted on the server.
+        for each in items {
+            if !activeIds.contains(each.id) {
+                items.removeAll { $0.id == each.id }
+            }
+        }
+        
+        // MARK: - Handle Categories
+        activeIds.removeAll()
+        for each in event.categories {
+            activeIds.append(each.id)
+            if let index = self.categories.firstIndex(where: { $0.id == each.id }) {
+                self.categories[index].setFromAnotherInstance(category: each)
+            } else {
+                self.categories.append(each)
+            }
+        }
+        
+        /// Delete from model if deleted on the server.
+        for each in categories {
+            if !activeIds.contains(each.id) {
+                categories.removeAll { $0.id == each.id }
+            }
+        }
+        
+        // MARK: - Handle Transactions
+        activeIds.removeAll()
         for each in event.transactions {
+            activeIds.append(each.id)
             if let index = self.transactions.firstIndex(where: { $0.id == each.id }) {
-                if each.changedDate > self.transactions[index].changedDate {
+                //if each.changedDate > self.transactions[index].changedDate {
                     self.transactions[index].setFromAnotherInstance(transaction: each)
-                }
+                //}
             } else {
                 self.transactions.append(each)
             }
-            
-            if let index = self.deepCopy?.transactions.firstIndex(where: { $0.id == each.id }) {
-                if each.changedDate > self.deepCopy?.transactions[index].changedDate ?? Date() {
-                    self.deepCopy?.transactions[index].setFromAnotherInstance(transaction: each)
-                }
-                
-            } else {
-                self.deepCopy?.transactions.append(each)
+        }
+        
+        /// Delete from model if deleted on the server.
+        for each in transactions {
+            if !activeIds.contains(each.id) {
+                transactions.removeAll { $0.id == each.id }
             }
         }
         
+        // MARK: - Handle Participants
+        activeIds.removeAll()
         for each in event.participants {
+            activeIds.append(each.id)
             if let index = self.participants.firstIndex(where: { $0.id == each.id }) {
                 self.participants[index].setFromAnotherInstance(part: each)
             } else {
                 self.participants.append(each)
             }
-            
-            if let index = self.deepCopy?.participants.firstIndex(where: { $0.id == each.id }) {
-                self.deepCopy?.participants[index].setFromAnotherInstance(part: each)
-            } else {
-                self.deepCopy?.participants.append(each)
-            }
         }
         
+        /// Delete from model if deleted on the server.
+        for each in participants {
+            /// Check to see if the participant is active. The long poll would be missing any previously active participants when running this
+            if event.activeParticipantUserIds.contains(each.user.id) {
+                continue
+            } else {
+                if !activeIds.contains(each.id) {
+                    participants.removeAll { $0.id == each.id }
+                }
+            }
+        }
     }
     
     
-    func updateFromLongPoll(event: CBEvent) {
-        //print("SELF PARTS")
-        //print("userNames: \(self.participants.map {$0.user.name})")
-        //print("actives: \(self.participants.map {$0.active})")
-        //print("statuses: \(self.participants.map {$0.status?.description})")
-        //print("ids: \(self.participants.map {$0.id})")
+    
+    func setListOrdersForCategories() -> Array<ListOrderUpdate> {
+        var updates: Array<ListOrderUpdate> = []
+        var index = 0
         
-        if event.wasUpdatedByAdmin() {
-            print("Event was updated by admin")
-            /// If the event was updated by the admin, update the event details.
-            self.title = event.title
-            self.amountString = event.amountString
-            self.eventType = event.eventType
-            self.startDate = event.startDate
-            self.endDate = event.endDate
+        for category in categories {
+            category.listOrder = index
+            updates.append(ListOrderUpdate(id: category.id, listorder: index))
             
-            /// If the event was updated by the admin, update the event items and categories
-//            self.items = event.items.map { item in
-//                if let index = self.items.firstIndex(where: { $0.id == item.id }) {
-//                    self.items[index].setFromAnotherInstance(item: item)
-//                    return self.items[index]
-//                }
-//                return item
-//            }
-//            
-//            
-//            self.categories = event.categories.map { cat in
-//                if let index = self.categories.firstIndex(where: { $0.id == cat.id }) {
-//                    self.categories[index].setFromAnotherInstance(category: cat)
-//                    return self.categories[index]
-//                }
-//                return cat
-//            }
-            
-            
-//            for item in event.items {
-//                if let index = self.items.firstIndex(where: { $0.id == item.id }) {
-//                    self.items[index].setFromAnotherInstance(item: item)
-//                } else {
-//                    self.items.append(item)
-//                }
-//            }
-//            
-//            
-//            for cat in event.categories {
-//                if let index = self.categories.firstIndex(where: { $0.id == cat.id }) {
-//                    self.categories[index].setFromAnotherInstance(category: cat)
-//                } else {
-//                    self.categories.append(cat)
-//                }
-//            }
-            
-            
-            
-                        
-            for each in event.participants {
-                //print("Processing Participant ID \(each.id)")
-                /// Determine if the admin removed participants, or If someone rejected an invitation.
-                if !each.active || each.status?.enumID == .rejected {
-                    //print("PArt is either deactive ir rejected \(each.active) - \(String(describing: each.status?.description))")
-                    /// Clean the incoming event.
-                    event.participants.removeAll(where: { $0.id == each.id })
-                    /// Remove the participants from the event object being updated.
-                    withAnimation {
-                        self.participants.removeAll(where: { $0.id == each.id })
-                    }
-                } else {
-                    /// Determine if the admin added new participants.
-                    if !self.participants.contains(where: { $0.id == each.id }) {
-                        //print("✅Appending Object \(each.id) ")
-                        withAnimation {
-                            self.participants.append(each)
-                        }
-                    } else {
-                        //print("⚠️Object is already there \(each.id) ")
-                        //let object = self.participants.filter {$0.id == each.id}.first
-//                        if let object {
-//                            print("Objkect has a staus of \(String(describing: object.status?.description)) and an active of \(object.active)")
-//                        }
-                        
-                    }
-                }
-            }
-        } else {
-            print("was not updated by admin \(event.updatedBy.id) - \(event.enteredBy.id)")
-            
-            
-            /// If the user that updated the event is the same as the logged in user, change their own things. Otherwise change other things.
-            for each in event.participants {
-                if let index = self.participants.firstIndex(where: { $0.id == each.id && $0.status?.enumID == .pending }) {
-                    self.participants[index].setFromAnotherInstance(part: each)
-                }
-            }
+            index += 1
         }
         
+        return updates
+    }
+    
+    
+    func setListOrdersForItems() -> Array<ListOrderUpdate> {
+        var updates: Array<ListOrderUpdate> = []
+        var index = 0
         
-        for item in event.items {
-            if let index = self.items.firstIndex(where: { $0.id == item.id }) {
-                self.items[index].setFromAnotherInstance(item: item)
-            } else {
-                self.items.append(item)
-            }
+        for item in items {
+            item.listOrder = index
+            updates.append(ListOrderUpdate(id: item.id, listorder: index))
+            
+            index += 1
         }
         
-        
-        for cat in event.categories {
-            if let index = self.categories.firstIndex(where: { $0.id == cat.id }) {
-                self.categories[index].setFromAnotherInstance(category: cat)
-            } else {
-                self.categories.append(cat)
-            }
-        }
-        
-        
-        
-        /// If the user that updated the event is the same as the logged in user, change their own things. Otherwise change other things.
-        for each in event.transactions.filter({ (AppState.shared.user(is: event.updatedBy) ? AppState.shared.user(is: $0.paidBy) : !AppState.shared.user(is: $0.paidBy)) || $0.paidBy == nil }) {
-            if let index = self.transactions.firstIndex(where: { $0.id == each.id }) {
-                                
-                if each.changedDate > self.transactions[index].changedDate {
-                    self.transactions[index].setFromAnotherInstance(transaction: each)
-                }
-                
-            } else {
-                self.transactions.append(each)
-            }
-        }
-        
-        
-        /// If the user that updated the event is the same as the logged in user, change their own things. Otherwise change other things.
-        for each in event.participants.filter({ AppState.shared.user(is: event.updatedBy) ? AppState.shared.user(is: $0.user) : !AppState.shared.user(is: $0.user) }) {
-            if let index = self.participants.firstIndex(where: { $0.id == each.id }) {
-                self.participants[index].setFromAnotherInstance(part: each)
-            }
-        }
-                                            
+        return updates
+    }
+    
+    
+    
+    /// Only update the event details when updating via the long poll
+    func setFromAnotherInstanceForLongPoll(event: CBEvent) {
+        self.id = event.id
+        self.uuid = event.uuid
+        self.title = event.title
+        self.amountString = event.amountString
+        self.eventType = event.eventType
+        self.startDate = event.startDate
+        self.endDate = event.endDate
         self.active = event.active
         self.action = event.action
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        for item in self.items {
-            if !item.active {
-                self.deleteItem(id: item.id)
-            }
-        }
-        
-        for cat in self.categories {
-            if !cat.active {
-                self.deleteCategory(id: cat.id)
-            }
-        }
-        
-        for transaction in self.transactions {
-            if !transaction.active {
-                self.deleteTransaction(id: transaction.id)
-            }
-        }
-        
-        self.participants.removeAll(where: { $0.status?.enumID == .rejected })
+        self.pictures = event.pictures
+        self.activeParticipantUserIds = event.activeParticipantUserIds
     }
     
     
@@ -588,11 +419,11 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
         && lhs.startDate == rhs.startDate
         && lhs.endDate == rhs.endDate
         && lhs.participants == rhs.participants
+        && lhs.activeParticipantUserIds == rhs.activeParticipantUserIds
         && lhs.items == rhs.items
         && lhs.transactions == rhs.transactions
         && lhs.categories == rhs.categories
-        //&& lhs.invitationsToSend == rhs.invitationsToSend
-        //&& lhs.participantsToRemove == rhs.participantsToRemove
+        && lhs.pictures == rhs.pictures
         && lhs.active == rhs.active {
             return true
         }
@@ -614,11 +445,61 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
     
     
     
+    // MARK: - Particpiants
+    func upsert(_ part: CBEventParticipant) {
+        if !doesExist(part) {
+            withAnimation {
+                participants.append(part)
+            }
+        }
+    }
+    
+    func getIndex(for part: CBEventParticipant) -> Int? {
+        return participants.firstIndex(where: { $0.id == part.id })
+    }
+    
+    func doesExist(_ part: CBEventParticipant) -> Bool {
+        return !participants.filter { $0.id == part.id }.isEmpty
+    }
+    
+    func getParticipant(by id: String) -> CBEventParticipant? {
+        return participants.filter { $0.id == id }.first
+    }
+    
+    func saveParticipant(id: String) -> Bool {
+        let part = getParticipant(by: id)
+//        if part.title.isEmpty {
+//            if part.action != .add && part.title.isEmpty {
+//                part.title = part.deepCopy?.title ?? ""
+//                AppState.shared.showAlert("Removing a title is not allowed. If you want to delete \(part.title), please use the delete button instead.")
+//            } else {
+//                participants.removeAll { $0.id == id }
+//            }
+//            return false
+//        }
+        
+        return true
+    }
+    
+    func deleteParticipant(id: String) {
+        withAnimation {
+            participants.removeAll(where: {$0.id == id})
+        }
+    }
+    
+    
+    
     // MARK: - Items
     func upsert(_ item: CBEventItem) {
         if !doesExist(item) {
-            items.append(item)
+            withAnimation {
+                items.append(item)
+            }
         }
+    }
+    
+    func getIndex(for item: CBEventItem) -> Int? {
+        return items.firstIndex(where: { $0.id == item.id })
     }
     
     func doesExist(_ item: CBEventItem) -> Bool {
@@ -626,10 +507,10 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
     }
     
     func getItem(by id: String) -> CBEventItem {
-        return items.filter { $0.id == id }.first ?? CBEventItem(uuid: id)
+        return items.filter { $0.id == id }.first ?? CBEventItem(uuid: id, eventID: self.id)
     }
     
-    func saveItem(id: String) {
+    func saveItem(id: String) -> Bool {
         let item = getItem(by: id)
         if item.title.isEmpty {
             if item.action != .add && item.title.isEmpty {
@@ -638,11 +519,14 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
             } else {
                 items.removeAll { $0.id == id }
             }
+            return false
         } else {
             transactions.filter{$0.item?.id == id}.forEach { trans in
                 trans.item = item
             }
         }
+        
+        return true
     }
     
     func deleteItem(id: String) {
@@ -663,8 +547,15 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
     // MARK: - Categories
     func upsert(_ category: CBEventCategory) {
         if !doesExist(category) {
-            categories.append(category)
+            withAnimation {
+                categories.append(category)
+            }
+            
         }
+    }
+    
+    func getIndex(for category: CBEventCategory) -> Int? {
+        return categories.firstIndex(where: { $0.id == category.id })
     }
     
     func doesExist(_ category: CBEventCategory) -> Bool {
@@ -672,10 +563,10 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
     }
     
     func getCategory(by id: String) -> CBEventCategory {
-        return categories.filter { $0.id == id }.first ?? CBEventCategory(uuid: id)
+        return categories.filter { $0.id == id }.first ?? CBEventCategory(uuid: id, eventID: self.id)
     }
     
-    func saveCategory(id: String) {
+    func saveCategory(id: String) -> Bool {
         let category = getCategory(by: id)
         if category.title.isEmpty {
             if category.action != .add && category.title.isEmpty {
@@ -684,11 +575,14 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
             } else {
                 categories.removeAll { $0.id == id }
             }
+            return false
         } else {
             transactions.filter{$0.category?.id == id}.forEach { trans in
                 trans.category = category
             }
         }
+        
+        return true
     }
     
     func deleteCategory(id: String) {
@@ -710,8 +604,14 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
     // MARK: - Transactions
     func upsert(_ trans: CBEventTransaction) {
         if !doesExist(trans) {
-            transactions.append(trans)
+            withAnimation {
+                transactions.append(trans)
+            }
         }
+    }
+    
+    func getIndex(for trans: CBEventTransaction) -> Int? {
+        return transactions.firstIndex(where: { $0.id == trans.id })
     }
     
     func doesExist(_ item: CBEventTransaction) -> Bool {
@@ -719,19 +619,33 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
     }
     
     func getTransaction(by id: String) -> CBEventTransaction {
-        return transactions.filter { $0.id == id }.first ?? CBEventTransaction(uuid: id)
+        return transactions.filter { $0.id == id }.first ?? CBEventTransaction(uuid: id, eventID: self.id)
     }
     
-    func saveTransaction(id: String) {
+    func saveTransaction(id: String) -> Bool {
         let trans = getTransaction(by: id)
-        if trans.title.isEmpty {
-            if trans.action != .add && trans.title.isEmpty {
-                trans.title = trans.deepCopy?.title ?? ""
-                AppState.shared.showAlert("Removing a title is not allowed. If you want to delete \(trans.title), please use the delete button instead.")
+        
+        
+        if trans.hasChanges() || trans.action == .delete {
+            if trans.title.isEmpty {
+                if trans.action != .add && trans.title.isEmpty {
+                    trans.title = trans.deepCopy?.title ?? ""
+                    AppState.shared.showAlert("Removing a title is not allowed. If you want to delete \(trans.title), please use the delete button instead.")
+                } else {
+                    transactions.removeAll { $0.id == id }
+                }
+                
+                return false
             } else {
-                transactions.removeAll { $0.id == id }
+                return true
             }
+        } else if trans.title.isEmpty {
+            transactions.removeAll { $0.id == id }
+            print("-- \(#function) -- Titlemissing 2")
+            return false
         }
+        
+        return false
     }
     
     func deleteTransaction(id: String) {
@@ -739,6 +653,8 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
         if let index {
             transactions[index].active = false
             transactions[index].action = .delete
+        } else {
+            print("CANT FIND TRANS")
         }
     }
 }

@@ -11,6 +11,7 @@ import Foundation
 class CBEventItem: Codable, Identifiable, Hashable, Equatable {
     var id: String
     var uuid: String?
+    var eventID: String
     var title: String
     var dateTitle: String?
     var dateValue: Date?
@@ -18,6 +19,7 @@ class CBEventItem: Codable, Identifiable, Hashable, Equatable {
     var textValue: String?
     var pickerTitle: String?
     var pickerValue: [String]?
+    var listOrder: Int?
     var active: Bool
     var enteredBy: CBUser = AppState.shared.user!
     var updatedBy: CBUser = AppState.shared.user!
@@ -27,11 +29,13 @@ class CBEventItem: Codable, Identifiable, Hashable, Equatable {
     
     var action: EventItemAction
         
-    enum CodingKeys: CodingKey { case id, uuid, event_id, title, opt_date_title, opt_date_value, opt_text_title, opt_text_value, opt_picker_title, opt_picker_value, active, entered_by, updated_by, entered_date, updated_date, user_id, account_id, device_uuid, action }
+    enum CodingKeys: CodingKey { case id, uuid, event_id, title, opt_date_title, opt_date_value, opt_text_title, opt_text_value, opt_picker_title, opt_picker_value, active, entered_by, updated_by, entered_date, updated_date, user_id, account_id, device_uuid, action, list_order }
     
-    init(uuid: String) {
+    init(eventID: String) {
+        let uuid = UUID().uuidString
         self.id = uuid
         self.uuid = uuid
+        self.eventID = eventID
         self.title = ""
         self.active = true
         self.enteredDate = Date()
@@ -39,10 +43,10 @@ class CBEventItem: Codable, Identifiable, Hashable, Equatable {
         self.action = .add
     }
     
-    init() {
-        let uuid = UUID().uuidString
+    init(uuid: String, eventID: String) {
         self.id = uuid
         self.uuid = uuid
+        self.eventID = eventID
         self.title = ""
         self.active = true
         self.enteredDate = Date()
@@ -55,6 +59,7 @@ class CBEventItem: Codable, Identifiable, Hashable, Equatable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(uuid, forKey: .uuid)
+        try container.encode(eventID, forKey: .event_id)
         try container.encode(title, forKey: .title)
         try container.encode(dateTitle, forKey: .opt_date_title)
         try container.encode(dateValue?.string(to: .serverDate), forKey: .opt_date_value)
@@ -62,6 +67,7 @@ class CBEventItem: Codable, Identifiable, Hashable, Equatable {
         try container.encode(textValue, forKey: .opt_text_value)
         try container.encode(pickerTitle, forKey: .opt_picker_title)
         try container.encode(pickerValue, forKey: .opt_picker_value)
+        try container.encode(listOrder, forKey: .list_order)
         try container.encode(enteredBy, forKey: .entered_by) // for the Transferable protocol
         try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
         try container.encode(enteredDate.string(to: .serverDateTime), forKey: .entered_date) // for the Transferable protocol
@@ -75,7 +81,19 @@ class CBEventItem: Codable, Identifiable, Hashable, Equatable {
         
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try String(container.decode(Int.self, forKey: .id))
+        
+        do {
+            id = try String(container.decode(Int.self, forKey: .id))
+        } catch {
+            id = try container.decode(String.self, forKey: .id)
+        }
+        
+        do {
+            eventID = try String(container.decode(Int.self, forKey: .event_id))
+        } catch {
+            eventID = try container.decode(String.self, forKey: .event_id)
+        }
+        
         
         title = try container.decode(String.self, forKey: .title)
         dateTitle = try container.decode(String?.self, forKey: .opt_date_title)
@@ -89,6 +107,8 @@ class CBEventItem: Codable, Identifiable, Hashable, Equatable {
         textValue = try container.decode(String?.self, forKey: .opt_text_value)
         pickerTitle = try container.decode(String?.self, forKey: .opt_picker_title)
         pickerValue = try container.decode(Array<String>?.self, forKey: .opt_picker_value)
+        
+        listOrder = try container.decode(Int?.self, forKey: .list_order)
         
         enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
         updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
@@ -114,13 +134,40 @@ class CBEventItem: Codable, Identifiable, Hashable, Equatable {
     }
     
     
+    
+    func hasChanges() -> Bool {
+        if let deepCopy = deepCopy {
+            if self.eventID == deepCopy.eventID
+            && self.title == deepCopy.title
+            && self.dateTitle == deepCopy.dateTitle
+            && self.dateValue == deepCopy.dateValue
+            && self.textTitle == deepCopy.textTitle
+            && self.textValue == deepCopy.textValue
+            && self.pickerTitle == deepCopy.pickerTitle
+            && self.pickerValue == deepCopy.pickerValue
+            && self.listOrder == deepCopy.listOrder
+            && self.active == deepCopy.active
+            && self.enteredBy == deepCopy.enteredBy
+            && self.updatedBy == deepCopy.updatedBy
+            && self.enteredDate == deepCopy.enteredDate
+            && self.updatedDate == deepCopy.updatedDate
+            && self.active == deepCopy.active {
+                return false
+            }
+        }
+                        
+        return true
+    }
+    
+    
     var deepCopy: CBEventItem?
     func deepCopy(_ mode: ShadowCopyAction) {
         switch mode {
         case .create:
-            let copy = CBEventItem()
+            let copy = CBEventItem(uuid: UUID().uuidString, eventID: self.eventID)
             copy.id = self.id
             copy.uuid = self.uuid
+            copy.eventID = self.eventID
             copy.title = self.title
             copy.dateTitle = self.dateTitle
             copy.dateValue = self.dateValue
@@ -128,6 +175,7 @@ class CBEventItem: Codable, Identifiable, Hashable, Equatable {
             copy.textValue = self.textValue
             copy.pickerTitle = self.pickerTitle
             copy.pickerValue = self.pickerValue
+            copy.listOrder = self.listOrder
             copy.active = self.active
             copy.enteredBy = self.enteredBy
             copy.updatedBy = self.updatedBy
@@ -139,6 +187,7 @@ class CBEventItem: Codable, Identifiable, Hashable, Equatable {
             if let deepCopy = self.deepCopy {
                 self.id = deepCopy.id
                 self.uuid = deepCopy.uuid
+                self.eventID = deepCopy.eventID
                 self.title = deepCopy.title
                 self.dateTitle = deepCopy.dateTitle
                 self.dateValue = deepCopy.dateValue
@@ -146,6 +195,7 @@ class CBEventItem: Codable, Identifiable, Hashable, Equatable {
                 self.textValue = deepCopy.textValue
                 self.pickerTitle = deepCopy.pickerTitle
                 self.pickerValue = deepCopy.pickerValue
+                self.listOrder = deepCopy.listOrder
                 self.active = deepCopy.active
                 self.enteredBy = deepCopy.enteredBy
                 self.updatedBy = deepCopy.updatedBy
@@ -159,10 +209,35 @@ class CBEventItem: Codable, Identifiable, Hashable, Equatable {
     }
     
     
+    func setFromAnotherInstance(item: CBEventItem) {
+        //print("SETTING ACTIVE TO \(item.active) for \(item.title)")
+        //self.id = item.id
+        self.id = item.id
+        self.uuid = item.uuid
+        self.eventID = item.eventID
+        self.title = item.title
+        self.dateTitle = item.dateTitle
+        self.dateValue = item.dateValue
+        self.textTitle = item.textTitle
+        self.textValue = item.textValue
+        self.pickerTitle = item.pickerTitle
+        self.pickerValue = item.pickerValue
+        self.active = item.active
+        self.listOrder = item.listOrder
+        self.enteredBy = item.enteredBy
+        self.updatedBy = item.updatedBy
+        self.enteredDate = item.enteredDate
+        self.updatedDate = item.updatedDate
+        self.active = item.active
+        self.action = item.action
+    }
+    
     
     
     static func == (lhs: CBEventItem, rhs: CBEventItem) -> Bool {
         if lhs.id == rhs.id
+        && lhs.uuid == rhs.uuid
+        && lhs.eventID == rhs.eventID
         && lhs.title == rhs.title
         && lhs.dateTitle == rhs.dateTitle
         && lhs.dateValue == rhs.dateValue
@@ -171,6 +246,7 @@ class CBEventItem: Codable, Identifiable, Hashable, Equatable {
         && lhs.pickerTitle == rhs.pickerTitle
         && lhs.pickerValue == rhs.pickerValue
         && lhs.active == rhs.active
+        && lhs.listOrder == rhs.listOrder
         && lhs.enteredBy == rhs.enteredBy
         && lhs.updatedBy == rhs.updatedBy
         && lhs.enteredDate == rhs.enteredDate
@@ -184,25 +260,5 @@ class CBEventItem: Codable, Identifiable, Hashable, Equatable {
     
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
-    }
-    
-    
-    func setFromAnotherInstance(item: CBEventItem) {
-        //print("SETTING ACTIVE TO \(item.active) for \(item.title)")
-        self.id = item.id
-        self.title = item.title
-        self.dateTitle = item.dateTitle
-        self.dateValue = item.dateValue
-        self.textTitle = item.textTitle
-        self.textValue = item.textValue
-        self.pickerTitle = item.pickerTitle
-        self.pickerValue = item.pickerValue
-        self.active = item.active
-        self.enteredBy = item.enteredBy
-        self.updatedBy = item.updatedBy
-        self.enteredDate = item.enteredDate
-        self.updatedDate = item.updatedDate
-        self.active = item.active
-        self.action = item.action
     }
 }

@@ -18,6 +18,21 @@ class CBFitTransaction: Codable, Identifiable {
     }
     var amountString: String
     var date: Date?
+    var prettyDate: String? {
+        if let date = self.date {
+            return date.string(to: .monthDayShortYear)
+        }
+        return nil
+    }
+    var dateComponents: DateComponents? {
+        //return Calendar.current.dateComponents(in: .current, from: date)
+        
+        if let date = self.date {
+            return Calendar.current.dateComponents(in: .current, from: date)
+        } else {
+            return nil
+        }
+    }
     var payMethod: CBPaymentMethod?
     var category: CBCategory?
     
@@ -54,5 +69,16 @@ class CBFitTransaction: Codable, Identifiable {
         
         let isAcknowledged = try container.decode(Int?.self, forKey: .is_acknowledged)
         self.isAcknowledged = isAcknowledged == 1 ? true : false
+    }
+    
+    func setFromAnotherInstance(trans: CBFitTransaction) {
+        self.id = trans.id
+        self.fitID = trans.fitID
+        self.title = trans.title
+        self.amountString = trans.amountString
+        self.date = trans.date
+        self.payMethod = trans.payMethod
+        self.category = trans.category
+        self.isAcknowledged = trans.isAcknowledged                
     }
 }
