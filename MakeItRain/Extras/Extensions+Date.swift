@@ -29,6 +29,20 @@ extension Date {
         return date2!
     }
     
+    var startDateOfMonth: Date {
+        guard let date = Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: self)) else {
+            fatalError("Unable to get start date from date")
+        }
+        return date
+    }
+
+    var endDateOfMonth: Date {
+        guard let date = Calendar.current.date(byAdding: DateComponents(month: 1, day: -1), to: self) else {
+            fatalError("Unable to get end date from date")
+        }
+        return date
+    }
+    
 //    var startOfDay: Date {
 //        return Calendar.current.startOfDay(for: self)
 //    }
@@ -56,6 +70,63 @@ extension Date {
 //        components.month = newMonth
 //        return Calendar.current.date(from: components)!
 //    }
+    
+    var startOfQuarter: Date {
+        let calendar = Calendar.current
+        let year = calendar.component(.year, from: self)
+        let month = calendar.component(.month, from: self)
+
+        let quarter = (month - 1) / 3 + 1
+        let firstMonthOfQuarter = (quarter - 1) * 3 + 1
+
+        var components = DateComponents()
+        components.year = year
+        components.month = firstMonthOfQuarter
+        components.day = 1
+
+        return calendar.date(from: components)!
+    }
+    
+    var endOfQuarter: Date {
+        let calendar = Calendar.current
+        let year = calendar.component(.year, from: self)
+        let quarter = (calendar.component(.month, from: self) - 1) / 3 + 1
+
+        // Determine the last month of the quarter
+        let lastMonthOfQuarter = quarter * 3
+
+        // Create a date for the first day of the next month
+        var components = DateComponents()
+        components.year = year
+        components.month = lastMonthOfQuarter + 1
+        components.day = 1
+
+        // Get the first day of the next month
+        guard let startOfNextMonth = calendar.date(from: components) else {
+            return self // fallback
+        }
+
+        // Subtract one day to get the last day of the quarter
+        return calendar.date(byAdding: .day, value: -1, to: startOfNextMonth)!
+    }
+    
+    var quarterString: String {
+        let quarter = (Calendar.current.component(.month, from: self) - 1) / 3 + 1
+        return "Q\(quarter)"
+    }
+    
+    func quarterString(includeYear: Bool = false) -> String {
+        let calendar = Calendar.current
+        let quarter = (calendar.component(.month, from: self) - 1) / 3 + 1
+        let year = calendar.component(.year, from: self)
+
+        return includeYear ? "Q\(quarter) \(year)" : "Q\(quarter)"
+    }
+    
+    func matchesMonth(of date: Date) -> Bool {
+        Calendar.current.isDate(self, equalTo: date, toGranularity: .month)
+    }
+    
     
     public var month: Int {
         return Calendar.current.dateComponents([.month], from: self).month!
@@ -185,6 +256,7 @@ enum DateFormat {
     serverDateTime,
     serverDate,
     monthDay,
+    monthNameYear,
     monthDayShortYear,
     swiftDefault,
     datePickerDateOnlyDefault
@@ -192,19 +264,20 @@ enum DateFormat {
 
 func getDateFormat(_ format: DateFormat) -> String {
     switch format {
-    case .date:                 return "MM/dd/yyyy"
-    case .dateTime:             return "MM/dd/YY h:mm:ss"
-    case .dateTimeShort:        return "MM/dd h:mm"
-    case .dateTimeNoYear:       return "MM/dd h:mm:ss"
-    case .monthDayHrMinAmPm:    return "MM/dd h:mm a"
-    case .monthDayYearHrMinAmPm:return "MM/dd/YY h:mm a"
-    case .timeAmPm:             return "h:mm a"
-    case .serverDate:           return "y-MM-dd"
-    case .serverDateTime:       return "y-MM-dd H:mm:ss"
-    case .dateTimeTodayOrNot:   return ""
-    case .monthDay:             return "MM/dd"
-    case .monthDayShortYear:    return "MM/dd/YY"
-    case .swiftDefault:         return "y-MM-dd H:mm:ss z"
+    case .date:                         return "MM/dd/yyyy"
+    case .dateTime:                     return "MM/dd/yy h:mm:ss"
+    case .dateTimeShort:                return "MM/dd h:mm"
+    case .dateTimeNoYear:               return "MM/dd h:mm:ss"
+    case .monthDayHrMinAmPm:            return "MM/dd h:mm a"
+    case .monthDayYearHrMinAmPm:        return "MM/dd/yy h:mm a"
+    case .timeAmPm:                     return "h:mm a"
+    case .serverDate:                   return "y-MM-dd"
+    case .serverDateTime:               return "y-MM-dd H:mm:ss"
+    case .dateTimeTodayOrNot:           return ""
+    case .monthDay:                     return "MM/dd"
+    case .monthNameYear:                return "MMM yyyy"
+    case .monthDayShortYear:            return "MM/dd/yy"
+    case .swiftDefault:                 return "y-MM-dd H:mm:ss z"
     case .datePickerDateOnlyDefault:    return "MMM dd, yyyy"
     }
 }

@@ -10,7 +10,7 @@ import SwiftUI
 #if os(macOS)
 
 struct CalendarToolbarLeading: View {
-    @AppStorage("useWholeNumbers") var useWholeNumbers = false
+    @Local(\.useWholeNumbers) var useWholeNumbers
     //@AppStorage("showAccountOnUnifiedView") var showAccountOnUnifiedView = false
     
     @Environment(FuncModel.self) var funcModel
@@ -24,7 +24,7 @@ struct CalendarToolbarLeading: View {
     @State private var showPopulateOptionsSheet = false
     @State private var showStartingAmountsSheet = false
     @State private var showCategorySheet = false
-    @State private var showPaymentMethodSheet = false
+    @State private var showPayMethodSheet = false
     
     
     
@@ -234,7 +234,7 @@ struct CalendarToolbarLeading: View {
         Group {
             @Bindable var calModel = calModel
             Button {
-                showPaymentMethodSheet = true
+                showPayMethodSheet = true
             } label: {
                 HStack {
                     Image(systemName: "circle.fill")
@@ -250,8 +250,8 @@ struct CalendarToolbarLeading: View {
                     //.frame(width: 100)
             }
             .toolbarBorder()
-            .popover(isPresented: $showPaymentMethodSheet) {
-                PaymentMethodSheet(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all)
+            .popover(isPresented: $showPayMethodSheet) {
+                PayMethodSheet(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all)
                     .frame(minWidth: 300, minHeight: 500)
 //                    .presentationSizing(.fitted)
             }
@@ -265,9 +265,10 @@ struct CalendarToolbarLeading: View {
             let sMeth: CBPaymentMethod? = calModel.sPayMethod
                                                             
             Button {
-                for meth in payModel.paymentMethods.filter({ !$0.isUnified }) {
-                    calModel.prepareStartingAmount(for: meth)
-                }
+                /// For when you reset the month
+//                for meth in payModel.paymentMethods.filter({ !$0.isUnified }) {
+//                    calModel.prepareStartingAmount(for: meth)
+//                }
                 showStartingAmountsSheet = true
             } label: {
                 Text(calModel.sMonth.startingAmounts.filter { $0.payMethod.id == sMeth?.id }.first?.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "0.0")
@@ -284,15 +285,19 @@ struct CalendarToolbarLeading: View {
             }
             .onChange(of: showStartingAmountsSheet) { oldValue, newValue in
                 if !newValue {
-                    calModel.calculateTotalForMonth(month: calModel.sMonth)
+                    let _ = calModel.calculateTotal(for: calModel.sMonth)
+                    
                     Task {
                         await withTaskGroup(of: Void.self) { group in
                             let starts = calModel.sMonth.startingAmounts.filter { !$0.payMethod.isUnified }
-                            print(starts)
                             for start in starts {
-                                print(start.amountString)
-                                group.addTask {
-                                    await calModel.submit(start)
+                                
+                                if start.hasChanges() {
+                                    group.addTask {
+                                        await calModel.submit(start)
+                                    }
+                                } else {
+                                    print("No Starting amount Changes for \(start.payMethod.title)")
                                 }
                             }
                         }
@@ -319,7 +324,7 @@ struct CalendarToolbarLeading: View {
     
     
     func submitStartingAmount () {
-        calModel.calculateTotalForMonth(month: calModel.sMonth)
+        let _ = calModel.calculateTotal(for: calModel.sMonth)
         
         if let starting = calModel.sMonth.startingAmounts.filter({ $0.payMethod.id == calModel.sPayMethod?.id }).first {
             if !calModel.isUnifiedPayMethod {
@@ -337,7 +342,7 @@ struct CalendarToolbarLeading: View {
     
     
     struct StaticAmountText: View {
-        @AppStorage("useWholeNumbers") var useWholeNumbers = false
+        @Local(\.useWholeNumbers) var useWholeNumbers
 
         let amount: Double?
         let alertText: String
@@ -389,15 +394,14 @@ struct CalendarToolbarTrailing: View {
     //@Binding var searchWhat: CalendarSearchWhat
     var focusedField: FocusState<Int?>.Binding
     //@FocusState var focusedField: Int?
-        
-    let set5050: () -> Void
-    
+            
     var isInWindow: Bool
     
     @State private var showResetMonthAlert = false
     @State private var showResetOptionsSheet = false
     @State private var showAnalysisSheet = false
     @State private var showFitTransactions = false
+    @State private var showMultiSelectSheet = false
     
     var body: some View {
         @Bindable var calModel = calModel
@@ -415,7 +419,22 @@ struct CalendarToolbarTrailing: View {
                             .foregroundStyle(.orange)
                     }
                     .toolbarBorder()
+                    .help("View pending fit transactions that were downloaded directly from the bank")
                 }
+                
+                
+                Button {
+                    calModel.isInMultiSelectMode.toggle()
+                    //showMultiSelectSheet = true
+                    
+                    openWindow(id: "multiSelectSheet")
+                    
+                } label: {
+                    Image(systemName: "rectangle.and.hand.point.up.left.filled")
+                }
+                .toolbarBorder()
+                .help("Entere multi-select mode, where you can select multiple transactions and peform an action on them")
+                
                 
                 Button {
                     openWindow(id: "analysisSheet")
@@ -424,14 +443,9 @@ struct CalendarToolbarTrailing: View {
                     Image(systemName: "brain")
                 }
                 .toolbarBorder()
+                .help("Open the insights sheet")
                 
                 displayModePicker
-                
-                if viewMode == .split && calendarSplitViewPercentage != 50 {
-                    Button("50/50", action: set5050)
-                        .toolbarBorder()
-                        .help("Reset the calendar and chart view ratios")
-                }
                 
                 Divider()
                 
@@ -466,12 +480,22 @@ struct CalendarToolbarTrailing: View {
         } message: {
             Text("You will be able to choose what to reset on the next page.")
         }
-        .help("Select options to reset the month")
         .sheet(isPresented: $showResetOptionsSheet) {
             ResetMonthOptionSheet()
                 .frame(minWidth: 300, minHeight: 500)
                 .presentationSizing(.fitted)
         }
+//        .sheet(isPresented: $showMultiSelectSheet) {
+//            MultiSelectTransactionOptionsSheet(
+//                bottomPanelContent: .constant(.multiSelectOptions),
+//                bottomPanelHeight: .constant(0),
+//                scrollContentMargins: .constant(0),
+//                showAnalysisSheet: .constant(false)
+//            )
+//            .frame(minWidth: 300, minHeight: 500)
+//            .presentationSizing(.fitted)
+//        }
+        
 //        .sheet(isPresented: $showAnalysisSheet) {
 //            AnalysisSheet(showAnalysisSheet: $showAnalysisSheet)
 //                .frame(minWidth: 300, minHeight: 500)
@@ -527,29 +551,19 @@ struct CalendarToolbarTrailing: View {
             Image(systemName: "person.crop.circle.badge.exclamationmark")
                 .foregroundStyle(.red)
         }
+        .help("Resubscribe to multi-device updates")
         .toolbarBorder()
     }
     
     
     var displayModePicker: some View {
-        Picker(selection: $viewMode) {
-            Image(systemName: "calendar")
-                .tag(CalendarViewMode.details)
-                .help("View calendar")
-//            Image(systemName: "chart.pie.fill")
-//                .tag(CalendarViewMode.budget)
-            Image(systemName: "chart.pie.fill")
-//            Image(systemName: "square.split.2x1.fill")
-                .tag(CalendarViewMode.split)
-                .help("View calendar and chart side-by-side")
-            
+        Button {
+            openWindow(id: "budgetWindow")
         } label: {
-            Text("View")
+            Image(systemName: "chart.pie.fill")
         }
-        .labelsHidden()
-        .pickerStyle(.segmented)
+        .help("View details of this months budget")
         .toolbarBorder()
-        .help("Choose between the calendar and chart views")
     }
     
     
@@ -568,7 +582,7 @@ struct CalendarToolbarTrailing: View {
         }
         .toolbarBorder()
         //.disabled(calModel.refreshTask != nil)
-        .help("Reset all data for this month")
+        .help("Select options to reset this month")
     }
     
     

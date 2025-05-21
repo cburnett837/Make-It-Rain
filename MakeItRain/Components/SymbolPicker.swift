@@ -14,12 +14,17 @@ fileprivate struct SymbolSection: Identifiable {
 }
 
 struct SymbolPicker: View {
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+    @Local(\.colorTheme) var colorTheme
     @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    
     @Binding var selected: String?
+    var color: Color = .primary
+        
+    @FocusState private var focusedField: Int?
+    @State private var searchText = ""
     
     let columnGrid = Array(repeating: GridItem(.flexible(), spacing: 0), count: 6)
-    
     
     fileprivate let sections: Array<SymbolSection> = [
         SymbolSection(title: "Child Care", symbols: [
@@ -147,43 +152,49 @@ struct SymbolPicker: View {
             "birthday.cake.fill",
             "party.popper.fill"
         ]),
-    ]
         
-    @FocusState private var focusedField: Int?
-    @State private var searchText = ""
+        SymbolSection(title: "Technology", symbols: [
+            "desktopcomputer",
+            "laptopcomputer",
+            "computermouse.fill",
+            "printer.fill",
+            "smartphone",
+            "headphones",
+            "flipphone",
+            "candybarphone",
+        ]),
+    ]
     
     fileprivate var filteredSections: Array<SymbolSection> {
         if searchText.isEmpty {
             return sections
         } else {
             return sections
-                .filter {
-                    !$0.symbols.filter { $0.localizedStandardContains(searchText) }.isEmpty
-                }
+                .filter { !$0.symbols.filter { $0.localizedStandardContains(searchText) }.isEmpty }
         }
     }
     
     var body: some View {
-        
         StandardContainer(.list) {
             ForEach(filteredSections.sorted { $0.title < $1.title }) { section in
                 Section(section.title) {
                     LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
-                        ForEach(searchText.isEmpty
-                                ? section.symbols.sorted { $0 < $1 }
-                                : section.symbols.filter { $0.localizedStandardContains(searchText) }.sorted { $0 < $1 },
-                                id: \.self)
-                        { sym in
-                            
+                        let filtered = searchText.isEmpty
+                        ? section.symbols.sorted { $0 < $1 }
+                        : section.symbols.filter { $0.localizedStandardContains(searchText) }.sorted { $0 < $1 }
+                        
+                        ForEach(filtered, id: \.self) { sym in
                             if (selected ?? "") == sym {
                                 RoundedRectangle(cornerRadius: 15)
-                                    .fill(Color.fromName(appColorTheme))
+                                    //.fill(Color.fromName(colorTheme))
+                                    .fill(color == .primary ? Color.fromName(colorTheme) : Color(.systemFill))
                                     .onTapGesture {
                                         selected = sym
                                         dismiss()
                                     }
                                     .overlay {
                                         Image(systemName: sym)
+                                            .foregroundStyle(color)
                                             .frame(maxWidth: .infinity, alignment: .center)
                                             .font(.title)
                                     }
@@ -191,6 +202,7 @@ struct SymbolPicker: View {
                                 Image(systemName: sym)
                                     .frame(maxWidth: .infinity, alignment: .center)
                                     .font(.title)
+                                    .foregroundStyle(color)
                                     .onTapGesture {
                                         selected = sym
                                         dismiss()
@@ -207,7 +219,7 @@ struct SymbolPicker: View {
 //                                .padding(5)
 //                                .background {
 //                                    Circle()
-//                                        .fill((selected ?? "") == sym ? Color.fromName(appColorTheme) : Color.clear)
+//                                        .fill((selected ?? "") == sym ? Color.fromName(colorTheme) : Color.clear)
 //                                }
                         }
                     }
@@ -248,7 +260,7 @@ struct SymbolPicker: View {
 //                                    .padding(5)
 //                                    .background {
 //                                        Circle()
-//                                            .fill((selected ?? "") == sym ? Color.fromName(appColorTheme) : Color.clear)
+//                                            .fill((selected ?? "") == sym ? Color.fromName(colorTheme) : Color.clear)
 //                                    }
 //                            }
 //                        }

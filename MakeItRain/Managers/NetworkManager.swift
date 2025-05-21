@@ -19,7 +19,7 @@ class NetworkManager {
     init(timeout: TimeInterval = 60) {
         //let earl = String(format: "http://www.codyburnett.com:8677/")
         //let earl = String(format: "http://10.0.0.87:8677/")
-        let earl = String(format: "https://\(Keys.baseURL):8681/budget_app")
+        let earl = String(format: "https://\(Keys.baseURL):8681/budget_app/")
         //let earl = String(format: "http://\(Keys.baseURL):8677/")
         let URL = URL(string: earl)
         var request = URLRequest(url: URL!)

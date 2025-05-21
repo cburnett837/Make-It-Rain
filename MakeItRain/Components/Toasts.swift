@@ -18,7 +18,7 @@ struct Toast {
 }
 
 struct ToastView: View {
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+    @Local(\.colorTheme) var colorTheme
     var toast: Toast?
     let timer = Timer.publish(every: 5, on: .main, in: .common).autoconnect()
         
@@ -32,11 +32,11 @@ struct ToastView: View {
                 .background {
                     if let toast = toast {
                         RoundedRectangle(cornerRadius: 8)
-                            //.fill(Color.fromName(toast.symbolColor == nil ? appColorTheme : toast.symbolColor!.description))
+                            //.fill(Color.fromName(toast.symbolColor == nil ? colorTheme : toast.symbolColor!.description))
                                                 
                             .fill(
                                 toast.symbolColor == nil
-                                ? Color.fromName(appColorTheme)
+                                ? Color.fromName(colorTheme)
                                 : Color(toast.symbolColor!)
                             )
                         

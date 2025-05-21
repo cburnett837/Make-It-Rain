@@ -11,10 +11,14 @@ import UniformTypeIdentifiers
 import SwiftUI
 
 
+enum RepeatingTransactionType: String, CaseIterable {
+    case regular
+    case transfer
+    case payment
+}
+
 @Observable
-class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transferable {
-    //@AppStorage("preferDarkMode") var preferDarkMode: Bool = true
-    
+class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, CanEditAmount {
     var id: String
     var uuid: String?
     var title: String
@@ -22,8 +26,17 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         Double(amountString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
     }
     var amountString: String
+    var amountTypeLingo: String {
+        if payMethod?.accountType == .credit {
+            amountString.contains("-") ? "Payment" : "Expense"
+        } else {
+            amountString.contains("-") ? "Expense" : "Income"
+        }
+    }
+    
     var color: Color
     var payMethod: CBPaymentMethod?
+    var payMethodPayTo: CBPaymentMethod?
     var category: CBCategory?
     var when: Array<CBRepeatingTransactionWhen>
     var active: Bool
@@ -33,16 +46,18 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
     var enteredDate: Date
     var updatedDate: Date
     
+    var repeatingTransactionType: XrefItem = XrefModel.getItem(from: .repeatingTransactionType, byEnumID: .regular)
+
+    
     init() {
         let uuid = UUID().uuidString
         self.id = uuid
         self.uuid = uuid
         self.title = ""
         self.amountString = ""
-        //self.color = preferDarkMode ? .white : .black
-        self.color = UserDefaults.fetchOneBool(requestedKey: "preferDarkMode") == true ? .white : .black
-        //self.color = .primary
+        self.color = .primary
         self.payMethod = nil
+        self.payMethodPayTo = nil
         self.category = nil
         self.active = true
         self.action = .add
@@ -109,11 +124,10 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         self.id = uuid
         self.uuid = uuid
         self.title = ""
-        self.amountString = ""
-        //self.color = preferDarkMode ? .white : .black
-        self.color = UserDefaults.fetchOneBool(requestedKey: "preferDarkMode") == true ? .white : .black
-        //self.color = .primary
+        self.amountString = ""        
+        self.color = .primary
         self.payMethod = nil
+        self.payMethodPayTo = nil
         self.category = nil
         self.active = true
         self.action = .add
@@ -175,8 +189,7 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         ]
     }
         
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, title_hex_code, payment_method, category, active, user_id, account_id, device_uuid, when, sunday, monday, tuesday, wednesday, thursday, friday, saturday, january, february, march, april, may, june, july, august, september, october, november, december, day1, day2, day3, day4, day5, day6, day7, day8, day9, day10, day11, day12, day13, day14, day15, day16, day17, day18, day19, day20, day21, day22, day23, day24, day25, day26, day27, day28, day29, day30, day31, entered_by, updated_by, entered_date, updated_date
-        }
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, title_hex_code, payment_method, payment_method_pay_to, category, active, user_id, account_id, device_uuid, when, sunday, monday, tuesday, wednesday, thursday, friday, saturday, january, february, march, april, may, june, july, august, september, october, november, december, day1, day2, day3, day4, day5, day6, day7, day8, day9, day10, day11, day12, day13, day14, day15, day16, day17, day18, day19, day20, day21, day22, day23, day24, day25, day26, day27, day28, day29, day30, day31, entered_by, updated_by, entered_date, updated_date, repeating_transaction_type_id }
     
     
     func encode(to encoder: Encoder) throws {
@@ -188,6 +201,7 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         try container.encode(color.toHex(), forKey: .title_hex_code)
         //try container.encode(color.description, forKey: .title_hex_code)
         try container.encode(payMethod, forKey: .payment_method)
+        try container.encode(payMethodPayTo, forKey: .payment_method_pay_to)
         try container.encode(category, forKey: .category)
         
         try container.encode(when.filter { $0.when == "sunday" }.first!.active, forKey: .sunday)
@@ -249,6 +263,8 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
         try container.encode(enteredDate.string(to: .serverDateTime), forKey: .entered_date) // for the Transferable protocol
         try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date) // for the Transferable protocol
+        
+        try container.encode(repeatingTransactionType.id, forKey: .repeating_transaction_type_id)
     }
     
     
@@ -258,25 +274,27 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         title = try container.decode(String.self, forKey: .title)
         
         let amount = try container.decode(Double.self, forKey: .amount)
-        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
         self.amountString = amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
         
         self.payMethod = try container.decode(CBPaymentMethod.self, forKey: .payment_method)
+        self.payMethodPayTo = try container.decode(CBPaymentMethod?.self, forKey: .payment_method_pay_to)
         self.category = try container.decode(CBCategory?.self, forKey: .category)
         self.when = try container.decode(Array<CBRepeatingTransactionWhen>.self, forKey: .when)
-        
+                
         let hexCode = try container.decode(String?.self, forKey: .title_hex_code)
-        #if os(iOS)
-        if hexCode == "FFFFFF" && UserDefaults.fetchOneBool(requestedKey: "preferDarkMode") == true {
-            self.color = .white
-        } else if hexCode == "FFFFFF" && UserDefaults.fetchOneBool(requestedKey: "preferDarkMode") == false {
-            self.color = .black
+        //#if os(iOS)
+        let color = Color.fromHex(hexCode) ?? .primary
+        
+        if color == .white || color == .black {
+            self.color = .primary
         } else {
-            self.color = Color.fromHex(hexCode) ?? .primary
+            self.color = color
         }
-        #else
-        self.color = .white
-        #endif
+        
+        //#else
+        //self.color = .white
+        //#endif
 
         //let colorDescription = try container.decode(String?.self, forKey: .title_hex_code)
         //self.color = Color.fromName(colorDescription ?? "white")
@@ -302,6 +320,13 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         } else {
             fatalError("Could not determine updatedDate date")
         }
+        
+        
+        let repeatingTransactionTypeID = try container.decode(Int?.self, forKey: .repeating_transaction_type_id)
+        if let repeatingTransactionTypeID = repeatingTransactionTypeID {
+            self.repeatingTransactionType = XrefModel.getItem(from: .repeatingTransactionType, byID: repeatingTransactionTypeID)
+        }
+        
     }
     
     
@@ -317,7 +342,9 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
             && self.amount == deepCopy.amount
             && self.color == deepCopy.color
             && self.payMethod?.id == deepCopy.payMethod?.id
+            && self.payMethodPayTo?.id == deepCopy.payMethodPayTo?.id
             && self.category?.id == deepCopy.category?.id
+            && self.repeatingTransactionType == deepCopy.repeatingTransactionType
             && self.when == deepCopy.when {
                 return false
             }
@@ -337,7 +364,9 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
             copy.amountString = self.amountString
             copy.color = self.color
             copy.payMethod = self.payMethod
+            copy.payMethodPayTo = self.payMethodPayTo
             copy.category = self.category
+            copy.repeatingTransactionType = self.repeatingTransactionType
             copy.when = self.when.map {
                 $0.deepCopy(.create)
                 return $0.deepCopy!
@@ -354,9 +383,11 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
                 self.color = deepCopy.color
                 self.amountString = deepCopy.amountString
                 self.payMethod = deepCopy.payMethod
+                self.payMethodPayTo = deepCopy.payMethodPayTo
                 self.category = deepCopy.category
                 self.when = deepCopy.when
                 self.active = deepCopy.active
+                self.repeatingTransactionType = deepCopy.repeatingTransactionType
                 //self.action = deepCopy.action
             }
         case .clear:
@@ -368,22 +399,16 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         self.title = repTransaction.title
         self.color = repTransaction.color        
         
-        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
         self.amountString = repTransaction.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
         
         self.payMethod = repTransaction.payMethod
+        self.payMethodPayTo = repTransaction.payMethodPayTo
         self.category = repTransaction.category
         self.when = repTransaction.when
         self.active = repTransaction.active
-    }
-    
-    func flipColor(preferDarkMode: Bool) {
-        if preferDarkMode {
-            if color == .black { color = .white }
-        } else {
-            if color == .white { color = .black }
-        }
-    }
+        self.repeatingTransactionType = repTransaction.repeatingTransactionType
+    }            
     
     
     static func == (lhs: CBRepeatingTransaction, rhs: CBRepeatingTransaction) -> Bool {
@@ -393,7 +418,9 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         && lhs.amount == rhs.amount
         && lhs.color == rhs.color
         && lhs.payMethod?.id == rhs.payMethod?.id
+        && lhs.payMethodPayTo?.id == rhs.payMethodPayTo?.id
         && lhs.category?.id == rhs.category?.id
+        && lhs.repeatingTransactionType == rhs.repeatingTransactionType
         && lhs.when == rhs.when {
             return true
         }

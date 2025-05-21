@@ -204,7 +204,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
         title = try container.decode(String.self, forKey: .title)
         
         let amount = try container.decode(Double.self, forKey: .amount)
-        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
         self.amountString = amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
         
         self.payMethod = try container.decode(CBPaymentMethod?.self, forKey: .payment_method)
@@ -465,7 +465,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
         self.eventID = transaction.eventID
         self.title = transaction.title
         
-        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
         self.amountString = transaction.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
         
         self.payMethod = transaction.payMethod
@@ -521,7 +521,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
     func setFromOptionInstance(option: CBEventTransactionOption) {
         self.originalTitle = self.title
         self.title = option.title
-        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
         self.amountString = option.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
         self.locations = option.locations
         self.updatedDate = option.updatedDate
@@ -539,7 +539,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
     func setFromTransactionInstance(transaction: CBTransaction) {
         //self.id = transaction.id
         self.title = transaction.title
-        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
         self.amountString = transaction.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
         self.date = transaction.date
         //self.enteredBy = transaction.paidBy!

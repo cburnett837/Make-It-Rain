@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct BudgetEditView: View {
-    @AppStorage("useWholeNumbers") var useWholeNumbers = false
+    @Local(\.useWholeNumbers) var useWholeNumbers
 
     @Environment(\.dismiss) var dismiss
     @Bindable var budget: CBBudget
@@ -21,6 +21,16 @@ struct BudgetEditView: View {
     
     @FocusState private var focusedField: Int?
     @State private var showKeyboardToolbar = false
+    
+    var transactions: Array<CBTransaction> {
+        /// This will look at both the transaction, and its deepCopy.
+        /// The reason being - in case we change a transction category or payment method from what is currently being viewed. This will allow the transaction sheet to remain on screen until we close it, at which point the save function will clear the deepCopy.
+        calModel.sMonth.days.flatMap {
+            $0.transactions.filter { trans in
+                trans.categoryIdsInCurrentAndDeepCopy.contains(budget.category?.id)
+            }
+        }
+    }
 
     var body: some View {
         StandardContainer {
@@ -29,7 +39,7 @@ struct BudgetEditView: View {
             }
             
             LabeledRow("Budget", labelWidth) {
-                StandardTextField("Montly Amount", text: $budget.amountString, focusedField: $focusedField, focusValue: 0)
+                StandardTextField("Monthly Amount", text: $budget.amountString, focusedField: $focusedField, focusValue: 0)
                     #if os(iOS)
                     .keyboardType(.decimalPad)
                     #endif
@@ -38,8 +48,7 @@ struct BudgetEditView: View {
             
             
             StandardDivider()
-            
-            ForEach(calModel.sMonth.days.flatMap{$0.transactions.filter {$0.category?.id == budget.category?.id}}) { trans in
+            ForEach(transactions) { trans in
                 VStack(spacing: 0) {
                     LineItemView(trans: trans, day: .init(date: Date()), isOnCalendarView: false)
                     Divider()

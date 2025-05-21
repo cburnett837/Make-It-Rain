@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct RepeatingTransactionView: View {
-    @AppStorage("useWholeNumbers") var useWholeNumbers = false    
+    @Local(\.useWholeNumbers) var useWholeNumbers    
     @Environment(\.dismiss) var dismiss
     
     @Bindable var repTransaction: CBRepeatingTransaction
@@ -30,7 +30,7 @@ struct RepeatingTransactionView: View {
     @FocusState private var focusedField: Int?
     @State private var showKeyboardToolbar = false
     
-    @State private var showPaymentMethodSheet = false
+    @State private var showPayMethodSheet = false
     @State private var showCategorySheet = false
     
     var deleteButton: some View {
@@ -41,6 +41,32 @@ struct RepeatingTransactionView: View {
         }
         .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
     }
+    
+    var paymentMethodTitle: String {
+        if repTransaction.repeatingTransactionType.enumID == .payment {
+            "Pay From"
+        } else if repTransaction.repeatingTransactionType.enumID == .transfer {
+             "Transfer From"
+        } else {
+            "Pay Meth"
+        }
+    }
+    
+    
+    var paymentMethod2Title: String {
+        if repTransaction.repeatingTransactionType.enumID == .payment {
+            "Pay To"
+        } else if repTransaction.repeatingTransactionType.enumID == .transfer {
+             "Transfer To"
+        } else {
+            "Pay Meth"
+        }
+    }
+    
+    var isRegularTransaction: Bool {
+        repTransaction.repeatingTransactionType.enumID == .regular
+    }
+    
     
 //    var header: some View {
 //        Group {
@@ -57,7 +83,7 @@ struct RepeatingTransactionView: View {
         StandardContainer {
             LabeledRow("Name", labelWidth) {
                 #if os(iOS)
-                StandardUITextField("Amount", text: $repTransaction.title, onSubmit: {
+                StandardUITextField("Title", text: $repTransaction.title, onSubmit: {
                     focusedField = 1
                 }, toolbar: {
                     KeyboardToolbarView(focusedField: $focusedField)
@@ -72,27 +98,30 @@ struct RepeatingTransactionView: View {
             }
             
             LabeledRow("Amount", labelWidth) {
-                Group {
-                    #if os(iOS)
-                    StandardUITextField("Amount", text: $repTransaction.amountString, toolbar: {
-                        KeyboardToolbarView(focusedField: $focusedField, accessoryImage3: "plus.forwardslash.minus", accessoryFunc3: {
-                            Helpers.plusMinus($repTransaction.amountString)
-                        })
-                    })
-                    .cbKeyboardType(.decimalPad)
-                    .cbClearButtonMode(.whileEditing)
-                    .cbFocused(_focusedField, equals: 1)
-                    #else
-                    StandardTextField("Amount", text: $repTransaction.amountString, focusedField: $focusedField, focusValue: 1)
-                    #endif
-                }
-                .formatCurrencyLiveAndOnUnFocus(
-                    focusValue: 1,
-                    focusedField: focusedField,
-                    amountString: repTransaction.amountString,
-                    amountStringBinding: $repTransaction.amountString,
-                    amount: repTransaction.amount
-                )
+                
+                StandardAmountTextField(focusedField: _focusedField, focusID: 1, showSymbol: false, obj: repTransaction)
+                
+//                Group {
+//                    #if os(iOS)
+//                    StandardUITextField("Amount", text: $repTransaction.amountString, toolbar: {
+//                        KeyboardToolbarView(focusedField: $focusedField, accessoryImage3: "plus.forwardslash.minus", accessoryFunc3: {
+//                            Helpers.plusMinus($repTransaction.amountString)
+//                        })
+//                    })
+//                    .cbKeyboardType(.decimalPad)
+//                    .cbClearButtonMode(.whileEditing)
+//                    .cbFocused(_focusedField, equals: 1)
+//                    #else
+//                    StandardTextField("Amount", text: $repTransaction.amountString, focusedField: $focusedField, focusValue: 1)
+//                    #endif
+//                }
+//                .formatCurrencyLiveAndOnUnFocus(
+//                    focusValue: 1,
+//                    focusedField: focusedField,
+//                    amountString: repTransaction.amountString,
+//                    amountStringBinding: $repTransaction.amountString,
+//                    amount: repTransaction.amount
+//                )
                                         
 //                        .onChange(of: repTransaction.amountString) {
 //                            Helpers.liveFormatCurrency(oldValue: $0, newValue: $1, text: $repTransaction.amountString)
@@ -117,10 +146,33 @@ struct RepeatingTransactionView: View {
             
             StandardDivider()
             
-            LabeledRow("Pay Meth", labelWidth) {
-                PaymentMethodSheetButton(payMethod: $repTransaction.payMethod, whichPaymentMethods: .allExceptUnified)
+            
+            
+            LabeledRow(paymentMethodTitle, labelWidth) {
+                PayMethodSheetButton(payMethod: $repTransaction.payMethod, whichPaymentMethods: .allExceptUnified)
+            }
+                        
+            if !isRegularTransaction {
+                LabeledRow(paymentMethod2Title, labelWidth) {
+                    PayMethodSheetButton(payMethod: $repTransaction.payMethodPayTo, whichPaymentMethods: .allExceptUnified)
+                }
             }
             
+            LabeledRow("Type", labelWidth) {
+                Picker("", selection: $repTransaction.repeatingTransactionType) {
+                    Text("Regular")
+                        .tag(XrefModel.getItem(from: .repeatingTransactionType, byEnumID: .regular))
+                    Text("Payment")
+                        .tag(XrefModel.getItem(from: .repeatingTransactionType, byEnumID: .payment))
+                    Text("Transfer")
+                        .tag(XrefModel.getItem(from: .repeatingTransactionType, byEnumID: .transfer))
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+            }
+            
+            StandardDivider()
+                                    
             LabeledRow("Category", labelWidth) {
                 CategorySheetButton(category: $repTransaction.category)
             }
@@ -147,7 +199,9 @@ struct RepeatingTransactionView: View {
             
             LabeledRow("Color", labelWidth) {
                 //ColorPickerButton(color: $repTransaction.color)
-                
+                #if os(iOS)
+                StandardColorPicker(color: $repTransaction.color)
+                #else
                 HStack {
                     ColorPicker("", selection: $repTransaction.color, supportsOpacity: false)
                         .labelsHidden()
@@ -157,6 +211,7 @@ struct RepeatingTransactionView: View {
                             AppState.shared.showToast(title: "Color Picker", subtitle: "Click the circle to the left to change the color.", body: nil, symbol: "theatermask.and.paintbrush", symbolColor: repTransaction.color)
                         }
                 }
+                #endif
             }
             
         } header: {
@@ -220,7 +275,7 @@ struct RepeatingTransactionView: View {
     
     
     struct WeekdayToggles: View {
-        @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+        @Local(\.colorTheme) var colorTheme
         @Environment(RepeatingTransactionModel.self) private var repModel
         @Bindable var repTransaction: CBRepeatingTransaction
         
@@ -233,8 +288,8 @@ struct RepeatingTransactionView: View {
                     } label: {
                         Text("All")
                             .frame(width: 40, height: 40)
-                            .foregroundStyle(isAll ? Color.fromName(appColorTheme) : Color.primary)
-                            .background(isAll ? Color.fromName(appColorTheme).opacity(0.2) : Color.clear)
+                            .foregroundStyle(isAll ? Color.fromName(colorTheme) : Color.primary)
+                            .background(isAll ? Color.fromName(colorTheme).opacity(0.2) : Color.clear)
                             .clipShape(Circle())
                             .font(.caption)
                             .bold()
@@ -250,8 +305,8 @@ struct RepeatingTransactionView: View {
                         } label: {
                             Text(when.displayTitle)
                                 .frame(width: 40, height: 40)
-                                .foregroundStyle(when.active ? Color.fromName(appColorTheme) : Color.primary)
-                                .background(when.active ? Color.fromName(appColorTheme).opacity(0.2) : Color.clear)
+                                .foregroundStyle(when.active ? Color.fromName(colorTheme) : Color.primary)
+                                .background(when.active ? Color.fromName(colorTheme).opacity(0.2) : Color.clear)
                                 .clipShape(Circle())
                                 .font(.caption)
                                 .bold()
@@ -268,7 +323,7 @@ struct RepeatingTransactionView: View {
     
     
     struct MonthToggles: View {
-        @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+        @Local(\.colorTheme) var colorTheme
         @Environment(RepeatingTransactionModel.self) private var repModel
         @Bindable var repTransaction: CBRepeatingTransaction
         
@@ -281,8 +336,8 @@ struct RepeatingTransactionView: View {
                     } label: {
                         Text("All")
                             .frame(width: 40, height: 40)
-                            .foregroundStyle(isAll ? Color.fromName(appColorTheme) : Color.primary)
-                            .background(isAll ? Color.fromName(appColorTheme).opacity(0.2) : Color.clear)
+                            .foregroundStyle(isAll ? Color.fromName(colorTheme) : Color.primary)
+                            .background(isAll ? Color.fromName(colorTheme).opacity(0.2) : Color.clear)
                             .clipShape(Circle())
                             .font(.caption)
                             .bold()
@@ -298,8 +353,8 @@ struct RepeatingTransactionView: View {
                         } label: {
                             Text(when.displayTitle)
                                 .frame(width: 40, height: 40)
-                                .foregroundStyle(when.active ? Color.fromName(appColorTheme) : Color.primary)
-                                .background(when.active ? Color.fromName(appColorTheme).opacity(0.2) : Color.clear)
+                                .foregroundStyle(when.active ? Color.fromName(colorTheme) : Color.primary)
+                                .background(when.active ? Color.fromName(colorTheme).opacity(0.2) : Color.clear)
                                 .clipShape(Circle())
                                 .font(.caption)
                                 .bold()
@@ -316,7 +371,7 @@ struct RepeatingTransactionView: View {
     
     
     struct DayToggles: View {
-        @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+        @Local(\.colorTheme) var colorTheme
         @Environment(RepeatingTransactionModel.self) private var repModel
         @Bindable var repTransaction: CBRepeatingTransaction
         
@@ -339,7 +394,7 @@ struct RepeatingTransactionView: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        .background(day.active ? Color.fromName(appColorTheme) : .clear)
+                        .background(day.active ? Color.fromName(colorTheme) : .clear)
                         .border(Color(.gray))
                     }
                 }

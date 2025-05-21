@@ -65,6 +65,7 @@ class RepeatingTransactionModel {
     func fetchRepeatingTransactions(file: String = #file, line: Int = #line, function: String = #function) async {
         NSLog("\(file):\(line) : \(function)")
         LogManager.log()
+        let start = CFAbsoluteTimeGetCurrent()
         
         /// Do networking.
         let model = RequestModel(requestType: "fetch_repeating_transactions", model: AppState.shared.user)
@@ -106,6 +107,9 @@ class RepeatingTransactionModel {
             
             /// Update the progress indicator.
             AppState.shared.downloadedData.append(.repeatingTransactions)
+            
+            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
+            print("🔴It took \(currentElapsed) seconds to fetch the repeating transactions")
             
         case .failure (let error):
             switch error {

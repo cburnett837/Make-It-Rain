@@ -9,7 +9,8 @@ import Foundation
 
 @Observable
 class CBStartingAmount: Codable, Identifiable, Hashable, Equatable {
-    var id: Int
+    var id: String
+    var uuid: String?
     var month: Int
     var year: Int
     var date: Date {
@@ -25,11 +26,13 @@ class CBStartingAmount: Codable, Identifiable, Hashable, Equatable {
     var payMethod: CBPaymentMethod
     var action: StartingAmountAction        
             
-    enum CodingKeys: CodingKey { case id, month, year, amount, payment_method, user_id, account_id, device_uuid, active }
+    enum CodingKeys: CodingKey { case id, uuid, month, year, amount, payment_method, user_id, account_id, device_uuid, active }
     
     
     init() {
-        self.id = 0
+        let uuid = UUID().uuidString
+        self.id = uuid
+        self.uuid = uuid
         self.month = 0
         self.year = 0
         self.amountString = ""
@@ -41,6 +44,7 @@ class CBStartingAmount: Codable, Identifiable, Hashable, Equatable {
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
+        try container.encode(uuid, forKey: .uuid)
         try container.encode(month, forKey: .month)
         try container.encode(year, forKey: .year)
         try container.encode(amount, forKey: .amount)
@@ -53,10 +57,14 @@ class CBStartingAmount: Codable, Identifiable, Hashable, Equatable {
     
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(Int.self, forKey: .id)
+        do {
+            id = try String(container.decode(Int.self, forKey: .id))
+        } catch {
+            id = try container.decode(String.self, forKey: .id)
+        }
         let amount = try container.decode(Double.self, forKey: .amount)
         //self.amountString = "$\(amount)"
-        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
         self.amountString = amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
         
         month = try container.decode(Int.self, forKey: .month)
@@ -66,6 +74,46 @@ class CBStartingAmount: Codable, Identifiable, Hashable, Equatable {
         let isActive = try container.decode(Int?.self, forKey: .active)
         self.active = isActive == 1 ? true : false
     }
+    
+    
+    
+    func hasChanges() -> Bool {
+        if let deepCopy = deepCopy {
+            if self.month == deepCopy.month
+            && self.year == deepCopy.year
+            && self.amountString == deepCopy.amountString
+            && self.payMethod == deepCopy.payMethod {
+                return false
+            }
+        }
+        return true
+    }
+    
+    
+    var deepCopy: CBStartingAmount?
+    func deepCopy(_ mode: ShadowCopyAction) {
+        switch mode {
+        case .create:
+            let copy = CBStartingAmount()
+            copy.id = self.id
+            copy.month = self.month
+            copy.year = self.year
+            copy.amountString = self.amountString
+            copy.payMethod = self.payMethod
+            self.deepCopy = copy
+        case .restore:
+            if let deepCopy = self.deepCopy {
+                self.id = deepCopy.id
+                self.month = deepCopy.month
+                self.year = deepCopy.year
+                self.amountString = deepCopy.amountString
+                self.payMethod = deepCopy.payMethod
+            }
+        case .clear:
+            break
+        }
+    }
+    
     
     
     
@@ -93,14 +141,5 @@ class CBStartingAmount: Codable, Identifiable, Hashable, Equatable {
     
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
-    }
-   
-    
-    func printProperties() {
-        print("id: \(id)")
-        print("month: \(month)")
-        print("year: \(year)")
-        print("amount: \(amount)")
-        print("payMethod: \(payMethod)")
     }
 }

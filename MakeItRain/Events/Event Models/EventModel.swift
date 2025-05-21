@@ -236,6 +236,8 @@ class EventModel: PhotoUploadCompletedDelegate {
         NSLog("\(file):\(line) : \(function)")
         LogManager.log()
         
+        let start = CFAbsoluteTimeGetCurrent()
+        
         /// Do networking.
         let model = RequestModel(requestType: "fetch_events", model: AppState.shared.user)
         typealias ResultResponse = Result<Array<CBEvent>?, AppError>
@@ -273,6 +275,9 @@ class EventModel: PhotoUploadCompletedDelegate {
             /// Update the progress indicator.
             AppState.shared.downloadedData.append(.events)
             
+            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
+            print("🔴It took \(currentElapsed) seconds to fetch the events")
+            
         case .failure (let error):
             switch error {
             case .taskCancelled:
@@ -292,6 +297,8 @@ class EventModel: PhotoUploadCompletedDelegate {
         NSLog("\(file):\(line) : \(function)")
         LogManager.log()
         
+        let start = CFAbsoluteTimeGetCurrent()
+        
         /// Do networking.
         let model = RequestModel(requestType: "fetch_invitations", model: AppState.shared.user)
         typealias ResultResponse = Result<Array<CBEventParticipant>?, AppError>
@@ -310,6 +317,9 @@ class EventModel: PhotoUploadCompletedDelegate {
             }
             /// Update the progress indicator.
             AppState.shared.downloadedData.append(.events)
+            
+            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
+            print("🔴It took \(currentElapsed) seconds to fetch the event invitations")
             
         case .failure (let error):
             switch error {

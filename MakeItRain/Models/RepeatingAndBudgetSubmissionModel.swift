@@ -28,6 +28,4 @@ struct RepeatingAndBudgetSubmissionModel: Encodable {
         try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
         try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
     }
-    
-    
 }

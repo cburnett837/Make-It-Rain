@@ -100,7 +100,7 @@ class CBLogGroup: Decodable, Identifiable {
 
 
 @Observable
-class CBLog: Codable, Identifiable, Transferable {
+class CBLog: Codable, Identifiable, Transferable, Equatable, Hashable {
     var id: String
     var uuid: String?
     var itemID: String
@@ -219,8 +219,8 @@ class CBLog: Codable, Identifiable, Transferable {
     }
     
     
-    @MainActor func createCoreDataEntity() -> TempTransactionLog? {
-        guard let entity = DataManager.shared.createBlank(type: TempTransactionLog.self) else { return nil }
+    func createCoreDataEntity() async -> TempTransactionLog? {
+        guard let entity = await DataManager.shared.createBlank(type: TempTransactionLog.self) else { return nil }
         entity.field = field.rawValue
         entity.oldValue = old
         entity.newValue = new

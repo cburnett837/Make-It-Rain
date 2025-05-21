@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ToolbarLongPollButton: View {
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+    @Local(\.colorTheme) var colorTheme
     @Environment(FuncModel.self) var funcModel
     
     var body: some View {
@@ -29,7 +29,7 @@ struct ToolbarLongPollButton: View {
                     }
                 } label: {
                     Image(systemName: "ipad.and.iphone.slash")
-                        .foregroundStyle(Color.fromName(appColorTheme) == .red ? .orange : .red)
+                        .foregroundStyle(Color.fromName(colorTheme) == .red ? .orange : .red)
                 }
             }
         }

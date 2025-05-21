@@ -22,7 +22,15 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
     var amount: Double {
         Double(amountString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
     }
-    var amountString: String    
+    var amountString: String
+    
+    /// Amount 2 is only for fetching the analytics in the category sheet.
+    var amount2: Double {
+        Double(amountString2.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
+    }
+    var amountString2: String
+    
+    
     var active: Bool
     var action: BudgetAction
     
@@ -34,12 +42,13 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
         self.month = 0
         self.year = 0
         self.amountString = ""
+        self.amountString2 = ""
         self.active = true
         self.action = .add
     }
     
     
-    enum CodingKeys: CodingKey { case id, uuid, category, month, year, amount, active, user_id, account_id, device_uuid }
+    enum CodingKeys: CodingKey { case id, uuid, category, month, year, amount, amount2, active, user_id, account_id, device_uuid }
     
     
     func encode(to encoder: Encoder) throws {
@@ -67,10 +76,13 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
         self.category = try container.decode(CBCategory?.self, forKey: .category)
         month = try container.decode(Int.self, forKey: .month)
         year = try container.decode(Int.self, forKey: .year)
-        
+                
         let amount = try container.decode(Double.self, forKey: .amount)
-        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
-        self.amountString = amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        self.amountString = amount.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
+        
+        /// Amount 2 is only for fetching the analytics in the category sheet.
+        let amount2 = try container.decodeIfPresent(Double.self, forKey: .amount2)
+        self.amountString2 = amount2?.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2) ?? ""
         
         let isActive = try container.decode(Int?.self, forKey: .active)
         self.active = isActive == 1 ? true : false
@@ -90,6 +102,7 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
             if self.month == deepCopy.month
             && self.year == deepCopy.year
             && self.amount == deepCopy.amount
+            && self.amount2 == deepCopy.amount2
             && self.category?.id == deepCopy.category?.id {
                 return false
             }
@@ -107,6 +120,7 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
             trans.month = self.month
             trans.year = self.year
             trans.amountString = self.amountString
+            trans.amountString2 = self.amountString2
             trans.category = self.category
             trans.active = self.active
             self.deepCopy = trans
@@ -117,6 +131,7 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
                 self.month = deepCopy.month
                 self.year = deepCopy.year
                 self.amountString = deepCopy.amountString
+                self.amountString2 = deepCopy.amountString2
                 self.category = deepCopy.category
                 self.active = deepCopy.active
             }
@@ -129,8 +144,8 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
         self.month = budget.month
         self.year = budget.year
                 
-        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
-        self.amountString = budget.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        self.amountString = budget.amount.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
+        self.amountString2 = budget.amount2.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
         
         self.category = budget.category
         self.active = budget.active
@@ -143,6 +158,7 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
         && lhs.month == rhs.month
         && lhs.year == rhs.year
         && lhs.amount == rhs.amount
+        && lhs.amount2 == rhs.amount2
         && lhs.category?.id == rhs.category?.id {
             return true
         }

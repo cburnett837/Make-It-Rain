@@ -9,7 +9,7 @@ import SwiftUI
 
 #if os(iOS)
 struct KeyboardToolbarView: View {
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+    @Local(\.colorTheme) var colorTheme
     
     var focusedField: FocusState<Int?>.Binding
     
@@ -26,6 +26,11 @@ struct KeyboardToolbarView: View {
     var accessoryImage3: String?
     var accessoryFunc3: (() -> Void)?
     
+    
+//    var accessoryText4: String?
+//    var accessoryImage4: String?
+//    var accessoryFunc4: (() -> Void)?
+//    
     var extraDoneFunctionality: (() -> Void)?
     
     var body: some View {
@@ -105,6 +110,21 @@ struct KeyboardToolbarView: View {
                         }
                     }
                     
+//                    if let accessoryFunc4 = accessoryFunc4 {
+//                        Button {
+//                            accessoryFunc4()
+//                        } label: {
+//                            if let accessoryText4 {
+//                                Text(accessoryText4)
+//                                    .font(.body)
+//                            } else {
+//                                if let accessoryImage4 {
+//                                    Image(systemName: accessoryImage4)
+//                                }
+//                            }
+//                        }
+//                    }
+//                    
                     Button {
                         focusedField.wrappedValue = nil
                         
@@ -124,7 +144,7 @@ struct KeyboardToolbarView: View {
             .padding(.vertical, 10)
             .background(Color(.tertiarySystemBackground))
             .font(.title3)
-            .foregroundStyle(Color.fromName(appColorTheme))
+            .foregroundStyle(Color.fromName(colorTheme))
         }
         
     }
@@ -132,7 +152,7 @@ struct KeyboardToolbarView: View {
 
 /// NOT USED - custom shitty swiftui implementation that goes with the .keyboardToolbar Modifier. 1/2/25
 //struct KeyboardToolbarView4: View {
-//    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+//    @Local(\.colorTheme) var colorTheme
 //    
 //    @Binding var text: String
 //    var focusedField: FocusState<Int?>.Binding
@@ -204,7 +224,7 @@ struct KeyboardToolbarView: View {
 //        //.padding(.vertical, 10)
 //        .background(Color(.tertiarySystemBackground))
 //        .font(.title3)
-//        .foregroundStyle(Color.fromName(appColorTheme))
+//        .foregroundStyle(Color.fromName(colorTheme))
 //    }
 //}
 #endif

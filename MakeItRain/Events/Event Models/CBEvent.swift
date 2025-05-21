@@ -124,14 +124,14 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
         title = try container.decode(String.self, forKey: .title)
         
         let amount = try container.decode(Double.self, forKey: .amount)
-        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
         self.amountString = amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
         
         eventType = try container.decode(String?.self, forKey: .event_type)
         
         let startDate = try container.decode(String?.self, forKey: .start_date)
         if let startDate {
-            print(startDate)
+            //print(startDate)
             self.startDate = startDate.toDateObj(from: .serverDate)!
         } else {
             //fatalError("Could not determine transaction date")

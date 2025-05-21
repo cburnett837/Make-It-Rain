@@ -10,7 +10,7 @@ import SwiftUI
 struct StartingAmountSheet: View {
     @Environment(\.layoutDirection) private var layoutDirection: LayoutDirection
     @Environment(\.dismiss) var dismiss
-    @AppStorage("useWholeNumbers") var useWholeNumbers = false
+    @Local(\.useWholeNumbers) var useWholeNumbers
     
     @Environment(CalendarModel.self) var calModel
     
@@ -26,8 +26,10 @@ struct StartingAmountSheet: View {
                 Section("Checking / Cash") {
                     ForEach(cashMethods.startIndex..<cashMethods.endIndex, id: \.self) { i in
                         let focusID = i
-                        let amount = calModel.sMonth.startingAmounts.filter { $0.payMethod.id == cashMethods[i].id }.first
-                        StartingAmountLine(startingAmount: amount!, payMethod: cashMethods[i], focusID: focusID)
+                        if let amount = calModel.sMonth.startingAmounts.filter({ $0.payMethod.id == cashMethods[i].id }).first {
+                            StartingAmountLine(startingAmount: amount, payMethod: cashMethods[i], focusedField: _focusedField, focusID: focusID)
+                        }
+                        
                     }
                 }
             }
@@ -36,8 +38,9 @@ struct StartingAmountSheet: View {
                 Section("Credit") {
                     ForEach(creditMethods.startIndex..<creditMethods.endIndex, id: \.self) { i in
                         let focusID = i + cashMethods.count
-                        let amount = calModel.sMonth.startingAmounts.filter { $0.payMethod.id == creditMethods[i].id }.first
-                        StartingAmountLine(startingAmount: amount!, payMethod: creditMethods[i], focusID: focusID)
+                        if let amount = calModel.sMonth.startingAmounts.filter({ $0.payMethod.id == creditMethods[i].id }).first {
+                            StartingAmountLine(startingAmount: amount, payMethod: creditMethods[i], focusedField: _focusedField, focusID: focusID)
+                        }
                     }
                 }
             }
@@ -46,8 +49,10 @@ struct StartingAmountSheet: View {
                 Section("Other") {
                     ForEach(otherMethods.startIndex..<otherMethods.endIndex, id: \.self) { i in
                         let focusID = i + cashMethods.count + creditMethods.count
-                        let amount = calModel.sMonth.startingAmounts.filter { $0.payMethod.id == otherMethods[i].id }.first
-                        StartingAmountLine(startingAmount: amount!, payMethod: otherMethods[i], focusID: focusID)
+                        if let amount = calModel.sMonth.startingAmounts.filter({ $0.payMethod.id == otherMethods[i].id }).first {
+                            StartingAmountLine(startingAmount: amount, payMethod: otherMethods[i], focusedField: _focusedField, focusID: focusID)
+                        }
+                        
                     }
                 }
             }
@@ -61,6 +66,11 @@ struct StartingAmountSheet: View {
             Text("\(calModel.sMonth.name) \(String(calModel.sMonth.year))")
                .font(.caption2)
                .foregroundStyle(.gray)
+        }
+        .task {
+            for each in calModel.sMonth.startingAmounts {
+                each.deepCopy(.create)
+            }
         }
     }
     
@@ -84,16 +94,14 @@ struct StartingAmountSheet: View {
     
     
     struct StartingAmountLine: View {
-        @AppStorage("useWholeNumbers") var useWholeNumbers = false
-    
+        @Local(\.useWholeNumbers) var useWholeNumbers
         @Environment(\.layoutDirection) private var layoutDirection: LayoutDirection
         @Environment(CalendarModel.self) var calModel
-        
         
         @Bindable var startingAmount: CBStartingAmount
         var payMethod: CBPaymentMethod
         @State private var showDialog = false
-        @FocusState var focusedField: Int?
+        var focusedField: FocusState<Int?>
         var focusID: Int
         
         var body: some View {
@@ -107,12 +115,12 @@ struct StartingAmountSheet: View {
                     #if os(iOS)
                     UITextFieldWrapper(placeholder: "Starting Amount", text: $startingAmount.amountString, toolbar: {
                         KeyboardToolbarView(
-                            focusedField: $focusedField,
+                            focusedField: focusedField.projectedValue,
                             accessoryText1: "AutoFill",
                             accessoryFunc1: {
                                 if calModel.sMonth.num != 0 {
                                     let targetMonth = calModel.months.filter { $0.num == calModel.sMonth.num - 1 }.first!
-                                    calModel.calculateTotalForMonth(month: targetMonth, paymentMethod: payMethod)
+                                    let _ = calModel.calculateTotal(for: targetMonth, using: payMethod)
                                     let eodTotal = targetMonth.days.last!.eodTotal
                                     startingAmount.amountString = eodTotal.currencyWithDecimals(useWholeNumbers ? 0 : 2)
                                 }
@@ -134,7 +142,7 @@ struct StartingAmountSheet: View {
                             Button("AutoFill") {
                                 if calModel.sMonth.num != 0 {
                                     let targetMonth = calModel.months.filter { $0.num == calModel.sMonth.num - 1 }.first!
-                                    calModel.calculateTotalForMonth(month: targetMonth, paymentMethod: payMethod)
+                                    let _ = calModel.calculateTotal(for: targetMonth, using: payMethod)
                                     let eodTotal = targetMonth.days.last!.eodTotal
                                     startingAmount.amountString = eodTotal.currencyWithDecimals(useWholeNumbers ? 0 : 2)
                                 }
@@ -142,10 +150,10 @@ struct StartingAmountSheet: View {
                         }
                     #endif
                 }
-                .focused($focusedField, equals: focusID)
+                .focused(focusedField.projectedValue, equals: focusID)
                 .formatCurrencyLiveAndOnUnFocus(
                     focusValue: focusID,
-                    focusedField: focusedField,
+                    focusedField: focusedField.wrappedValue,
                     amountString: startingAmount.amountString,
                     amountStringBinding: $startingAmount.amountString,
                     amount: startingAmount.amount

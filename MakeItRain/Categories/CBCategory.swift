@@ -21,26 +21,29 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
     var emoji: String?
     var active: Bool
     var action: CategoryAction
-    var isIncome: Bool
+    var type: XrefItem = XrefModel.getItem(from: .categoryTypes, byEnumID: .expense)
     var listOrder: Int?
     var enteredBy: CBUser = AppState.shared.user!
     var updatedBy: CBUser = AppState.shared.user!
     var enteredDate: Date
     var updatedDate: Date
+    var isNil: Bool = false
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, hex_code, emoji, active, user_id, account_id, device_uuid, is_income, list_order, entered_by, updated_by, entered_date, updated_date }
+    var isIncome: Bool { type == XrefModel.getItem(from: .categoryTypes, byEnumID: .income) }
+    var isPayment: Bool { type == XrefModel.getItem(from: .categoryTypes, byEnumID: .payment) }
+    var isExpense: Bool { type == XrefModel.getItem(from: .categoryTypes, byEnumID: .expense) }
+    
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, hex_code, emoji, active, user_id, account_id, device_uuid, type_id, list_order, entered_by, updated_by, entered_date, updated_date, is_nil }
         
     init() {
         let uuid = UUID().uuidString
         self.id = uuid
         self.uuid = uuid
         self.title = ""
-        self.color = UserDefaults.fetchOneBool(requestedKey: "preferDarkMode") == true ? .white : .black
-        //self.color = .primary
+        self.color = .primary
         //self.emoji = "questionmark.circle.fill"
         self.active = true
         self.action = .add
-        self.isIncome = false
         self.enteredBy = AppState.shared.user!
         self.updatedBy = AppState.shared.user!
         self.enteredDate = Date()
@@ -51,12 +54,10 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         self.id = uuid
         self.uuid = uuid
         self.title = ""
-        self.color = UserDefaults.fetchOneBool(requestedKey: "preferDarkMode") == true ? .white : .black
-        //self.color = .primary
+        self.color = .primary
         //self.emoji = "questionmark.circle.fill"
         self.active = true
         self.action = .add
-        self.isIncome = false
         self.enteredBy = AppState.shared.user!
         self.updatedBy = AppState.shared.user!
         self.enteredDate = Date()
@@ -73,14 +74,17 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         self.active = true
         self.action = CategoryAction.fromString(entity.action!)
         
-        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
         self.amountString = entity.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
-        self.isIncome = entity.isIncome
+        #warning("remove this when Laura installs")
+        self.type = XrefModel.getItem(from: .categoryTypes, byID: Int(entity.typeID) == 0 ? 27 : Int(entity.typeID))
+        //self.type = XrefModel.getItem(from: .categoryTypes, byID: Int(entity.typeID))
         self.listOrder = Int(entity.listOrder)
         self.enteredBy = AppState.shared.user!
         self.updatedBy = AppState.shared.user!
         self.enteredDate = Date()
         self.updatedDate = Date()
+        self.isNil = entity.isNil
     }
     
 //    init(entity: TempCategory) {
@@ -91,7 +95,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
 //        self.active = true
 //        self.action = CategoryAction.fromString(entity.action!)
 //        
-//        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+//        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
 //        self.amountString = entity.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
 //    }
     
@@ -108,12 +112,14 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         try container.encode(AppState.shared.user?.id, forKey: .user_id)
         try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
         try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
-        try container.encode(isIncome ? 1 : 0, forKey: .is_income)
+        try container.encode(type.id, forKey: .type_id)
         try container.encode(listOrder, forKey: .list_order)
         try container.encode(enteredBy, forKey: .entered_by) // for the Transferable protocol
         try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
         try container.encode(enteredDate.string(to: .serverDateTime), forKey: .entered_date) // for the Transferable protocol
         try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date) // for the Transferable protocol
+        
+        try container.encode(isNil ? 1 : 0, forKey: .is_nil) // for the Transferable protocol
     }
     
     
@@ -127,23 +133,40 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         title = try container.decode(String.self, forKey: .title)
         
         let amount = try container.decode(Double?.self, forKey: .amount)
-        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
         self.amountString = amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
         
         //let colorDescription = try container.decode(String?.self, forKey: .hex_code)
         //self.color = Color.fromName(colorDescription ?? "white")
         let hexCode = try container.decode(String?.self, forKey: .hex_code)
-        self.color = Color.fromHex(hexCode) ?? .primary
+        let color = Color.fromHex(hexCode) ?? .primary
+        
+        if color == .white || color == .black {
+            self.color = .primary
+        } else {
+            self.color = color
+        }
         
         self.emoji = try container.decode(String?.self, forKey: .emoji)
         
         let isActive = try container.decode(Int?.self, forKey: .active)
         self.active = isActive == 1 ? true : false
         
-        let isIncome = try container.decode(Int?.self, forKey: .is_income)
-        self.isIncome = isIncome == 1 ? true : false
+        
+        let typeID = try container.decode(Int?.self, forKey: .type_id)
+        if let typeID = typeID {
+            self.type = XrefModel.getItem(from: .categoryTypes, byID: typeID)
+        }
         
         listOrder = try container.decode(Int?.self, forKey: .list_order)
+        
+        // For the None option
+        let isNil = try container.decode(Int?.self, forKey: .is_nil)
+        if isNil == nil {
+            self.isNil = false
+        } else {
+            self.isNil = isNil == 1
+        }
         
         action = .edit
         
@@ -179,7 +202,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
             if self.title == deepCopy.title
             && self.amount == deepCopy.amount
             && self.color == deepCopy.color
-            && self.isIncome == deepCopy.isIncome
+            && self.type.id == deepCopy.type.id
             && self.listOrder == deepCopy.listOrder
             && self.emoji == deepCopy.emoji {
                 return false
@@ -202,7 +225,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
             copy.emoji = self.emoji
             copy.active = self.active
             copy.action = self.action
-            copy.isIncome = self.isIncome
+            copy.type = self.type
             copy.listOrder = self.listOrder
             self.deepCopy = copy
         case .restore:
@@ -215,7 +238,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
                 self.emoji = deepCopy.emoji
                 self.active = deepCopy.active
                 self.action = deepCopy.action
-                self.isIncome = deepCopy.isIncome
+                self.type = deepCopy.type
                 self.listOrder = deepCopy.listOrder
             }
         case .clear:
@@ -227,13 +250,13 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
     func setFromAnotherInstance(category: CBCategory) {
         self.title = category.title
         
-        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
         self.amountString = category.amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
         
         self.color = category.color
         self.emoji = category.emoji
         self.active = category.active
-        self.isIncome = category.isIncome
+        self.type = category.type
         self.listOrder = category.listOrder
     }
     
@@ -250,8 +273,9 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
             && lhs.amount == rhs.amount
             && lhs.color == rhs.color
             && lhs.emoji == rhs.emoji
-            && lhs.isIncome == rhs.isIncome
+            && lhs.type == rhs.type
             && lhs.listOrder == rhs.listOrder
+            && lhs.isNil == rhs.isNil
             && lhs.active == rhs.active {
             return true
         }

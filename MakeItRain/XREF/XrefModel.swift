@@ -15,6 +15,9 @@ enum RefType {
     case smartTransactionIssues
     case openRecords
     case locationTypes
+    case repeatingTransactionType
+    case categoryTypes
+    case accountTypes
 }
 
 enum XrefEnum {
@@ -35,10 +38,30 @@ enum XrefEnum {
     case missingPaymentMethodAndDate
     case funkyDate
     
+    /// Repeating Transaction Types
+    case regular
+    case payment
+    case transfer
+    
+    /// Category Types
+    case income
+    case expense
+    
+    /// Account Types
+    case unifiedChecking
+    case unifiedCredit
+    case checking
+    case credit
+    case cash
+    case savings
+    case k401
+    case investment
+    case loan
+    
     
 }
 
-struct XrefItem: Identifiable, Equatable {
+struct XrefItem: Identifiable, Equatable, Hashable {
     let id: Int
     let refType: String
     let description: String
@@ -62,7 +85,7 @@ struct XrefModel {
     ]
     
     
-    static let relatedTransactionType: Array<XrefItem> = [
+    static let relatedTransactionTypes: Array<XrefItem> = [
         XrefItem(id: 3, refType: "related_transaction_type", description: "Transaction", enumID: .transaction),
         XrefItem(id: 4, refType: "related_transaction_type", description: "Event Transaction", enumID: .eventTransaction)
     ]
@@ -101,13 +124,39 @@ struct XrefModel {
     ]
     
     
+    static let repeatingTransactionTypes: Array<XrefItem> = [
+        XrefItem(id: 23, refType: "repeating_transaction_type", description: "Regular", enumID: .regular),
+        XrefItem(id: 24, refType: "repeating_transaction_type", description: "Payment", enumID: .payment),
+        XrefItem(id: 25, refType: "repeating_transaction_type", description: "Transfer", enumID: .transfer),
+    ]
+    
+    static let categoryTypes: Array<XrefItem> = [
+        XrefItem(id: 26, refType: "category_type", description: "Income", enumID: .income),
+        XrefItem(id: 27, refType: "category_type", description: "Expense", enumID: .expense),
+        XrefItem(id: 28, refType: "category_type", description: "Payment", enumID: .payment),
+        XrefItem(id: 29, refType: "category_type", description: "Savings", enumID: .savings),
+    ]
+    
+    static let accountTypes: Array<XrefItem> = [
+        XrefItem(id: 30, refType: "category_type", description: "Unified Checking", enumID: .unifiedChecking),
+        XrefItem(id: 31, refType: "category_type", description: "Unified Credit", enumID: .unifiedCredit),
+        XrefItem(id: 32, refType: "category_type", description: "Checking", enumID: .checking),
+        XrefItem(id: 33, refType: "category_type", description: "Credit", enumID: .credit),
+        XrefItem(id: 34, refType: "category_type", description: "Cash", enumID: .cash),
+        XrefItem(id: 35, refType: "category_type", description: "Savings", enumID: .savings),
+        XrefItem(id: 36, refType: "category_type", description: "401K", enumID: .k401),
+        XrefItem(id: 37, refType: "category_type", description: "Investment", enumID: .investment),
+        XrefItem(id: 38, refType: "category_type", description: "Loan", enumID: .loan)
+    ]
+    
+    
     static func getItems(forRefType refType: RefType) -> Array<XrefItem> {
         switch refType {
         case .eventTransactionStatuses:
             return eventTransactionStatuses
             
         case .relatedTransactionType:
-            return relatedTransactionType
+            return relatedTransactionTypes
             
         case .photoTypes:
             return photoTypes
@@ -123,6 +172,15 @@ struct XrefModel {
             
         case .locationTypes:
             return locationTypes
+            
+        case .repeatingTransactionType:
+            return repeatingTransactionTypes
+            
+        case .categoryTypes:
+            return categoryTypes
+            
+        case .accountTypes:
+            return accountTypes
         }
     }
     

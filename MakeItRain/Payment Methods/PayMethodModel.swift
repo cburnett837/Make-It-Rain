@@ -37,6 +37,7 @@ class PayMethodModel {
     }
     
     func savePaymentMethod(id: String, calModel: CalendarModel) {
+        print("-- \(#function)")
         let payMethod = getPaymentMethod(by: id)
         if payMethod.title.isEmpty {
             if payMethod.action != .add && payMethod.title.isEmpty {
@@ -48,48 +49,41 @@ class PayMethodModel {
             return
         }
                                                 
-//                    payModel.upsert(payMethod)
         if payMethod.hasChanges() {
+            print("Account has changes")
             payMethod.updatedBy = AppState.shared.user!
             payMethod.updatedDate = Date()
             calModel.justTransactions.filter { $0.payMethod?.id == payMethod.id }.forEach {
                 $0.payMethod?.color = payMethod.color
             }
-            
-//            
-//            calModel.months.forEach { month in
-//                month.days.forEach { day in
-//                    day.transactions.forEach { trans in
-//                        if trans.payMethod?.id == payMethod.id {
-//                            trans.payMethod?.color = payMethod.color
-//                        }
-//                    }
-//                }
-//            }
-        }
-        Task {
-            await submit(payMethod)
+            Task {
+                await submit(payMethod)
+            }
+        } else {
+            print("No Changes")
         }
     }
     
-    func updateCache(for payMethod: CBPaymentMethod) -> Result<Bool, CoreDataError> {
-        guard let entity = DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)), createIfNotFound: false) else { return .failure(.reason("notFound")) }
+    func updateCache(for payMethod: CBPaymentMethod) async -> Result<Bool, CoreDataError> {
+        guard let entity = await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)), createIfNotFound: false) else { return .failure(.reason("notFound")) }
         
         entity.id = payMethod.id
         entity.title = payMethod.title
         entity.dueDate = Int64(payMethod.dueDate ?? 0)
         entity.limit = payMethod.limit ?? 0.0
-        entity.accountType = payMethod.accountType.rawValue
+        entity.accountType = Int64(payMethod.accountType.rawValue)
         entity.hexCode = payMethod.color.toHex()
         //entity.hexCode = payMethod.color.description
-        entity.isDefault = payMethod.isDefault
+        entity.isViewingDefault = payMethod.isViewingDefault
         entity.notificationOffset = Int64(payMethod.notificationOffset ?? 0)
         entity.notifyOnDueDate = payMethod.notifyOnDueDate
         entity.last4 = payMethod.last4
+        entity.interestRate = payMethod.interestRate ?? 0
+        entity.loanDuration = Int64(payMethod.loanDuration ?? 0)
         entity.action = "edit"
         entity.isPending = false
                                                         
-        let saveResult = DataManager.shared.save()
+        let saveResult = await DataManager.shared.save()
         return saveResult
     }
     
@@ -98,6 +92,8 @@ class PayMethodModel {
     func fetchPaymentMethods(calModel: CalendarModel) async {
         print("-- \(#function)")
         LogManager.log()
+        
+        let start = CFAbsoluteTimeGetCurrent()
         
         /// Do networking.
         let model = RequestModel(requestType: "fetch_payment_methods", model: AppState.shared.user)
@@ -117,12 +113,12 @@ class PayMethodModel {
                     for payMethod in model {
                         activeIds.append(payMethod.id)
                         
-                        if calModel.sPayMethod == nil && payMethod.isDefault {
+                        if calModel.sPayMethod == nil && payMethod.isViewingDefault {
                             calModel.sPayMethod = payMethod
                         }
                         
                         /// Find the payment method in cache.
-                        let entity = DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)), createIfNotFound: true)
+                        let entity = await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)), createIfNotFound: true)
                         
                         /// Update the cache and add to model (if appolicable).
                         /// This should always be true because the line above creates the entity if it's not found.
@@ -131,13 +127,15 @@ class PayMethodModel {
                             entity.title = payMethod.title
                             entity.dueDate = Int64(payMethod.dueDate ?? 0)
                             entity.limit = payMethod.limit ?? 0.0
-                            entity.accountType = payMethod.accountType.rawValue
+                            entity.accountType = Int64(payMethod.accountType.rawValue)
                             entity.hexCode = payMethod.color.toHex()
                             //entity.hexCode = payMethod.color.description
-                            entity.isDefault = payMethod.isDefault
+                            entity.isViewingDefault = payMethod.isViewingDefault
                             entity.notificationOffset = Int64(payMethod.notificationOffset ?? 0)
                             entity.notifyOnDueDate = payMethod.notifyOnDueDate
                             entity.last4 = payMethod.last4
+                            entity.interestRate = payMethod.interestRate ?? 0
+                            entity.loanDuration = Int64(payMethod.loanDuration ?? 0)
                             entity.action = "edit"
                             entity.isPending = false
                             
@@ -156,12 +154,12 @@ class PayMethodModel {
                     for payMethod in paymentMethods {
                         if !activeIds.contains(payMethod.id) {
                             paymentMethods.removeAll { $0.id == payMethod.id }
-                            let _ = DataManager.shared.delete(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)))
+                            let _ = await DataManager.shared.delete(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)))
                         }
                     }
             
                     /// Save the cache.
-                    let _ = DataManager.shared.save()
+                    let _ = await DataManager.shared.save()
                     
                 } else {
                     paymentMethods.removeAll()
@@ -170,6 +168,9 @@ class PayMethodModel {
             
             /// Update the progress indicator.
             AppState.shared.downloadedData.append(.paymentMethods)
+            
+            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
+            print("🔴It took \(currentElapsed) seconds to fetch the payment methods")
             
         case .failure (let error):
             switch error {
@@ -186,25 +187,28 @@ class PayMethodModel {
     
     @MainActor
     func submit(_ payMethod: CBPaymentMethod) async -> Bool {
+        print("-- \(#function)")
         isThinking = true
         //LoadingManager.shared.startDelayedSpinner()
                 
-        guard let entity = DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)), createIfNotFound: true) else { return false }
+        guard let entity = await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)), createIfNotFound: true) else { return false }
         entity.id = payMethod.id
         entity.title = payMethod.title
         entity.dueDate = Int64(payMethod.dueDate ?? 0)
         entity.limit = payMethod.limit ?? 0.0
-        entity.accountType = payMethod.accountType.rawValue
+        entity.accountType = Int64(payMethod.accountType.rawValue)
         entity.hexCode = payMethod.color.toHex()
         //entity.hexCode = payMethod.color.description
-        entity.isDefault = payMethod.isDefault
+        entity.isViewingDefault = payMethod.isViewingDefault
         entity.notificationOffset = Int64(payMethod.notificationOffset ?? 0)
         entity.notifyOnDueDate = payMethod.notifyOnDueDate
         entity.last4 = payMethod.last4
+        entity.interestRate = payMethod.interestRate ?? 0
+        entity.loanDuration = Int64(payMethod.loanDuration ?? 0)
         entity.action = payMethod.action.rawValue
         entity.isPending = true
                                                         
-        let _ = DataManager.shared.save()
+        let _ = await DataManager.shared.save()
         
         
         print(payMethod.action)
@@ -225,7 +229,7 @@ class PayMethodModel {
             LogManager.networkingSuccessful()
             /// Get the new ID from the server after adding a new activity.
             if payMethod.action != .delete {
-                guard let entity = DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)), createIfNotFound: true) else { return false }
+                guard let entity = await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)), createIfNotFound: true) else { return false }
                 
                 if payMethod.action == .add {
                     
@@ -237,10 +241,12 @@ class PayMethodModel {
                 }
                             
                 entity.isPending = false
-                let _ = DataManager.shared.save()
+                let _ = await DataManager.shared.save()
             } else {
-                let _ = DataManager.shared.delete(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)))
+                let _ = await DataManager.shared.delete(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)))
             }
+            
+            print("✅Payment method successfully saved")
             
             isThinking = false
             payMethod.action = .edit
@@ -250,6 +256,7 @@ class PayMethodModel {
             return true
                                                 
         case .failure(let error):
+            print("❌Payment method failed to save")
             LogManager.error(error.localizedDescription)
             AppState.shared.showAlert("There was a problem syncing the payment method. Will try again at a later time.")
 //            payMethod.deepCopy(.restore)
@@ -293,7 +300,7 @@ class PayMethodModel {
         if andSubmit {
             let _ = await submit(payMethod)
         } else {
-            let _ = DataManager.shared.delete(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)))
+            let _ = await DataManager.shared.delete(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)))
         }
     }
     
@@ -304,7 +311,7 @@ class PayMethodModel {
             let _ = await submit(meth)
         }
         
-        let _ = DataManager.shared.deleteAll(for: PersistentPaymentMethod.self)
+        let _ = await DataManager.shared.deleteAll(for: PersistentPaymentMethod.self)
         //print("SaveResult: \(saveResult)")
         paymentMethods.removeAll()
     }
@@ -313,27 +320,67 @@ class PayMethodModel {
     
     
     @MainActor
-    func setDefault(_ payMethod: CBPaymentMethod) async {
+    func setDefaultViewing(_ payMethod: CBPaymentMethod) async {
         print("-- \(#function)")
         //LoadingManager.shared.startDelayedSpinner()
         LogManager.log()
                                 
         paymentMethods = paymentMethods.map({
             let optionItem = $0
-            $0.isDefault = $0.id == payMethod.id
+            $0.isViewingDefault = $0.id == payMethod.id
             return optionItem
         })
         
-        paymentMethods.forEach {
-            if let entity = DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string($0.id)), createIfNotFound: true) {
-                entity.isDefault = $0.isDefault
+        for method in paymentMethods {
+            if let entity = await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(method.id)), createIfNotFound: true) {
+                entity.isViewingDefault = method.isViewingDefault
             }
         }
         
-        let _ = DataManager.shared.save()
+        let _ = await DataManager.shared.save()
       
         /// Networking
-        let model = RequestModel(requestType: "set_default_payment_method", model: payMethod)
+        let model = RequestModel(requestType: "set_default_viewing_payment_method", model: payMethod)
+        
+        typealias ResultResponse = Result<ResultCompleteModel?, AppError>
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+                    
+        switch await result {
+        case .success:
+            LogManager.networkingSuccessful()
+
+        case .failure(let error):
+            LogManager.error(error.localizedDescription)
+            AppState.shared.showAlert("There was a problem trying to set the default payment method.")
+            //showSaveAlert = true
+            #warning("Undo behavior")
+        }
+        //LoadingManager.shared.stopDelayedSpinner()
+    }
+    
+    
+    @MainActor
+    func setDefaultEditing(_ payMethod: CBPaymentMethod) async {
+        print("-- \(#function)")
+        //LoadingManager.shared.startDelayedSpinner()
+        LogManager.log()
+                                
+        paymentMethods = paymentMethods.map({
+            let optionItem = $0
+            $0.isEditingDefault = $0.id == payMethod.id
+            return optionItem
+        })
+        
+        for method in paymentMethods {
+            if let entity = await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(method.id)), createIfNotFound: true) {
+                entity.isEditingDefault = method.isEditingDefault
+            }
+        }
+        
+        let _ = await DataManager.shared.save()
+      
+        /// Networking
+        let model = RequestModel(requestType: "set_default_editing_payment_method", model: payMethod)
         
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
@@ -353,14 +400,15 @@ class PayMethodModel {
     
     
     
+    
     @MainActor
-    func fetchStartingAmountsForDateRange(_ payMethod: CBPaymentMethod) async -> Array<CBStartingAmount>? {
+    func fetchStartingAmountsForDateRange(_ analModel: AnalysisRequestModel) async -> Array<CBStartingAmount>? {
         print("-- \(#function)")
         //LoadingManager.shared.startDelayedSpinner()
         LogManager.log()
       
         /// Networking
-        let model = RequestModel(requestType: "fetch_starting_amounts_for_date_range", model: payMethod)
+        let model = RequestModel(requestType: "fetch_starting_amounts_for_date_range", model: analModel)
         
         typealias ResultResponse = Result<Array<CBStartingAmount>?, AppError>
         async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
@@ -372,7 +420,35 @@ class PayMethodModel {
 
         case .failure(let error):
             LogManager.error(error.localizedDescription)
-            AppState.shared.showAlert("There was a problem trying to set the default payment method.")
+            AppState.shared.showAlert("There was a problem trying to fetch analytics.")
+            return nil
+            //showSaveAlert = true
+            #warning("Undo behavior")
+        }
+        //LoadingManager.shared.stopDelayedSpinner()
+    }
+    
+    
+    @MainActor
+    func fetchStartingAmountsForDateRange2(_ analModel: AnalysisRequestModel) async -> Array<CBPaymentMethod>? {
+        print("-- \(#function)")
+        //LoadingManager.shared.startDelayedSpinner()
+        LogManager.log()
+      
+        /// Networking
+        let model = RequestModel(requestType: "fetch_starting_amounts_for_date_range2", model: analModel)
+        
+        typealias ResultResponse = Result<Array<CBPaymentMethod>?, AppError>
+        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+                    
+        switch await result {
+        case .success(let model):
+            LogManager.networkingSuccessful()
+            return model
+
+        case .failure(let error):
+            LogManager.error(error.localizedDescription)
+            AppState.shared.showAlert("There was a problem trying to fetch analytics.")
             return nil
             //showSaveAlert = true
             #warning("Undo behavior")

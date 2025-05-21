@@ -95,7 +95,7 @@ class CBEventParticipant: Codable, Identifiable, Hashable, Equatable {
         user = try container.decode(CBUser.self, forKey: .user)
         
         
-        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
         let groupAmount = try container.decode(Double.self, forKey: .group_amount)
         self.groupAmountString = groupAmount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
         let personalAmount = try container.decode(Double.self, forKey: .personal_amount)

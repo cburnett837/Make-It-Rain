@@ -9,7 +9,7 @@ import SwiftUI
 
 
 struct TagView: View {
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+    @Local(\.colorTheme) var colorTheme
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
     
@@ -72,7 +72,7 @@ struct TagView: View {
                                     Text("#\(tag.tag)")
                                 }
                                 .buttonStyle(.borderedProminent)
-                                .tint(exists ? Color.fromName(appColorTheme) : .gray)
+                                .tint(exists ? Color.fromName(colorTheme) : .gray)
                                 .focusable(false)
                             }
                         }
@@ -182,7 +182,7 @@ struct TagView: View {
 //                                        Text("#\(tag.tag)")
 //                                    }
 //                                    .buttonStyle(.borderedProminent)
-//                                    .tint(exists ? Color.fromName(appColorTheme) : .gray)
+//                                    .tint(exists ? Color.fromName(colorTheme) : .gray)
 //                                    .focusable(false)
 //                                }
 //                            }

@@ -21,7 +21,7 @@ class PopulateOptions {
 }
 
 struct PopulateMonthOptionsSheet: View {
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+    @Local(\.colorTheme) var colorTheme
     
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
@@ -105,10 +105,10 @@ struct PopulateMonthOptionsSheet: View {
         }
         .padding(.bottom, 6)
         #if os(macOS)
-        .foregroundStyle(Color.fromName(appColorTheme))
+        .foregroundStyle(Color.fromName(colorTheme))
         .buttonStyle(.codyStandardWithHover)
         #else
-        .tint(Color.fromName(appColorTheme))
+        .tint(Color.fromName(colorTheme))
         .buttonStyle(.borderedProminent)
         #endif
     

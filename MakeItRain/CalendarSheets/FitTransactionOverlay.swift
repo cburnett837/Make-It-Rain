@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 struct FitTransactionOverlay: View {
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+    @Local(\.colorTheme) var colorTheme
     
     #if os(macOS)
     @Environment(\.dismiss) private var dismiss
@@ -105,7 +105,7 @@ struct FitTransactionOverlay: View {
     
     
     struct LineItem: View {
-        @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+        @Local(\.colorTheme) var colorTheme
         @Environment(CalendarModel.self) private var calModel
         
         var trans: CBFitTransaction
@@ -146,7 +146,7 @@ struct FitTransactionOverlay: View {
                         AppState.shared.showAlert(config: config)
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(Color.fromName(appColorTheme))
+                    .tint(Color.fromName(colorTheme))
                     
                     Button("Reject") {
                         let buttonConfig = AlertConfig.ButtonConfig(text: "Yes", role: .destructive) { reject() }

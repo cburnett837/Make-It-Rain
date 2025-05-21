@@ -56,7 +56,7 @@ struct Helpers {
     }
     
     static func formatCurrency(focusValue: Int, oldFocus: Int?, newFocus: Int?, amountString: String?, amount: Double?) -> String? {
-        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
         
         if newFocus == focusValue {
             if amount == 0.0 {
@@ -114,6 +114,48 @@ struct Helpers {
         return calendar.date(from: components)
     }
     
+    
+    
+    static func generateCsv(fileName: String, headers: [String], rows: [[String]]) -> URL {
+        var fileURL: URL!
+        
+        /// Heading of CSV file.
+        var heading = headers.joined(separator: ",")
+        heading = heading + "\n"
+        
+        /// File rows
+        let preparedRows = rows.map {
+            $0.joined(separator: ",")
+        }
+        
+        // rows to string data
+        let stringData = heading + preparedRows.joined(separator: "\n")
+        
+        do {
+            let path = try FileManager.default.url(for: .documentDirectory, in: .allDomainsMask, appropriateFor: nil, create: false)
+            
+            fileURL = path.appendingPathComponent("\(fileName).csv")
+            
+            // append string data to file
+            try stringData.write(to: fileURL, atomically: true , encoding: .utf8)
+            
+        } catch {
+            print("error generating csv file")
+        }
+        
+        return fileURL
+    }
+    
+    
+    static func getPercentage(_ value: Double, of total: Double) -> Double {
+        return total == 0 ? value : (value / total) * 100
+    }
+    
+    static func netWorthPercentageChange(start: Double, end: Double) -> Double {
+        guard start != 0 else { return 0 } // Avoid division by zero
+        return ((end - start) / start) * 100
+    }
+    
 }
 
 func ??<T>(lhs: Binding<Optional<T>>, rhs: T) -> Binding<T> {
@@ -122,3 +164,5 @@ func ??<T>(lhs: Binding<Optional<T>>, rhs: T) -> Binding<T> {
         set: { lhs.wrappedValue = $0 }
     )
 }
+
+

@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import Charts
 
 extension Notification.Name {
     static let updateCategoryAnalytics = Notification.Name("updateCategoryAnalytics")
@@ -154,6 +155,16 @@ fileprivate struct ViewExtractorHelper: UIViewRepresentable {
 }
 #endif
 
+extension ChartContent {
+    @ChartContentBuilder func `if`<Content: ChartContent>(_ condition: Bool, transform: (Self) -> Content) -> some ChartContent {
+        if condition {
+            transform(self)
+        } else {
+            self
+        }
+    }
+}
+
 extension View {
     @ViewBuilder func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
         if condition {
@@ -212,6 +223,10 @@ extension View {
         modifier(MaxViewWidthObserver())
     }
     
+    func maxChartWidthObserver() -> some View {
+        modifier(MaxChartWidthObserver())
+    }
+    
     func maxViewHeightObserver() -> some View {
         modifier(MaxViewHeightObserver())
     }
@@ -240,10 +255,7 @@ extension View {
     func bottomPanelAndScrollViewHeightAdjuster(bottomPanelHeight: Binding<CGFloat>, scrollContentMargins: Binding<CGFloat>) -> some View {
         modifier(SheetHeightAdjuster(bottomPanelHeight: bottomPanelHeight, scrollContentMargins: scrollContentMargins))
     }
-    #endif
-    
-    
-    #if os(iOS)
+   
     func getRect() -> CGRect {
         return UIScreen.main.bounds
     }
@@ -255,42 +267,62 @@ extension View {
     func onRotate(perform action: @escaping (UIDeviceOrientation) -> Void) -> some View {
         modifier(DeviceRotationViewModifier(action: action))
     }
+        
+//    
+    
+//    func deleteConfirmation(isPresented: Binding<Bool>, title: String, subtitle: String, yesAction: @escaping () -> Void, noAction: @escaping () -> Void) -> some View {
+//        modifier(DeleteConfirmation(isPresented: isPresented, title: title, subtitle: subtitle, yesAction: yesAction, noAction: noAction))
+//    }
     
     #endif
+    
+    func widgetShape(height: CGFloat? = nil) -> some View {
+        modifier(WidgetFolderMods(height: height))
+    }
 }
 
 
 
-// MARK: - Backgrounds
-extension View {
-    #if os(iOS)
-    func standardBackground() -> some View {
-        modifier(StandardBackground())
-    }
 
-    func standardRowBackground() -> some View {
-        modifier(StandardRowBackground())
-    }
+#if os(macOS)
+//extension Window {
+//    func accessoryWindow(openIn location: UnitPoint = .topTrailing) -> some Scene {
+//        self
+//        //.defaultLaunchBehavior(.suppressed) --> Not using because we terminate the app when the last window closes.
+//        /// Required to prevent the window from entering full screen if the main window is full screen.
+//        .windowResizability(.contentSize)
+//        /// Make sure any left over windows do not get opened when the app launches.
+//        .restorationBehavior(.disabled)
+//        /// Open in the top right corner.
+//        .defaultPosition(location)
+//    }
+//}
 
-    func standardRowBackgroundWithSelection(id: String, selectedID: String?) -> some View {
-        modifier(StandardRowBackgroundWithSelection(id: id, selectedID: selectedID))
+extension Scene {
+    func auxilaryWindow(openIn location: UnitPoint = .topTrailing) -> some Scene {
+        self
+        //.defaultLaunchBehavior(.suppressed) --> Not using because we terminate the app when the last window closes.
+        /// Required to prevent the window from entering full screen if the main window is full screen.
+        .windowResizability(.contentSize)
+        /// Make sure any left over windows do not get opened when the app launches.
+        .restorationBehavior(.disabled)
+        /// Open in the top right corner.
+        .defaultPosition(location)
     }
-    
-    // NAVIGATION SPECIFIC (TO ACCOMODATE IPAD)
-    func standardNavBackground() -> some View {
-        modifier(StandardNavBackground())
-    }
-
-    func standardNavRowBackground() -> some View {
-        modifier(StandardNavRowBackground())
-    }
-    
-    func standardNavRowBackgroundWithSelection(id: String, selectedID: String?) -> some View {
-        modifier(StandardNavRowBackgroundWithSelection(id: id, selectedID: selectedID))
-    }
-    #endif
 }
+#endif
 
+
+
+extension Array where Element == CBPaymentMethod {
+    func getAmount(for date: Date) -> Double {
+        return self
+            .flatMap { $0.breakdowns }
+            .filter { Calendar.current.isDate(date, equalTo: $0.date, toGranularity: .month) }
+            .map { $0.income }
+            .reduce(0, +)
+    }
+}
 
 
 extension [LayoutSubviews.Element] {
@@ -327,6 +359,14 @@ extension Double {
         let formatter = AppState.shared.numberFormatter
         formatter.numberStyle = .currency
         formatter.currencyCode = "USD"
+        formatter.maximumFractionDigits = decimals
+        return formatter.string(from: NSNumber(value: self)) ?? ""
+    }
+    
+    
+    func decimals(_ decimals: Int) -> String {
+        let formatter = AppState.shared.numberFormatter
+        formatter.numberStyle = .decimal
         formatter.maximumFractionDigits = decimals
         return formatter.string(from: NSNumber(value: self)) ?? ""
     }
@@ -430,11 +470,11 @@ extension UIColor {
 
 extension Color {
     func toHex() -> String? {
-#if os(macOS)
+        #if os(macOS)
         let uic = NSColor(self)
-#else
+        #else
         let uic = UIColor(self)
-#endif
+        #endif
         guard let components = uic.cgColor.components, components.count >= 3 else {
             return nil
         }
@@ -590,6 +630,27 @@ extension Color {
     }
     
     
+    func lighter(by percentage: CGFloat = 30.0) -> Color {
+        return self.adjust(by: abs(percentage))
+    }
+    
+    
+    func darker(by percentage: CGFloat = 30.0) -> Color {
+        return self.adjust(by: -1 * abs(percentage))
+    }
+    
+    
+    func adjust(by percentage: CGFloat = 30.0) -> Color {
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 1.0
+        #if canImport(UIKit)
+        UIColor(self).getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        #elseif canImport(AppKit)
+        NSColor(self).getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        #endif
+        return Color(red: min(red + percentage / 100, 1.0), green: min(green + percentage / 100, 1.0), blue: min(blue + percentage / 100, 1.0), opacity: alpha)
+    }
+    
+    
     
     //    static func fromName(_ name: String) -> Color {
     //        let colors: Array<Color> = [.pink, .red, .orange, .yellow, .green, .mint, .cyan, .blue, .indigo, .purple, .brown, .teal]
@@ -687,105 +748,6 @@ extension Color {
     static var darkGray3 = Color(UIColor(red: 0.05, green: 0.05, blue: 0.05, alpha: 1.00))
     static var brainPink = Color(UIColor(red: 0.85, green: 0.65, blue: 0.70, alpha: 1.00))
 #endif
-    
-//    struct Standard {
-//        struct Dark {
-//            static let background: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
-//            
-//            struct Row {
-//                static let background: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
-//                
-////                struct WithSelection {
-////                    static let background: Color = Color(.systemGray4)
-////                }
-//            }
-//            
-//            struct Nav {
-//                static let backgroundIpad: Color = Color.darkGray
-//                static let backgroundIphone: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
-//                
-//                struct Row {
-//                    static let backgroundIpad: Color = Color.darkGray
-//                    static let backgroundIphone: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
-//                    
-//                    struct WithSelection {
-//                        static let backgroundIpadSelected: Color = Color(.systemGray6)
-//                        static let backgroundIpadNotSelected: Color = Color.darkGray
-//                        static let backgroundIphoneSelected: Color = Color(.systemGray5)
-//                        static let backgroundIphoneNotSelected: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
-//                    }
-//                }
-//            }
-//        }
-//        
-//        struct Light {
-//            static let background: Color = Color.white
-//            
-//            struct Row {
-//                static let background: Color = Color.white
-//                
-////                struct WithSelection {
-////                    static let background: Color = Color(.systemGray4)
-////                }
-//            }
-//            
-//            struct Nav {
-//                static let backgroundIpad: Color = Color(.systemGray6)
-//                static let backgroundIphone: Color = Color.white
-//                
-//                struct Row {
-//                    static let backgroundIpad: Color = Color(.systemGray6)
-//                    static let backgroundIphone: Color = Color.white
-//                    
-//                    struct WithSelection {                        
-//                        static let backgroundIpadSelected: Color = Color(.tertiarySystemFill)
-//                        static let backgroundIpadNotSelected: Color = Color(.systemGray6)
-//                        static let backgroundIphoneSelected: Color = Color(.systemGray6)
-//                        static let backgroundIphoneNotSelected: Color = Color.white
-//                    }
-//                }
-//                
-//                
-//            }
-//            
-//            
-//            
-//        }
-//    }
-    
-    
-    
-    //static let standardBackgroundDark: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
-    //static let standardRowBackgroundDark: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
-    
-    //static let standardRowBackgroundWithSelectionDark: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeSelectionColor") ?? "darkGray3")
-    //static let standardRowBackgroundWithSelectionLight: Color = Color(.tertiarySystemFill)
-    
-    //static let standardNavBackgroundDarkIpad: Color = Color.darkGray
-    //static let standardNavBackgroundLightIpad: Color = Color(UIColor.systemGray6)
-    
-    //static let standardNavBackgroundDarkIphone: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
-    //static let standardNavBackgroundLightIphone: Color = Color.white
-    
-    //static let standardNavRowBackgroundDarkIphone: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
-    //static let standardNavRowBackgroundLightIphone: Color = Color.white
-    
-    //static let standardNavRowBackgroundWithSelectionDarkIpadSelected: Color = Color(.tertiarySystemFill)
-    //static let standardNavRowBackgroundWithSelectionDarkIpadNotSelected: Color = Color.darkGray
-    
-    //static let standardNavRowBackgroundWithSelectionLightIpadSelected: Color = Color(.tertiarySystemFill)
-    //static let standardNavRowBackgroundWithSelectionLightIpadNotSelected: Color = Color(UIColor.systemGray6)
-    
-    //static let standardNavRowBackgroundWithSelectionDarkIphoneSelected: Color = Color(.tertiarySystemFill)
-    //static let standardNavRowBackgroundWithSelectionDarkIphoneNotSelected: Color = Color.getGrayFromName(UserDefaults.standard.string(forKey: "darkModeBackgroundColor") ?? "darkGray3")
-    
-    //static let standardNavRowBackgroundWithSelectionLightIphoneSelected: Color = Color(UIColor.systemGray4)
-    //static let standardNavRowBackgroundWithSelectionLightIphoneNotSelected: Color = Color.white
-    
-    
-    
-    
-    
 }
 
 extension UserDefaults {
@@ -866,9 +828,9 @@ fileprivate struct RemoveZoomDismissGestures: UIViewRepresentable {
     private func removeGestures(from view: UIView) {
         DispatchQueue.main.async {
             
-            if let zoomViewController = view.viewController {
-                print(zoomViewController.view.gestureRecognizers?.compactMap({$0.name}))
-            }
+//            if let zoomViewController = view.viewController {
+//                print(zoomViewController.view.gestureRecognizers?.compactMap({$0.name}))
+//            }
             
             if let zoomViewControllerView = view.viewController?.view {
                 zoomViewControllerView.gestureRecognizers?.removeAll(where: {$0.name == "com.apple.UIKit.ZoomInteractiveDismissSwipeDown" || $0.name == "com.apple.UIKit.ZoomInteractiveDismissPinch"})

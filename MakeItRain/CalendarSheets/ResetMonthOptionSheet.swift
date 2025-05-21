@@ -87,8 +87,8 @@ struct ResetMonthOptionSheet: View {
     @Environment(\.dismiss) var dismiss
     
     @Environment(CalendarModel.self) var calModel
-    
     @Environment(PayMethodModel.self) var payModel
+    @Environment(FuncModel.self) var funcModel
     
     @State private var model = ResetOptions()
     
@@ -115,6 +115,7 @@ struct ResetMonthOptionSheet: View {
             Button("Reset", role: .destructive) {
                 dismiss()
                 calModel.resetMonth(model)
+                funcModel.prepareStartingAmounts(for: calModel.sMonth)
             }
             Button("Cancel", role: .cancel) {}
         } message: {

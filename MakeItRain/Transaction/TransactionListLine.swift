@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct TransactionListLine: View {
-    @AppStorage("useWholeNumbers") var useWholeNumbers = false
+    @Local(\.useWholeNumbers) var useWholeNumbers
     
     let trans: CBTransaction
     var withDate: Bool = false
@@ -58,8 +58,8 @@ struct TransactionListLine: View {
                     Circle()
                         .frame(width: 6, height: 6)
                         .foregroundStyle(.primary)
-                    
-                    Text(trans.date?.string(to: .monthDayShortYear) ?? "N/A")
+                                        
+                    Text(trans.prettyDate ?? "N/A")
                         .foregroundStyle(.gray)
                         .font(.caption)
                     Spacer()

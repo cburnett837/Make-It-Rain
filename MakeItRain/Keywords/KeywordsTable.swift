@@ -19,14 +19,9 @@ struct KeywordsTable: View {
     @Environment(KeywordModel.self) private var keyModel
     
     @State private var searchText = ""
-    
-    @State private var deleteKeyword: CBKeyword?
     @State private var editKeyword: CBKeyword?
     @State private var keywordEditID: CBKeyword.ID?
-    
     @State private var sortOrder = [KeyPathComparator(\CBKeyword.keyword)]
-    
-    @State private var showDeleteAlert = false
     @State private var labelWidth: CGFloat = 20.0
     
     var filteredKeywords: [CBKeyword] {
@@ -40,23 +35,18 @@ struct KeywordsTable: View {
         
         Group {
             if !keyModel.keywords.isEmpty {
-                Group {
-                    #if os(macOS)
-                    macTable
-                    #else
-                    phoneList
-                    #endif
-                }
+                #if os(macOS)
+                macTable
+                #else
+                phoneList
+                #endif
             } else {
                 ContentUnavailableView("No Keywords", systemImage: "textformat.abc.dottedunderline", description: Text("Click the plus button above to add a keyword."))
-                    #if os(iOS)
-                    .standardBackground()
-                    #endif
             }
         }
         #if os(iOS)
         .navigationTitle("Keywords")
-        .navigationBarTitleDisplayMode(.inline)
+        //.navigationBarTitleDisplayMode(.inline)
         #endif
         /// There seems to be a bug in SwiftUI `Table` that prevents the view from refreshing when adding a new keyword, and then trying to edit it.
         /// When I add a new keyword, and then update `model.keywords` with the new ID from the server, the table still contains an ID of 0 on the newly created keyword.
@@ -70,28 +60,13 @@ struct KeywordsTable: View {
             phoneToolbar()
             #endif
         }
-        .searchable(text: $searchText) {
-            #if os(macOS)
-            let relevantTitles: Array<String> = keyModel.keywords
-                .compactMap { $0.keyword }
-                .uniqued()
-                .filter { $0.localizedStandardContains(searchText) }
-                    
-            ForEach(relevantTitles, id: \.self) { title in
-                Text(title)
-                    .searchCompletion(title)
-            }
-            #endif
-        }
-        
-        .sheet(item: $editKeyword, onDismiss: {
-            keywordEditID = nil
-        }, content: { key in
+        .searchable(text: $searchText)
+        .sheet(item: $editKeyword, onDismiss: { keywordEditID = nil }) { key in
             KeywordView(keyword: key, keyModel: keyModel, catModel: catModel, editID: $keywordEditID)
                 #if os(macOS)
                 .frame(minWidth: 700)
                 #endif
-        })
+        }
         .onChange(of: sortOrder) { _, sortOrder in
             keyModel.keywords.sort(using: sortOrder)
         }
@@ -102,29 +77,9 @@ struct KeywordsTable: View {
                 keyModel.saveKeyword(id: oldValue!)                
             }
         }
-        .confirmationDialog("Delete keyword \(deleteKeyword == nil ? "N/A" : deleteKeyword!.keyword)?", isPresented: $showDeleteAlert, actions: {
-            Button("Yes", role: .destructive) {
-                if let deleteKeyword = deleteKeyword {
-                    Task {
-                        await keyModel.delete(deleteKeyword, andSubmit: true)
-                    }
-                }
-            }
-            
-            Button("No", role: .cancel) {
-                deleteKeyword = nil
-                showDeleteAlert = false
-            }
-        }, message: {
-            #if os(iOS)
-            Text("Delete keyword \"\(deleteKeyword == nil ? "N/A" : deleteKeyword!.keyword)\"?")
-            #endif
-        })
-        .sensoryFeedback(.warning, trigger: showDeleteAlert) { oldValue, newValue in
-            !oldValue && newValue
-        }
-        
     }
+    
+    
     #if os(macOS)
     @ToolbarContentBuilder
     func macToolbar() -> some ToolbarContent {
@@ -179,19 +134,7 @@ struct KeywordsTable: View {
                     }
                 }
             }
-            .customizationID("category")
-            
-            TableColumn("Delete") { key in
-                Button {
-                    deleteKeyword = key
-                    showDeleteAlert = true
-                } label: {
-                    Image(systemName: "trash")
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.red)
-            }
-            .width(min: 20, ideal: 30, max: 50)
+            .customizationID("category")                        
         }
         .clipped()
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
@@ -199,10 +142,11 @@ struct KeywordsTable: View {
     #endif
     
     #if os(iOS)
+            
     @ToolbarContentBuilder
     func phoneToolbar() -> some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
-            if !AppState.shared.isIpad {
+            if AppState.shared.isIphone {
                 HStack {
                     Button {
                         dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
@@ -216,7 +160,7 @@ struct KeywordsTable: View {
                 }
                 
             } else {
-                HStack {
+                HStack(spacing: 20) {
                     Button {
                         keywordEditID = UUID().uuidString
                     } label: {
@@ -229,9 +173,9 @@ struct KeywordsTable: View {
             }
         }
         
-        if !AppState.shared.isIpad {
+        if AppState.shared.isIphone {
             ToolbarItem(placement: .topBarTrailing) {
-                HStack {
+                HStack(spacing: 20) {
                     ToolbarRefreshButton()
                     Button {
                         keywordEditID = UUID().uuidString
@@ -253,23 +197,8 @@ struct KeywordsTable: View {
                     .foregroundStyle(.gray)
                     .font(.caption)
             }
-            .standardRowBackgroundWithSelection(id: key.id, selectedID: keywordEditID)
-            .swipeActions(allowsFullSwipe: false) {
-                Button {
-                    deleteKeyword = key
-                    showDeleteAlert = true
-                } label: {
-                    Label {
-                        Text("Delete")
-                    } icon: {
-                        Image(systemName: "trash")
-                    }
-                }
-                .tint(.red)
-            }
         }
         .listStyle(.plain)
-        .standardBackground()
     }
     #endif
 }

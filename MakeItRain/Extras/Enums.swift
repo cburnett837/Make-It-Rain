@@ -302,6 +302,28 @@ enum CategoryAction: String {
 }
 
 
+enum CategoryGroupAction: String {
+    case add, edit, delete
+    
+    var serverKey: String {
+        switch self {
+        case .add:      return "add_cb_category_group"
+        case .edit:     return "edit_cb_category_group"
+        case .delete:   return "delete_cb_category_group"
+        }
+    }
+    
+    static func fromString(_ theString: String) -> Self {
+        switch theString {
+        case "add": return .add
+        case "edit": return .edit
+        case "delete": return .delete
+        default: return .add
+        }
+    }
+}
+
+
 enum LocationAction: String {
     case add, edit, delete
     
@@ -356,15 +378,16 @@ enum KeyboardLocation {
     case toolbar, app
 }
 
-enum AccountType: String {
-    case checking = "checking"
-    case credit = "credit"
-    case savings = "savings"
-    case investment = "investment"
-    case k401 = "k401"
-    case cash = "cash"
-    case unifiedChecking = "unified checking"
-    case unifiedCredit = "unified credit"
+enum AccountType: Int {
+    case checking = 32
+    case credit = 33
+    case savings = 35
+    case investment = 37
+    case k401 = 36
+    case cash = 34
+    case unifiedChecking = 30
+    case unifiedCredit = 31
+    case loan = 38
     
 }
 
@@ -375,7 +398,7 @@ enum LineItemIndicator: String, CaseIterable {
         switch self {
         case .dot: return "Category Dot"
         case .emoji: return "Category Symbol"
-        case .paymentMethod: return "Payment Method"
+        case .paymentMethod: return "Account"
         }
     }
 }

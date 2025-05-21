@@ -91,7 +91,7 @@ struct SheetHeaderButtonStyle: ButtonStyle {
             //.symbolRenderingMode(.hierarchical)
             .foregroundStyle(.gray)
             .imageScale(.small)
-            .frame(width: 30, height: 30)
+            .frame(minWidth: 30, minHeight: 30)
             .foregroundStyle(.gray)
             #if os(macOS)
             .background(configuration.isPressed ? Color(.darkGray) : buttonColor)
@@ -109,8 +109,6 @@ struct SheetHeaderButtonStyle: ButtonStyle {
 
 
 struct AlertButtonStyle: ButtonStyle {
-    //@AppStorage("preferDarkMode") var preferDarkMode: Bool = true
-    
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .foregroundStyle(.primary)
@@ -122,26 +120,3 @@ struct AlertButtonStyle: ButtonStyle {
             //.animation(.easeOut(duration: 0.2), value: configuration.isPressed)
     }
 }
-
-#if os(iOS)
-struct SheetHeaderButtonStyleOG: ButtonStyle {
-    @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
-    @State private var buttonColor: Color = Color(.tertiarySystemFill)
-    
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .buttonStyle(.plain)
-            //.symbolRenderingMode(.hierarchical)
-            .foregroundStyle(.gray)
-            .imageScale(.small)
-            .frame(width: 30, height: 30)
-            .foregroundStyle(.gray)
-            .background(configuration.isPressed ? Color(preferDarkMode ? .darkGray : Color(.lightGray)) : buttonColor)
-            .clipShape(Circle())
-            .onHover { buttonColor = $0 ? Color(.systemFill) : Color(.tertiarySystemFill) }
-            //.scaleEffect(configuration.isPressed ? 1.2 : 1)
-            //.animation(.easeOut(duration: 0.2), value: configuration.isPressed)
-    }
-}
-
-#endif

@@ -14,8 +14,8 @@ struct EventView: View {
         var icon: String
     }
     
-    @AppStorage("useWholeNumbers") var useWholeNumbers = false
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+    @Local(\.useWholeNumbers) var useWholeNumbers
+    @Local(\.colorTheme) var colorTheme
 
     @Environment(\.scenePhase) var scenePhase
     @Environment(\.dismiss) var dismiss
@@ -613,7 +613,7 @@ struct EventView: View {
                                 Text(user.name)
                                     .bold()
                                     .font(.caption2)
-                                    .foregroundStyle(Color.fromName(appColorTheme))
+                                    .foregroundStyle(Color.fromName(colorTheme))
                             }
                         }
                     }
@@ -706,8 +706,8 @@ struct EventView: View {
     
     
     struct TransLineView: View {
-        @AppStorage("useWholeNumbers") var useWholeNumbers = false
-        @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+        @Local(\.useWholeNumbers) var useWholeNumbers
+        @Local(\.colorTheme) var colorTheme
         @Environment(EventModel.self) private var eventModel
         
         @Bindable var trans: CBEventTransaction
@@ -763,7 +763,7 @@ struct EventView: View {
                         #if os(iOS)
                         .fill(Color(uiColor: .secondarySystemGroupedBackground))
                         #endif
-                        .strokeBorder(Color.fromName(appColorTheme), lineWidth: 2)
+                        .strokeBorder(Color.fromName(colorTheme), lineWidth: 2)
                         .clipShape(Rectangle())
                 )
             }
@@ -783,8 +783,8 @@ struct EventView: View {
     
         
     struct TransViewingCapsule: View {
-        @AppStorage("useWholeNumbers") var useWholeNumbers = false
-        @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+        @Local(\.useWholeNumbers) var useWholeNumbers
+        @Local(\.colorTheme) var colorTheme
         
         @Environment(EventModel.self) private var eventModel
         var trans: CBEventTransaction
@@ -798,7 +798,7 @@ struct EventView: View {
             }
             .padding(2)
             .padding(.horizontal, 4)
-            .background(Color.fromName(appColorTheme), in: Capsule())
+            .background(Color.fromName(colorTheme), in: Capsule())
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         

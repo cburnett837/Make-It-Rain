@@ -102,8 +102,8 @@ struct EventTransactionView: View {
     @State private var vm = ViewModel()
     
     @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
-    @AppStorage("useWholeNumbers") var useWholeNumbers = false
+    @Local(\.colorTheme) var colorTheme
+    @Local(\.useWholeNumbers) var useWholeNumbers
     
     @State private var mapModel = MapModel()
     @Environment(EventModel.self) private var eventModel
@@ -115,7 +115,7 @@ struct EventTransactionView: View {
     var item: CBEventItem?
     
     @State private var showDeleteAlert = false
-    @State private var showPaymentMethodSheet = false
+    @State private var showPayMethodSheet = false
     @State private var showCategorySheet = false
     @State private var showPaymentMethodMissingAlert = false
     
@@ -240,7 +240,7 @@ struct EventTransactionView: View {
                 }
             }
         }
-        .alert("Payment Method Missing", isPresented: $showPaymentMethodMissingAlert) {
+        .alert("Account Missing", isPresented: $showPaymentMethodMissingAlert) {
             Button("OK") {}
         }
         
@@ -544,7 +544,7 @@ struct EventTransactionView: View {
                 )
                 .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
                 
-                (Text("Transaction Type: ") + Text(transTypeLingo).bold(true).foregroundStyle(Color.fromName(appColorTheme)))
+                (Text("Transaction Type: ") + Text(transTypeLingo).bold(true).foregroundStyle(Color.fromName(colorTheme)))
                     .foregroundStyle(.gray)
                     .font(.caption)
                     .multilineTextAlignment(.leading)
@@ -635,7 +635,7 @@ struct EventTransactionView: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(Color(.tertiarySystemFill))
-            .foregroundStyle(Color.fromName(appColorTheme))
+            .foregroundStyle(Color.fromName(colorTheme))
             .if((trans.options?.filter { $0.active }.count == 0) || trans.options == nil) {
                 $0.alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
             }
@@ -671,7 +671,7 @@ struct EventTransactionView: View {
                      
             VStack(alignment: .leading, spacing: 6) {
                 if trans.status.enumID == .claimed {
-                    PaymentMethodSheetButton(payMethod: $trans.payMethod, whichPaymentMethods: .allExceptUnified)
+                    PayMethodSheetButton(payMethod: $trans.payMethod, whichPaymentMethods: .allExceptUnified)
                         .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
                 }
                 
@@ -706,20 +706,20 @@ struct EventTransactionView: View {
         }
         .buttonStyle(.borderedProminent)
         .tint(Color(.tertiarySystemFill))
-        .foregroundStyle(Color.fromName(appColorTheme))
+        .foregroundStyle(Color.fromName(colorTheme))
     }
     
     
     var paymentMethodMenu: some View {
         HStack {
-            Text("Payment Method")
+            Text("Account")
             Spacer()
             Button((trans.payMethod == nil ? "Select" : trans.payMethod?.title) ?? "Select") {
-                showPaymentMethodSheet = true
+                showPayMethodSheet = true
             }
         }
-        .sheet(isPresented: $showPaymentMethodSheet) {
-            PaymentMethodSheet(payMethod: $trans.payMethod, whichPaymentMethods: .allExceptUnified)
+        .sheet(isPresented: $showPayMethodSheet) {
+            PayMethodSheet(payMethod: $trans.payMethod, whichPaymentMethods: .allExceptUnified)
             #if os(macOS)
                 .frame(minWidth: 300, minHeight: 500)
                 .presentationSizing(.fitted)
@@ -754,7 +754,7 @@ struct EventTransactionView: View {
                                 Text(user.name)
                                     .bold()
                                     .font(.caption2)
-                                    .foregroundStyle(Color.fromName(appColorTheme))
+                                    .foregroundStyle(Color.fromName(colorTheme))
                             }
                         }
                     }
@@ -796,8 +796,8 @@ struct EventTransactionView: View {
     }
     
     struct ItemLineView: View {
-        @AppStorage("useWholeNumbers") var useWholeNumbers = false
-        @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+        @Local(\.useWholeNumbers) var useWholeNumbers
+        @Local(\.colorTheme) var colorTheme
         @Environment(\.dismiss) private var dismiss
         @Environment(EventModel.self) private var eventModel
         @Environment(MapModel.self) private var mapModel
@@ -869,7 +869,7 @@ struct EventTransactionView: View {
                         #if os(iOS)
                         .fill(Color(uiColor: .secondarySystemGroupedBackground))
                         #endif
-                        .strokeBorder(Color.fromName(appColorTheme), lineWidth: 2)
+                        .strokeBorder(Color.fromName(colorTheme), lineWidth: 2)
                         .clipShape(Rectangle())
                 )
             }
@@ -886,8 +886,8 @@ struct EventTransactionView: View {
     
     
     struct ItemViewingCapsule: View {
-        @AppStorage("useWholeNumbers") var useWholeNumbers = false
-        @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+        @Local(\.useWholeNumbers) var useWholeNumbers
+        @Local(\.colorTheme) var colorTheme
         
         @Environment(EventModel.self) private var eventModel
         var option: CBEventTransactionOption
@@ -901,7 +901,7 @@ struct EventTransactionView: View {
             }
             .padding(2)
             .padding(.horizontal, 4)
-            .background(Color.fromName(appColorTheme), in: Capsule())
+            .background(Color.fromName(colorTheme), in: Capsule())
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         
@@ -988,8 +988,8 @@ struct EventTransactionView: View {
 //
 //struct EventTransactionViewOG: View {
 //    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
-//    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
-//    @AppStorage("useWholeNumbers") var useWholeNumbers = false
+//    @Local(\.colorTheme) var colorTheme
+//    @Local(\.useWholeNumbers) var useWholeNumbers
 //    
 //    @Environment(EventModel.self) private var eventModel
 //    @Environment(\.scenePhase) var scenePhase
@@ -1000,7 +1000,7 @@ struct EventTransactionView: View {
 //    var item: CBEventItem?
 //    
 //    @State private var showDeleteAlert = false
-//    @State private var showPaymentMethodSheet = false
+//    @State private var showPayMethodSheet = false
 //    @State private var showCategorySheet = false
 //    @State private var showPaymentMethodMissingAlert = false
 //    
@@ -1077,7 +1077,7 @@ struct EventTransactionView: View {
 //            } footer: {
 //                HStack {
 //                    Spacer()
-//                    (Text("Transaction Type: ") + Text(transTypeLingo).bold(true).foregroundStyle(Color.fromName(appColorTheme)))
+//                    (Text("Transaction Type: ") + Text(transTypeLingo).bold(true).foregroundStyle(Color.fromName(colorTheme)))
 //                        .foregroundStyle(.gray)
 //                        .font(.caption)
 //                        .disabled(trans.amountString.isEmpty)
@@ -1486,11 +1486,11 @@ struct EventTransactionView: View {
 //            Text("Payment Method")
 //            Spacer()
 //            Button((trans.payMethod == nil ? "Select" : trans.payMethod?.title) ?? "Select") {
-//                showPaymentMethodSheet = true
+//                showPayMethodSheet = true
 //            }
 //        }
-//        .sheet(isPresented: $showPaymentMethodSheet) {
-//            PaymentMethodSheet(payMethod: $trans.payMethod, whichPaymentMethods: .allExceptUnified)
+//        .sheet(isPresented: $showPayMethodSheet) {
+//            PayMethodSheet(payMethod: $trans.payMethod, whichPaymentMethods: .allExceptUnified)
 //            #if os(macOS)
 //                .frame(minWidth: 300, minHeight: 500)
 //                .presentationSizing(.fitted)
@@ -1567,7 +1567,7 @@ struct EventTransactionView: View {
 //                                Text(user.name)
 //                                    .bold()
 //                                    .font(.caption2)
-//                                    .foregroundStyle(Color.fromName(appColorTheme))
+//                                    .foregroundStyle(Color.fromName(colorTheme))
 //                            }
 //                        }
 //                    }
@@ -1607,8 +1607,8 @@ struct EventTransactionView: View {
 //    
 //    
 //    struct ItemLineView: View {
-//        @AppStorage("useWholeNumbers") var useWholeNumbers = false
-//        @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+//        @Local(\.useWholeNumbers) var useWholeNumbers
+//        @Local(\.colorTheme) var colorTheme
 //        @Environment(EventModel.self) private var eventModel
 //        
 //        @Bindable var item: CBEventTransactionOption
@@ -1639,7 +1639,7 @@ struct EventTransactionView: View {
 //                        #if os(iOS)
 //                        .fill(Color(uiColor: .secondarySystemGroupedBackground))
 //                        #endif
-//                        .strokeBorder(Color.fromName(appColorTheme), lineWidth: 2)
+//                        .strokeBorder(Color.fromName(colorTheme), lineWidth: 2)
 //                        .clipShape(Rectangle())
 //                )
 //            }
@@ -1656,8 +1656,8 @@ struct EventTransactionView: View {
 //    
 //    
 //    struct ItemViewingCapsule: View {
-//        @AppStorage("useWholeNumbers") var useWholeNumbers = false
-//        @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+//        @Local(\.useWholeNumbers) var useWholeNumbers
+//        @Local(\.colorTheme) var colorTheme
 //        
 //        @Environment(EventModel.self) private var eventModel
 //        var item: CBEventTransactionOption
@@ -1671,7 +1671,7 @@ struct EventTransactionView: View {
 //            }
 //            .padding(2)
 //            .padding(.horizontal, 4)
-//            .background(Color.fromName(appColorTheme), in: Capsule())
+//            .background(Color.fromName(colorTheme), in: Capsule())
 //            .frame(maxWidth: .infinity, alignment: .leading)
 //        }
 //        

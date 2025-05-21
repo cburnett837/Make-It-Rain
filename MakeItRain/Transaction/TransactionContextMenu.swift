@@ -31,12 +31,12 @@ struct TransactionContextMenu: View {
         }
             
         Section {
-            TitleColorMenu(trans: trans, saveOnChange: true) {
+            TitleColorMenu(transactions: [trans], saveOnChange: true) {
                 Text("Title Color")
             }
             
-            PaymentMethodMenu(payMethod: $trans.payMethod, trans: trans, calcAndSaveOnChange: true, whichPaymentMethods: .allExceptUnified) {
-                Text("Payment Method")
+            PayMethodMenu(payMethod: $trans.payMethod, trans: trans, calcAndSaveOnChange: true, whichPaymentMethods: .allExceptUnified) {
+                Text("Account")
             }
             
             CategoryMenu(category: $trans.category, trans: trans, saveOnChange: true) {

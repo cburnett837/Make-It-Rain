@@ -8,10 +8,10 @@
 import SwiftUI
 
 struct LineItemView: View {
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
-    @AppStorage("incomeColor") var incomeColor: String = Color.blue.description
+    @Local(\.colorTheme) var colorTheme
+    @Local(\.incomeColor) var incomeColor
     @AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
-    @AppStorage("useWholeNumbers") var useWholeNumbers = false
+    @Local(\.useWholeNumbers) var useWholeNumbers
     @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
     //@AppStorage("macCategoryDisplayMode") var macCategoryDisplayMode: MacCategoryDisplayMode = .emoji
     @AppStorage("showHashTagsOnLineItems") var showHashTagsOnLineItems: Bool = true
@@ -34,8 +34,6 @@ struct LineItemView: View {
     @Bindable var day: CBDay
     var isOnCalendarView: Bool = true
     
-    @State private var showEditSheet = false
-    
     @FocusState var focusedField: Int?
     
     var amountColor: Color {
@@ -45,8 +43,7 @@ struct LineItemView: View {
             trans.amount > 0 ? Color.fromName(incomeColor) : .gray
         }
     }
-    
-    
+        
     var subTextPadding: Double {
         if lineItemIndicator == .dot {
             if calModel.isUnifiedPayMethod && showPaymentMethodIndicator {
@@ -72,119 +69,34 @@ struct LineItemView: View {
         }
     }
     
-//        .padding(.leading, categoryIndicator == .dot ? (calModel.isUnifiedPayMethod && showPaymentMethodIndicator) ? 22 : 12 : (calModel.isUnifiedPayMethod && showPaymentMethodIndicator) ? 30 : 20)
-//    
-    
-    
+    var lineColor: Color {
+        if calModel.isInMultiSelectMode {
+            if calModel.multiSelectTransactions.map({ $0.id }).contains(trans.id) {
+                Color(.secondarySystemFill)
+            } else {
+                Color.clear
+            }
+        } else if calModel.hilightTrans == trans || transEditID == trans.id {
+            Color(.secondarySystemFill)
+        } else {
+            Color.clear
+        }
+    }
+        
     var body: some View {
         //let _ = Self._printChanges()
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 0) {
-                // MARK: - Color Dot
-                HStack(spacing: 0) {
-                    /// Show the payment method on unified view/
-                    if calModel.isUnifiedPayMethod && showPaymentMethodIndicator {
-                        CircleDot(color: trans.payMethod?.color, width: 10)
-                    }
-                                                            
-                    /// Show the category color dot or symbol
-                    if lineItemIndicator == .dot {
-                        CircleDot(color: trans.category?.color, width: 10)
-                            .padding(.trailing, 2)
-                    } else {
-                        if let emoji = trans.category?.emoji {
-                            Image(systemName: emoji)
-                                .foregroundStyle(trans.category?.color ?? .primary)
-                                .font(.caption2)
-                                .frame(minWidth: labelWidth, alignment: .center)
-                                .background {
-                                    GeometryReader { geo in
-                                        Color.clear.preference(key: MaxSizePreferenceKey.self, value: geo.size.width)
-                                    }
-                                }
-                        } else {
-                            CircleDot(color: .white, width: labelWidth)
-                        }
-                    }
-                }
-                
-                // MARK: - TITLE
-                let isNew = trans.title.isEmpty && trans.action == .add
-                let wasUpdatedByAnotherUser = trans.updatedBy.id != AppState.shared.user?.id
-                
-                Text(isNew ? "New Transaction" : trans.title)
-                    .foregroundStyle(isNew ? .gray : trans.color)
-                    .if(wasUpdatedByAnotherUser && updatedByOtherUserDisplayMode == .concise) { $0.italic(true).bold(true) }
-                    .italic(isNew)
-                    .lineLimit(1)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                
-                
-                // MARK: - TOTAL
-                Text(trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                    .foregroundStyle(amountColor)
-                    .lineLimit(1)
-                
+                categoryIndicator
+                titleView
+                totalView
             }
             .overlay { ExcludeFromTotalsLine(trans: trans) }
                                                 
-            // MARK: - line 2
             VStack(alignment: .leading, spacing: 2) {
-                let wasUpdatedByAnotherUser = trans.updatedBy.id != AppState.shared.user?.id
-                if showHashTagsOnLineItems {
-                    if !trans.tags.isEmpty {
-                        #if os(macOS)
-                        ScrollView(.horizontal) {
-                            HStack(spacing: 4) {
-                                ForEach(trans.tags) { tag in
-                                    Text("#\(tag.tag)")
-                                        .foregroundStyle(.gray)
-                                        .bold()
-                                        .font(.caption)
-                                }
-                            }
-                        }
-                        .scrollIndicators(.never)
-                        .overlay { ExcludeFromTotalsLine(trans: trans) }
-                        #else
-                        TagLayout(alignment: .leading, spacing: 5) {
-                            ForEach(trans.tags) { tag in
-                                Text("#\(tag.tag)")
-                                    //.foregroundStyle(Color.fromName(appColorTheme))
-                                    .foregroundStyle(.gray)
-                                    .bold()
-                                    .font(.caption)
-                            }
-                        }
-                        #endif
-                    }
-                }
-                
-                
-                
-                if trans.notifyOnDueDate {
-                    HStack(spacing: 2) {
-                        Image(systemName: "bell")
-                        let text = trans.notificationOffset == 0 ? "On day of" : (trans.notificationOffset == 1 ? "The day before" : "2 days before")
-                        Text(text)
-                            .lineLimit(1)
-                    }
-                    .foregroundStyle(.gray)
-                    .font(.caption2)
-                    .overlay { ExcludeFromTotalsLine(trans: trans) }
-                }
-                
-                
-                if wasUpdatedByAnotherUser && updatedByOtherUserDisplayMode == .full {
-                    HStack(alignment: .firstTextBaseline, spacing: 2) {
-                        Image(systemName: "person")
-                        Text("\(trans.updatedBy.initials)")
-                    }
-                    .lineLimit(1)
-                    .foregroundStyle(.gray)
-                    .font(.caption2)
-                    .overlay { ExcludeFromTotalsLine(trans: trans) }
-                }
+                hashTagView
+                notificationView
+                updatedByOtherUserView
             }
             .padding(.leading, subTextPadding)
             
@@ -199,20 +111,8 @@ struct LineItemView: View {
         #endif
         .contentShape(Rectangle())
         .draggable(trans) { dragPreview }
-        .background {
-            RoundedRectangle(cornerRadius: 4)
-                #if os(iOS)
-                .fill(calModel.hilightTrans == trans ? .gray.opacity(0.2) : .clear)
-                #else
-                //.fill(transEditID == trans.id ? .gray.opacity(0.2) : .clear)
-                .fill(showEditSheet ? .gray.opacity(0.2) : .clear)
-                #endif
-        }
-        .onTapGesture(count: 1) {
-            calModel.hilightTrans = trans
-            //transEditID = trans.id
-            showEditSheet = true
-        }
+        .background(RoundedRectangle(cornerRadius: 4).fill(lineColor))
+        .onTapGesture(count: 1) { transactionTapped() }
         .confirmationDialog("Delete \"\(trans.title)\"?", isPresented: $showDeleteAlert) {
             Button("Yes", role: .destructive) {
                 trans.action = .delete
@@ -230,42 +130,12 @@ struct LineItemView: View {
         }
         
         /// This `.popover(item: $transEditID) & .onChange(of: transEditID)` are used for editing existing transactions. They also exist in ``LineItemViewMac``, which are used to add new transactions.
-//        .popover(item: $transEditID, arrowEdge: .trailing) { id in
-//            TransactionEditView(trans: trans, transEditID: $transEditID, day: day, isTemp: false)
-//                .frame(minWidth: 320)
-//                //.interactiveDismissDisabled(true)
-//        }
-        
-//        .popover(item: .init(get: { transEditID }, set: { thing(oldValue: transEditID, newValue: $0); transEditID = $0 }), arrowEdge: .trailing) { id in
-//            TransactionEditView(trans: trans, transEditID: $transEditID, day: day, isTemp: false)
-//                .frame(minWidth: 320)
-//                //.interactiveDismissDisabled(true)
-//        }
-        
-        
-        .popover(isPresented: .init(
-            get: { showEditSheet },
-            set: { onDismissOfEditSheet(oldValue: showEditSheet, newValue: $0); showEditSheet = $0 }
-        ), arrowEdge: .trailing) {
-            TransactionEditView(trans: trans, transEditID: .constant(trans.id), day: day, isTemp: false)
+        .popover(item: $transEditID, arrowEdge: .trailing) { id in
+            TransactionEditView(trans: trans, transEditID: $transEditID, day: day, isTemp: false)
                 .frame(minWidth: 320)
-                //.interactiveDismissDisabled(true)
         }
-        
-        
-        
         #else
-        .sheet(item: $transEditID, onDismiss: {
-            /// Only run this if deleteting to preserve animation behavior.
-            if let transDeleteID = transDeleteID {
-                calModel.saveTransaction(id: transDeleteID, day: day)
-            } else {
-                /// Just some cleanup to make sure it stays blank
-                if transDeleteID != nil {
-                    transDeleteID = nil
-                }
-            }
-        }) { id in
+        .sheet(item: $transEditID, onDismiss: transactionSheetDismissed) { id in
             TransactionEditView(trans: trans, transEditID: $transEditID, day: day, isTemp: false)
                 .frame(minWidth: 320)                
         }
@@ -273,26 +143,26 @@ struct LineItemView: View {
         
         /// This onChange is needed because you can close the popover without actually clicking the close button.
         /// `popover()` has no `onDismiss()` optiion, so I need somewhere to do cleanup.
-//        .onChange(of: transEditID) { oldValue, newValue in
-//            if oldValue == nil && newValue != nil {
-//                focusedField = nil
-//            }
-//            
-//            if oldValue != nil && newValue == nil {
-//                /// FOR iOS...
-//                /// Since this view has its own `TransactionEditView` sheet, when you delete this trans, it will destory this view and mess up the animation of the sheet closing.
-//                /// So when deleting, retain the id and delete the transaction in the sheets `onDismiss`.
-//                #if os(iOS)
-//                if trans.action == .delete {
-//                    transDeleteID = oldValue!
-//                } else {
-//                    calModel.saveTransaction(id: oldValue!, day: day)
-//                }
-//                #else
-//                calModel.saveTransaction(id: oldValue!, day: day)
-//                #endif
-//            }
-//        }
+        .onChange(of: transEditID) { oldValue, newValue in
+            if oldValue == nil && newValue != nil {
+                focusedField = nil
+            }
+            
+            if oldValue != nil && newValue == nil {
+                /// FOR iOS...
+                /// Since this view has its own `TransactionEditView` sheet, when you delete this trans, it will destory this view and mess up the animation of the sheet closing.
+                /// So when deleting, retain the id and delete the transaction in the sheets `onDismiss`.
+                #if os(iOS)
+                if trans.action == .delete {
+                    transDeleteID = oldValue!
+                } else {
+                    calModel.saveTransaction(id: oldValue!, day: day)
+                }
+                #else
+                calModel.saveTransaction(id: oldValue!, day: day)
+                #endif
+            }
+        }
         
         .task {
             /// `calModel.hilightTrans` should always be nil during a task. The only time it shouldn't should be is when a transaction was moved to a new day via a different device.
@@ -304,29 +174,120 @@ struct LineItemView: View {
     }
     
     
-    func onDismissOfEditSheet(oldValue: Bool, newValue: Bool) {
-        print("POPOVER$ CHANGED FROM \(oldValue) -> \(newValue)")
-        
-        if oldValue == false && newValue == true {
-            focusedField = nil
-        }
-        
-        if oldValue == true && newValue == false {
-            /// FOR iOS...
-            /// Since this view has its own `TransactionEditView` sheet, when you delete this trans, it will destroy this view and mess up the animation of the sheet closing.
-            /// So when deleting, retain the id and delete the transaction in the sheets `onDismiss`.
-            #if os(iOS)
-            if trans.action == .delete {
-                transDeleteID = trans.id
-            } else {
-                calModel.saveTransaction(id: trans.id, day: day)
+    var categoryIndicator: some View {
+        HStack(spacing: 0) {
+            /// Show the payment method on unified view/
+            if calModel.isUnifiedPayMethod && showPaymentMethodIndicator {
+                CircleDot(color: trans.payMethod?.color, width: 10)
             }
-            #else
-            calModel.saveTransaction(id: trans.id, day: day)
-            #endif
+                                                    
+            /// Show the category color dot or symbol
+            if lineItemIndicator == .dot {
+                CircleDot(color: trans.category?.color, width: 10)
+                    .padding(.trailing, 2)
+            } else {
+                if let emoji = trans.category?.emoji {
+                    Image(systemName: emoji)
+                        .foregroundStyle(trans.category?.color ?? .primary)
+                        .font(.caption2)
+                        .frame(minWidth: labelWidth, alignment: .center)
+                        .background {
+                            GeometryReader { geo in
+                                Color.clear.preference(key: MaxSizePreferenceKey.self, value: geo.size.width)
+                            }
+                        }
+                } else {
+                    CircleDot(color: .white, width: labelWidth)
+                }
+            }
         }
+    }
+    
+    
+    var titleView: some View {
+        let isNew = trans.title.isEmpty && trans.action == .add
+        let wasUpdatedByAnotherUser = trans.updatedBy.id != AppState.shared.user?.id
         
-        
+        return Text(isNew ? "New Transaction" : trans.title)
+            .foregroundStyle(isNew ? .gray : trans.color)
+            .if(wasUpdatedByAnotherUser && updatedByOtherUserDisplayMode == .concise) { $0.italic(true).bold(true) }
+            .italic(isNew)
+            .lineLimit(1)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    
+    
+    var totalView: some View {
+        Text(trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+            .foregroundStyle(amountColor)
+            .lineLimit(1)
+    }
+    
+    
+    var hashTagView: some View {
+        Group {
+            if showHashTagsOnLineItems {
+                if !trans.tags.isEmpty {
+                    #if os(macOS)
+                    ScrollView(.horizontal) {
+                        HStack(spacing: 4) {
+                            ForEach(trans.tags) { tag in
+                                Text("#\(tag.tag)")
+                                    .foregroundStyle(.gray)
+                                    .bold()
+                                    .font(.caption)
+                            }
+                        }
+                    }
+                    .scrollIndicators(.never)
+                    .overlay { ExcludeFromTotalsLine(trans: trans) }
+                    #else
+                    TagLayout(alignment: .leading, spacing: 5) {
+                        ForEach(trans.tags) { tag in
+                            Text("#\(tag.tag)")
+                                //.foregroundStyle(Color.fromName(colorTheme))
+                                .foregroundStyle(.gray)
+                                .bold()
+                                .font(.caption)
+                        }
+                    }
+                    #endif
+                }
+            }
+        }
+    }
+    
+    
+    var notificationView: some View {
+        Group {
+            if trans.notifyOnDueDate {
+                HStack(spacing: 2) {
+                    Image(systemName: "bell")
+                    let text = trans.notificationOffset == 0 ? "On day of" : (trans.notificationOffset == 1 ? "The day before" : "2 days before")
+                    Text(text)
+                        .lineLimit(1)
+                }
+                .foregroundStyle(.gray)
+                .font(.caption2)
+                .overlay { ExcludeFromTotalsLine(trans: trans) }
+            }
+        }
+    }
+    
+    
+    var updatedByOtherUserView: some View {
+        Group {
+            if trans.updatedBy.isNotLoggedIn && updatedByOtherUserDisplayMode == .full {
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Image(systemName: "person")
+                    Text("\(trans.updatedBy.initials)")
+                }
+                .lineLimit(1)
+                .foregroundStyle(.gray)
+                .font(.caption2)
+                .overlay { ExcludeFromTotalsLine(trans: trans) }
+            }
+        }
     }
     
     
@@ -342,6 +303,33 @@ struct LineItemView: View {
         .background {
             RoundedRectangle(cornerRadius: 4)
                 .fill(trans.category?.color ?? .gray)
+        }
+    }
+    
+    
+    func transactionTapped() {
+        if calModel.isInMultiSelectMode {
+            if calModel.multiSelectTransactions.map({ $0.id }).contains(trans.id) {
+                calModel.multiSelectTransactions.removeAll(where: {$0.id == trans.id})
+            } else {
+                calModel.multiSelectTransactions.append(trans)
+            }
+        } else {
+            calModel.hilightTrans = trans
+            transEditID = trans.id
+        }
+    }
+    
+    
+    func transactionSheetDismissed() {
+        /// Only run this if deleteting to preserve animation behavior.
+        if let transDeleteID = transDeleteID {
+            calModel.saveTransaction(id: transDeleteID, day: day)
+        } else {
+            /// Just some cleanup to make sure it stays blank
+            if transDeleteID != nil {
+                transDeleteID = nil
+            }
         }
     }
 }

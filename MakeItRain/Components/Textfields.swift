@@ -32,7 +32,7 @@ struct SearchTextField: View {
 
 
 struct StandardTextField: View {
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+    @Local(\.colorTheme) var colorTheme
     
     /// This is needed to enable animation of the cancel button.
     @State private var didFocus = false
@@ -163,7 +163,7 @@ struct StandardTextField: View {
                     }
                 }
                 .frame(maxHeight: .infinity)
-                .tint(Color.fromName(appColorTheme))
+                .tint(Color.fromName(colorTheme))
                 .focusable(false)
             }
         }
@@ -297,7 +297,7 @@ struct ToolbarTextField: View {
 
 #if os(iOS)
 //struct StandardUITextField<Toolbar: View>: View {
-//    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+//    @Local(\.colorTheme) var colorTheme
 //
 //    @State private var didFocus = false
 //    
@@ -410,7 +410,7 @@ struct ToolbarTextField: View {
 //                    }
 //                }
 //                .frame(maxHeight: .infinity)
-//                .tint(Color.fromName(appColorTheme))
+//                .tint(Color.fromName(colorTheme))
 //                .focusable(false)
 //            }
 //        }
@@ -555,7 +555,7 @@ struct ToolbarTextField: View {
 
 struct StandardUITextField<Toolbar: View>: View {
     @Environment(\.layoutDirection) private var layoutDirection: LayoutDirection
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+    @Local(\.colorTheme) var colorTheme
     
     /// This is needed to enable animation of the cancel button.
     @State private var didFocus = false
@@ -688,7 +688,7 @@ struct StandardUITextField<Toolbar: View>: View {
                     }
                 }
                 .frame(maxHeight: .infinity)
-                .tint(Color.fromName(appColorTheme))
+                .tint(Color.fromName(colorTheme))
                 .focusable(false)
             }
         }
@@ -923,34 +923,32 @@ struct UITextFieldWrapper<Toolbar: View>: UIViewRepresentable {
         
     func updateUIView(_ textField: UITextField, context: Context) {
         //print("-- \(#function) --- \(text)")
-        //DispatchQueue.main.async {
-        textField.text = text
-        
-        textField.placeholder = placeholder
-        textField.font = font
-        textField.textColor = textColor
-        textField.tintColor = tint
-        if let textAlignment { textField.textAlignment = textAlignment }
-        textField.textContentType = contentType
-        textField.autocorrectionType = autoCorrection
-        textField.autocapitalizationType = autocapitalizationType
-        textField.keyboardType = keyboardType
-        textField.returnKeyType = returnKeyType
-        textField.isSecureTextEntry = isSecure
-        textField.clearsOnBeginEditing = clearsOnBeginEditing
-        if let clearButtonMode { textField.clearButtonMode = clearButtonMode }
-        textField.isUserInteractionEnabled = isUserInteractionEnabled
-        if let tag { textField.tag = tag }
-        
-        
-        textField.delegate = context.coordinator
-        textField.setContentHuggingPriority(.defaultHigh, for: .vertical)
-        textField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        textField.addTarget(context.coordinator, action: #selector(Coordinator.textFieldDidChange(_:)), for: .editingChanged)
-        
-        
-        
-        //}
+        #warning("This threw up a purple error (accessing from background thread) if DispatchQueue.main.async was not used")
+        DispatchQueue.main.async {
+            textField.text = text
+            
+            textField.placeholder = placeholder
+            textField.font = font
+            textField.textColor = textColor
+            textField.tintColor = tint
+            if let textAlignment { textField.textAlignment = textAlignment }
+            textField.textContentType = contentType
+            textField.autocorrectionType = autoCorrection
+            textField.autocapitalizationType = autocapitalizationType
+            textField.keyboardType = keyboardType
+            textField.returnKeyType = returnKeyType
+            textField.isSecureTextEntry = isSecure
+            textField.clearsOnBeginEditing = clearsOnBeginEditing
+            if let clearButtonMode { textField.clearButtonMode = clearButtonMode }
+            textField.isUserInteractionEnabled = isUserInteractionEnabled
+            if let tag { textField.tag = tag }
+            
+            
+            textField.delegate = context.coordinator
+            textField.setContentHuggingPriority(.defaultHigh, for: .vertical)
+            textField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+            textField.addTarget(context.coordinator, action: #selector(Coordinator.textFieldDidChange(_:)), for: .editingChanged)
+        }
     }
     
     

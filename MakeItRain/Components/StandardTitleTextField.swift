@@ -20,10 +20,12 @@ struct StandardTitleTextField<T: CanEditTitleWithLocation & Observation.Observab
     var body: some View {
         @Bindable var obj = obj
         HStack(alignment: .circleAndTitle) {
-            Image(systemName: "bag.fill")
-                .foregroundColor(.gray)
-                .frame(width: symbolWidth)
-                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+            if showSymbol {
+                Image(systemName: "bag.fill")
+                    .foregroundColor(.gray)
+                    .frame(width: symbolWidth)
+                    .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+            }
             
             VStack {
                 Group {
@@ -85,12 +87,14 @@ struct StandardTitleTextField<T: CanEditTitleWithLocation & Observation.Observab
                                     }
                                 }
                             }
+                            .focusable(false)
                             .bold(true)
                             .font(.caption)
                             
                             Button("Hide") {
                                 mapModel.completions.removeAll()
                             }
+                            .focusable(false)
                             .bold(true)
                             .font(.caption)
                         }

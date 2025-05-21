@@ -10,8 +10,7 @@ import SwiftUI
 struct RepeatingTransactionsTable: View {
     @Environment(\.dismiss) var dismiss
     
-    @AppStorage("useWholeNumbers") var useWholeNumbers = false
-    @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
+    @Local(\.useWholeNumbers) var useWholeNumbers
     #if os(macOS)
     @AppStorage("repeatingTransactionsTableColumnOrder") private var columnCustomization: TableColumnCustomization<CBRepeatingTransaction>
     #endif
@@ -23,13 +22,10 @@ struct RepeatingTransactionsTable: View {
     
     @State private var searchText = ""
     
-    @State private var deleteRepeatingTransaction: CBRepeatingTransaction?
     @State private var editRepeatingTransaction: CBRepeatingTransaction?
     @State private var repTransactionEditID: CBRepeatingTransaction.ID?
     
     @State private var sortOrder = [KeyPathComparator(\CBRepeatingTransaction.title)]
-    
-    @State private var showDeleteAlert = false
     @State private var labelWidth: CGFloat = 20.0
     
     var filteredTransactions: [CBRepeatingTransaction] {
@@ -42,24 +38,19 @@ struct RepeatingTransactionsTable: View {
         
         Group {
             if !repModel.repTransactions.isEmpty {
-                Group {
-                    #if os(macOS)
-                    macTable
-                    #else
-                    phoneList
-                    #endif
-                }
+                #if os(macOS)
+                macTable
+                #else
+                phoneList
+                #endif
             } else {
                 ContentUnavailableView("No Reoccuring Transactions", systemImage: "repeat", description: Text("Click the plus button above to add a new repeating transaction."))
-                    #if os(iOS)
-                    .standardBackground()
-                    #endif
             }
         }
         //.loadingSpinner(id: .repeatingTransactions, text: "Loading Reoccuring Transactions…")
         #if os(iOS)
         .navigationTitle("Reoccuring Transactions")
-        .navigationBarTitleDisplayMode(.inline)
+        //.navigationBarTitleDisplayMode(.inline)
         #endif        
         /// There seems to be a bug in SwiftUI `Table` that prevents the view from refreshing when adding a new repTransaction, and then trying to edit it.
         /// When I add a new repTransaction, and then update `model.repTransactions` with the new ID from the server, the table still contains an ID of 0 on the newly created repTransaction.
@@ -73,61 +64,18 @@ struct RepeatingTransactionsTable: View {
             phoneToolbar()
             #endif
         }
-        .searchable(text: $searchText) {
-            #if os(macOS)
-            let relevantTitles: Array<String> = repModel.repTransactions
-                .compactMap { $0.title }
-                .uniqued()
-                .filter { $0.localizedStandardContains(searchText) }
-                    
-            ForEach(relevantTitles, id: \.self) { title in
-                Text(title)
-                    .searchCompletion(title)
-            }
-            #endif
-        }
-        
+        .searchable(text: $searchText)
         .onChange(of: sortOrder) { _, sortOrder in
             repModel.repTransactions.sort(using: sortOrder)
         }
-        
-        .sheet(item: $editRepeatingTransaction, onDismiss: {
-            repTransactionEditID = nil
-        }, content: { rep in
+        .sheet(item: $editRepeatingTransaction, onDismiss: { repTransactionEditID = nil }) { rep in
             RepeatingTransactionView(repTransaction: rep, repModel: repModel, catModel: catModel, payModel: payModel, editID: $repTransactionEditID)
-        })
+        }
         .onChange(of: repTransactionEditID) { oldValue, newValue in
             if let newValue {
                 editRepeatingTransaction = repModel.getRepeatingTransaction(by: newValue)
             } else {
                 repModel.saveTransaction(id: oldValue!)
-            }
-        }
-
-        .confirmationDialog("Delete \"\(deleteRepeatingTransaction == nil ? "N/A" : deleteRepeatingTransaction!.title)\"?", isPresented: $showDeleteAlert, actions: {
-            Button("Yes", role: .destructive) {
-                if let deleteRepeatingTransaction = deleteRepeatingTransaction {
-                    Task {
-                        await repModel.delete(deleteRepeatingTransaction, andSubmit: true)
-                    }
-                }
-            }
-            
-            Button("No", role: .cancel) {
-                deleteRepeatingTransaction = nil
-                showDeleteAlert = false
-            }
-        }, message: {
-            #if os(iOS)
-            Text("Delete \"\(deleteRepeatingTransaction == nil ? "N/A" : deleteRepeatingTransaction!.title)\"?")
-            #endif
-        })        
-        .sensoryFeedback(.warning, trigger: showDeleteAlert) { oldValue, newValue in
-            !oldValue && newValue
-        }
-        .task {
-            repModel.repTransactions.forEach {
-                $0.flipColor(preferDarkMode: preferDarkMode)
             }
         }
     }
@@ -189,7 +137,7 @@ struct RepeatingTransactionsTable: View {
             }
             .customizationID("category")
             
-            TableColumn("Payment Method", value: \.payMethod?.title) { repTrans in
+            TableColumn("Account", value: \.payMethod?.title) { repTrans in
                 HStack {
                     Circle()
                         .fill(repTrans.payMethod?.color ?? .primary)
@@ -198,22 +146,10 @@ struct RepeatingTransactionsTable: View {
                 }
             }
             .customizationID("paymentMethod")
-            
-            TableColumn("Delete") { repTrans in
-                Button {
-                    deleteRepeatingTransaction = repTrans
-                    showDeleteAlert = true
-                } label: {
-                    Image(systemName: "trash")
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.red)
-            }
-            .width(min: 20, ideal: 30, max: 50)
         }
         .clipped()
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
-    }
+    }    
     #endif
     
      
@@ -235,7 +171,7 @@ struct RepeatingTransactionsTable: View {
                 }
                 
             } else {
-                HStack {
+                HStack(spacing: 20) {
                     Button {
                         repTransactionEditID = UUID().uuidString
                     } label: {
@@ -250,7 +186,7 @@ struct RepeatingTransactionsTable: View {
         
         if !AppState.shared.isIpad {
             ToolbarItem(placement: .topBarTrailing) {
-                HStack {
+                HStack(spacing: 20) {
                     ToolbarRefreshButton()
                     Button {
                         repTransactionEditID = UUID().uuidString
@@ -273,8 +209,6 @@ struct RepeatingTransactionsTable: View {
                     .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
                 
                 VStack(alignment: .leading) {
-                    
-                    
                     HStack {
                         Text(repTrans.title)
                         Spacer()
@@ -287,7 +221,7 @@ struct RepeatingTransactionsTable: View {
                     
                     
                     HStack {
-                        Text("Payment Method:")
+                        Text("Account")
                         Spacer()
                         Text(repTrans.payMethod?.title ?? "N/A")
                     }
@@ -302,26 +236,9 @@ struct RepeatingTransactionsTable: View {
                     .foregroundStyle(.gray)
                     .font(.caption)
                 }
-                Spacer()
-                
-            }
-            .standardRowBackgroundWithSelection(id: repTrans.id, selectedID: repTransactionEditID)
-            .swipeActions(allowsFullSwipe: false) {
-                Button {
-                    deleteRepeatingTransaction = repTrans
-                    showDeleteAlert = true
-                } label: {
-                    Label {
-                        Text("Delete")
-                    } icon: {
-                        Image(systemName: "trash")
-                    }
-                }
-                .tint(.red)
-            }
+            }            
         }
         .listStyle(.plain)
-        .standardBackground()
     }
     #endif
 }

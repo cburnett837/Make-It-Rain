@@ -18,6 +18,7 @@ class LongPollModel: Decodable {
     let repeatingTransactions: Array<CBRepeatingTransaction>?
     let payMethods: Array<CBPaymentMethod>?
     let categories: Array<CBCategory>?
+    let categoryGroups: Array<CBCategoryGroup>?
     let keywords: Array<CBKeyword>?
     let budgets: Array<CBBudget>?
     
@@ -32,7 +33,7 @@ class LongPollModel: Decodable {
     let fitTransactions: Array<CBFitTransaction>?
     let openRecords: Array<CBOpenOrClosedRecord>?
     
-    enum CodingKeys: CodingKey { case return_time, transactions, starting_amounts, repeating_transactions, pay_methods, categories, keywords, budgets, events, event_transactions, event_transaction_options, event_categories, event_items, event_participants, invitations, fit_transactions, open_records }
+    enum CodingKeys: CodingKey { case return_time, transactions, starting_amounts, repeating_transactions, pay_methods, categories, category_groups, keywords, budgets, events, event_transactions, event_transaction_options, event_categories, event_items, event_participants, invitations, fit_transactions, open_records }
     
     init () {
         self.returnTime = nil
@@ -41,6 +42,7 @@ class LongPollModel: Decodable {
         self.repeatingTransactions = nil
         self.payMethods = nil
         self.categories = nil
+        self.categoryGroups = nil
         self.keywords = nil
         self.budgets = nil
         
@@ -65,6 +67,7 @@ class LongPollModel: Decodable {
         self.repeatingTransactions = try container.decodeIfPresent(Array<CBRepeatingTransaction>.self, forKey: .repeating_transactions)
         self.payMethods = try container.decodeIfPresent(Array<CBPaymentMethod>.self, forKey: .pay_methods)
         self.categories = try container.decodeIfPresent(Array<CBCategory>.self, forKey: .categories)
+        self.categoryGroups = try container.decodeIfPresent(Array<CBCategoryGroup>.self, forKey: .category_groups)
         self.keywords = try container.decodeIfPresent(Array<CBKeyword>.self, forKey: .keywords)
         self.budgets = try container.decodeIfPresent(Array<CBBudget>.self, forKey: .budgets)
         

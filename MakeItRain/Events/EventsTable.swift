@@ -9,7 +9,7 @@ import SwiftUI
 
 struct EventsTable: View {
     @Environment(\.dismiss) var dismiss
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+    @Local(\.colorTheme) var colorTheme
     #if os(macOS)
     @AppStorage("eventsTableColumnOrder") private var columnCustomization: TableColumnCustomization<CBEvent>
     #endif
@@ -54,15 +54,12 @@ struct EventsTable: View {
                 }
             } else {
                 ContentUnavailableView("No Events", systemImage: "beach.umbrella", description: Text("Click the plus button above to add a event."))
-                    #if os(iOS)
-                    .standardBackground()
-                    #endif
             }
         }
         //.loadingSpinner(id: .events, text: "Loading Events…")
         #if os(iOS)
         .navigationTitle("Events")
-        .navigationBarTitleDisplayMode(.inline)
+        //.navigationBarTitleDisplayMode(.inline)
         #endif
         /// There seems to be a bug in SwiftUI `Table` that prevents the view from refreshing when adding a new event, and then trying to edit it.
         /// When I add a new event, and then update `model.events` with the new ID from the server, the table still contains an ID of 0 on the newly created event.
@@ -77,20 +74,7 @@ struct EventsTable: View {
             #endif
         }
         
-        .searchable(text: $searchText) {
-            #if os(macOS)
-            let relevantTitles: Array<String> = eventModel.events
-                .compactMap { $0.title }
-                .uniqued()
-                .filter { $0.localizedStandardContains(searchText) }
-                    
-            ForEach(relevantTitles, id: \.self) { title in
-                Text(title)
-                    .searchCompletion(title)
-            }
-            #endif
-        }
-        
+        .searchable(text: $searchText)
         .sheet(isPresented: $showPendingInviteSheet) {
             EventPendingInviteView()
         }
@@ -98,9 +82,7 @@ struct EventsTable: View {
             eventModel.events.sort(using: sortOrder)
         }
         
-        
-        // MARK: - Event Sheet
-        
+        // MARK: - Event Sheet        
         .onChange(of: eventEditID) { oldValue, newValue in
             if let newValue {
                 //editEvent = eventModel.getEvent(by: newValue)
@@ -109,7 +91,7 @@ struct EventsTable: View {
                     let alertConfig = AlertConfig(
                         title: "Create New Event",
                         subtitle: "Enter a title below to get started",
-                        symbol: .init(name: "beach.umbrella", color: Color.fromName(appColorTheme)),
+                        symbol: .init(name: "beach.umbrella", color: Color.fromName(colorTheme)),
                         primaryButton:
                             AlertConfig.AlertButton(closeOnFunction: false, showSpinnerOnClick: true, config: .init(text: "Create", role: .primary, function: {
                                 Task {
@@ -284,10 +266,18 @@ struct EventsTable: View {
                         }
                     }
                     ToolbarLongPollButton()
+                    
+                    if !eventModel.invitations.isEmpty {
+                        Button {
+                            showPendingInviteSheet = true
+                        } label: {
+                            Image(systemName: "envelope.badge")
+                                .foregroundStyle(.red)
+                        }
+                    }
                 }
-                
             } else {
-                HStack {
+                HStack(spacing: 20) {
                     if !eventModel.invitations.isEmpty {
                         Button {
                             showPendingInviteSheet = true
@@ -312,15 +302,15 @@ struct EventsTable: View {
         
         if !AppState.shared.isIpad {
             ToolbarItem(placement: .topBarTrailing) {
-                HStack {
-                    if !eventModel.invitations.isEmpty {
-                        Button {
-                            showPendingInviteSheet = true
-                        } label: {
-                            Image(systemName: "envelope.badge")
-                                .foregroundStyle(.red)
-                        }
-                    }
+                HStack(spacing: 20) {
+//                    if !eventModel.invitations.isEmpty {
+//                        Button {
+//                            showPendingInviteSheet = true
+//                        } label: {
+//                            Image(systemName: "envelope.badge")
+//                                .foregroundStyle(.red)
+//                        }
+//                    }
                     
                     ToolbarRefreshButton()
                     Button {
@@ -360,7 +350,6 @@ struct EventsTable: View {
                 Text(event.endDate?.string(to: .monthDayShortYear) ?? "N/A")
                 ).font(.footnote)
             }
-            .standardRowBackgroundWithSelection(id: event.id, selectedID: eventEditID)
             .swipeActions(allowsFullSwipe: false) {
                 if(event.enteredBy.id == AppState.shared.user!.id) {
                     Button {
@@ -391,7 +380,6 @@ struct EventsTable: View {
             
         }
         .listStyle(.plain)
-        .standardBackground()
     }
     #endif
 }

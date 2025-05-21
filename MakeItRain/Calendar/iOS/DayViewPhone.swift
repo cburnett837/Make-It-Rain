@@ -7,18 +7,16 @@
 
 import SwiftUI
 
-
 #if os(iOS)
 struct DayViewPhone: View {
     @Environment(\.colorScheme) var colorScheme
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+    @Local(\.colorTheme) var colorTheme
     @AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
-    @AppStorage("useWholeNumbers") var useWholeNumbers = false
+    @Local(\.useWholeNumbers) var useWholeNumbers
     @AppStorage("tightenUpEodTotals") var tightenUpEodTotals = true
-    @AppStorage("threshold") var threshold = "500.0"
+    @Local(\.threshold) var threshold
     @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
     @AppStorage("phoneLineItemDisplayItem") var phoneLineItemDisplayItem: PhoneLineItemDisplayItem = .both
-    @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
     
     
     @Environment(CalendarModel.self) private var calModel
@@ -28,7 +26,7 @@ struct DayViewPhone: View {
     @Environment(KeywordModel.self) private var keyModel
     
     private var eodColor: Color {
-        if day.eodTotal > Double(threshold) ?? 500 {
+        if day.eodTotal > threshold {
             return .gray
         } else if day.eodTotal < 0 {
             return .red
@@ -158,7 +156,9 @@ struct DayViewPhone: View {
                         transEditID: $transEditID,
                         showTransferSheet: $showTransferSheet,
                         showCamera: $showCamera,
-                        showPhotosPicker: $showPhotosPicker
+                        showPhotosPicker: $showPhotosPicker,
+                        overviewDay: $overviewDay,
+                        bottomPanelContent: $bottomPanelContent
                     )
                 } message: {
                     Text("\(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())")
@@ -225,12 +225,10 @@ struct DayViewPhone: View {
                 .background {
                     Circle()
                     //RoundedRectangle(cornerRadius: 5)
-                        .fill(Color.fromName(appColorTheme).opacity(preferDarkMode ? 1 : 0.7))
+                        .fill(Color.fromName(colorTheme))
                         //.frame(maxWidth: .infinity)
                 }
-                .if(!preferDarkMode) {
-                    $0.foregroundStyle(.white)
-                }
+                .foregroundStyle(.white)
                 .padding(-4)
             }
             .padding(.leading, AppState.shared.isIpad ? 6 : 0)
@@ -275,7 +273,7 @@ struct DayViewPhone: View {
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(.horizontal, preferDarkMode ? 2 : 3)
+                .padding(.horizontal, 2)
                 .fixedSize(horizontal: false, vertical: true)
                 
                 
@@ -301,7 +299,7 @@ struct DayViewPhone: View {
 //                    .fill(.clear)
 //                    .frame(width: 6, height: 6)
 //                    .padding(.vertical, 3.5)
-//                
+//
 //            } else if filteredTrans.count > 6 {
 //                Circle()
 //                    .fill(day.transactions[0].category?.color ?? .primary)
@@ -309,11 +307,11 @@ struct DayViewPhone: View {
 //                Circle()
 //                    .fill(day.transactions[1].category?.color ?? .primary)
 //                    .frame(width: 6, height: 6)
-//                
+//
 //                Text("+\(filteredTrans.count - 2)")
 //                    .foregroundStyle(.primary)
 //                    .font(.caption2)
-//                
+//
 //            } else {
 //                ForEach(filteredTrans) { trans in
 //                    Circle()
@@ -324,9 +322,9 @@ struct DayViewPhone: View {
 //            }
 //        }
 //    }
-//    
+//
     var eodText: some View {
-        Group {            
+        Group {
             if useWholeNumbers && tightenUpEodTotals {
                 Text("\(String(format: "%.00f", day.eodTotal).replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: ""))")
                 
@@ -349,6 +347,7 @@ struct DayViewPhone: View {
     }
             
 }
+
 
 
 #endif

@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct SmartTransactionsWithIssuesOverlay: View {
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+    @Local(\.colorTheme) var colorTheme
     #if os(macOS)
     @Environment(\.dismiss) private var dismiss
     #endif
@@ -89,7 +89,7 @@ struct SmartTransactionsWithIssuesOverlay: View {
                                     transEditID = trans.id
                                 }
                                 .buttonStyle(.borderedProminent)
-                                .tint(Color.fromName(appColorTheme))
+                                .tint(Color.fromName(colorTheme))
                                 
                                 Button("Ignore") {
                                     Task {

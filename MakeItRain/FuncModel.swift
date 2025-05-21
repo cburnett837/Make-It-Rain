@@ -22,6 +22,9 @@ class FuncModel {
     var longPollTask: Task<Void, Error>?
     var refreshTask: Task<Void, Error>?
     
+    var isLoading = false
+    var loadTimes: [(id: UUID, date: Date, load: Double)] = []
+    
     init(calModel: CalendarModel, payModel: PayMethodModel, catModel: CategoryModel, keyModel: KeywordModel, repModel: RepeatingTransactionModel, eventModel: EventModel) {
         self.calModel = calModel
         self.payModel = payModel
@@ -103,6 +106,8 @@ class FuncModel {
         
         print("-- \(#function) -- Called from: \(file):\(line) : \(function)")
         
+        isLoading = true
+        
         AppState.shared.lastNetworkTime = .now
         
         let start = CFAbsoluteTimeGetCurrent()
@@ -146,58 +151,61 @@ class FuncModel {
             AppState.shared.downloadedData.removeAll()
             LoadingManager.shared.downloadAmount = 0
         }
-                
-        /// Grab anything that got stuffed into temporary storage while the network connection was bad, and send it to the server before trying to download any new data.
-        do {
-            if let entities = try DataManager.shared.getMany(type: TempTransaction.self) {
-                for entity in entities {
-                    var category: CBCategory?
-                    var payMethod: CBPaymentMethod?
-                    
-                    
-                    if let categoryID = entity.categoryID {
-                        if let perCategory = DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(categoryID)), createIfNotFound: false) {
-                            category = CBCategory(entity: perCategory)
-                        }
-                    }
-                    
-                    if let payMethodID = entity.payMethodID {
-                        if let perPayMethod = DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethodID)), createIfNotFound: false) {
-                            payMethod = CBPaymentMethod(entity: perPayMethod)
-                        }
-                    }
-                    
-                    var logs: Array<CBLog> = []
-                    if let logEntities = entity.logs {
+               
+        //Task {
+            /// Grab anything that got stuffed into temporary storage while the network connection was bad, and send it to the server before trying to download any new data.
+            do {
+                if let entities = try await DataManager.shared.getMany(type: TempTransaction.self) {
+                    for entity in entities {
+                        var category: CBCategory?
+                        var payMethod: CBPaymentMethod?
                         
-                        let groupID = UUID().uuidString
                         
-                        logEntities.forEach { entity in
-                            let log = CBLog(transEntity: entity as! TempTransactionLog, groupID: groupID)
-                            logs.append(log)
+                        if let categoryID = entity.categoryID {
+                            if let perCategory = await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(categoryID)), createIfNotFound: false) {
+                                category = CBCategory(entity: perCategory)
+                            }
                         }
-                    }
-                    
-                    if let payMethod = payMethod {
-                        let _ = await calModel.saveTemp(trans: CBTransaction(entity: entity, payMethod: payMethod, category: category, logs: logs))
+                        
+                        if let payMethodID = entity.payMethodID {
+                            if let perPayMethod = await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethodID)), createIfNotFound: false) {
+                                payMethod = CBPaymentMethod(entity: perPayMethod)
+                            }
+                        }
+                        
+                        var logs: Array<CBLog> = []
+                        if let logEntities = entity.logs {
+                            
+                            let groupID = UUID().uuidString
+                            
+                            logEntities.forEach { entity in
+                                let log = CBLog(transEntity: entity as! TempTransactionLog, groupID: groupID)
+                                logs.append(log)
+                            }
+                        }
+                        
+                        if let payMethod = payMethod {
+                            let _ = await calModel.saveTemp(trans: CBTransaction(entity: entity, payMethod: payMethod, category: category, logs: logs))
+                        }
                     }
                 }
+                
+                
+                let pred = NSPredicate(format: "isPending == %@", NSNumber(value: true))
+                
+                guard let entities = try await DataManager.shared.getMany(type: PersistentCategory.self, predicate: .single(pred)) else { return }
+                for entity in entities { let _ = await catModel.submit(CBCategory(entity: entity)) }
+                            
+                guard let entities = try await DataManager.shared.getMany(type: PersistentKeyword.self, predicate: .single(pred)) else { return }
+                for entity in entities { let _ = await keyModel.submit(CBKeyword(entity: entity)) }
+                
+                guard let entities = try await DataManager.shared.getMany(type: PersistentPaymentMethod.self, predicate: .single(pred)) else { return }
+                for entity in entities { let _ = await payModel.submit(CBPaymentMethod(entity: entity)) }
+            } catch {
+                print(error.localizedDescription)
             }
-            
-            
-            let pred = NSPredicate(format: "isPending == %@", NSNumber(value: true))
-            
-            guard let entities = try DataManager.shared.getMany(type: PersistentCategory.self, predicate: .single(pred)) else { return }
-            for entity in entities { let _ = await catModel.submit(CBCategory(entity: entity)) }
-                        
-            guard let entities = try DataManager.shared.getMany(type: PersistentKeyword.self, predicate: .single(pred)) else { return }
-            for entity in entities { let _ = await keyModel.submit(CBKeyword(entity: entity)) }
-            
-            guard let entities = try DataManager.shared.getMany(type: PersistentPaymentMethod.self, predicate: .single(pred)) else { return }
-            for entity in entities { let _ = await payModel.submit(CBPaymentMethod(entity: entity)) }
-        } catch {
-            print(error.localizedDescription)
-        }
+        //}
+        
                 
                     
         withAnimation {
@@ -207,11 +215,14 @@ class FuncModel {
             }
         }
         
-        /// Populate items from cache
-        populatePaymentMethodsFromCache(setDefaultPayMethod: setDefaultPayMethod)
-        populateCategoriesFromCache()
-        populateKeywordsFromCache()
-        //populateTagsFromCache()
+        //Task {
+            /// Populate items from cache
+            await populatePaymentMethodsFromCache(setDefaultPayMethod: setDefaultPayMethod)
+            await populateCategoriesFromCache()
+            await populateKeywordsFromCache()
+            //populateTagsFromCache()
+        //}
+                
         
         var next: CBMonth?
         var prev: CBMonth?
@@ -225,6 +236,7 @@ class FuncModel {
         
         
         
+        
         /// If the user is not looking at a month or accessorial view, set it to the current month
         /// This is only applicable on iOS - when the user is on the nav menu.
         #if os(iOS)
@@ -233,11 +245,14 @@ class FuncModel {
         }
         #endif
         
-        print("Current Nav Selection: \(currentNavSelection)")
+        //print("Current Nav Selection: \(currentNavSelection)")
         
         if let currentNavSelection {
             /// If viewing a month, determine current and adjacent months.
             if NavDestination.justMonths.contains(currentNavSelection) {
+                
+                
+                
                 
                 /// Grab Payment Methods (only not logging in. We need this to have a payment method in place before the viewing month loads.)
                 if AppState.shared.isLoggingInForFirstTime {
@@ -245,6 +260,11 @@ class FuncModel {
                 }
                 
                 let viewingMonth = calModel.months.filter { $0.num == currentNavSelection.monthNum }.first!
+                
+                //#warning("prepareStartingAmounts()")
+                self.prepareStartingAmounts(for: viewingMonth)
+                
+                
                 if ![.lastDecember, .nextJanuary].contains(viewingMonth.enumID) {
                     next = calModel.months.filter { $0.num == (currentNavSelection.monthNum ?? 0) + 1 }.first!
                     prev = calModel.months.filter { $0.num == (currentNavSelection.monthNum ?? 0) - 1 }.first!
@@ -288,6 +308,10 @@ class FuncModel {
         
         let final = CFAbsoluteTimeGetCurrent() - (start)
         print("🔴Everything took \(final) seconds to fetch")
+        //AppState.shared.showToast(title: "🔴Everything took \(final) seconds to fetch")
+        let metric = (id: UUID(), date: Date(), load: final)
+        loadTimes.append(metric)
+        isLoading = false
     }
     
     
@@ -305,6 +329,14 @@ class FuncModel {
         
         let currentElapsed = CFAbsoluteTimeGetCurrent() - start
         print("🔴It took \(currentElapsed) seconds to fetch the first month")
+        
+        /// Prepare starting amounts for payment method sheet
+//        for payMethod in payModel.paymentMethods {
+//            calModel.prepareStartingAmount(for: payMethod)
+//            if payMethod.isUnified {
+//                let _ = calModel.updateUnifiedStartingAmount(month: calModel.sMonth, for: payMethod.accountType)
+//            }
+//        }
         
         //withAnimation(.easeOut(duration: 1)) {
             AppState.shared.appShouldShowSplashScreen = false
@@ -357,10 +389,15 @@ class FuncModel {
             
             /// Grab Payment Methods (only if not logging in. If logging in, they are fetched before the viewing month is fetched)
             if !AppState.shared.isLoggingInForFirstTime {
-                group.addTask { await self.payModel.fetchPaymentMethods(calModel: self.calModel) }
+                group.addTask {
+                    await self.payModel.fetchPaymentMethods(calModel: self.calModel)
+                    await self.prepareStartingAmounts(for: self.calModel.sMonth)
+                }
             }
             /// Grab Categories.
             group.addTask { await self.catModel.fetchCategories() }
+            /// Grab Category Groups.
+            group.addTask { await self.catModel.fetchCategoryGroups() }
             /// Grab Keywords.
             group.addTask { await self.keyModel.fetchKeywords() }
             /// Grab Repeating Transactions.
@@ -403,6 +440,8 @@ class FuncModel {
             group.addTask { await self.payModel.fetchPaymentMethods(calModel: self.calModel) }
             /// Grab Categories.
             group.addTask { await self.catModel.fetchCategories() }
+            /// Grab Category Groups.
+            group.addTask { await self.catModel.fetchCategoryGroups() }
             /// Grab Keywords.
             group.addTask { await self.keyModel.fetchKeywords() }
             /// Grab Repeating Transactions.
@@ -451,29 +490,60 @@ class FuncModel {
     }
     
     /// Not private because it is called directly from the RootView
-    @MainActor func populatePaymentMethodsFromCache(setDefaultPayMethod: Bool) {
+    func populatePaymentMethodsFromCache(setDefaultPayMethod: Bool) async {
+        print("-- \(#function)")
+        
         /// Populate payment methods from cache.
         do {
-            let meths = try DataManager.shared.getMany(type: PersistentPaymentMethod.self)
+            /// Fetch on coredate queue.
+            let meths = try await DataManager.shared.getMany(type: PersistentPaymentMethod.self)
             if let meths {
-                meths
-                .sorted { ($0.title ?? "").lowercased() < ($1.title ?? "").lowercased() }
-                //.filter { $0.id != nil } /// Have a weird bug that added blank in CoreData.
-                .forEach { meth in
-                    //print(meth.title)
-                    if setDefaultPayMethod && meth.isDefault {
-                        calModel.sPayMethod = CBPaymentMethod(entity: meth)
+                
+                /// Get object IDs from the core data entities
+                let objectIDs = meths.map { $0.objectID }
+
+                /// Switch to main actor for sorting
+                await MainActor.run {
+                    let context = DataManager.shared.container.viewContext
+                    let mainObjects = objectIDs.compactMap { context.object(with: $0) as? PersistentPaymentMethod }
+
+                    /// Sort safely now on main thread
+                    let sortedMeths = mainObjects
+                        .sorted { ($0.title ?? "").lowercased() < ($1.title ?? "").lowercased() }
+
+                    for meth in sortedMeths {
+                        if setDefaultPayMethod && meth.isViewingDefault {
+                            calModel.sPayMethod = CBPaymentMethod(entity: meth)
+                        }
+                        
+                        if payModel.paymentMethods.filter({ $0.id == meth.id! }).isEmpty {
+                            payModel.paymentMethods.append(CBPaymentMethod(entity: meth))
+                        }
                     }
-                    if payModel.paymentMethods.filter({ $0.id == meth.id! }).isEmpty {
-                        payModel.paymentMethods.append(CBPaymentMethod(entity: meth))
-                    }
-                    
-//                    #warning("remove this")
-//                    let notifications = NotificationManager.shared.scheduledNotifications.filter { $0.payMethodID == meth.id }
-//                    if !notifications.isEmpty {
-//                        NotificationManager.shared.createReminder2(payMethod: CBPaymentMethod(entity: meth))
-//                    }
                 }
+                
+//                meths
+//                .sorted { ($0.title ?? "").lowercased() < ($1.title ?? "").lowercased() }
+//                //.filter { $0.id != nil } /// Have a weird bug that added blank in CoreData.
+//                .forEach { meth in
+//                    //print(meth.title)
+//                    Task { @MainActor in
+//                        if setDefaultPayMethod && meth.isViewingDefault {
+//                            
+//                            calModel.sPayMethod = CBPaymentMethod(entity: meth)
+//                        }
+//                        if payModel.paymentMethods.filter({ $0.id == meth.id! }).isEmpty {
+//                            payModel.paymentMethods.append(CBPaymentMethod(entity: meth))
+//                        }
+//                    }
+//                    
+//                    
+////                    #warning("remove this")
+////                    let notifications = NotificationManager.shared.scheduledNotifications.filter { $0.payMethodID == meth.id }
+////                    if !notifications.isEmpty {
+////                        NotificationManager.shared.createReminder2(payMethod: CBPaymentMethod(entity: meth))
+////                    }
+//                }
                                 
                 //payModel.paymentMethods.sort { $0.title < $1.title }
             }
@@ -483,24 +553,20 @@ class FuncModel {
     }
         
     /// Not private because it is called directly from the RootView, and from the temp transaction list
-    @MainActor func populateCategoriesFromCache() {
+    func populateCategoriesFromCache() async {
         print("-- \(#function)")
         /// Populate categories from cache.
         do {
             //let categorySortMode = CategorySortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
             
-            let cats = try DataManager.shared.getMany(type: PersistentCategory.self)
+            let cats = try await DataManager.shared.getMany(type: PersistentCategory.self)
             if let cats {
-                cats
-//                .sorted {
-//                    categorySortMode == .title
-//                    ? ($0.title ?? "").lowercased() < ($1.title ?? "").lowercased()
-//                    : Int($0.listOrder) < Int($1.listOrder)
-//                }
-                .forEach { cat in
-                    //print("Category Title \(cat.title) - ID \(cat.id)")
-                    if catModel.categories.filter({ $0.id == cat.id! }).isEmpty {
-                        catModel.categories.append(CBCategory(entity: cat))
+                Task { @MainActor in
+                    cats.forEach { cat in
+                        //print("Category Title \(cat.title) - ID \(cat.id)")
+                        if catModel.categories.filter({ $0.id == cat.id! }).isEmpty {
+                            catModel.categories.append(CBCategory(entity: cat))
+                        }
                     }
                 }
             }
@@ -513,20 +579,22 @@ class FuncModel {
     }
     
     
-    @MainActor private func populateKeywordsFromCache() {
+    private func populateKeywordsFromCache() async {
         print("-- \(#function)")
         /// Populate keywords from cache.
         do {
-            let keys = try DataManager.shared.getMany(type: PersistentKeyword.self)
+            let keys = try await DataManager.shared.getMany(type: PersistentKeyword.self)
             if let keys {
-                keys
-                .sorted { ($0.keyword ?? "").lowercased() < ($1.keyword ?? "").lowercased() }
-                //.filter { $0.id != nil } /// Have a weird bug that added blank in CoreData.
-                .forEach { key in
-                    //print(key.keyword)
-                    if keyModel.keywords.filter({ $0.id == key.id! }).isEmpty {
-                        keyModel.keywords.append(CBKeyword(entity: key))
-                    }
+                Task { @MainActor in
+                    keys
+                        .sorted { ($0.keyword ?? "").lowercased() < ($1.keyword ?? "").lowercased() }
+                    //.filter { $0.id != nil } /// Have a weird bug that added blank in CoreData.
+                        .forEach { key in
+                            //print(key.keyword)
+                            if keyModel.keywords.filter({ $0.id == key.id! }).isEmpty {
+                                keyModel.keywords.append(CBKeyword(entity: key))
+                            }
+                        }
                 }
             }
             
@@ -606,6 +674,7 @@ class FuncModel {
                     || model.repeatingTransactions != nil
                     || model.payMethods != nil
                     || model.categories != nil
+                    || model.categoryGroups != nil
                     || model.keywords != nil
                     || model.budgets != nil
                     || model.events != nil
@@ -630,6 +699,7 @@ class FuncModel {
                         if let repeatingTransactions = model.repeatingTransactions { await self.handleLongPollRepeatingTransactions(repeatingTransactions) }
                         if let payMethods = model.payMethods { await self.handleLongPollPaymentMethods(payMethods) }
                         if let categories = model.categories { await self.handleLongPollCategories(categories) }
+                        if let categoryGroups = model.categoryGroups { await self.handleLongPollCategoryGroups(categoryGroups) }
                         if let keywords = model.keywords { await self.handleLongPollKeywords(keywords) }
                         if let budgets = model.budgets { self.handleLongPollBudgets(budgets) }
                         
@@ -688,17 +758,19 @@ class FuncModel {
     
     
     @MainActor private func handleLongPollTransactions(_ transactions: Array<CBTransaction>) {
+        print("-- \(#function)")
         calModel.handleTransactions(transactions, refreshTechnique: .viaLongPoll)
         
         let months = transactions.filter { $0.date != nil }.map { $0.dateComponents?.month }.uniqued()
         months.forEach { month in
             let montObj = calModel.months.filter{ $0.num == month }.first!
-            calModel.calculateTotalForMonth(month: montObj)
+            let _ = calModel.calculateTotal(for: montObj)
         }
     }
     
     
     @MainActor private func handleLongPollFitTransactions(_ transactions: Array<CBFitTransaction>) {
+        print("-- \(#function)")
         for trans in transactions {
             if calModel.doesExist(trans) {
                 if trans.isAcknowledged {
@@ -719,19 +791,21 @@ class FuncModel {
     
     
     @MainActor private func handleLongPollStartingAmounts(_ startingAmounts: Array<CBStartingAmount>) {
+        print("-- \(#function)")
         for startingAmount in startingAmounts {
             //let year = startingAmount.year
             
-            if startingAmount.month == 1 && startingAmount.year == AppState.shared.todayYear + 1 {
-                startingAmount.month = 13
-            } else if startingAmount.month == 12 && startingAmount.year == AppState.shared.todayYear - 1 {
-                startingAmount.month = 0
-            }
+//            if startingAmount.month == 1 && startingAmount.year == AppState.shared.todayYear + 1 {
+//                startingAmount.month = 13
+//            } else if startingAmount.month == 12 && startingAmount.year == AppState.shared.todayYear - 1 {
+//                startingAmount.month = 0
+//            }
             
             let month = startingAmount.month
+            let year = startingAmount.year
             
             
-            let targetMonth = calModel.months.filter{ $0.num == month }.first
+            let targetMonth = calModel.months.filter{ $0.actualNum == month && $0.year == year }.first
             if let targetMonth {
                 let targetAmount = targetMonth.startingAmounts.filter{ $0.payMethod.id == startingAmount.payMethod.id }.first
                 if let targetAmount {
@@ -742,7 +816,8 @@ class FuncModel {
                         targetAmount.setFromAnotherInstance(startingAmount: startingAmount)
                     }
                 } else {
-                    calModel.prepareStartingAmount(for: startingAmount.payMethod)
+                    self.prepareStartingAmounts(for: targetMonth)
+                    //calModel.prepareStartingAmount(for: startingAmount.payMethod)
                     let targetAmount = targetMonth.startingAmounts.filter{ $0.payMethod.id == startingAmount.payMethod.id }.first
                     if let targetAmount {
                         targetAmount.setFromAnotherInstance(startingAmount: startingAmount)
@@ -752,12 +827,13 @@ class FuncModel {
             }
             
             let montObj = calModel.months.filter{ $0.num == month }.first!
-            calModel.calculateTotalForMonth(month: montObj)
+            let _ = calModel.calculateTotal(for: montObj)
         }
     }
     
     
     @MainActor private func handleLongPollRepeatingTransactions(_ repeatingTransactions: Array<CBRepeatingTransaction>) async {
+        print("-- \(#function)")
         for transaction in repeatingTransactions {
             if repModel.doesExist(transaction) {
                 if !transaction.active {
@@ -778,6 +854,7 @@ class FuncModel {
     
     
     @MainActor private func handleLongPollPaymentMethods(_ payMethods: Array<CBPaymentMethod>) async {
+        print("-- \(#function)")
         for payMethod in payMethods {
             if payModel.doesExist(payMethod) {
                 if !payMethod.active {
@@ -794,7 +871,7 @@ class FuncModel {
                     payModel.upsert(payMethod)
                 }
             }
-            let _ = payModel.updateCache(for: payMethod)
+            let _ = await payModel.updateCache(for: payMethod)
             //print("SaveResult: \(saveResult)")
             
             calModel.justTransactions.filter { $0.payMethod?.id == payMethod.id }.forEach { $0.payMethod = payMethod }
@@ -803,10 +880,13 @@ class FuncModel {
         
         payModel.determineIfUserIsRequiredToAddPaymentMethod()
         
+        self.prepareStartingAmounts(for: calModel.sMonth)
+        
     }
     
     
     @MainActor private func handleLongPollCategories(_ categories: Array<CBCategory>) async {
+        print("-- \(#function)")
         for category in categories {
             if catModel.doesExist(category) {
                 if !category.active {
@@ -823,7 +903,7 @@ class FuncModel {
                     catModel.upsert(category)
                 }
             }
-            let _ = catModel.updateCache(for: category)
+            let _ = await catModel.updateCache(for: category)
             //print("SaveResult: \(saveResult)")
             
             calModel.justTransactions.filter { $0.category?.id == category.id }.forEach { $0.category = category }
@@ -839,12 +919,33 @@ class FuncModel {
                 : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
             }
         }
-
-        
+    }
+    
+    
+    @MainActor private func handleLongPollCategoryGroups(_ groups: Array<CBCategoryGroup>) async {
+        print("-- \(#function)")
+        for group in groups {
+            if catModel.doesExist(group) {
+                if !group.active {
+                    await catModel.delete(group, andSubmit: false)
+                    continue
+                } else {
+                    if let index = catModel.getIndex(for: group) {
+                        catModel.categoryGroups[index].setFromAnotherInstance(group: group)
+                        catModel.categoryGroups[index].deepCopy?.setFromAnotherInstance(group: group)
+                    }
+                }
+            } else {
+                if group.active {
+                    catModel.upsert(group)
+                }
+            }
+        }
     }
     
     
     @MainActor private func handleLongPollKeywords(_ keywords: Array<CBKeyword>) async {
+        print("-- \(#function)")
         for keyword in keywords {
             if keyModel.doesExist(keyword) {
                 if !keyword.active {
@@ -861,15 +962,16 @@ class FuncModel {
                     keyModel.upsert(keyword)
                 }
             }
-            let _ = keyModel.updateCache(for: keyword)
+            let _ = await keyModel.updateCache(for: keyword)
             //print("SaveResult: \(saveResult)")
         }
     }
     
     
     @MainActor private func handleLongPollBudgets(_ budgets: Array<CBBudget>) {
+        print("-- \(#function)")
         for budget in budgets {
-            if let targetMonth = calModel.months.filter({ $0.num == budget.month }).first {
+            if let targetMonth = calModel.months.filter({ $0.actualNum == budget.month && budget.year == $0.year }).first {
                 if targetMonth.isExisting(budget) {
                     if !budget.active {
                         targetMonth.delete(budget)
@@ -888,6 +990,7 @@ class FuncModel {
     
     
     @MainActor private func handleLongPollEvents(_ events: Array<CBEvent>) async {
+        print("-- \(#function)")
         print("-- \(#function)")
         
         for event in events {
@@ -941,7 +1044,7 @@ class FuncModel {
     @MainActor private func handleLongPollEventTransactions(_ transactions: Array<CBEventTransaction>) async {
         print("-- \(#function)")
         for trans in transactions {
-            print(trans.title)
+            //print(trans.title)
             if let index = eventModel.events.firstIndex(where: {$0.id == trans.eventID}) {
                 let event = eventModel.events[index]
                 
@@ -1000,6 +1103,7 @@ class FuncModel {
     
     
     @MainActor private func handleLongPollEventCategories(_ categories: Array<CBEventCategory>) async {
+        print("-- \(#function)")
         var eventIdsThatGotChanged: Array<String> = []
         
         for cat in categories {
@@ -1038,6 +1142,7 @@ class FuncModel {
     
     
     @MainActor private func handleLongPollEventItems(_ items: Array<CBEventItem>) async {
+        print("-- \(#function)")
         var eventIdsThatGotChanged: Array<String> = []
         for item in items {
             if let index = eventModel.events.firstIndex(where: {$0.id == item.eventID}) {
@@ -1075,6 +1180,7 @@ class FuncModel {
     
     
     @MainActor private func handleLongPollEventParticipants(_ parts: Array<CBEventParticipant>) async {
+        print("-- \(#function)")
         for part in parts {
             if let index = eventModel.events.firstIndex(where: {$0.id == part.eventID}) {
                 let event = eventModel.events[index]
@@ -1220,9 +1326,6 @@ class FuncModel {
     @MainActor private func handleLongPollOpenRecords(_ openRecords: Array<CBOpenOrClosedRecord>) async {
         print("-- \(#function)")
         
-        //print(eventModel.openEvents.map {"\($0.user.id) - \($0.id)"})
-        
-        
         for openRecord in openRecords {
             let recordType = openRecord.recordType.enumID
             
@@ -1247,9 +1350,9 @@ class FuncModel {
     
     
     // MARK: - Misc
-    @MainActor func printPersistentMethods() {
+    @MainActor func printPersistentMethods() async {
         do {
-            let meths = try DataManager.shared.getMany(type: PersistentPaymentMethod.self)
+            let meths = try await DataManager.shared.getMany(type: PersistentPaymentMethod.self)
             if let meths {
                 if meths.count == 0 {
                     print("there are no saved payment methods")
@@ -1261,6 +1364,37 @@ class FuncModel {
             }
         } catch {
             print("error getting persistent payment methods")
+        }
+    }
+    
+    
+    @MainActor func prepareStartingAmounts(for month: CBMonth) {
+        print("-- \(#function)")
+        for payMethod in payModel.paymentMethods {
+            //print("preparing starting amounts for \(payMethod.title) - \(month.actualNum) - \(month.year)")
+            //calModel.prepareStartingAmount(for: payMethod)
+            
+            /// Create a starting amount if it doesn't exist in the current month.
+            if !month.startingAmounts.contains(where: { $0.payMethod.id == payMethod.id }) {
+                //print("\(payMethod.title) does not exist - creating")
+                let starting = CBStartingAmount()
+                starting.payMethod = payMethod
+                starting.action = .add
+                //starting.month = calModel.sMonth.num
+                //starting.year = calModel.sYear
+                
+                starting.month = month.actualNum
+                starting.year = month.year
+                
+                starting.amountString = ""
+                month.startingAmounts.append(starting)
+            } else {
+                //print("\(payMethod.title) does exist - not creating")
+            }
+                                                
+            if payMethod.isUnified {
+                let _ = calModel.updateUnifiedStartingAmount(month: month, for: payMethod.accountType)
+            }
         }
     }
     
@@ -1335,7 +1469,7 @@ class FuncModel {
     
     
     // MARK: - Logout
-    @MainActor func logout() {
+    @MainActor func logout() async {
         print("-- \(#function)")
         /// Clearing all session data related to login and loading indicators.
         AuthState.shared.clearLoginState()
@@ -1367,19 +1501,20 @@ class FuncModel {
         repModel.repTransactions.removeAll()
         payModel.paymentMethods.removeAll()
         catModel.categories.removeAll()
+        catModel.categoryGroups.removeAll()
         keyModel.keywords.removeAll()
         eventModel.events.removeAll()
         eventModel.invitations.removeAll()
         
         /// Remove all from cache.
-        let _ = DataManager.shared.deleteAll(for: PersistentPaymentMethod.self, shouldSave: false)
+        let _ = await DataManager.shared.deleteAll(for: PersistentPaymentMethod.self, shouldSave: false)
         //print(saveResult1)
-        let _ = DataManager.shared.deleteAll(for: PersistentCategory.self, shouldSave: false)
+        let _ = await DataManager.shared.deleteAll(for: PersistentCategory.self, shouldSave: false)
         //print(saveResult2)
-        let _ = DataManager.shared.deleteAll(for: PersistentKeyword.self, shouldSave: false)
+        let _ = await DataManager.shared.deleteAll(for: PersistentKeyword.self, shouldSave: false)
         //print(saveResult3)
         
-        let _ = DataManager.shared.save()
+        let _ = await DataManager.shared.save()
         
         NavigationManager.shared.selectedMonth = nil
         NavigationManager.shared.selection = nil

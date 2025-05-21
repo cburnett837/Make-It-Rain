@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>top-level-items</key>
+	<array>
+		<dict>
+			<key>destination</key>
+			<dict>
+				<key>location-parameters</key>
+				<dict>
+					<key>EndingColumnNumber</key>
+					<string>0</string>
+					<key>EndingLineNumber</key>
+					<string>265</string>
+					<key>StartingColumnNumber</key>
+					<string>0</string>
+					<key>StartingLineNumber</key>
+					<string>264</string>
+					<key>Timestamp</key>
+					<string>769026749.763073</string>
+				</dict>
+				<key>rebasable-url</key>
+				<dict>
+					<key>base</key>
+					<string>workspace</string>
+					<key>payload</key>
+					<dict>
+						<key>relative-path</key>
+						<string>MakeItRain/FuncModel.swift</string>
+					</dict>
+				</dict>
+			</dict>
+			<key>text-context</key>
+			<dict>
+				<key>focused</key>
+				<string>                self.prepareStartingAmounts(for: viewingMonth)
+</string>
+				<key>leading</key>
+				<string>                
+                //#warning("prepareStartingAmounts()")
+</string>
+				<key>trailing</key>
+				<string>                
+                
+                if ![.lastDecember, .nextJanuary].contains(viewingMonth.enumID) {
+</string>
+			</dict>
+			<key>title</key>
+			<string>prepare starting amounts</string>
+			<key>type</key>
+			<string>bookmark</string>
+		</dict>
+		<dict>
+			<key>destination</key>
+			<dict>
+				<key>location-parameters</key>
+				<dict>
+					<key>EndingColumnNumber</key>
+					<string>0</string>
+					<key>EndingLineNumber</key>
+					<string>394</string>
+					<key>StartingColumnNumber</key>
+					<string>0</string>
+					<key>StartingLineNumber</key>
+					<string>393</string>
+					<key>Timestamp</key>
+					<string>769027389.017718</string>
+				</dict>
+				<key>rebasable-url</key>
+				<dict>
+					<key>base</key>
+					<string>workspace</string>
+					<key>payload</key>
+					<dict>
+						<key>relative-path</key>
+						<string>MakeItRain/FuncModel.swift</string>
+					</dict>
+				</dict>
+			</dict>
+			<key>text-context</key>
+			<dict>
+				<key>focused</key>
+				<string>                    await self.prepareStartingAmounts(for: self.calModel.sMonth)
+</string>
+				<key>leading</key>
+				<string>                group.addTask {
+                    await self.payModel.fetchPaymentMethods(calModel: self.calModel)
+</string>
+				<key>trailing</key>
+				<string>                }
+            }
+            /// Grab Categories.
+</string>
+			</dict>
+			<key>title</key>
+			<string>prepare starting amount</string>
+			<key>type</key>
+			<string>bookmark</string>
+		</dict>
+		<dict>
+			<key>destination</key>
+			<dict>
+				<key>location-parameters</key>
+				<dict>
+					<key>EndingColumnNumber</key>
+					<string>0</string>
+					<key>EndingLineNumber</key>
+					<string>819</string>
+					<key>StartingColumnNumber</key>
+					<string>0</string>
+					<key>StartingLineNumber</key>
+					<string>818</string>
+					<key>Timestamp</key>
+					<string>769027389.017737</string>
+				</dict>
+				<key>rebasable-url</key>
+				<dict>
+					<key>base</key>
+					<string>workspace</string>
+					<key>payload</key>
+					<dict>
+						<key>relative-path</key>
+						<string>MakeItRain/FuncModel.swift</string>
+					</dict>
+				</dict>
+			</dict>
+			<key>text-context</key>
+			<dict>
+				<key>focused</key>
+				<string>                    self.prepareStartingAmounts(for: targetMonth)
+</string>
+				<key>leading</key>
+				<string>                    }
+                } else {
+</string>
+				<key>trailing</key>
+				<string>                    //calModel.prepareStartingAmount(for: startingAmount.payMethod)
+                    let targetAmount = targetMonth.startingAmounts.filter{ $0.payMethod.id == startingAmount.payMethod.id }.first
+                    if let targetAmount {
+</string>
+			</dict>
+			<key>title</key>
+			<string>prepare starting amount</string>
+			<key>type</key>
+			<string>bookmark</string>
+		</dict>
+		<dict>
+			<key>destination</key>
+			<dict>
+				<key>location-parameters</key>
+				<dict>
+					<key>EndingColumnNumber</key>
+					<string>0</string>
+					<key>EndingLineNumber</key>
+					<string>71</string>
+					<key>StartingColumnNumber</key>
+					<string>0</string>
+					<key>StartingLineNumber</key>
+					<string>70</string>
+					<key>Timestamp</key>
+					<string>768176755.709182</string>
+				</dict>
+				<key>rebasable-url</key>
+				<dict>
+					<key>base</key>
+					<string>workspace</string>
+					<key>payload</key>
+					<dict>
+						<key>relative-path</key>
+						<string>MakeItRain/Root/RootView.swift</string>
+					</dict>
+				</dict>
+			</dict>
+			<key>text-context</key>
+			<dict>
+				<key>focused</key>
+				<string>                            funcModel.prepareStartingAmounts(for: targetMonth)
+</string>
+				<key>leading</key>
+				<string>                        let targetMonth = calModel.months.filter{ $0.enumID == selection }.first
+                        if let targetMonth {
+</string>
+				<key>trailing</key>
+				<string>                            calModel.setSelectedMonthFromNavigation(navID: selection, prepareStartAmount: true)
+                        } else {
+                            fatalError("Incorrect month")
+</string>
+			</dict>
+			<key>title</key>
+			<string>prepare starting amount</string>
+			<key>type</key>
+			<string>bookmark</string>
+		</dict>
+		<dict>
+			<key>destination</key>
+			<dict>
+				<key>location-parameters</key>
+				<dict>
+					<key>EndingColumnNumber</key>
+					<string>0</string>
+					<key>EndingLineNumber</key>
+					<string>1440</string>
+					<key>StartingColumnNumber</key>
+					<string>0</string>
+					<key>StartingLineNumber</key>
+					<string>1439</string>
+					<key>Timestamp</key>
+					<string>769249417.596339</string>
+				</dict>
+				<key>rebasable-url</key>
+				<dict>
+					<key>base</key>
+					<string>workspace</string>
+					<key>payload</key>
+					<dict>
+						<key>relative-path</key>
+						<string>MakeItRain/Calendar/iOS/CalendarViewPhone.swift</string>
+					</dict>
+				</dict>
+			</dict>
+			<key>text-context</key>
+			<dict>
+				<key>focused</key>
+				<string>            funcModel.prepareStartingAmounts(for: month)
+</string>
+				<key>leading</key>
+				<string>            let month = calModel.months.filter {$0.enumID == enumID}.first!
+            
+</string>
+				<key>trailing</key>
+				<string>            calModel.setSelectedMonthFromNavigation(navID: enumID, prepareStartAmount: true)
+            
+            let targetDay = month.days.filter { $0.dateComponents?.day == (month.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
+</string>
+			</dict>
+			<key>title</key>
+			<string>prepare starting amount</string>
+			<key>type</key>
+			<string>bookmark</string>
+		</dict>
+		<dict>
+			<key>destination</key>
+			<dict>
+				<key>location-parameters</key>
+				<dict>
+					<key>EndingColumnNumber</key>
+					<string>16</string>
+					<key>EndingLineNumber</key>
+					<string>57</string>
+					<key>StartingColumnNumber</key>
+					<string>0</string>
+					<key>StartingLineNumber</key>
+					<string>57</string>
+					<key>Timestamp</key>
+					<string>768176873.649399</string>
+				</dict>
+				<key>rebasable-url</key>
+				<dict>
+					<key>base</key>
+					<string>workspace</string>
+					<key>payload</key>
+					<dict>
+						<key>relative-path</key>
+						<string>MakeItRain/Calendar/macOS/CalendarViewMac.swift</string>
+					</dict>
+				</dict>
+			</dict>
+			<key>text-context</key>
+			<dict>
+				<key>focused</key>
+				<string>                </string>
+				<key>leading</key>
+				<string>            .padding(.bottom, 15)
+            .task {
+</string>
+				<key>trailing</key>
+				<string>//funcModel.prepareStartingAmounts()
+                /// Needed when selecting a month from a category analytic.
+                let viewingMonth = calModel.months.filter { $0.enumID == enumID }.first!
+</string>
+			</dict>
+			<key>title</key>
+			<string>prepare starting amount</string>
+			<key>type</key>
+			<string>bookmark</string>
+		</dict>
+		<dict>
+			<key>destination</key>
+			<dict>
+				<key>location-parameters</key>
+				<dict>
+					<key>EndingColumnNumber</key>
+					<string>0</string>
+					<key>EndingLineNumber</key>
+					<string>269</string>
+					<key>StartingColumnNumber</key>
+					<string>0</string>
+					<key>StartingLineNumber</key>
+					<string>268</string>
+					<key>Timestamp</key>
+					<string>768176964.921905</string>
+				</dict>
+				<key>rebasable-url</key>
+				<dict>
+					<key>base</key>
+					<string>workspace</string>
+					<key>payload</key>
+					<dict>
+						<key>relative-path</key>
+						<string>MakeItRain/Calendar/macOS/ToolbarViews.swift</string>
+					</dict>
+				</dict>
+			</dict>
+			<key>text-context</key>
+			<dict>
+				<key>focused</key>
+				<string>//                for meth in payModel.paymentMethods.filter({ !$0.isUnified }) {
+</string>
+				<key>leading</key>
+				<string>            Button {
+                /// For when you reset the month
+</string>
+				<key>trailing</key>
+				<string>//                    calModel.prepareStartingAmount(for: meth)
+//                }
+                showStartingAmountsSheet = true
+</string>
+			</dict>
+			<key>title</key>
+			<string>prepare starting amounts</string>
+			<key>type</key>
+			<string>bookmark</string>
+		</dict>
+	</array>
+</dict>
+</plist>

@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 enum NavDestination: String, Codable, Hashable, Identifiable {
-    case january, february, march, april, may, june, july, august, september, october, november, december, lastDecember, nextJanuary, repeatingTransactions, paymentMethods, categories, keywords, search, analytics, events, settings, placeholderMonth
+    case january, february, march, april, may, june, july, august, september, october, november, december, lastDecember, nextJanuary, repeatingTransactions, paymentMethods, categories, keywords, search, analytics, events, settings, placeholderMonth, debug
     
     var id: NavDestination {
         return self
@@ -67,13 +67,14 @@ enum NavDestination: String, Codable, Hashable, Identifiable {
         case .november:                 return "November"
         case .december, .lastDecember:  return "December"
         case .repeatingTransactions:    return "Reoccuring Transactions"
-        case .paymentMethods:           return "Payment Methods"
+        case .paymentMethods:           return "Accounts"
         case .categories:               return "Categories"
         case .keywords:                 return "Keywords"
         case .search:                   return "Search"
         case .analytics:                return "Analytics"
         case .events:                   return "Events"
         case .settings:                 return "Settings"
+        case .debug:                    return "Debug"
         case .placeholderMonth:         return ""
         }
     }
@@ -83,7 +84,7 @@ enum NavDestination: String, Codable, Hashable, Identifiable {
     }
     
     static var justAccessorials: [NavDestination] {
-        [.repeatingTransactions, .paymentMethods, .categories, .keywords, .search, .analytics, .events]
+        [.repeatingTransactions, .paymentMethods, .categories, .keywords, .search, .analytics, .events, .debug]
     }
     
     static func getMonthFromInt(_ int: Int) -> NavDestination? {

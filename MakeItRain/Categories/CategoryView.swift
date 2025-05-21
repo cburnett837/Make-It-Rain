@@ -8,19 +8,14 @@
 import SwiftUI
 import Charts
 
+
 struct CategoryView: View {
-    enum ChartRange: Int {
-        case yearToDate = 0
-        case year1 = 1
-        case year2 = 2
-        case year3 = 3
-        case year4 = 4
-        case year5 = 5
-    }
+    @Local(\.useWholeNumbers) var useWholeNumbers
+    @AppStorage("monthlyAnalyticChartVisibleYearCount") var chartVisibleYearCount: MonthlyAnalyticChartRange = .year1
+    @AppStorage("selectedCategoryTab") var selectedCategoryTab: String = "details"
+    @AppStorage("showAllCategoryChartData") var showAllChartData = false
+
     
-    @AppStorage("useWholeNumbers") var useWholeNumbers = false
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
-   
     #if os(macOS)
     @Environment(\.openWindow) private var openWindow
     @Environment(\.dismissWindow) private var dismissWindow
@@ -32,141 +27,73 @@ struct CategoryView: View {
     @Bindable var catModel: CategoryModel
     @Bindable var calModel: CalendarModel
     @Bindable var keyModel: KeywordModel
-    
     /// This is only here to blank out the selection hilight on the iPhone list
     @Binding var editID: String?
     
+    @FocusState private var focusedField: Int?
     @State private var showDeleteAlert = false
     @State private var labelWidth: CGFloat = 20.0
-    
-    var title: String { category.action == .add ? "New Category" : "Edit Category" }
-    
-    @FocusState private var focusedField: Int?
     @State private var showSymbolPicker = false
-    
-    @State private var isLoadingHistory = true
-    @State private var expenses: Array<CBBudget> = []
-    @AppStorage("chartVisibleYearCount") var chartVisibleYearCount: ChartRange = .year1
-    @AppStorage("selectedCategoryTab") var selectedCategoryTab: String = "details"
-    @AppStorage("showAverageOnCategoryChart") var showAverageOnCategoryChart: Bool = true
-    @AppStorage("showBudgetOnCategoryChart") var showBudgetOnCategoryChart: Bool = true
-    
     @State private var showMonth = false
     
-    @State private var rawSelectedDate: Date?
-    @State private var chartScrollPosition: Date = Date()
-    @AppStorage("showAllCategoryChartData") var showAllChartData = false
+    @State private var data: Array<AnalyticData> = []
+    @State private var chartScrolledToDate: Date = Date()
     
-    @Namespace private var monthNavigationNamespace
+    @State private var fetchYearStart = AppState.shared.todayYear - 10
+    @State private var fetchYearEnd = AppState.shared.todayYear
     
-    var selectedMonth: CBBudget? {
-        guard let rawSelectedDate else { return nil }
-        return expenses.first {
-            Calendar.current.isDate(rawSelectedDate, equalTo: $0.date, toGranularity: .month)
-        }
-    }
+    @State private var isLoadingHistory = true
+    @State private var isLoadingMoreHistory = false
+    //@State private var safeToLoadMoreHistory = false
     
-//    var visibleRange: ClosedRange<Date> {
-//        /// Check if the date range of the expenses is within the visibleRange. Crop accordingly.
-//        let maxAvailEndDate = expenses.last?.date ?? Date()
-//        let idealEndDate = Calendar.current.date(byAdding: .day, value: (365 * chartVisibleYearCount.rawValue), to: chartScrollPosition)!
-//        
-//        let endRange = idealEndDate > maxAvailEndDate ? maxAvailEndDate : idealEndDate
-//        
-//        print("Visible Range: \(chartScrollPosition) -- \(endRange)")
-//        
-//        guard chartScrollPosition < endRange else { return endRange...endRange }
-//        
-//        return chartScrollPosition...endRange
-//    }
-    
-    var visibleRange: ClosedRange<Date> {
-        /// Check if the date range of the expenses is within the visibleRange. Crop accordingly.
-        let maxAvailEndDate = expenses.last?.date ?? Date()
-        var idealEndDate: Date = Date()
-        
-        if visibleYearCount != 0 {
-            idealEndDate = Calendar.current.date(byAdding: .day, value: (365 * visibleYearCount), to: chartScrollPosition)!
-        }
-        
-        var endRange: Date
-        
-        if visibleYearCount == 0 {
-            endRange = idealEndDate
+    var displayData: Array<AnalyticData> {
+        if chartVisibleYearCount == .yearToDate {
+            return data
+                .filter { $0.year == Calendar.current.dateComponents([.year], from: .now).year! }
         } else {
-            endRange = idealEndDate > maxAvailEndDate ? maxAvailEndDate : idealEndDate
+            return data
         }
-        
-        
-        
-        print("\(chartScrollPosition) -- \(maxAvailEndDate) -- \(idealEndDate)")
-        
-        guard chartScrollPosition < endRange else { return endRange...endRange }
-        
-        return chartScrollPosition...endRange
     }
     
-    var visibleTotal: Double {
-        /// Calculate the total of the expenses currently in the chart visible range.
-        expenses
-            .filter { visibleRange.contains($0.date) }
-            .map { $0.amount }
-            .reduce(0, +)
-    }
-    
-    var visibleYearCount: Int {
-        chartVisibleYearCount.rawValue == 0 ? 1 : chartVisibleYearCount.rawValue
-    }
-    
-    var visibleDomain: Int {
-        /// Check if the date range of the expenses is within the visibleDomain. Crop accordingly.
-        let firstExpense = expenses.first?.date ?? Date()
-        let lastExpense = expenses.last?.date ?? Date()
-        
-        let maxAvailDomain = 3600 * 24 * (Calendar.current.dateComponents([.day], from: firstExpense, to: lastExpense).day ?? 0)
-        
-        let idealDomain = 3600 * 24 * (365 * visibleYearCount)
-        
-        print("DOMAIN \(idealDomain) -- \(maxAvailDomain) -- \(firstExpense) -- \(lastExpense)")
-        
-        if maxAvailDomain == 0 {
-            return  3600 * 24 * 30
+    var headerLingo: String {
+        if category.isExpense {
+            "Expenses"
+        } else if category.isIncome {
+            "Income"
         } else {
-            return idealDomain > maxAvailDomain ? maxAvailDomain : idealDomain
+            "Payments"
         }
-                
-        
     }
-        
-    var minExpense: Double {
-        expenses.map {$0.amount}.min() ?? 0
+
+    
+    
+    
+    //@Namespace private var monthNavigationNamespace
+    
+    var title: String {
+        if selectedCategoryTab == "details" {
+            category.action == .add ? "New Category" : "Edit Category"
+        } else {
+            category.title
+        }
     }
     
-    var maxExpense: Double {
-        expenses.map {$0.amount}.max() ?? 0
-    }
-    
-    var deleteButton: some View {
-        Button {
-            showDeleteAlert = true
-        } label: {
-            Image(systemName: "trash")
-        }
-        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
-    }
     
     var body: some View {
         Group {
             #if os(iOS)
             TabView(selection: $selectedCategoryTab) {
-                categoryPage
-                    .tabItem { Label("Details", systemImage: "list.bullet") }
-                    .tag("details")
-                    //.standardBackground()
-                chartPage
-                    .tabItem { Label("Analytics", systemImage: "chart.xyaxis.line") }
-                    .tag("analytics")
-                    //.standardBackground()
+                Tab(value: "details") {
+                    categoryPage
+                } label: {
+                    Label("Details", systemImage: "list.bullet")
+                }
+                
+                Tab(value: "analytics") {
+                    chartPage
+                } label: {
+                    Label("Insights", systemImage: "chart.xyaxis.line")
+                }
             }
             .tint(category.color)
             #else
@@ -181,50 +108,18 @@ struct CategoryView: View {
                 }
                 .frame(maxHeight: .infinity)
                 
-                HStack(spacing: 0) {
-                    Rectangle()
-                        .fill(.clear)
-                        .frame(height: 50)
-                        .contentShape(Rectangle())
-                        .overlay {
-                            Label("Details", systemImage: "list.bullet")
-                                .foregroundStyle(selectedCategoryTab == "details" ? category.color : .gray)
-                        }
-                        .onTapGesture {
-                            selectedCategoryTab = "details"
-                        }
-                    Rectangle()
-                        .fill(.clear)
-                        .frame(height: 50)
-                        .contentShape(Rectangle())
-                        .overlay {
-                            Label("Analytics", systemImage: "chart.xyaxis.line")
-                                .foregroundStyle(selectedCategoryTab == "analytics" ? category.color : .gray)
-                        }
-                        .onTapGesture {
-                            selectedCategoryTab = "analytics"
-                        }
-                }
-                //.fixedSize(horizontal: false, vertical: true)
-                .frame(height: 50)
+                fakeMacTabBar
             }
             
             #endif
         }
         .task {
+            print("TASK")
             await prepareCategoryView()
         }
         .confirmationDialog("Delete \"\(category.title)\"?", isPresented: $showDeleteAlert, actions: {
-            Button("Yes", role: .destructive) {
-                Task {
-                    dismiss()
-                    await catModel.delete(category, andSubmit: true, calModel: calModel, keyModel: keyModel, eventModel: eventModel)
-                }
-            }
-            
-            Button("No", role: .cancel) {
-                showDeleteAlert = false
-            }
+            Button("Yes", role: .destructive) { deleteCategory() }
+            Button("No", role: .cancel) { showDeleteAlert = false }
         }, message: {
             #if os(iOS)
             Text("Delete \"\(category.title)\"?\nThis will not delete any associated transactions.")
@@ -232,405 +127,392 @@ struct CategoryView: View {
             Text("This will not delete any associated transactions.")
             #endif
         })
-        
     }
     
     
+    var fakeMacTabBar: some View {
+        HStack(spacing: 0) {
+            Rectangle()
+                .fill(.clear)
+                .frame(height: 50)
+                .contentShape(Rectangle())
+                .overlay {
+                    Label("Details", systemImage: "list.bullet")
+                        .foregroundStyle(selectedCategoryTab == "details" ? category.color : .gray)
+                }
+                .onTapGesture {
+                    selectedCategoryTab = "details"
+                }
+            Rectangle()
+                .fill(.clear)
+                .frame(height: 50)
+                .contentShape(Rectangle())
+                .overlay {
+                    Label("Insights", systemImage: "chart.xyaxis.line")
+                        .foregroundStyle(selectedCategoryTab == "analytics" ? category.color : .gray)
+                }
+                .onTapGesture {
+                    selectedCategoryTab = "analytics"
+                }
+        }
+        //.fixedSize(horizontal: false, vertical: true)
+        .frame(height: 50)
+    }
+    
+    
+    
+    
+    // MARK: - Category Edit Page Views
     var categoryPage: some View {
         StandardContainer {
-            LabeledRow("Name", labelWidth) {
-                #if os(iOS)
-                StandardUITextField("Title", text: $category.title, onSubmit: {
-                    focusedField = 1
-                }, toolbar: {
-                    KeyboardToolbarView(focusedField: $focusedField)
-                })
-                .cbFocused(_focusedField, equals: 0)
-                .cbClearButtonMode(.whileEditing)
-                .cbSubmitLabel(.next)
-                #else
-                StandardTextField("Title", text: $category.title, focusedField: $focusedField, focusValue: 0)
-                    .onSubmit { focusedField = 1 }
-                #endif
-            }
-            
-            LabeledRow("Budget", labelWidth) {
-                #if os(iOS)
-                StandardUITextField("Monthly Amount", text: $category.amountString ?? "", toolbar: {
-                    KeyboardToolbarView(focusedField: $focusedField, accessoryImage3: "plus.forwardslash.minus", accessoryFunc3: {
-                        Helpers.plusMinus($category.amountString ?? "")
-                    })
-                })
-                .cbFocused(_focusedField, equals: 1)
-                .cbClearButtonMode(.whileEditing)
-                .cbKeyboardType(.decimalPad)
-                #else
-                StandardTextField("Monthly Amount", text: $category.amountString ?? "", focusedField: $focusedField, focusValue: 1)
-                #endif
-            }
-                                
+            titleRow
+            budgetRow
             StandardDivider()
             
-            LabeledRow("Type", labelWidth) {
-                Picker("", selection: $category.isIncome) {
-                    Text("Expense")
-                        .tag(false)
-                    Text("Income")
-                        .tag(true)
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-            }
-            
+            typeRow
             StandardDivider()
             
-            LabeledRow("Color", labelWidth) {
-                //ColorPickerButton(color: $category.color)
-                HStack {
-                    ColorPicker("", selection: $category.color, supportsOpacity: false)
-                        .labelsHidden()
-                    Capsule()
-                        .fill(category.color)
-                        .onTapGesture {
-                            AppState.shared.showToast(title: "Color Picker", subtitle: "Click the circle to the left to change the color.", body: nil, symbol: category.emoji ?? "theatermask.and.paintbrush", symbolColor: category.color)
-                        }
-                }
-            }
-                        
+            colorRow
             StandardDivider()
             
-            LabeledRow("Symbol", labelWidth) {
-                #if os(macOS)
-                HStack {
-                    Button {
-//                      Task {
-//                          focusedField = .emoji
-//                          try? await Task.sleep(for: .milliseconds(100))
-//                          NSApp.orderFrontCharacterPalette($category.emoji)
-//                      }
-                        showSymbolPicker = true
-                    } label: {
-                        Image(systemName: category.emoji ?? "questionmark.circle.fill")
-                            .foregroundStyle(category.color)
-                    }
-                    .buttonStyle(.codyStandardWithHover)
-                    Spacer()
-                }
-                
-                #else
-                HStack {
-                    Image(systemName: category.emoji ?? "questionmark.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(category.color.gradient)
-                    
-                    Spacer()
-                }
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    showSymbolPicker = true
-                }
-                #endif
-            }
-            
+            symbolRow
             StandardDivider()
-          
             
         } header: {
             SheetHeader(title: title, close: { closeSheet() }, view3: { deleteButton })
         }
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
-                
+        
         /// Just for formatting.
-        .onChange(of: focusedField) { oldValue, newValue in
-            if newValue == 1 {
+        .onChange(of: focusedField) {
+            if $1 == 1 {
                 if category.amount == 0.0 {
                     category.amountString = ""
                 }
             } else {
-                if oldValue == 1 {
+                if $0 == 1 {
                     category.amountString = category.amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
                 }
             }
         }
         .sheet(isPresented: $showSymbolPicker) {
-            SymbolPicker(selected: $category.emoji)
-            #if os(macOS)
+            SymbolPicker(selected: $category.emoji, color: category.color)
+                #if os(macOS)
                 .frame(minWidth: 300, minHeight: 500)
                 .presentationSizing(.fitted)
-                //.frame(width: 300)
+            //.frame(width: 300)
+                #endif
+        }
+    }
+    
+    
+    var titleRow: some View {
+        LabeledRow("Name", labelWidth) {
+            #if os(iOS)
+            StandardUITextField("Title", text: $category.title, onSubmit: {
+                focusedField = 1
+            }, toolbar: {
+                KeyboardToolbarView(focusedField: $focusedField)
+            })
+            .cbFocused(_focusedField, equals: 0)
+            .cbClearButtonMode(.whileEditing)
+            .cbSubmitLabel(.next)
+            #else
+            StandardTextField("Title", text: $category.title, focusedField: $focusedField, focusValue: 0)
+                .onSubmit { focusedField = 1 }
             #endif
         }
     }
     
     
-    var chartHeader: some View {
-        VStack(alignment: .leading) {
-            Text("Total \(category.isIncome ? "Income" : "Expenses")")
-                .foregroundStyle(.gray)
-                .font(.title3)
-                .bold()
-            
-            Text("\(visibleTotal.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
-            
-            HStack(spacing: 5) {
-                Text(visibleRange.lowerBound.string(to: .date))
-                Text("-")
-                Text(visibleRange.upperBound.string(to: .date))
-            }
-            .foregroundStyle(.gray)
-            .font(.caption)
+    var budgetRow: some View {
+        LabeledRow("Budget", labelWidth) {
+            #if os(iOS)
+            StandardUITextField("Monthly Amount", text: $category.amountString ?? "", toolbar: {
+                KeyboardToolbarView(focusedField: $focusedField, accessoryImage3: "plus.forwardslash.minus", accessoryFunc3: {
+                    Helpers.plusMinus($category.amountString ?? "")
+                })
+            })
+            .cbFocused(_focusedField, equals: 1)
+            .cbClearButtonMode(.whileEditing)
+            .cbKeyboardType(.decimalPad)
+            #else
+            StandardTextField("Monthly Amount", text: $category.amountString ?? "", focusedField: $focusedField, focusValue: 1)
+            #endif
         }
     }
     
     
-    var chartBody: some View {
-        Chart {
-            if let selectedMonth {
-                RuleMark(x: .value("Selected Date", selectedMonth.date, unit: .month))
-                    .foregroundStyle(selectedMonth.category?.color ?? .primary)
-                    .offset(yStart: -15)
-                    .zIndex(-1)
+    var typeRow: some View {
+        LabeledRow("Type", labelWidth) {
+            Picker("", selection: $category.type) {
+                Text("Expense")
+                    .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .expense))
+                Text("Income")
+                    .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .income))
+                Text("Payment")
+                    .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .payment))
+                Text("Savings")
+                    .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .savings))
             }
-            
-            if let amount = category.amount {
-                /// Show the budget line.
-                if showBudgetOnCategoryChart {
-                    RuleMark(y: .value("Budget", amount))
-                        .foregroundStyle(category.color.opacity(0.7))
-                        .zIndex(-1)
-                        .lineStyle(StrokeStyle(lineWidth: 2, dash: [5, 3]))
-                }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+        }
+    }
+    
+    
+    var colorRow: some View {
+        LabeledRow("Color", labelWidth) {
+            #if os(iOS)
+            StandardColorPicker(color: $category.color)
+            #else
+            HStack {
+                ColorPicker("", selection: $category.color, supportsOpacity: false)
+                    .labelsHidden()
+                Capsule()
+                    .fill(category.color)
+                    .frame(height: 30)
+                    .onTapGesture {
+                        AppState.shared.showToast(title: "Color Picker", subtitle: "Touch the circle to the left to change the color.", body: nil, symbol: category.emoji ?? "theatermask.and.paintbrush", symbolColor: category.color)
+                    }                        
+            }
+            #endif
+        }
+    }
+    
+    
+    var symbolRow: some View {
+        LabeledRow("Symbol", labelWidth) {
+            HStack {
+                Image(systemName: category.emoji ?? "questionmark.circle.fill")
+                    .font(.system(size: 100))
+                    .foregroundStyle(category.color.gradient)
+                Spacer()
                 
-                /// Show the average expense line.
-                if showAverageOnCategoryChart {
-                    RuleMark(y: .value("Average", expenses.map { $0.amount }.average()))
-                        //.foregroundStyle(category.color.opacity(0.5))
-                        .foregroundStyle(.gray.opacity(0.7))
-                        .zIndex(-1)
-                        .lineStyle(StrokeStyle(lineWidth: 2, dash: [5, 3]))
-                }
             }
-                                                
-            ForEach(expenses) { expense in
-                LineMark(
-                    x: .value("Date", expense.date, unit: .month),
-                    y: .value("Amount", expense.amount)
-                )
-                .foregroundStyle(expense.category?.color ?? .primary)
-                .interpolationMethod(.catmullRom)
-                //.lineStyle(.init(lineWidth: 2))
-                .symbol {
-                    if expense.amount > 0 {
-                        Circle()
-                            .fill(expense.category?.color ?? .primary)
-                            .frame(width: 6, height: 6)
-                            //.opacity(rawSelectedDate == nil || start.date == selectedStartingAmount?.date ? 1 : 0.3)
-                    }
-                }
-                                
-                AreaMark(
-                    x: .value("Date", expense.date, unit: .month),
-                    yStart: .value("Max", expense.amount),
-                    yEnd: .value("Min", minExpense)
-                )
-                .interpolationMethod(.catmullRom)
-                .foregroundStyle(LinearGradient(
-                    colors: [expense.category?.color ?? .primary, .clear],
-                    startPoint: .top,
-                    endPoint: .bottom)
-                )
+            .contentShape(Rectangle())
+            .onTapGesture {
+                showSymbolPicker = true
             }
         }
-        .frame(minHeight: 150)
-        .chartScrollableAxes(.horizontal)
-        .chartXVisibleDomain(length: visibleDomain)
-        //.chartScrollPosition(initialX: expenses.last?.date ?? Date())
-        .chartScrollPosition(x: $chartScrollPosition)
-        .chartXSelection(value: $rawSelectedDate)
-        .chartYScale(domain: [minExpense, maxExpense + (maxExpense * 0.2)])
-//        .chartScrollTargetBehavior(
-//            .valueAligned(
-//                matching: DateComponents(day: 1),
-//                majorAlignment: .matching(DateComponents(day: 1))
-//            )
-//        )
-        .chartOverlay { proxy in
-            GeometryReader { geometry in
-                if let selectedMonth {
-                    if let _ = proxy.position(forX: selectedMonth.date) {
-                        VStack {
-                            Text("\(selectedMonth.date, format: .dateTime.month(.wide)) \(String(selectedMonth.date.year))")
-                                .bold()
-                            Text("\(selectedMonth.amountString)")
-                                .bold()
-                        }
-                        .foregroundStyle(.white)
-                        .padding(12)
-                        .frame(width: 160)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill((selectedMonth.category?.color ?? .primary)/*.gradient*/)
-                        )
-//                                    .position(
-//                                        x: min(max(positionX, 80), geometry.size.width - 80), // Keep annotation within bounds horizontally
-//                                        y: -40 // Fixed Y position to stay above the chart
-//                                    )
-                        .position(x: geometry.frame(in: .local).midX, y: -40)
-                        .zIndex(100)
-                    }
-                }
-            }
-        }
-        .chartYAxis {
-            AxisMarks {
-            //AxisMarks(values: .automatic(desiredCount: 6)) {
-               let value = $0.as(Int.self)!
-               AxisValueLabel {
-                   Text("$\(value)")
-               }
-           }
-        }
-        .chartLegend(position: .top, alignment: .leading)
-        .chartForegroundStyleScale([
-            "\(category.isIncome ? "Income" : "Expenses"): \((expenses.map { $0.amount }.reduce(0.0, +).currencyWithDecimals(useWholeNumbers ? 0 : 2)))": category.color,
-            "Budget: \((category.amount ?? 0).currencyWithDecimals(useWholeNumbers ? 0 : 2))": category.color.opacity(0.7),
-            "Average: \((expenses.map { $0.amount }.average()).currencyWithDecimals(useWholeNumbers ? 0 : 2))": Color.gray
-        ])
-        .padding(.bottom, 10)
-    }
-    
-    
-    var chartVisibleYearPicker: some View {
-        Picker("", selection: $chartVisibleYearCount.animation()) {
-            Text("YTD").tag(ChartRange.yearToDate)
-            Text("1Y").tag(ChartRange.year1)
-            Text("2Y").tag(ChartRange.year2)
-            Text("3Y").tag(ChartRange.year3)
-            Text("4Y").tag(ChartRange.year4)
-            Text("5Y").tag(ChartRange.year5)
-        }
-        .pickerStyle(.segmented)
-        .labelsHidden()
-        .onChange(of: chartVisibleYearCount) { oldValue, newValue in
-            /// Set the scrollPosition to which ever is smaller, the targetDate, or the minDate.
-            let minDate = expenses.first?.date ?? Date()
-            let targetDate = Calendar.current.date(byAdding: .day, value: -(365 * (newValue.rawValue == 0 ? 1 : newValue.rawValue)), to: expenses.last?.date ?? Date())!
-            
-            if targetDate < minDate {
-                chartScrollPosition = minDate
-            } else {
-                chartScrollPosition = targetDate
-            }
-            
-            
-        }
-    }
         
+        
+//        LabeledRow("Symbol", labelWidth) {
+//            #if os(macOS)
+//            HStack {
+//                Button {
+//                    //                      Task {
+//                    //                          focusedField = .emoji
+//                    //                          try? await Task.sleep(for: .milliseconds(100))
+//                    //                          NSApp.orderFrontCharacterPalette($category.emoji)
+//                    //                      }
+//                    showSymbolPicker = true
+//                } label: {
+//                    Image(systemName: category.emoji ?? "questionmark.circle.fill")
+//                        .foregroundStyle(category.color)
+//                }
+//                .buttonStyle(.codyStandardWithHover)
+//                Spacer()
+//            }
+//            
+//            #else
+//            HStack {
+//                Image(systemName: category.emoji ?? "questionmark.circle.fill")
+//                    .font(.title2)
+//                    .foregroundStyle(category.color.gradient)
+//                
+//                Spacer()
+//            }
+//            .contentShape(Rectangle())
+//            .onTapGesture {
+//                showSymbolPicker = true
+//            }
+//            #endif
+//        }
+    }
     
+    
+    var deleteButton: some View {
+        Button {
+            showDeleteAlert = true
+        } label: {
+            Image(systemName: "trash")
+        }
+        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
+    }
+    
+    
+    
+    
+    // MARK: - Chart Page Views
     var chartPage: some View {
         Group {
             if category.action == .add {
-                ContentUnavailableView("Analytics are not available when adding a new category", systemImage: "square.stack.3d.up.slash.fill")
+                ContentUnavailableView("Insights are not available when adding a new category", systemImage: "square.stack.3d.up.slash.fill")
             } else {
                 StandardContainer {
-                    chartVisibleYearPicker
-                        //.rowBackground()
-                    
-                    Section {
-                        chartHeader
-                            //.rowBackground()
-                                    
-                        Divider()
-                        
-                        chartBody
-                            //.rowBackground()
-                            .padding(.vertical, 30)
-                                                        
-                        Text("Options")
-                            .foregroundStyle(.gray)
-                            .font(.subheadline)
-                            //.padding(.leading, 6)
-                        Divider()
-                        
-                        Toggle(isOn: $showAverageOnCategoryChart.animation()) {
-                            Text("Show Average")
-                        }
-                        //.rowBackground()
-                        
-                        Toggle(isOn: $showBudgetOnCategoryChart.animation()) {
-                            Text("Show Budget")
-                        }
-                        //.rowBackground()
-                    }
-                    
-                    Divider()
-                    
-                    Spacer()
-                        .frame(minHeight: 10)
-                    
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Data")
-                            .foregroundStyle(.gray)
-                            .font(.subheadline)
-                            //.padding(.leading, 6)
-                        Divider()
-                        
-                        DisclosureGroup(isExpanded: $showAllChartData) {
-                            VStack(spacing: 0) {
-                                Divider()
-                                    .padding(.leading, 25)
-                                
-                                ForEach(expenses) { expense in
-                                    RawDataLineItem(category: category, expense: expense)
-                                        .padding(.leading, 25)
-                                }
-                            }
-                            
-                        } label: {
-                            Text("Show All")
-                                .onTapGesture {
-                                    showAllChartData.toggle()
-                                }
-                        }
-                        //.foregroundStyle(category.color)
-                        .tint(category.color)
-                        //.padding(.vertical, 8)
-                        .padding(.bottom, 10)
-                        //.rowBackground()
-                        .onChange(of: calModel.showMonth) { oldValue, newValue in
-                            if newValue == false && oldValue == true {
-                                Task {
-                                    await fetchHistory(setChartAsNew: false)
-                                }
-                            }
-                        }
-                        .onReceive(NotificationCenter.default.publisher(for: .updateCategoryAnalytics, object: nil)) { _ in
-                            Task {
-                                await fetchHistory(setChartAsNew: false)
-                            }
-                        }
-                    }
+                    MonthlyAnalyticChart(
+                        data: data,
+                        displayData: displayData,
+                        config: MonthlyAnalyticChartConfig(enableShowExpenses: true, enableShowBudget: true, enableShowAverage: true, color: category.color, headerLingo: headerLingo),
+                        isLoadingHistory: $isLoadingHistory,
+                        chartScrolledToDate: $chartScrolledToDate,
+                        rawDataList: { rawDataList }
+                    )
                 } header: {
-                    SheetHeader(title: title, close: { closeSheet() }, view3: { deleteButton })
+                    SheetHeader(
+                        title: title,
+                        close: { closeSheet() },
+                        view1: { refreshButton },
+                        //view2: { ProgressView().opacity(isLoadingMoreHistory ? 1 : 0).tint(.none) },
+                        view3: { deleteButton }
+                    )
                 }
                 .listStyle(.plain)
                 #if os(iOS)
                 .listSectionSpacing(50)
                 #endif
                 .opacity(isLoadingHistory ? 0 : 1)
-                .overlay { ProgressView("Loading Analytics…").tint(.none).opacity(isLoadingHistory ? 1 : 0) }
+                .overlay { ProgressView("Loading Insights…").tint(.none).opacity(isLoadingHistory ? 1 : 0) }
                 .focusable(false)
             }
         }
-        
-        
-        
     }
     
+    
+    var refreshButton: some View {
+        Button {
+            Task {
+                fetchYearStart = AppState.shared.todayYear - 10
+                fetchYearEnd = AppState.shared.todayYear
+                data.removeAll()
+                isLoadingHistory = true
+                await fetchHistory(setChartAsNew: true)
+            }
+        } label: {
+            Image(systemName: "arrow.triangle.2.circlepath")
+        }
+    }
+    
+    
+    var rawDataList: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Data (\(String(fetchYearStart)) - \(String(AppState.shared.todayYear)))")
+                .foregroundStyle(.gray)
+                .font(.subheadline)
+                //.padding(.leading, 6)
+            Divider()
+            
+            DisclosureGroup(isExpanded: $showAllChartData) {
+                VStack(spacing: 0) {
+                    Divider()
+                        .padding(.leading, 25)
+                    
+                    LazyVStack {
+                        ForEach(displayData.sorted(by: { $0.date > $1.date })) { data in
+                            RawDataLineItem(category: category, data: data)
+                                .padding(.leading, 25)
+                                .onScrollVisibilityChange {
+                                    if $0 && data.id == displayData.sorted(by: { $0.date > $1.date }).last?.id {
+                                        fetchMoreHistory()
+                                    }
+                                }
+                        }
+                    }
+                }
+            } label: {
+                Text("Show All")
+                    .onTapGesture {
+                        withAnimation {
+                            showAllChartData.toggle()
+                        }
+                    }
+            }
+            
+            //.foregroundStyle(category.color)
+            .tint(category.color)
+            //.padding(.vertical, 8)
+            .padding(.bottom, 10)
+            //.rowBackground()
+            .onChange(of: calModel.showMonth) { oldValue, newValue in
+                if newValue == false && oldValue == true {
+                    Task {
+                        await fetchHistory(setChartAsNew: false)
+                    }
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .updateCategoryAnalytics, object: nil)) { _ in
+                Task {
+                    await fetchHistory(setChartAsNew: false)
+                }
+            }
+        }
+    }    
+    
+    
+    struct RawDataLineItem: View {
+        #if os(macOS)
+        @Environment(\.openWindow) private var openWindow
+        @Environment(\.dismissWindow) private var dismissWindow
+        #endif
+        @Environment(CalendarModel.self) var calModel
+        
+        @Bindable var category: CBCategory
+        var data: AnalyticData
+        
+        @State private var backgroundColor: Color = .clear
+        
+        var body: some View {
+            VStack(spacing: 0) {
+                HStack {
+                    Text("\(data.date, format: .dateTime.month(.wide)) \(String(data.year))")
+                    Spacer()
+                    Text("\(data.expensesString)")
+                }
+                .padding(.vertical, 6)
+                Divider()
+            }
+            .contentShape(Rectangle())
+            .background(backgroundColor)
+            .onHover { backgroundColor = $0 ? .gray.opacity(0.2) : .clear }
+            .onTapGesture { openMonthlySheet() }
+        }
+        
+        
+        func openMonthlySheet() {
+            calModel.sCategories = [category]
+            
+            calModel.categoryFilterWasSetByCategoryPage = true
+            let monthEnum = NavDestination.getMonthFromInt(data.month)
+            calModel.sYear = data.year
+            
+            #if os(iOS)
+            if AppState.shared.isIpad {
+                calModel.isShowingFullScreenCoverOnIpad = true
+            }
+            
+            NavigationManager.shared.selectedMonth = monthEnum
+            calModel.showMonth = true
+            
+            #else
+            AppState.shared.monthlySheetWindowTitle = "\(category.title) Expenses For \(monthEnum?.displayName ?? "N/A") \(String(calModel.sYear))"
+            dismissWindow(id: "monthlyWindow")
+            openWindow(id: "monthlyWindow", value: monthEnum)
+            //calModel.windowMonth = monthEnum
+            //openWindow(id: "monthlyWindow")
+            #endif
+        }
+    }
+    
+    
+    
+        
+    // MARK: - Functions
     
     func closeSheet() {
         if calModel.categoryFilterWasSetByCategoryPage {
             calModel.sCategories.removeAll()
+            calModel.categoryFilterWasSetByCategoryPage = false
         }
         editID = nil
         dismiss()
@@ -665,82 +547,77 @@ struct CategoryView: View {
     }
     
     
+    func deleteCategory() {
+        Task {
+            dismiss()
+            await catModel.delete(category, andSubmit: true, calModel: calModel, keyModel: keyModel, eventModel: eventModel)
+        }
+    }
+    
+    
+    func fetchMoreHistory() {
+        Task {
+            isLoadingMoreHistory = true
+            fetchYearStart -= 10
+            fetchYearEnd -= 10
+            print("fetching more history... \(fetchYearStart) - \(fetchYearEnd)")
+            await fetchHistory(setChartAsNew: false)
+        }
+    }
+    
+    
     func fetchHistory(setChartAsNew: Bool) async {
         if setChartAsNew {
             isLoadingHistory = true
         }
+                
+        let model = AnalysisRequestModel(recordIDs: [category.id], fetchYearStart: fetchYearStart, fetchYearEnd: fetchYearEnd)
         
-        if let expenses = await catModel.fetchExpensesByCategory(category) {
-            self.expenses = expenses
-        
-            
+        if let data = await catModel.fetchExpensesByCategory(model) {
+            withAnimation {
+                //var localData: Array<AnalyticData> = []
+                for each in data {
+                    if let index = self.data.firstIndex(where: { $0.month == each.month && $0.year == each.year }) {
+                        self.data[index].budgetString = each.amountString
+                        self.data[index].expensesString = each.amountString2
+                    } else {
+                        let anal = AnalyticData(
+                            record: .init(id: each.category?.id ?? UUID().uuidString, title: each.category?.title ?? "", color: each.category?.color ?? .primary),
+                            type: "category",
+                            month: each.month,
+                            year: each.year,
+                            budgetString: each.amountString,
+                            expensesString: each.amountString2
+                        )
+                        self.data.append(anal)
+                    }
+                    
+                }
+                                
+                self.data.sort(by: { $0.date < $1.date })
+            }
+                    
             if setChartAsNew {
+                var visibleYearCount: Int {
+                    chartVisibleYearCount.rawValue == 0 ? 1 : chartVisibleYearCount.rawValue
+                }
+                
                 /// Set the scrollPosition to which ever is smaller, the idealStartDate, or the maxAvailStartDate.
-                let maxAvailStartDate = expenses.first?.date ?? Date()
-                let idealStartDate = Calendar.current.date(byAdding: .day, value: -(365 * visibleYearCount), to: expenses.last?.date ?? Date())!
-                
-                
-                
-                
-                chartScrollPosition = maxAvailStartDate < idealStartDate ? idealStartDate : maxAvailStartDate
-                
-                print("\(chartScrollPosition) -- \(maxAvailStartDate) -- \(idealStartDate)")
-                
+                let minDate = data.first?.date ?? Date()
+                let maxDate = data.last?.date ?? Date()
+                let idealDate = Calendar.current.date(byAdding: .day, value: -(365 * visibleYearCount), to: maxDate)!
+                                
+                if chartVisibleYearCount == .yearToDate {
+                    let components = Calendar.current.dateComponents([.year], from: .now)
+                    chartScrolledToDate = Calendar.current.date(from: components)!
+                } else {
+                    chartScrolledToDate = minDate < idealDate ? idealDate : minDate
+                }
+            
                 isLoadingHistory = false
             }
         }
+        
+        isLoadingMoreHistory = false
     }
-    
-    
-    struct RawDataLineItem: View {
-        #if os(macOS)
-        @Environment(\.openWindow) private var openWindow
-        @Environment(\.dismissWindow) private var dismissWindow
-        #endif
-        @Environment(CalendarModel.self) var calModel
-        
-        @Bindable var category: CBCategory
-        var expense: CBBudget
-        
-        @State private var backgroundColor: Color = .clear
-        
-        var body: some View {
-            VStack(spacing: 0) {
-                HStack {
-                    Text("\(expense.date, format: .dateTime.month(.wide)) \(String(expense.date.year))")
-                    Spacer()
-                    Text("\(expense.amountString)")
-                }
-                .padding(.vertical, 6)
-                Divider()
-            }
-            .contentShape(Rectangle())
-            .background(backgroundColor)
-            .onHover { backgroundColor = $0 ? .gray.opacity(0.2) : .clear }
-            .onTapGesture {
-                calModel.sCategories = [category]
-                
-                calModel.categoryFilterWasSetByCategoryPage = true
-                let monthEnum = NavDestination.getMonthFromInt(expense.date.month)
-                calModel.sYear = expense.date.year
-                
-                #if os(iOS)
-                if AppState.shared.isIpad {
-                    calModel.isShowingFullScreenCoverOnIpad = true
-                }
-                
-                NavigationManager.shared.selectedMonth = monthEnum
-                calModel.showMonth = true
-                
-                #else
-                AppState.shared.monthlySheetWindowTitle = "\(category.title) Expenses For \(monthEnum?.displayName ?? "N/A") \(String(calModel.sYear))"
-                dismissWindow(id: "monthlyWindow")
-                openWindow(id: "monthlyWindow", value: monthEnum)
-                //calModel.windowMonth = monthEnum
-                //openWindow(id: "monthlyWindow")
-                #endif
-            }
-        }
-    }
-    
 }

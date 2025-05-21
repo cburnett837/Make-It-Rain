@@ -114,7 +114,7 @@ class CBEventTransactionOption: Codable, Identifiable, Hashable, Equatable, CanE
         title = try container.decode(String.self, forKey: .title)
         
         let amount = try container.decode(Double.self, forKey: .amount)
-        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
         self.amountString = amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
         
         url = try container.decode(String.self, forKey: .url)
@@ -237,7 +237,7 @@ class CBEventTransactionOption: Codable, Identifiable, Hashable, Equatable, CanE
         self.transactionID = option.transactionID
         self.title = option.title
         
-        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
         self.amountString = option.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
         
         self.url = option.url

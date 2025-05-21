@@ -17,9 +17,13 @@ struct EventCategorySheetButton: View {
     
     var body: some View {
         StandardRectangle(fill: categoryMenuColor) {
-            MenuOrListButton(title: category?.title, alternateTitle: "Select Category") {
-                showCategorySheet = true
-            }
+            MenuOrListButton(title: category?.title, alternateTitle: "Select Category") 
+        }
+        .contentShape(Rectangle())
+        //.padding(.leading, 2)
+        .focusable(false)
+        .onTapGesture {
+            showCategorySheet = true
         }
         .onHover { categoryMenuColor = $0 ? Color(.systemFill) : Color(.tertiarySystemFill) }
         .sheet(isPresented: $showCategorySheet) {

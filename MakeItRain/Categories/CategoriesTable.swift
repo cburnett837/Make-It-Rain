@@ -11,7 +11,7 @@ import Algorithms
 struct CategoriesTable: View {
     @Environment(\.dismiss) var dismiss
     
-    @AppStorage("useWholeNumbers") var useWholeNumbers = false
+    @Local(\.useWholeNumbers) var useWholeNumbers
     @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
     
     @Environment(FuncModel.self) var funcModel
@@ -22,8 +22,6 @@ struct CategoriesTable: View {
     @Environment(EventModel.self) private var eventModel
     
     @State private var searchText = ""
-    
-    @State private var deleteCategory: CBCategory?
     @State private var editCategory: CBCategory?
     @State private var categoryEditID: CBCategory.ID?
     
@@ -34,10 +32,10 @@ struct CategoriesTable: View {
     
     @State private var sortOrder = [KeyPathComparator(\CBCategory.title)]
     @State private var labelWidth: CGFloat = 20.0
-    @State private var showDeleteAlert = false
     
     var filteredCategories: [CBCategory] {
         catModel.categories
+            .filter { !$0.isNil }
             .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedStandardContains(searchText) }
             /// NOTE: Sorting must be done in the task and not in the computed property. If done in the computed property, when reording, they get all messed up.
     }
@@ -48,24 +46,19 @@ struct CategoriesTable: View {
         
         Group {
             if !catModel.categories.isEmpty {
-                Group {
-                    #if os(macOS)
-                    macTable
-                    #else
-                    listForPhoneAndMacSort
-                    #endif
-                }
-                .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
+                #if os(macOS)
+                macTable
+                #else
+                listForPhoneAndMacSort
+                #endif
             } else {
                 ContentUnavailableView("No Categories", systemImage: "books.vertical", description: Text("Click the plus button above to add a category."))
-                    #if os(iOS)
-                    .standardBackground()
-                    #endif
             }
         }
+        .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
         #if os(iOS)
         .navigationTitle("Categories")
-        .navigationBarTitleDisplayMode(.inline)
+        //.navigationBarTitleDisplayMode(.inline)
         #endif
         /// There seems to be a bug in SwiftUI `Table` that prevents the view from refreshing when adding a new category, and then trying to edit it.
         /// When I add a new category, and then update `model.categories` with the new ID from the server, the table still contains an ID of 0 on the newly created category.
@@ -89,19 +82,7 @@ struct CategoriesTable: View {
             phoneToolbar()
             #endif
         }
-        .searchable(text: $searchText) {
-            #if os(macOS)
-            let relevantTitles: Array<String> = catModel.categories
-                .compactMap { $0.title }
-                .uniqued()
-                .filter { $0.localizedStandardContains(searchText) }
-                    
-            ForEach(relevantTitles, id: \.self) { title in
-                Text(title)
-                    .searchCompletion(title)
-            }
-            #endif
-        }
+        .searchable(text: $searchText)
         .onChange(of: categoryEditID) { oldValue, newValue in
             if let newValue {
                 editCategory = catModel.getCategory(by: newValue)
@@ -109,29 +90,21 @@ struct CategoriesTable: View {
                 catModel.saveCategory(id: oldValue!, calModel: calModel)
             }
         }
-        
-        #if os(iOS)
-        .sheet(item: $editCategory, onDismiss: {
-            categoryEditID = nil
-        }, content: { cat in
+        .sheet(item: $editCategory, onDismiss: { categoryEditID = nil }) { cat in
             CategoryView(category: cat, catModel: catModel, calModel: calModel, keyModel: keyModel, editID: $categoryEditID)
-        })
-        #else
-        .sheet(item: $editCategory, onDismiss: {
-            categoryEditID = nil
-        }, content: { cat in
-            CategoryView(category: cat, catModel: catModel, calModel: calModel, keyModel: keyModel, editID: $categoryEditID)
+                #if os(iOS)
+                .presentationSizing(.page)
+                #else
                 .frame(minWidth: 500, minHeight: 700)
                 .presentationSizing(.fitted)
-        })
-        #endif
-        
+                #endif
+        }
         #if os(macOS)
         .sheet(isPresented: $showReorderList) {
-            VStack {
+            StandardContainer(.plainList) {
+                listForPhoneAndMacSortContent
+            } header: {
                 SheetHeader(title: "Drag To Reorder", close: { showReorderList = false })
-                    .padding()
-                listForPhoneAndMacSort
             }
             .frame(minWidth: 300, minHeight: 500)
             .presentationSizing(.fitted)
@@ -140,30 +113,6 @@ struct CategoriesTable: View {
         
         .onChange(of: sortOrder) { _, sortOrder in
             catModel.categories.sort(using: sortOrder)
-        }
-                
-        .confirmationDialog("Delete \"\(deleteCategory == nil ? "N/A" : deleteCategory!.title)\"?", isPresented: $showDeleteAlert, actions: {
-            Button("Yes", role: .destructive) {
-                if let deleteCategory = deleteCategory {
-                    Task {                                                
-                        await catModel.delete(deleteCategory, andSubmit: true, calModel: calModel, keyModel: keyModel, eventModel: eventModel)
-                    }
-                }
-            }
-            
-            Button("No", role: .cancel) {
-                deleteCategory = nil
-                showDeleteAlert = false
-            }
-        }, message: {
-            #if os(iOS)
-            Text("Delete \"\(deleteCategory == nil ? "N/A" : deleteCategory!.title)\"?\nThis will not delete any associated transactions.")
-            #else
-            Text("This will not delete any associated transactions.")
-            #endif
-        })
-        .sensoryFeedback(.warning, trigger: showDeleteAlert) { oldValue, newValue in
-            !oldValue && newValue
         }
     }
     
@@ -221,16 +170,6 @@ struct CategoriesTable: View {
     
     var macTable: some View {
         Table(filteredCategories, selection: $categoryEditID, sortOrder: $sortOrder, columnCustomization: $columnCustomization) {
-            TableColumn("Title", value: \.title) { cat in
-                Text(cat.title)
-            }
-            .customizationID("title")
-            
-            TableColumn("Budget", value: \.amount.specialDefaultIfNil) { cat in
-                Text(cat.amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-")
-            }
-            .customizationID("budget")
-            
             TableColumn("Color / Symbol") { cat in
                 if let emoji = cat.emoji {
                     Image(systemName: emoji)
@@ -243,8 +182,18 @@ struct CategoriesTable: View {
                         .frame(width: 12, height: 12)
                 }
             }
+            .width(min: 20, ideal: 30, max: 50)
             .customizationID("symbol")
             
+            TableColumn("Title", value: \.title) { cat in
+                Text(cat.title)
+            }
+            .customizationID("title")
+            
+            TableColumn("Budget", value: \.amount.specialDefaultIfNil) { cat in
+                Text(cat.amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-")
+            }
+            .customizationID("budget")
             
             TableColumn("Custom Order", value: \.listOrder.specialDefaultIfNil) { cat in
                 if let listOrder = cat.listOrder {
@@ -253,61 +202,49 @@ struct CategoriesTable: View {
                     Text("N/A")
                 }
             }
-            .customizationID("listOrder")
-            
-            TableColumn("Delete") { cat in
-                Button {
-                    deleteCategory = cat
-                    showDeleteAlert = true
-                } label: {
-                    Image(systemName: "trash")
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.red)
-            }
-            .width(min: 20, ideal: 30, max: 50)
+            .customizationID("listOrder")                        
         }
         .clipped()
-    }
+    }    
     #endif
     
     #if os(iOS)
     @ToolbarContentBuilder
     func phoneToolbar() -> some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
-            if !AppState.shared.isIpad {
-                HStack {
-                    Button {
-                        dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "chevron.left")
-                            Text("Back")
-                        }
-                    }
-                    ToolbarLongPollButton()
-                }
+            if AppState.shared.isIphone {
+                sortMenu
+//                HStack {
+//                    Button {
+//                        dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
+//                    } label: {
+//                        HStack(spacing: 4) {
+//                            Image(systemName: "chevron.left")
+//                            Text("Back")
+//                        }
+//                    }
+//                    ToolbarLongPollButton()
+//                }
                 
             } else {
-                HStack {
+                HStack(spacing: 20) {
                     Button {
                         categoryEditID = UUID().uuidString
                     } label: {
                         Image(systemName: "plus")
                     }
-                    
-                    sortMenu
                     //.disabled(catModel.isThinking)
                     ToolbarRefreshButton()
+                    sortMenu
                     ToolbarLongPollButton()
                 }
             }
         }
         
-        if !AppState.shared.isIpad {
-            ToolbarItem(placement: .topBarTrailing) {
-                HStack {
-                    sortMenu
+        if AppState.shared.isIphone {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                HStack(spacing: 20) {
+                    //sortMenu
                     ToolbarRefreshButton()
                     Button {
                         categoryEditID = UUID().uuidString
@@ -323,57 +260,42 @@ struct CategoriesTable: View {
     
     var listForPhoneAndMacSort: some View {
         List(selection: $categoryEditID) {
-            ForEach(filteredCategories) { cat in
-                HStack(alignment: .center) {
-                    VStack(alignment: .leading) {
-                        Text(cat.title)
-                        Text(cat.amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-")
-                            .foregroundStyle(.gray)
-                            .font(.caption)
-                    }
-                    
-                    Spacer()
-                    
-                    if let emoji = cat.emoji {
-                        Image(systemName: emoji)
-                            .foregroundStyle(cat.color.gradient)
-                            .frame(minWidth: labelWidth, alignment: .center)
-                            .maxViewWidthObserver()
-                    } else {
-                        Circle()
-                            .fill(cat.color.gradient)
-                            .frame(width: 12, height: 12)
-                    }
-                }
-                #if os(iOS)
-                .standardRowBackgroundWithSelection(id: cat.id, selectedID: categoryEditID)
-                .swipeActions(allowsFullSwipe: false) {
-                    Button {
-                        deleteCategory = cat
-                        showDeleteAlert = true
-                    } label: {
-                        Label {
-                            Text("Delete")
-                        } icon: {
-                            Image(systemName: "trash")
-                        }
-                    }
-                    .tint(.red)
-                }
-                #else
-                .selectionDisabled()
-                #endif
-            }
-            .if(categorySortMode == .listOrder) {
-                $0.onMove(perform: move)
-            }
-            
-            
+            listForPhoneAndMacSortContent
         }
         .listStyle(.plain)
-        #if os(iOS)
-        .standardBackground()
-        #endif
+    }
+    
+    
+    var listForPhoneAndMacSortContent: some View {
+        ForEach(filteredCategories) { cat in
+            HStack(alignment: .center) {
+                VStack(alignment: .leading) {
+                    Text(cat.title)
+                    Text(cat.amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-")
+                        .foregroundStyle(.gray)
+                        .font(.caption)
+                }
+                
+                Spacer()
+                
+                if let emoji = cat.emoji {
+                    Image(systemName: emoji)
+                        .foregroundStyle(cat.color.gradient)
+                        .frame(minWidth: labelWidth, alignment: .center)
+                        .maxViewWidthObserver()
+                } else {
+                    Circle()
+                        .fill(cat.color.gradient)
+                        .frame(width: 12, height: 12)
+                }
+            }
+            #if os(macOS)            
+            .selectionDisabled()
+            #endif
+        }
+        .if(categorySortMode == .listOrder) {
+            $0.onMove(perform: move)
+        }
     }
     
     
@@ -418,12 +340,13 @@ struct CategoriesTable: View {
 
     }
     
+    
     func move(from source: IndexSet, to destination: Int) {
+        print("\(source.map {$0.id}) - \(destination)")
         catModel.categories.move(fromOffsets: source, toOffset: destination)
-        let listOrderUpdates = catModel.setListOrders(calModel: calModel)
-        
         Task {
-            await funcModel.submitListOrders(items: listOrderUpdates, for: .categories)
+            let listOrderUpdates = await catModel.setListOrders(calModel: calModel)
+            let _ = await funcModel.submitListOrders(items: listOrderUpdates, for: .categories)
         }
     }
 }

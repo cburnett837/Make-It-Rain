@@ -28,7 +28,7 @@ class CBEventCategory: Codable, Identifiable, Hashable, Equatable {
         self.uuid = uuid
         self.eventID = eventID
         self.title = ""
-        self.color = UserDefaults.fetchOneBool(requestedKey: "preferDarkMode") == true ? .white : .black
+        self.color = .primary
         self.active = true
         self.action = .add
     }
@@ -38,7 +38,7 @@ class CBEventCategory: Codable, Identifiable, Hashable, Equatable {
         self.uuid = uuid
         self.eventID = eventID
         self.title = ""
-        self.color = UserDefaults.fetchOneBool(requestedKey: "preferDarkMode") == true ? .white : .black
+        self.color = .primary
         self.active = true
         self.action = .add
     }

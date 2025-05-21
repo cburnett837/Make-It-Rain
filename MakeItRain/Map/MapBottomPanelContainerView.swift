@@ -44,6 +44,14 @@ struct MapBottomPanelContainerView<Content: View>: View {
         
         #endif
         .frame(maxHeight: .infinity, alignment: .bottom)
+        #if os(iOS)
+        .if(AppState.shared.isIpad) {
+            $0
+                .frame(maxWidth: getRect().width / 3, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.leading, 20)
+        }
+        #endif
         //.transition(.move(edge: .bottom))
         //.offset(y: height)
         //.transition(.opacity)

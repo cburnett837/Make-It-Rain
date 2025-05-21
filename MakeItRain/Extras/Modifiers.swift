@@ -191,7 +191,7 @@ struct FormatCurrencyLiveAndOnUnFocus: ViewModifier {
                     } else {
                         /// When I click submit, the amount and amountString aren't updated with the new value that the Binding contains.
                         let localAmount = Double(amountStringBinding.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
-                        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+                        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
                         amountStringBinding = localAmount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
                     }
                 } else {
@@ -201,6 +201,18 @@ struct FormatCurrencyLiveAndOnUnFocus: ViewModifier {
             #endif
     }
 }
+//
+//#if os(macOS)
+//struct AccessoryWindow: ViewModifier {
+//    func body(content: Content) -> some View {
+//        content
+//            .windowResizability(.contentSize)
+//            .restorationBehavior(.disabled)
+//            .defaultPosition(.topTrailing)
+//    }
+//}
+//#endif
+//
 
 struct LoadingSpinner: ViewModifier {
     let id: NavDestination
@@ -229,7 +241,6 @@ struct LoadingSpinner: ViewModifier {
                     }
                     #if os(iOS)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .standardBackground()
                     #endif
                 } else {
                     ProgressView()
@@ -259,6 +270,30 @@ struct ChevronMenuOverlay: ViewModifier {
             //.padding(.leading, 4)
     }
 }
+
+
+struct WidgetFolderMods: ViewModifier {
+    var height: CGFloat?
+    func body(content: Content) -> some View {
+        content
+            .if(height != nil) { view in
+                view.frame(height: height)
+            }
+            .frame(maxWidth: .infinity)
+            //.background(Rectangle().fill(Color.clear))
+            //.background(Color(.secondarySystemBackground))
+            #if os(iOS)
+            .background(RoundedRectangle(cornerRadius: 20).fill(Color(.secondarySystemBackground)))
+            #else
+            .background(RoundedRectangle(cornerRadius: 20).fill(Color(.systemGray)))
+            #endif
+            //.background(Color(.tertiarySystemBackground))
+            //.cornerRadius(8)
+            //.cornerRadius(20)
+    }
+}
+
+
 
 #if os(iOS)
 extension UIApplication {
@@ -353,6 +388,7 @@ struct MaxViewWidthObserver: ViewModifier {
 }
 
 
+
 struct MaxViewHeightObserver: ViewModifier {
     func body(content: Content) -> some View {
         return content.background {
@@ -393,154 +429,42 @@ struct ViewHeightObserver: ViewModifier {
     }
 }
 
+struct MaxChartWidthObserver: ViewModifier {
+    func body(content: Content) -> some View {
+        return content.background {
+            GeometryReader { geo in
+                Color.clear.preference(key: MaxChartSizePreferenceKey.self, value: geo.size.width)
+            }
+        }
+    }
+}
+
+
+//struct DeleteConfirmation: ViewModifier {
+//    @Binding var isPresented: Bool
+//    var title: String
+//    var subtitle: String
+//    var yesAction: () -> Void
+//    var noAction: () -> Void
+//    
+//    func body(content: Content) -> some View {
+//        return content
+//            .confirmationDialog("Delete \"\(title)\"?", isPresented: $isPresented, actions: {
+//                Button("Yes", role: .destructive) { yesAction() }
+//                Button("No", role: .cancel) { noAction() }
+//            }, message: {
+//                #if os(iOS)
+//                Text("Delete \"\(title)\"?\n\(subtitle)")
+//                #else
+//                Text(subtitle)
+//                #endif
+//            })
+//    }
+//}
 
 
 
 #if os(iOS)
-struct StandardBackground: ViewModifier {
-    @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
-    @AppStorage("darkModeBackgroundColor") var darkModeBackgroundColor: String = "darkGray3"
-    @AppStorage("userColorScheme") var userColorScheme: UserPreferedColorScheme = .userSystem
-
-    func body(content: Content) -> some View {
-        content
-            //.preferredColorScheme(userColorScheme == .system ? nil : userColorScheme == .dark ? .dark : .light)
-//            .if(preferDarkMode) {
-//                $0.background(Color.getGrayFromName(darkModeBackgroundColor).ignoresSafeArea(.all))
-//            }
-            
-    }
-}
-
-struct StandardRowBackground: ViewModifier {
-    @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
-    @AppStorage("darkModeBackgroundColor") var darkModeBackgroundColor: String = "darkGray3"
-    @AppStorage("userColorScheme") var userColorScheme: UserPreferedColorScheme = .userSystem
-    
-    func body(content: Content) -> some View {
-        content
-            //.preferredColorScheme(userColorScheme == .system ? nil : userColorScheme == .dark ? .dark : .light)
-//            .if(preferDarkMode) {
-//                $0.listRowBackground(Color.getGrayFromName(darkModeBackgroundColor))
-//            }
-    }
-}
-
-
-struct StandardRowBackgroundWithSelection: ViewModifier {
-    @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
-    @AppStorage("darkModeSelectionColor") var darkModeSelectionColor: String = "darkGray3"
-    @AppStorage("userColorScheme") var userColorScheme: UserPreferedColorScheme = .userSystem
-    
-    let id: String
-    let selectedID: String?
-    
-    func body(content: Content) -> some View {
-        content
-            //.preferredColorScheme(userColorScheme == .system ? nil : userColorScheme == .dark ? .dark : .light)
-//            .if(id == selectedID) {
-//                $0.listRowBackground(preferDarkMode ? Color.getGrayFromName(darkModeSelectionColor) : Color(.tertiarySystemFill))
-//            }
-//            .if(id != selectedID) {
-//                $0.standardRowBackground()
-//            }
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-struct StandardNavBackground: ViewModifier {
-    @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
-    @AppStorage("darkModeBackgroundColor") var darkModeBackgroundColor: String = "darkGray3"
-    @AppStorage("userColorScheme") var userColorScheme: UserPreferedColorScheme = .userSystem
-    @Environment(\.colorScheme) var colorScheme
-
-    func body(content: Content) -> some View {
-        content
-            //.preferredColorScheme(userColorScheme == .system ? nil : userColorScheme == .dark ? .dark : .light)
-            .if(AppState.shared.isIpad) {
-                $0.background(colorScheme == .dark ? Color.darkGray.ignoresSafeArea(.all) : Color(UIColor.systemGray6).ignoresSafeArea(.all))
-            }
-        
-            .if(!AppState.shared.isIpad) {
-                $0.background(colorScheme == .dark ? Color.getGrayFromName(darkModeBackgroundColor) : Color.white)
-            }
-            
-    }
-}
-
-struct StandardNavRowBackground: ViewModifier {
-    @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
-    @AppStorage("darkModeBackgroundColor") var darkModeBackgroundColor: String = "darkGray3"
-    @AppStorage("userColorScheme") var userColorScheme: UserPreferedColorScheme = .userSystem
-    @Environment(\.colorScheme) var colorScheme
-    
-    func body(content: Content) -> some View {
-        content
-            //.preferredColorScheme(userColorScheme == .system ? nil : userColorScheme == .dark ? .dark : .light)
-            .if(AppState.shared.isIpad) {
-                $0.listRowBackground(colorScheme == .dark ? Color.darkGray : Color(UIColor.systemGray6))
-            }
-        
-            .if(!AppState.shared.isIpad) {
-                $0.listRowBackground(colorScheme == .dark ? Color.getGrayFromName(darkModeBackgroundColor) : Color.white)
-            }
-    }
-}
-
-
-
-struct StandardNavRowBackgroundWithSelection: ViewModifier {
-    @AppStorage("preferDarkMode") var preferDarkMode: Bool = true
-    @AppStorage("darkModeSelectionColor") var darkModeSelectionColor: String = "darkGray3"
-    @AppStorage("darkModeBackgroundColor") var darkModeBackgroundColor: String = "darkGray3"
-    @AppStorage("userColorScheme") var userColorScheme: UserPreferedColorScheme = .userSystem
-    @Environment(\.colorScheme) var colorScheme
-    
-    let id: String
-    let selectedID: String?
-    
-    func body(content: Content) -> some View {
-        content
-            //.preferredColorScheme(userColorScheme == .system ? nil : userColorScheme == .dark ? .dark : .light)
-            .if(id == selectedID) {
-                if AppState.shared.isIpad {
-                    $0.listRowBackground(colorScheme == .dark ? Color(.tertiarySystemFill) : Color(.tertiarySystemFill))
-                } else {
-                    $0.listRowBackground(colorScheme == .dark ? Color(.tertiarySystemFill) : Color(UIColor.systemGray4))
-                }
-            }
-            .if(id != selectedID) {
-                if AppState.shared.isIpad {
-                    $0.listRowBackground(colorScheme == .dark ? Color.darkGray : Color(UIColor.systemGray6))
-                } else {
-                    $0.listRowBackground(colorScheme == .dark ? Color.getGrayFromName(darkModeBackgroundColor) : nil)
-                }
-            }
-        
-        
-        
-            .if(id == selectedID) {
-                $0.listRowBackground(colorScheme == .dark ? Color.getGrayFromName(darkModeSelectionColor) : nil)
-            }
-            .if(id != selectedID) {
-                $0.listRowBackground(colorScheme == .dark ? Color.getGrayFromName(darkModeBackgroundColor) : nil)
-                //$0.standardRowBackground()
-            }
-    }
-}
-
-
-
-
 // A view modifier that detects shaking and calls a function of our choosing.
 struct DeviceShakeViewModifier: ViewModifier {
     let action: () -> Void

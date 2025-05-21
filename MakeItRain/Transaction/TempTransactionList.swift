@@ -65,8 +65,8 @@ struct TempTransactionList: View {
                 #if os(iOS)
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {
-                        fetchTransactionsFromCache()
                         funcModel.refreshTask = Task {
+                            await fetchTransactionsFromCache()
                             //authState.isThinking = true
                             showLoadingSpinner = true
                             if AuthState.shared.isLoggedIn {
@@ -128,7 +128,10 @@ struct TempTransactionList: View {
         .onChange(of: transEditID, { oldValue, newValue in
             /// When `newValue` is false, save to the server. We have to use this because `.popover(isPresented:)` has no onDismiss option.
             if oldValue != nil && newValue == nil {
-                saveTransaction(id: oldValue!)
+                Task {
+                    await saveTransaction(id: oldValue!)
+                }
+                
             } else {
                 editTrans = calModel.getTransaction(by: transEditID!, from: .tempList)
             }
@@ -139,14 +142,20 @@ struct TempTransactionList: View {
             calModel.prepareMonths()
             
             let targetMonth = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+            
+            
+            if let month = calModel.months.filter({ $0.enumID == targetMonth }).first {
+                funcModel.prepareStartingAmounts(for: month)
+            }
+            
             calModel.setSelectedMonthFromNavigation(navID: targetMonth!, prepareStartAmount: false)
             
             let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
             selectedDay = targetDay
             
-            funcModel.populateCategoriesFromCache()
-            funcModel.populatePaymentMethodsFromCache(setDefaultPayMethod: true)
-            fetchTransactionsFromCache()
+            await funcModel.populateCategoriesFromCache()
+            await funcModel.populatePaymentMethodsFromCache(setDefaultPayMethod: true)
+            await fetchTransactionsFromCache()
         }
         
         #if os(iOS)
@@ -155,7 +164,9 @@ struct TempTransactionList: View {
                 print("scenePhase: Inactive")
             } else if newPhase == .active {
                 print("scenePhase: Active")
-                lifeCycleChange()
+                Task {
+                    await lifeCycleChange()
+                }
             } else if newPhase == .background {
                 print("scenePhase: Background")
             }
@@ -163,21 +174,21 @@ struct TempTransactionList: View {
         #else
         // MARK: - Handling Lifecycles (Mac)
         .onChange(of: AppState.shared.macWokeUp) { oldValue, newValue in
-            if newValue { lifeCycleChange() }
+            if newValue { Task { await lifeCycleChange() } }
         }
         .onChange(of: AppState.shared.macSlept) { oldValue, newValue in
-            if newValue { lifeCycleChange() }
+            if newValue { Task { await lifeCycleChange() } }
         }
         .onChange(of: AppState.shared.macWindowDidBecomeMain) { oldValue, newValue in
-            if newValue { lifeCycleChange() }
+            if newValue { Task { await lifeCycleChange() } }
         }
         #endif
         
         
     }
     
-    func lifeCycleChange() {
-        fetchTransactionsFromCache()
+    func lifeCycleChange() async {
+        await fetchTransactionsFromCache()
         
         funcModel.refreshTask = Task {
             showLoadingSpinner = true
@@ -193,7 +204,7 @@ struct TempTransactionList: View {
     }
     
     
-    func saveTransaction(id: String) {
+    func saveTransaction(id: String) async {
         print("-- \(#function)")
         let trans = calModel.getTransaction(by: id, from: .tempList)
         
@@ -204,7 +215,7 @@ struct TempTransactionList: View {
                 Task {
                     try? await Task.sleep(nanoseconds: UInt64(1 * Double(NSEC_PER_SEC)))
                     
-                    AppState.shared.showToast(title: "Failed To Add", subtitle: "Payment Method was missing", body: "", symbol: "exclamationmark.triangle", symbolColor: .orange)
+                    AppState.shared.showToast(title: "Failed To Add", subtitle: "Account was missing", body: "", symbol: "exclamationmark.triangle", symbolColor: .orange)
                 }
             }
             return
@@ -216,7 +227,7 @@ struct TempTransactionList: View {
         trans.tempAction = .edit
         
         
-        guard let entity = DataManager.shared.getOne(type: TempTransaction.self, predicate: .byId(.string(trans.id)), createIfNotFound: true) else { return }
+        guard let entity = await DataManager.shared.getOne(type: TempTransaction.self, predicate: .byId(.string(trans.id)), createIfNotFound: true) else { return }
         
         entity.id = trans.id
         entity.title = trans.title
@@ -237,29 +248,39 @@ struct TempTransactionList: View {
         entity.action = trans.action.rawValue
         entity.tempAction = trans.tempAction.rawValue
         entity.isPending = true
-        entity.logs = NSSet(set: Set(trans.logs.compactMap { $0.createCoreDataEntity() }))
         
         
-        let _ = DataManager.shared.save()
+        var set: Set<TempTransactionLog> = Set()
+        
+        for each in trans.logs {
+            if let thing = await each.createCoreDataEntity() {
+                set.insert(thing)
+            }
+        }
+        entity.logs = NSSet(set: set)
+        //entity.logs = NSSet(set: Set(trans.logs.compactMap { $0.createCoreDataEntity() }))
+        
+        
+        let _ = await DataManager.shared.save()
     }
     
     
-    func fetchTransactionsFromCache() {
+    func fetchTransactionsFromCache() async {
         do {
             calModel.tempTransactions.removeAll()
-            if let entities = try DataManager.shared.getMany(type: TempTransaction.self) {
+            if let entities = try await DataManager.shared.getMany(type: TempTransaction.self) {
                 for entity in entities {
                     var category: CBCategory?
                     var payMethod: CBPaymentMethod?
                     
                     if let categoryID = entity.categoryID {
-                        if let perCategory = DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(categoryID)), createIfNotFound: false) {
+                        if let perCategory = await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(categoryID)), createIfNotFound: false) {
                             category = CBCategory(entity: perCategory)
                         }
                     }
                     
                     if let payMethodID = entity.payMethodID {
-                        if let perPayMethod = DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethodID)), createIfNotFound: false) {
+                        if let perPayMethod = await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethodID)), createIfNotFound: false) {
                             payMethod = CBPaymentMethod(entity: perPayMethod)
                         }
                     }

@@ -8,8 +8,8 @@
 import SwiftUI
 
 struct EventCategoryView: View {
-    @AppStorage("useWholeNumbers") var useWholeNumbers = false
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+    @Local(\.useWholeNumbers) var useWholeNumbers
+    @Local(\.colorTheme) var colorTheme
    
     #if os(macOS)
     @Environment(\.openWindow) private var openWindow

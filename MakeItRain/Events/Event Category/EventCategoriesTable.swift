@@ -121,7 +121,6 @@ struct EventCategoriesTable: View {
                     }
                 }
                 #if os(iOS)
-                .standardRowBackgroundWithSelection(id: cat.id, selectedID: categoryEditID)
                 .swipeActions(allowsFullSwipe: false) {
                     Button {
                         deleteCategory = cat
@@ -142,9 +141,6 @@ struct EventCategoriesTable: View {
             .onMove(perform: move)
 //        }
 //        .listStyle(.plain)
-//        #if os(iOS)
-//        .standardBackground()
-//        #endif
     }
     
     func getFocusIndex(for category: CBEventCategory) -> Int {

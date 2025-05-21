@@ -8,8 +8,8 @@
 import SwiftUI
 
 struct EventDetailsView: View {
-    @AppStorage("useWholeNumbers") var useWholeNumbers = false
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+    @Local(\.useWholeNumbers) var useWholeNumbers
+    @Local(\.colorTheme) var colorTheme
        
     @Environment(\.dismiss) var dismiss
     @Environment(EventModel.self) private var eventModel

@@ -43,13 +43,16 @@ struct CategorySheet: View {
     var filteredCategories: Array<CBCategory> {
         if searchText.isEmpty {
             return catModel.categories
+                .filter { !($0.isNil ?? false) }
                 .sorted {
                     categorySortMode == .title
                     ? $0.title.lowercased() < $1.title.lowercased()
                     : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
                 }
         } else {
-            return catModel.categories.filter { $0.title.localizedStandardContains(searchText) }
+            return catModel.categories
+                .filter { $0.title.localizedStandardContains(searchText) }
+                .filter { !($0.isNil ?? false) }
                 .sorted {
                     categorySortMode == .title
                     ? $0.title.lowercased() < $1.title.lowercased()
@@ -90,7 +93,7 @@ struct CategorySheet: View {
             noneSection
             yourCategoriesSection
         } header: {
-            SheetHeader(title: "Categories", close: { dismiss() }, view1: { sortMenu })
+            SheetHeader(title: "Select Category", close: { dismiss() }, view1: { sortMenu })
         } subHeader: {
             SearchTextField(title: "Categories", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)
                 .padding(.horizontal, -20)
@@ -121,17 +124,18 @@ struct CategorySheet: View {
     }
     
     var noneSection: some View {
-        Section("None") {
+        let theNil = catModel.categories.filter { $0.isNil }.first!
+        return Section("None") {
             HStack {
                 Text("None")
                     .strikethrough(true)
                 Spacer()
-                if category?.id == nil {
+                if category?.id == theNil.id {
                     Image(systemName: "checkmark")
                 }
             }
             .contentShape(Rectangle())
-            .onTapGesture { doIt(nil) }
+            .onTapGesture { doIt(theNil) }
         }
     }
     

@@ -10,8 +10,8 @@ import MapKit
 
 struct EventTransactionOptionView: View {
     @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
-    @AppStorage("useWholeNumbers") var useWholeNumbers = false
+    @Local(\.colorTheme) var colorTheme
+    @Local(\.useWholeNumbers) var useWholeNumbers
     
     @State private var mapModel = MapModel()
     @Environment(EventModel.self) private var eventModel
@@ -152,7 +152,7 @@ struct EventTransactionOptionView: View {
                                 Text(user.name)
                                     .bold()
                                     .font(.caption2)
-                                    .foregroundStyle(Color.fromName(appColorTheme))
+                                    .foregroundStyle(Color.fromName(colorTheme))
                             }
                         }
                     }

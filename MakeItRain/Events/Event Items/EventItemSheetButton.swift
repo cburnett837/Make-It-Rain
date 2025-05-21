@@ -17,9 +17,13 @@ struct EventItemSheetButton: View {
     
     var body: some View {
         StandardRectangle(fill: itemMenuColor) {
-            MenuOrListButton(title: item?.title, alternateTitle: "Select Item") {
-                showItemSheet = true
-            }
+            MenuOrListButton(title: item?.title, alternateTitle: "Select Item") 
+        }
+        .contentShape(Rectangle())
+        //.padding(.leading, 2)
+        .focusable(false)
+        .onTapGesture {
+            showItemSheet = true
         }
         .onHover { itemMenuColor = $0 ? Color(.systemFill) : Color(.tertiarySystemFill) }
         .sheet(isPresented: $showItemSheet) {

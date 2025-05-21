@@ -23,6 +23,7 @@ struct StandardNoteTextEditor: View {
             }
             
             TextEditor(text: $notes)
+                .writingToolsBehavior(.complete)
                 .foregroundStyle(notes.isEmpty ? .gray : .primary)
                 .scrollContentBackground(.hidden)
                 .background(.clear)

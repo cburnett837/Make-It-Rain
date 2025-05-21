@@ -12,10 +12,11 @@ import Algorithms
 struct CalendarViewMac: View {
     @AppStorage("calendarSplitViewPercentage") var calendarSplitViewPercentage = 0.0
     @AppStorage("viewMode") var viewMode = CalendarViewMode.scrollable
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+    @Local(\.colorTheme) var colorTheme
     @AppStorage("alignWeekdayNamesLeft") var alignWeekdayNamesLeft = true
     
     @Environment(CalendarModel.self) private var calModel
+    @Environment(FuncModel.self) private var funcModel
         
     var divideBy: CGFloat {
         let cellCount = calModel.sMonth.firstWeekdayOfMonth - 1 + calModel.sMonth.dayCount
@@ -47,102 +48,75 @@ struct CalendarViewMac: View {
 
     
     var body: some View {
-        GeometryReader { geo in
-            Group {
-                if viewMode == .budget {
-                    BudgetTable(maxHeaderHeight: $maxHeaderHeight)
+        calendarView
+            .padding(viewMode == .split ? .horizontal : .horizontal, 15)
+            .if(viewMode == .split) {
+                $0.frame(minWidth: calendarWidth - (extraViewsWidth / 2))
+            }
+            .padding(.bottom, 15)
+            .task {
+                //funcModel.prepareStartingAmounts()
+                /// Needed when selecting a month from a category analytic.
+                let viewingMonth = calModel.months.filter { $0.enumID == enumID }.first!
+                funcModel.prepareStartingAmounts(for: viewingMonth)
+                calModel.setSelectedMonthFromNavigation(navID: enumID, prepareStartAmount: true)
+            }
+            .onPreferenceChange(ViewWidthKey.self) { extraViewsWidth = $0 }
+            //.onPreferenceChange(MaxSizePreferenceKey.self) { maxHeaderHeight = max(maxHeaderHeight, $0) }
                     
-                } else {
-                    HStack(spacing: 0) {
-                        calendarView
-                            .padding(viewMode == .split ? .horizontal : .horizontal, 15)
-                            .if(viewMode == .split) {
-                                $0.frame(minWidth: calendarWidth - (extraViewsWidth / 2))
-                            }
-                            .padding(.bottom, 15)
-                            .animation(nil, value: UUID())
-                        
-                        if viewMode == .split {
-                            dragHandle
-                            
-                            BudgetTable(maxHeaderHeight: $maxHeaderHeight)
-                                .frame(minWidth: chartWidth - (extraViewsWidth / 2) - 15) /// -30 to account for the padding
-                                .padding(.leading, 15)
-                                .padding(.bottom, 15)
-                        }
-                    }
+            .toolbar {
+                ToolbarItem(placement: .navigation) {
+                    CalendarToolbarLeading(focusedField: $focusedField, enumID: enumID, isInWindow: isInWindow)
+                        //.opacity(LoadingManager.shared.showInitiallyLoadingSpinner ? 0 : 1)
+                        .focusSection()
+                }
+                ToolbarItem(placement: .principal) {
+                    ToolbarCenterView(enumID: enumID)
+                }
+                ToolbarItem {
+                    Spacer()
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    CalendarToolbarTrailing(focusedField: $focusedField, isInWindow: isInWindow)
+                        //.opacity(LoadingManager.shared.showInitiallyLoadingSpinner ? 0 : 1)
+                        .focusSection()
                 }
             }
-            .onChange(of: geo.size, initial: true) {
-                if calendarSplitViewPercentage == 0 {
-                    calendarSplitViewPercentage = 50
-                }
-                
-                /// If applicable, restore the view percentages from the users last preference.
-                fullWidth = geo.size.width
-                calendarWidth = fullWidth * (calendarSplitViewPercentage / 100)
-                chartWidth = fullWidth - calendarWidth
+    //        .searchable(text: $searchText) {
+    //            let relevantTransactionTitles: Array<String> = calModel
+    //                .sMonth
+    //                .justTransactions
+    //                .filter { $0.payMethod?.id == calModel.sPayMethod?.id }
+    //                .compactMap { $0.title }
+    //                .uniqued()
+    //                .filter { $0.lowercased().contains(searchText.lowercased()) }
+    //
+    //            ForEach(relevantTransactionTitles, id: \.self) { title in
+    //                Text(title)
+    //                    .searchCompletion(title)
+    //            }
+    //        }
+    //        .searchScopes($searchWhat) {
+    //            Text("Transaction Title")
+    //                .tag(CalendarSearchWhat.titles)
+    //            Text("Tag")
+    //                .tag(CalendarSearchWhat.tags)
+    //        }
+            .tint(Color.fromName(colorTheme))
+            .loadingSpinner(id: enumID, text: "Loading \(enumID.displayName)…")
+            /// This is here in case you want to cancel the dragging transaction - this will unhilight the last hilighted day.
+            .dropDestination(for: CBTransaction.self) { droppedTrans, location in
+                calModel.dragTarget = nil
+                return true
+            } isTargeted: {
+                if $0 { withAnimation { calModel.dragTarget = nil } }
             }
-        }
-        .task {
-            calModel.setSelectedMonthFromNavigation(navID: enumID, prepareStartAmount: true)
-        }
-        .onPreferenceChange(ViewWidthKey.self) { extraViewsWidth = $0 }
-        //.onPreferenceChange(MaxSizePreferenceKey.self) { maxHeaderHeight = max(maxHeaderHeight, $0) }
-                
-        .toolbar {
-            ToolbarItem(placement: .navigation) {
-                CalendarToolbarLeading(focusedField: $focusedField, enumID: enumID, isInWindow: isInWindow)
-                    //.opacity(LoadingManager.shared.showInitiallyLoadingSpinner ? 0 : 1)
-                    .focusSection()
+            .contentShape(Rectangle())
+            .onTapGesture {
+                /// Used for hilighting
+                calModel.hilightTrans = nil
+                focusedField = nil
             }
-            ToolbarItem(placement: .principal) {
-                ToolbarCenterView(enumID: enumID)
-            }
-            ToolbarItem {
-                Spacer()
-            }
-            ToolbarItem(placement: .primaryAction) {
-                CalendarToolbarTrailing(focusedField: $focusedField, set5050: set5050, isInWindow: isInWindow)
-                    //.opacity(LoadingManager.shared.showInitiallyLoadingSpinner ? 0 : 1)
-                    .focusSection()
-            }
-        }
-//        .searchable(text: $searchText) {
-//            let relevantTransactionTitles: Array<String> = calModel
-//                .sMonth
-//                .justTransactions
-//                .filter { $0.payMethod?.id == calModel.sPayMethod?.id }
-//                .compactMap { $0.title }
-//                .uniqued()
-//                .filter { $0.lowercased().contains(searchText.lowercased()) }
-//                    
-//            ForEach(relevantTransactionTitles, id: \.self) { title in
-//                Text(title)
-//                    .searchCompletion(title)
-//            }
-//        }
-//        .searchScopes($searchWhat) {
-//            Text("Transaction Title")
-//                .tag(CalendarSearchWhat.titles)
-//            Text("Tag")
-//                .tag(CalendarSearchWhat.tags)
-//        }
-        .tint(Color.fromName(appColorTheme))
-        .loadingSpinner(id: enumID, text: "Loading \(enumID.displayName)…")
-        /// This is here in case you want to cancel the dragging transaction - this will unhilight the last hilighted day.
-        .dropDestination(for: CBTransaction.self) { droppedTrans, location in
-            calModel.dragTarget = nil
-            return true
-        } isTargeted: {
-            if $0 { withAnimation { calModel.dragTarget = nil } }
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            /// Used for hilighting
-            calModel.hilightTrans = nil
-            focusedField = nil
-        }
         
     }
     
@@ -224,174 +198,6 @@ struct CalendarViewMac: View {
                 }
             }
         }
-    }
-    
-    
-    var dragHandleOG: some View {
-        ZStack {
-            Rectangle()
-                .frame(maxHeight: .infinity)
-                .frame(width: 10)
-                .foregroundStyle(.black)
-            
-            RoundedRectangle(cornerRadius: 10)
-                .fill(isHoveringOnSlider ? Color.gray : Color(.darkGray))
-                .frame(width: 4, height: 60)
-                .padding()
-                .onContinuousHover { phase in
-                    /// Change the cursor and the color of the drag handle.
-                    switch phase {
-                    case .active:
-                        isHoveringOnSlider = true
-                        NSCursor.resizeLeftRight.push()
-                    case .ended:
-                        isHoveringOnSlider = false
-                        NSCursor.pop()
-                        NSCursor.arrow.push()
-                    }
-                }
-                .gesture(DragGesture()
-                    .onChanged { value in
-                        let dragAmount = value.translation.width
-                        //print(dragAmount)
-                        
-                        /// Change the color of the drag handle.
-                        isHoveringOnSlider = true
-                        
-                        /// Adjust the views when dragging.
-                        if dragAmount < 0 {
-                            calendarWidth -= abs(dragAmount)
-                            chartWidth += abs(dragAmount)
-                        } else {
-                            calendarWidth += abs(dragAmount)
-                            chartWidth -= abs(dragAmount)
-                        }
-                        
-                        
-                        let minWidth: CGFloat = 400
-                        if calendarWidth <= minWidth {
-                            calendarWidth = minWidth
-                            chartWidth = (fullWidth - extraViewsWidth) - minWidth
-                            return
-                        }
-                        
-                        if chartWidth <= minWidth {
-                            chartWidth = minWidth
-                            calendarWidth = (fullWidth - extraViewsWidth) - minWidth
-                            return
-                        }
-                                                                                                                                    
-                        /// Snap the views if close to the center.
-                        let half = fullWidth / 2
-                        let snapArea: CGFloat = 40
-                        
-                        if calendarWidth > (half - snapArea) && calendarWidth < (half + snapArea) {
-                            calendarWidth = half
-                            chartWidth = half
-                            return
-                        }
-                    }
-                    .onEnded { value in
-                        isHoveringOnSlider = false
-                        
-                        /// Calculate the percentage of the view that the calendar is taking, and save it to user defaults so we can restore the next time the app boots.
-                        let dragPercentage = (calendarWidth / fullWidth) * 100
-                        calendarSplitViewPercentage = dragPercentage
-                    }
-                )
-        }
-        /// Get the width of the drag bar so it can be subtracted from the total width, and allow the chart and calendar to have the proper size.
-        .viewWidthObserver()
-
-    }
-    
-    
-    
-    var dragHandle: some View {
-        ZStack {
-            Rectangle()
-                .frame(maxHeight: .infinity)
-                .frame(width: 1)
-                .foregroundStyle(.black)
-                .overlay {
-                    Rectangle()
-                        .frame(maxHeight: .infinity)
-                        .frame(width: 10)
-                        .foregroundStyle(.clear)
-                        .onContinuousHover { phase in
-                            /// Change the cursor and the color of the drag handle.
-                            switch phase {
-                            case .active:
-                                isHoveringOnSlider = true
-                                NSCursor.resizeLeftRight.push()
-                            case .ended:
-                                isHoveringOnSlider = false
-                                NSCursor.pop()
-                                NSCursor.arrow.push()
-                            }
-                        }
-                        .gesture(DragGesture()
-                            .onChanged { value in
-                                let dragAmount = value.translation.width
-                                //print(dragAmount)
-                                
-                                /// Change the color of the drag handle.
-                                isHoveringOnSlider = true
-                                
-                                /// Adjust the views when dragging.
-                                if dragAmount < 0 {
-                                    calendarWidth -= abs(dragAmount)
-                                    chartWidth += abs(dragAmount)
-                                } else {
-                                    calendarWidth += abs(dragAmount)
-                                    chartWidth -= abs(dragAmount)
-                                }
-                                
-                                
-                                let minWidth: CGFloat = 400
-                                if calendarWidth <= minWidth {
-                                    calendarWidth = minWidth
-                                    chartWidth = (fullWidth - extraViewsWidth) - minWidth
-                                    return
-                                }
-                                
-                                if chartWidth <= minWidth {
-                                    chartWidth = minWidth
-                                    calendarWidth = (fullWidth - extraViewsWidth) - minWidth
-                                    return
-                                }
-                                                                                                                                            
-                                /// Snap the views if close to the center.
-                                let half = fullWidth / 2
-                                let snapArea: CGFloat = 40
-                                
-                                if calendarWidth > (half - snapArea) && calendarWidth < (half + snapArea) {
-                                    calendarWidth = half
-                                    chartWidth = half
-                                    return
-                                }
-                            }
-                            .onEnded { value in
-                                isHoveringOnSlider = false
-                                
-                                /// Calculate the percentage of the view that the calendar is taking, and save it to user defaults so we can restore the next time the app boots.
-                                let dragPercentage = (calendarWidth / fullWidth) * 100
-                                calendarSplitViewPercentage = dragPercentage
-                            }
-                        )
-                }
-                
-        }
-        /// Get the width of the drag bar so it can be subtracted from the total width, and allow the chart and calendar to have the proper size.
-        .viewWidthObserver()
-
-    }
-    
-    
-    func set5050() {
-        calendarWidth = fullWidth / 2
-        chartWidth = fullWidth / 2
-        calendarSplitViewPercentage = 50
     }
 }
 

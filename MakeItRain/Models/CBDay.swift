@@ -11,7 +11,7 @@ import SwiftUI
 
 @Observable
 class CBDay: Identifiable, Hashable, Equatable {
-    var id = UUID()
+    var id: Int
     var date: Date?
     var dateComponents: DateComponents? {
         if let date = self.date {
@@ -36,12 +36,18 @@ class CBDay: Identifiable, Hashable, Equatable {
         return "\(dateComponents?.month ?? 0)/" + "\(dateComponents?.day ?? 0)/" + "\(dateComponents?.year ?? 0)"
     }
     
-    
-    init(date: Date?, transactions: Array<CBTransaction> = []) {
-        self.id = UUID()
+    /// For real days
+    init(date: Date, transactions: Array<CBTransaction> = []) {
+        self.id = date.day
         self.date = date
         self.transactions = transactions
     }
+    
+    /// For the placeholders
+    init(id: Int) {
+        self.id = id
+    }
+    
     
     static func == (lhs: CBDay, rhs: CBDay) -> Bool {
         if lhs.id == rhs.id && lhs.transactions == rhs.transactions {

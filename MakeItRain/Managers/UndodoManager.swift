@@ -11,7 +11,7 @@ import SwiftUI
 enum TransactionUndoField: String {
     case title = "Title",
          amount = "Amount",
-         payMethod = "Payment Method",
+         payMethod = "Account",
          category = "Category",
          date = "Date",
          trackingNumber = "Tracking Number",
@@ -107,11 +107,11 @@ class UndodoManager {
             canRedo = true
         }
         
-        print("undoPotentialNext \(simUndoPosition) - \(canUndo) --- redoPotentialNext \(simRedoPosition) - \(canRedo)")
+        //print("undoPotentialNext \(simUndoPosition) - \(canUndo) --- redoPotentialNext \(simRedoPosition) - \(canRedo)")
     }
     
     func processChange(trans: CBTransaction) {
-        print("-- \(#function)")
+        //print("-- \(#function)")
         /// Block the onChanges from running when undo or redo is invoked.
         if returnMe == nil {
             let task = Task {
@@ -166,12 +166,12 @@ class UndodoManager {
         } else {
             undoPosition = maxIndex
         }
-        print("-- \(#function) -- newUndoPositon: \(undoPosition)")
+        //print("-- \(#function) -- newUndoPositon: \(undoPosition)")
     }
 
     
     func undo() -> UndoTransactionSnapshot? {
-        print("-- \(#function) ❌old position \(undoPosition)")
+        //print("-- \(#function) ❌old position \(undoPosition)")
         undoPosition -= 1
         
         if undoPosition == -1 {
@@ -184,18 +184,18 @@ class UndodoManager {
             //let usedPosition = getPosition(for: .undo, index: undoPosition)
             //undoPosition = usedPosition
         }
-        print("-- \(#function) ✅usedPosition \(undoPosition)")
-        for each in history {
-            print(each)
-            //print("\n")
-        }
+        //print("-- \(#function) ✅usedPosition \(undoPosition)")
+//        for each in history {
+//            print(each)
+//            //print("\n")
+//        }
         return history[undoPosition]
         
     }
 
     
     func redo() -> UndoTransactionSnapshot?  {
-        print("-- \(#function) ❌old position \(undoPosition)")
+        //print("-- \(#function) ❌old position \(undoPosition)")
         undoPosition += 1
         
         if undoPosition > maxIndex {
@@ -209,11 +209,11 @@ class UndodoManager {
             //undoPosition = usedPosition
         }
         
-        print("-- \(#function) ✅usedPosition \(undoPosition)")
-        for each in history {
-            print(each)
-            //print("\n")
-        }
+        //print("-- \(#function) ✅usedPosition \(undoPosition)")
+//        for each in history {
+//            print(each)
+//            //print("\n")
+//        }
         return history[undoPosition]
     }
     

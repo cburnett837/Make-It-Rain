@@ -11,7 +11,7 @@ import SwiftUI
 struct CalendarOptionsSheet: View {
     @Environment(\.dismiss) var dismiss
     
-    @AppStorage("useWholeNumbers") var useWholeNumbers = false
+    @Local(\.useWholeNumbers) var useWholeNumbers
     @AppStorage("tightenUpEodTotals") var tightenUpEodTotals = true
 
     @Environment(FuncModel.self) var funcModel
@@ -65,7 +65,6 @@ struct CalendarOptionsSheet: View {
         }
         
         //.frame(width: getRect().width - 90)
-        //.standardBackground()
         //.frame(maxWidth: .infinity)
         
 //        .alert("Woah!", isPresented: $showPopulateAlert) {
@@ -168,10 +167,10 @@ struct CalendarOptionsSheet: View {
 //                        
 //                        
 //                        MenuOrListButton(title: calModel.sPayMethod?.title, alternateTitle: "Select Payment Method") {
-//                            showPaymentMethodSheet = true
+//                            showPayMethodSheet = true
 //                        }
 ////                        
-////                        PaymentMethodMenu(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all) {
+////                        PayMethodMenu(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all) {
 ////                            HStack {
 ////                                Text(calModel.sPayMethod?.title ?? "Select Payment Method")
 ////                                    .foregroundStyle(.primary)
@@ -280,7 +279,7 @@ struct CalendarOptionsSheet: View {
 struct CalendarOptionsSheetOG: View {
     @Environment(\.dismiss) var dismiss
     
-    @AppStorage("useWholeNumbers") var useWholeNumbers = false
+    @Local(\.useWholeNumbers) var useWholeNumbers
     @AppStorage("tightenUpEodTotals") var tightenUpEodTotals = true
 
     @Environment(FuncModel.self) var funcModel
@@ -296,7 +295,7 @@ struct CalendarOptionsSheetOG: View {
     
     @State private var showPopulateAlert = false
     @State private var showPopulateOptionsSheet = false
-    //@State private var showPaymentMethodSheet = false
+    //@State private var showPayMethodSheet = false
     //@State private var showCategorySheet = false
     
     @Binding var selectedDay: CBDay?
@@ -351,8 +350,8 @@ struct CalendarOptionsSheetOG: View {
         .sheet(isPresented: $showPopulateOptionsSheet) {
             PopulateMonthOptionsSheet()
         }
-//        .sheet(isPresented: $showPaymentMethodSheet) {
-//            PaymentMethodSheet(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all)
+//        .sheet(isPresented: $showPayMethodSheet) {
+//            PayMethodSheet(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all)
 //            #if os(macOS)
 //                .frame(minWidth: 300, minHeight: 500)
 //                .presentationSizing(.fitted)
@@ -367,7 +366,6 @@ struct CalendarOptionsSheetOG: View {
 //        }
         
         //.frame(width: getRect().width - 90)
-        //.standardBackground()
         //.frame(maxWidth: .infinity)
         
         .alert("Woah!", isPresented: $showPopulateAlert) {
@@ -470,10 +468,10 @@ struct CalendarOptionsSheetOG: View {
 //
 //
 //                        MenuOrListButton(title: calModel.sPayMethod?.title, alternateTitle: "Select Payment Method") {
-//                            showPaymentMethodSheet = true
+//                            showPayMethodSheet = true
 //                        }
 ////
-////                        PaymentMethodMenu(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all) {
+////                        PayMethodMenu(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all) {
 ////                            HStack {
 ////                                Text(calModel.sPayMethod?.title ?? "Select Payment Method")
 ////                                    .foregroundStyle(.primary)
@@ -586,7 +584,7 @@ struct CalendarOptionsSheetOG: View {
     
 //    func submitStartingAmount() {
 //        /// This logic happens via an onChange() in the root view on macOS
-//        calModel.calculateTotalForMonth(month: calModel.sMonth)
+//        let _ = calModel.calculateTotal(for: calModel.sMonth)
 //
 //        let starting = calModel.sMonth.startingAmounts.filter { $0.payMethod.id == calModel.sPayMethod?.id }.first
 //        if starting != nil {

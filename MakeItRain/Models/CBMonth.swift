@@ -13,6 +13,16 @@ extension UTType {
     static let transaction = UTType(exportedAs: "com.codyburnett.MakeItRain")
 }
 
+//struct EndOfDayAmounts {
+//    var day: Int
+//    var amounts: [EndOfDayAmount]
+//}
+//
+//struct EndOfDayAmount {
+//    var paymentMethod: CBPaymentMethod
+//    var amount: Double
+//}
+
 @Observable
 class CBMonth: Identifiable, Hashable, Equatable, Encodable {
     var id: UUID = UUID()
@@ -27,6 +37,39 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
     var startingAmounts: Array<CBStartingAmount> = []
     var budgets: Array<CBBudget> = []
     var hasBeenPopulated = false
+    
+//    @MainActor var eods: Array<EndOfDayAmounts> {
+//        var returns: Array<EndOfDayAmounts> = []
+//        
+//        for payMeth in PayMethodModel.shared.paymentMethods {
+//            let startingAmount = startingAmounts.filter { $0.payMethod.id == payMeth.id }.first ?? CBStartingAmount()
+//            var currentAmount = startingAmount.amount
+//            
+//            for day in days {
+//                var amounts: Array<EndOfDayAmount> = []
+//                
+//                if payMeth.accountType == .checking {
+//                    let dayTotal = day.transactions
+//                        .filter { $0.payMethod?.id == payMeth.id }
+//                        .filter { $0.active }
+//                        .filter { $0.factorInCalculations == true }
+//                        .map { $0.amount }
+//                        
+//                    currentAmount += dayTotal.reduce(0.0, +)
+//                    
+//                    let thing = EndOfDayAmount(paymentMethod: payMeth, amount: currentAmount)
+//                    amounts.append(thing)
+//                }
+//                
+//                let final = EndOfDayAmounts(day: day.id, amounts: amounts)
+//                returns.append(final)
+//            }
+//                                    
+//        }
+//        
+//        return returns
+//    }
+    
     
     var justTransactions: Array<CBTransaction> {
         self.days.flatMap { $0.transactions }

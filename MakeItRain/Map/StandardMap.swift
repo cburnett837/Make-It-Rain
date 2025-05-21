@@ -86,7 +86,7 @@ struct SearchSuggestions: View {
 
 
 struct StandardMapView: View {
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
+    @Local(\.colorTheme) var colorTheme
 
     @Environment(\.dismiss) var dismiss
     @Environment(MapModel.self) private var mapModel
@@ -478,7 +478,6 @@ struct StandardMapView: View {
     
     
     var directionsWalkingButton: some View {
-        
         Button {
             Task {
                 let _ = await mapModel.selectedMapItem!.mapItem?.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey : MKLaunchOptionsDirectionsModeWalking], from: UIApplication.shared.connectedScenes.first)
@@ -572,7 +571,7 @@ struct StandardMapView: View {
     
     var mapControls: some View {
         VStack(spacing: 0.0) {
-            ButtonGroup(topPadding: 60, horizontalPosition: .trailing) {
+            ButtonGroup(topPadding: 50, horizontalPosition: .trailing) {
                 VStack(spacing: 0.0) {
                     mapStyleButton
                     buttonSeparator
@@ -595,7 +594,7 @@ struct StandardMapView: View {
     
     
     var closeMapButton: some View {
-        ButtonGroup(topPadding: 60, horizontalPosition: .leading) {
+        ButtonGroup(topPadding: 50, horizontalPosition: .leading) {
             Button {
                 withAnimation {
                     clearSearch()

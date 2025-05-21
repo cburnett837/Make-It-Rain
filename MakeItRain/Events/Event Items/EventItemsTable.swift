@@ -110,7 +110,6 @@ struct EventItemsTable: View {
                     Spacer()
                 }
                 #if os(iOS)
-                .standardRowBackgroundWithSelection(id: item.id, selectedID: itemEditID)
                 .swipeActions(allowsFullSwipe: false) {
                     Button {
                         deleteItem = item
@@ -131,9 +130,6 @@ struct EventItemsTable: View {
             .onMove(perform: move)
         //}
         .listStyle(.plain)
-        #if os(iOS)
-        .standardBackground()
-        #endif
     }
     
     func getFocusIndex(for item: CBEventItem) -> Int {

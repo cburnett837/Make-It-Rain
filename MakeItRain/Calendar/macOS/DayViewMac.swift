@@ -8,8 +8,8 @@
 import SwiftUI
 
 struct DayViewMac: View {
-    @AppStorage("useWholeNumbers") var useWholeNumbers = false
-    @AppStorage("threshold") var threshold = "500.0"
+    @Local(\.useWholeNumbers) var useWholeNumbers
+    @Local(\.threshold) var threshold
     @AppStorage("alignWeekdayNamesLeft") var alignWeekdayNamesLeft = true
     
     @Environment(CalendarModel.self) private var calModel
@@ -107,7 +107,7 @@ struct DayViewMac: View {
                             transEditID = UUID().uuidString
                         }
                         
-                        Button("New Transfer") {
+                        Button("New Transfer / Payment") {
                             showTransferSheet = true
                         }
                         
@@ -214,7 +214,7 @@ struct DayViewMac: View {
                 }
                 
                 .sheet(isPresented: $showTransferSheet) {
-                    TransferSheet2(date: day.date!)
+                    TransferSheet(date: day.date!)
                     //TransferSheet(day: $day)
                     //TransferSheet(day: Binding(get: { }, set: { }))
                 }

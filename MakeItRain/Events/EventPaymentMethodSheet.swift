@@ -1,5 +1,5 @@
 ////
-////  EventPaymentMethodSheet.swift
+////  EventPayMethodSheet.swift
 ////  MakeItRain
 ////
 ////  Created by Cody Burnett on 4/2/25.
@@ -8,7 +8,7 @@
 //
 //import SwiftUI
 //
-//struct EventPaymentMethodSheet: View {
+//struct EventPayMethodSheet: View {
 //    @Environment(\.colorScheme) var colorScheme
 //    @Environment(\.dismiss) var dismiss
 //    

@@ -7,9 +7,14 @@
 
 import SwiftUI
 
-struct TransferSheet2: View {
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
-    @AppStorage("useWholeNumbers") var useWholeNumbers = false
+struct TransferSheet: View {
+    
+    private enum TransferType {
+        case cashAdvance, deposit, payment, transfer
+    }
+    
+    @Local(\.colorTheme) var colorTheme
+    @Local(\.useWholeNumbers) var useWholeNumbers
     
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
@@ -21,40 +26,54 @@ struct TransferSheet2: View {
     @State private var transfer = CBTransfer()
     @FocusState private var focusedField: Int?
 
+    private var transferType: TransferType {
+        if transfer.from?.accountType == .credit {
+            return .cashAdvance
+        } else if transfer.from?.accountType == .cash && transfer.to?.accountType == .checking {
+            return .deposit
+        } else if transfer.to?.accountType == .credit || transfer.to?.accountType == .loan {
+            return .payment
+        } else {
+            return .transfer
+        }
+    }
+    
     
     var title: String {
-        if transfer.from?.accountType == .credit {
-            return "New Cash Advance"
-        } else if transfer.from?.accountType == .cash && transfer.to?.accountType == .checking {
-            return "New Deposit"
-        } else if transfer.to?.accountType == .credit {
-            return "New Payment"
-        } else {
-            return "New Transfer"
+        switch transferType {
+        case .cashAdvance:
+            "New Cash Advance"
+        case .deposit:
+            "New Deposit"
+        case .payment:
+            "New Payment"
+        case .transfer:
+            "New Transfer"
         }
     }
     
     
     var transferLingo: String {
-        if transfer.from?.accountType == .credit {
-            return "Cash advance"
-        } else if transfer.from?.accountType == .cash && transfer.to?.accountType == .checking {
-            return "Deposit"
-        } else if transfer.to?.accountType == .credit {
-            return "Payment"
-        } else {
-            return "Transfer"
+        switch transferType {
+        case .cashAdvance:
+            "Cash advance"
+        case .deposit:
+            "Deposit"
+        case .payment:
+            "Payment"
+        case .transfer:
+            "Transfer"
         }
     }
     
     var body: some View {
         StandardContainer {
             LabeledRow("From", labelWidth) {
-                PaymentMethodSheetButton(payMethod: $transfer.from, whichPaymentMethods: .allExceptUnified)
+                PayMethodSheetButton(payMethod: $transfer.from, whichPaymentMethods: .allExceptUnified)
             }
             
             LabeledRow("To", labelWidth) {
-                PaymentMethodSheetButton(payMethod: $transfer.to, whichPaymentMethods: .allExceptUnified)
+                PayMethodSheetButton(payMethod: $transfer.to, whichPaymentMethods: .allExceptUnified)
             }
             
             StandardDivider()
@@ -119,10 +138,10 @@ struct TransferSheet2: View {
         }
         .padding(.bottom, 6)
         #if os(macOS)
-        .foregroundStyle(Color.fromName(appColorTheme))
+        .foregroundStyle(Color.fromName(colorTheme))
         .buttonStyle(.codyStandardWithHover)
         #else
-        .tint(Color.fromName(appColorTheme))
+        .tint(Color.fromName(colorTheme))
         .buttonStyle(.borderedProminent)
         #endif
         .disabled(transfer.from == nil || transfer.to == nil || transfer.amount == 0.0)
@@ -155,7 +174,7 @@ struct TransferSheet2: View {
             fromTrans.title = "\(transferLingo) to \(transfer.to?.title ?? "N/A")"
             fromTrans.date = date
                                     
-            if transfer.from?.accountType == .credit {
+            if transfer.from?.accountType == .credit || transfer.to?.accountType == .loan {
                 fromTrans.amountString = (transfer.amount * 1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
             } else {
                 fromTrans.amountString = (transfer.amount * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
@@ -172,7 +191,7 @@ struct TransferSheet2: View {
             toTrans.date = date
             toTrans.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
             
-            if transfer.to?.accountType == .credit {
+            if transfer.to?.accountType == .credit || transfer.to?.accountType == .loan {
                 toTrans.amountString = (transfer.amount * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
             } else {
                 toTrans.amountString = (transfer.amount * 1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
@@ -182,10 +201,25 @@ struct TransferSheet2: View {
             toTrans.category = transfer.category
             toTrans.updatedBy = AppState.shared.user!
             toTrans.updatedDate = Date()
+            
+            
+            if transferType == .payment {
+                toTrans.isPayment = true
+            }
+            
                                     
             let transferMonth = date.month
             let transferDay = date.day
             let transferYear = date.year
+            
+            
+            fromTrans.relatedTransactionID = toTrans.id
+            fromTrans.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
+            
+            toTrans.relatedTransactionID = fromTrans.id
+            toTrans.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
+            
+            
             
             if transferYear == calModel.sYear || (transferMonth == 1 && transferYear == calModel.sYear + 1) || (transferMonth == 12 && transferYear == calModel.sYear - 1) {
                 if let theMonth = calModel.months.filter({ $0.actualNum == transferMonth && $0.year == transferYear }).first {
@@ -196,9 +230,9 @@ struct TransferSheet2: View {
                 }
             }
             
-            calModel.calculateTotalForMonth(month: calModel.sMonth)
+            let _ = calModel.calculateTotal(for: calModel.sMonth)
             
-            await calModel.submitMultiple(trans: [fromTrans, toTrans], budgets: [], isTransfer: true)
+            await calModel.addMultiple(trans: [fromTrans, toTrans], budgets: [], isTransfer: true)
         }
     }
 }

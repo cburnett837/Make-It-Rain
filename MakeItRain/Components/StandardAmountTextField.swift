@@ -8,27 +8,29 @@
 import SwiftUI
 
 struct StandardAmountTextField<T: CanEditAmount & Observation.Observable>: View {
-    @AppStorage("appColorTheme") var appColorTheme: String = Color.blue.description
-    @AppStorage("useWholeNumbers") var useWholeNumbers = false
+    @Local(\.colorTheme) var colorTheme
+    @Local(\.useWholeNumbers) var useWholeNumbers
     #if os(macOS)
     @Environment(CalendarModel.self) private var calModel
     #endif
-    @Environment(MapModel.self) private var mapModel
     
-    var symbolWidth: CGFloat
+    var symbolWidth: CGFloat = 0
     var focusedField: FocusState<Int?>
     var focusID: Int
     var showSymbol: Bool = true
+    var negativeOnFocusIfEmpty = true
     
     var obj: T
     
     var body: some View {
         @Bindable var obj = obj
         HStack(alignment: .circleAndTitle) {
-            Image(systemName: "dollarsign.circle.fill")
-                .foregroundColor(.gray)
-                .frame(width: symbolWidth)
-                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+            if showSymbol {
+                Image(systemName: "dollarsign.circle.fill")
+                    .foregroundColor(.gray)
+                    .frame(width: symbolWidth)
+                    .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+            }
             
             VStack(alignment: .leading, spacing: 0) {
                 Group {
@@ -50,28 +52,38 @@ struct StandardAmountTextField<T: CanEditAmount & Observation.Observable>: View 
                 }
                 .formatCurrencyLiveAndOnUnFocus(
                     focusValue: focusID,
-                    focusedField: focusID,
+                    focusedField: focusedField.wrappedValue,
                     amountString: obj.amountString,
                     amountStringBinding: $obj.amountString,
                     amount: obj.amount
                 )
                 .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-                
-                (Text("Transaction Type: ") + Text(obj.amountTypeLingo)
-                    .bold(true)
-                    .foregroundStyle(Color.fromName(appColorTheme)))
-                    .foregroundStyle(.gray)
-                    .font(.caption)
-                    .multilineTextAlignment(.leading)
-                    .padding(.leading, 6)
-                    .disabled(obj.amountString.isEmpty)
-                    .onTapGesture {
-                        Helpers.plusMinus($obj.amountString)
-                        /// Just do on Mac because the calendar view is still visable.
-                        #if os(macOS)
-                        calModel.calculateTotalForMonth(month: calModel.sMonth)
-                        #endif
+                .onChange(of: focusedField.wrappedValue) { oldValue, newValue in
+                    if focusedField.wrappedValue == focusID && obj.amountString.isEmpty && negativeOnFocusIfEmpty {
+                        obj.amountString = "-"
                     }
+                }
+                
+                HStack(spacing: 1) {
+                    Text("Transaction Type: ")
+                        .foregroundStyle(.gray)
+                    
+                    Text(obj.amountTypeLingo)
+                        .bold(true)
+                        .foregroundStyle(Color.fromName(colorTheme))
+                        .onTapGesture {
+                            Helpers.plusMinus($obj.amountString)
+                            /// Just do on Mac because the calendar view is still visable.
+                            #if os(macOS)
+                            let _ = calModel.calculateTotal(for: calModel.sMonth)
+                            #endif
+                        }
+                }
+                .validate(obj.amountString, rules: .regex(.currency, "The field contains invalid characters"))
+                .font(.caption)
+                .multilineTextAlignment(.leading)
+                .padding(.leading, 6)
+                .disabled(obj.amountString.isEmpty)
             }
         }
     }

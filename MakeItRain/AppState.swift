@@ -44,6 +44,7 @@ class AppState {
     var orientation: UIDeviceOrientation = UIDevice.current.orientation
     var isLandscape: Bool = false
     var isIpad: Bool { UIDevice.current.userInterfaceIdiom == .pad }
+    var isIphone: Bool { UIDevice.current.userInterfaceIdiom == .phone }
     var isIphoneInLandscape: Bool { UIDevice.current.userInterfaceIdiom == .phone && isLandscape }
     var isIphoneInPortrait: Bool { UIDevice.current.userInterfaceIdiom == .phone && !isLandscape }
     #else
@@ -118,6 +119,7 @@ class AppState {
             return true
         }
     }
+    
     
     func checkIfDownloadingDataIsNeeded() async -> Bool {
         print("-- \(#function)")
@@ -274,27 +276,27 @@ class AppState {
     
     
     func showAlert(_ text: String) {
-        withAnimation(.snappy) {
+        //withAnimation(.snappy(duration: 0.2)) {
             let config = AlertConfig(title: text)
             self.alertConfig = config
             self.showCustomAlert = true
-        }
+        //}
     }
     
     var showCustomAlert: Bool = false
     var alertConfig: AlertConfig?
     func showAlert(config: AlertConfig) {
-        withAnimation {
+        //withAnimation(.snappy(duration: 0.2)) {
             self.alertConfig = config
             self.showCustomAlert = true
-        }
+        //}
     }
     
     func closeAlert() {
-        withAnimation {
+        //withAnimation {
             self.alertConfig = nil
             self.showCustomAlert = true
-        }
+        //}
     }
     
     

@@ -23,40 +23,74 @@ class CBPaymentMethod: Codable, Identifiable {
         Double(limitString?.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "") ?? "0.0") ?? 0.0
     }
     var limitString: String?
-    
-    
+        
     var accountType: AccountType
     var color: Color
-    var isDefault = false
+    var isViewingDefault = false
+    var isEditingDefault = false
     var active: Bool
     var action: PaymentMethodAction
     
     var notificationOffset: Int? = 0
     var notifyOnDueDate: Bool = false
     var last4: String?
+    
+    var interestRate: Double? {
+        Double(interestRateString?.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "") ?? "0.0") ?? 0.0
+    }
+    var interestRateString: String?
+    
+    var loanDuration: Double? {
+        Double(loanDurationString?.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "") ?? "0.0") ?? 0.0
+    }
+    var loanDurationString: String?
+    
+    
+    
     var enteredBy: CBUser = AppState.shared.user!
     var updatedBy: CBUser = AppState.shared.user!
     var enteredDate: Date
     var updatedDate: Date
     
-    var isUnified: Bool {
-        accountType == .unifiedChecking || accountType == .unifiedCredit
-    }
-        
+    
+    // MARK: - Analytic Variables
+    var breakdowns: Array<PayMethodMonthlyBreakdown> = []
+    /// This is here so the unified payment method can hold it's children for analysis purposes.
+    var breakdownsRegardlessOfPaymentMethod: [PayMethodMonthlyBreakdown] = []
+    
+    var profitLossMinPercentage: Double = 0.0
+    var profitLossMaxPercentage: Double = 0.0
+    
+    var profitLossMinAmount: Double { Double(profitLossMinAmountString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0 }
+    var profitLossMinAmountString: String = ""
+    
+    var profitLossMaxAmount: Double { Double(profitLossMaxAmountString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0 }
+    var profitLossMaxAmountString: String = ""
+    
+    var minEod: Double { Double(minEodString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0 }
+    var minEodString: String = ""
+    
+    var maxEod: Double { Double(maxEodString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0 }
+    var maxEodString: String = ""
+    
+    
+    // MARK: - View Helper Variables
+    var isUnified: Bool { accountType == .unifiedChecking || accountType == .unifiedCredit }
+    var isCredit: Bool { accountType == .unifiedCredit || accountType == .credit }
+    var isDebit: Bool { accountType == .unifiedChecking || accountType == .checking || accountType == .cash }
+    
+    
     init() {
         let uuid = UUID().uuidString
         self.id = uuid
         self.uuid = uuid
         self.title = ""
-        self.color = UserDefaults.fetchOneBool(requestedKey: "preferDarkMode") == true ? .white : .black
+        self.color = .primary
         self.accountType = .checking
         self.action = .add
-        self.color = UserDefaults.fetchOneBool(requestedKey: "preferDarkMode") == true ? .white : .black
-        //self.color = .primary
         self.active = true
         self.notificationOffset = 0
         self.notifyOnDueDate = false
-        self.last4 = nil
         self.enteredBy = AppState.shared.user!
         self.updatedBy = AppState.shared.user!
         self.enteredDate = Date()
@@ -69,12 +103,10 @@ class CBPaymentMethod: Codable, Identifiable {
         self.title = ""
         self.accountType = .checking
         self.action = .add
-        self.color = UserDefaults.fetchOneBool(requestedKey: "preferDarkMode") == true ? .white : .black
-        //self.color = .primary
+        self.color = .primary
         self.active = true
         self.notificationOffset = 0
         self.notifyOnDueDate = false
-        self.last4 = nil
         self.enteredBy = AppState.shared.user!
         self.updatedBy = AppState.shared.user!
         self.enteredDate = Date()
@@ -104,18 +136,21 @@ class CBPaymentMethod: Codable, Identifiable {
         self.title = entity.title ?? ""
         self.dueDateString = String(entity.dueDate)
         
-        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
         self.limitString = entity.limit.currencyWithDecimals(useWholeNumbers ? 0 : 2)
         
-        self.accountType = AccountType(rawValue: entity.accountType ?? "") ?? .checking
+        self.accountType = AccountType(rawValue: Int(entity.accountType)) ?? .checking
         self.color = Color.fromHex(entity.hexCode) ?? .clear
         //self.color = Color.fromName(entity.hexCode ?? "white")
         self.action = .edit
-        self.isDefault = entity.isDefault
+        self.isViewingDefault = entity.isViewingDefault
+        self.isEditingDefault = entity.isEditingDefault
         self.active = true
         self.notificationOffset = Int(entity.notificationOffset)
         self.notifyOnDueDate = entity.notifyOnDueDate
         self.last4 = entity.last4
+        self.interestRateString = String(entity.interestRate)
+        self.loanDurationString = String(entity.loanDuration)
         self.enteredBy = AppState.shared.user!
         self.updatedBy = AppState.shared.user!
         self.enteredDate = Date()
@@ -123,7 +158,7 @@ class CBPaymentMethod: Codable, Identifiable {
     }
     
     
-    enum CodingKeys: CodingKey { case id, uuid, title, due_date, limit, account_type, hex_code, is_default, active, user_id, account_id, device_uuid, notification_offset, notify_on_due_date, last_4_digits, entered_by, updated_by, entered_date, updated_date }
+    enum CodingKeys: CodingKey { case id, uuid, title, due_date, limit, account_type_id, hex_code, is_viewing_default, is_editing_default, active, user_id, account_id, device_uuid, notification_offset, notify_on_due_date, last_4_digits, entered_by, updated_by, entered_date, updated_date, breakdowns, interest_rate, loan_duration }
     
     
     func encode(to encoder: Encoder) throws {
@@ -133,10 +168,11 @@ class CBPaymentMethod: Codable, Identifiable {
         try container.encode(title, forKey: .title)
         try container.encode(dueDate, forKey: .due_date)
         try container.encode(limit, forKey: .limit)
-        try container.encode(accountType.rawValue, forKey: .account_type)
+        try container.encode(accountType.rawValue, forKey: .account_type_id)
         try container.encode(color.toHex(), forKey: .hex_code)
         //try container.encode(color.description, forKey: .hex_code)
-        try container.encode(isDefault ? 1 : 0, forKey: .is_default)
+        try container.encode(isViewingDefault ? 1 : 0, forKey: .is_viewing_default)
+        try container.encode(isEditingDefault ? 1 : 0, forKey: .is_editing_default)
         try container.encode(active ? 1 : 0, forKey: .active)
         try container.encode(AppState.shared.user?.id, forKey: .user_id)
         try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
@@ -144,6 +180,8 @@ class CBPaymentMethod: Codable, Identifiable {
         try container.encode(notificationOffset, forKey: .notification_offset)
         try container.encode(notifyOnDueDate ? 1 : 0, forKey: .notify_on_due_date)
         try container.encode(last4, forKey: .last_4_digits)
+        try container.encode(interestRate, forKey: .interest_rate)
+        try container.encode(loanDuration, forKey: .loan_duration)
         try container.encode(enteredBy, forKey: .entered_by) // for the Transferable protocol
         try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
         try container.encode(enteredDate.string(to: .serverDateTime), forKey: .entered_date) // for the Transferable protocol
@@ -152,7 +190,7 @@ class CBPaymentMethod: Codable, Identifiable {
     
     
     required init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)        
+        let container = try decoder.container(keyedBy: CodingKeys.self)
         
         do {
             id = try String(container.decode(Int.self, forKey: .id))
@@ -167,10 +205,10 @@ class CBPaymentMethod: Codable, Identifiable {
         self.dueDateString = String(dueDate ?? 0)
         
         let limit = try container.decode(Double?.self, forKey: .limit)
-        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
         self.limitString = limit?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
         
-        let accountType = try container.decode(String.self, forKey: .account_type)
+        let accountType = try container.decode(Int.self, forKey: .account_type_id)
         self.accountType = AccountType(rawValue: accountType) ?? .checking
         
         let hexCode = try container.decode(String?.self, forKey: .hex_code)
@@ -180,8 +218,11 @@ class CBPaymentMethod: Codable, Identifiable {
         
         
         
-        let isDefault = try container.decode(Int?.self, forKey: .is_default)
-        self.isDefault = isDefault == 1 ? true : false
+        let isViewingDefault = try container.decode(Int?.self, forKey: .is_viewing_default)
+        self.isViewingDefault = isViewingDefault == 1 ? true : false
+        
+        let isEditingDefault = try container.decode(Int?.self, forKey: .is_editing_default)
+        self.isEditingDefault = isEditingDefault == 1 ? true : false
         
         let isActive = try container.decode(Int?.self, forKey: .active)
         self.active = isActive == 1 ? true : false
@@ -192,6 +233,17 @@ class CBPaymentMethod: Codable, Identifiable {
         self.notifyOnDueDate = notifyOnDueDate == 1 ? true : false
         
         self.last4 = try container.decode(String?.self, forKey: .last_4_digits)
+        
+        //self.interestRate = try container.decode(Double?.self, forKey: .interest_rate)
+        //self.loanDuration = try container.decode(Int?.self, forKey: .loan_duration)
+        
+        if let interestRate = try container.decode(Double?.self, forKey: .interest_rate) {
+            self.interestRateString = String(interestRate)
+        }
+        
+        if let loanDuration = try container.decode(Double?.self, forKey: .loan_duration) {
+            self.loanDurationString = String(loanDuration)
+        }
         
         action = .edit
         
@@ -211,8 +263,15 @@ class CBPaymentMethod: Codable, Identifiable {
         } else {
             fatalError("Could not determine updatedDate date")
         }
+        
+        
+        self.breakdowns = try container.decodeIfPresent(Array<PayMethodMonthlyBreakdown>.self, forKey: .breakdowns) ?? []
     }
     
+    
+    func getAmount(for date: Date) -> Double? {
+        breakdowns.filter { Calendar.current.isDate(date, equalTo: $0.date, toGranularity: .month) }.first?.income
+    }
     
     static var empty: CBPaymentMethod {
         CBPaymentMethod()
@@ -228,6 +287,8 @@ class CBPaymentMethod: Codable, Identifiable {
             && self.notificationOffset == deepCopy.notificationOffset
             && self.notifyOnDueDate == deepCopy.notifyOnDueDate
             && self.last4 == deepCopy.last4
+            && self.interestRate == deepCopy.interestRate
+            && self.loanDuration == deepCopy.loanDuration
             && self.color == deepCopy.color {
                 return false
             }
@@ -248,11 +309,14 @@ class CBPaymentMethod: Codable, Identifiable {
             copy.limitString = self.limitString
             copy.accountType = self.accountType
             copy.color = self.color
-            copy.isDefault = self.isDefault
+            copy.isViewingDefault = self.isViewingDefault
+            copy.isEditingDefault = self.isEditingDefault
             copy.active = self.active
             copy.notificationOffset = self.notificationOffset
             copy.notifyOnDueDate = self.notifyOnDueDate
             copy.last4 = self.last4
+            copy.interestRateString = self.interestRateString
+            copy.loanDurationString = self.loanDurationString
             copy.active = self.active
             //copy.action = self.action
             self.deepCopy = copy
@@ -265,11 +329,14 @@ class CBPaymentMethod: Codable, Identifiable {
                 self.limitString = deepCopy.limitString
                 self.accountType = deepCopy.accountType
                 self.color = deepCopy.color
-                self.isDefault = deepCopy.isDefault
+                self.isViewingDefault = deepCopy.isViewingDefault
+                self.isEditingDefault = deepCopy.isEditingDefault
                 self.active = deepCopy.active
                 self.notificationOffset = deepCopy.notificationOffset
                 self.notifyOnDueDate = deepCopy.notifyOnDueDate
                 self.last4 = deepCopy.last4
+                self.interestRateString = deepCopy.interestRateString
+                self.loanDurationString = deepCopy.loanDurationString
                 self.active = deepCopy.active
                 //self.action = deepCopy.action
             }
@@ -283,24 +350,27 @@ class CBPaymentMethod: Codable, Identifiable {
         self.title = payMethod.title
         self.dueDateString = payMethod.dueDateString
         
-        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
         self.limitString = payMethod.limit?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
         
         self.accountType = payMethod.accountType
         self.color = payMethod.color
-        self.isDefault = payMethod.isDefault
+        self.isViewingDefault = payMethod.isViewingDefault
+        self.isEditingDefault = payMethod.isEditingDefault
         self.active = payMethod.active
         self.notificationOffset = payMethod.notificationOffset
         self.notifyOnDueDate = payMethod.notifyOnDueDate
         self.last4 = payMethod.last4
+        self.interestRateString = payMethod.interestRateString
+        self.loanDurationString = payMethod.loanDurationString
     }
             
     
-    @MainActor func changeDefault(_ to: Bool) {
-        self.isDefault = to
-        guard let entity = DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(self.id)), createIfNotFound: false) else { return }
-        entity.isDefault = to
-        let _ = DataManager.shared.save()
+    func changeDefault(_ to: Bool) async {
+        self.isViewingDefault = to
+        guard let entity = await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(self.id)), createIfNotFound: false) else { return }
+        entity.isViewingDefault = to
+        let _ = await DataManager.shared.save()
     }
 }
 
@@ -314,10 +384,13 @@ extension CBPaymentMethod: Equatable, Hashable {
         && lhs.limit == rhs.limit
         && lhs.accountType == rhs.accountType
         && lhs.color == rhs.color
-        && lhs.isDefault == rhs.isDefault
+        && lhs.isViewingDefault == rhs.isViewingDefault
+        && lhs.isEditingDefault == rhs.isEditingDefault
         && lhs.notificationOffset == rhs.notificationOffset
         && lhs.notifyOnDueDate == rhs.notifyOnDueDate
         && lhs.last4 == rhs.last4
+        && lhs.interestRate == rhs.interestRate
+        && lhs.loanDuration == rhs.loanDuration
         && lhs.active == rhs.active {
             return true
         }

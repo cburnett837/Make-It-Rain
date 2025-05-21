@@ -57,10 +57,10 @@ class KeywordModel {
         }
     }
     
-    func updateCache(for keyword: CBKeyword) -> Result<Bool, CoreDataError> {
-        guard let entity = DataManager.shared.getOne(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: false) else { return .failure(.reason("notFound")) }
+    func updateCache(for keyword: CBKeyword) async -> Result<Bool, CoreDataError> {
+        guard let entity = await DataManager.shared.getOne(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: false) else { return .failure(.reason("notFound")) }
         
-        guard let categoryEntity = DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(keyword.category?.id ?? "0")), createIfNotFound: false) else { return .failure(.reason("notFound"))}
+        guard let categoryEntity = await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(keyword.category?.id ?? "0")), createIfNotFound: false) else { return .failure(.reason("notFound"))}
         
         entity.id = keyword.id
         entity.keyword = keyword.keyword
@@ -69,7 +69,7 @@ class KeywordModel {
         entity.action = "edit"
         entity.isPending = false
         
-        let saveResult = DataManager.shared.save()
+        let saveResult = await DataManager.shared.save()
         return saveResult
     }
     
@@ -77,6 +77,8 @@ class KeywordModel {
     func fetchKeywords(file: String = #file, line: Int = #line, function: String = #function) async {
         NSLog("\(file):\(line) : \(function)")
         LogManager.log()
+        
+        let start = CFAbsoluteTimeGetCurrent()
         
         /// Do networking.
         let model = RequestModel(requestType: "fetch_keywords", model: AppState.shared.user)
@@ -97,12 +99,12 @@ class KeywordModel {
                         activeIds.append(keyword.id)
                         
                         /// Find the keyword in cache.
-                        let entity = DataManager.shared.getOne(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: true)
+                        let entity = await DataManager.shared.getOne(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: true)
                         
                         /// Update the cache and add to model (if appolicable).
                         /// This should always be true because the line above creates the entity if it's not found.
                         if let entity {
-                            guard let categoryEntity = DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(keyword.category?.id ?? "0")), createIfNotFound: true) else { return }
+                            guard let categoryEntity = await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(keyword.category?.id ?? "0")), createIfNotFound: true) else { return }
                             
                             
                             
@@ -142,12 +144,12 @@ class KeywordModel {
                     for keyword in keywords {
                         if !activeIds.contains(keyword.id) {
                             keywords.removeAll { $0.id == keyword.id }
-                            let _ = DataManager.shared.delete(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)))
+                            let _ = await DataManager.shared.delete(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)))
                         }
                     }
             
                     /// Save the cache.
-                    let _ = DataManager.shared.save()
+                    let _ = await DataManager.shared.save()
                     
                 } else {
                     keywords.removeAll()
@@ -156,6 +158,9 @@ class KeywordModel {
             
             /// Update the progress indicator.
             AppState.shared.downloadedData.append(.keywords)
+            
+            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
+            print("🔴It took \(currentElapsed) seconds to fetch the keywords")
             
         case .failure (let error):
             switch error {
@@ -177,7 +182,7 @@ class KeywordModel {
         //LoadingManager.shared.startDelayedSpinner()
         LogManager.log()
                                         
-        guard let entity = DataManager.shared.getOne(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: true) else { return false }
+        guard let entity = await DataManager.shared.getOne(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: true) else { return false }
                         
         entity.id = keyword.id
         entity.keyword = keyword.keyword
@@ -186,10 +191,10 @@ class KeywordModel {
         entity.isPending = true
         
         
-        guard let categoryEntity = DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(keyword.category?.id ?? "0")), createIfNotFound: true) else { return false }
+        guard let categoryEntity = await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(keyword.category?.id ?? "0")), createIfNotFound: true) else { return false }
         entity.category = categoryEntity
         
-        let _ = DataManager.shared.save()
+        let _ = await DataManager.shared.save()
         
         
         
@@ -208,7 +213,7 @@ class KeywordModel {
             LogManager.networkingSuccessful()
             /// Get the new ID from the server after adding a new activity.
             if keyword.action != .delete {
-                guard let entity = DataManager.shared.getOne(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: true) else { return false }
+                guard let entity = await DataManager.shared.getOne(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: true) else { return false }
                 
                 if keyword.action == .add {
                     keyword.id = model?.id ?? "0"
@@ -219,9 +224,9 @@ class KeywordModel {
                 }
                 
                 entity.isPending = false
-                let _ = DataManager.shared.save()
+                let _ = await DataManager.shared.save()
             } else {
-                let _ = DataManager.shared.delete(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)))
+                let _ = await DataManager.shared.delete(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)))
             }
             
             isThinking = false
@@ -259,7 +264,7 @@ class KeywordModel {
         if andSubmit {
             let _ = await submit(keyword)
         } else {
-            let _ = DataManager.shared.delete(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)))
+            let _ = await DataManager.shared.delete(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)))
         }
     }
     
@@ -270,7 +275,7 @@ class KeywordModel {
             let _ = await submit(keyword)
         }
         
-        let _ = DataManager.shared.deleteAll(for: PersistentKeyword.self)
+        let _ = await DataManager.shared.deleteAll(for: PersistentKeyword.self)
         //print("SaveResult: \(saveResult)")
         keywords.removeAll()
     }

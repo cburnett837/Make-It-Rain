@@ -161,10 +161,12 @@ struct StandardContainer<Content: View, Content2: View, Content3: View, Content4
     var subHeader: () -> Content3?
     var footer: () -> Content4?
     @Binding var selectionID: String?
+    var scrollDismissesKeyboard: ScrollDismissesKeyboardMode
     
     
     init(
         _ contentType: SheetContainerContentType = .scrolling,
+        scrollDismissesKeyboard: ScrollDismissesKeyboardMode = .immediately,
         selectionID: Binding<String?> = .constant(nil),
         @ViewBuilder content: @escaping () -> Content,
         @ViewBuilder header: @escaping () -> Content2 = { EmptyView() },
@@ -177,6 +179,7 @@ struct StandardContainer<Content: View, Content2: View, Content3: View, Content4
         self.subHeader = subHeader
         self.footer = footer
         self._selectionID = selectionID
+        self.scrollDismissesKeyboard = scrollDismissesKeyboard
     }
     
     var isBottomPanel: Bool { contentType == .bottomPanel }
@@ -221,7 +224,7 @@ struct StandardContainer<Content: View, Content2: View, Content3: View, Content4
                     }
             }
         }
-        .scrollDismissesKeyboard(.immediately)
+        .scrollDismissesKeyboard(scrollDismissesKeyboard)
         #if os(macOS)
         .scrollContentBackground(.hidden)
         #endif

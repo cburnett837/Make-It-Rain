@@ -20,7 +20,10 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     var amount: Double {
         Double(amountString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
     }
+    
+    //@Validate(.regularExpression(.currency, "Amount contains invalid characters."))
     var amountString: String
+    
     var amountTypeLingo: String {
         if payMethod?.accountType == .credit {
             amountString.contains("-") ? "Payment" : "Expense"
@@ -82,6 +85,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     var smartTransactionIssue: XrefItem?
     var smartTransactionIsAcknowledged: Bool?
     
+    var isPayment: Bool?
     
     var isBudgetable: Bool { self.payMethod?.accountType == .cash || self.payMethod?.accountType == .checking }
     var isIncome: Bool { self.amount > 0 }
@@ -161,8 +165,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         self.id = entity.id ?? ""
         self.title = entity.title ?? ""
         
-        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
-        self.amountString = entity.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        self.amountString = entity.amount.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
         
         //self.category = CBCategory(from: entity)guard let entity = DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(entity.payMethodID ?? "0")), createIfNotFound: true) else { return }
         //self.payMethod = CBPaymentMethod(from: entity)
@@ -204,16 +207,16 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     }
     
     
-    init(repTrans: CBRepeatingTransaction, date: Date) {
+    init(repTrans: CBRepeatingTransaction, date: Date, payMethod: CBPaymentMethod?, amountString: String) {
         let uuid = UUID().uuidString
         self.id = uuid
         self.uuid = uuid
         self.repID = repTrans.id
         self.title = repTrans.title
-        self.amountString = repTrans.amountString
+        self.amountString = amountString
         self.action = .edit
         self.factorInCalculations = true
-        self.payMethod = repTrans.payMethod
+        self.payMethod = payMethod
         self.category = repTrans.category
         self.date = date
         self.color = repTrans.color
@@ -286,7 +289,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     }
     
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, entered_date, updated_date, pictures, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, related_transaction_type_id, fit_id, is_smart_transaction, smart_transaction_issue_id, smart_transaction_is_acknowledged, locations }
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, entered_date, updated_date, pictures, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, related_transaction_type_id, fit_id, is_smart_transaction, smart_transaction_issue_id, smart_transaction_is_acknowledged, locations, action, is_payment }
     
     
     func encode(to encoder: Encoder) throws {
@@ -325,10 +328,13 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         try container.encode(relatedTransactionType?.id, forKey: .related_transaction_type_id)
         
         try container.encode(fitID, forKey: .fit_id)
+        try container.encode(action.serverKey, forKey: .action)
                 
         try container.encode((smartTransactionIsAcknowledged ?? false) ? 1 : 0, forKey: .smart_transaction_is_acknowledged)
         try container.encode((isSmartTransaction ?? false) ? 1 : 0, forKey: .is_smart_transaction) // for the Transferable protocol
         try container.encode(smartTransactionIssue?.id, forKey: .smart_transaction_issue_id) // for the Transferable protocol
+        
+        try container.encode((isPayment ?? false) ? 1 : 0, forKey: .is_payment)
     }
     
     
@@ -343,8 +349,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         title = try container.decode(String.self, forKey: .title)
         
         let amount = try container.decode(Double.self, forKey: .amount)
-        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
-        self.amountString = amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        self.amountString = amount.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
         
         self.payMethod = try container.decode(CBPaymentMethod?.self, forKey: .payment_method)
         self.category = try container.decode(CBCategory?.self, forKey: .category)
@@ -462,7 +467,13 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         }
         
         
-        
+        /// Set when creating a payment via the transfer sheet
+        let isPayment = try container.decode(Int?.self, forKey: .is_payment)
+        if isPayment == nil {
+            self.isPayment = false
+        } else {
+            self.isPayment = isPayment == 1
+        }
         
         
         //self.undoManager = TransUndoManager(trans: self)
@@ -667,10 +678,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     func setFromAnotherInstance(transaction: CBTransaction) {
         self.id = transaction.id
         self.title = transaction.title
-        
-        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
-        self.amountString = transaction.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
-        
+        self.amountString = transaction.amount.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
         self.payMethod = transaction.payMethod
         self.category = transaction.category
         self.date = transaction.date
@@ -706,8 +714,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     func setFromEventInstance(eventTrans: CBEventTransaction) {
         //self.id = transaction.id
         self.title = eventTrans.title
-        let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
-        self.amountString = eventTrans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        self.amountString = eventTrans.amount.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
         self.date = eventTrans.date
         //self.enteredBy = eventTrans.paidBy!
         //self.updatedBy = eventTrans.paidBy!

@@ -15,7 +15,7 @@ struct AnalysisSheet: View {
     #endif
     @AppStorage("transactionSortMode") var transactionSortMode: TransactionSortMode = .title
     @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
-    @AppStorage("useWholeNumbers") var useWholeNumbers = false
+    @Local(\.useWholeNumbers) var useWholeNumbers
     @Environment(CalendarModel.self) private var calModel
     
     @Environment(EventModel.self) private var eventModel
@@ -26,13 +26,13 @@ struct AnalysisSheet: View {
         var total: Double
     }
     
-    struct ChartData: Identifiable {
-        var id: String { return category.id }
-        let category: CBCategory
-        var budget: Double
-        var expenses: Double
-        var budgetObject: CBBudget?
-    }
+//    struct ChartData: Identifiable {
+//        var id: String { return category.id }
+//        let category: CBCategory
+//        var budget: Double
+//        var expenses: Double
+//        var budgetObject: CBBudget?
+//    }
     
 
     @State private var transactions: [CBTransaction] = []
@@ -47,18 +47,13 @@ struct AnalysisSheet: View {
     @State private var cumTotals: [CumTotal] = []
     @State private var showCategorySheet = false
     
-    @State private var deleteBudget: CBBudget?
-    @State private var editBudget: CBBudget?
-    @State private var budgetEditID: CBBudget.ID?
-    
-    
     let columnGrid = Array(repeating: GridItem(.flexible(), spacing: 0), count: 4)
     
     var body: some View {
         @Bindable var calModel = calModel        
         StandardContainer(AppState.shared.isIpad ? .sidebarList : .list) {
             detailSection
-            breakdownSection
+            BudgetBreakdownView(wrappedInSection: true, chartData: chartData, calculateDataFunction: prepareData)
             transactionList
         } header: {
             if AppState.shared.isIpad {
@@ -137,36 +132,6 @@ struct AnalysisSheet: View {
             }
         }
         .sensoryFeedback(.selection, trigger: transEditID) { $1 != nil }
-                        
-        .onChange(of: budgetEditID) { oldValue, newValue in
-            if let newValue {
-                editBudget = calModel.sMonth.budgets.filter { $0.id == newValue }.first!
-            } else if newValue == nil && oldValue != nil {
-                let budget = calModel.sMonth.budgets.filter { $0.id == oldValue! }.first!
-                Task {
-                    if budget.hasChanges() {
-                        print("HAS CHANGES")
-                        await calModel.submit(budget)
-                    } else {
-                        print("NO CHANGES")
-                    }
-                }
-            }
-        }
-        .sheet(item: $editBudget, onDismiss: {
-            budgetEditID = nil
-        }, content: { budget in
-            BudgetEditView(budget: budget, calModel: calModel)
-                .presentationSizing(.page)
-                //#if os(iOS)
-                //.presentationDetents([.medium, .large])
-                //#endif
-                //#if os(macOS)
-                //.frame(minWidth: 700)
-                //#endif
-                //.frame(maxWidth: 300)
-        })
-        
     }
     
     var detailSection: some View {
@@ -203,58 +168,6 @@ struct AnalysisSheet: View {
     }
     
     
-    var breakdownSection: some View {
-        Section {
-            LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
-                Text("Category")
-                Text("Budget")
-                Text("Expenses")
-                Text("Over/Under")
-            }
-            .font(.caption2)
-            
-            ForEach(chartData) { metric in
-                LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
-                    Group {
-                        HStack(alignment: .circleAndTitle, spacing: 5) {
-                            ChartCircleDot(
-                                budget: metric.budget,
-                                expenses: metric.expenses,
-                                color: metric.category.color,
-                                size: 12
-                            )
-                            .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-
-//                                Circle()
-//                                    .fill(metric.category.color)
-//                                    .frame(maxWidth: 8, maxHeight: 8) // 8 seems to be the default from charts
-//                                    .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-                            
-                            Text(metric.category.title)
-                                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-                        }
-                        
-                        Text(metric.budget.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                        Text((metric.expenses == 0 ? 0 : metric.expenses * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                        let overUnder = metric.budget + (metric.expenses)
-                        
-                        Text(abs(overUnder).currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                            .foregroundStyle(overUnder < 0 ? .red : .green)
-                    }
-                    .onTapGesture {
-                        if let objc = metric.budgetObject {
-                            budgetEditID = objc.id
-                        }
-                    }
-                }
-                .font(.caption2)
-            }
-        } header: {
-            Text("Breakdown")
-        }
-    }
-    
-    
     var transactionList: some View {
         ForEach(calModel.sMonth.days) { day in
             let doesHaveTransactions = transactions
@@ -281,7 +194,8 @@ struct AnalysisSheet: View {
                                 }
                         }
                     } else {
-                        EmptyView()
+                        Text("No Transactions Today")
+                            .foregroundStyle(.gray)
                     }
                 } header: {
                     HStack {
@@ -340,7 +254,7 @@ struct AnalysisSheet: View {
     
     
     struct SectionFooter: View {
-        @AppStorage("useWholeNumbers") var useWholeNumbers = false
+        @Local(\.useWholeNumbers) var useWholeNumbers
         var day: CBDay
         var dailyCount: Int
         var dailyTotal: Double
@@ -458,6 +372,7 @@ struct AnalysisSheet: View {
         //.buttonStyle(.sheetHeader)
     }
     
+    
     var showCalendarButton: some View {
         Button {
             calModel.sCategories = calModel.sCategoriesForAnalysis
@@ -482,16 +397,23 @@ struct AnalysisSheet: View {
     
     func prepareData() {
         transactions = calModel.justTransactions
+            .filter { calModel.isInMultiSelectMode ? calModel.multiSelectTransactions.map({ $0.id }).contains($0.id) : true }
             .filter { calModel.sCategoriesForAnalysis.map{ $0.id }.contains($0.category?.id) }
             .filter { $0.dateComponents?.month == calModel.sMonth.actualNum }
             .filter { $0.dateComponents?.year == calModel.sMonth.year }
             .sorted { $0.dateComponents?.day ?? 0 < $1.dateComponents?.day ?? 0 }
         
+//        
+//        if calModel.isInMultiSelectMode {
+//            transactions.removeAll(where: { !calModel.multiSelectTransactions.map{$0.id}.contains($0.id)} )
+//        }
+        
+        
         totalSpent = transactions
             .map { $0.payMethod?.accountType == .credit ? $0.amount * -1 : $0.amount }
             .reduce(0.0, +)
         
-        budget = calModel.justBudgets
+        self.budget = calModel.justBudgets
             .filter { $0.month == calModel.sMonth.actualNum }
             .filter { $0.year == calModel.sMonth.year }
             .filter { calModel.sCategoriesForAnalysis.map{ $0.id }.contains($0.category?.id) }
@@ -512,6 +434,8 @@ struct AnalysisSheet: View {
                 let budgetAmount = budget?.amount ?? 0.0
                 
                 let expenses = calModel.justTransactions
+                    .filter { calModel.isInMultiSelectMode ? calModel.multiSelectTransactions.map({ $0.id }).contains($0.id) : true }
+                    .filter { $0.isBudgetable && $0.isExpense && $0.factorInCalculations }
                     .filter {
                         calModel.sCategoriesForAnalysis.map{ $0.id }.contains($0.category?.id)
                         && $0.dateComponents?.month == calModel.sMonth.actualNum
@@ -522,8 +446,48 @@ struct AnalysisSheet: View {
                     .map { $0.payMethod?.accountType == .credit ? $0.amount * -1 : $0.amount }
                     .reduce(0.0, +)
                 
-                return ChartData(category: cat, budget: budgetAmount, expenses: expenses, budgetObject: budget)
+                let income = calModel.sMonth.justTransactions
+                    .filter { calModel.isInMultiSelectMode ? calModel.multiSelectTransactions.map({ $0.id }).contains($0.id) : true }
+                    .filter { $0.isBudgetable && $0.isIncome && $0.factorInCalculations }
+                    .filter {
+                        calModel.sCategoriesForAnalysis.map{ $0.id }.contains($0.category?.id)
+                        && $0.dateComponents?.month == calModel.sMonth.actualNum
+                        && $0.dateComponents?.year == calModel.sMonth.year
+                        && $0.category?.id == cat.id
+                    }
+                    //.map { $0.amount }
+                    .map { $0.payMethod?.accountType == .credit ? $0.amount * -1 : $0.amount }
+                    .reduce(0.0, +)
                 
+                var chartPer = 0.0
+                var actualPer = 0.0
+                let expensesMinusIncome = (expenses + income) * -1
+                
+                if budgetAmount == 0 {
+                    actualPer = expensesMinusIncome
+                } else {
+                    actualPer = (expensesMinusIncome / budgetAmount) * 100
+                }
+                                                
+                if actualPer > 100 {
+                    chartPer = 100
+                } else if actualPer < 0 {
+                    chartPer = 0
+                } else {
+                    chartPer = actualPer
+                }
+                
+                
+                return ChartData(
+                    category: cat,
+                    budget: budgetAmount,
+                    income: income,
+                    expenses: expenses,
+                    expensesMinusIncome: expensesMinusIncome,
+                    chartPercentage: chartPer,
+                    actualPercentage: actualPer,
+                    budgetObject: budget
+                )
             }
             
         
