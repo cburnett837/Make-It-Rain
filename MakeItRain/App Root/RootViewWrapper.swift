@@ -19,6 +19,7 @@ struct RootViewWrapper<Content: View>: View {
     @Environment(KeywordModel.self) private var keyModel
     @Environment(RepeatingTransactionModel.self) private var repModel
     @Environment(EventModel.self) private var eventModel
+    @Environment(PlaidModel.self) private var plaidModel
     //@Environment(MapModel.self) private var mapModel
     
     var content: Content
@@ -52,6 +53,7 @@ struct RootViewWrapper<Content: View>: View {
                     .environment(keyModel)
                     .environment(repModel)
                     .environment(eventModel)
+                    .environment(plaidModel)
                     //.environment(mapModel)
             }
             .sheet(isPresented: $appState.showPaymentMethodNeededSheet, onDismiss: funcModel.downloadInitial) {
@@ -73,6 +75,7 @@ struct RootViewWrapper<Content: View>: View {
                     .environment(keyModel)
                     .environment(repModel)
                     .environment(eventModel)
+                    .environment(plaidModel)
                     //.environment(mapModel)
             )
             rootVC.view.backgroundColor = .clear

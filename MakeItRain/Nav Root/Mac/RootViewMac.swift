@@ -70,6 +70,8 @@ struct RootViewMac: View {
                                     
                             }
                         }
+                        
+                        //NavLinkMac(destination: .plaid, title: "Plaid", image: "list.bullet")
                     }
                 }
                 
@@ -130,6 +132,9 @@ struct RootViewMac: View {
                 
             case .debug:
                 DebugView()
+                
+            case .plaid:
+                EmptyView()
                 
             case .none, .placeholderMonth:
                 Text("Invalid Selection")

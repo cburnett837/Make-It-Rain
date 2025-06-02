@@ -18,6 +18,7 @@ class FuncModel {
     var keyModel: KeywordModel
     var repModel: RepeatingTransactionModel
     var eventModel: EventModel
+    var plaidModel: PlaidModel
     
     var longPollTask: Task<Void, Error>?
     var refreshTask: Task<Void, Error>?
@@ -25,13 +26,14 @@ class FuncModel {
     var isLoading = false
     var loadTimes: [(id: UUID, date: Date, load: Double)] = []
     
-    init(calModel: CalendarModel, payModel: PayMethodModel, catModel: CategoryModel, keyModel: KeywordModel, repModel: RepeatingTransactionModel, eventModel: EventModel) {
+    init(calModel: CalendarModel, payModel: PayMethodModel, catModel: CategoryModel, keyModel: KeywordModel, repModel: RepeatingTransactionModel, eventModel: EventModel, plaidModel: PlaidModel) {
         self.calModel = calModel
         self.payModel = payModel
         self.catModel = catModel
         self.keyModel = keyModel
         self.repModel = repModel
         self.eventModel = eventModel
+        self.plaidModel = plaidModel
     }
     
     
@@ -251,9 +253,6 @@ class FuncModel {
             /// If viewing a month, determine current and adjacent months.
             if NavDestination.justMonths.contains(currentNavSelection) {
                 
-                
-                
-                
                 /// Grab Payment Methods (only not logging in. We need this to have a payment method in place before the viewing month loads.)
                 if AppState.shared.isLoggingInForFirstTime {
                     await payModel.fetchPaymentMethods(calModel: calModel)
@@ -263,8 +262,7 @@ class FuncModel {
                 
                 //#warning("prepareStartingAmounts()")
                 self.prepareStartingAmounts(for: viewingMonth)
-                
-                
+                                
                 if ![.lastDecember, .nextJanuary].contains(viewingMonth.enumID) {
                     next = calModel.months.filter { $0.num == (currentNavSelection.monthNum ?? 0) + 1 }.first!
                     prev = calModel.months.filter { $0.num == (currentNavSelection.monthNum ?? 0) - 1 }.first!
@@ -276,7 +274,14 @@ class FuncModel {
                 //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
                 
                 /// Download fit transactions for Cody.
-                if AppState.shared.user?.id == 1 { await calModel.fetchFitTransactionsFromServer() }
+                //if AppState.shared.user?.id == 1 { await calModel.fetchFitTransactionsFromServer() }
+                
+                
+                await downloadPlaidStuff()
+                
+                
+                //await plaidModel.fetchPlaidTransactionsFromServer()
+                //await plaidModel.fetchPlaidBalancesFromServer()
                 
                 /// Download adjacent months.
                 await downloadAdjacentMonths(next: next, prev: prev, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
@@ -289,7 +294,13 @@ class FuncModel {
                 if NavDestination.justAccessorials.contains(currentNavSelection) {
                     await downloadAccessorials(createNewStructs: createNewStructs)
                     await downloadViewingMonth(calModel.sMonth, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
-                    if AppState.shared.user?.id == 1 { await calModel.fetchFitTransactionsFromServer() }
+                    //if AppState.shared.user?.id == 1 { await calModel.fetchFitTransactionsFromServer() }
+                    
+//                    await plaidModel.fetchPlaidTransactionsFromServer()
+//                    await plaidModel.fetchPlaidBalancesFromServer()
+                    
+                    await downloadPlaidStuff()
+                    
                     await downloadAdjacentMonths(next: next, prev: prev, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
                     await downloadOtherMonths(viewingMonth: calModel.sMonth, next: next, prev: prev, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
                 }
@@ -316,6 +327,25 @@ class FuncModel {
     
     
     // MARK: - Downloading Stuff
+    @MainActor private func downloadPlaidStuff() async {
+        let plaidStart = CFAbsoluteTimeGetCurrent()
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask {
+                print("fetching plaid transactions");
+                let fetchModel = PlaidServerModel(rowNumber: 1)
+                await self.plaidModel.fetchPlaidTransactionsFromServer(fetchModel)
+            }
+        
+            group.addTask {
+                print("fetching plaid balances");
+                await self.plaidModel.fetchPlaidBalancesFromServer()
+            }
+        }
+        let plaidElapsed = CFAbsoluteTimeGetCurrent() - plaidStart
+        print("🔴It took \(plaidElapsed) seconds to fetch the plaid data")
+    }
+    
+    
     @MainActor private func downloadViewingMonth(_ viewingMonth: CBMonth, createNewStructs: Bool, refreshTechnique: RefreshTechnique) async  {
         /// Grab the viewing month first.
         print("fetching \(viewingMonth.num)");
@@ -406,6 +436,8 @@ class FuncModel {
             group.addTask { await self.eventModel.fetchEvents() }
             /// Grab Invitations.
             group.addTask { await self.eventModel.fetchInvitations() }
+            /// Grab plaid things.
+            group.addTask { await self.plaidModel.fetchBanks() }
             /// Grab Open Records.
             group.addTask { await OpenRecordManager.shared.fetchOpenOrClosed() }
         }
@@ -450,6 +482,8 @@ class FuncModel {
             group.addTask { await self.eventModel.fetchEvents() }
             /// Grab Event Invitations
             group.addTask { await self.eventModel.fetchInvitations() }
+            /// Grab plaid things.
+            group.addTask { await self.plaidModel.fetchBanks() }
             /// Grab Open Records.
             group.addTask { await OpenRecordManager.shared.fetchOpenOrClosed() }
             
@@ -685,15 +719,19 @@ class FuncModel {
                     || model.eventParticipants != nil
                     || model.invitations != nil
                     || model.openRecords != nil
+                    || model.plaidBanks != nil
+                    || model.plaidAccounts != nil
+                    || model.plaidTransactions != nil
+                    || model.plaidBalances != nil
                     {
                         
                         //try? await Task.sleep(nanoseconds: UInt64(5 * Double(NSEC_PER_SEC)))
                         
                         if let transactions = model.transactions { self.handleLongPollTransactions(transactions) }
                         
-                        if AppState.shared.user?.id == 1 {
-                            if let fitTransactions = model.fitTransactions { self.handleLongPollFitTransactions(fitTransactions) }
-                        }
+//                        if AppState.shared.user?.id == 1 {
+//                            if let fitTransactions = model.fitTransactions { self.handleLongPollFitTransactions(fitTransactions) }
+//                        }
                         
                         if let startingAmounts = model.startingAmounts { self.handleLongPollStartingAmounts(startingAmounts) }
                         if let repeatingTransactions = model.repeatingTransactions { await self.handleLongPollRepeatingTransactions(repeatingTransactions) }
@@ -712,6 +750,11 @@ class FuncModel {
                         
                         if let invitations = model.invitations { await self.handleLongPollInvitations(invitations) }
                         if let openRecords = model.openRecords { await self.handleLongPollOpenRecords(openRecords) }
+                        
+                        if let plaidBanks = model.plaidBanks { await self.handleLongPollPlaidBanks(plaidBanks) }
+                        if let plaidAccounts = model.plaidAccounts { await self.handleLongPollPlaidAccounts(plaidAccounts) }
+                        if let plaidTransactions = model.plaidTransactions { self.handleLongPollPlaidTransactions(plaidTransactions) }
+                        if let plaidBalances = model.plaidBalances { self.handleLongPollPlaidBalances(plaidBalances) }
                     }
                 } else {
                     //print("GOT UNNNNSUccessful long poll model with return time \(String(describing: model?.returnTime))")
@@ -1342,6 +1385,112 @@ class FuncModel {
                 if openRecord.active {
                     OpenRecordManager.shared.upsert(openRecord, what: recordType)
                 }
+            }
+        }
+    }
+    
+    
+    @MainActor private func handleLongPollPlaidBanks(_ banks: Array<CBPlaidBank>) async {
+        print("-- \(#function)")
+        for bank in banks {
+            if plaidModel.doesExist(bank) {
+                if !bank.active {
+                    await plaidModel.delete(bank, andSubmit: false)
+                    continue
+                } else {
+                    if let index = plaidModel.getIndex(for: bank) {
+                        plaidModel.banks[index].setFromAnotherInstance(bank: bank)
+                        plaidModel.banks[index].deepCopy?.setFromAnotherInstance(bank: bank)
+                    }
+                }
+            } else {
+                if bank.active {
+                    plaidModel.upsert(bank)
+                }
+            }
+        }
+    }
+    
+    
+    @MainActor private func handleLongPollPlaidAccounts(_ accounts: Array<CBPlaidAccount>) async {
+        print("-- \(#function)")
+        var eventIdsThatGotChanged: Array<String> = []
+        
+        for act in accounts {
+            if let index = plaidModel.banks.firstIndex(where: { $0.id == act.bankID }) {
+                let bank = plaidModel.banks[index]
+                
+                eventIdsThatGotChanged.append(bank.id)
+                
+                if bank.doesExist(act) {
+                    if !act.active {
+                        bank.deleteAccount(id: act.id)
+                        continue
+                    } else {
+                        if let index = bank.getIndex(for: act) {
+                            bank.accounts[index].setFromAnotherInstance(account: act)
+                            bank.accounts[index].deepCopy?.setFromAnotherInstance(account: act)
+                        }
+                    }
+                } else {
+                    if act.active {
+                        bank.upsert(act)
+                    }
+                }
+            }
+        }
+        
+//        for id in eventIdsThatGotChanged {
+//            if let index = plaidModel.banks.firstIndex(where: { $0.id == id }) {
+//                withAnimation {
+//                    plaidModel.banks[index].accounts
+//                }
+//            }
+//        }
+    }
+    
+    
+    
+    @MainActor private func handleLongPollPlaidTransactions(_ transactions: Array<CBPlaidTransaction>) {
+        print("-- \(#function)")
+        for trans in transactions {
+            if plaidModel.doesExist(trans) {
+                if !trans.active {
+                    plaidModel.delete(trans)
+                    continue
+                } else {
+                    if trans.isAcknowledged {
+                        plaidModel.delete(trans)
+                        continue
+                    } else {
+                        if let index = plaidModel.getIndex(for: trans) {
+                            plaidModel.trans[index].setFromAnotherInstance(trans: trans)
+                        }
+                    }
+                }
+            } else {
+                if !trans.isAcknowledged {
+                    plaidModel.upsert(trans)
+                }
+            }
+        }
+    }
+    
+    
+    @MainActor private func handleLongPollPlaidBalances(_ balances: Array<CBPlaidBalance>) {
+        print("-- \(#function)")
+        for bal in balances {
+            if plaidModel.doesExist(bal) {
+                if !bal.active {
+                    plaidModel.delete(bal)
+                    continue
+                } else {
+                    if let index = plaidModel.getIndex(for: bal) {
+                        plaidModel.balances[index].setFromAnotherInstance(bal: bal)
+                    }
+                }
+            } else {
+                plaidModel.upsert(bal)
             }
         }
     }

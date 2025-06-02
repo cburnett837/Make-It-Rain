@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 @Observable
-class CBPaymentMethod: Codable, Identifiable {
+class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
     var id: String
     var uuid: String?
     var title: String
@@ -78,6 +78,8 @@ class CBPaymentMethod: Codable, Identifiable {
     var isUnified: Bool { accountType == .unifiedChecking || accountType == .unifiedCredit }
     var isCredit: Bool { accountType == .unifiedCredit || accountType == .credit }
     var isDebit: Bool { accountType == .unifiedChecking || accountType == .checking || accountType == .cash }
+    var isUnifiedDebit: Bool { accountType == .unifiedChecking }
+    var isUnifiedCredit: Bool { accountType == .unifiedCredit }
     
     
     init() {
@@ -311,7 +313,6 @@ class CBPaymentMethod: Codable, Identifiable {
             copy.color = self.color
             copy.isViewingDefault = self.isViewingDefault
             copy.isEditingDefault = self.isEditingDefault
-            copy.active = self.active
             copy.notificationOffset = self.notificationOffset
             copy.notifyOnDueDate = self.notifyOnDueDate
             copy.last4 = self.last4
@@ -331,7 +332,6 @@ class CBPaymentMethod: Codable, Identifiable {
                 self.color = deepCopy.color
                 self.isViewingDefault = deepCopy.isViewingDefault
                 self.isEditingDefault = deepCopy.isEditingDefault
-                self.active = deepCopy.active
                 self.notificationOffset = deepCopy.notificationOffset
                 self.notifyOnDueDate = deepCopy.notifyOnDueDate
                 self.last4 = deepCopy.last4
@@ -372,10 +372,8 @@ class CBPaymentMethod: Codable, Identifiable {
         entity.isViewingDefault = to
         let _ = await DataManager.shared.save()
     }
-}
+    
 
-
-extension CBPaymentMethod: Equatable, Hashable {
     static func == (lhs: CBPaymentMethod, rhs: CBPaymentMethod) -> Bool {
         if lhs.id == rhs.id
         && lhs.uuid == rhs.uuid

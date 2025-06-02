@@ -18,6 +18,9 @@ struct CalendarSheetLayerWrapper<Content: View>: View {
     @Environment(KeywordModel.self) private var keyModel
     @Environment(RepeatingTransactionModel.self) private var repModel
     @Environment(EventModel.self) private var eventModel
+    #if os(iOS)
+    @Environment(PlaidModel.self) private var plaidModel
+    #endif
     //@Environment(MapModel.self) private var mapModel
     
     let monthNavigationNamespace: Namespace.ID
@@ -84,6 +87,7 @@ struct CalendarSheetLayerWrapper<Content: View>: View {
                     .environment(keyModel)
                     .environment(repModel)
                     .environment(eventModel)
+                    .environment(plaidModel)
                     //.environment(mapModel)
             )
             rootVC.view.backgroundColor = .clear

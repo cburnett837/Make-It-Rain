@@ -10,12 +10,16 @@ import SwiftUI
 struct ToolbarRefreshButton: View {
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
+    @Environment(PlaidModel.self) private var plaidModel
     
     var body: some View {
         Button {
             funcModel.isLoading = true
             funcModel.refreshTask?.cancel()
             funcModel.refreshTask = Task {
+                
+                plaidModel.trans.removeAll()
+                
                 LoadingManager.shared.showInitiallyLoadingSpinner = true
                 calModel.months.forEach { month in
                     month.days.removeAll()

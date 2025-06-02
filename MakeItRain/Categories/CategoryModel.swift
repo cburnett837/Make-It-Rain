@@ -10,7 +10,7 @@ import Foundation
 @MainActor
 @Observable
 class CategoryModel {
-    static let shared = CategoryModel()
+    //static let shared = CategoryModel()
     var isThinking = false
     
     //var categoryEditID: Int?

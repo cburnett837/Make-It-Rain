@@ -13,6 +13,7 @@ struct CalendarNavGridHeader: View {
     @Local(\.colorTheme) var colorTheme
     @Environment(CalendarModel.self) var calModel
     @Environment(EventModel.self) var eventModel
+    @Environment(PlaidModel.self) var plaidModel
     
     let monthNavigationNamespace: Namespace.ID
 
@@ -64,8 +65,7 @@ struct CalendarNavGridHeader: View {
                     .font(.title)
                     .bold()
                     .if(AppState.shared.todayYear == calModel.sYear) {
-                        $0
-                            .foregroundStyle(Color.fromName(colorTheme))
+                        $0.foregroundStyle(Color.fromName(colorTheme))
                     }
                     .font(.callout)
                     .foregroundStyle(.gray)
@@ -87,7 +87,14 @@ struct CalendarNavGridHeader: View {
                     NowButton()
                 }
                 
-                ToolbarLongPollButton()
+                if plaidModel.atLeastOneBankHasAnIssue {
+                    Button {
+                        AppState.shared.showAlert("One or more banks are currently having issues. Please review in the plaid section.")
+                    } label: {
+                        Image(systemName: "creditcard.trianglebadge.exclamationmark")
+                            .foregroundStyle(Color.fromName(colorTheme) == .orange ? .red : .orange)
+                    }
+                }
             }
             
             ToolbarItemGroup(placement: .topBarTrailing) {
@@ -114,6 +121,8 @@ struct CalendarNavGridHeader: View {
 //                        Image(systemName: "magnifyingglass")
 //                    }
 //                    .matchedTransitionSource(id: NavDestination.search, in: monthNavigationNamespace)
+                    
+                    ToolbarLongPollButton()
                     
                     NavigationLink(value: NavDestination.settings) {
                         Image(systemName: "gear")

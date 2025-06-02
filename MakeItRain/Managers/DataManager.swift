@@ -141,8 +141,8 @@ actor DataManager {
     }
     
     
-    
-    func deleteAll<T: NSManagedObject>(for entity: T.Type, predicate: Predicate? = nil, shouldSave: Bool = true) -> Result<Bool, CoreDataError>? {
+    @MainActor
+    func deleteAll<T: NSManagedObject>(for entity: T.Type, predicate: Predicate? = nil, shouldSave: Bool = true) async -> Result<Bool, CoreDataError>? {
         let fetchRequest = T.fetchRequest()
         switch predicate {
         case nil: break
@@ -176,11 +176,64 @@ actor DataManager {
             LogManager.error(error.localizedDescription)
         }
         if shouldSave {
-            return save()
+            return await save()
         }
         return nil
         
     }
+    
+    
+    
+    @MainActor
+    func deleteAll2<T: NSManagedObject>(for entity: T.Type, predicate: Predicate? = nil, shouldSave: Bool = true, completion: @escaping (Result<Bool, CoreDataError>?) -> Void) {
+        let fetchRequest = T.fetchRequest()
+        switch predicate {
+        case nil: break
+        case .single(let predicate): fetchRequest.predicate = predicate
+        case .compound(let predicate): fetchRequest.predicate = predicate
+        case .byId(let idType):
+            switch idType {
+            case .int(let id): fetchRequest.predicate = NSPredicate(format: "id == %@", NSNumber(value: id))
+            case .string(let id): fetchRequest.predicate = NSPredicate(format: "id == %@", id)
+            }
+        }
+
+        let batchDeleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+        batchDeleteRequest.resultType = .resultTypeObjectIDs
+
+        container.performBackgroundTask { context in
+            do {
+                let deleteResult = try context.execute(batchDeleteRequest) as? NSBatchDeleteResult
+                if let objectIDs = deleteResult?.result as? [NSManagedObjectID] {
+                    DispatchQueue.main.async {
+                        NSManagedObjectContext.mergeChanges(
+                            fromRemoteContextSave: [NSDeletedObjectsKey: objectIDs],
+                            into: [self.container.viewContext]
+                        )
+                        if shouldSave {
+                            Task { @MainActor in
+                                let result = await self.save()
+                                completion(result)
+                            }
+                        } else {
+                            completion(nil)
+                        }
+                    }
+                } else {
+                    DispatchQueue.main.async {
+                        completion(.failure(.reason("Deletion Failed"))) // Custom CoreDataError
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    print("Batch delete error: \(error)")
+                    LogManager.error(error.localizedDescription)
+                    completion(.failure(.reason("Batch Execution failed with error: \(error.localizedDescription)")))
+                }
+            }
+        }
+    }
+    
 }
 
 

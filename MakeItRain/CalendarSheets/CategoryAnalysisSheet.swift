@@ -17,7 +17,7 @@ struct AnalysisSheet: View {
     @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
     @Local(\.useWholeNumbers) var useWholeNumbers
     @Environment(CalendarModel.self) private var calModel
-    
+    @Environment(PayMethodModel.self) private var payModel
     @Environment(EventModel.self) private var eventModel
     @Binding var showAnalysisSheet: Bool
         
@@ -112,27 +112,23 @@ struct AnalysisSheet: View {
         }
         #endif
         
-        .sheet(item: $editTrans) { trans in
-            TransactionEditView(trans: trans, transEditID: $transEditID, day: transDay!, isTemp: false)
-                /// This is needed for the drag to dismiss.
-                .onDisappear { transEditID = nil }
-            #warning("produces a race condition when swiping to close and opening another trans too quickly. Causes transDays to be nil and crashes the app.")
-        }
-        .onChange(of: transEditID) { oldValue, newValue in
-            print(".onChange(of: CategoryAnalysisSheet.transEditID)")
-            /// When `newValue` is false, save to the server. We have to use this because `.popover(isPresented:)` has no onDismiss option.
-            if oldValue != nil && newValue == nil {
-                let theDay = transDay
-                transDay = nil
-                calModel.saveTransaction(id: oldValue!, day: theDay, eventModel: eventModel)
-                //calModel.pictureTransactionID = nil
-                PhotoModel.shared.pictureParent = nil
-            } else {
-                editTrans = calModel.getTransaction(by: transEditID!, from: .normalList)
-            }
-        }
-        .sensoryFeedback(.selection, trigger: transEditID) { $1 != nil }
+//        .sheet(item: $editTrans) { trans in
+//            TransactionEditView(trans: trans, transEditID: $transEditID, day: transDay!, isTemp: false)
+//                /// This is needed for the drag to dismiss.
+//                .onDisappear { transEditID = nil }
+//            #warning("produces a race condition when swiping to close and opening another trans too quickly. Causes transDays to be nil and crashes the app.")
+//        }
+//        .onChange(of: transEditID) { transEditIdChanged(oldValue: $0, newValue: $1) }
+//        .sensoryFeedback(.selection, trigger: transEditID) { $1 != nil }
+        
+        .transactionEditSheetAndLogic(
+            calModel: calModel,
+            transEditID: $transEditID,
+            editTrans: $editTrans,
+            selectedDay: $transDay
+        )
     }
+            
     
     var detailSection: some View {
         Section {
@@ -393,11 +389,48 @@ struct AnalysisSheet: View {
     }
     
    
+//    func transEditIdChanged(oldValue: String?, newValue: String?) {
+//        /// When `newValue` is false, save to the server. We have to use this because `.popover(isPresented:)` has no onDismiss option.
+//        if oldValue != nil && newValue == nil {
+//            let theDay = transDay
+//            transDay = nil
+//            calModel.saveTransaction(id: oldValue!, day: theDay, eventModel: eventModel)
+//            //calModel.pictureTransactionID = nil
+//            PhotoModel.shared.pictureParent = nil
+//            
+//            calModel.editLock = false
+//            
+//        } else if newValue != nil {
+//            if !calModel.editLock {
+//                /// Prevent a transaction from being opened while another one is trying to save.
+//                calModel.editLock = true
+//                editTrans = calModel.getTransaction(by: newValue!, from: .normalList)
+//            }
+//        }
+//    }
     
     
     func prepareData() {
         transactions = calModel.justTransactions
             .filter { calModel.isInMultiSelectMode ? calModel.multiSelectTransactions.map({ $0.id }).contains($0.id) : true }
+            //.filter { $0.payMethod?.id == calModel.sPayMethod?.id }
+//            .filter { trans in
+//                if let sMethod = calModel.sPayMethod {
+//                    if sMethod.isUnifiedDebit {
+//                        let methods: Array<String> = payModel.paymentMethods.filter { $0.isDebit }.map { $0.id }
+//                        return methods.contains(trans.payMethod?.id ?? "")
+//                        
+//                    } else if sMethod.isUnifiedCredit {
+//                        let methods: Array<String> = payModel.paymentMethods.filter { $0.isCredit }.map { $0.id }
+//                        return methods.contains(trans.payMethod?.id ?? "")
+//                        
+//                    } else {
+//                        return trans.payMethod?.id == sMethod.id
+//                    }
+//                } else {
+//                    return false
+//                }
+//            }
             .filter { calModel.sCategoriesForAnalysis.map{ $0.id }.contains($0.category?.id) }
             .filter { $0.dateComponents?.month == calModel.sMonth.actualNum }
             .filter { $0.dateComponents?.year == calModel.sMonth.year }
@@ -416,7 +449,7 @@ struct AnalysisSheet: View {
         self.budget = calModel.justBudgets
             .filter { $0.month == calModel.sMonth.actualNum }
             .filter { $0.year == calModel.sMonth.year }
-            .filter { calModel.sCategoriesForAnalysis.map{ $0.id }.contains($0.category?.id) }
+            .filter { calModel.sCategoriesForAnalysis.map { $0.id }.contains($0.category?.id) }
             .map { $0.amount }
             .reduce(0.0, +)
         
@@ -436,8 +469,25 @@ struct AnalysisSheet: View {
                 let expenses = calModel.justTransactions
                     .filter { calModel.isInMultiSelectMode ? calModel.multiSelectTransactions.map({ $0.id }).contains($0.id) : true }
                     .filter { $0.isBudgetable && $0.isExpense && $0.factorInCalculations }
+//                    .filter { trans in
+//                        if let sMethod = calModel.sPayMethod {
+//                            if sMethod.isUnifiedDebit {
+//                                let methods: Array<String> = payModel.paymentMethods.filter { $0.isDebit }.map { $0.id }
+//                                return methods.contains(trans.payMethod?.id ?? "")
+//                                
+//                            } else if sMethod.isUnifiedCredit {
+//                                let methods: Array<String> = payModel.paymentMethods.filter { $0.isCredit }.map { $0.id }
+//                                return methods.contains(trans.payMethod?.id ?? "")
+//                                
+//                            } else {
+//                                return trans.payMethod?.id == sMethod.id
+//                            }
+//                        } else {
+//                            return false
+//                        }
+//                    }
                     .filter {
-                        calModel.sCategoriesForAnalysis.map{ $0.id }.contains($0.category?.id)
+                        calModel.sCategoriesForAnalysis.map { $0.id }.contains($0.category?.id)
                         && $0.dateComponents?.month == calModel.sMonth.actualNum
                         && $0.dateComponents?.year == calModel.sMonth.year
                         && $0.category?.id == cat.id
@@ -449,8 +499,26 @@ struct AnalysisSheet: View {
                 let income = calModel.sMonth.justTransactions
                     .filter { calModel.isInMultiSelectMode ? calModel.multiSelectTransactions.map({ $0.id }).contains($0.id) : true }
                     .filter { $0.isBudgetable && $0.isIncome && $0.factorInCalculations }
+                    //.filter { $0.payMethod?.id == calModel.sPayMethod?.id }
+//                    .filter { trans in
+//                        if let sMethod = calModel.sPayMethod {
+//                            if sMethod.isUnifiedDebit {
+//                                let methods: Array<String> = payModel.paymentMethods.filter { $0.isDebit }.map { $0.id }
+//                                return methods.contains(trans.payMethod?.id ?? "")
+//                                
+//                            } else if sMethod.isUnifiedCredit {
+//                                let methods: Array<String> = payModel.paymentMethods.filter { $0.isCredit }.map { $0.id }
+//                                return methods.contains(trans.payMethod?.id ?? "")
+//                                
+//                            } else {
+//                                return trans.payMethod?.id == sMethod.id
+//                            }
+//                        } else {
+//                            return false
+//                        }
+//                    }
                     .filter {
-                        calModel.sCategoriesForAnalysis.map{ $0.id }.contains($0.category?.id)
+                        calModel.sCategoriesForAnalysis.map { $0.id }.contains($0.category?.id)
                         && $0.dateComponents?.month == calModel.sMonth.actualNum
                         && $0.dateComponents?.year == calModel.sMonth.year
                         && $0.category?.id == cat.id

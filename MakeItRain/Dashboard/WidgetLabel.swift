@@ -15,7 +15,43 @@ struct WidgetLabel: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
                 //.background(RoundedRectangle(cornerRadius: 8).fill(Color(.secondarySystemBackground)))
+                #if os(iOS)
                 .background(Capsule().fill(Color(.secondarySystemBackground)))
+                #else
+                .background(Capsule().fill(Color(.secondarySystemFill)))
+                #endif
+            
+            Spacer()
+        }
+    }
+}
+
+struct WidgetLabelButton: View {
+    var title: String
+    var action: () -> Void
+    
+    var body: some View {
+        HStack {
+            Button {
+                action()
+            } label: {
+                HStack {
+                    Image(systemName: "info.circle")
+                        .foregroundColor(.gray)
+                    Text(title)
+                        .foregroundColor(.primary)
+                }
+                
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            #if os(iOS)
+            .background(Capsule().fill(Color(.secondarySystemBackground)))
+            #else
+            .background(Capsule().fill(Color(.secondarySystemFill)))
+            #endif
+            //.background(RoundedRectangle(cornerRadius: 20).fill(Color(.secondarySystemBackground)))
+            //.padding(.bottom, 3)
             
             Spacer()
         }
@@ -47,7 +83,11 @@ struct WidgetLabelMenu: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
+            #if os(iOS)
             .background(Capsule().fill(Color(.secondarySystemBackground)))
+            #else
+            .background(Capsule().fill(Color(.secondarySystemFill)))
+            #endif
             //.background(RoundedRectangle(cornerRadius: 20).fill(Color(.secondarySystemBackground)))
             //.padding(.bottom, 3)
             

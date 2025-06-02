@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 enum NavDestination: String, Codable, Hashable, Identifiable {
-    case january, february, march, april, may, june, july, august, september, october, november, december, lastDecember, nextJanuary, repeatingTransactions, paymentMethods, categories, keywords, search, analytics, events, settings, placeholderMonth, debug
+    case january, february, march, april, may, june, july, august, september, october, november, december, lastDecember, nextJanuary, repeatingTransactions, paymentMethods, categories, keywords, search, analytics, events, settings, placeholderMonth, debug, plaid
     
     var id: NavDestination {
         return self
@@ -75,6 +75,7 @@ enum NavDestination: String, Codable, Hashable, Identifiable {
         case .events:                   return "Events"
         case .settings:                 return "Settings"
         case .debug:                    return "Debug"
+        case .plaid:                    return "Plaid"
         case .placeholderMonth:         return ""
         }
     }

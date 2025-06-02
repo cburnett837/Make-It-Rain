@@ -43,6 +43,7 @@ struct MakeItRainApp: App {
     @State private var keyModel: KeywordModel
     @State private var repModel: RepeatingTransactionModel
     @State private var eventModel: EventModel
+    @State private var plaidModel: PlaidModel
     
     @State private var photoModel = PhotoModel.shared
     @State private var locationManager = LocationManager.shared
@@ -53,7 +54,7 @@ struct MakeItRainApp: App {
     @Namespace private var monthNavigationNamespace
     
     init() {
-        let calModel = CalendarModel.shared
+        let calModel = CalendarModel()
                 
         /// This is now a singleton because the creditLimits are needed inside the calModel. 2/21/25
         /// However, views still access this via the environment.
@@ -62,10 +63,11 @@ struct MakeItRainApp: App {
         
         /// All singletons because of experimenting with single window groups on iPad os.
         /// Should be find to leave them as such.
-        let catModel = CategoryModel.shared
-        let keyModel = KeywordModel.shared
-        let repModel = RepeatingTransactionModel.shared
-        let eventModel = EventModel.shared
+        let catModel = CategoryModel()
+        let keyModel = KeywordModel()
+        let repModel = RepeatingTransactionModel()
+        let eventModel = EventModel()
+        let plaidModel = PlaidModel()
         
         self.calModel = calModel
         self.payModel = payModel
@@ -73,8 +75,17 @@ struct MakeItRainApp: App {
         self.keyModel = keyModel
         self.repModel = repModel
         self.eventModel = eventModel
+        self.plaidModel = plaidModel
         
-        self.funcModel = .init(calModel: calModel, payModel: payModel, catModel: catModel, keyModel: keyModel, repModel: repModel, eventModel: eventModel)
+        self.funcModel = .init(
+            calModel: calModel,
+            payModel: payModel,
+            catModel: catModel,
+            keyModel: keyModel,
+            repModel: repModel,
+            eventModel: eventModel,
+            plaidModel: plaidModel
+        )
         
         do {
             try setupTips()
@@ -129,6 +140,9 @@ struct MakeItRainApp: App {
                     #endif
                 }
             }
+            .onOpenURL(perform: { url in
+                print(url.absoluteString)
+            })
             #if os(macOS)
             .toolbar(.visible, for: .windowToolbar)
             #endif
@@ -139,6 +153,7 @@ struct MakeItRainApp: App {
             .environment(keyModel)
             .environment(repModel)
             .environment(eventModel)
+            .environment(plaidModel)
             //.preferredColorScheme(colorScheme)
         }
         .defaultSize(width: 1000, height: 600)
@@ -165,6 +180,7 @@ struct MakeItRainApp: App {
                 .environment(keyModel)
                 .environment(repModel)
                 .environment(eventModel)
+                .environment(plaidModel)
         }
         .auxilaryWindow()
         
@@ -173,6 +189,15 @@ struct MakeItRainApp: App {
                 .frame(minWidth: 300, minHeight: 200)
                 .environment(calModel)
                 .environment(payModel)
+        }
+        .auxilaryWindow()
+        
+        Window("Pending Plaid Transactions", id: "pendingPlaidTransactions") {
+            PlaidTransactionOverlay(bottomPanelContent: .constant(.plaidTransactions), bottomPanelHeight: .constant(0), scrollContentMargins: .constant(0))
+                .frame(minWidth: 300, minHeight: 200)
+                .environment(calModel)
+                .environment(payModel)
+                .environment(plaidModel)
         }
         .auxilaryWindow()
         
@@ -186,6 +211,7 @@ struct MakeItRainApp: App {
                 .environment(keyModel)
                 .environment(repModel)
                 .environment(eventModel)
+                .environment(plaidModel)
                 //.environment(mapModel)
         }
         .auxilaryWindow()
@@ -206,6 +232,7 @@ struct MakeItRainApp: App {
             .environment(keyModel)
             .environment(repModel)
             .environment(eventModel)
+            .environment(plaidModel)
 //            .onDisappear {
 //                calModel.isInMultiSelectMode = false
 //            }
@@ -232,6 +259,7 @@ struct MakeItRainApp: App {
                     .environment(keyModel)
                     .environment(repModel)
                     .environment(eventModel)
+                    .environment(plaidModel)
                     //.environment(mapModel)
                     .onAppear {
                         if let window = NSApp.windows.first(where: {$0.title.contains("MonthlyWindowPlaceHolder")}) {
@@ -257,6 +285,7 @@ struct MakeItRainApp: App {
                 .environment(keyModel)
                 .environment(repModel)
                 .environment(eventModel)
+                .environment(plaidModel)
                 //.environment(mapModel)
         }
         #endif

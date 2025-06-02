@@ -9,6 +9,14 @@
 /* Begin PBXBuildFile section */
 		FD001B842D91952300E5D90D /* SmartTransactionsWithIssuesOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD001B832D91952300E5D90D /* SmartTransactionsWithIssuesOverlay.swift */; };
 		FD001B862D91B43C00E5D90D /* BottomPanelContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD001B852D91B43C00E5D90D /* BottomPanelContainerView.swift */; };
+		FD06F69D2DE7484600753490 /* PlaidTransactionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD06F69C2DE7484600753490 /* PlaidTransactionOverlay.swift */; };
+		FD06F69F2DE75ABB00753490 /* PlaidAccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD06F69E2DE75ABB00753490 /* PlaidAccountView.swift */; };
+		FD06F6AE2DE8B2E000753490 /* CBPlaidBalance.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD06F6AD2DE8B2E000753490 /* CBPlaidBalance.swift */; };
+		FD06F6B02DEA33FB00753490 /* IncomeAndExpenseChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD06F6AF2DEA33FB00753490 /* IncomeAndExpenseChart.swift */; };
+		FD06F6B22DEA345200753490 /* ChartLegendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD06F6B12DEA345200753490 /* ChartLegendView.swift */; };
+		FD06F6B62DEA34B800753490 /* ChartIncomeOptionMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD06F6B52DEA34B800753490 /* ChartIncomeOptionMenu.swift */; };
+		FD06F6B82DEA36BD00753490 /* ChartOptionToggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD06F6B72DEA36BD00753490 /* ChartOptionToggle.swift */; };
+		FD06F6BA2DEA4D2800753490 /* ChartOptionSheetContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD06F6B92DEA4D2800753490 /* ChartOptionSheetContainer.swift */; };
 		FD07E24C2D68B53500024B11 /* FitTransactionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD07E24B2D68B53500024B11 /* FitTransactionOverlay.swift */; };
 		FD07E24E2D68B5BE00024B11 /* DayOverview.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD07E24D2D68B5BE00024B11 /* DayOverview.swift */; };
 		FD07E28D2D7210EC00024B11 /* AlertStuff.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD07E28C2D7210EC00024B11 /* AlertStuff.swift */; };
@@ -40,7 +48,7 @@
 		FD49F8892DD77CBD00A563C8 /* PayMethodViewModelOG.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD49F8882DD77CBD00A563C8 /* PayMethodViewModelOG.swift */; };
 		FD49F8A22DD9999500A563C8 /* LocalStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD49F8A12DD9999500A563C8 /* LocalStorage.swift */; };
 		FD49F8A42DD9A98200A563C8 /* Validator.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD49F8A32DD9A98200A563C8 /* Validator.swift */; };
-		FD49F8B42DDE32F200A563C8 /* LinkController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD49F8B32DDE32F200A563C8 /* LinkController.swift */; };
+		FD49F8B42DDE32F200A563C8 /* PlaidLinkController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD49F8B32DDE32F200A563C8 /* PlaidLinkController.swift */; };
 		FD4BABC02D944E0400384AB3 /* CBEventCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD4BABBF2D944E0400384AB3 /* CBEventCategory.swift */; };
 		FD4BABC22D94511300384AB3 /* CBEventUserVerificationModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD4BABC12D94511300384AB3 /* CBEventUserVerificationModel.swift */; };
 		FD4BABC42D94512300384AB3 /* CBEventInviteResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD4BABC32D94512300384AB3 /* CBEventInviteResponse.swift */; };
@@ -66,6 +74,8 @@
 		FD6D7F032D66CD0A0026D39D /* CBFitTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD6D7F022D66CD0A0026D39D /* CBFitTransaction.swift */; };
 		FD737B212D806B9A00B6A97B /* StandardRectangle.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD737B202D806B9A00B6A97B /* StandardRectangle.swift */; };
 		FD737B412D835AAF00B6A97B /* AlertAndToastLayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD737B402D835AAF00B6A97B /* AlertAndToastLayerView.swift */; };
+		FD83716C2DEDE3660099C6F3 /* TransactionListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD83716B2DEDE3660099C6F3 /* TransactionListView.swift */; };
+		FD83716E2DEDEBEA0099C6F3 /* NewTransactionMenuButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD83716D2DEDEBEA0099C6F3 /* NewTransactionMenuButton.swift */; };
 		FD9D52FB2DAECE1D008CD1BA /* StandardTitleTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9D52FA2DAECE1D008CD1BA /* StandardTitleTextField.swift */; };
 		FD9D52FD2DAED743008CD1BA /* Protocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9D52FC2DAED743008CD1BA /* Protocols.swift */; };
 		FD9D52FF2DAED8E8008CD1BA /* StandardAmountTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9D52FE2DAED8E8008CD1BA /* StandardAmountTextField.swift */; };
@@ -240,6 +250,15 @@
 		FDE4E7D62D56978A00A883EE /* EditorExample.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDE4E7D52D56978A00A883EE /* EditorExample.swift */; };
 		FDE4E7D82D56AA0100A883EE /* PhotoModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDE4E7D72D56AA0100A883EE /* PhotoModel.swift */; };
 		FDE4E8142D5BF33200A883EE /* UndodoManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDE4E8132D5BF33200A883EE /* UndodoManager.swift */; };
+		FDFBC44E2DDE33C9006DE685 /* LinkKit in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = FDFBC44D2DDE33C9006DE685 /* LinkKit */; };
+		FDFBC4502DDE346C006DE685 /* PlaidLinkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDFBC44F2DDE346C006DE685 /* PlaidLinkView.swift */; };
+		FDFBC4522DDEB47D006DE685 /* PlaidServerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDFBC4512DDEB47D006DE685 /* PlaidServerModel.swift */; };
+		FDFBC4542DDED96A006DE685 /* PlaidTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDFBC4532DDED96A006DE685 /* PlaidTable.swift */; };
+		FDFBC4562DDEDA24006DE685 /* CBPlaidBank.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDFBC4552DDEDA24006DE685 /* CBPlaidBank.swift */; };
+		FDFBC4582DDF5343006DE685 /* PlaidModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDFBC4572DDF5343006DE685 /* PlaidModel.swift */; };
+		FDFBC45A2DDF5BD6006DE685 /* PlaidBankView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDFBC4592DDF5BD6006DE685 /* PlaidBankView.swift */; };
+		FDFBC45E2DDF6017006DE685 /* CBPlaidAccount.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDFBC45D2DDF6017006DE685 /* CBPlaidAccount.swift */; };
+		FDFBC4602DE67FAA006DE685 /* CBPlaidTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDFBC45F2DE67FAA006DE685 /* CBPlaidTransaction.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -268,6 +287,14 @@
 /* Begin PBXFileReference section */
 		FD001B832D91952300E5D90D /* SmartTransactionsWithIssuesOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartTransactionsWithIssuesOverlay.swift; sourceTree = "<group>"; };
 		FD001B852D91B43C00E5D90D /* BottomPanelContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomPanelContainerView.swift; sourceTree = "<group>"; };
+		FD06F69C2DE7484600753490 /* PlaidTransactionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaidTransactionOverlay.swift; sourceTree = "<group>"; };
+		FD06F69E2DE75ABB00753490 /* PlaidAccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaidAccountView.swift; sourceTree = "<group>"; };
+		FD06F6AD2DE8B2E000753490 /* CBPlaidBalance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBPlaidBalance.swift; sourceTree = "<group>"; };
+		FD06F6AF2DEA33FB00753490 /* IncomeAndExpenseChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomeAndExpenseChart.swift; sourceTree = "<group>"; };
+		FD06F6B12DEA345200753490 /* ChartLegendView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartLegendView.swift; sourceTree = "<group>"; };
+		FD06F6B52DEA34B800753490 /* ChartIncomeOptionMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartIncomeOptionMenu.swift; sourceTree = "<group>"; };
+		FD06F6B72DEA36BD00753490 /* ChartOptionToggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartOptionToggle.swift; sourceTree = "<group>"; };
+		FD06F6B92DEA4D2800753490 /* ChartOptionSheetContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartOptionSheetContainer.swift; sourceTree = "<group>"; };
 		FD07E24B2D68B53500024B11 /* FitTransactionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitTransactionOverlay.swift; sourceTree = "<group>"; };
 		FD07E24D2D68B5BE00024B11 /* DayOverview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayOverview.swift; sourceTree = "<group>"; };
 		FD07E28C2D7210EC00024B11 /* AlertStuff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertStuff.swift; sourceTree = "<group>"; };
@@ -300,7 +327,7 @@
 		FD49F8882DD77CBD00A563C8 /* PayMethodViewModelOG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PayMethodViewModelOG.swift; sourceTree = "<group>"; };
 		FD49F8A12DD9999500A563C8 /* LocalStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalStorage.swift; sourceTree = "<group>"; };
 		FD49F8A32DD9A98200A563C8 /* Validator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Validator.swift; sourceTree = "<group>"; };
-		FD49F8B32DDE32F200A563C8 /* LinkController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkController.swift; sourceTree = "<group>"; };
+		FD49F8B32DDE32F200A563C8 /* PlaidLinkController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaidLinkController.swift; sourceTree = "<group>"; };
 		FD4BABBF2D944E0400384AB3 /* CBEventCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBEventCategory.swift; sourceTree = "<group>"; };
 		FD4BABC12D94511300384AB3 /* CBEventUserVerificationModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBEventUserVerificationModel.swift; sourceTree = "<group>"; };
 		FD4BABC32D94512300384AB3 /* CBEventInviteResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBEventInviteResponse.swift; sourceTree = "<group>"; };
@@ -328,6 +355,8 @@
 		FD6D7F022D66CD0A0026D39D /* CBFitTransaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBFitTransaction.swift; sourceTree = "<group>"; };
 		FD737B202D806B9A00B6A97B /* StandardRectangle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandardRectangle.swift; sourceTree = "<group>"; };
 		FD737B402D835AAF00B6A97B /* AlertAndToastLayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertAndToastLayerView.swift; sourceTree = "<group>"; };
+		FD83716B2DEDE3660099C6F3 /* TransactionListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionListView.swift; sourceTree = "<group>"; };
+		FD83716D2DEDEBEA0099C6F3 /* NewTransactionMenuButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTransactionMenuButton.swift; sourceTree = "<group>"; };
 		FD8DFA7C2CFB8C100056EE39 /* PersistentModel2.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = PersistentModel2.xcdatamodel; sourceTree = "<group>"; };
 		FD9D52FA2DAECE1D008CD1BA /* StandardTitleTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandardTitleTextField.swift; sourceTree = "<group>"; };
 		FD9D52FC2DAED743008CD1BA /* Protocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Protocols.swift; sourceTree = "<group>"; };
@@ -503,6 +532,14 @@
 		FDE4E7D52D56978A00A883EE /* EditorExample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorExample.swift; sourceTree = "<group>"; };
 		FDE4E7D72D56AA0100A883EE /* PhotoModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoModel.swift; sourceTree = "<group>"; };
 		FDE4E8132D5BF33200A883EE /* UndodoManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UndodoManager.swift; sourceTree = "<group>"; };
+		FDFBC44F2DDE346C006DE685 /* PlaidLinkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaidLinkView.swift; sourceTree = "<group>"; };
+		FDFBC4512DDEB47D006DE685 /* PlaidServerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaidServerModel.swift; sourceTree = "<group>"; };
+		FDFBC4532DDED96A006DE685 /* PlaidTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaidTable.swift; sourceTree = "<group>"; };
+		FDFBC4552DDEDA24006DE685 /* CBPlaidBank.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBPlaidBank.swift; sourceTree = "<group>"; };
+		FDFBC4572DDF5343006DE685 /* PlaidModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaidModel.swift; sourceTree = "<group>"; };
+		FDFBC4592DDF5BD6006DE685 /* PlaidBankView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaidBankView.swift; sourceTree = "<group>"; };
+		FDFBC45D2DDF6017006DE685 /* CBPlaidAccount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBPlaidAccount.swift; sourceTree = "<group>"; };
+		FDFBC45F2DE67FAA006DE685 /* CBPlaidTransaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBPlaidTransaction.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -511,6 +548,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FDB1ACFE2D779A29001CB2F6 /* Algorithms in Frameworks */,
+				FDFBC44E2DDE33C9006DE685 /* LinkKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -578,8 +616,6 @@
 			children = (
 				FDAECC602DCF00BB00C6EDA5 /* PayMethodView.swift */,
 				FD0DB2B02DD4DD6D00475334 /* PayMethodViewModel.swift */,
-				FD49F8862DD77C8000A563C8 /* PayMethodChart.swift */,
-				FD0DB2B42DD62F7500475334 /* PayMethodChartModels.swift */,
 			);
 			path = "Pay Method View";
 			sourceTree = "<group>";
@@ -592,7 +628,6 @@
 				FD6D7EC92D667B4A0026D39D /* Frameworks */,
 				FD292E0F2C9B248B003C18D2 /* Products */,
 				FD49F8A52DDCCFC200A563C8 /* Junk */,
-				FDAECC512DCBA42A00C6EDA5 /* CategoryViewOG.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -610,6 +645,7 @@
 				FD49F8842DD6C57B00A563C8 /* PayMethodViewContainer.swift */,
 				FD49F8882DD77CBD00A563C8 /* PayMethodViewModelOG.swift */,
 				FDAECC5E2DCE8CFC00C6EDA5 /* PayMethodChartOG.swift */,
+				FDAECC512DCBA42A00C6EDA5 /* CategoryViewOG.swift */,
 			);
 			path = Junk;
 			sourceTree = "<group>";
@@ -617,6 +653,13 @@
 		FD49F8A62DDD0E4000A563C8 /* Pay Method Charts */ = {
 			isa = PBXGroup;
 			children = (
+				FD0DB2B42DD62F7500475334 /* PayMethodChartModels.swift */,
+				FD49F8862DD77C8000A563C8 /* PayMethodChart.swift */,
+				FD06F6AF2DEA33FB00753490 /* IncomeAndExpenseChart.swift */,
+				FD06F6B72DEA36BD00753490 /* ChartOptionToggle.swift */,
+				FD06F6B52DEA34B800753490 /* ChartIncomeOptionMenu.swift */,
+				FD06F6B12DEA345200753490 /* ChartLegendView.swift */,
+				FD06F6B92DEA4D2800753490 /* ChartOptionSheetContainer.swift */,
 			);
 			path = "Pay Method Charts";
 			sourceTree = "<group>";
@@ -624,7 +667,12 @@
 		FD49F8B22DDE32DF00A563C8 /* Plaid Stuff */ = {
 			isa = PBXGroup;
 			children = (
-				FD49F8B32DDE32F200A563C8 /* LinkController.swift */,
+				FDFBC4572DDF5343006DE685 /* PlaidModel.swift */,
+				FDFBC4532DDED96A006DE685 /* PlaidTable.swift */,
+				FDFBC4592DDF5BD6006DE685 /* PlaidBankView.swift */,
+				FD06F69E2DE75ABB00753490 /* PlaidAccountView.swift */,
+				FDFBC45C2DDF5D0A006DE685 /* Plaid Models */,
+				FDFBC45B2DDF5CF5006DE685 /* Link Stuff */,
 			);
 			path = "Plaid Stuff";
 			sourceTree = "<group>";
@@ -769,6 +817,8 @@
 				FD001B832D91952300E5D90D /* SmartTransactionsWithIssuesOverlay.swift */,
 				FDC26DFE2D3E86D500B0A97C /* StartingAmountSheet.swift */,
 				FDC26E0E2D3E86D500B0A97C /* TransferSheet.swift */,
+				FD06F69C2DE7484600753490 /* PlaidTransactionOverlay.swift */,
+				FD83716B2DEDE3660099C6F3 /* TransactionListView.swift */,
 			);
 			path = CalendarSheets;
 			sourceTree = "<group>";
@@ -834,6 +884,7 @@
 				FDB066D02D4D40C40060568B /* UIDatePicker.swift */,
 				FD49F8A32DD9A98200A563C8 /* Validator.swift */,
 				FDC26E0F2D3E86D500B0A97C /* YearPicker.swift */,
+				FD83716D2DEDEBEA0099C6F3 /* NewTransactionMenuButton.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -1017,7 +1068,6 @@
 		FDC26E102D3E86D500B0A97C /* MakeItRain */ = {
 			isa = PBXGroup;
 			children = (
-				FD49F8B22DDE32DF00A563C8 /* Plaid Stuff */,
 				FDC26DD32D3E86D500B0A97C /* MakeItRainApp.swift */,
 				FDC26D8E2D3E86D500B0A97C /* AppState.swift */,
 				FD49F8A12DD9999500A563C8 /* LocalStorage.swift */,
@@ -1040,6 +1090,7 @@
 				FDD6CDE22DA97C29002B00E5 /* Map */,
 				FDC26D842D3E86D500B0A97C /* Models */,
 				FDC26D852D3E86D500B0A97C /* Payment Methods */,
+				FD49F8B22DDE32DF00A563C8 /* Plaid Stuff */,
 				FDC26D872D3E86D500B0A97C /* Repeating Transactions */,
 				FDD577FB2DC135A300C0B197 /* Search */,
 				FDD577FA2DC1357B00C0B197 /* Settings */,
@@ -1096,6 +1147,27 @@
 			path = Map;
 			sourceTree = "<group>";
 		};
+		FDFBC45B2DDF5CF5006DE685 /* Link Stuff */ = {
+			isa = PBXGroup;
+			children = (
+				FDFBC44F2DDE346C006DE685 /* PlaidLinkView.swift */,
+				FD49F8B32DDE32F200A563C8 /* PlaidLinkController.swift */,
+			);
+			path = "Link Stuff";
+			sourceTree = "<group>";
+		};
+		FDFBC45C2DDF5D0A006DE685 /* Plaid Models */ = {
+			isa = PBXGroup;
+			children = (
+				FDFBC4512DDEB47D006DE685 /* PlaidServerModel.swift */,
+				FDFBC4552DDEDA24006DE685 /* CBPlaidBank.swift */,
+				FDFBC45D2DDF6017006DE685 /* CBPlaidAccount.swift */,
+				FDFBC45F2DE67FAA006DE685 /* CBPlaidTransaction.swift */,
+				FD06F6AD2DE8B2E000753490 /* CBPlaidBalance.swift */,
+			);
+			path = "Plaid Models";
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -1116,6 +1188,7 @@
 			name = MakeItRain;
 			packageProductDependencies = (
 				FDB1ACFD2D779A29001CB2F6 /* Algorithms */,
+				FDFBC44D2DDE33C9006DE685 /* LinkKit */,
 			);
 			productName = MakeItRain;
 			productReference = FD292E0E2C9B248B003C18D2 /* MakeItRain.app */;
@@ -1148,6 +1221,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				FD8ABE542D77995E00F3BB64 /* XCRemoteSwiftPackageReference "swift-algorithms" */,
+				FDFBC44C2DDE33C9006DE685 /* XCRemoteSwiftPackageReference "plaid-link-ios-spm" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = FD292E0F2C9B248B003C18D2 /* Products */;
@@ -1187,11 +1261,13 @@
 				FD09FF592D9D6DCD00795C28 /* EventCategorySheetButton.swift in Sources */,
 				FDC26E142D3E86D500B0A97C /* KeywordsTable.swift in Sources */,
 				FDC26E152D3E86D500B0A97C /* Modifiers.swift in Sources */,
+				FDFBC4522DDEB47D006DE685 /* PlaidServerModel.swift in Sources */,
 				FDE4E7D62D56978A00A883EE /* EditorExample.swift in Sources */,
 				FD09FF6C2D9D88E800795C28 /* EventPaymentMethodSheet.swift in Sources */,
 				FDC26E162D3E86D500B0A97C /* MultiMonthSheet.swift in Sources */,
 				FDC26E172D3E86D500B0A97C /* PayMethodModel.swift in Sources */,
 				FD09FF4B2D9C30F100795C28 /* ListOrderUpdateModel.swift in Sources */,
+				FDFBC45A2DDF5BD6006DE685 /* PlaidBankView.swift in Sources */,
 				FDC26E9B2D3E9D5700B0A97C /* EventView.swift in Sources */,
 				FDC26E182D3E86D500B0A97C /* PreferenceKeys.swift in Sources */,
 				FDC26E9F2D3ECC1900B0A97C /* CBEventParticipant.swift in Sources */,
@@ -1210,8 +1286,10 @@
 				FDC26E1F2D3E86D500B0A97C /* CBMonth.swift in Sources */,
 				FD0DB2B52DD62F7500475334 /* PayMethodChartModels.swift in Sources */,
 				FDC26E202D3E86D500B0A97C /* TransactionEditView.swift in Sources */,
+				FDFBC45E2DDF6017006DE685 /* CBPlaidAccount.swift in Sources */,
 				FDC26E212D3E86D500B0A97C /* RepeatingTransactionModel.swift in Sources */,
 				FDC26E222D3E86D500B0A97C /* RepeatingTransactionView.swift in Sources */,
+				FD06F6AE2DE8B2E000753490 /* CBPlaidBalance.swift in Sources */,
 				FDC26E232D3E86D500B0A97C /* CameraView.swift in Sources */,
 				FDC26E242D3E86D500B0A97C /* NotificationToken.swift in Sources */,
 				FDC26E252D3E86D500B0A97C /* CategorySheetButton.swift in Sources */,
@@ -1244,6 +1322,7 @@
 				FDC26E362D3E86D500B0A97C /* SheetHeader.swift in Sources */,
 				FDC26E372D3E86D500B0A97C /* DataManager.swift in Sources */,
 				FD737B412D835AAF00B6A97B /* AlertAndToastLayerView.swift in Sources */,
+				FD83716C2DEDE3660099C6F3 /* TransactionListView.swift in Sources */,
 				FD09FF492D9B221B00795C28 /* OpenRecordManager.swift in Sources */,
 				FDC26E9D2D3EA7F800B0A97C /* EventParticipantsTable.swift in Sources */,
 				FDC26E382D3E86D500B0A97C /* ButtonStyles.swift in Sources */,
@@ -1257,6 +1336,7 @@
 				FDC26E3C2D3E86D500B0A97C /* BudgetModel.swift in Sources */,
 				FD49F8A42DD9A98200A563C8 /* Validator.swift in Sources */,
 				FDC26E3D2D3E86D500B0A97C /* CBPicture.swift in Sources */,
+				FD06F6BA2DEA4D2800753490 /* ChartOptionSheetContainer.swift in Sources */,
 				FD678EED2DBC2E8A00D6BC5E /* CategoryGroupView.swift in Sources */,
 				FD07E24E2D68B5BE00024B11 /* DayOverview.swift in Sources */,
 				FDC26E3E2D3E86D500B0A97C /* KeychainManager.swift in Sources */,
@@ -1264,8 +1344,10 @@
 				FDAECC592DCE32BA00C6EDA5 /* DashboardHeader.swift in Sources */,
 				FDC26E402D3E86D500B0A97C /* CircleDot.swift in Sources */,
 				FD4BABD22D960AD700384AB3 /* EventDetailsView.swift in Sources */,
+				FDFBC4542DDED96A006DE685 /* PlaidTable.swift in Sources */,
 				FD2FC7FD2D7CB3C600501D41 /* ChartCircleDot.swift in Sources */,
 				FD49F8832DD66AAE00A563C8 /* DebugView.swift in Sources */,
+				FD06F6B02DEA33FB00753490 /* IncomeAndExpenseChart.swift in Sources */,
 				FD4BABC42D94512300384AB3 /* CBEventInviteResponse.swift in Sources */,
 				FD4BABCC2D959B5100384AB3 /* EventItemsTable.swift in Sources */,
 				FDC26E412D3E86D500B0A97C /* CBRepeatingTransaction.swift in Sources */,
@@ -1284,10 +1366,12 @@
 				FD09FF572D9C314300795C28 /* ParentChildIdModel.swift in Sources */,
 				FDC26E472D3E86D500B0A97C /* CalendarViewMac.swift in Sources */,
 				FDD6CDE62DA97D78002B00E5 /* StandardMiniMap.swift in Sources */,
+				FDFBC4602DE67FAA006DE685 /* CBPlaidTransaction.swift in Sources */,
 				FDC26E482D3E86D500B0A97C /* CalendarViewPhone.swift in Sources */,
 				FDC26E492D3E86D500B0A97C /* Helpers.swift in Sources */,
 				FDC26E4A2D3E86D500B0A97C /* MultiPayMethodSheet.swift in Sources */,
 				FDC26EA72D40139100B0A97C /* EventTransactionView.swift in Sources */,
+				FDFBC4502DDE346C006DE685 /* PlaidLinkView.swift in Sources */,
 				FDC26E4B2D3E86D500B0A97C /* RepeatingTransactionsTable.swift in Sources */,
 				FDAECC462DCA6E1D00C6EDA5 /* CalendarSheetLayerView.swift in Sources */,
 				FDC26E4C2D3E86D500B0A97C /* ResetMonthModel.swift in Sources */,
@@ -1297,6 +1381,7 @@
 				FDC26E4E2D3E86D500B0A97C /* KeyboardToolbar.swift in Sources */,
 				FD0DB2B12DD4DD6D00475334 /* PayMethodViewModel.swift in Sources */,
 				FDC26E4F2D3E86D500B0A97C /* ColorPickerView.swift in Sources */,
+				FD06F6B82DEA36BD00753490 /* ChartOptionToggle.swift in Sources */,
 				FDC26E502D3E86D500B0A97C /* SplashScreen.swift in Sources */,
 				FDC26E512D3E86D500B0A97C /* CBCategory.swift in Sources */,
 				FDC26E952D3E935A00B0A97C /* CBEvent.swift in Sources */,
@@ -1304,6 +1389,7 @@
 				FDC26E532D3E86D500B0A97C /* TitleColorMenu.swift in Sources */,
 				FDC26E542D3E86D500B0A97C /* NavLinkPad.swift in Sources */,
 				FDC26E552D3E86D500B0A97C /* RootViewPhone.swift in Sources */,
+				FD06F6B22DEA345200753490 /* ChartLegendView.swift in Sources */,
 				FDD6CDDF2DA97BAE002B00E5 /* MapBottomPanelContainerView.swift in Sources */,
 				FDC26E562D3E86D500B0A97C /* CBLog.swift in Sources */,
 				FDC26E572D3E86D500B0A97C /* DayViewMac.swift in Sources */,
@@ -1322,6 +1408,7 @@
 				FDDDF9572DBFB87E00B85979 /* MultiTransactionSubmissionModel.swift in Sources */,
 				FD09FF5B2D9D6DDE00795C28 /* EventCategorySheet.swift in Sources */,
 				FDD577FD2DC135B300C0B197 /* AdvancedSearchModel.swift in Sources */,
+				FD06F69F2DE75ABB00753490 /* PlaidAccountView.swift in Sources */,
 				FDC26E612D3E86D500B0A97C /* DayViewPhone.swift in Sources */,
 				FD678EBC2DB6B07400D6BC5E /* SettingsMenuPickerContainer.swift in Sources */,
 				FD09FF4D2D9C310900795C28 /* TransactionAndStartingAmountModel.swift in Sources */,
@@ -1341,7 +1428,7 @@
 				FD09FF662D9D769400795C28 /* StandardNoteTextEditor.swift in Sources */,
 				FD4BABD02D95F9EE00384AB3 /* LinkPreviewView.swift in Sources */,
 				FDC26E6A2D3E86D500B0A97C /* SettingsViewInsert.swift in Sources */,
-				FD49F8B42DDE32F200A563C8 /* LinkController.swift in Sources */,
+				FD49F8B42DDE32F200A563C8 /* PlaidLinkController.swift in Sources */,
 				FDC26E6C2D3E86D500B0A97C /* CalendarOptionsSheet.swift in Sources */,
 				FDC26E6D2D3E86D500B0A97C /* BudgetEditView.swift in Sources */,
 				FDAECC4A2DCA6E3D00C6EDA5 /* PassThroughWindowPhone.swift in Sources */,
@@ -1358,6 +1445,7 @@
 				FDC26E722D3E86D500B0A97C /* CBTag.swift in Sources */,
 				FDC26E732D3E86D500B0A97C /* Extensions+Date.swift in Sources */,
 				FDC26E742D3E86D500B0A97C /* BudgetTable.swift in Sources */,
+				FD06F6B62DEA34B800753490 /* ChartIncomeOptionMenu.swift in Sources */,
 				FD4BABCE2D95AFE300384AB3 /* EventParticipantView.swift in Sources */,
 				FDC26E752D3E86D500B0A97C /* Extensions.swift in Sources */,
 				FDC26E762D3E86D500B0A97C /* LongPollModel.swift in Sources */,
@@ -1367,6 +1455,7 @@
 				FDC26E782D3E86D500B0A97C /* TagLayout.swift in Sources */,
 				FDC26E792D3E86D500B0A97C /* CategoryView.swift in Sources */,
 				FD4BABDF2D9A115800384AB3 /* EventTransactionOptionView.swift in Sources */,
+				FD06F69D2DE7484600753490 /* PlaidTransactionOverlay.swift in Sources */,
 				FDAECC5F2DCE8CFC00C6EDA5 /* PayMethodChartOG.swift in Sources */,
 				FDD6CDDB2DA97B81002B00E5 /* StandardMap.swift in Sources */,
 				FDC26E7A2D3E86D500B0A97C /* ToolbarViews.swift in Sources */,
@@ -1388,6 +1477,7 @@
 				FDC26E832D3E86D500B0A97C /* LoginModel.swift in Sources */,
 				FDC26E842D3E86D500B0A97C /* NavLinkMac.swift in Sources */,
 				FD09FF682D9D887400795C28 /* EventPaymentMethodSheetButton.swift in Sources */,
+				FD83716E2DEDEBEA0099C6F3 /* NewTransactionMenuButton.swift in Sources */,
 				FD07E28D2D7210EC00024B11 /* AlertStuff.swift in Sources */,
 				FDC26E852D3E86D500B0A97C /* CategoryMenu.swift in Sources */,
 				FD09FF532D9C313600795C28 /* ResultCompleteModel.swift in Sources */,
@@ -1396,7 +1486,9 @@
 				FDC26E872D3E86D500B0A97C /* FuncModel.swift in Sources */,
 				FDC26E882D3E86D500B0A97C /* TempTransactionList.swift in Sources */,
 				FDC26E892D3E86D500B0A97C /* Textfields.swift in Sources */,
+				FDFBC4562DDEDA24006DE685 /* CBPlaidBank.swift in Sources */,
 				FDC26EA32D3FE6C100B0A97C /* EventItemView.swift in Sources */,
+				FDFBC4582DDF5343006DE685 /* PlaidModel.swift in Sources */,
 				FDC26E8A2D3E86D500B0A97C /* RequestModel.swift in Sources */,
 				FDC26E8B2D3E86D500B0A97C /* RepeatingAndBudgetSubmissionModel.swift in Sources */,
 				FDC26EA52D3FF61900B0A97C /* EventIdModel.swift in Sources */,
@@ -1447,7 +1539,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
-				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -1535,6 +1627,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = MakeItRain/MakeItRain.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
@@ -1573,6 +1666,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.codyburnett.MakeItRain;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -1591,6 +1685,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = MakeItRain/MakeItRain.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
@@ -1629,6 +1724,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.codyburnett.MakeItRain;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -1671,6 +1767,14 @@
 				minimumVersion = 1.2.1;
 			};
 		};
+		FDFBC44C2DDE33C9006DE685 /* XCRemoteSwiftPackageReference "plaid-link-ios-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/plaid/plaid-link-ios-spm.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 6.0.4;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1678,6 +1782,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = FD8ABE542D77995E00F3BB64 /* XCRemoteSwiftPackageReference "swift-algorithms" */;
 			productName = Algorithms;
+		};
+		FDFBC44D2DDE33C9006DE685 /* LinkKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FDFBC44C2DDE33C9006DE685 /* XCRemoteSwiftPackageReference "plaid-link-ios-spm" */;
+			productName = LinkKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 

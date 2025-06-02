@@ -81,6 +81,9 @@ struct NavSidebarPad: View {
                                 .listRowSeparator(.hidden)
                                 .badge(funcModel.loadTimes.count)
                         }
+                        
+                        NavLinkPad(destination: .plaid, title: "Plaid", image: "list.bullet", linkWidth: linkWidth, linkHeight: linkHeight)
+                            .listRowSeparator(.hidden)
                     }
                 }
             }

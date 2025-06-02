@@ -12,13 +12,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>265</string>
+					<string>264</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>264</string>
+					<string>263</string>
 					<key>Timestamp</key>
-					<string>769026749.763073</string>
+					<string>770216929.756333</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -41,9 +41,9 @@
                 //#warning("prepareStartingAmounts()")
 </string>
 				<key>trailing</key>
-				<string>                
-                
+				<string>                                
                 if ![.lastDecember, .nextJanuary].contains(viewingMonth.enumID) {
+                    next = calModel.months.filter { $0.num == (currentNavSelection.monthNum ?? 0) + 1 }.first!
 </string>
 			</dict>
 			<key>title</key>
@@ -59,13 +59,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>394</string>
+					<string>424</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>393</string>
+					<string>423</string>
 					<key>Timestamp</key>
-					<string>769027389.017718</string>
+					<string>770234577.244566</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -106,13 +106,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>819</string>
+					<string>862</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>818</string>
+					<string>861</string>
 					<key>Timestamp</key>
-					<string>769027389.017737</string>
+					<string>770234577.244583</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -200,13 +200,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>1440</string>
+					<string>1597</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>1439</string>
+					<string>1596</string>
 					<key>Timestamp</key>
-					<string>769249417.596339</string>
+					<string>770579759.818487</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>

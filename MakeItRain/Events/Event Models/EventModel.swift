@@ -17,7 +17,7 @@ import UIKit
 @MainActor
 @Observable
 class EventModel: PhotoUploadCompletedDelegate {
-    static let shared = EventModel()
+    //static let shared = EventModel()
     var isThinking = false
     
     //var eventEditID: Int?

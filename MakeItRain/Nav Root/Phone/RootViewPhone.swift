@@ -18,6 +18,7 @@ struct RootViewPhone: View {
     @Environment(KeywordModel.self) var keyModel
     @Environment(RepeatingTransactionModel.self) var repModel
     @Environment(EventModel.self) var eventModel
+    @Environment(PlaidModel.self) var plaidModel
     
     let monthNavigationNamespace: Namespace.ID
     
@@ -78,6 +79,7 @@ struct RootViewPhone: View {
                 }
                 .toolbar(toolbarVisibility, for: .tabBar)
             }
+            .badge(plaidModel.banksWithIssues.count)
         }
     }
     
@@ -87,31 +89,47 @@ struct RootViewPhone: View {
 //                Label { Text("Payment Methods") } icon: { Image(systemName: "creditcard") }
 //            }
             
-            NavigationLink(value: NavDestination.events) {
-                Label { Text("Events") } icon: { Image(systemName: "beach.umbrella") }
-            }
-            
-            if AppState.shared.methsExist {
-                NavigationLink(value: NavDestination.repeatingTransactions) {
-                    Label { Text("Reoccuring Transactions") } icon: { Image(systemName: "repeat") }
+            Section("Extras") {
+                NavigationLink(value: NavDestination.events) {
+                    Label { Text("Events") } icon: { Image(systemName: "beach.umbrella") }
                 }
                 
-                NavigationLink(value: NavDestination.keywords) {
-                    Label { Text("Keywords") } icon: { Image(systemName: "textformat.abc.dottedunderline") }
+                if AppState.shared.methsExist {
+                    NavigationLink(value: NavDestination.repeatingTransactions) {
+                        Label { Text("Reoccuring Transactions") } icon: { Image(systemName: "repeat") }
+                    }
+                    
+                    NavigationLink(value: NavDestination.keywords) {
+                        Label { Text("Keywords") } icon: { Image(systemName: "textformat.abc.dottedunderline") }
+                    }
                 }
             }
             
-            NavigationLink(value: NavDestination.settings) {
-                Label { Text("Settings") } icon: { Image(systemName: "gear") }
-            }
-            
-            if AppState.shared.user?.id == 1 {
-                NavigationLink(value: NavDestination.debug) {
-                    Label { Text("Debug") } icon: { Image(systemName: "ladybug") }
+            Section("Settings") {
+                NavigationLink(value: NavDestination.settings) {
+                    Label { Text("Settings") } icon: { Image(systemName: "gear") }
                 }
-                .badge(funcModel.loadTimes.count)
+                
+                if AppState.shared.user?.id == 1 {
+                    NavigationLink(value: NavDestination.debug) {
+                        Label { Text("Debug") } icon: { Image(systemName: "ladybug") }
+                    }
+                    .badge(funcModel.loadTimes.count)
+                }
             }
             
+            Section("Plaid Integrations") {
+                NavigationLink(value: NavDestination.plaid) {
+                    Label { Text("Plaid") } icon: {
+                        if plaidModel.atLeastOneBankHasAnIssue {
+                            Image(systemName: "creditcard.trianglebadge.exclamationmark")
+                                .foregroundStyle(Color.fromName(colorTheme) == .orange ? .red : .orange)
+                        } else {
+                            Image(systemName: "list.bullet")
+                        }
+                    }
+                }
+            }
         }
         .listStyle(.plain)
         .onAppear { toolbar(to: .visible) }
@@ -141,6 +159,10 @@ struct RootViewPhone: View {
                 
             case .debug:
                 DebugView()
+                    .onAppear { toolbar(to: .hidden) }
+                
+            case .plaid:
+                PlaidTable()
                     .onAppear { toolbar(to: .hidden) }
                 
             default:

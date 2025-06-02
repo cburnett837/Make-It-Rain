@@ -118,7 +118,7 @@ struct SettingsView: View {
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
         #endif
-        .navigationBarBackButtonHidden(true)
+        //.navigationBarBackButtonHidden(true)
         .toolbar {
             #if os(iOS)
             phoneToolbar()
@@ -131,16 +131,16 @@ struct SettingsView: View {
     func phoneToolbar() -> some ToolbarContent {
         if !AppState.shared.isIpad {
             ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    dismiss()
-                    //dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
-                    //NavigationManager.shared.selection = nil
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chevron.left")
-                        Text("Back")
-                    }
-                }
+//                Button {
+//                    dismiss()
+//                    //dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
+//                    //NavigationManager.shared.selection = nil
+//                } label: {
+//                    HStack(spacing: 4) {
+//                        Image(systemName: "chevron.left")
+//                        Text("Back")
+//                    }
+//                }
             }
         }
     }

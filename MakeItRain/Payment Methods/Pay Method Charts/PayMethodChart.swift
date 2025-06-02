@@ -121,7 +121,8 @@ struct PayMethodChart: View {
                         
                         
                         VStack(alignment: .leading, spacing: 6) {
-                            incomeExpenseChartWidget
+                            IncomeExpenseChartWidget(vm: vm, payMethod: payMethod)
+                            //incomeExpenseChartWidget
                             profitLossChartWidget
                             
                             minMaxEodChartWidget
@@ -219,8 +220,13 @@ struct PayMethodChart: View {
             Divider()
                 .padding(.horizontal, 12)
                 .padding(.top, 12)
-        }
+        }        
+        #if os(iOS)
         .background(Color(.systemBackground))
+        #else
+        .background(Capsule().fill(Color(.secondarySystemFill)))
+        #endif
+        
     }
     
     
@@ -427,22 +433,22 @@ struct PayMethodChart: View {
     
     
     
-    var incomeExpenseChartWidget: some View {
-        VStack(alignment: .leading) {
-            let description: LocalizedStringKey = "**Only income:**\nThe sum of amounts where transactions have an ***income*** category.\n\n**Money in only (no income):**\nThe sum of positive dollar amounts ***excluding*** transactions that have an income category.\n(Deposits, Refunds, Etc.)\n\n**All money in:**\nThe sum of ***all*** positive dollar amounts.\n(Income, Deposits, Refunds, Etc.)\n\n**Starting amount & all money in:**\nThat sum of all positive dollar amounts + the amount you started the month with."
-                        
-            WidgetLabelMenu(title: "All Expenses/Income", sections: [
-                WidgetLabelOptionSection(title: "Income Type", options: [
-                    WidgetLabelOption(content: AnyView(IncomeOptionToggle(vm: vm, description: description, show: $showIncome)))
-                ])
-            ])
-                    
-            IncomeExpenseChart(vm: vm, payMethod: payMethod, detailStyle: .overlay)
-                .padding()
-                .widgetShape()
-        }
-        .padding(.bottom, 30)
-    }
+//    var incomeExpenseChartWidget: some View {
+//        VStack(alignment: .leading) {
+//            let description: LocalizedStringKey = "**Only income:**\nThe sum of amounts where transactions have an ***income*** category.\n\n**Money in only (no income):**\nThe sum of positive dollar amounts ***excluding*** transactions that have an income category.\n(Deposits, Refunds, Etc.)\n\n**All money in:**\nThe sum of ***all*** positive dollar amounts.\n(Income, Deposits, Refunds, Etc.)\n\n**Starting amount & all money in:**\nThat sum of all positive dollar amounts + the amount you started the month with."
+//                        
+//            WidgetLabelMenu(title: "All Expenses/Income", sections: [
+//                WidgetLabelOptionSection(title: "Income Type", options: [
+//                    WidgetLabelOption(content: AnyView(IncomeOptionToggle(vm: vm, description: description)))
+//                ])
+//            ])
+//                    
+//            IncomeExpenseChart(vm: vm, payMethod: payMethod, detailStyle: .overlay)
+//                .padding()
+//                .widgetShape()
+//        }
+//        .padding(.bottom, 30)
+//    }
     
     
     var profitLossChartWidget: some View {
@@ -498,8 +504,7 @@ struct PayMethodChart: View {
             Text(profitLossStyle.capitalized)
         }
     }
-    
-    
+        
     
     var profitLossMetricsMenu: some View {
         Menu {
@@ -541,127 +546,11 @@ fileprivate struct RawDataLineItem: View {
 
 
 
-fileprivate struct IncomeOptionToggle: View {
-    @Local(\.colorTheme) var colorTheme
-    @State private var showDescription = false
-    
-    @Bindable var vm: PayMethodViewModel
-    var description: LocalizedStringKey
-    @Binding var show: Bool
-    
-    /// Need this to prevent the button from animating.
-    @State private var incomeText = ""
-    
-    var body: some View {
-        VStack(alignment: .trailing) {
-            HStack {
-                Menu {
-                    Button { change(to: .income) } label: {
-                        menuOptionLabel(title: "Income only", isChecked: vm.incomeType == .income)
-                    }
-                    Button { change(to: .positiveAmounts) } label: {
-                        menuOptionLabel(title: "Money in only (no income)", isChecked: vm.incomeType == .positiveAmounts)
-                    }
-                    Button { change(to: .incomeAndPositiveAmounts) } label: {
-                        menuOptionLabel(title: "All money in", isChecked: vm.incomeType == .incomeAndPositiveAmounts)
-                    }
-                    Button { change(to: .startingAmountsAndPositiveAmounts) } label: {
-                        menuOptionLabel(title: "Starting amount & all money in", isChecked: vm.incomeType == .startingAmountsAndPositiveAmounts)
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Text(incomeText)
-                            .lineLimit(1)
-//                        Image(systemName: "chevron.up.chevron.down")
-//                            .font(.footnote)
-                    }
-                    .transaction {
-                        $0.disablesAnimations = true
-                        $0.animation = nil
-                    }
-                }
-            }
-            
-            
-//            if showDescription {
-//                Text(description)
-//                    .font(.caption2)
-//                    .frame(maxWidth: .infinity, alignment: .trailing)
-//                    .foregroundStyle(.secondary)
-//            }
-        }
-        .onAppear {
-            setText(incomeType: vm.incomeType)
-        }
-    }
-    
-    @ViewBuilder func menuOptionLabel(title: String, isChecked: Bool) -> some View {
-        HStack {
-            Text(title)
-            if isChecked {
-                Image(systemName: "checkmark")
-            }
-        }
-    }
-    
-    func change(to option: IncomeType) {
-        setText(incomeType: option)
-        withAnimation {
-            vm.incomeType = option
-        }
-    }
-    
-    func setText(incomeType: IncomeType) {
-        switch incomeType {
-        case .income:
-            self.incomeText = IncomeType.income.prettyValue
-            
-        case .incomeAndPositiveAmounts:
-            self.incomeText = IncomeType.incomeAndPositiveAmounts.prettyValue
-            
-        case .positiveAmounts:
-            self.incomeText = IncomeType.positiveAmounts.prettyValue
-            
-        case .startingAmountsAndPositiveAmounts:
-            self.incomeText = IncomeType.startingAmountsAndPositiveAmounts.prettyValue
-        }
-    }
-}
 
 
 
-fileprivate struct OptionToggle: View {
-    @Local(\.colorTheme) var colorTheme
-    @State private var showDescription = false
-    
-    var description: String
-    var config: (title: String, enabled: Bool, color: Color)
-    @Binding var show: Bool
-    
-    var body: some View {
-        VStack(alignment: .leading) {
-            Toggle(isOn: $show.animation()) {
-                Label {
-                    Text(config.title)
-                } icon: {
-                    Image(systemName: showDescription ? "xmark.circle" : "info.circle")
-                    //.foregroundStyle(Color.fromName(colorTheme))
-                }
-                .onTapGesture { withAnimation { showDescription.toggle() } }
-                .contentTransition(.symbolEffect(.replace.magic(fallback: .replace)))
-                
-            }
-            .tint(config.color)
-            
-            if showDescription {
-                Text(description)
-                    .font(.caption2)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-}
+
+
 
     
 
@@ -781,267 +670,15 @@ fileprivate struct BreakdownView: View {
 
 
 
-fileprivate struct LegendView: View {
-    var items: [(id: UUID, title: String, color: Color)]
-    
-    var body: some View {
-        ScrollView(.horizontal) {
-            ZStack {
-                Spacer()
-                    .containerRelativeFrame([.horizontal])
-                    .frame(height: 1)
-                                            
-                HStack(spacing: 0) {
-                    ForEach(items, id: \.id) { item in
-                        HStack(alignment: .circleAndTitle, spacing: 5) {
-                            Circle()
-                                .fill(item.color)
-                                .frame(maxWidth: 8, maxHeight: 8) // 8 seems to be the default from charts
-                                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-                            
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(item.title)
-                                    .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-                            }
-                            .foregroundStyle(Color.secondary)
-                            .font(.caption2)
-                        }
-                        .padding(.trailing, 8)
-                        .contentShape(Rectangle())
-                    }
-                    Spacer()
-                }
-            }
-        }
-        .scrollBounceBehavior(.basedOnSize)
-        .contentMargins(.bottom, 10, for: .scrollContent)
-    }
-}
+
+
 
 enum DetailStyle {
     case overlay, inline
 }
 
+
 // MARK: - Charts
-fileprivate struct IncomeExpenseChart: View {
-    @Environment(\.dismiss) var dismiss
-    @Local(\.incomeColor) var incomeColor
-    @Local(\.useWholeNumbers) var useWholeNumbers
-    @ChartOption(\.showOverviewDataPerMethodOnUnifiedChart) var showOverviewDataPerMethodOnUnifiedChart
-
-    @AppStorage("showIncomeOnAnalyticChart") private var showIncome: Bool = true
-    @AppStorage("showIncomeAndPositiveAmountsOnAnalyticChart") private var showIncomeAndPositiveAmountsOnAnalyticChart: Bool = true
-    @AppStorage("showPositiveAmountsOnAnalyticChart") private var showPositiveAmountsOnAnalyticChart: Bool = true
-    @AppStorage("showExpensesOnAnalyticChart") private var showExpenses: Bool = true
-    @AppStorage("showPaymentsOnAnalyticChart") private var showPayments: Bool = true
-    @AppStorage("showStartingAmountsOnAnalyticChart") private var showStartingAmounts: Bool = true
-    @AppStorage("showMonthEndOnAnalyticChart") private var showMonthEnd: Bool = true
-    
-    @Bindable var vm: PayMethodViewModel
-    @Bindable var payMethod: CBPaymentMethod
-    var detailStyle: DetailStyle
-    @State private var chartWidth: CGFloat = 0
-    
-    @State private var legendItems = [
-        (id: UUID(), title: "Income", color: Color.blue),
-        (id: UUID(), title: "Expenses", color: Color.red),
-        (id: UUID(), title: "Month Begin", color: Color.orange),
-    ]
-    
-    @State private var showDetailsSheet = false
-    
-    @State private var rawSelectedDate: Date?
-    var selectedDate: Date? {
-        if let raw = rawSelectedDate {
-            let breakdowns = vm.payMethods.first?.breakdowns
-            if vm.viewByQuarter {
-                return breakdowns?.first { $0.date.year == raw.year && $0.date.startOfQuarter == raw.startOfQuarter }?.date
-            } else {
-                return breakdowns?.first { raw.matchesMonth(of: $0.date) }?.date
-            }
-        } else {
-            return nil
-        }
-    }
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            if detailStyle == .inline {
-                selectedDataView
-            }
-            
-            LegendView(items: legendItems)
-                .task {
-                    if payMethod.isCredit {
-                        legendItems.append((id: UUID(), title: "Payments", color: Color.green))
-                    }
-                }
-            
-            Chart {
-                if let selectedDate {
-                    if detailStyle == .overlay {
-                        vm.selectionRectangle(for: selectedDate, content: selectedDataView)
-                    } else {
-                        vm.selectionRectangle(for: selectedDate, content: EmptyView())
-                    }
-                }
-                
-                ForEach(vm.relevantBreakdowns()) {
-                    incomeLine($0)
-                    expensesLine($0)
-                    startingAmountLine($0)
-                                                            
-                    if payMethod.isCredit {
-                        paymentLine($0)
-                    }
-                }
-            }
-            .frame(minHeight: 150)
-            .chartYAxis { vm.yAxis() }
-            .chartXAxis { vm.xAxis() }
-            //.chartXVisibleDomain(length: vm.visibleChartAreaDomain)
-            .chartXScale(domain: vm.chartXScale)
-            .chartXSelection(value: $rawSelectedDate)
-            .maxChartWidthObserver()
-            .onPreferenceChange(MaxChartSizePreferenceKey.self) { chartWidth = max(chartWidth, $0) }
-        }
-//        .onTapGesture {
-//            showDetailsSheet = true
-//        }
-//        .sheet(isPresented: $showDetailsSheet) {
-//            StandardContainer {
-//                IncomeExpenseChart(vm: vm, payMethod: payMethod, detailStyle: .inline)
-//            } header: {
-//                SheetHeader(title: "Income & Expenses") {
-//                    dismiss()
-//                }
-//            }
-//        }
-        
-        //.gesture(vm.moveYearGesture)
-    }
-            
-    @ChartContentBuilder
-    func incomeLine(_ breakdown: PayMethodMonthlyBreakdown) -> some ChartContent {
-        LineMark(
-            x: .value("Date", breakdown.date, unit: .month),
-            y: .value("Amount1", vm.getIncomeText(for: breakdown)),
-            series: .value("", "Amount1\(payMethod.id)")
-        )
-        .foregroundStyle(.blue.gradient)
-        .interpolationMethod(.catmullRom)
-    }
-        
-    @ChartContentBuilder
-    func expensesLine(_ breakdown: PayMethodMonthlyBreakdown) -> some ChartContent {
-        LineMark(
-            x: .value("Date", breakdown.date, unit: .month),
-            y: .value("Amount2", breakdown.expenses),
-            series: .value("", "Amount2\(payMethod.id)")
-        )
-        .foregroundStyle(.red.gradient)
-        .interpolationMethod(.catmullRom)
-    }
-    
-    @ChartContentBuilder
-    func startingAmountLine(_ breakdown: PayMethodMonthlyBreakdown) -> some ChartContent {
-        LineMark(
-            x: .value("Date", breakdown.date, unit: .month),
-            y: .value("Amount4", breakdown.startingAmounts),
-            series: .value("", "Amount4\(payMethod.id)")
-        )
-        .foregroundStyle(.orange.gradient)
-        .interpolationMethod(.catmullRom)
-        .lineStyle(StrokeStyle(lineWidth: 2, dash: [5, 3]))
-    }
-    
-    @ChartContentBuilder
-    func paymentLine(_ breakdown: PayMethodMonthlyBreakdown) -> some ChartContent {
-        LineMark(
-            x: .value("Date", breakdown.date, unit: .month),
-            y: .value("Amount3", breakdown.payments),
-            series: .value("", "Amount3\(payMethod.id)")
-        )
-        .foregroundStyle(.green.gradient)
-        .interpolationMethod(.catmullRom)
-        .lineStyle(StrokeStyle(lineWidth: 2, dash: [5, 3]))
-    }
-            
-    @ViewBuilder
-    var selectedDataView: some View {
-        if let selectedDate = selectedDate {
-            
-            SelectedDataContainer(vm: vm, payMethod: payMethod, selectedDate: selectedDate, chartWidth: chartWidth, showOverviewDataPerMethodOnUnifiedChart: showOverviewDataPerMethodOnUnifiedChart) {
-                if showOverviewDataPerMethodOnUnifiedChart { Text("Method") }
-                Text("Income").foregroundStyle(.blue.gradient)
-                Text("Expenses").foregroundStyle(.red.gradient)
-                Text("Starting").foregroundStyle(.orange.gradient)
-                if payMethod.isCredit {
-                    Text("Payments").foregroundStyle(.green.gradient)
-                }
-            } rows: {
-                if showOverviewDataPerMethodOnUnifiedChart {
-                    ForEach(vm.breakdownPerMethod(on: selectedDate)) { breakdown in
-                        GridRow(alignment: .top) {
-                            HStack(spacing: 0) {
-                                CircleDot(color: breakdown.color)
-                                Text(breakdown.title)
-                            }
-                            
-                            Text(vm.getIncomeText(for: breakdown).currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                            Text(breakdown.expenses.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                            Text(breakdown.startingAmounts.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                            
-                            if payMethod.isCredit {
-                                Text(breakdown.payments.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                            }
-                        }
-                    }
-                } else {
-                    EmptyView()
-                }
-                
-            } summary: {
-                let breakdown = vm.breakdownForMethod(method: vm.mainPayMethod, on: selectedDate)
-                Text(vm.getIncomeText(for: breakdown).currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                Text(breakdown.expenses.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                Text(breakdown.startingAmounts.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                                            
-                if payMethod.isCredit {
-                    Text(breakdown.payments.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                }
-            }
-        }
-    }
-    
-//    
-//    
-//    
-//    
-//    
-//            
-//    
-//    @ViewBuilder var optionToggles: some View {
-//        VStack {
-//            if let incomeConfig = config.incomeConfig, incomeConfig.enabled {
-//                
-//                let description: LocalizedStringKey = "**Only income:**\nThe sum of amounts where transactions have an ***income*** category.\n\n**Money in only (no income):**\nThe sum of positive dollar amounts ***excluding*** transactions that have an income category.\n(Deposits, Refunds, Etc.)\n\n**All money in:**\nThe sum of ***all*** positive dollar amounts.\n(Income, Deposits, Refunds, Etc.)\n\n**Starting amount & all money in:**\nThat sum of all positive dollar amounts + the amount you started the month with."
-//                
-//                
-//                IncomeOptionToggle(description: description, config: incomeConfig, show: $showIncome)
-//            }
-//                                                                        
-//            if let paymentsConfig = config.paymentsConfig, paymentsConfig.enabled {
-//                ShowHideOptionButton(
-//                    text: "Payments",
-//                    description: "Payments made for the credit card.",
-//                    show: $showPayments
-//                )
-//            }
-//        }
-//    }
-}
-
 
 
 fileprivate struct ProfitLossChart: View {
@@ -1079,12 +716,12 @@ fileprivate struct ProfitLossChart: View {
     var body: some View {
         VStack(spacing: 0) {
             if profitLossMetrics == "summary" {
-                LegendView(items: [
+                ChartLegendView(items: [
                     (id: UUID(), title: "Profit", color: Color.green),
                     (id: UUID(), title: "Loss", color: Color.red),
                 ])
             } else {
-                LegendView(items: vm.payMethods.map { (id: UUID(), title: $0.title, color: $0.color) })
+                ChartLegendView(items: vm.payMethods.map { (id: UUID(), title: $0.title, color: $0.color) })
             }
                                                     
             Chart {
@@ -1231,7 +868,7 @@ fileprivate struct MinMaxEodChart: View {
         
     var body: some View {
         VStack(spacing: 0) {
-            LegendView(items: [
+            ChartLegendView(items: [
                 (id: UUID(), title: "Above Threshold", color: Color.green),
                 (id: UUID(), title: "Under Threshold", color: Color.orange),
             ])
@@ -1374,7 +1011,7 @@ fileprivate struct ExpensesByPaymentMethodChart: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            LegendView(items: vm.payMethods.map { (id: UUID(), title: $0.title, color: $0.color) })
+            ChartLegendView(items: vm.payMethods.map { (id: UUID(), title: $0.title, color: $0.color) })
             
             Chart {
                 if let selectedDate {
@@ -1495,8 +1132,11 @@ struct SelectedDataContainer<Headers: View, Rows: View, Summary: View>: View {
         .padding(6)
         .background(
             RoundedRectangle(cornerRadius: 10)
-                //#if os(iOS)
+                #if os(iOS)
                 .fill(Color(.tertiarySystemBackground))
+                #else
+                .fill(Color(.tertiarySystemFill))
+                #endif
                 .shadow(radius: 5)
             
                 //#endif

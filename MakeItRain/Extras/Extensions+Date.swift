@@ -169,6 +169,43 @@ extension Date {
     static func - (lhs: Date, rhs: Date) -> TimeInterval {
         return lhs.timeIntervalSinceReferenceDate - rhs.timeIntervalSinceReferenceDate
     }
+            
+
+    func timeSince(_ laterDate: Date? = Date()) -> String {
+        if let laterDate = laterDate {
+            let secondsAgo = Int(self.timeIntervalSince(laterDate))
+            
+            switch secondsAgo {
+            case ..<0:
+                return "In the future"
+            case 0..<60:
+                return "Just now"
+            case 60..<3600:
+                let minutes = secondsAgo / 60
+                return "\(minutes) min\(minutes == 1 ? "" : "s") ago"
+            case 3600..<86400:
+                let hours = secondsAgo / 3600
+                return "\(hours) hour\(hours == 1 ? "" : "s") ago"
+            case 86400..<604800:
+                let days = secondsAgo / 86400
+                return "\(days) day\(days == 1 ? "" : "s") ago"
+            case 604800..<2592000:
+                let weeks = secondsAgo / 604800
+                return "\(weeks) week\(weeks == 1 ? "" : "s") ago"
+            case 2592000..<31536000:
+                let months = secondsAgo / 2592000
+                return "\(months) month\(months == 1 ? "" : "s") ago"
+            default:
+                let years = secondsAgo / 31536000
+                return "\(years) year\(years == 1 ? "" : "s") ago"
+            }
+        } else {
+            return "Just now"
+        }
+        
+    }
+    
+    
 }
 
 

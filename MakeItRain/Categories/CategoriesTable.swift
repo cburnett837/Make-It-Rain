@@ -245,6 +245,7 @@ struct CategoriesTable: View {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 HStack(spacing: 20) {
                     //sortMenu
+                    ToolbarLongPollButton()
                     ToolbarRefreshButton()
                     Button {
                         categoryEditID = UUID().uuidString

@@ -17,6 +17,8 @@ struct PayMethodSheet: View {
     @Environment(\.dismiss)private var dismiss
     @Environment(CalendarModel.self) private var calModel
     @Environment(PayMethodModel.self) private var payModel
+    @Environment(PlaidModel.self) private var plaidModel
+
     @Environment(FuncModel.self) private var funcModel
     
     @FocusState private var focusedField: Int?
@@ -390,6 +392,17 @@ struct PayMethodSheet: View {
             } else {
                 return [PaySection(kind: .other, payMethods: payModel.paymentMethods.filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking].contains($0.accountType) })]
             }
+            
+        case .remainingAvailbleForPlaid:
+            let taken: Array<String> = plaidModel.banks.flatMap ({ $0.accounts.compactMap({ $0.paymentMethodID }) })
+            print(taken)
+                //.map({ $0.paymentMethodID != nil })
+            return [
+                PaySection(kind: .debit, payMethods: payModel.paymentMethods.filter { $0.accountType == .checking && !taken.contains($0.id) }),
+                PaySection(kind: .credit, payMethods: payModel.paymentMethods.filter { $0.accountType == .credit && !taken.contains($0.id) }),
+                PaySection(kind: .other, payMethods: payModel.paymentMethods.filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking].contains($0.accountType) && !taken.contains($0.id)  })
+            ]
+            
         }
     }
     

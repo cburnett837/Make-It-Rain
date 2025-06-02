@@ -9,8 +9,8 @@ import Foundation
 import SwiftUI
 
 
-// MARK: - NOTE! If you want to use properties in a model, and have them be saved, you must ready/write them via that model other wise views will not update.
-    // MARK: - For example, using `@ChartOption(\.chartCropingStyle) var chartCropingStyle` in a view, and writing to the variable with the same UserDefault key in the model will not trigger an update in the view using the property wrapper.
+// MARK: - NOTE! If you want to use properties in a model, and have them be saved, you must ready/write them via that model, otherwise views will not update.
+    // MARK: - For example, using `@ChartOption(\.chartCropingStyle) var chartCropingStyle` in a view, and writing to the variable with the same UserDefault key via the model will not trigger an update in the view using the property wrapper.
 
 @Observable
 public class LocalStorage: ChartVariables, LocalVariables {
@@ -138,5 +138,79 @@ public struct ChartOption<T>: DynamicProperty {
         )
     }
 }
+
+
+
+
+
+
+// MARK: - Income And Expense Chart Variables
+@propertyWrapper
+public struct IncomeAndExpenseChartOption<T>: DynamicProperty {
+    private var defaults: IncomeAndExpenseChartStorage = IncomeAndExpenseChartStorage.shared
+    private let keyPath: ReferenceWritableKeyPath<IncomeAndExpenseChartStorage, T>
+    
+    public init(_ keyPath: ReferenceWritableKeyPath<IncomeAndExpenseChartStorage, T>) {
+        self.keyPath = keyPath
+    }
+
+    public var wrappedValue: T {
+        get { defaults[keyPath: keyPath] }
+        nonmutating set { defaults[keyPath: keyPath] = newValue }
+    }
+
+    public var projectedValue: Binding<T> {
+        Binding(
+            get: { defaults[keyPath: keyPath] },
+            set: { defaults[keyPath: keyPath] = $0 }
+        )
+    }
+}
+
+@Observable
+public class IncomeAndExpenseChartStorage {
+    public static let shared = IncomeAndExpenseChartStorage()
+    
+    private init() { /*print("init")*/ }
+    //deinit{ print("deinit") }
+    var prefix = "IncomeAndExpenseChartStorage_"
+    
+    public var showExpenses: Bool {
+        get { get(\.showExpenses, key: "\(prefix)showExpenses", default: true) }
+        set { set(\.showExpenses, key: "\(prefix)showExpenses", new: newValue) }
+    }
+    
+    public var showIncome: Bool {
+        get { get(\.showIncome, key: "\(prefix)showIncome", default: true) }
+        set { set(\.showIncome, key: "\(prefix)showIncome", new: newValue) }
+    }
+    
+    public var showStartingAmount: Bool {
+        get { get(\.showStartingAmount, key: "\(prefix)showStartingAmount", default: true) }
+        set { set(\.showStartingAmount, key: "\(prefix)showStartingAmount", new: newValue) }
+    }
+    
+    public var showPayments: Bool {
+        get { get(\.showPayments, key: "\(prefix)showPayments", default: true) }
+        set { set(\.showPayments, key: "\(prefix)showPayments", new: newValue) }
+    }
+    
+    
+    private func get<T: Decodable>(_ keyPath: KeyPath<IncomeAndExpenseChartStorage, T>, key: String, default defaultValue: T) -> T {
+        access(keyPath: keyPath)
+        if let data = UserDefaults.standard.data(forKey: key) {
+            return try! JSONDecoder().decode(T.self, from: data)
+        }
+        return defaultValue
+    }
+    
+    private func set<T: Encodable>(_ keyPath: KeyPath<IncomeAndExpenseChartStorage, T>, key: String, new: T) {
+        withMutation(keyPath: keyPath) {
+            let data = try? JSONEncoder().encode(new)
+            UserDefaults.standard.set(data, forKey: key)
+        }
+    }
+}
+
 
 

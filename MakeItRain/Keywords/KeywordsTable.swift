@@ -52,7 +52,7 @@ struct KeywordsTable: View {
         /// When I add a new keyword, and then update `model.keywords` with the new ID from the server, the table still contains an ID of 0 on the newly created keyword.
         /// Setting this id forces the view to refresh and update the relevant keyword with the new ID.
         .id(keyModel.fuckYouSwiftuiTableRefreshID)
-        .navigationBarBackButtonHidden(true)
+        //.navigationBarBackButtonHidden(true)
         .toolbar {
             #if os(macOS)
             macToolbar()
@@ -148,15 +148,15 @@ struct KeywordsTable: View {
         ToolbarItem(placement: .topBarLeading) {
             if AppState.shared.isIphone {
                 HStack {
-                    Button {
-                        dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "chevron.left")
-                            Text("Back")
-                        }
-                    }
-                    ToolbarLongPollButton()
+//                    Button {
+//                        dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
+//                    } label: {
+//                        HStack(spacing: 4) {
+//                            Image(systemName: "chevron.left")
+//                            Text("Back")
+//                        }
+//                    }
+                    //ToolbarLongPollButton()
                 }
                 
             } else {
@@ -176,6 +176,7 @@ struct KeywordsTable: View {
         if AppState.shared.isIphone {
             ToolbarItem(placement: .topBarTrailing) {
                 HStack(spacing: 20) {
+                    ToolbarLongPollButton()
                     ToolbarRefreshButton()
                     Button {
                         keywordEditID = UUID().uuidString

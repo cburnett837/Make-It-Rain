@@ -7,6 +7,8 @@
 
 import SwiftUI
 import Charts
+//import LinkKit
+
 
 struct PayMethodView: View {
     enum Offset: Int {
@@ -146,13 +148,14 @@ struct PayMethodView: View {
             if (payMethod.accountType == .credit || payMethod.accountType == .loan) && payMethod.dueDate != nil && payMethod.notifyOnDueDate {
                 StandardDivider()
                 reminderRow
-                
             }
             
             StandardDivider()
             colorRow
             
-            
+            StandardDivider()
+            //PlaidLinkView(payMethod: payMethod)
+                        
             Spacer()
                 .frame(height: 30)
            

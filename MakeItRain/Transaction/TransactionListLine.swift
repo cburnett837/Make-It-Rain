@@ -10,7 +10,7 @@ import SwiftUI
 struct TransactionListLine: View {
     @Local(\.useWholeNumbers) var useWholeNumbers
     
-    let trans: CBTransaction
+    @Bindable var trans: CBTransaction
     var withDate: Bool = false
     
     var body: some View {

@@ -56,7 +56,7 @@ struct RepeatingTransactionsTable: View {
         /// When I add a new repTransaction, and then update `model.repTransactions` with the new ID from the server, the table still contains an ID of 0 on the newly created repTransaction.
         /// Setting this id forces the view to refresh and update the relevant repTransaction with the new ID.
         .id(repModel.fuckYouSwiftuiTableRefreshID)
-        .navigationBarBackButtonHidden(true)
+        //.navigationBarBackButtonHidden(true)
         .toolbar {
             #if os(macOS)
             macToolbar()
@@ -157,17 +157,17 @@ struct RepeatingTransactionsTable: View {
     @ToolbarContentBuilder
     func phoneToolbar() -> some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
-            if !AppState.shared.isIpad {
+            if AppState.shared.isIphone {
                 HStack {
-                    Button {
-                        dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "chevron.left")
-                            Text("Back")
-                        }
-                    }
-                    ToolbarLongPollButton()
+//                    Button {
+//                        dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
+//                    } label: {
+//                        HStack(spacing: 4) {
+//                            Image(systemName: "chevron.left")
+//                            Text("Back")
+//                        }
+//                    }
+                    //ToolbarLongPollButton()
                 }
                 
             } else {
@@ -184,9 +184,10 @@ struct RepeatingTransactionsTable: View {
             }
         }
         
-        if !AppState.shared.isIpad {
+        if AppState.shared.isIphone {
             ToolbarItem(placement: .topBarTrailing) {
                 HStack(spacing: 20) {
+                    ToolbarLongPollButton()
                     ToolbarRefreshButton()
                     Button {
                         repTransactionEditID = UUID().uuidString

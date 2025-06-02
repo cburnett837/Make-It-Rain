@@ -388,6 +388,7 @@ struct CalendarToolbarTrailing: View {
     
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
+    @Environment(PlaidModel.self) private var plaidModel
     
     
     //@Binding var searchText: String
@@ -410,17 +411,30 @@ struct CalendarToolbarTrailing: View {
             if !isInWindow {
                 if AppState.shared.longPollFailed { longPollButton }
                 
-                if !calModel.fitTrans.filter({ !$0.isAcknowledged }).isEmpty {
-                    Button {
-                        openWindow(id: "pendingFitTransactions")
-                        //showFitTransactions = true
-                    } label: {
-                        Image(systemName: "clock.badge.exclamationmark")
-                            .foregroundStyle(.orange)
-                    }
-                    .toolbarBorder()
-                    .help("View pending fit transactions that were downloaded directly from the bank")
+//                if !calModel.fitTrans.filter({ !$0.isAcknowledged }).isEmpty {
+//                    Button {
+//                        openWindow(id: "pendingFitTransactions")
+//                        //showFitTransactions = true
+//                    } label: {
+//                        Image(systemName: "clock.badge.exclamationmark")
+//                            .foregroundStyle(.orange)
+//                    }
+//                    .toolbarBorder()
+//                    .help("View pending fit transactions that were downloaded directly from the bank")
+//                }
+                
+                
+                Button {
+                    openWindow(id: "pendingPlaidTransactions")
+                    //showFitTransactions = true
+                } label: {
+                    Image(systemName: "clock.badge.exclamationmark")
+                        .foregroundStyle(plaidModel.trans.filter({ !$0.isAcknowledged }).isEmpty ? .gray : .orange)
                 }
+                .toolbarBorder()
+                .help("View pending plaid transactions that were downloaded directly from the bank")
+            
+                
                 
                 
                 Button {

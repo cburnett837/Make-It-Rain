@@ -10,6 +10,8 @@ import Foundation
 import UIKit
 #endif
 
+
+import Foundation
 class RequestModel<T: Encodable>: Encodable {
     var sessionID = ""
     var requestType = ""

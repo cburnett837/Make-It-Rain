@@ -62,6 +62,9 @@ struct RootViewPad: View {
                 case .debug:
                     DebugView()
                     
+                case .plaid:
+                    PlaidTable()
+                    
                 default:
                     EmptyView()
                 }

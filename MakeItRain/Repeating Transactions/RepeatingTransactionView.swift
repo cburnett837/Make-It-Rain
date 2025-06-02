@@ -223,6 +223,10 @@ struct RepeatingTransactionView: View {
 //        .frame(minWidth: 750)
 //        #endif
         .task {
+            if repTransaction.action == .add {
+                repTransaction.category = catModel.categories.filter { $0.isNil }.first!
+            }
+            
             repTransaction.deepCopy(.create)
             /// Just for formatting.
             repTransaction.amountString = repTransaction.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)

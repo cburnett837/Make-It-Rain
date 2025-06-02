@@ -86,6 +86,46 @@ enum PaymentMethodAction: String {
     }
 }
 
+enum PlaidBankAction: String {
+    case edit, delete
+    
+    var serverKey: String {
+        switch self {
+        case .edit:     return "edit_cb_plaid_bank"
+        case .delete:   return "delete_cb_plaid_bank"
+        }
+    }
+    
+    static func fromString(_ theString: String) -> Self {
+        switch theString {
+        case "edit": return .edit
+        case "delete": return .delete
+        default: return .edit
+        }
+    }
+}
+
+enum PlaidAccountAction: String {
+    case edit, delete
+    
+    var serverKey: String {
+        switch self {
+        case .edit:     return "edit_cb_plaid_account"
+        case .delete:   return "delete_cb_plaid_account"
+        }
+    }
+    
+    static func fromString(_ theString: String) -> Self {
+        switch theString {
+        case "edit": return .edit
+        case "delete": return .delete
+        default: return .edit
+        }
+    }
+}
+
+
+
 enum StartingAmountAction: String {
     case add, edit, delete
     
@@ -594,7 +634,17 @@ enum PhotoUploadProgress {
 
 
 
+
+enum PlaidLinkMode: String {
+    case addAccount = "add"
+    case updateBank = "update"
+    case newBank = "new"
+}
+
+
+
 //MARK: Core Data Stuff
+
 
 enum IdType {
     case int(Int)

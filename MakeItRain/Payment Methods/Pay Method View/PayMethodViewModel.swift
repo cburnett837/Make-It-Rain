@@ -75,7 +75,7 @@ class PayMethodViewModel {
     }
         
     public var incomeType: IncomeType {
-        get { IncomeType.fromString(appStorageGetter(\.incomeType.rawValue, key: "incomeType", default: IncomeType.income.rawValue)) }
+        get { IncomeType.fromString(appStorageGetter(\.incomeType.rawValue, key: "incomeType", default: IncomeType.incomeAndPositiveAmounts.rawValue)) }
         set { appStorageSetter(\.incomeType.rawValue, key: "incomeType", new: newValue.rawValue) }
     }
     
@@ -132,7 +132,7 @@ class PayMethodViewModel {
         }
 
         /// Summarize each group into one quarterly breakdown.
-        let summaries = grouped.compactMap { summarizeQuarterlyBreakdown(from: $1) }
+        let summaries = grouped.compactMap { summarizeQuarterlyBreakdown(from: $1, for: payMethod) }
 
         /// Sort by year and quarter.
         return summaries.sorted { $0.date < $1.date }
@@ -638,10 +638,17 @@ class PayMethodViewModel {
     
     func breakdownForMethod(method: CBPaymentMethod, on selectedDate: Date) -> PayMethodMonthlyBreakdown {
         var result: [PayMethodMonthlyBreakdown]
+        var startingAmounts: String
         if viewByQuarter {
             result = method.breakdowns.filter { $0.date.year == selectedDate.year && $0.date.startOfQuarter.month == selectedDate.month }
+            
+            startingAmounts = method.isCredit ? String(avg(\.startingAmounts)) : String(sum(\.startingAmounts))
+            
         } else {
             result = method.breakdowns.filter({ Calendar.current.isDate($0.date, equalTo: selectedDate, toGranularity: .month) })
+            
+            startingAmounts = String(sum(\.startingAmounts))
+            
         }
                         
         return PayMethodMonthlyBreakdown(
@@ -656,7 +663,7 @@ class PayMethodViewModel {
             startingAmountsAndPositiveAmountsString: String(sum(\.startingAmountsAndPositiveAmounts)),
             expensesString: String(sum(\.expenses)),
             paymentsString: String(sum(\.payments)),
-            startingAmountsString: String(sum(\.startingAmounts)),
+            startingAmountsString: startingAmounts,
             profitLossString: String(sum(\.profitLoss)),
             profitLossPercentage: sum(\.profitLossPercentage),
             //profitLossMinPercentageString: String,
@@ -671,6 +678,10 @@ class PayMethodViewModel {
         
         func sum(_ keyPath: KeyPath<PayMethodMonthlyBreakdown, Double>) -> Double {
             result.reduce(0) { $0 + $1[keyPath: keyPath] }
+        }
+        
+        func avg(_ keyPath: KeyPath<PayMethodMonthlyBreakdown, Double>) -> Double {
+            result.map { $0[keyPath: keyPath] }.average()
         }
         
     }
@@ -721,7 +732,7 @@ class PayMethodViewModel {
     
     
     
-    func summarizeQuarterlyBreakdown(from monthlyData: [PayMethodMonthlyBreakdown]) -> PayMethodMonthlyBreakdown? {
+    func summarizeQuarterlyBreakdown(from monthlyData: [PayMethodMonthlyBreakdown], for payMethod: CBPaymentMethod) -> PayMethodMonthlyBreakdown? {
         guard let first = monthlyData.first else { return nil }
 
         guard Set(monthlyData.map { $0.payMethodID }).count == 1 else {
@@ -732,6 +743,10 @@ class PayMethodViewModel {
         func sum(_ keyPath: KeyPath<PayMethodMonthlyBreakdown, Double>) -> Double {
             monthlyData.reduce(0) { $0 + $1[keyPath: keyPath] }
         }
+        
+        func avg(_ keyPath: KeyPath<PayMethodMonthlyBreakdown, Double>) -> Double {
+            monthlyData.map { $0[keyPath: keyPath] }.average()
+        }
 
         func minValue(_ keyPath: KeyPath<PayMethodMonthlyBreakdown, Double>) -> Double {
             monthlyData.map { $0[keyPath: keyPath] }.min() ?? 0
@@ -740,6 +755,9 @@ class PayMethodViewModel {
         func maxValue(_ keyPath: KeyPath<PayMethodMonthlyBreakdown, Double>) -> Double {
             monthlyData.map { $0[keyPath: keyPath] }.max() ?? 0
         }
+        
+        
+        let startingAmounts: String = payMethod.isCredit ? String(avg(\.startingAmounts)) : String(sum(\.startingAmounts))
 
         let summary = PayMethodMonthlyBreakdown(
             title: first.title,
@@ -753,7 +771,7 @@ class PayMethodViewModel {
             startingAmountsAndPositiveAmountsString: String(sum(\.startingAmountsAndPositiveAmounts)),
             expensesString: String(sum(\.expenses)),
             paymentsString: String(sum(\.payments)),
-            startingAmountsString: String(sum(\.startingAmounts)),
+            startingAmountsString: startingAmounts,
             profitLossString: String(sum(\.profitLoss)),
             profitLossPercentage: sum(\.profitLossPercentage) / Double(monthlyData.count),
             monthEndString: String(sum(\.monthEnd)),
@@ -822,14 +840,15 @@ class PayMethodViewModel {
         }
     }
     
+    #if os(iOS)
     @ChartContentBuilder
     func selectionRectangle<Content: View>(for date: Date, color: Color = Color(.tertiarySystemBackground), content: Content) -> some ChartContent {
-        RectangleMark(
-            xStart: .value("Start Date", viewByQuarter ? date.startOfQuarter : date, unit: .month),
-            xEnd: .value("End Date", viewByQuarter ? date.endOfQuarter : date.endDateOfMonth, unit: .day)
-        )
+//        RectangleMark(
+//            xStart: .value("Start Date", viewByQuarter ? date.startOfQuarter : date, unit: .month),
+//            xEnd: .value("End Date", viewByQuarter ? date.endOfQuarter : date.endDateOfMonth, unit: .day)
+//        )
         
-        //RuleMark(x: .value("Start Date", viewByQuarter ? date.startOfQuarter : date, unit: .month))
+        RuleMark(x: .value("Start Date", viewByQuarter ? date.startOfQuarter : date, unit: .month))
         
         .foregroundStyle(color)
         .zIndex(-1)
@@ -838,6 +857,24 @@ class PayMethodViewModel {
             content
         }
     }
+    #else
+    @ChartContentBuilder
+    func selectionRectangle<Content: View>(for date: Date, color: Color = Color(.secondarySystemFill), content: Content) -> some ChartContent {
+//        RectangleMark(
+//            xStart: .value("Start Date", viewByQuarter ? date.startOfQuarter : date, unit: .month),
+//            xEnd: .value("End Date", viewByQuarter ? date.endOfQuarter : date.endDateOfMonth, unit: .day)
+//        )
+        
+        RuleMark(x: .value("Start Date", viewByQuarter ? date.startOfQuarter : date, unit: .month))
+        
+        .foregroundStyle(color)
+        .zIndex(-1)
+        .offset(yStart: -20)
+        .annotation(position: .top, spacing: 0, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
+            content
+        }
+    }
+    #endif
     
     
     func getGradientPosition(for analyticType: GradientCalculationType, flipAt: Double, min: Double = 0, max: Double = 0) -> Double? {

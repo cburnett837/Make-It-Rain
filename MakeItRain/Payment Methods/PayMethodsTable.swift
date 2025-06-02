@@ -19,6 +19,7 @@ struct PayMethodsTable: View {
     @Environment(CalendarModel.self) private var calModel
     @Environment(PayMethodModel.self) private var payModel
     @Environment(EventModel.self) private var eventModel
+    @Environment(PlaidModel.self) private var plaidModel
     
     @State private var searchText = ""
     @State private var editPaymentMethod: CBPaymentMethod?
@@ -169,7 +170,7 @@ struct PayMethodsTable: View {
             .customizationID("title")
             
             TableColumn("Account Type", value: \.accountType.rawValue) { meth in
-                Text(meth.accountType.rawValue)
+                Text(XrefModel.getItem(from: .accountTypes, byID: meth.accountType.rawValue).description)
             }
             .customizationID("accountType")
             
@@ -275,7 +276,7 @@ struct PayMethodsTable: View {
 //                            Text("Back")
 //                        }
 //                    }
-                    ToolbarLongPollButton()
+                    //ToolbarLongPollButton()
                 }
                 
             } else {
@@ -289,8 +290,7 @@ struct PayMethodsTable: View {
                     
                     ToolbarRefreshButton()
                         .disabled(!AppState.shared.methsExist)
-                    
-                    
+                                        
                     defaultPayMethodMenu
                         .disabled(!AppState.shared.methsExist)
                     
@@ -302,6 +302,8 @@ struct PayMethodsTable: View {
         if AppState.shared.isIphone {
             ToolbarItem(placement: .topBarTrailing) {
                 HStack(spacing: 20) {
+                    
+                    ToolbarLongPollButton()
                     
                     ToolbarRefreshButton()
                         .disabled(!AppState.shared.methsExist)
@@ -448,6 +450,19 @@ struct PayMethodsTable: View {
                             .font(.caption)
                     }
                     .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                    
+                    if let balance = plaidModel.balances.filter({ $0.payMethodID == meth.id }).first {
+                        HStack {
+                            //Text("Balance as of \(balance.lastTimeICheckedPlaidSyncedDate?.string(to: .monthDayYearHrMinAmPm) ?? "N/A"):")
+                            Text("Balance as of \(balance.lastTimePlaidSyncedWithInstitutionDate?.string(to: .monthDayYearHrMinAmPm) ?? "N/A"):")
+                            
+                            Spacer()
+                            
+                            Text(balance.amountString)
+                        }
+                        .foregroundStyle(.gray)
+                        .font(.caption)
+                    }
                     
                     
                     if meth.accountType == .checking || meth.accountType == .credit {

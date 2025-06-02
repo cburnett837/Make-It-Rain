@@ -15,7 +15,7 @@ enum PaymentMethodSection: String {
 }
 
 enum ApplicablePaymentMethods {
-    case all, allExceptUnified, basedOnSelected
+    case all, allExceptUnified, basedOnSelected, remainingAvailbleForPlaid
 }
 
 struct PaySection: Identifiable {
@@ -31,6 +31,9 @@ struct PayMethodMenu<Content: View>: View {
     @Environment(CalendarModel.self) private var calModel
     
     @Environment(PayMethodModel.self) private var payModel
+    #if os(iOS)
+    @Environment(PlaidModel.self) private var plaidModel
+    #endif
     
     
     @Binding var payMethod: CBPaymentMethod?
@@ -137,6 +140,19 @@ struct PayMethodMenu<Content: View>: View {
             } else {
                 return [PaySection(kind: .other, payMethods: payModel.paymentMethods.filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking].contains($0.accountType) })]
             }
+            
+        case .remainingAvailbleForPlaid:
+            #if os(iOS)
+            let taken: Array<String> = plaidModel.banks.flatMap ({ $0.accounts.compactMap({ $0.paymentMethodID }) })
+            return [
+                PaySection(kind: .debit, payMethods: payModel.paymentMethods.filter { $0.accountType == .checking && !taken.contains($0.id) }),
+                PaySection(kind: .credit, payMethods: payModel.paymentMethods.filter { $0.accountType == .credit && !taken.contains($0.id) }),
+                PaySection(kind: .other, payMethods: payModel.paymentMethods.filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking].contains($0.accountType) && !taken.contains($0.id)  })
+            ]
+            #else
+            return []
+            #endif
+            
         }
     }
 }

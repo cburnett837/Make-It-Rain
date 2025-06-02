@@ -11,7 +11,7 @@ import Charts
 import TipKit
 
 enum BottomPanelContent {
-    case overviewDay, fitTransactions, smartTransactionsWithIssues, categoryAnalysis, multiSelectOptions
+    case overviewDay, fitTransactions, smartTransactionsWithIssues, categoryAnalysis, multiSelectOptions, plaidTransactions, transactionList
 }
 
 #if os(iOS)
@@ -33,6 +33,7 @@ struct CalendarViewPhone: View {
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
     @Environment(EventModel.self) private var eventModel
+    @Environment(PlaidModel.self) private var plaidModel
     
     let enumID: NavDestination
     
@@ -63,6 +64,7 @@ struct CalendarViewPhone: View {
     @State private var showCalendarOptionsSheet = false
     //@State private var showStartingAmountsSheet = false
     @State private var showAnalysisSheet = false
+    @State private var showTransactionListSheet = false
     @State private var showPhotosPicker = false
     @State private var showCamera = false
     @State private var showSideBar = false
@@ -73,6 +75,9 @@ struct CalendarViewPhone: View {
     @State private var findTransactionWhere = WhereToLookForTransaction.normalList
     
     @State private var editLock = false
+    
+    @State private var timeSinceLastBalanceUpdate: String = ""
+    @State private var lastBalanceUpdateTimer: Timer?
     
     var divideBy: CGFloat {
         let cellCount = calModel.sMonth.firstWeekdayOfMonth - 1 + calModel.sMonth.dayCount
@@ -103,7 +108,6 @@ struct CalendarViewPhone: View {
     
     var paymentMethodText: String {
         //"\(calModel.sPayMethod?.title ?? "") (\(calModel.sMonth.startingAmounts.filter {$0.payMethod.id == calModel.sPayMethod?.id}.first?.amountString ?? ""))"
-        
         "\(calModel.sPayMethod?.title ?? "") "
     }
             
@@ -143,6 +147,26 @@ struct CalendarViewPhone: View {
             .if(AppState.shared.isIpad) { $0.toolbar(.hidden) }
             .if(!AppState.shared.isIpad) { $0.toolbar { calendarToolbar() } }
             //.toolbar { calendarToolbar() }
+            .onChange(of: calModel.sPayMethod, initial: true) { oldValue, newValue in
+                if let balance = plaidModel.balances.filter({ $0.payMethodID == newValue?.id }).first {
+                    //timeSinceLastBalanceUpdate = Date().timeSince(balance.lastTimeICheckedPlaidSyncedDate)
+                    timeSinceLastBalanceUpdate = Date().timeSince(balance.lastTimePlaidSyncedWithInstitutionDate)
+                }
+                
+                /// Keep the displayed time ago up to date.
+                self.lastBalanceUpdateTimer?.invalidate()
+                self.lastBalanceUpdateTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { _ in
+                    Task { @MainActor in
+                        if let balance = plaidModel.balances.filter({ $0.payMethodID == calModel.sPayMethod?.id }).first {
+                            //timeSinceLastBalanceUpdate = Date().timeSince(balance.lastTimeICheckedPlaidSyncedDate)
+                            timeSinceLastBalanceUpdate = Date().timeSince(balance.lastTimePlaidSyncedWithInstitutionDate)
+                        }
+                    }
+                }
+            }
+            .onDisappear {
+                lastBalanceUpdateTimer?.invalidate()
+            }
                         
             /// Using this instead of a task because the iPad doesn't reload `CalendarView`. It just changes the data source.
             .onChange(of: enumID, initial: true, onChangeOfMonthEnumID)
@@ -156,21 +180,36 @@ struct CalendarViewPhone: View {
             
             /// This exists in 2 place - purely for visual effect. See ``LineItemView``
             /// This is needed (passing the ID instead of the trans) because you can close the popover without actually clicking the close button. So I need somewhere to do cleanup.
-            .onChange(of: transEditID) { transEditIdChanged(oldValue: $0, newValue: $1) }
-            .sensoryFeedback(.selection, trigger: transEditID) { $1 != nil }
-            .sheet(item: $editTrans) { trans in
-                TransactionEditView(trans: trans, transEditID: $transEditID, day: selectedDay!, isTemp: false)
-                    /// needed to prevent the view from being incorrect.
-                    .id(trans.id)
-                    /// This is needed for the drag to dismiss.
-                    .onDisappear {
-                        transEditID = nil
-                    }
-                    //.presentationSizing(.page)
-            }
+            
+            .transactionEditSheetAndLogic(
+                calModel: calModel,
+                transEditID: $transEditID,
+                editTrans: $editTrans,
+                selectedDay: $selectedDay,
+                overviewDay: $overviewDay,
+                findTransactionWhere: $findTransactionWhere,
+                presentTip: true,
+                resetSelectedDayOnClose: true
+            )
+//            .onChange(of: transEditID) { transEditIdChanged(oldValue: $0, newValue: $1) }
+//            .sensoryFeedback(.selection, trigger: transEditID) { $1 != nil }
+//            .sheet(item: $editTrans) { trans in
+//                TransactionEditView(trans: trans, transEditID: $transEditID, day: selectedDay!, isTemp: false)
+//                    /// needed to prevent the view from being incorrect.
+//                    .id(trans.id)
+//                    /// This is needed for the drag to dismiss.
+//                    .onDisappear {
+//                        transEditID = nil
+//                    }
+//                    //.presentationSizing(.page)
+//            }
             .if(!AppState.shared.isIpad) {
-                $0.sheet(isPresented: $showAnalysisSheet) {
+                $0
+                .sheet(isPresented: $showAnalysisSheet) {
                     AnalysisSheet(showAnalysisSheet: $showAnalysisSheet)
+                }
+                .sheet(isPresented: $showTransactionListSheet) {
+                    TransactionListView(showTransactionListSheet: $showTransactionListSheet)
                 }
             }
             .sheet(isPresented: $showCalendarOptionsSheet) {
@@ -223,10 +262,8 @@ struct CalendarViewPhone: View {
                 #if os(iOS)
                 /// If on iPhone, and the day changes, change the selected day as well otherwise it will be blank on day change and cause a crash.
                 if isDayChange {
-                    let month = calModel.months.filter { $0.num == AppState.shared.todayMonth && $0.year == AppState.shared.todayYear }.first
-                    if let month {
-                        let day = month.days.filter { $0.dateComponents?.day == AppState.shared.todayDay }.first
-                        if let day {
+                    if let month = calModel.months.filter({ $0.num == AppState.shared.todayMonth && $0.year == AppState.shared.todayYear }).first {
+                        if let day = month.days.filter({ $0.dateComponents?.day == AppState.shared.todayDay }).first {
                             selectedDay = day
                         }
                     }
@@ -269,6 +306,13 @@ struct CalendarViewPhone: View {
                                     scrollContentMargins: $scrollContentMargins
                                 )
                                 
+                            case .plaidTransactions:
+                                PlaidTransactionOverlay(
+                                    bottomPanelContent: $bottomPanelContent,
+                                    bottomPanelHeight: $bottomPanelHeight,
+                                    scrollContentMargins: $scrollContentMargins
+                                )
+                                
                             case .smartTransactionsWithIssues:
                                 SmartTransactionsWithIssuesOverlay(
                                     bottomPanelContent: $bottomPanelContent,
@@ -284,6 +328,9 @@ struct CalendarViewPhone: View {
                                     scrollContentMargins: $scrollContentMargins,
                                     showAnalysisSheet: $showAnalysisSheet
                                 )
+                            
+                            case .transactionList:
+                                EmptyView()
                             
                             case .categoryAnalysis:
                                 EmptyView()
@@ -503,67 +550,36 @@ struct CalendarViewPhone: View {
                             .font(.title2)
                         ToolbarLongPollButton()
                             .font(.title2)
-                        fitTransactionButton
+                        plaidTransactionButton
                             .font(.title2)
-                        
-                        Menu {
-                            Section("Analytics") {
-                                budgetSheetButton
-                                analysisSheetButton
-                            }
-                            
-//                            Section {
-//                                startingAmountSheetButton
-//                            }
-                            
-                            Section {
-                                Button {
-                                    withAnimation {
-                                        calModel.isInMultiSelectMode.toggle()
-                                        bottomPanelContent = .multiSelectOptions
-                                    }
-                                } label: {
-                                    Label {
-                                        Text("Multi-Select")
-                                    } icon: {
-                                        Image(systemName: "checklist")
-                                    }
-                                }
-                                
-                            }
-                            
-                            Section {
-                                refreshButton
-                                settingsSheetButton
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis.circle")
-                                .foregroundStyle(Color.accentColor)
-                                .font(.title2)
-                                .contentShape(Rectangle())
-                        }
+                                                                                                                        
+                        moreMenu
                         
                         searchButton
                             .font(.title2)
                         
-                        Menu {
-                            Section("Create") {
-                                newTransactionButton
-                                newTransferButton
-                            }
-                            
-                            Section("Smart Receipts") {
-                                takePhotoButton
-                                selectPhotoButton
-                            }
-                        } label: {
-                            Image(systemName: "plus")
-                                .font(.title2)
-                                .contentShape(Rectangle())
-                        } primaryAction: {
-                            transEditID = UUID().uuidString
-                        }
-                        .popoverTip(touchAndHoldPlusButtonTip)
+                        
+                        
+                        NewTransactionMenuButton(transEditID: $transEditID, showTransferSheet: $showTransferSheet, showPhotosPicker: $showPhotosPicker, showCamera: $showCamera)
+                        
+//                        Menu {
+//                            Section("Create") {
+//                                newTransactionButton
+//                                newTransferButton
+//                            }
+//                            
+//                            Section("Smart Receipts") {
+//                                takePhotoButton
+//                                selectPhotoButton
+//                            }
+//                        } label: {
+//                            Image(systemName: "plus")
+//                                .font(.title2)
+//                                .contentShape(Rectangle())
+//                        } primaryAction: {
+//                            transEditID = UUID().uuidString
+//                        }
+//                        .popoverTip(touchAndHoldPlusButtonTip)
 //                        .opacity(calModel.chatGptIsThinking ? 0 : 1)
 //                        .overlay {
 //                            ProgressView()
@@ -659,49 +675,15 @@ struct CalendarViewPhone: View {
                     
                     ToolbarLongPollButton()
                     smartTransactionWithIssuesButton
-                    fitTransactionButton
+                    plaidTransactionButton
                     
-                    Menu {
-                        Section("Analytics") {
-                            budgetSheetButton
-                            analysisSheetButton
-                        }
-                        
-//                        Section {
-//                            startingAmountSheetButton
-//                        }
-                        
-                        Section {
-                            multiSelectButton
-                        }
-                        
-                        Section {
-                            refreshButton
-                            settingsSheetButton
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .foregroundStyle(Color.accentColor)
-                    }
+                    moreMenu
                     
                     searchButton
                     
-                    Menu {
-                        Section("Create") {
-                            newTransactionButton
-                            newTransferButton
-                        }
-                        
-                        Section("Smart Receipts") {
-                            takePhotoButton
-                            selectPhotoButton
-                        }
-                    } label: {
-                        Image(systemName: "plus")
-                    } primaryAction: {
-                        transEditID = UUID().uuidString
-                    }
-                    .popoverTip(touchAndHoldPlusButtonTip)
+                    NewTransactionMenuButton(transEditID: $transEditID, showTransferSheet: $showTransferSheet, showPhotosPicker: $showPhotosPicker, showCamera: $showCamera)
+                    
+                    //newTransactionMenu
 //                    .opacity(calModel.chatGptIsThinking ? 0 : 1)
 //                    .overlay {
 //                        ProgressView()
@@ -763,6 +745,56 @@ struct CalendarViewPhone: View {
     }
     
     
+    var moreMenu: some View {
+        Menu {
+            Section("Analytics") {
+                budgetSheetButton
+                analysisSheetButton
+            }            
+//                        Section {
+//                            startingAmountSheetButton
+//                        }
+            
+            Section {
+                transactionListSheetButton
+                multiSelectButton
+            }
+            
+            Section {
+                refreshButton
+                settingsSheetButton
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+                .foregroundStyle(Color.accentColor)
+                .if(AppState.shared.isIpad) {
+                    $0
+                        .font(.title2)
+                        .contentShape(Rectangle())
+                }
+        }
+    }
+    
+//    var newTransactionMenu: some View {
+//        Menu {
+//            Section("Create") {
+//                newTransactionButton
+//                newTransferButton
+//            }
+//            
+//            Section("Smart Receipts") {
+//                takePhotoButton
+//                selectPhotoButton
+//            }
+//        } label: {
+//            Image(systemName: "plus")
+//        } primaryAction: {
+//            transEditID = UUID().uuidString
+//        }
+//        .popoverTip(touchAndHoldPlusButtonTip)
+//    }
+    
+    
     var multiSelectButton: some View {
         Button {
             withAnimation {
@@ -781,7 +813,7 @@ struct CalendarViewPhone: View {
     
     var smartTransactionWithIssuesButton: some View {
         Group {
-            if !calModel.tempTransactions.filter({$0.isSmartTransaction ?? false}).isEmpty {
+            if !calModel.tempTransactions.filter({ $0.isSmartTransaction ?? false }).isEmpty {
                 Button {
                     withAnimation {
                         bottomPanelContent = .smartTransactionsWithIssues
@@ -796,23 +828,62 @@ struct CalendarViewPhone: View {
     }
     
     
-    var fitTransactionButton: some View {
-        Group {
-            if !calModel.fitTrans.filter({ !$0.isAcknowledged }).isEmpty {
-                if AppState.shared.user?.id == 1 {
-                    Button {
-                        withAnimation {
-                            //showFitTransactions = true
-                            bottomPanelContent = .fitTransactions
-                        }
-                    } label: {
-                        Image(systemName: "clock.badge.exclamationmark")
-                            .foregroundStyle(Color.fromName(colorTheme) == .orange ? .red : .orange)
-                            .contentShape(Rectangle())
-                    }
-                }
-            }
+//    var fitTransactionButton: some View {
+//        Group {
+//            if !calModel.fitTrans.filter({ !$0.isAcknowledged }).isEmpty {
+//                if AppState.shared.user?.id == 1 {
+//                    Button {
+//                        withAnimation {
+//                            //showFitTransactions = true
+//                            bottomPanelContent = .fitTransactions
+//                        }
+//                    } label: {
+//                        Image(systemName: "clock.badge.exclamationmark")
+//                            .foregroundStyle(Color.fromName(colorTheme) == .orange ? .red : .orange)
+//                            .contentShape(Rectangle())
+//                    }
+//                }
+//            }
+//        }
+//    }
+    
+    @ViewBuilder
+    var plaidTransactionButton: some View {
+//        Group {
+//            if !plaidModel.trans.filter({ !$0.isAcknowledged }).isEmpty {
+//                if AppState.shared.user?.id == 1 {
+//                    Button {
+//                        withAnimation {
+//                            //showFitTransactions = true
+//                            bottomPanelContent = .plaidTransactions
+//                        }
+//                    } label: {
+//                        Image(systemName: "clock.badge.exclamationmark")
+//                            .foregroundStyle(Color.fromName(colorTheme) == .orange ? .red : .orange)
+//                            .contentShape(Rectangle())
+//                    }
+//                }
+//            }
+//        }
+        
+        var color: Color {
+            plaidModel.trans.filter({ !$0.isAcknowledged }).isEmpty
+            ? Color.secondary
+            : Color.fromName(colorTheme) == .orange ? .red : .orange
         }
+        
+        Button {
+            withAnimation {
+                //showFitTransactions = true
+                bottomPanelContent = .plaidTransactions
+            }
+        } label: {
+            Image(systemName: "creditcard")
+                .foregroundStyle(color)
+                .contentShape(Rectangle())
+        }
+        
+        
     }
     
     
@@ -964,6 +1035,24 @@ struct CalendarViewPhone: View {
     }
     
     
+    var transactionListSheetButton: some View {
+        Button {
+            withAnimation {
+                showTransactionListSheet = true
+                if AppState.shared.isIpad {
+                    bottomPanelContent = .transactionList
+                }
+            }
+        } label: {
+            Label {
+                Text("Transaction List")
+            } icon: {
+                Image(systemName: "list.bullet")
+            }
+        }
+    }
+    
+    
     var settingsSheetButton: some View {
         Button {
             showCalendarOptionsSheet = true
@@ -1003,76 +1092,75 @@ struct CalendarViewPhone: View {
                 .animation(!calModel.searchText.isEmpty ? .easeInOut(duration: 1).repeatForever(autoreverses: true) : .default, value: calModel.searchText.isEmpty )
                 .contentShape(Rectangle())
         }
-        
     }
     
     
-    var newTransactionButton: some View {
-        Button {
-            transEditID = UUID().uuidString
-            TouchAndHoldPlusButtonTip.didSelectSmartReceiptOrTransferOption = true
-            touchAndHoldPlusButtonTip.invalidate(reason: .actionPerformed)
-        } label: {
-            Label {
-                Text("New Transaction")
-            } icon: {
-                Image(systemName: "plus")
-            }
-        }
-    }
-    
-    
-    var newTransferButton: some View {
-        Button {
-            showTransferSheet = true
-            TouchAndHoldPlusButtonTip.didSelectSmartReceiptOrTransferOption = true
-            touchAndHoldPlusButtonTip.invalidate(reason: .actionPerformed)
-        } label: {
-            Label {
-                Text("New Transfer / Payment")
-            } icon: {
-                Image(systemName: "arrowshape.turn.up.forward.fill")
-            }
-        }
-    }
-    
-    
-    var takePhotoButton: some View {
-        Button {
-            //let newID = UUID().uuidString
-            //calModel.pendingSmartTransaction = CBTransaction(uuid: newID)
-            //calModel.pictureTransactionID = newID
-            calModel.isUploadingSmartTransactionPicture = true
-            showCamera = true
-            TouchAndHoldPlusButtonTip.didSelectSmartReceiptOrTransferOption = true
-            touchAndHoldPlusButtonTip.invalidate(reason: .actionPerformed)
-        } label: {
-            Label {
-                Text("Take Photo")
-            } icon: {
-                Image(systemName: "camera")
-            }
-        }
-    }
-    
-    
-    var selectPhotoButton: some View {
-        Button {
-            //let newID = UUID().uuidString
-            //calModel.pendingSmartTransaction = CBTransaction(uuid: newID)
-            //calModel.pictureTransactionID = newID
-            calModel.isUploadingSmartTransactionPicture = true
-            showPhotosPicker = true
-            TouchAndHoldPlusButtonTip.didSelectSmartReceiptOrTransferOption = true
-            touchAndHoldPlusButtonTip.invalidate(reason: .actionPerformed)
-        } label: {
-            Label {
-                Text("Photo Library")
-            } icon: {
-                Image(systemName: "photo.badge.plus")
-            }
-        }
-    }
+//    var newTransactionButton: some View {
+//        Button {
+//            transEditID = UUID().uuidString
+//            TouchAndHoldPlusButtonTip.didSelectSmartReceiptOrTransferOption = true
+//            touchAndHoldPlusButtonTip.invalidate(reason: .actionPerformed)
+//        } label: {
+//            Label {
+//                Text("New Transaction")
+//            } icon: {
+//                Image(systemName: "plus")
+//            }
+//        }
+//    }
+//    
+//    
+//    var newTransferButton: some View {
+//        Button {
+//            showTransferSheet = true
+//            TouchAndHoldPlusButtonTip.didSelectSmartReceiptOrTransferOption = true
+//            touchAndHoldPlusButtonTip.invalidate(reason: .actionPerformed)
+//        } label: {
+//            Label {
+//                Text("New Transfer / Payment")
+//            } icon: {
+//                Image(systemName: "arrowshape.turn.up.forward.fill")
+//            }
+//        }
+//    }
+//    
+//    
+//    var takePhotoButton: some View {
+//        Button {
+//            //let newID = UUID().uuidString
+//            //calModel.pendingSmartTransaction = CBTransaction(uuid: newID)
+//            //calModel.pictureTransactionID = newID
+//            calModel.isUploadingSmartTransactionPicture = true
+//            showCamera = true
+//            TouchAndHoldPlusButtonTip.didSelectSmartReceiptOrTransferOption = true
+//            touchAndHoldPlusButtonTip.invalidate(reason: .actionPerformed)
+//        } label: {
+//            Label {
+//                Text("Take Photo")
+//            } icon: {
+//                Image(systemName: "camera")
+//            }
+//        }
+//    }
+//    
+//    
+//    var selectPhotoButton: some View {
+//        Button {
+//            //let newID = UUID().uuidString
+//            //calModel.pendingSmartTransaction = CBTransaction(uuid: newID)
+//            //calModel.pictureTransactionID = newID
+//            calModel.isUploadingSmartTransactionPicture = true
+//            showPhotosPicker = true
+//            TouchAndHoldPlusButtonTip.didSelectSmartReceiptOrTransferOption = true
+//            touchAndHoldPlusButtonTip.invalidate(reason: .actionPerformed)
+//        } label: {
+//            Label {
+//                Text("Photo Library")
+//            } icon: {
+//                Image(systemName: "photo.badge.plus")
+//            }
+//        }
+//    }
           
     
     var fakeNavHeader: some View {
@@ -1109,6 +1197,12 @@ struct CalendarViewPhone: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             
             
+//            currentBalanceLabel
+//                .padding(.trailing, 16)
+//                .padding(.bottom, 4)
+//                .frame(maxWidth: .infinity, alignment: .trailing)
+            
+            
 //            ScrollView(.horizontal, showsIndicators: false) {
 //                HStack {
 //                    ForEach(calModel.sMonth.startingAmounts) { amount in
@@ -1135,7 +1229,7 @@ struct CalendarViewPhone: View {
         .contentShape(Rectangle())
     }
     
-    
+    @ViewBuilder
     var monthTitleAndPayMethodMenuLabel: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(monthText)
@@ -1146,6 +1240,7 @@ struct CalendarViewPhone: View {
             
             HStack(spacing: 2) {
                 Text(paymentMethodText)
+                    .padding(.leading, -2)
                 
                 if !calModel.sCategories.isEmpty {
                     var categoryFilterTitle: String {
@@ -1173,9 +1268,65 @@ struct CalendarViewPhone: View {
             .font(.callout)
             .foregroundStyle(.gray)
             .contentShape(Rectangle())
+            
+            
+            
+            if let meth = calModel.sPayMethod {
+                if meth.isUnified {
+                    if meth.isDebit {
+                        let debitIDs = payModel.paymentMethods.filter { $0.isDebit }.map { $0.id }
+                        let sum = plaidModel.balances.filter { debitIDs.contains($0.payMethodID) }.map { $0.amount }.reduce(0.0, +)
+                        Text("\(sum.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                            .font(.callout)
+                            .foregroundStyle(.gray)
+                            .lineLimit(1)
+                    } else {
+                        let creditIDs = payModel.paymentMethods.filter { $0.isCredit }.map { $0.id }
+                        let sum = plaidModel.balances.filter { creditIDs.contains($0.payMethodID) }.map { $0.amount }.reduce(0.0, +)
+                        Text("\(sum.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                            .font(.callout)
+                            .foregroundStyle(.gray)
+                            .lineLimit(1)
+                    }
+                    
+                } else {
+//                    if let balance = plaidModel.balances.filter({ $0.payMethodID == calModel.sPayMethod?.id }).first {
+//                        Text("\(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)), \(balance.lastTimeICheckedPlaidSyncedDate?.string(to: .monthDayHrMinAmPm) ?? "N/A")")
+//                            .font(.callout)
+//                            .foregroundStyle(.gray)
+//                            .lineLimit(1)
+//                    }
+                    
+                    
+                    if let balance = plaidModel.balances.filter({ $0.payMethodID == calModel.sPayMethod?.id }).first {
+                        Text("\(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)) (\(timeSinceLastBalanceUpdate))")
+                            .font(.callout)
+                            .foregroundStyle(.gray)
+                            .lineLimit(1)
+                    }
+                }
+            }
         }
         .popoverTip(touchAndHoldMonthToFilterCategoriesTip)
     }
+    
+//    @ViewBuilder
+//    var currentBalanceLabel: some View {
+//        if let balance = plaidModel.balances.filter({ $0.payMethodID == calModel.sPayMethod?.id }).first {
+//            VStack(alignment: .trailing, spacing: 0) {
+//                Text("Balance")
+//                    .font(.largeTitle)
+//                    .bold()
+//                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+//                    .lineLimit(1)
+//                                
+//                Text("\(balance.amountString) as of \(balance.lastTimeICheckedPlaidSyncedDate?.string(to: .monthDayYearHrMinAmPm) ?? "N/A")")
+//                    .font(.callout)
+//                    .foregroundStyle(.gray)
+//                    .lineLimit(1)
+//            }
+//        }
+//    }
     
     
     var searchBarOverlay: some View {
@@ -1316,6 +1467,10 @@ struct CalendarViewPhone: View {
                     FitTransactionOverlay(bottomPanelContent: $bottomPanelContent, bottomPanelHeight: $bottomPanelHeight, scrollContentMargins: $scrollContentMargins)
                         .frame(maxWidth: getRect().width / 3)
                     
+                case .plaidTransactions:
+                    PlaidTransactionOverlay(bottomPanelContent: $bottomPanelContent, bottomPanelHeight: $bottomPanelHeight, scrollContentMargins: $scrollContentMargins)
+                        .frame(maxWidth: getRect().width / 3)
+                    
                 case .smartTransactionsWithIssues:
                     SmartTransactionsWithIssuesOverlay(
                         bottomPanelContent: $bottomPanelContent,
@@ -1331,15 +1486,16 @@ struct CalendarViewPhone: View {
                         .frame(maxWidth: getRect().width / 3)
                     
                         /// This is here since AnalysisSheet is in a sheet on iPhone and is triggered by a boolean
-                        .onChange(of: showAnalysisSheet) { oldValue, newValue in
-                            //print(newValue)
-                            if newValue == false {
-                                withAnimation {
-                                    bottomPanelContent = nil
-                                }
-                            }
+                        .onChange(of: showAnalysisSheet) {
+                            if !$1 { withAnimation { bottomPanelContent = nil } }
                         }
-                
+                    
+                case .transactionList:
+                    TransactionListView(showTransactionListSheet: $showTransactionListSheet)
+                        .onChange(of: showTransactionListSheet) {
+                            if !$1 { withAnimation { bottomPanelContent = nil } }
+                        }
+                    
                 case .multiSelectOptions:
                     MultiSelectTransactionOptionsSheet(
                         bottomPanelContent: $bottomPanelContent,
@@ -1377,48 +1533,48 @@ struct CalendarViewPhone: View {
     }
     
     
-    func transEditIdChanged(oldValue: String?, newValue: String?) {
-        print(".onChange(of: transEditID) - old: \(String(describing: oldValue)) -- new: \(String(describing: newValue))")
-        /// When `newValue` is false, save to the server. We have to use this because `.popover(isPresented:)` has no onDismiss option.
-        if oldValue != nil && newValue == nil {
-            
-            /// Present tip after trying to add 3 new transactions.
-            let trans = calModel.getTransaction(by: oldValue!, from: findTransactionWhere)
-            
-            if trans.action == .add {
-                TouchAndHoldPlusButtonTip.didTouchPlusButton.sendDonation()
-            }
-                                
-            calModel.saveTransaction(id: oldValue!, day: selectedDay!, location: findTransactionWhere, eventModel: eventModel)
-            /// - When adding a transaction via a day's context menu, `selectedDay` gets changed to the contexts day.
-            ///   So when closing the transaction, put `selectedDay`back to today so the normal plus button works and the gray box goes back to today.
-            /// - Gotta have a `selectedDay` for the editing of a transaction and transfer sheet.
-            ///   Since one is not always used in details view, set to the current day if in the current month, otherwise set to the first of the month.
-            /// - If you're viewing the bottom panel, reset `selectedDay` to `overviewDay` so any transactions that are added via the bottom panel have the date of the bottom panel.
-            if overviewDay != nil {
-                selectedDay = overviewDay
-            } else {
-                let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
-                selectedDay = targetDay
-            }
-            /// Keep the model clean, and show alert for a photo that may be taking a long time to upload.
-            //calModel.pictureTransactionID = nil
-            PhotoModel.shared.pictureParent = nil
-            
-            /// Force this to `.normalList` since smart transactions will change the variable to look in the temp list.
-            findTransactionWhere = .normalList
-            
-            /// Prevent a transaction from being opened while another one is trying to save.
-            calModel.editLock = false
-                                                            
-        } else if newValue != nil {
-            if !calModel.editLock {
-                /// Prevent a transaction from being opened while another one is trying to save.
-                calModel.editLock = true
-                editTrans = calModel.getTransaction(by: newValue!, from: findTransactionWhere)
-            }
-        }
-    }
+//    func transEditIdChanged(oldValue: String?, newValue: String?) {
+//        print(".onChange(of: transEditID) - old: \(String(describing: oldValue)) -- new: \(String(describing: newValue))")
+//        /// When `newValue` is false, save to the server. We have to use this because `.popover(isPresented:)` has no onDismiss option.
+//        if oldValue != nil && newValue == nil {
+//            
+//            /// Present tip after trying to add 3 new transactions.
+//            let trans = calModel.getTransaction(by: oldValue!, from: findTransactionWhere)
+//            
+//            if trans.action == .add {
+//                TouchAndHoldPlusButtonTip.didTouchPlusButton.sendDonation()
+//            }
+//                                
+//            calModel.saveTransaction(id: oldValue!, day: selectedDay!, location: findTransactionWhere)
+//            /// - When adding a transaction via a day's context menu, `selectedDay` gets changed to the contexts day.
+//            ///   So when closing the transaction, put `selectedDay`back to today so the normal plus button works and the gray box goes back to today.
+//            /// - Gotta have a `selectedDay` for the editing of a transaction and transfer sheet.
+//            ///   Since one is not always used in details view, set to the current day if in the current month, otherwise set to the first of the month.
+//            /// - If you're viewing the bottom panel, reset `selectedDay` to `overviewDay` so any transactions that are added via the bottom panel have the date of the bottom panel.
+//            if overviewDay != nil {
+//                selectedDay = overviewDay
+//            } else {
+//                let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
+//                selectedDay = targetDay
+//            }
+//            /// Keep the model clean, and show alert for a photo that may be taking a long time to upload.
+//            //calModel.pictureTransactionID = nil
+//            PhotoModel.shared.pictureParent = nil
+//            
+//            /// Force this to `.normalList` since smart transactions will change the variable to look in the temp list.
+//            findTransactionWhere = .normalList
+//            
+//            /// Prevent a transaction from being opened while another one is trying to save.
+//            calModel.editLock = false
+//                                                            
+//        } else if newValue != nil {
+//            if !calModel.editLock {
+//                /// Prevent a transaction from being opened while another one is trying to save.
+//                calModel.editLock = true
+//                editTrans = calModel.getTransaction(by: newValue!, from: findTransactionWhere)
+//            }
+//        }
+//    }
     
     
     func resetMonthState() {
@@ -1435,6 +1591,7 @@ struct CalendarViewPhone: View {
     func onChangeOfMonthEnumID() {
         print(".onChange(of: enumID, initial: true)")
         Task {
+            calModel.isInMultiSelectMode = false
             let month = calModel.months.filter {$0.enumID == enumID}.first!
             
             funcModel.prepareStartingAmounts(for: month)

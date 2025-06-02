@@ -9,7 +9,7 @@
 import Foundation
 
 class CodablePlaceHolder: Codable {
-    let thing: String?
+    var thing: String?
     var deviceName: String = UserDefaults.standard.string(forKey: "deviceName") ?? "device name undetermined"
     
     init() {

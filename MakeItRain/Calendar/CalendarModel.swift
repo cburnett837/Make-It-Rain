@@ -19,7 +19,7 @@ import UIKit
 @MainActor
 @Observable
 class CalendarModel: PhotoUploadCompletedDelegate {
-    static let shared = CalendarModel()
+    //static let shared = CalendarModel()
     
     // MARK: - State Variables
     //var trans: CBTransaction?
@@ -87,6 +87,7 @@ class CalendarModel: PhotoUploadCompletedDelegate {
     //var smartTransactionsWithIssues: [CBTransaction] = []
     var tags: Array<CBTag> = []
     var fitTrans: Array<CBFitTransaction> = []
+    //var plaidTrans: Array<CBPlaidTransaction> = []
     
     var justTransactions: Array<CBTransaction> {
         months.flatMap { $0.days }.flatMap { $0.transactions }
@@ -139,6 +140,43 @@ class CalendarModel: PhotoUploadCompletedDelegate {
             }
         }
     }
+    
+    
+//    @MainActor
+//    func fetchPlaidTransactionsFromServer() async {
+//        //print("-- \(#function)")
+//        LogManager.log()
+//        
+//        let start = CFAbsoluteTimeGetCurrent()
+//        
+//        //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
+//        //print("DONE FETCHING")
+//                            
+//        //let month = months.filter { $0.num == monthNum }.first!
+//        let model = RequestModel(requestType: "fetch_plaid_transactions", model: AppState.shared.user!)
+//        typealias ResultResponse = Result<Array<CBPlaidTransaction>?, AppError>
+//        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+//        
+//        switch await result {
+//        case .success(let model):
+//            if let model {
+//                self.plaidTrans = model
+//            }
+//            
+//            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
+//            print("🔴It took \(currentElapsed) seconds to fetch the fit transaction")
+//            
+//        case .failure (let error):
+//            switch error {
+//            case .taskCancelled:
+//                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
+//                print("calModel fetchPlaidTransactionsFromServer Server Task Cancelled")
+//            default:
+//                LogManager.error(error.localizedDescription)
+//                AppState.shared.showAlert("There was a problem trying to fetch fit transactions.")
+//            }
+//        }
+//    }
     
     
     @MainActor
@@ -1411,6 +1449,60 @@ class CalendarModel: PhotoUploadCompletedDelegate {
     
     
     
+//    @MainActor
+//    func clearPlaidTransactionBeforeDate(_ trans: CBTransaction) async {
+//        ///NOTE: Just using a `CBTransaction` since it contains the properties (date) that I need to clear the transactions.
+//        print("-- \(#function)")
+//        
+//        //LoadingManager.shared.startDelayedSpinner()
+//        LogManager.log()
+//        let model = RequestModel(requestType: "clear_plaid_transactions", model: trans)
+//            
+//        /// Used to test the snapshot data race
+//        //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
+//        
+//        typealias ResultResponse = Result<ResultCompleteModel?, AppError>
+//        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+//                    
+//        switch await result {
+//        case .success(let model):
+//            LogManager.networkingSuccessful()
+//            
+//        case .failure(let error):
+//            LogManager.error(error.localizedDescription)
+//            AppState.shared.showAlert("There was a problem trying to deny the fit transaction.")
+//            #warning("Undo behavior")
+//        }
+//        //LoadingManager.shared.stopDelayedSpinner()
+//    }
+    
+    
+//    @MainActor
+//    func denyPlaidTransaction(_ trans: CBPlaidTransaction) async {
+//        print("-- \(#function)")
+//        
+//        //LoadingManager.shared.startDelayedSpinner()
+//        LogManager.log()
+//        let model = RequestModel(requestType: "deny_plaid_transaction", model: trans)
+//            
+//        /// Used to test the snapshot data race
+//        //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
+//        
+//        typealias ResultResponse = Result<ResultCompleteModel?, AppError>
+//        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+//                    
+//        switch await result {
+//        case .success(let model):
+//            LogManager.networkingSuccessful()
+//            
+//        case .failure(let error):
+//            LogManager.error(error.localizedDescription)
+//            AppState.shared.showAlert("There was a problem trying to deny the fit transaction.")
+//            #warning("Undo behavior")
+//        }
+//        //LoadingManager.shared.stopDelayedSpinner()
+//    }
+    
     
     @MainActor
     func denyFitTransaction(_ trans: CBFitTransaction) async {
@@ -1530,6 +1622,29 @@ class CalendarModel: PhotoUploadCompletedDelegate {
     func delete(_ trans: CBFitTransaction) {
         fitTrans.removeAll { $0.id == trans.id }
     }
+    
+    
+    
+    // MARK: - Plaid Trans
+//    func doesExist(_ trans: CBPlaidTransaction) -> Bool {
+//        return !plaidTrans.filter { $0.id == trans.id }.isEmpty
+//    }
+//    
+//    func upsert(_ trans: CBPlaidTransaction) {
+//        if !doesExist(trans) {
+//            plaidTrans.append(trans)
+//        }
+//    }
+//    
+//    func getIndex(for trans: CBPlaidTransaction) -> Int? {
+//        return plaidTrans.firstIndex { $0.id == trans.id }
+//    }
+//    
+//    func delete(_ trans: CBPlaidTransaction) {
+//        plaidTrans.removeAll { $0.id == trans.id }
+//    }
+    
+    
     
     
     // MARK: - Budget Stuff

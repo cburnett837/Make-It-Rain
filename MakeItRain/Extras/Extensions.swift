@@ -279,6 +279,29 @@ extension View {
     func widgetShape(height: CGFloat? = nil) -> some View {
         modifier(WidgetFolderMods(height: height))
     }
+    
+    
+    func transactionEditSheetAndLogic(
+        calModel: CalendarModel,
+        transEditID: Binding<String?>,
+        editTrans: Binding<CBTransaction?>,
+        selectedDay: Binding<CBDay?>,
+        overviewDay: Binding<CBDay?> = .constant(nil),
+        findTransactionWhere: Binding<WhereToLookForTransaction> = .constant(.normalList),
+        presentTip: Bool = false,
+        resetSelectedDayOnClose: Bool = false
+    ) -> some View {
+        modifier(TransactionEditSheetAndLogic(
+            calModel: calModel,
+            transEditID: transEditID,
+            editTrans: editTrans,
+            selectedDay: selectedDay,
+            overviewDay: overviewDay,
+            findTransactionWhere: findTransactionWhere,
+            presentTip: presentTip,
+            resetSelectedDayOnClose: resetSelectedDayOnClose
+        ))
+    }
 }
 
 

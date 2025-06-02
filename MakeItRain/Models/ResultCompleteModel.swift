@@ -13,7 +13,7 @@ class ResultCompleteModel: Codable {
     
     enum CodingKeys: CodingKey { case result }
     
-    init(){
+    init() {
         self.result = nil
     }
     

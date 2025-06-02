@@ -14,6 +14,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     var id: String
     var uuid: String?
     var fitID: String?
+    var plaidID: String?
     var repID: String?
     var relatedTransactionID: String?
     var title: String
@@ -288,8 +289,35 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         self.action = .add
     }
     
+    init(plaidTrans: CBPlaidTransaction) {
+        let uuid = UUID().uuidString
+        self.id = uuid
+        self.uuid = uuid
+        self.plaidID = String(plaidTrans.plaidID)
+        self.title = plaidTrans.title
+        self.amountString = plaidTrans.amountString
+        //self.action = .add
+        self.factorInCalculations = true
+        self.payMethod = plaidTrans.payMethod
+        self.category = plaidTrans.category
+        self.date = plaidTrans.date
+        self.color = .primary
+        self.active = true
+        self.enteredDate = Date()
+        self.updatedDate = Date()
+        self.trackingNumber = ""
+        self.orderNumber = ""
+        self.url = ""
+        self.notes = "(Added via Plaid)"
+        self.tags = []
+        self.locations = []
+        self.wasAddedFromPopulate = false
+                
+        self.action = .add
+    }
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, entered_date, updated_date, pictures, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, related_transaction_type_id, fit_id, is_smart_transaction, smart_transaction_issue_id, smart_transaction_is_acknowledged, locations, action, is_payment }
+    
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, entered_date, updated_date, pictures, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, related_transaction_type_id, fit_id, is_smart_transaction, smart_transaction_issue_id, smart_transaction_is_acknowledged, locations, action, is_payment, plaid_id }
     
     
     func encode(to encoder: Encoder) throws {
@@ -328,6 +356,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         try container.encode(relatedTransactionType?.id, forKey: .related_transaction_type_id)
         
         try container.encode(fitID, forKey: .fit_id)
+        try container.encode(plaidID, forKey: .plaid_id)
         try container.encode(action.serverKey, forKey: .action)
                 
         try container.encode((smartTransactionIsAcknowledged ?? false) ? 1 : 0, forKey: .smart_transaction_is_acknowledged)
