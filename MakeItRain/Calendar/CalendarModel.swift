@@ -127,7 +127,7 @@ class CalendarModel: PhotoUploadCompletedDelegate {
             }
             
             let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-            print("🔴It took \(currentElapsed) seconds to fetch the fit transaction")
+            print("⏰It took \(currentElapsed) seconds to fetch the fit transaction")
             
         case .failure (let error):
             switch error {
@@ -164,7 +164,7 @@ class CalendarModel: PhotoUploadCompletedDelegate {
 //            }
 //            
 //            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-//            print("🔴It took \(currentElapsed) seconds to fetch the fit transaction")
+//            print("⏰It took \(currentElapsed) seconds to fetch the fit transaction")
 //            
 //        case .failure (let error):
 //            switch error {
@@ -274,7 +274,7 @@ class CalendarModel: PhotoUploadCompletedDelegate {
             
             
             let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-            print("🔴It took \(currentElapsed) seconds to fetch \(month.actualNum) \(month.year)")
+            print("⏰It took \(currentElapsed) seconds to fetch \(month.actualNum) \(month.year)")
             
         case .failure (let error):
             switch error {
@@ -904,8 +904,8 @@ class CalendarModel: PhotoUploadCompletedDelegate {
 //            
 //        } else
         
+        /// Go update the normal transaction list if changing that transaction via the smart list (temp list) or search result list.
         if location == .smartList || location == .searchResultList {
-            /// Go update the normal transaction list if the editing transaction is not already in it.
             self.handleTransactions([trans], refreshTechnique: nil)
         }
         
@@ -914,6 +914,19 @@ class CalendarModel: PhotoUploadCompletedDelegate {
             /// Set the updated by user and date
             trans.updatedBy = AppState.shared.user!
             trans.updatedDate = Date()
+            
+            /// Update the searched transactions if they are in the search list and you update them like normal.
+            if let index = searchedTransactions.firstIndex(where: { $0.id == id }) {
+                let otherTrans = searchedTransactions[index]
+                otherTrans.setFromAnotherInstance(transaction: trans)
+            }
+            
+            /// Update the temp transactions if they are in the search list and you update them like normal. (I don't think this would be very common though).
+            if let index = tempTransactions.firstIndex(where: { $0.id == id }) {
+                let otherTrans = tempTransactions[index]
+                otherTrans.setFromAnotherInstance(transaction: trans)
+            }
+            
             
             /// Move the transaction if applicable
             if trans.dateChanged() { changeDate(trans) }
@@ -1176,7 +1189,7 @@ class CalendarModel: PhotoUploadCompletedDelegate {
         
         /// Add a temporary transaction to coredata (For when the app was already loaded, but you went back to it after entering an area of bad network connection)
         /// This way, if you add a transaction in an area of bad connection, the trans won't be lost when you try and save it.
-        guard let entity = await DataManager.shared.getOne(type: TempTransaction.self, predicate: .byId(.string(trans.id)), createIfNotFound: true) else { return false }
+        guard let entity = try? await DataManager.shared.getOne(type: TempTransaction.self, predicate: .byId(.string(trans.id)), createIfNotFound: true) else { return false }
         entity.id = trans.id
         entity.title = trans.title
         entity.amount = trans.amount
@@ -1436,6 +1449,17 @@ class CalendarModel: PhotoUploadCompletedDelegate {
         case .success(let model):
             LogManager.networkingSuccessful()
             if let model {
+                for parent in model {
+                    if let foundTrans = trans.filter({$0.uuid == parent.parentID.uuid}).first {
+                        if foundTrans.action == .add {
+                            foundTrans.id = String(parent.parentID.id)
+                            foundTrans.uuid = nil
+                            foundTrans.action = .edit
+                        }
+                        
+                    }
+                }
+                                
                 print("Multi-update successful")
             }
         case .failure(let error):
@@ -2302,7 +2326,11 @@ class CalendarModel: PhotoUploadCompletedDelegate {
                                             } else {
                                                 toTrans.title = "Transfer from \(repTrans.payMethod?.title ?? "")"
                                             }
-                                            toTrans.isPayment = true
+                                            
+                                            if repTrans.repeatingTransactionType.enumID == XrefEnum.payment {
+                                                toTrans.isPayment = true
+                                            }
+                                            
                                             
                                             if fromTrans.isExpense && repTrans.repeatingTransactionType.enumID != XrefEnum.payment {
                                                 toTrans.amountString = toTrans.amountString.replacingOccurrences(of: "-", with: "")
@@ -2676,29 +2704,85 @@ class CalendarModel: PhotoUploadCompletedDelegate {
         let picture = CBPicture(relatedID: recordID, uuid: uuid, photoType: photoType.enumID)
         picture.isPlaceholder = true
         
-        let targetMonth = months.filter { $0.enumID == sMonth.enumID }.first!
-        let targetDays = targetMonth.days
-        let transactions = targetDays.flatMap({ $0.transactions })
-                                                        
-        let index = transactions.firstIndex(where: { $0.id == recordID })
-        if let index {
-            if let _ = transactions[index].pictures {
-                transactions[index].pictures!.append(picture)
+        if let index = justTransactions.firstIndex(where: { $0.id == recordID }) {
+            let trans = justTransactions[index]
+            
+            if let _ = trans.pictures {
+                trans.pictures!.append(picture)
             } else {
-                transactions[index].pictures = [picture]
+                trans.pictures = [picture]
             }
         }
+        
+        /// Update the searched transactions if they are in the search list and you update them like normal.
+        if let index = searchedTransactions.firstIndex(where: { $0.id == recordID }) {
+            let trans = searchedTransactions[index]
+            
+            if let _ = trans.pictures {
+                trans.pictures!.append(picture)
+            } else {
+                trans.pictures = [picture]
+            }
+        }
+        
+        /// Update the temp transactions if they are in the search list and you update them like normal. (I don't think this would be very common though).
+        if let index = tempTransactions.firstIndex(where: { $0.id == recordID }) {
+            let trans = tempTransactions[index]
+            
+            if let _ = trans.pictures {
+                trans.pictures!.append(picture)
+            } else {
+                trans.pictures = [picture]
+            }
+        }
+        
+        
+        
+//        if let targetMonth = months.filter { $0.actualNum == date.month && $0.year == date.year }.first {
+//            let targetDays = targetMonth.days
+//            let transactions = targetDays.flatMap({ $0.transactions })
+//                                                            
+//            let index = transactions.firstIndex(where: { $0.id == recordID })
+//            if let index {
+//                if let _ = transactions[index].pictures {
+//                    transactions[index].pictures!.append(picture)
+//                } else {
+//                    transactions[index].pictures = [picture]
+//                }
+//            }
+//        }
     }
             
     
     func markPlaceholderPictureAsReadyForDownload(recordID: String, uuid: String, photoType: XrefItem) {
-        let targetMonth = months.filter { $0.enumID == sMonth.enumID }.first!
-        let targetDays = targetMonth.days
-        let transactions = targetDays.flatMap({ $0.transactions })
+//        let targetMonth = months.filter { $0.enumID == sMonth.enumID }.first!
+//        let targetDays = targetMonth.days
+//        let transactions = targetDays.flatMap({ $0.transactions })
+//        
+//        if let trans = transactions.filter({$0.id == recordID}).first {
+//            let index = trans.pictures?.firstIndex(where: { $0.uuid == uuid })
+//            if let index {
+//                trans.pictures?[index].isPlaceholder = false
+//            }
+//        }
         
-        if let trans = transactions.filter({$0.id == recordID}).first {
-            let index = trans.pictures?.firstIndex(where: { $0.uuid == uuid })
-            if let index {
+        
+        if let trans = justTransactions.filter({ $0.id == recordID }).first {
+            if let index = trans.pictures?.firstIndex(where: { $0.uuid == uuid }) {
+                trans.pictures?[index].isPlaceholder = false
+            }
+        }
+        
+        /// Update the searched transactions if they are in the search list and you update them like normal.
+        if let trans = searchedTransactions.filter({ $0.id == recordID }).first {
+            if let index = trans.pictures?.firstIndex(where: { $0.uuid == uuid }) {
+                trans.pictures?[index].isPlaceholder = false
+            }
+        }
+        
+        /// Update the temp transactions if they are in the search list and you update them like normal. (I don't think this would be very common though).
+        if let trans = tempTransactions.filter({ $0.id == recordID }).first {
+            if let index = trans.pictures?.firstIndex(where: { $0.uuid == uuid }) {
                 trans.pictures?[index].isPlaceholder = false
             }
         }
@@ -2706,13 +2790,33 @@ class CalendarModel: PhotoUploadCompletedDelegate {
         
     
     func markPictureAsFailedToUpload(recordID: String, uuid: String, photoType: XrefItem) {
-        let targetMonth = months.filter { $0.enumID == sMonth.enumID }.first!
-        let targetDays = targetMonth.days
-        let transactions = targetDays.flatMap({ $0.transactions })
+//        let targetMonth = months.filter { $0.enumID == sMonth.enumID }.first!
+//        let targetDays = targetMonth.days
+//        let transactions = targetDays.flatMap({ $0.transactions })
+//        
+//        if let trans = transactions.filter({$0.id == recordID}).first {
+//            let index = trans.pictures?.firstIndex(where: { $0.uuid == uuid })
+//            if let index {
+//                trans.pictures?[index].active = false
+//            }
+//        }
         
-        if let trans = transactions.filter({$0.id == recordID}).first {
-            let index = trans.pictures?.firstIndex(where: { $0.uuid == uuid })
-            if let index {
+        if let trans = justTransactions.filter({ $0.id == recordID }).first {
+            if let index = trans.pictures?.firstIndex(where: { $0.uuid == uuid }) {
+                trans.pictures?[index].active = false
+            }
+        }
+        
+        /// Update the searched transactions if they are in the search list and you update them like normal.
+        if let trans = searchedTransactions.filter({ $0.id == recordID }).first {
+            if let index = trans.pictures?.firstIndex(where: { $0.uuid == uuid }) {
+                trans.pictures?[index].active = false
+            }
+        }
+        
+        /// Update the temp transactions if they are in the search list and you update them like normal. (I don't think this would be very common though).
+        if let trans = tempTransactions.filter({ $0.id == recordID }).first {
+            if let index = trans.pictures?.firstIndex(where: { $0.uuid == uuid }) {
                 trans.pictures?[index].active = false
             }
         }
@@ -2721,15 +2825,42 @@ class CalendarModel: PhotoUploadCompletedDelegate {
     
     
     func delete(picture: CBPicture, photoType: XrefItem) async {
+//        if await PhotoModel.shared.delete(picture) {
+//            let targetMonth = months.filter { $0.enumID == sMonth.enumID }.first!
+//            let targetDays = targetMonth.days
+//            let transactions = targetDays.flatMap({ $0.transactions })
+//                                                            
+//            let index = transactions.firstIndex(where: { $0.id == picture.relatedID })
+//            if let index {
+//                transactions[index].pictures?.removeAll(where: { $0.id == picture.id || $0.uuid == picture.uuid })
+//            }
+//        } else {
+//            AppState.shared.showAlert("There was a problem trying to delete the picture.")
+//        }
+        
+        
+        
         if await PhotoModel.shared.delete(picture) {
-            let targetMonth = months.filter { $0.enumID == sMonth.enumID }.first!
-            let targetDays = targetMonth.days
-            let transactions = targetDays.flatMap({ $0.transactions })
-                                                            
-            let index = transactions.firstIndex(where: { $0.id == picture.relatedID })
-            if let index {
-                transactions[index].pictures?.removeAll(where: { $0.id == picture.id || $0.uuid == picture.uuid })
+            if let trans = justTransactions.filter({ $0.id == picture.relatedID }).first {
+                if let _ = trans.pictures?.firstIndex(where: { $0.id == picture.id }) {
+                    trans.pictures?.removeAll { $0.id == picture.id || $0.uuid == picture.uuid }
+                }
             }
+            
+            /// Update the searched transactions if they are in the search list and you update them like normal.
+            if let trans = searchedTransactions.filter({ $0.id == picture.relatedID }).first {
+                if let _ = trans.pictures?.firstIndex(where: { $0.id == picture.id }) {
+                    trans.pictures?.removeAll { $0.id == picture.id || $0.uuid == picture.uuid }
+                }
+            }
+            
+            /// Update the temp transactions if they are in the search list and you update them like normal. (I don't think this would be very common though).
+            if let trans = tempTransactions.filter({ $0.id == picture.relatedID }).first {
+                if let _ = trans.pictures?.firstIndex(where: { $0.id == picture.id }) {
+                    trans.pictures?.removeAll { $0.id == picture.id || $0.uuid == picture.uuid }
+                }
+            }
+            
         } else {
             AppState.shared.showAlert("There was a problem trying to delete the picture.")
         }

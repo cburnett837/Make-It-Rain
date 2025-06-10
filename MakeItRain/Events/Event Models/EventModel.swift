@@ -276,7 +276,7 @@ class EventModel: PhotoUploadCompletedDelegate {
             AppState.shared.downloadedData.append(.events)
             
             let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-            print("🔴It took \(currentElapsed) seconds to fetch the events")
+            print("⏰It took \(currentElapsed) seconds to fetch the events")
             
         case .failure (let error):
             switch error {
@@ -319,7 +319,7 @@ class EventModel: PhotoUploadCompletedDelegate {
             AppState.shared.downloadedData.append(.events)
             
             let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-            print("🔴It took \(currentElapsed) seconds to fetch the event invitations")
+            print("⏰It took \(currentElapsed) seconds to fetch the event invitations")
             
         case .failure (let error):
             switch error {

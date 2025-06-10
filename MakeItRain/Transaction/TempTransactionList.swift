@@ -113,7 +113,10 @@ struct TempTransactionList: View {
         .alert("Delete transaction?", isPresented: $showDeleteAlert, presenting: transDeleteID, actions: { id in
             Button("Delete", role: .destructive) {
                 calModel.tempTransactions.removeAll { $0.id == id }
-                let _ = DataManager.shared.delete(type: TempTransaction.self, predicate: .byId(.string(id)))
+                Task {
+                    let _ = await DataManager.shared.delete(type: TempTransaction.self, predicate: .byId(.string(id)))
+                }
+                
             }
             
             Button("Cancel", role: .cancel) {
@@ -227,7 +230,7 @@ struct TempTransactionList: View {
         trans.tempAction = .edit
         
         
-        guard let entity = await DataManager.shared.getOne(type: TempTransaction.self, predicate: .byId(.string(trans.id)), createIfNotFound: true) else { return }
+        guard let entity = try? await DataManager.shared.getOne(type: TempTransaction.self, predicate: .byId(.string(trans.id)), createIfNotFound: true) else { return }
         
         entity.id = trans.id
         entity.title = trans.title
@@ -274,13 +277,13 @@ struct TempTransactionList: View {
                     var payMethod: CBPaymentMethod?
                     
                     if let categoryID = entity.categoryID {
-                        if let perCategory = await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(categoryID)), createIfNotFound: false) {
+                        if let perCategory = try? await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(categoryID)), createIfNotFound: false) {
                             category = CBCategory(entity: perCategory)
                         }
                     }
                     
                     if let payMethodID = entity.payMethodID {
-                        if let perPayMethod = await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethodID)), createIfNotFound: false) {
+                        if let perPayMethod = try? await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethodID)), createIfNotFound: false) {
                             payMethod = CBPaymentMethod(entity: perPayMethod)
                         }
                     }

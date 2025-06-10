@@ -32,7 +32,7 @@ struct DayViewMac: View {
     @State private var showTransferSheet = false
     
     var eodColor: Color {
-        if day.eodTotal > Double(threshold) ?? 500 {
+        if day.eodTotal > threshold {
             return .gray
         } else if day.eodTotal < 0 {
             return .red
@@ -42,19 +42,14 @@ struct DayViewMac: View {
     }
     
     private var isToday: Bool {
-        AppState.shared.todayDay == (day.dateComponents?.day ?? 0) && AppState.shared.todayMonth == calModel.sMonth.actualNum && AppState.shared.todayYear == calModel.sMonth.year
+        AppState.shared.todayDay == (day.dateComponents?.day ?? 0)
+        && AppState.shared.todayMonth == calModel.sMonth.actualNum
+        && AppState.shared.todayYear == calModel.sMonth.year
     }
-    
-    
-    
     
     var filteredTrans: [CBTransaction] {
         calModel.filteredTrans(day: day)
     }
-    
-    
-    
-    
     
     var body: some View {
         Group {
@@ -83,8 +78,7 @@ struct DayViewMac: View {
                             }
                         }
                     }
-                    
-                                    
+                                                        
                     //Spacer()
                     HStack {
                         Spacer()
@@ -100,35 +94,7 @@ struct DayViewMac: View {
                 }
                 .contentShape(Rectangle())
                 .background(calModel.dragTarget == day ? .gray.opacity(0.5) : .clear)
-                
-                .contextMenu {
-                    VStack {
-                        Button("New Transaction") {
-                            transEditID = UUID().uuidString
-                        }
-                        
-                        Button("New Transfer / Payment") {
-                            showTransferSheet = true
-                        }
-                        
-                        Button {
-                            if let transactionToPaste = calModel.getCopyOfTransaction() {
-                                transactionToPaste.date = day.date!
-                                                                
-                                if !calModel.isUnifiedPayMethod {
-                                    transactionToPaste.payMethod = calModel.sPayMethod!
-                                }
-                                
-                                day.upsert(transactionToPaste)
-                                calModel.saveTransaction(id: transactionToPaste.id, day: day)
-                            } else {
-                                print("nothing to paste")
-                            }
-                        } label: {
-                            Text("Paste")
-                        }
-                    }
-                }
+                .contextMenu { contextMenu }
                                 
                 .onTapGesture(count: 2) {
                     transEditID = UUID().uuidString
@@ -146,7 +112,13 @@ struct DayViewMac: View {
                     TransactionEditView(trans: trans, transEditID: $transEditID, day: day, isTemp: false)
                         .frame(minWidth: 320)
                 }
-                
+//                .transactionEditSheetAndLogic(
+//                    calModel: calModel,
+//                    transEditID: $transEditID,
+//                    editTrans: $editTrans,
+//                    selectedDay: .constant(nil),
+//                    findTransactionWhere: .normalList
+//                )
                 .onChange(of: transEditID) { oldValue, newValue in
                     print(".onChange(of: transEditID)")
                     /// When `newValue` is false, save to the server. We have to use this because `.popover(isPresented:)` has no onDismiss option.
@@ -221,6 +193,35 @@ struct DayViewMac: View {
             }
         }
         .frame(height: cellHeight, alignment: .center)
+    }
+    
+    var contextMenu: some View {
+        VStack {
+            Button("New Transaction") {
+                transEditID = UUID().uuidString
+            }
+            
+            Button("New Transfer / Payment") {
+                showTransferSheet = true
+            }
+            
+            Button {
+                if let transactionToPaste = calModel.getCopyOfTransaction() {
+                    transactionToPaste.date = day.date!
+                                                    
+                    if !calModel.isUnifiedPayMethod {
+                        transactionToPaste.payMethod = calModel.sPayMethod!
+                    }
+                    
+                    day.upsert(transactionToPaste)
+                    calModel.saveTransaction(id: transactionToPaste.id, day: day)
+                } else {
+                    print("nothing to paste")
+                }
+            } label: {
+                Text("Paste")
+            }
+        }
     }
     
     

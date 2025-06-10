@@ -28,12 +28,13 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
     var enteredDate: Date
     var updatedDate: Date
     var isNil: Bool = false
+    var topTitles: [String] = []
     
     var isIncome: Bool { type == XrefModel.getItem(from: .categoryTypes, byEnumID: .income) }
     var isPayment: Bool { type == XrefModel.getItem(from: .categoryTypes, byEnumID: .payment) }
     var isExpense: Bool { type == XrefModel.getItem(from: .categoryTypes, byEnumID: .expense) }
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, hex_code, emoji, active, user_id, account_id, device_uuid, type_id, list_order, entered_by, updated_by, entered_date, updated_date, is_nil }
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, hex_code, emoji, active, user_id, account_id, device_uuid, type_id, list_order, entered_by, updated_by, entered_date, updated_date, is_nil, top_titles }
         
     init() {
         let uuid = UUID().uuidString
@@ -186,6 +187,9 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         } else {
             fatalError("Could not determine updatedDate date")
         }
+        
+        
+        self.topTitles = try container.decodeIfPresent(Array<String>.self, forKey: .top_titles) ?? []
     }
     
     
@@ -258,6 +262,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         self.active = category.active
         self.type = category.type
         self.listOrder = category.listOrder
+        self.topTitles = category.topTitles
     }
     
     

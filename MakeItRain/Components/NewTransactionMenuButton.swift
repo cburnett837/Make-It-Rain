@@ -9,8 +9,10 @@ import SwiftUI
 
 struct NewTransactionMenuButton: View {
     @Environment(CalendarModel.self) private var calModel
-
+    
+    #if os(iOS)
     let touchAndHoldPlusButtonTip = TouchAndHoldPlusButtonTip()
+    #endif
     @Binding var transEditID: String?
     @Binding var showTransferSheet: Bool
     @Binding var showPhotosPicker: Bool
@@ -32,14 +34,18 @@ struct NewTransactionMenuButton: View {
         } primaryAction: {
             transEditID = UUID().uuidString
         }
+        #if os(iOS)
         .popoverTip(touchAndHoldPlusButtonTip)
+        #endif
     }
     
     var newTransactionButton: some View {
         Button {
             transEditID = UUID().uuidString
+            #if os(iOS)
             TouchAndHoldPlusButtonTip.didSelectSmartReceiptOrTransferOption = true
             touchAndHoldPlusButtonTip.invalidate(reason: .actionPerformed)
+            #endif
         } label: {
             Label {
                 Text("New Transaction")
@@ -53,8 +59,10 @@ struct NewTransactionMenuButton: View {
     var newTransferButton: some View {
         Button {
             showTransferSheet = true
+            #if os(iOS)
             TouchAndHoldPlusButtonTip.didSelectSmartReceiptOrTransferOption = true
             touchAndHoldPlusButtonTip.invalidate(reason: .actionPerformed)
+            #endif
         } label: {
             Label {
                 Text("New Transfer / Payment")
@@ -72,8 +80,10 @@ struct NewTransactionMenuButton: View {
             //calModel.pictureTransactionID = newID
             calModel.isUploadingSmartTransactionPicture = true
             showCamera = true
+            #if os(iOS)
             TouchAndHoldPlusButtonTip.didSelectSmartReceiptOrTransferOption = true
             touchAndHoldPlusButtonTip.invalidate(reason: .actionPerformed)
+            #endif
         } label: {
             Label {
                 Text("Take Photo")
@@ -91,8 +101,10 @@ struct NewTransactionMenuButton: View {
             //calModel.pictureTransactionID = newID
             calModel.isUploadingSmartTransactionPicture = true
             showPhotosPicker = true
+            #if os(iOS)
             TouchAndHoldPlusButtonTip.didSelectSmartReceiptOrTransferOption = true
             touchAndHoldPlusButtonTip.invalidate(reason: .actionPerformed)
+            #endif
         } label: {
             Label {
                 Text("Photo Library")

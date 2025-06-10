@@ -38,6 +38,24 @@ struct PayMethodsTable: View {
             //.sorted { $0.title.lowercased() < $1.title.lowercased() }
     }
     
+    var debitMethods: [CBPaymentMethod] {
+        payModel.paymentMethods
+            .filter { $0.accountType == .checking || $0.accountType == .unifiedChecking }
+            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
+    }
+    
+    var creditMethods: [CBPaymentMethod] {
+        payModel.paymentMethods
+            .filter { $0.accountType == .credit || $0.accountType == .unifiedCredit }
+            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
+    }
+    
+    var otherMethods: [CBPaymentMethod] {
+        payModel.paymentMethods
+            .filter { $0.accountType != .checking && $0.accountType != .credit && !$0.isUnified }
+            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
+    }
+    
     var body: some View {
         @Bindable var payModel = payModel
         
@@ -244,17 +262,38 @@ struct PayMethodsTable: View {
             .width(min: 20, ideal: 30, max: 50)
             .customizationID("defaultEditing")            
         } rows: {
-            Section("Combined Accounts") {
-                ForEach(payModel.paymentMethods.filter { $0.isUnified }) { meth in
+//            Section("Combined Accounts") {
+//                ForEach(payModel.paymentMethods.filter { $0.isUnified }) { meth in
+//                    TableRow(meth)
+//                }
+//            }
+//            
+//            Section("My Accounts") {
+//                ForEach(filteredPayMethods) { meth in
+//                    TableRow(meth)
+//                }
+//            }
+            
+            
+            Section("Debit") {
+                ForEach(debitMethods) { meth in
                     TableRow(meth)
                 }
             }
             
-            Section("My Accounts") {
-                ForEach(filteredPayMethods) { meth in
+            Section("Credit") {
+                ForEach(creditMethods) { meth in
                     TableRow(meth)
                 }
             }
+            
+            Section("Other") {
+                ForEach(otherMethods) { meth in
+                    TableRow(meth)
+                }
+            }
+            
+            
         }
         .clipped()
 
@@ -320,23 +359,7 @@ struct PayMethodsTable: View {
     }
     
     
-    var debitMethods: [CBPaymentMethod] {
-        payModel.paymentMethods
-            .filter { $0.accountType == .checking || $0.accountType == .unifiedChecking }
-            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
-    }
     
-    var creditMethods: [CBPaymentMethod] {
-        payModel.paymentMethods
-            .filter { $0.accountType == .credit || $0.accountType == .unifiedCredit }
-            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
-    }
-    
-    var otherMethods: [CBPaymentMethod] {
-        payModel.paymentMethods
-            .filter { $0.accountType != .checking && $0.accountType != .credit && !$0.isUnified }
-            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
-    }
     
     var phoneList: some View {
         List(selection: $paymentMethodEditID) {
@@ -454,11 +477,11 @@ struct PayMethodsTable: View {
                     if let balance = plaidModel.balances.filter({ $0.payMethodID == meth.id }).first {
                         HStack {
                             //Text("Balance as of \(balance.lastTimeICheckedPlaidSyncedDate?.string(to: .monthDayYearHrMinAmPm) ?? "N/A"):")
-                            Text("Balance as of \(balance.lastTimePlaidSyncedWithInstitutionDate?.string(to: .monthDayYearHrMinAmPm) ?? "N/A"):")
+                            Text("Balance as of \(balance.enteredDate?.string(to: .monthDayYearHrMinAmPm) ?? "N/A"):")
                             
                             Spacer()
                             
-                            Text(balance.amountString)
+                            Text(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
                         }
                         .foregroundStyle(.gray)
                         .font(.caption)

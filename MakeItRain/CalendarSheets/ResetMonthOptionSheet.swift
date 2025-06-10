@@ -216,9 +216,7 @@ struct ResetMonthOptionSheet: View {
         #else
         .tint(.red)
         .buttonStyle(.borderedProminent)
-        .sensoryFeedback(.warning, trigger: showResetMonthAlert) { oldValue, newValue in
-            !oldValue && newValue
-        }
+        .sensoryFeedback(.warning, trigger: showResetMonthAlert) { !$0 && $1 }        
         #endif
     
     }

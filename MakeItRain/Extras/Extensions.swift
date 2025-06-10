@@ -610,48 +610,48 @@ extension Color {
     
     
     
-    static func getVariantTitleColor(for scheme: ColorScheme, color: Color) -> Color {
-        struct ColorModel: Identifiable {
-            var id = UUID()
-            var color: Color
-            var colorHex: String {
-                self.color.toHex() ?? "FFFFFF"
-            }
-            var lightVariant: String?
-            var darkVariant: String?
-        }
-        
-        let colors: Array<ColorModel> = [
-            ColorModel(color: .pink, lightVariant: "880800", darkVariant: "ff6a88"),
-            ColorModel(color: .red, lightVariant: "880800", darkVariant: "ff8f88"),
-            ColorModel(color: .orange, lightVariant: "935a00", darkVariant: "ffa924"),
-            ColorModel(color: .yellow, lightVariant: "806a00", darkVariant: "ffd60a"),
-            ColorModel(color: .green, lightVariant: "19722f", darkVariant: "60dc7f"),
-            ColorModel(color: .mint, lightVariant: "127270", darkVariant: "85ebe8"),
-            ColorModel(color: .teal, lightVariant: "157182", darkVariant: "6cd5e7"),
-            ColorModel(color: .cyan, lightVariant: "00719f", darkVariant: "97e1ff"),
-            ColorModel(color: .blue, lightVariant: "004080", darkVariant: "80bfff"),
-            ColorModel(color: .indigo, lightVariant: "1d1bb1", darkVariant: "908fee"),
-            ColorModel(color: .purple, lightVariant: "7d0eb4", darkVariant: "dba1f8"),
-            ColorModel(color: .brown, lightVariant: "665238", darkVariant: "cfbda7"),
-            
-            ColorModel(color: .white, lightVariant: "FFFFFF", darkVariant: "FFFFFF"),
-            ColorModel(color: .black, lightVariant: "000000", darkVariant: "000000")
-        ]
-        
-        
-        if color == .primary {
-            return scheme == .dark ? .white : .black
-        } else {
-            let theColor = colors.filter { $0.color == color }.first!
-            if scheme == .dark {
-                return Color.fromHex(theColor.darkVariant)!
-            } else {
-                return Color.fromHex(theColor.lightVariant)!
-            }
-        }
-    }
-    
+//    static func getVariantTitleColor(for scheme: ColorScheme, color: Color) -> Color {
+//        struct ColorModel: Identifiable {
+//            var id = UUID()
+//            var color: Color
+//            var colorHex: String {
+//                self.color.toHex() ?? "FFFFFF"
+//            }
+//            var lightVariant: String?
+//            var darkVariant: String?
+//        }
+//        
+//        let colors: Array<ColorModel> = [
+//            ColorModel(color: .pink, lightVariant: "880800", darkVariant: "ff6a88"),
+//            ColorModel(color: .red, lightVariant: "880800", darkVariant: "ff8f88"),
+//            ColorModel(color: .orange, lightVariant: "935a00", darkVariant: "ffa924"),
+//            ColorModel(color: .yellow, lightVariant: "806a00", darkVariant: "ffd60a"),
+//            ColorModel(color: .green, lightVariant: "19722f", darkVariant: "60dc7f"),
+//            ColorModel(color: .mint, lightVariant: "127270", darkVariant: "85ebe8"),
+//            ColorModel(color: .teal, lightVariant: "157182", darkVariant: "6cd5e7"),
+//            ColorModel(color: .cyan, lightVariant: "00719f", darkVariant: "97e1ff"),
+//            ColorModel(color: .blue, lightVariant: "004080", darkVariant: "80bfff"),
+//            ColorModel(color: .indigo, lightVariant: "1d1bb1", darkVariant: "908fee"),
+//            ColorModel(color: .purple, lightVariant: "7d0eb4", darkVariant: "dba1f8"),
+//            ColorModel(color: .brown, lightVariant: "665238", darkVariant: "cfbda7"),
+//            
+//            ColorModel(color: .white, lightVariant: "FFFFFF", darkVariant: "FFFFFF"),
+//            ColorModel(color: .black, lightVariant: "000000", darkVariant: "000000")
+//        ]
+//        
+//        
+//        if color == .primary {
+//            return scheme == .dark ? .white : .black
+//        } else {
+//            let theColor = colors.filter { $0.color == color }.first!
+//            if scheme == .dark {
+//                return Color.fromHex(theColor.darkVariant)!
+//            } else {
+//                return Color.fromHex(theColor.lightVariant)!
+//            }
+//        }
+//    }
+//    
     
     func lighter(by percentage: CGFloat = 30.0) -> Color {
         return self.adjust(by: abs(percentage))
@@ -665,15 +665,41 @@ extension Color {
     
     func adjust(by percentage: CGFloat = 30.0) -> Color {
         var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 1.0
-        #if canImport(UIKit)
+        #if os(iOS)
         UIColor(self).getRed(&red, green: &green, blue: &blue, alpha: &alpha)
-        #elseif canImport(AppKit)
+        #else
         NSColor(self).getRed(&red, green: &green, blue: &blue, alpha: &alpha)
         #endif
         return Color(red: min(red + percentage / 100, 1.0), green: min(green + percentage / 100, 1.0), blue: min(blue + percentage / 100, 1.0), opacity: alpha)
     }
     
-    
+//    static var lavendar: Color {
+//        return Color(uiColor: UIColor(red: 0.60, green: 0.60, blue: 1.00, alpha: 1.00))
+//    }
+//    
+//    static var lightLavendar: Color {
+//        return Color(uiColor: UIColor(red: 0.80, green: 0.80, blue: 1.00, alpha: 1.00))
+//    }    
+
+//    var name: String {
+//        switch self {
+//        case .pink:   return "pink"
+//        case .red:    return "red"
+//        case .orange: return "orange"
+//        case .yellow: return "yellow"
+//        case .green: return "green"
+//        case .mint: return "mint"
+//        case .teal: return "teal"
+//        case .cyan: return "cyan"
+//        case .blue: return "blue"
+//        case .lavendar: return "lavendar"
+//        case .lightLavendar: return "lightLavendar"
+//        case .purple: return "purple"
+//        case .brown: return "brown"
+//        default: return "white"
+//        }
+//    }
+//    
     
     //    static func fromName(_ name: String) -> Color {
     //        let colors: Array<Color> = [.pink, .red, .orange, .yellow, .green, .mint, .cyan, .blue, .indigo, .purple, .brown, .teal]

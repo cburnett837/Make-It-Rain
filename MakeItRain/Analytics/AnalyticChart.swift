@@ -377,6 +377,7 @@ struct MonthlyAnalyticChart<Content: View>: View {
             }
             //}
         }
+        .sensoryFeedback(.selection, trigger: selectedMonth?.id) { $0 != nil && $1 != nil }
         .frame(minHeight: 150)
         .if(chartVisibleYearCount != .yearToDate) {
             $0.chartScrollableAxes(.horizontal)

@@ -149,18 +149,49 @@ class AuthState {
     }
     
     
-    func loginViaKeychain(funcModel: FuncModel) async {
+//    func loginViaKeychain(funcModel: FuncModel) async {
+//        print("-- \(#function)")
+//        /// This will check the keychain for credentials. If it finds them, it will attempt to authenticate with the server. If not, it will take the user to the login page.
+//        /// If the user successfully authenticates with the server, this will also look if the user has payment methods, and set AppState accordingly.
+//        if let apiKey = await self.getApiKeyFromKeychain() {
+//            self.loginTask = Task {
+//                /// Talk to server with the users API key.
+//                await self.attemptLogin(using: .apiKey, with: LoginModel(apiKey: apiKey))
+//                
+//                /// This will get set via `attemptLogin()`
+//                if self.isLoggedIn {
+//                    /// When the user logs in, if they have no payment methods, show the payment method required sheet.
+//                    if AppState.shared.methsExist {
+//                        funcModel.downloadInitial()
+//                    } else {
+//                        LoadingManager.shared.showInitiallyLoadingSpinner = false
+//                        LoadingManager.shared.showLoadingBar = false
+//                        AppState.shared.showPaymentMethodNeededSheet = true
+//                    }
+//                    //await NotificationManager.shared.registerForPushNotifications()
+//                }
+//            }
+//        } else {
+//            self.isThinking = false
+//            AppState.shared.appShouldShowSplashScreen = false
+//        }
+//    }
+    
+    
+    
+    func loginViaKeychain2() async -> Bool {
         print("-- \(#function)")
         /// This will check the keychain for credentials. If it finds them, it will attempt to authenticate with the server. If not, it will take the user to the login page.
         /// If the user successfully authenticates with the server, this will also look if the user has payment methods, and set AppState accordingly.
         if let apiKey = await self.getApiKeyFromKeychain() {
             self.loginTask = Task {
+                /// Talk to server with the users API key.
                 await self.attemptLogin(using: .apiKey, with: LoginModel(apiKey: apiKey))
+                
+                /// This will get set via `attemptLogin()`
                 if self.isLoggedIn {
                     /// When the user logs in, if they have no payment methods, show the payment method required sheet.
-                    if AppState.shared.methsExist {
-                        funcModel.downloadInitial()
-                    } else {
+                    if !AppState.shared.methsExist {
                         LoadingManager.shared.showInitiallyLoadingSpinner = false
                         LoadingManager.shared.showLoadingBar = false
                         AppState.shared.showPaymentMethodNeededSheet = true
@@ -168,11 +199,19 @@ class AuthState {
                     //await NotificationManager.shared.registerForPushNotifications()
                 }
             }
+            
+            /// This is only here to keep this function from returning until the login task is complete.
+            /// I need this to wait because the next step in the calling function, (which is `.task{}` in ``MakeItRainApp`` `splashScreen`), is to call `funcModel.downloadInitial()`.
+            /// But only if the login succeeds.
+            _ = await self.loginTask?.result
+            return self.isLoggedIn
         } else {
             self.isThinking = false
             AppState.shared.appShouldShowSplashScreen = false
+            return false
         }
     }
+    
     
     
 //    func verifyHS256JWT(jwt: String) -> Bool {

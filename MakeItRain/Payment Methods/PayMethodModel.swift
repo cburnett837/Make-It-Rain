@@ -65,7 +65,7 @@ class PayMethodModel {
     }
     
     func updateCache(for payMethod: CBPaymentMethod) async -> Result<Bool, CoreDataError> {
-        guard let entity = await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)), createIfNotFound: false) else { return .failure(.reason("notFound")) }
+        guard let entity = try? await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)), createIfNotFound: false) else { return .failure(.reason("notFound")) }
         
         entity.id = payMethod.id
         entity.title = payMethod.title
@@ -118,7 +118,7 @@ class PayMethodModel {
                         }
                         
                         /// Find the payment method in cache.
-                        let entity = await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)), createIfNotFound: true)
+                        let entity = try? await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)), createIfNotFound: true)
                         
                         /// Update the cache and add to model (if appolicable).
                         /// This should always be true because the line above creates the entity if it's not found.
@@ -147,6 +147,8 @@ class PayMethodModel {
                                 /// Add the payment method to the list (like when the payment method was added on another device).
                                 paymentMethods.append(payMethod)
                             }
+                        } else {
+                            fatalError("pay meth entity")
                         }
                     }
                     
@@ -170,7 +172,7 @@ class PayMethodModel {
             AppState.shared.downloadedData.append(.paymentMethods)
             
             let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-            print("🔴It took \(currentElapsed) seconds to fetch the payment methods")
+            print("⏰It took \(currentElapsed) seconds to fetch the payment methods")
             
         case .failure (let error):
             switch error {
@@ -191,7 +193,7 @@ class PayMethodModel {
         isThinking = true
         //LoadingManager.shared.startDelayedSpinner()
                 
-        guard let entity = await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)), createIfNotFound: true) else { return false }
+        guard let entity = try? await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)), createIfNotFound: true) else { return false }
         entity.id = payMethod.id
         entity.title = payMethod.title
         entity.dueDate = Int64(payMethod.dueDate ?? 0)
@@ -229,7 +231,7 @@ class PayMethodModel {
             LogManager.networkingSuccessful()
             /// Get the new ID from the server after adding a new activity.
             if payMethod.action != .delete {
-                guard let entity = await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)), createIfNotFound: true) else { return false }
+                guard let entity = try? await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)), createIfNotFound: true) else { return false }
                 
                 if payMethod.action == .add {
                     
@@ -332,7 +334,7 @@ class PayMethodModel {
         })
         
         for method in paymentMethods {
-            if let entity = await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(method.id)), createIfNotFound: true) {
+            if let entity = try? await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(method.id)), createIfNotFound: true) {
                 entity.isViewingDefault = method.isViewingDefault
             }
         }
@@ -372,7 +374,7 @@ class PayMethodModel {
         })
         
         for method in paymentMethods {
-            if let entity = await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(method.id)), createIfNotFound: true) {
+            if let entity = try? await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(method.id)), createIfNotFound: true) {
                 entity.isEditingDefault = method.isEditingDefault
             }
         }

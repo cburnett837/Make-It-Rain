@@ -62,7 +62,11 @@ struct ChartCircleDot: View {
     var percentage: Double { (abs(expenses) + adjustmentAmount2) / abs(adjustedBudget * adjustmentAmount) }
 
     var colors: [Color] {
+        #if os(iOS)
         isOverBudget ? [color.darker(by: 15.0), color.lighter(by: 15.0)] : [color]
+        #else
+        [color]
+        #endif
     }
     
     /// Make the gradient calculate like it's only 1 loop.

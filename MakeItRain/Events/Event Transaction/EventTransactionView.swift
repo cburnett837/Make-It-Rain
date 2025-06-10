@@ -317,7 +317,7 @@ struct EventTransactionView: View {
     
     var details: some View {
         StandardContainer {
-            StandardTitleTextField(symbolWidth: symbolWidth, focusedField: _focusedField, focusID: 0, showSymbol: true, parentType: .eventTransaction, obj: trans)
+            StandardTitleTextField(symbolWidth: symbolWidth, focusedField: _focusedField, focusID: 0, showSymbol: true, parentType: .eventTransaction, showTitleSuggestions: .constant(false), obj: trans)
 
             
             if trans.isNotIdea {

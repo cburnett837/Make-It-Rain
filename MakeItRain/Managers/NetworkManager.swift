@@ -19,7 +19,7 @@ class NetworkManager {
     init(timeout: TimeInterval = 60) {
         //let earl = String(format: "http://www.codyburnett.com:8677/")
         //let earl = String(format: "http://10.0.0.87:8677/")
-        let earl = String(format: "https://\(Keys.baseURL):8681/budget_app/")
+        let earl = String(format: "https://\(Keys.baseURL):8681/budget_app")
         //let earl = String(format: "http://\(Keys.baseURL):8677/")
         let URL = URL(string: earl)
         var request = URLRequest(url: URL!)
@@ -75,14 +75,14 @@ class NetworkManager {
                 
                 if retainTime { AppState.shared.lastNetworkTime = .now }
                 
-                if httpResponse?.statusCode == 403 {
-                    await AuthState.shared.serverAccessRevoked()
-                    return .failure(.incorrectCredentials)
-                }
-                
                 if httpResponse?.statusCode == 401 {
                     await AuthState.shared.serverAccessRevoked()
                     return .failure(.accessRevoked)
+                }
+                
+                if httpResponse?.statusCode == 403 {
+                    await AuthState.shared.serverAccessRevoked()
+                    return .failure(.incorrectCredentials)
                 }
                 
                 LogManager.log("should have a response from the server now", session: sesh)
@@ -160,19 +160,18 @@ class NetworkManager {
             if let session {
                 let (data, response): (Data, URLResponse) = try await session.data(for: request!)
                 let httpResponse = response as? HTTPURLResponse
-                
-                if retainTime { AppState.shared.lastNetworkTime = .now }
-                
                 //print(httpResponse?.statusCode)
                 
-                if httpResponse?.statusCode == 403 {
-                    await AuthState.shared.serverAccessRevoked()
-                    return .failure(.incorrectCredentials)
-                }
+                if retainTime { AppState.shared.lastNetworkTime = .now }
                 
                 if httpResponse?.statusCode == 401 {
                     await AuthState.shared.serverAccessRevoked()
                     return .failure(.accessRevoked)
+                }
+                
+                if httpResponse?.statusCode == 403 {
+                    await AuthState.shared.serverAccessRevoked()
+                    return .failure(.incorrectCredentials)
                 }
                                                                 
                 LogManager.log("should have a response from the server now", session: sesh)
@@ -224,7 +223,7 @@ class NetworkManager {
     
     func login(using loginType: LoginType, with loginModel: LoginModel, ticker: Int = 3) async -> Result<CBLogin?, AppError> {
         do {
-            let requestModel = RequestModel(requestType: "budget_app_login", model: loginModel)
+            let requestModel = RequestModel(requestType: "login", model: loginModel)
             
             if loginType == .apiKey {
                 request?.setValue(loginModel.apiKey, forHTTPHeaderField: "Api-Key")
@@ -238,22 +237,23 @@ class NetworkManager {
             if let session {
                 let (data, response): (Data, URLResponse) = try await session.data(for: request!)
                 let httpResponse = response as? HTTPURLResponse
-                
-                if httpResponse?.statusCode == 403 {
-                    await AuthState.shared.serverAccessRevoked()
-                    return .failure(.incorrectCredentials)
-                }
+                //print(httpResponse?.statusCode)
                 
                 if httpResponse?.statusCode == 401 {
                     await AuthState.shared.serverAccessRevoked()
                     return .failure(.accessRevoked)
+                }
+                
+                if httpResponse?.statusCode == 403 {
+                    await AuthState.shared.serverAccessRevoked()
+                    return .failure(.incorrectCredentials)
                 }
                                                                                                 
                 let serverText = String(data: data, encoding: .utf8) ?? ""
                 if AppState.shared.debugPrint { print(serverText) }
                 let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response
                 
-                if firstLine == "None" && requestModel.requestType == "budget_app_login" {
+                if firstLine == "None" && requestModel.requestType == "login" {
                     return .failure(.incorrectCredentials)
                 }
                                 
@@ -303,26 +303,13 @@ class NetworkManager {
             //let earl = String(format: "http://www.codyburnett.com:8677/")
             //let earl = String(format: "http://10.0.0.87:8677/")
             let earl = String(format: "https://\(Keys.baseURL):8678/") ///3000 internal
-            
-            let URL = URL(string: earl)
-            var subRequest = URLRequest(url: URL!)
+            var subRequest = URLRequest(url: URL(string: earl)!)
             
             subRequest.httpMethod = "POST"
             subRequest.setValue("Application/json", forHTTPHeaderField: "Content-Type")
             subRequest.setValue(Keys.authPhrase, forHTTPHeaderField: "Auth-Phrase")
             subRequest.setValue(Keys.authID, forHTTPHeaderField: "Auth-ID")
             subRequest.setValue(AppState.shared.apiKey, forHTTPHeaderField: "Api-Key")
-            //subRequest.setValue(String(AppState.shared.user!.accountID), forHTTPHeaderField: "Account-ID")
-            //subRequest.setValue(String(AppState.shared.user!.id), forHTTPHeaderField: "User-ID")
-            //subRequest.setValue(String(AppState.shared.deviceUUID!), forHTTPHeaderField: "Device-UUID")
-            #if os(macOS)
-            //subRequest.setValue(String(ProcessInfo.processInfo.operatingSystemVersionString), forHTTPHeaderField: "Device-OS")
-            //subRequest.setValue(String(ProcessInfo.processInfo.hostName), forHTTPHeaderField: "Device-Name")
-            #else
-            //await subRequest.setValue(String(UIDevice.current.systemVersion), forHTTPHeaderField: "Device-OS")
-            //await subRequest.setValue(String(UIDevice.current.name), forHTTPHeaderField: "Device-Name")
-            #endif
-            
             subRequest.timeoutInterval = 130
             subRequest.setValue(Keys.userAgent, forHTTPHeaderField: "User-Agent")
 
@@ -339,8 +326,8 @@ class NetworkManager {
             
             if let session {
                 let (data, response): (Data, URLResponse) = try await session.data(for: request!)
-                
                 let httpResponse = response as? HTTPURLResponse
+                //print(httpResponse?.statusCode)
                 
                 LogManager.log("should have a response from the server now", session: sesh)
                 
@@ -352,24 +339,23 @@ class NetworkManager {
                 
                 
                 if httpResponse?.statusCode == 403 {
-                    print(httpResponse?.statusCode)
                     return .failure(.incorrectCredentials)
-                } else {
-                    print(httpResponse?.statusCode)
-                    #if targetEnvironment(simulator)
-                    let decodedData = try! JSONDecoder().decode(U?.self, from: data)
-                    #else
-                    let decodedData = try! JSONDecoder().decode(U?.self, from: data)
-                    #endif
-                    LogManager.log("data has been decoded", session: sesh)
-                    guard let decodedData else {
-                        LogManager.log("something went wrong with the decoded data", session: sesh)
-                        return .failure(.serverError(firstLine))
-                    }
-                    
-                    LogManager.log("networking successful", session: sesh)
-                    return .success(decodedData)
                 }
+                            
+                #if targetEnvironment(simulator)
+                let decodedData = try! JSONDecoder().decode(U?.self, from: data)
+                #else
+                let decodedData = try! JSONDecoder().decode(U?.self, from: data)
+                #endif
+                LogManager.log("data has been decoded", session: sesh)
+                guard let decodedData else {
+                    LogManager.log("something went wrong with the decoded data", session: sesh)
+                    return .failure(.serverError(firstLine))
+                }
+                
+                LogManager.log("networking successful", session: sesh)
+                return .success(decodedData)
+            
             } else {
                 LogManager.error("session error", session: sesh)
                 return .failure(.sessionError)
@@ -393,6 +379,87 @@ class NetworkManager {
     }
     
     
+    func downloadPicture(requestModel: RequestModel<PhotoRequestModel>, ticker: Int = 3, sessionID: String = "", retainTime: Bool = true) async -> Result<Data?, AppError> {
+        request?.setValue(AppState.shared.apiKey, forHTTPHeaderField: "Api-Key")
+                
+        var sesh: String = ""
+        if sessionID.isEmpty {
+            sesh = UUID().uuidString
+        } else {
+            sesh = sessionID
+        }
+               
+        do {
+            LogManager.log("starting", session: sesh)
+            requestModel.sessionID = sessionID
+            let jsonData = try? JSONEncoder().encode(requestModel)
+            LogManager.log("jsonData: \(String(data: jsonData!, encoding: .utf8)!)", session: sesh)
+            if AppState.shared.debugPrint { print("jsonData: \(String(data: jsonData!, encoding: .utf8)!)") }
+            
+            
+//            let earl = String(format: "https://\(Keys.baseURL):8681/get_picture")
+//            //let earl = String(format: "http://\(Keys.baseURL):8677/")
+//            let URL = URL(string: earl)
+//            request!.url = URL
+            
+            request?.httpBody = jsonData
+            
+            if let session {
+                let (data, response): (Data, URLResponse) = try await session.data(for: request!)
+                let httpResponse = response as? HTTPURLResponse
+                
+                if retainTime { AppState.shared.lastNetworkTime = .now }
+                
+                //print(httpResponse?.statusCode)
+                
+                if httpResponse?.statusCode == 400 {
+                    let serverText = String(data: data, encoding: .utf8) ?? ""
+                    
+                    if AppState.shared.debugPrint { print(serverText) }
+                    return .failure(.serverError("Server error"))
+                }
+                
+                if httpResponse?.statusCode == 403 {
+                    await AuthState.shared.serverAccessRevoked()
+                    return .failure(.incorrectCredentials)
+                }
+                
+                if httpResponse?.statusCode == 401 {
+                    await AuthState.shared.serverAccessRevoked()
+                    return .failure(.accessRevoked)
+                }
+                                                                
+                LogManager.log("should have a response from the server now", session: sesh)
+                
+                let serverText = String(data: data, encoding: .utf8) ?? ""
+                
+                if AppState.shared.debugPrint { print(serverText) }
+                
+                LogManager.log("networking successful", session: sesh)
+                //return .success(UIImage(data: data))
+                return .success(data)
+                                                
+            } else {
+                LogManager.error("session error", session: sesh)
+                return .failure(.sessionError)
+            }
+                        
+        } catch {
+            LogManager.error("networking exception \(error.localizedDescription)", session: sesh)
+            if Task.isCancelled {
+                LogManager.error("task cancelled", session: sesh)
+                return .failure(.taskCancelled)
+            }
+            if ticker == 0 {
+                LogManager.error("connection failure", session: sesh)
+                return .failure(.connectionError)
+            } else {
+                try? await Task.sleep(for: .milliseconds(1000))
+                LogManager.error("retrying request", session: sesh)
+                return await downloadPicture(requestModel: requestModel, ticker: ticker - 1, sessionID: sesh)
+            }
+        }
+    }
     
     
     
@@ -416,14 +483,14 @@ class NetworkManager {
             let metadata: [String: String] = [
                 "application": application,
                 "type": "photo",
-                "recordID": pictureParent?.id ?? "",
-                "relatedTypeID": String(pictureParent?.type.id ?? 0),
+                "record_id": pictureParent?.id ?? "",
+                "related_type_id": String(pictureParent?.type.id ?? 0),
                 "uuid": uuid,
-                "userID": String(AppState.shared.user?.id ?? 0),
-                "accountID": String(AppState.shared.user?.accountID ?? 0),
-                "deviceID": String(AppState.shared.deviceUUID ?? ""),
-                "isSmartTransaction": isSmartTransaction.description,
-                "smartTransactionDate": smartTransactionDate?.string(to: .serverDate) ?? ""
+                "user_id": String(AppState.shared.user?.id ?? 0),
+                "account_id": String(AppState.shared.user?.accountID ?? 0),
+                "device_uuid": String(AppState.shared.deviceUUID ?? ""),
+                "is_smart_transaction": isSmartTransaction.description,
+                "smart_transaction_date": smartTransactionDate?.string(to: .serverDate) ?? ""
             ]
             
             guard
@@ -433,22 +500,24 @@ class NetworkManager {
             
             var body = Data()
             let boundary = "Boundary-\(UUID().uuidString)"
-            request?.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-            request?.setValue("yes", forHTTPHeaderField: "This-Is-A-Photo-For-Budget-App")
-                                                            
-            body.append("--\(boundary)\r\n".data(using: .utf8)!)
-            body.append("Content-Disposition: form-data; name=\"json\"\r\n".data(using: .utf8)!)
-            body.append("Content-Type: application/json\r\n\r\n".data(using: .utf8)!)
-            body.append(jsonString.data(using: .utf8)!)
-            body.append("\r\n".data(using: .utf8)!)
+            let new = "\r\n"
             
-            body.append("--\(boundary)\r\n".data(using: .utf8)!)
-            body.append("Content-Disposition: form-data; name=\"image\"; filename=\"hey\"\r\n".data(using: .utf8)!)
-            body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
+            request?.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+            request?.setValue("yes", forHTTPHeaderField: "This-Is-A-Photo")
+                                                                                    
+            body.append("--\(boundary)\(new)".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"json\"\(new)".data(using: .utf8)!)
+            body.append("Content-Type: application/json\(new)\(new)".data(using: .utf8)!)
+            body.append(jsonString.data(using: .utf8)!)
+            body.append("\(new)".data(using: .utf8)!)
+            
+            body.append("--\(boundary)\(new)".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"image\"; filename=\"hey\"\(new)".data(using: .utf8)!)
+            body.append("Content-Type: image/jpeg\(new)\(new)".data(using: .utf8)!)
             body.append(imageData)
-            body.append("\r\n".data(using: .utf8)!)
+            body.append("\(new)".data(using: .utf8)!)
                         
-            body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+            body.append("--\(boundary)--\(new)".data(using: .utf8)!)
               
             let (data, response) = try await URLSession.shared.upload(for: request!, from: body)
             let httpResponse = response as? HTTPURLResponse

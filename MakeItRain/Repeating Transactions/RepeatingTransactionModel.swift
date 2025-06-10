@@ -109,7 +109,7 @@ class RepeatingTransactionModel {
             AppState.shared.downloadedData.append(.repeatingTransactions)
             
             let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-            print("🔴It took \(currentElapsed) seconds to fetch the repeating transactions")
+            print("⏰It took \(currentElapsed) seconds to fetch the repeating transactions")
             
         case .failure (let error):
             switch error {

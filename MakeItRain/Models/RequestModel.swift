@@ -33,6 +33,10 @@ class RequestModel<T: Encodable>: Encodable {
 }
 
 
+
+
+
+
 //class RequestModel2<T: Encodable>: Encodable {
 //    var sessionID = ""
 //    var requestType = ""

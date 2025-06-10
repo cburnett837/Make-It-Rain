@@ -59,7 +59,7 @@ struct NavSidebarPad: View {
                 
                 VStack(spacing: 0) {
                     if AppState.shared.methsExist {
-                        NavLinkPad(destination: .repeatingTransactions, title: "Reoccuring Transactions", image: "repeat", linkWidth: linkWidth, linkHeight: linkHeight)
+                        NavLinkPad(destination: .categories, title: "Categories", image: "books.vertical", linkWidth: linkWidth, linkHeight: linkHeight)
                             .listRowSeparator(.hidden)
                     }
                     
@@ -67,23 +67,29 @@ struct NavSidebarPad: View {
                         .listRowSeparator(.hidden)
                     
                     if AppState.shared.methsExist {
-                        NavLinkPad(destination: .categories, title: "Categories", image: "books.vertical", linkWidth: linkWidth, linkHeight: linkHeight)
-                            .listRowSeparator(.hidden)
-                        
-                        NavLinkPad(destination: .keywords, title: "Keywords", image: "textformat.abc.dottedunderline", linkWidth: linkWidth, linkHeight: linkHeight)
-                            .listRowSeparator(.hidden)
-                        
-                        NavLinkPad(destination: .events, title: "Events", image: "beach.umbrella", linkWidth: linkWidth, linkHeight: linkHeight)
-                            .listRowSeparator(.hidden)
-                        
-                        if AppState.shared.user?.id == 1 {
-                            NavLinkPad(destination: .debug, title: "Debug", image: "ladybug", linkWidth: linkWidth, linkHeight: linkHeight)
+                        Section("") {
+                            NavLinkPad(destination: .events, title: "Events", image: "beach.umbrella", linkWidth: linkWidth, linkHeight: linkHeight)
                                 .listRowSeparator(.hidden)
-                                .badge(funcModel.loadTimes.count)
+                            
+                            NavLinkPad(destination: .repeatingTransactions, title: "Reoccuring Transactions", image: "repeat", linkWidth: linkWidth, linkHeight: linkHeight)
+                                .listRowSeparator(.hidden)
+                            
+                            NavLinkPad(destination: .keywords, title: "Keywords", image: "textformat.abc.dottedunderline", linkWidth: linkWidth, linkHeight: linkHeight)
+                                .listRowSeparator(.hidden)
                         }
-                        
-                        NavLinkPad(destination: .plaid, title: "Plaid", image: "list.bullet", linkWidth: linkWidth, linkHeight: linkHeight)
-                            .listRowSeparator(.hidden)
+                                                
+                        Section("") {
+                            NavLinkPad(destination: .plaid, title: "Plaid", image: "list.bullet", linkWidth: linkWidth, linkHeight: linkHeight)
+                                .listRowSeparator(.hidden)
+                        }
+                                                                        
+                        if AppState.shared.user?.id == 1 {
+                            Section("") {
+                                NavLinkPad(destination: .debug, title: "Debug", image: "ladybug", linkWidth: linkWidth, linkHeight: linkHeight)
+                                    .listRowSeparator(.hidden)
+                                    .badge(funcModel.loadTimes.count)
+                            }
+                        }
                     }
                 }
             }

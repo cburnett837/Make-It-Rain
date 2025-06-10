@@ -189,10 +189,14 @@ struct BudgetTable: View {
                 Text("Dif")
                 Text("Percent")
             }
+            Divider()
             ForEach(calModel.sMonth.startingAmounts) { star in
                 GridRow {
                     NetWorthChangeView(startingAmount: star)
+                        //.frame(maxWidth: .infinity, alignment: .leading)
+                        //.fixedSize(horizontal: false, vertical: true)
                 }
+                Divider()
             }
         }
         .font(.caption)
@@ -210,6 +214,7 @@ struct BudgetTable: View {
         var body: some View {
             Group {
                 Text(startingAmount.payMethod.title)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 Text(startingAmount.amountString)
                 Text("\(eom.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
                 Text("\(change.currencyWithDecimals(useWholeNumbers ? 0 : 2))")

@@ -20,8 +20,8 @@ struct SettingsView: View {
     @AppStorage("userColorScheme") var userColorScheme: UserPreferedColorScheme = .userSystem
     
     
-    @AppStorage("darkModeBackgroundColor") var darkModeBackgroundColor: String = "darkGray3"
-    @AppStorage("darkModeSelectionColor") var darkModeSelectionColor: String?
+    //@AppStorage("darkModeBackgroundColor") var darkModeBackgroundColor: String = "darkGray3"
+    //@AppStorage("darkModeSelectionColor") var darkModeSelectionColor: String?
     @AppStorage("showIndividualLoadingSpinner") var showIndividualLoadingSpinner = false
     @Local(\.threshold) var threshold
     @AppStorage("debugPrint") var debugPrint = false
@@ -404,8 +404,8 @@ struct SettingsView: View {
     func resetAllSettings() {
         useWholeNumbers = false
         colorTheme = Color.green.description
-        darkModeBackgroundColor = "darkGray3"
-        darkModeSelectionColor = "systemGray4"
+        //darkModeBackgroundColor = "darkGray3"
+        //darkModeSelectionColor = "systemGray4"
         showIndividualLoadingSpinner = false
         threshold = 500.00
         debugPrint = false

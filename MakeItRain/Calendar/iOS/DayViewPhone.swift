@@ -102,9 +102,7 @@ struct DayViewPhone: View {
                 .onLongPressGesture(minimumDuration: 1) {
                     showDailyActions = true
                 }
-                .sensoryFeedback(.success, trigger: showDailyActions) { oldValue, newValue in
-                    !oldValue && newValue
-                }
+                .sensoryFeedback(.warning, trigger: showDailyActions) { !$0 && $1 }                
                 .padding(.vertical, 2)
                 .background(
                     RoundedRectangle(cornerRadius: 6)

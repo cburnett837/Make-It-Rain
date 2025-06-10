@@ -297,7 +297,7 @@ struct CalendarToolbarLeading: View {
                                         await calModel.submit(start)
                                     }
                                 } else {
-                                    print("No Starting amount Changes for \(start.payMethod.title)")
+                                    //print("No Starting amount Changes for \(start.payMethod.title)")
                                 }
                             }
                         }

@@ -82,6 +82,9 @@ struct CalendarViewMac: View {
                         .focusSection()
                 }
             }
+            .onReceive(AppState.shared.currentDateTimer) { input in
+                let _ = AppState.shared.setNow()
+            }
     //        .searchable(text: $searchText) {
     //            let relevantTransactionTitles: Array<String> = calModel
     //                .sMonth

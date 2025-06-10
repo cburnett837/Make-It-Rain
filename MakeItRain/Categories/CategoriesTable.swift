@@ -90,7 +90,15 @@ struct CategoriesTable: View {
                 catModel.saveCategory(id: oldValue!, calModel: calModel)
             }
         }
-        .sheet(item: $editCategory, onDismiss: { categoryEditID = nil }) { cat in
+        .sheet(item: $editCategory, onDismiss: {
+            categoryEditID = nil
+            
+            if calModel.categoryFilterWasSetByCategoryPage {
+                calModel.sCategories.removeAll()
+                calModel.categoryFilterWasSetByCategoryPage = false
+            }            
+            
+        }) { cat in
             CategoryView(category: cat, catModel: catModel, calModel: calModel, keyModel: keyModel, editID: $categoryEditID)
                 #if os(iOS)
                 .presentationSizing(.page)

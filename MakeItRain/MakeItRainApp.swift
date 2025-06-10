@@ -106,11 +106,13 @@ struct MakeItRainApp: App {
                         if AuthState.shared.isThinking || AppState.shared.appShouldShowSplashScreen || !AppState.shared.splashTextAnimationIsFinished/* || AppState.shared.holdSplash */{
                             /// Always the first view to be shown.
                             /// Starts the login process.
+                            /// Login flow descriptions are written in the `splashScreen` and `loginScreen` views,
                             splashScreen
                         } else {
                             if AuthState.shared.isLoggedIn {
                                 rootView                                    
                             } else {
+                                /// Login flow descriptions are written in the `splashScreen` and `loginScreen` views,
                                 loginView
                             }
                         }
@@ -198,6 +200,7 @@ struct MakeItRainApp: App {
                 .environment(calModel)
                 .environment(payModel)
                 .environment(plaidModel)
+                .environment(catModel)
         }
         .auxilaryWindow()
         
@@ -293,18 +296,55 @@ struct MakeItRainApp: App {
     
     
     private var splashScreen: some View {
+        /// -----Login flow for splash screen-----
+        /// The splash screen is the first view to show.
+        /// It will check the keychain for an API key and call `AuthState.attemptLogin()`.
+        
+        /// If `AuthState.attemptLogin()` is successful, it will ...
+            /// 1. Return true to this task, which will  run ``FuncModel.downloadInitial()``.
+            /// As the download function runs, it will eventually hide the splash screen and show the main app when the first month completes its download.
+        
+        /// If `AuthState.attemptLogin()`fails, it will set ...
+            /// 1. Set `AuthState.isLoggedIn = false`
+            /// 2. Set `AuthState.isThinking = false`.
+            /// 3. Set `AppState.appShouldShowSplashScreen = false`.
+            /// 4. Clear login state. (AKA the api key from the keychain if it exists.)
+            /// The combo of variable settings above will cause the app to be redirected to the login screen.
+                
         @Bindable var navManager = NavigationManager.shared
         return SplashScreen()
             .transition(.opacity)
             .task {
                 print("FLIPPED TO SPLASH SCREEN")
                 funcModel.setDeviceUUID()
-                await AuthState.shared.loginViaKeychain(funcModel: funcModel)
+                
+                let didLogin = await AuthState.shared.loginViaKeychain2()
+                print("didLogin: \(didLogin)")
+                if didLogin {
+                    funcModel.downloadInitial()
+                }
+                
+                
+                //await AuthState.shared.loginViaKeychain(funcModel: funcModel)
             }
     }
     
     
     private var loginView: some View {
+        /// -----Login flow for login screen-----
+        /// You enter your email and password on the login page, and tap the login button, which calls `AuthState.attemptLogin()`.
+        
+        /// If `AuthState.attemptLogin()` is successful, it will set ...
+            /// 1. Set `AuthState.isLoggedIn = true`
+            /// 2. Set `AuthState.isThinking = false`.
+            /// 3. Set `AppState.appShouldShowSplashScreen = true`.  --- This will trigger the splash screen to show, which will run ``FuncModel.downloadInitial()``.
+        
+        /// If `AuthState.attemptLogin()`fails, it will...
+            /// 1. Set `AuthState.isLoggedIn = false`
+            /// 2. Set `AuthState.isThinking = false`.
+            /// 3. Set `AppState.appShouldShowSplashScreen = false`.
+            /// 4. Set an error in ``AuthState`` that will show an alert on the login screen.
+            /// 5. Clear login state. (AKA the api key from the keychain if it exists.)
         LoginView()
             .transition(.opacity)
             .onAppear {

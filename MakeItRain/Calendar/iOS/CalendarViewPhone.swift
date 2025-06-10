@@ -147,26 +147,19 @@ struct CalendarViewPhone: View {
             .if(AppState.shared.isIpad) { $0.toolbar(.hidden) }
             .if(!AppState.shared.isIpad) { $0.toolbar { calendarToolbar() } }
             //.toolbar { calendarToolbar() }
+            
+            /// BEGIN CURRENT BALANCE TIMER STUFF
+            .onChange(of: plaidModel.balances, setCurrentBalanceTimer)
             .onChange(of: calModel.sPayMethod, initial: true) { oldValue, newValue in
                 if let balance = plaidModel.balances.filter({ $0.payMethodID == newValue?.id }).first {
                     //timeSinceLastBalanceUpdate = Date().timeSince(balance.lastTimeICheckedPlaidSyncedDate)
-                    timeSinceLastBalanceUpdate = Date().timeSince(balance.lastTimePlaidSyncedWithInstitutionDate)
+                    //timeSinceLastBalanceUpdate = Date().timeSince(balance.lastTimePlaidSyncedWithInstitutionDate)
+                    timeSinceLastBalanceUpdate = Date().timeSince(balance.enteredDate)
                 }
-                
-                /// Keep the displayed time ago up to date.
-                self.lastBalanceUpdateTimer?.invalidate()
-                self.lastBalanceUpdateTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { _ in
-                    Task { @MainActor in
-                        if let balance = plaidModel.balances.filter({ $0.payMethodID == calModel.sPayMethod?.id }).first {
-                            //timeSinceLastBalanceUpdate = Date().timeSince(balance.lastTimeICheckedPlaidSyncedDate)
-                            timeSinceLastBalanceUpdate = Date().timeSince(balance.lastTimePlaidSyncedWithInstitutionDate)
-                        }
-                    }
-                }
+                setCurrentBalanceTimer()
             }
-            .onDisappear {
-                lastBalanceUpdateTimer?.invalidate()
-            }
+            .onDisappear { lastBalanceUpdateTimer?.invalidate() }
+            /// END CURRENT BALANCE TIMER STUFF
                         
             /// Using this instead of a task because the iPad doesn't reload `CalendarView`. It just changes the data source.
             .onChange(of: enumID, initial: true, onChangeOfMonthEnumID)
@@ -353,8 +346,6 @@ struct CalendarViewPhone: View {
 //            }
 //        }
     }
-    
-    
     
     
     // MARK: - Calendar Views
@@ -960,6 +951,7 @@ struct CalendarViewPhone: View {
             }
             .contentShape(Rectangle())
         }
+        .lineLimit(1)
     }
     
     
@@ -1270,42 +1262,44 @@ struct CalendarViewPhone: View {
             .contentShape(Rectangle())
             
             
-            
-            if let meth = calModel.sPayMethod {
-                if meth.isUnified {
-                    if meth.isDebit {
-                        let debitIDs = payModel.paymentMethods.filter { $0.isDebit }.map { $0.id }
-                        let sum = plaidModel.balances.filter { debitIDs.contains($0.payMethodID) }.map { $0.amount }.reduce(0.0, +)
-                        Text("\(sum.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
-                            .font(.callout)
-                            .foregroundStyle(.gray)
-                            .lineLimit(1)
+            if calModel.sMonth.actualNum == AppState.shared.todayMonth && calModel.sMonth.year == AppState.shared.todayYear {
+                if let meth = calModel.sPayMethod {
+                    if meth.isUnified {
+                        if meth.isDebit {
+                            let debitIDs = payModel.paymentMethods.filter { $0.isDebit }.map { $0.id }
+                            let sum = plaidModel.balances.filter { debitIDs.contains($0.payMethodID) }.map { $0.amount }.reduce(0.0, +)
+                            Text("\(sum.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                                .font(.callout)
+                                .foregroundStyle(.gray)
+                                .lineLimit(1)
+                        } else {
+                            let creditIDs = payModel.paymentMethods.filter { $0.isCredit }.map { $0.id }
+                            let sum = plaidModel.balances.filter { creditIDs.contains($0.payMethodID) }.map { $0.amount }.reduce(0.0, +)
+                            Text("\(sum.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                                .font(.callout)
+                                .foregroundStyle(.gray)
+                                .lineLimit(1)
+                        }
+                        
                     } else {
-                        let creditIDs = payModel.paymentMethods.filter { $0.isCredit }.map { $0.id }
-                        let sum = plaidModel.balances.filter { creditIDs.contains($0.payMethodID) }.map { $0.amount }.reduce(0.0, +)
-                        Text("\(sum.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
-                            .font(.callout)
-                            .foregroundStyle(.gray)
-                            .lineLimit(1)
-                    }
-                    
-                } else {
-//                    if let balance = plaidModel.balances.filter({ $0.payMethodID == calModel.sPayMethod?.id }).first {
-//                        Text("\(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)), \(balance.lastTimeICheckedPlaidSyncedDate?.string(to: .monthDayHrMinAmPm) ?? "N/A")")
-//                            .font(.callout)
-//                            .foregroundStyle(.gray)
-//                            .lineLimit(1)
-//                    }
-                    
-                    
-                    if let balance = plaidModel.balances.filter({ $0.payMethodID == calModel.sPayMethod?.id }).first {
-                        Text("\(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)) (\(timeSinceLastBalanceUpdate))")
-                            .font(.callout)
-                            .foregroundStyle(.gray)
-                            .lineLimit(1)
+    //                    if let balance = plaidModel.balances.filter({ $0.payMethodID == calModel.sPayMethod?.id }).first {
+    //                        Text("\(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)), \(balance.lastTimeICheckedPlaidSyncedDate?.string(to: .monthDayHrMinAmPm) ?? "N/A")")
+    //                            .font(.callout)
+    //                            .foregroundStyle(.gray)
+    //                            .lineLimit(1)
+    //                    }
+                        
+                        
+                        if let balance = plaidModel.balances.filter({ $0.payMethodID == calModel.sPayMethod?.id }).first {
+                            Text("\(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)) (\(timeSinceLastBalanceUpdate))")
+                                .font(.callout)
+                                .foregroundStyle(.gray)
+                                .lineLimit(1)
+                        }
                     }
                 }
             }
+            
         }
         .popoverTip(touchAndHoldMonthToFilterCategoriesTip)
     }
@@ -1512,6 +1506,20 @@ struct CalendarViewPhone: View {
     
     
     // MARK: - Functions
+    func setCurrentBalanceTimer() {
+        /// Keep the displayed time ago up to date.
+        self.lastBalanceUpdateTimer?.invalidate()
+        self.lastBalanceUpdateTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { _ in
+            Task { @MainActor in
+                if let balance = plaidModel.balances.filter({ $0.payMethodID == calModel.sPayMethod?.id }).first {
+                    //timeSinceLastBalanceUpdate = Date().timeSince(balance.lastTimeICheckedPlaidSyncedDate)
+                    //timeSinceLastBalanceUpdate = Date().timeSince(balance.lastTimePlaidSyncedWithInstitutionDate)
+                    timeSinceLastBalanceUpdate = Date().timeSince(balance.enteredDate)
+                }
+            }
+        }
+    }
+    
     
     func startingAmountSheetDismissed() {
         let _ = calModel.calculateTotal(for: calModel.sMonth)
@@ -1525,7 +1533,7 @@ struct CalendarViewPhone: View {
                             await calModel.submit(start)
                         }
                     } else {
-                        print("No Starting amount Changes for \(start.payMethod.title)")
+                        //print("No Starting amount Changes for \(start.payMethod.title)")
                     }
                 }
             }

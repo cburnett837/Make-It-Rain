@@ -368,7 +368,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
     
     func changeDefault(_ to: Bool) async {
         self.isViewingDefault = to
-        guard let entity = await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(self.id)), createIfNotFound: false) else { return }
+        guard let entity = try? await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(self.id)), createIfNotFound: false) else { return }
         entity.isViewingDefault = to
         let _ = await DataManager.shared.save()
     }

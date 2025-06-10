@@ -30,7 +30,6 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
     var actualNum: Int {
         num == 13 ? 1 : num == 0 ? 12 : num
     }
-    
     /// This is needed so this class can calculate its `dayCount`. This is set with a didSet on the ``Model`` `year` property.
     var year: Int
     var days: Array<CBDay> = []
@@ -131,8 +130,7 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
             return "Improper Month"
         }
     }
-    
-    
+        
     var abbreviatedName: String {
         switch actualNum {
         case 1:
@@ -203,10 +201,22 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
         }
     }
     
+    
+    init(num: Int) {
+        self.num = num
+        if num == 0 {
+            self.year = Calendar.current.component(.year, from: Date()) - 1
+        } else if num == 13 {
+            self.year = Calendar.current.component(.year, from: Date()) + 1
+        } else {
+            self.year = Calendar.current.component(.year, from: Date())
+        }
+    }
+    
+    
     enum CodingKeys: CodingKey { case month, year, user_id, account_id, device_uuid }
         
     func encode(to encoder: Encoder) throws {
-        
         let formatter = NumberFormatter()
         formatter.minimumIntegerDigits = 2
                       
@@ -219,17 +229,7 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
         try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
         try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
     }
-            
-    init(num: Int) {
-        self.num = num
-        if num == 0 {
-            self.year = Calendar.current.component(.year, from: Date()) - 1
-        } else if num == 13 {
-            self.year = Calendar.current.component(.year, from: Date()) + 1
-        } else {
-            self.year = Calendar.current.component(.year, from: Date())
-        }
-    }
+                
     
     static func == (lhs: CBMonth, rhs: CBMonth) -> Bool {
         if lhs.num == rhs.num

@@ -164,13 +164,13 @@ class FuncModel {
                         
                         
                         if let categoryID = entity.categoryID {
-                            if let perCategory = await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(categoryID)), createIfNotFound: false) {
+                            if let perCategory = try? await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(categoryID)), createIfNotFound: false) {
                                 category = CBCategory(entity: perCategory)
                             }
                         }
                         
                         if let payMethodID = entity.payMethodID {
-                            if let perPayMethod = await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethodID)), createIfNotFound: false) {
+                            if let perPayMethod = try? await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethodID)), createIfNotFound: false) {
                                 payMethod = CBPaymentMethod(entity: perPayMethod)
                             }
                         }
@@ -326,6 +326,7 @@ class FuncModel {
     }
     
     
+    
     // MARK: - Downloading Stuff
     @MainActor private func downloadPlaidStuff() async {
         let plaidStart = CFAbsoluteTimeGetCurrent()
@@ -342,7 +343,7 @@ class FuncModel {
             }
         }
         let plaidElapsed = CFAbsoluteTimeGetCurrent() - plaidStart
-        print("🔴It took \(plaidElapsed) seconds to fetch the plaid data")
+        print("⏰It took \(plaidElapsed) seconds to fetch the plaid data")
     }
     
     
@@ -358,7 +359,7 @@ class FuncModel {
         }
         
         let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-        print("🔴It took \(currentElapsed) seconds to fetch the first month")
+        print("⏰It took \(currentElapsed) seconds to fetch the first month")
         
         /// Prepare starting amounts for payment method sheet
 //        for payMethod in payModel.paymentMethods {
@@ -378,12 +379,22 @@ class FuncModel {
         /// Grab months adjacent to viewing month.
         let adjacentStart = CFAbsoluteTimeGetCurrent()
         await withTaskGroup(of: Void.self) { group in
-            if let next { group.addTask { print("fetching \(next.num)"); await self.calModel.fetchFromServer(month: next, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique) } }
-            if let prev { group.addTask { print("fetching \(prev.num)"); await self.calModel.fetchFromServer(month: prev, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique) } }
+            if let next {
+                group.addTask {
+                    print("fetching \(next.num)");
+                    await self.calModel.fetchFromServer(month: next, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
+                }
+            }
+            if let prev {
+                group.addTask {
+                    print("fetching \(prev.num)");
+                    await self.calModel.fetchFromServer(month: prev, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
+                }
+            }
         }
         
         let adjacentElapsed = CFAbsoluteTimeGetCurrent() - adjacentStart
-        print("🔴It took \(adjacentElapsed) seconds to fetch the Adjacent months")
+        print("⏰It took \(adjacentElapsed) seconds to fetch the Adjacent months")
     }
     
     
@@ -399,13 +410,16 @@ class FuncModel {
                     if month.num == prev.num { continue }
                 }
                 if month.num != viewingMonth.num {
-                    group.addTask { print("fetching \(month.num)"); await self.calModel.fetchFromServer(month: month, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique) }
+                    group.addTask {
+                        print("fetching \(month.num)");
+                        await self.calModel.fetchFromServer(month: month, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
+                    }
                 }
             }
         }
         
         let everytingElseElapsed = CFAbsoluteTimeGetCurrent() - everythingElseStart
-        print("🔴It took \(everytingElseElapsed) seconds to fetch all other months")
+        print("⏰It took \(everytingElseElapsed) seconds to fetch all other months")
     }
     
     
@@ -443,7 +457,7 @@ class FuncModel {
         }
         
         let everytingElseElapsed = CFAbsoluteTimeGetCurrent() - everythingElseStart
-        print("🔴It took \(everytingElseElapsed) seconds to fetch all accessorials")
+        print("⏰It took \(everytingElseElapsed) seconds to fetch all accessorials")
     }
     
         
@@ -520,9 +534,14 @@ class FuncModel {
             LoadingManager.shared.downloadAmount += 10
         }
         let everytingElseElapsed = CFAbsoluteTimeGetCurrent() - everythingElseStart
-        print("🔴It took \(everytingElseElapsed) seconds to fetch all other months")
+        print("⏰It took \(everytingElseElapsed) seconds to fetch all other months")
     }
     
+    
+    
+    
+    
+    // MARK: - Cache Stuff
     /// Not private because it is called directly from the RootView
     func populatePaymentMethodsFromCache(setDefaultPayMethod: Bool) async {
         print("-- \(#function)")
@@ -536,13 +555,18 @@ class FuncModel {
                 /// Get object IDs from the core data entities
                 let objectIDs = meths.map { $0.objectID }
 
+                guard let entities = try await DataManager.shared.getMany(type: PersistentPaymentMethod.self) else { return }
+                
                 /// Switch to main actor for sorting
                 await MainActor.run {
-                    let context = DataManager.shared.container.viewContext
-                    let mainObjects = objectIDs.compactMap { context.object(with: $0) as? PersistentPaymentMethod }
-
+                    //let context = DataManager.shared.container.viewContext
+                    //let mainObjects = objectIDs.compactMap { DataManager.shared.container.viewContext.object(with: $0) as? PersistentPaymentMethod }
+                
+                    
+                    
+                    
                     /// Sort safely now on main thread
-                    let sortedMeths = mainObjects
+                    let sortedMeths = entities
                         .sorted { ($0.title ?? "").lowercased() < ($1.title ?? "").lowercased() }
 
                     for meth in sortedMeths {
@@ -616,47 +640,47 @@ class FuncModel {
     private func populateKeywordsFromCache() async {
         print("-- \(#function)")
         /// Populate keywords from cache.
-        do {
-            let keys = try await DataManager.shared.getMany(type: PersistentKeyword.self)
-            if let keys {
-                Task { @MainActor in
-                    keys
-                        .sorted { ($0.keyword ?? "").lowercased() < ($1.keyword ?? "").lowercased() }
-                    //.filter { $0.id != nil } /// Have a weird bug that added blank in CoreData.
-                        .forEach { key in
-                            //print(key.keyword)
-                            if keyModel.keywords.filter({ $0.id == key.id! }).isEmpty {
-                                keyModel.keywords.append(CBKeyword(entity: key))
-                            }
+        
+        let man = CacheManager<CBKeyword>(file: .keywords)
+        if let keys = man.loadMany() {
+            Task { @MainActor in
+                keys
+                    .sorted { ($0.keyword).lowercased() < ($1.keyword).lowercased() }
+                    .forEach { key in
+                        if let index = keyModel.keywords.firstIndex(where: { $0.id == key.id }) {
+                            keyModel.keywords[index].setFromAnotherInstance(keyword: key)
+                        } else {
+                            keyModel.keywords.append(key)
                         }
-                }
+                    }
             }
-            
-            //keyModel.keywords.sort { $0.keyword < $1.keyword }
-            
-        } catch {
-            fatalError("Could not find keywords from cache")
         }
-    }
-    
-//    private func populateTagsFromCache() {
-//        /// Populate keywords from cache.
+        
 //        do {
-//            let tags = try DataManager.shared.getMany(type: PersistentTag.self)
-//            if let tags {
-//                tags.forEach { tag in
-//                    if tagModel.tags.filter({ $0.id == tag.id }).isEmpty {
-//                        tagModel.tags.append(CBTag(entity: tag))
-//                    }
+//            let keys = try await DataManager.shared.getMany(type: PersistentKeyword.self)
+//            if let keys {
+//                Task { @MainActor in
+//                    keys
+//                        .sorted { ($0.keyword ?? "").lowercased() < ($1.keyword ?? "").lowercased() }
+//                    //.filter { $0.id != nil } /// Have a weird bug that added blank in CoreData.
+//                        .forEach { key in
+//                            //print(key.keyword)
+//                            if keyModel.keywords.filter({ $0.id == key.id! }).isEmpty {
+//                                keyModel.keywords.append(CBKeyword(entity: key))
+//                            }
+//                        }
 //                }
 //            }
-//
-//            tagModel.tags.sort { $0.tag < $1.tag }
-//
+//            
+//            //keyModel.keywords.sort { $0.keyword < $1.keyword }
+//            
 //        } catch {
-//            fatalError("Could not find tags from cache")
+//            fatalError("Could not find keywords from cache")
 //        }
-//    }
+    }
+    
+    
+    
     
     
     // MARK: - Long Poll Stuff
@@ -724,7 +748,6 @@ class FuncModel {
                     || model.plaidTransactions != nil
                     || model.plaidBalances != nil
                     {
-                        
                         //try? await Task.sleep(nanoseconds: UInt64(5 * Double(NSEC_PER_SEC)))
                         
                         if let transactions = model.transactions { self.handleLongPollTransactions(transactions) }
@@ -1449,8 +1472,7 @@ class FuncModel {
 //        }
     }
     
-    
-    
+        
     @MainActor private func handleLongPollPlaidTransactions(_ transactions: Array<CBPlaidTransaction>) {
         print("-- \(#function)")
         for trans in transactions {

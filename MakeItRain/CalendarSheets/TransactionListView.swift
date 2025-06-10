@@ -8,6 +8,9 @@
 import SwiftUI
 
 struct TransactionListView: View {
+    #if os(macOS)
+    @Environment(\.dismiss) var dismiss
+    #endif
     @AppStorage("transactionSortMode") var transactionSortMode: TransactionSortMode = .title
     @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
     @Local(\.useWholeNumbers) var useWholeNumbers
@@ -40,6 +43,9 @@ struct TransactionListView: View {
         var total: Double
     }
     
+    var sheetTitle: String {
+        "\(calModel.sPayMethod?.title ?? "N/A") \(calModel.sMonth.name) \(String(calModel.sYear))"
+    }
     
     var body: some View {
         @Bindable var calModel = calModel
@@ -50,7 +56,7 @@ struct TransactionListView: View {
         } header: {
             if AppState.shared.isIpad {
                 SidebarHeader(
-                    title: "Transactions \(calModel.sMonth.name) \(String(calModel.sYear))",
+                    title: sheetTitle,
                     close: {
                         #if os(iOS)
                         withAnimation { showTransactionListSheet = false }
@@ -63,7 +69,7 @@ struct TransactionListView: View {
                 )
             } else {
                 SheetHeader(
-                    title: "Transactions \(calModel.sMonth.name) \(String(calModel.sYear))",
+                    title: sheetTitle,
                     close: {
                         #if os(iOS)
                         withAnimation { showTransactionListSheet = false }
@@ -119,13 +125,7 @@ struct TransactionListView: View {
             editTrans: $editTrans,
             selectedDay: $transDay
         )
-        
-        
-        
-        
-        
-        
-        
+
     }
     
     

@@ -285,7 +285,8 @@ struct WidgetFolderMods: ViewModifier {
             #if os(iOS)
             .background(RoundedRectangle(cornerRadius: 20).fill(Color(.secondarySystemBackground)))
             #else
-            .background(RoundedRectangle(cornerRadius: 20).fill(Color(.systemGray)))
+            //.background(RoundedRectangle(cornerRadius: 20).fill(Color(.systemGray)))
+            .background(RoundedRectangle(cornerRadius: 20).fill(Color(.secondarySystemFill)))
             #endif
             //.background(Color(.tertiarySystemBackground))
             //.cornerRadius(8)
@@ -475,15 +476,15 @@ struct TransactionEditSheetAndLogic: ViewModifier {
         /// When `newValue` is false, save to the server. We have to use this because `.popover(isPresented:)` has no onDismiss option.
         if oldValue != nil && newValue == nil {
             
+            #if os(iOS)
             if presentTip {
                 /// Present tip after trying to add 3 new transactions.
                 let trans = calModel.getTransaction(by: oldValue!, from: findTransactionWhere)
-                
                 if trans.action == .add {
                     TouchAndHoldPlusButtonTip.didTouchPlusButton.sendDonation()
                 }
             }
-            
+            #endif
                                 
             calModel.saveTransaction(id: oldValue!, day: selectedDay!, location: findTransactionWhere)
             /// - When adding a transaction via a day's context menu, `selectedDay` gets changed to the contexts day.

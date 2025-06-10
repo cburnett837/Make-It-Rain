@@ -8,7 +8,7 @@
 import Foundation
 
 @Observable
-class CBPlaidBalance: Decodable, Identifiable {
+class CBPlaidBalance: Decodable, Identifiable, Equatable, Hashable {
     var id: String
     var internalAccountID: String?
     var payMethodID: String
@@ -78,5 +78,24 @@ class CBPlaidBalance: Decodable, Identifiable {
         self.payMethodID = bal.payMethodID
         self.lastTimePlaidSyncedWithInstitutionDate = bal.lastTimePlaidSyncedWithInstitutionDate
         self.lastTimeICheckedPlaidSyncedDate = bal.lastTimeICheckedPlaidSyncedDate
+    }
+    
+    static func == (lhs: CBPlaidBalance, rhs: CBPlaidBalance) -> Bool {
+        if lhs.id == rhs.id
+        && lhs.internalAccountID == rhs.internalAccountID
+        && lhs.amount == rhs.amount
+        && lhs.enteredDate == rhs.enteredDate
+        && lhs.payMethodID == rhs.payMethodID
+        && lhs.lastTimePlaidSyncedWithInstitutionDate == rhs.lastTimePlaidSyncedWithInstitutionDate
+        && lhs.lastTimeICheckedPlaidSyncedDate == rhs.lastTimeICheckedPlaidSyncedDate
+        && lhs.active == rhs.active {
+            return true
+        }
+        return false
+    }
+    
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
     }
 }

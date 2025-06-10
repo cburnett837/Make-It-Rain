@@ -78,6 +78,10 @@ struct SettingsViewInsert: View {
             
             #endif
             
+            #if os(macOS)
+            paymentMethodIndicatorToggle
+            #endif
+            
             lineItemIndicatorPicker
             
             updatedByOtherPerson

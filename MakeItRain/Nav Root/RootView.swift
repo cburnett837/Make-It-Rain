@@ -181,10 +181,10 @@ struct RootView: View {
                         
                         let shouldDownload = await AppState.shared.checkIfDownloadingDataIsNeeded()
                         if shouldDownload {
-                            print("YES NEW DATA TO DOWNLOAD")
+                            print("🎃YES NEW DATA TO DOWNLOAD")
                             await funcModel.downloadEverything(setDefaultPayMethod: false, createNewStructs: false, refreshTechnique: .viaSceneChange)
                         } else {
-                            print("NO NEW DATA TO DOWNLOAD")
+                            print("🎃NO NEW DATA TO DOWNLOAD")
                             funcModel.longPollServerForChanges()
                             
                             Task {
@@ -228,10 +228,10 @@ struct RootView: View {
                     funcModel.refreshTask = Task {
                         let shouldDownload = await AppState.shared.checkIfDownloadingDataIsNeeded()
                         if shouldDownload {
-                            print("YES NEW DATA TO DOWNLOAD")
+                            print("🎃YES NEW DATA TO DOWNLOAD")
                             await funcModel.downloadEverything(setDefaultPayMethod: false, createNewStructs: false, refreshTechnique: .viaSceneChange)
                         } else {
-                            print("NO NEW DATA TO DOWNLOAD")
+                            print("🎃NO NEW DATA TO DOWNLOAD")
                             funcModel.longPollServerForChanges()
                         }
                     }
@@ -257,10 +257,10 @@ struct RootView: View {
                     funcModel.refreshTask = Task {
                         let shouldDownload = await AppState.shared.checkIfDownloadingDataIsNeeded()
                         if shouldDownload {
-                            print("YES NEW DATA TO DOWNLOAD")
+                            print("🎃YES NEW DATA TO DOWNLOAD")
                             await funcModel.downloadEverything(setDefaultPayMethod: false, createNewStructs: false, refreshTechnique: .viaSceneChange)
                         } else {
-                            print("NO NEW DATA TO DOWNLOAD")
+                            print("🎃NO NEW DATA TO DOWNLOAD")
                             funcModel.longPollServerForChanges()
                         }
                     }

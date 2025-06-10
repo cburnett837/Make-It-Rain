@@ -240,9 +240,7 @@ struct CalendarOptionsSheet: View {
         } label: {
             Text("Prepare Month")
         }
-        .sensoryFeedback(.warning, trigger: buzzForPopulate) { oldValue, newValue in
-            !oldValue && newValue
-        }
+        .sensoryFeedback(.warning, trigger: buzzForPopulate) { !$0 && $1 }
         .tint(calModel.sMonth.hasBeenPopulated ? .gray : Color.accentColor)
     }
         
@@ -266,9 +264,7 @@ struct CalendarOptionsSheet: View {
             Text("Reset Month")
         }
         .tint(.red)
-        .sensoryFeedback(.warning, trigger: buzzForResetMonth) { oldValue, newValue in
-            !oldValue && newValue
-        }
+        .sensoryFeedback(.warning, trigger: buzzForResetMonth) { !$0 && $1 }        
     }
 }
 
@@ -538,9 +534,7 @@ struct CalendarOptionsSheetOG: View {
             }
             .frame(maxWidth: .infinity)
         }
-        .sensoryFeedback(.warning, trigger: showPopulateAlert) { oldValue, newValue in
-            !oldValue && newValue
-        }
+        .sensoryFeedback(.warning, trigger: showPopulateAlert) { !$0 && $1 }        
         .tint(calModel.sMonth.hasBeenPopulated ? .gray : Color.accentColor)
     }
     
@@ -576,9 +570,7 @@ struct CalendarOptionsSheetOG: View {
         }
         .tint(.red)
         .buttonStyle(.borderedProminent)
-        .sensoryFeedback(.warning, trigger: showResetMonthAlert) { oldValue, newValue in
-            !oldValue && newValue
-        }
+        .sensoryFeedback(.warning, trigger: showResetMonthAlert) { !$0 && $1 }
         .padding(.bottom, 12)
     }
     

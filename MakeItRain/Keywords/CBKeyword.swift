@@ -113,7 +113,11 @@ class CBKeyword: Codable, Identifiable {
     
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try String(container.decode(Int.self, forKey: .id))
+        do {
+            id = try String(container.decode(Int.self, forKey: .id))
+        } catch {
+            id = try container.decode(String.self, forKey: .id)
+        }
         keyword = try container.decode(String.self, forKey: .keyword)
         
         let keywordTriggerType = try container.decode(String.self, forKey: .trigger_type)

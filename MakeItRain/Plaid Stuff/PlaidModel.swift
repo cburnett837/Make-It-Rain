@@ -347,7 +347,7 @@ class PlaidModel {
             }
             
             let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-            print("🔴It took \(currentElapsed) seconds to fetch the plaid transaction")
+            print("⏰It took \(currentElapsed) seconds to fetch the plaid transaction")
             
         case .failure (let error):
             switch error {
@@ -421,12 +421,12 @@ class PlaidModel {
     
     // MARK: - Balance Stuff
     func doesExist(_ balance: CBPlaidBalance) -> Bool {
-        return !balances.filter { $0.id == balance.id }.isEmpty
+        return !balances.filter { $0.payMethodID == balance.payMethodID && $0.internalAccountID == balance.internalAccountID }.isEmpty
     }
     
-    func getBalance(by id: String) -> CBPlaidBalance? {
-        return balances.filter { $0.id == id }.first
-    }
+//    func getBalance(by id: String) -> CBPlaidBalance? {
+//        return balances.filter { $0.id == id }.first
+//    }
 
     func upsert(_ balance: CBPlaidBalance) {
         if !doesExist(balance) {
@@ -435,11 +435,11 @@ class PlaidModel {
     }
     
     func getIndex(for balance: CBPlaidBalance) -> Int? {
-        return balances.firstIndex(where: { $0.id == balance.id })
+        return balances.firstIndex(where: { $0.payMethodID == balance.payMethodID && $0.internalAccountID == balance.internalAccountID })
     }
     
     func delete(_ balance: CBPlaidBalance) {
-        balances.removeAll { $0.id == balance.id }
+        balances.removeAll { $0.payMethodID == balance.payMethodID && $0.internalAccountID == balance.internalAccountID }
     }
     
     
@@ -465,7 +465,7 @@ class PlaidModel {
             }
             
             let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-            print("🔴It took \(currentElapsed) seconds to fetch the plaid balances")
+            print("⏰It took \(currentElapsed) seconds to fetch the plaid balances")
             
         case .failure (let error):
             switch error {

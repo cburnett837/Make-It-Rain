@@ -105,20 +105,7 @@ struct RootViewPhone: View {
                 }
             }
             
-            Section("Settings") {
-                NavigationLink(value: NavDestination.settings) {
-                    Label { Text("Settings") } icon: { Image(systemName: "gear") }
-                }
-                
-                if AppState.shared.user?.id == 1 {
-                    NavigationLink(value: NavDestination.debug) {
-                        Label { Text("Debug") } icon: { Image(systemName: "ladybug") }
-                    }
-                    .badge(funcModel.loadTimes.count)
-                }
-            }
-            
-            Section("Plaid Integrations") {
+            Section("Plaid Integration") {
                 NavigationLink(value: NavDestination.plaid) {
                     Label { Text("Plaid") } icon: {
                         if plaidModel.atLeastOneBankHasAnIssue {
@@ -128,6 +115,19 @@ struct RootViewPhone: View {
                             Image(systemName: "list.bullet")
                         }
                     }
+                }
+            }
+            
+            Section("Settings") {
+                if AppState.shared.user?.id == 1 {
+                    NavigationLink(value: NavDestination.debug) {
+                        Label { Text("Debug") } icon: { Image(systemName: "ladybug") }
+                    }
+                    .badge(funcModel.loadTimes.count)
+                }
+                
+                NavigationLink(value: NavDestination.settings) {
+                    Label { Text("Settings") } icon: { Image(systemName: "gear") }
                 }
             }
         }

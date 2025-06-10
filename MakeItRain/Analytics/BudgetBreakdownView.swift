@@ -77,6 +77,7 @@ struct BudgetBreakdownView: View {
                             Text(metric.category.title)
                                 //.alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         //.frame(maxWidth: .infinity, alignment: .leading)
                         
                         Text(metric.budget.currencyWithDecimals(useWholeNumbers ? 0 : 2))
@@ -96,6 +97,7 @@ struct BudgetBreakdownView: View {
                             .foregroundStyle(overUnder < 0 ? .red : .green)
                             //.frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    .padding(.vertical, 4)
                     .contentShape(Rectangle())
                     .onTapGesture {
                         if let objc = metric.budgetObject {

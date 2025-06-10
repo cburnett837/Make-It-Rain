@@ -69,7 +69,7 @@ struct EventTransactionOptionView: View {
     
     var body: some View {
         StandardContainer() {
-            StandardTitleTextField(symbolWidth: symbolWidth, focusedField: _focusedField, focusID: 0, showSymbol: true, parentType: .eventTransactionOption, obj: transOption)
+            StandardTitleTextField(symbolWidth: symbolWidth, focusedField: _focusedField, focusID: 0, showSymbol: true, parentType: .eventTransactionOption, showTitleSuggestions: .constant(false), obj: transOption)
             StandardAmountTextField(symbolWidth: symbolWidth, focusedField: _focusedField, focusID: 1, showSymbol: true, obj: transOption)
             StandardDivider()
                

@@ -416,7 +416,7 @@ struct PayMethodView: View {
             if payMethod.action == .add {
                 ContentUnavailableView("Insights are not available when adding a new account", systemImage: "square.stack.3d.up.slash.fill")
             } else {
-                PayMethodChart(vm: viewModel, editID: $editID, payMethod: payMethod)
+                PayMethodDashboard(vm: viewModel, editID: $editID, payMethod: payMethod)
                     .opacity(viewModel.isLoadingHistory ? 0 : 1)
                     .overlay {
                         ProgressView("Loading Insights…")

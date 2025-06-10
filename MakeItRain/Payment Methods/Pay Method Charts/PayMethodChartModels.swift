@@ -98,6 +98,31 @@ public enum IncomeType: String {
     }
 }
 
+public enum MetricByPaymentMethodType: String {
+    case expenses, income, startingAmounts, payments
+    
+    var prettyValue: String {
+        switch self {
+        case .expenses: return "Expenses"
+        case .income: return "Income"
+        case .startingAmounts: return "Starting Amounts"
+        case .payments: return "Payments"
+        }
+    }
+    
+    static func fromString(_ string: String) -> Self {
+        switch string {
+        case "expenses": return .expenses
+        case "income": return .income
+        case "startingAmounts": return .startingAmounts
+        case "payments": return .payments
+        default: return .income
+        }
+    }
+}
+
+
+
 public enum ChartCropingStyle: String {
     case showFullCurrentYear, endAtCurrentMonth
     
@@ -116,6 +141,8 @@ public enum ChartCropingStyle: String {
         }
     }
 }
+
+
 
 struct Breakdown: Identifiable {
     var id = UUID()

@@ -45,8 +45,8 @@ class AppState {
     var isLandscape: Bool = false
     var isIpad: Bool { UIDevice.current.userInterfaceIdiom == .pad }
     var isIphone: Bool { UIDevice.current.userInterfaceIdiom == .phone }
-    var isIphoneInLandscape: Bool { UIDevice.current.userInterfaceIdiom == .phone && isLandscape }
-    var isIphoneInPortrait: Bool { UIDevice.current.userInterfaceIdiom == .phone && !isLandscape }
+    //var isIphoneInLandscape: Bool { UIDevice.current.userInterfaceIdiom == .phone && isLandscape }
+    //var isIphoneInPortrait: Bool { UIDevice.current.userInterfaceIdiom == .phone && !isLandscape }
     #else
     var isIpad: Bool = false
     #endif
@@ -206,7 +206,7 @@ class AppState {
     var todayMonth = Calendar.current.component(.month, from: Date())
     var todayYear = Calendar.current.component(.year, from: Date())
 
-    /// Called via `currentDateTimer`. The onReceive() modifier that calls this is in ``RootView``.
+    /// Called via `currentDateTimer`. The onReceive() modifier that calls this is in ``CalendarViewPhone``.
     func setNow() -> Bool {
         let oldToday = todayDay
         let newToday = Calendar.current.component(.day, from: Date())

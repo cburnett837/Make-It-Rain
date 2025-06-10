@@ -510,10 +510,11 @@ struct CategoryView: View {
     // MARK: - Functions
     
     func closeSheet() {
-        if calModel.categoryFilterWasSetByCategoryPage {
-            calModel.sCategories.removeAll()
-            calModel.categoryFilterWasSetByCategoryPage = false
-        }
+        /// Moved to onDismiss of this sheet.
+//        if calModel.categoryFilterWasSetByCategoryPage {
+//            calModel.sCategories.removeAll()
+//            calModel.categoryFilterWasSetByCategoryPage = false
+//        }
         editID = nil
         dismiss()
         #if os(macOS)

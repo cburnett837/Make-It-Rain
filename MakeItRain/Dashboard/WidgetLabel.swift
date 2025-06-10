@@ -48,6 +48,7 @@ struct WidgetLabelButton: View {
             #if os(iOS)
             .background(Capsule().fill(Color(.secondarySystemBackground)))
             #else
+            .buttonStyle(.plain)
             .background(Capsule().fill(Color(.secondarySystemFill)))
             #endif
             //.background(RoundedRectangle(cornerRadius: 20).fill(Color(.secondarySystemBackground)))
@@ -86,6 +87,7 @@ struct WidgetLabelMenu: View {
             #if os(iOS)
             .background(Capsule().fill(Color(.secondarySystemBackground)))
             #else
+            .buttonStyle(.plain)
             .background(Capsule().fill(Color(.secondarySystemFill)))
             #endif
             //.background(RoundedRectangle(cornerRadius: 20).fill(Color(.secondarySystemBackground)))

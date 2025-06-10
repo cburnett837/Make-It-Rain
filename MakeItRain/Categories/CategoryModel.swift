@@ -192,7 +192,7 @@ class CategoryModel {
     }
     
     func updateCache(for category: CBCategory) async -> Result<Bool, CoreDataError> {
-        guard let entity = await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(category.id)), createIfNotFound: false) else { return .failure(.reason("notFound")) }
+        guard let entity = try? await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(category.id)), createIfNotFound: false) else { return .failure(.reason("notFound")) }
         
         entity.id = category.id
         entity.title = category.title
@@ -234,7 +234,7 @@ class CategoryModel {
                         activeIds.append(category.id)
                         
                         /// Find the category in cache.
-                        let entity = await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(category.id)), createIfNotFound: true)
+                        let entity = try? await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(category.id)), createIfNotFound: true)
                         
                         /// Update the cache.
                         /// This should always be true because the line above creates the entity if it's not found.
@@ -291,6 +291,88 @@ class CategoryModel {
         }
     }
     
+    
+    
+    @MainActor
+    func fetchCategoriesOG(file: String = #file, line: Int = #line, function: String = #function) async {
+        NSLog("\(file):\(line) : \(function)")
+        LogManager.log()
+        
+        /// Do networking.
+        let model = RequestModel(requestType: "fetch_categories", model: AppState.shared.user)
+        typealias ResultResponse = Result<Array<CBCategory>?, AppError>
+        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+        
+        switch await result {
+        case .success(let model):
+            
+            /// For testing bad network connection.
+            //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
+
+            LogManager.networkingSuccessful()
+            if let model {
+                if !model.isEmpty {
+                    var activeIds: Array<String> = []
+                    for category in model {
+                        activeIds.append(category.id)
+                        
+                        /// Find the category in cache.
+                        let entity = try? await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(category.id)), createIfNotFound: true)
+                        
+                        /// Update the cache.
+                        /// This should always be true because the line above creates the entity if it's not found.
+                        if let entity {
+                            entity.id = category.id
+                            entity.title = category.title
+                            entity.amount = category.amount ?? 0.0
+                            entity.hexCode = category.color.toHex()
+                            //entity.hexCode = category.color.description
+                            entity.emoji = category.emoji
+                            entity.action = "edit"
+                            entity.isPending = false
+                            entity.typeID = Int64(category.type.id)
+                            entity.isNil = category.isNil
+                            let index = categories.firstIndex(where: { $0.id == category.id })
+                            if let index {
+                                /// If the category is already in the list, update it from the server.
+                                categories[index].setFromAnotherInstance(category: category)
+                            } else {
+                                /// Add the category to the list (like when the category was added on another device).
+                                categories.append(category)
+                            }
+                        }
+                    }
+                    
+                    /// Delete from cache and model.
+                    for category in categories {
+                        if !activeIds.contains(category.id) {
+                            categories.removeAll { $0.id == category.id }
+                            let _ = await DataManager.shared.delete(type: PersistentCategory.self, predicate: .byId(.string(category.id)))
+                        }
+                    }
+            
+                    /// Save the cache.
+                    let _ = await DataManager.shared.save()
+                    
+                } else {
+                    categories.removeAll()
+                }
+            }
+            
+            /// Update the progress indicator.
+            AppState.shared.downloadedData.append(.categories)
+            
+        case .failure (let error):
+            switch error {
+            case .taskCancelled:
+                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
+                print("catModel fetchFrom Server Task Cancelled")
+            default:
+                LogManager.error(error.localizedDescription)
+                AppState.shared.showAlert("There was a problem trying to fetch the categories.")
+            }
+        }
+    }
     
     
     @MainActor
@@ -374,7 +456,7 @@ class CategoryModel {
         
         
         
-        guard let entity = await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(category.id)), createIfNotFound: true) else { return false }
+        guard let entity = try? await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(category.id)), createIfNotFound: true) else { return false }
         entity.id = category.id
         entity.title = category.title
         entity.amount = category.amount ?? 0.0
@@ -409,7 +491,7 @@ class CategoryModel {
             
             /// Get the new ID from the server after adding a new activity.
             if category.action != .delete {
-                guard let entity = await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(category.id)), createIfNotFound: true) else { return false }
+                guard let entity = try? await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(category.id)), createIfNotFound: true) else { return false }
                 
                 
                 if category.action == .add {
@@ -558,7 +640,7 @@ class CategoryModel {
             
             /// Update in CoreData.
             if let listOrder = category.listOrder {
-                if let entity = await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(category.id)), createIfNotFound: false) {
+                if let entity = try? await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(category.id)), createIfNotFound: false) {
                     entity.listOrder = Int64(listOrder)
                 }
             }

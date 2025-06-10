@@ -9,11 +9,45 @@ import Foundation
 import SwiftUI
 
 
+extension NSObject {
+    class var className: String {
+        return String(describing: self)
+    }
+}
+
+class LocalKeys: NSObject {
+    class Charts: NSObject {
+        class Options: NSObject {
+            static let showOverviewDataPerMethodOnUnified = "\(LocalKeys.className)_\(Charts.className)_\(Options.className))_showOverviewDataPerMethodOnUnifiedChart"
+        }
+        
+        class IncomeExpense: NSObject {
+            static let showExpenses = "\(LocalKeys.className)_\(Charts.className)_\(IncomeExpense.className))_showExpenses"
+            static let showIncome = "\(LocalKeys.className)_\(Charts.className)_\(IncomeExpense.className))_showIncome"
+            static let showStartingAmount = "\(LocalKeys.className)_\(Charts.className)_\(IncomeExpense.className))_showStartingAmount"
+            static let showPayments = "\(LocalKeys.className)_\(Charts.className)_\(IncomeExpense.className))_showPayments"
+        }
+        
+        class ProfitLoss: NSObject {
+            static let metrics = "\(LocalKeys.className)_\(Charts.className)_\(ProfitLoss.className))_profitLossMetrics"
+            static let style = "\(LocalKeys.className)_\(Charts.className)_\(ProfitLoss.className))_profitLossStyle"
+        }
+        
+        class MetricByPaymentMethod: NSObject {
+            static let expenses = "\(LocalKeys.className)_\(Charts.className)_\(MetricByPaymentMethod.className))_expenses"
+            static let income = "\(LocalKeys.className)_\(Charts.className)_\(MetricByPaymentMethod.className))_income"
+            static let startingAmount = "\(LocalKeys.className)_\(Charts.className)_\(MetricByPaymentMethod.className))_startingAmount"
+            static let payments = "\(LocalKeys.className)_\(Charts.className)_\(MetricByPaymentMethod.className))_payments"
+        }
+    }
+}
+
+
 // MARK: - NOTE! If you want to use properties in a model, and have them be saved, you must ready/write them via that model, otherwise views will not update.
     // MARK: - For example, using `@ChartOption(\.chartCropingStyle) var chartCropingStyle` in a view, and writing to the variable with the same UserDefault key via the model will not trigger an update in the view using the property wrapper.
 
 @Observable
-public class LocalStorage: ChartVariables, LocalVariables {
+public class LocalStorage {
     public static let shared = LocalStorage()
     
     private init() { /*print("init")*/ }
@@ -53,10 +87,33 @@ public class LocalStorage: ChartVariables, LocalVariables {
         set { set(\.chartCropingStyle.rawValue, key: "chartCropingStyle", new: newValue.rawValue) }
     }
     
-    public var showOverviewDataPerMethodOnUnifiedChart: Bool {
-        get { get(\.showOverviewDataPerMethodOnUnifiedChart, key: "showOverviewDataPerMethodOnUnifiedChart", default: false) }
-        set { set(\.showOverviewDataPerMethodOnUnifiedChart, key: "showOverviewDataPerMethodOnUnifiedChart", new: newValue) }
-    }
+//    public var showOverviewDataPerMethodOnUnifiedChart: Bool {
+//        get { get(\.showOverviewDataPerMethodOnUnifiedChart, key: "showOverviewDataPerMethodOnUnifiedChart", default: false) }
+//        set { set(\.showOverviewDataPerMethodOnUnifiedChart, key: "showOverviewDataPerMethodOnUnifiedChart", new: newValue) }
+//    }
+//    
+    
+//    // MARK: - IncomeAndExpenseChartVariables
+//    public var incomeAndExpenseChartShowExpenses: Bool {
+//        get { get(\.incomeAndExpenseChartShowExpenses, key: "incomeAndExpenseChartShowExpenses", default: true) }
+//        set { set(\.incomeAndExpenseChartShowExpenses, key: "incomeAndExpenseChartShowExpenses", new: newValue) }
+//    }
+//    
+//    public var incomeAndExpenseChartShowIncome: Bool {
+//        get { get(\.incomeAndExpenseChartShowIncome, key: "incomeAndExpenseChartShowIncome", default: true) }
+//        set { set(\.incomeAndExpenseChartShowIncome, key: "incomeAndExpenseChartShowIncome", new: newValue) }
+//    }
+//    
+//    public var incomeAndExpenseChartShowStartingAmount: Bool {
+//        get { get(\.incomeAndExpenseChartShowStartingAmount, key: "incomeAndExpenseChartShowStartingAmount", default: true) }
+//        set { set(\.incomeAndExpenseChartShowStartingAmount, key: "incomeAndExpenseChartShowStartingAmount", new: newValue) }
+//    }
+//    
+//    public var incomeAndExpenseChartShowPayments: Bool {
+//        get { get(\.incomeAndExpenseChartShowPayments, key: "incomeAndExpenseChartShowPayments", default: true) }
+//        set { set(\.incomeAndExpenseChartShowPayments, key: "incomeAndExpenseChartShowPayments", new: newValue) }
+//    }
+//    
     
     
     // MARK: - Helper Functions
@@ -78,20 +135,47 @@ public class LocalStorage: ChartVariables, LocalVariables {
 
 
 
+
+
+
+
 // MARK: - Local Variables
-public protocol LocalVariables: AnyObject {
-    var threshold: Double { get set }
-    var colorTheme: String { get set }
-    var useWholeNumbers: Bool { get set }
-    var incomeColor: String { get set }
-}
+//public protocol LocalVariables: AnyObject {
+//    var threshold: Double { get set }
+//    var colorTheme: String { get set }
+//    var useWholeNumbers: Bool { get set }
+//    var incomeColor: String { get set }
+//}
+//
+//@propertyWrapper
+//public struct Local<T>: DynamicProperty {
+//    private var defaults: LocalVariables = LocalStorage.shared
+//    private let keyPath: ReferenceWritableKeyPath<LocalVariables, T>
+//    
+//    public init(_ keyPath: ReferenceWritableKeyPath<LocalVariables, T>) {
+//        self.keyPath = keyPath
+//    }
+//
+//    public var wrappedValue: T {
+//        get { defaults[keyPath: keyPath] }
+//        nonmutating set { defaults[keyPath: keyPath] = newValue }
+//    }
+//
+//    public var projectedValue: Binding<T> {
+//        Binding(
+//            get: { defaults[keyPath: keyPath] },
+//            set: { defaults[keyPath: keyPath] = $0 }
+//        )
+//    }
+//}
+
 
 @propertyWrapper
 public struct Local<T>: DynamicProperty {
-    private var defaults: LocalVariables = LocalStorage.shared
-    private let keyPath: ReferenceWritableKeyPath<LocalVariables, T>
+    private var defaults: LocalStorage = LocalStorage.shared
+    private let keyPath: ReferenceWritableKeyPath<LocalStorage, T>
     
-    public init(_ keyPath: ReferenceWritableKeyPath<LocalVariables, T>) {
+    public init(_ keyPath: ReferenceWritableKeyPath<LocalStorage, T>) {
         self.keyPath = keyPath
     }
 
@@ -107,110 +191,155 @@ public struct Local<T>: DynamicProperty {
         )
     }
 }
+
+
+
+
+
+//
+//
+//
+//// MARK: - IncomeAndExpenseChartVariables
+public protocol IncomeAndExpenseChartVariables: AnyObject {
+    var showExpenses: Bool { get set }
+    var showIncome: Bool { get set }
+    var showStartingAmount: Bool { get set }
+    var showPayments: Bool { get set }
+}
+
+extension LocalStorage: IncomeAndExpenseChartVariables {
+    public var showExpenses: Bool {
+        get { get(\.showExpenses, key: "\(String(describing: IncomeAndExpenseChartVariables.self))showExpenses", default: true) }
+        set { set(\.showExpenses, key: "\(String(describing: IncomeAndExpenseChartVariables.self))showExpenses", new: newValue) }
+    }
+    
+    public var showIncome: Bool {
+        get { get(\.showIncome, key: "\(String(describing: IncomeAndExpenseChartVariables.self))showIncome", default: true) }
+        set { set(\.showIncome, key: "\(String(describing: IncomeAndExpenseChartVariables.self))showIncome", new: newValue) }
+    }
+    
+    public var showStartingAmount: Bool {
+        get { get(\.showStartingAmount, key: "\(String(describing: IncomeAndExpenseChartVariables.self))showStartingAmount", default: true) }
+        set { set(\.showStartingAmount, key: "\(String(describing: IncomeAndExpenseChartVariables.self))showStartingAmount", new: newValue) }
+    }
+    
+    public var showPayments: Bool {
+        get { get(\.showPayments, key: "\(String(describing: IncomeAndExpenseChartVariables.self))showPayments", default: true) }
+        set { set(\.showPayments, key: "\(String(describing: IncomeAndExpenseChartVariables.self))showPayments", new: newValue) }
+    }
+}
+
+@propertyWrapper
+public struct ChartOptionIncomeAndExpense<T>: DynamicProperty {
+    private var defaults: IncomeAndExpenseChartVariables = LocalStorage.shared
+    private let keyPath: ReferenceWritableKeyPath<IncomeAndExpenseChartVariables, T>
+    
+    public init(_ keyPath: ReferenceWritableKeyPath<IncomeAndExpenseChartVariables, T>) {
+        self.keyPath = keyPath
+    }
+
+    public var wrappedValue: T {
+        get { defaults[keyPath: keyPath] }
+        nonmutating set { defaults[keyPath: keyPath] = newValue }
+    }
+
+    public var projectedValue: Binding<T> {
+        Binding(
+            get: { defaults[keyPath: keyPath] },
+            set: { defaults[keyPath: keyPath] = $0 }
+        )
+    }
+}
+
+
+
+
+
+
+// MARK: - ProfitLossChartVariables
+//public protocol ProfitLossChartVariables: AnyObject {
+//    var showExpenses: Bool { get set }
+//    var showIncome: Bool { get set }
+//    var showStartingAmount: Bool { get set }
+//    var showPayments: Bool { get set }
+//}
+//
+//extension LocalStorage: ProfitLossChartVariables {
+//    public var profitLossStyle: Bool {
+//        get { get(\.showExpenses, key: "\(String(describing: ProfitLossChartVariables.self))showExpenses", default: true) }
+//        set { set(\.showExpenses, key: "\(String(describing: ProfitLossChartVariables.self))showExpenses", new: newValue) }
+//    }
+//    
+//    public var profitLossMetricsMenu: Bool {
+//        get { get(\.showIncome, key: "\(String(describing: ProfitLossChartVariables.self))showIncome", default: true) }
+//        set { set(\.showIncome, key: "\(String(describing: ProfitLossChartVariables.self))showIncome", new: newValue) }
+//    }
+//    
+//}
+//
+//@propertyWrapper
+//public struct ChartOptionProfitLoss<T>: DynamicProperty {
+//    private var defaults: ProfitLossChartVariables = LocalStorage.shared
+//    private let keyPath: ReferenceWritableKeyPath<ProfitLossChartVariables, T>
+//    
+//    public init(_ keyPath: ReferenceWritableKeyPath<ProfitLossChartVariables, T>) {
+//        self.keyPath = keyPath
+//    }
+//
+//    public var wrappedValue: T {
+//        get { defaults[keyPath: keyPath] }
+//        nonmutating set { defaults[keyPath: keyPath] = newValue }
+//    }
+//
+//    public var projectedValue: Binding<T> {
+//        Binding(
+//            get: { defaults[keyPath: keyPath] },
+//            set: { defaults[keyPath: keyPath] = $0 }
+//        )
+//    }
+//}
+//
+//
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 // MARK: - Chart Variables
-public protocol ChartVariables: AnyObject {
-    var profitLossMetrics: String { get set }
-    var chartCropingStyle: ChartCropingStyle { get set }
-    var showOverviewDataPerMethodOnUnifiedChart: Bool { get set }
-}
-
-@propertyWrapper
-public struct ChartOption<T>: DynamicProperty {
-    private var defaults: ChartVariables = LocalStorage.shared
-    private let keyPath: ReferenceWritableKeyPath<ChartVariables, T>
-    
-    public init(_ keyPath: ReferenceWritableKeyPath<ChartVariables, T>) {
-        self.keyPath = keyPath
-    }
-
-    public var wrappedValue: T {
-        get { defaults[keyPath: keyPath] }
-        nonmutating set { defaults[keyPath: keyPath] = newValue }
-    }
-
-    public var projectedValue: Binding<T> {
-        Binding(
-            get: { defaults[keyPath: keyPath] },
-            set: { defaults[keyPath: keyPath] = $0 }
-        )
-    }
-}
-
-
-
-
-
-
-// MARK: - Income And Expense Chart Variables
-@propertyWrapper
-public struct IncomeAndExpenseChartOption<T>: DynamicProperty {
-    private var defaults: IncomeAndExpenseChartStorage = IncomeAndExpenseChartStorage.shared
-    private let keyPath: ReferenceWritableKeyPath<IncomeAndExpenseChartStorage, T>
-    
-    public init(_ keyPath: ReferenceWritableKeyPath<IncomeAndExpenseChartStorage, T>) {
-        self.keyPath = keyPath
-    }
-
-    public var wrappedValue: T {
-        get { defaults[keyPath: keyPath] }
-        nonmutating set { defaults[keyPath: keyPath] = newValue }
-    }
-
-    public var projectedValue: Binding<T> {
-        Binding(
-            get: { defaults[keyPath: keyPath] },
-            set: { defaults[keyPath: keyPath] = $0 }
-        )
-    }
-}
-
-@Observable
-public class IncomeAndExpenseChartStorage {
-    public static let shared = IncomeAndExpenseChartStorage()
-    
-    private init() { /*print("init")*/ }
-    //deinit{ print("deinit") }
-    var prefix = "IncomeAndExpenseChartStorage_"
-    
-    public var showExpenses: Bool {
-        get { get(\.showExpenses, key: "\(prefix)showExpenses", default: true) }
-        set { set(\.showExpenses, key: "\(prefix)showExpenses", new: newValue) }
-    }
-    
-    public var showIncome: Bool {
-        get { get(\.showIncome, key: "\(prefix)showIncome", default: true) }
-        set { set(\.showIncome, key: "\(prefix)showIncome", new: newValue) }
-    }
-    
-    public var showStartingAmount: Bool {
-        get { get(\.showStartingAmount, key: "\(prefix)showStartingAmount", default: true) }
-        set { set(\.showStartingAmount, key: "\(prefix)showStartingAmount", new: newValue) }
-    }
-    
-    public var showPayments: Bool {
-        get { get(\.showPayments, key: "\(prefix)showPayments", default: true) }
-        set { set(\.showPayments, key: "\(prefix)showPayments", new: newValue) }
-    }
-    
-    
-    private func get<T: Decodable>(_ keyPath: KeyPath<IncomeAndExpenseChartStorage, T>, key: String, default defaultValue: T) -> T {
-        access(keyPath: keyPath)
-        if let data = UserDefaults.standard.data(forKey: key) {
-            return try! JSONDecoder().decode(T.self, from: data)
-        }
-        return defaultValue
-    }
-    
-    private func set<T: Encodable>(_ keyPath: KeyPath<IncomeAndExpenseChartStorage, T>, key: String, new: T) {
-        withMutation(keyPath: keyPath) {
-            let data = try? JSONEncoder().encode(new)
-            UserDefaults.standard.set(data, forKey: key)
-        }
-    }
-}
-
-
-
+//public protocol ChartVariables: AnyObject {
+//    var profitLossMetrics: String { get set }
+//    var chartCropingStyle: ChartCropingStyle { get set }
+//    var showOverviewDataPerMethodOnUnifiedChart: Bool { get set }
+//}
+//
+//@propertyWrapper
+//public struct ChartOption<T>: DynamicProperty {
+//    private var defaults: ChartVariables = LocalStorage.shared
+//    private let keyPath: ReferenceWritableKeyPath<ChartVariables, T>
+//    
+//    public init(_ keyPath: ReferenceWritableKeyPath<ChartVariables, T>) {
+//        self.keyPath = keyPath
+//    }
+//
+//    public var wrappedValue: T {
+//        get { defaults[keyPath: keyPath] }
+//        nonmutating set { defaults[keyPath: keyPath] = newValue }
+//    }
+//
+//    public var projectedValue: Binding<T> {
+//        Binding(
+//            get: { defaults[keyPath: keyPath] },
+//            set: { defaults[keyPath: keyPath] = $0 }
+//        )
+//    }
+//}

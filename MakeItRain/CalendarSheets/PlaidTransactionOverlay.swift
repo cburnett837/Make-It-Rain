@@ -299,15 +299,11 @@ struct PlaidTransactionOverlay: View {
             }
             
             let realTrans = CBTransaction(plaidTrans: trans)
-            if let targetDay = calModel
-                .sMonth
-                .days
-                .filter({
-                    $0.dateComponents?.month == realTrans.date?.month
-                    && $0.dateComponents?.day == realTrans.date?.day
-                    && $0.dateComponents?.year == realTrans.date?.year
-                }).first {
-                targetDay.upsert(realTrans)
+            
+            if let targetMonth = calModel.months.filter({ $0.actualNum == realTrans.date?.month && $0.year == realTrans.date?.year }).first {
+                if let targetDay = targetMonth.days.filter({ $0.dateComponents?.day == realTrans.date?.day }).first {
+                    targetDay.upsert(realTrans)
+                }
             }
             
             calModel.tempTransactions.append(realTrans)

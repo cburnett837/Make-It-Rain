@@ -14,6 +14,8 @@ struct StandardTitleTextField<T: CanEditTitleWithLocation & Observation.Observab
     var focusID: Int
     var showSymbol: Bool = true
     var parentType: XrefEnum
+    @Binding var showTitleSuggestions: Bool
+    var titleSuggestions: Array<String> = []
     
     var obj: T
     
@@ -52,6 +54,27 @@ struct StandardTitleTextField<T: CanEditTitleWithLocation & Observation.Observab
                             .stroke(.red, lineWidth: 4)
                     }
                 }
+                if showTitleSuggestions && !titleSuggestions.isEmpty {
+                    VStack(alignment: .leading) {
+                        ForEach(titleSuggestions, id: \.self) { title in
+                            VStack(alignment: .leading) {
+                                HStack {
+                                    Image(systemName: "brain")
+                                    Text("\(title.capitalized)?")
+                                }
+                                .foregroundStyle(.secondary)
+                                .font(.subheadline)
+                                
+                                Divider()
+                            }
+                            .onTapGesture {
+                                obj.title = title.capitalized
+                            }
+                        }
+                    }
+                }
+                
+                
                 
                 if !mapModel.completions.isEmpty {
                     VStack(alignment: .leading) {
@@ -107,7 +130,12 @@ struct StandardTitleTextField<T: CanEditTitleWithLocation & Observation.Observab
         }
         /// Handle search suggestions
         .onChange(of: obj.title) { oldTerm, newTerm in
-            mapModel.getAutoCompletions(for: newTerm)
+            if !showTitleSuggestions {
+                mapModel.getAutoCompletions(for: newTerm)
+            }
+            if !newTerm.isEmpty {
+                showTitleSuggestions = false
+            }
         }
         .onChange(of: focusedField.wrappedValue) { oldValue, newValue in
             if oldValue == focusID && newValue != focusID {

@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct ChartOptionSheetContainer<Content: View, Content2: View, Content3: View, Content4: View>: View {
+struct LittleBottomSheetContainer<Content: View, Content2: View, Content3: View, Content4: View>: View {
     @Environment(\.colorScheme) var colorScheme
     
     @ViewBuilder var content: Content

@@ -332,7 +332,42 @@ class PayMethodViewModel {
                     breakdowns.forEach { $0.profitLossPercentage = Helpers.netWorthPercentageChange(start: $0.startingAmounts, end: $0.monthEnd) }
 
                     
-                    let profitLossPercentage = breakdowns.map { $0.profitLossPercentage }.reduce(0, +)
+//                    breakdowns.profitLossPercentage = Helpers.netWorthPercentageChange(
+//                        start: startingAmounts,
+//                        end: breakdowns.map { $0.monthEnd }.reduce(0, +)
+//                    )
+                    
+                    
+                    
+                    //let profitLossPercentage = breakdowns.map { $0.profitLossPercentage }.reduce(0, +)
+                    
+//                    if each.month == 6 && each.year == 2025 {
+//                        print("HEREEEEEEE")
+//                        
+//                        
+//                        print(profitLoss)
+//                        
+//                        print(breakdowns.map { $0.profitLoss })
+//                        
+//                        print(breakdowns.map { $0.profitLossPercentage })
+//                        // [-62.64794935315167, 0.0, 240.0]
+//                        
+//                        breakdowns.forEach { print($0.payMethodID, $0.startingAmounts, $0.monthEnd) }
+//                        //5 3633.0 1357.0
+//                        //49 0.0 0.0
+//                        //7 500.0 1700.0
+//                        print(profitLossPercentage)
+//                        //177.35205064684834
+//
+//                        //(3633 + 500) (1357 + 1700)
+//                        //4133 + 3057
+//                        print(breakdowns.map { $0.startingAmounts })
+//                        print(breakdowns.map { $0.monthEnd })
+//                        print(Helpers.netWorthPercentageChange(start: startingAmounts, end: breakdowns.map { $0.monthEnd }.reduce(0, +)))
+//                        
+//
+//                    }
+                    
                     
                     let monthEnd = breakdowns.map { $0.monthEnd }.reduce(0, +)
                     let minEod = breakdowns.map { $0.minEod }.reduce(0, +)
@@ -354,7 +389,7 @@ class PayMethodViewModel {
                         paymentsString: String(payments),
                         startingAmountsString: String(startingAmounts),
                         profitLossString: String(profitLoss),
-                        profitLossPercentage: profitLossPercentage,
+                        profitLossPercentage: Helpers.netWorthPercentageChange(start: startingAmounts, end: breakdowns.map { $0.monthEnd }.reduce(0, +)),
                         //profitLossMinPercentageString: String(profitLossMinPercentage),
                         //profitLossMaxPercentageString: String(profitLossMaxPercentage),
                         //profitLossMinAmountString: String(profitLossMinAmount),
@@ -891,6 +926,7 @@ class PayMethodViewModel {
             let minPer = percentages.min() ?? 0
             let maxPer = percentages.max() ?? 0
             result = (flipAt - minPer) / (maxPer - minPer)
+            //print("HEYYYYYY \(result) --- \(minPer) --- \(maxPer)")
             
         case .minMaxEod:
 //            let relevant = relevantBreakdowns
@@ -912,7 +948,15 @@ class PayMethodViewModel {
         
         
         guard !result.isInfinite, !result.isNaN else { return nil }
-        if result > 0 && result < 1 { return result }
+        if result >= 0 && result <= 1 {
+            //print("RETURN \(result)")
+            return result
+        } else if result < 0 {
+            return 0
+        } else if result > 1 {
+            return 1
+        }
+        //print("RETURN NIL")
         return nil
     }
 }

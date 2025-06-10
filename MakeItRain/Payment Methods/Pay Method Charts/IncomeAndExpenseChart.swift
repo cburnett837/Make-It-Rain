@@ -12,8 +12,7 @@ struct IncomeExpenseChartWidget: View {
     @Bindable var vm: PayMethodViewModel
     @Bindable var payMethod: CBPaymentMethod
     @State private var showOptions = false
-    
-    
+        
     var body: some View {
         VStack(alignment: .leading) {
             WidgetLabelButton(title: "All Expenses/Income") {
@@ -34,17 +33,25 @@ struct IncomeExpenseChart: View {
     @Environment(\.dismiss) var dismiss
     @Local(\.incomeColor) var incomeColor
     @Local(\.useWholeNumbers) var useWholeNumbers
-    @ChartOption(\.showOverviewDataPerMethodOnUnifiedChart) var showOverviewDataPerMethodOnUnifiedChart
-    @IncomeAndExpenseChartOption(\.showExpenses) var showExpenses
-    @IncomeAndExpenseChartOption(\.showIncome) var showIncome
-    @IncomeAndExpenseChartOption(\.showStartingAmount) var showStartingAmount
-    @IncomeAndExpenseChartOption(\.showPayments) var showPayments
+    //@Local(\.showOverviewDataPerMethodOnUnifiedChart) var showOverviewDataPerMethodOnUnifiedChart
+    @AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false
+
+    
+    @AppStorage(LocalKeys.Charts.IncomeExpense.showExpenses) var showExpenses: Bool = true
+    @AppStorage(LocalKeys.Charts.IncomeExpense.showIncome) var showIncome: Bool = true
+    @AppStorage(LocalKeys.Charts.IncomeExpense.showStartingAmount) var showStartingAmount: Bool = true
+    @AppStorage(LocalKeys.Charts.IncomeExpense.showPayments) var showPayments: Bool = true
+    
+    //@Local(\.incomeAndExpenseChartShowExpenses) var showExpenses
+    //@Local(\.incomeAndExpenseChartShowIncome) var showIncome
+    //@Local(\.incomeAndExpenseChartShowStartingAmount) var showStartingAmount
+    //@Local(\.incomeAndExpenseChartShowPayments) var showPayments
     
     @Bindable var vm: PayMethodViewModel
     @Bindable var payMethod: CBPaymentMethod
     @Binding var showOptions: Bool
-        
     var detailStyle: DetailStyle
+    
     @State private var chartWidth: CGFloat = 0
     @State private var legendItems: [(id: UUID, title: String, color: Color)] = []
     @State private var showDetailsSheet = false
@@ -95,6 +102,7 @@ struct IncomeExpenseChart: View {
             .maxChartWidthObserver()
             .onPreferenceChange(MaxChartSizePreferenceKey.self) { chartWidth = max(chartWidth, $0) }
         }
+        .sensoryFeedback(.selection, trigger: selectedDate) { $0 != nil && $1 != nil }
         .onChange(of: vm.incomeType, initial: true, configureLegend)
         .sheet(isPresented: $showOptions) {
             ChartOptionsSheet(vm: vm, payMethod: payMethod, showOptions: $showOptions)
@@ -155,7 +163,7 @@ struct IncomeExpenseChart: View {
                 vm.viewByQuarter ? (payMethod.isCredit ? "Starting (avg)" : "Starting (sum)") : "Starting"
             }
             
-            SelectedDataContainer(
+            ChartSelectedDataContainer(
                 vm: vm,
                 payMethod: payMethod,
                 selectedDate: selectedDate,
@@ -222,10 +230,10 @@ struct IncomeExpenseChart: View {
 
 
 fileprivate struct ChartOptionsSheet: View {
-    @IncomeAndExpenseChartOption(\.showExpenses) var showExpenses
-    @IncomeAndExpenseChartOption(\.showIncome) var showIncome
-    @IncomeAndExpenseChartOption(\.showStartingAmount) var showStartingAmount
-    @IncomeAndExpenseChartOption(\.showPayments) var showPayments
+    @AppStorage(LocalKeys.Charts.IncomeExpense.showExpenses) var showExpenses: Bool = true
+    @AppStorage(LocalKeys.Charts.IncomeExpense.showIncome) var showIncome: Bool = true
+    @AppStorage(LocalKeys.Charts.IncomeExpense.showStartingAmount) var showStartingAmount: Bool = true
+    @AppStorage(LocalKeys.Charts.IncomeExpense.showPayments) var showPayments: Bool = true
     
     @Bindable var vm: PayMethodViewModel
     @Bindable var payMethod: CBPaymentMethod
@@ -233,16 +241,15 @@ fileprivate struct ChartOptionsSheet: View {
     
     let expenseDescription: LocalizedStringKey = "Sum of all negative dollar amounts. (Expenses, Withdrawals, Etc.)"
     
-    let incomeDescription: LocalizedStringKey = "**Only income:**\nThe sum of amounts where transactions have an ***income*** category.\n\n**Money in only (no income):**\nThe sum of positive dollar amounts ***excluding*** transactions that have an income category.\n(Deposits, Refunds, Etc.)\n\n**All money in:**\nThe sum of ***all*** positive dollar amounts.\n(Income, Deposits, Refunds, Etc.)\n\n**Starting amount & all money in:**\nThat sum of all positive dollar amounts + the amount you started the month with."
+    let incomeDescription: LocalizedStringKey = "**Income only:**\nThe sum of amounts where transactions have an ***income*** category.\n\n**Money in only (no income):**\nThe sum of positive dollar amounts ***excluding*** transactions that have an income category.\n(Deposits, Refunds, Etc.)\n\n**All money in:**\nThe sum of ***all*** positive dollar amounts.\n(Income, Deposits, Refunds, Etc.)\n\n**Starting amount & all money in:**\nThat sum of all positive dollar amounts + the amount you started the month with."
     
     let startingAmountDescription: LocalizedStringKey = "Your balance at the beginning of the month."
     
     let paymentDescription: LocalizedStringKey = "Any payments made."
     
-    @State private var geoHeight = CGFloat.zero
     
     var body: some View {
-        ChartOptionSheetContainer {
+        LittleBottomSheetContainer {
             ChartOptionToggle(description: expenseDescription, title: Text("Show Expenses"), color: .red, show: $showExpenses)
             ChartOptionToggle(description: startingAmountDescription, title: Text("Show Month Begin"), color: .orange, show: $showStartingAmount)
             

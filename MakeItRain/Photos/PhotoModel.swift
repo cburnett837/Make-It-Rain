@@ -20,6 +20,7 @@ import UIKit
 class PhotoModel {
     static let shared = PhotoModel()
     var pictureParent: PictureParent?
+    let compressionQuality: CGFloat = 0
 
     /// This is the photo from the photo library.
     var imagesFromLibrary: Array<PhotosPickerItem> = []
@@ -70,7 +71,7 @@ class PhotoModel {
         
         #if os(iOS)
         guard let inputImage = UIImage(data: ogImageData) else { return nil }
-        let imageData = inputImage.jpegData(compressionQuality: 0.8) ?? Data()
+        let imageData = inputImage.jpegData(compressionQuality: compressionQuality) ?? Data()
         
         #else
         guard let inputImage = NSImage(data: ogImageData) else { return nil }
@@ -87,7 +88,7 @@ class PhotoModel {
     /// This is only used to process photos from the camera on iPhone.
     #if os(iOS)
     func prepareDataFromUIImage(image: UIImage) -> Data? {
-        return image.jpegData(compressionQuality: 0.8)
+        return image.jpegData(compressionQuality: compressionQuality)
     }
     #endif
     

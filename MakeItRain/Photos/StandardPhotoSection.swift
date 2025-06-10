@@ -33,7 +33,8 @@ struct StandardPhotoSection: View {
     @Binding var showCamera: Bool
     @Binding var showPhotosPicker: Bool
     @State private var addPhotoButtonHoverColor2: Color = Color(.tertiarySystemFill)
-    @State private var safariUrl: URL?
+    //@State private var safariUrl: URL?
+    @State private var showPicWebView: Bool = false
     @State private var props = PhotoViewProps()
     
     
@@ -65,14 +66,14 @@ struct StandardPhotoSection: View {
                             ScrollView {
                                 LazyVGrid(columns: threeColumnGrid, spacing: 5) {
                                     ForEach(pictures) { pic in
-                                        ConditionalPicView(pic: pic, safariUrl: $safariUrl, displayStyle: displayStyle)
+                                        ConditionalPicView(pic: pic, showPicWebView: $showPicWebView, displayStyle: displayStyle)
                                     }
                                 }
                             }
                         } else {
                             LazyVGrid(columns: threeColumnGrid, spacing: 5) {
                                 ForEach(pictures) { pic in
-                                    ConditionalPicView(pic: pic, safariUrl: $safariUrl, displayStyle: displayStyle)
+                                    ConditionalPicView(pic: pic, showPicWebView: $showPicWebView, displayStyle: displayStyle)
                                 }
                             }
                         }
@@ -85,7 +86,7 @@ struct StandardPhotoSection: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(alignment: .top, spacing: 4) {
                                 ForEach(pictures) { pic in
-                                    ConditionalPicView(pic: pic, safariUrl: $safariUrl, displayStyle: displayStyle)
+                                    ConditionalPicView(pic: pic, showPicWebView: $showPicWebView, displayStyle: displayStyle)
                                 }
                                 photoPickerButton
                             }
@@ -93,7 +94,7 @@ struct StandardPhotoSection: View {
                     } else {
                         HStack(alignment: .top, spacing: 4) {
                             ForEach(pictures) { pic in
-                                ConditionalPicView(pic: pic, safariUrl: $safariUrl, displayStyle: displayStyle)
+                                ConditionalPicView(pic: pic, showPicWebView: $showPicWebView, displayStyle: displayStyle)
                             }
                             photoPickerButton
                         }
@@ -133,9 +134,12 @@ struct StandardPhotoSection: View {
         #endif
         
         .environment(props)
-        #if os(iOS)
-        .sheet(item: $safariUrl) { SFSafariView(url: $0) }
-        #endif
+//        #if os(iOS)
+////        .sheet(item: $safariUrl) {
+////            SFSafariView(url: $0)
+////            WebView(requestModel: RequestModel(requestType: "download_photo", model: PhotoRequestModel(path: "budget_app.photo.\(pic.uuid).jpg")))
+////        }
+//        #endif
         
         .confirmationDialog("Delete this picture?", isPresented: $props.showDeletePicAlert) {
             Button("Yes", role: .destructive) {
@@ -228,7 +232,8 @@ struct StandardPhotoSection: View {
         #endif
         
         var pic: CBPicture
-        @Binding var safariUrl: URL?
+        //@Binding var safariUrl: URL?
+        @Binding var showPicWebView: Bool
         var displayStyle: PhotoSectionDisplayStyle
         
         var body: some View {
@@ -265,7 +270,8 @@ struct StandardPhotoSection: View {
             
             /// Open inline safari-sheet
             .onTapGesture {
-                safariUrl = URL(string: "https://\(Keys.baseURL):8676/pictures/budget_app.photo.\(pic.uuid).jpg")!
+                showPicWebView = true
+                //safariUrl = URL(string: "https://\(Keys.baseURL):8676/pictures/budget_app.photo.\(pic.uuid).jpg")!
             }
             /// Long press to show delete (no share sheet option. Can share directly from safari sheet)
             .onLongPressGesture {
@@ -273,10 +279,18 @@ struct StandardPhotoSection: View {
                 props.deletePic = pic
                 props.showDeletePicAlert = true
             }
-            .sensoryFeedback(.warning, trigger: props.showDeletePicAlert) { oldValue, newValue in
-                !oldValue && newValue
+            .sensoryFeedback(.warning, trigger: props.showDeletePicAlert) { !$0 && $1 }
+            //            .sheet(item: $safariUrl) { _ in
+            //                //SFSafariView(url: $0)
+            //                WebView(requestModel: RequestModel(requestType: "download_photo", model: PhotoRequestModel(path: "budget_app.photo.\(pic.uuid).jpg")))
+            //            }
+            .sheet(isPresented: $showPicWebView) {
+                //SFSafariView(url: $0)
+                WebView(requestModel: RequestModel(requestType: "download_photo", model: PhotoRequestModel(path: "budget_app.photo.\(pic.uuid).jpg")))
             }
             #endif
+            
+
         }
     }
                  
@@ -288,28 +302,94 @@ struct StandardPhotoSection: View {
         
         var body: some View {
             @Bindable var props = props
-            AsyncImage(
-                //url: URL(string: "http://www.codyburnett.com:8677/budget_app.photo.\(picture.path).jpg"),
-                url: URL(string: "https://\(Keys.baseURL):8676/pictures/budget_app.photo.\(pic.uuid).jpg"),
-                content: { image in
-                    image
-                        .resizable()
-                        .if(displayStyle == .grid) {
-                            $0.aspectRatio(1, contentMode: .fit)
-                        }
-                        .if(displayStyle == .standard) {
-                            $0.frame(width: photoWidth, height: photoHeight).aspectRatio(contentMode: .fill)
-                        }
-                                                
-                        .clipShape(.rect(cornerRadius: 12))
-                        //.frame(maxWidth: 300, maxHeight: 300)
-                },
-                placeholder: {
-                    PicPlaceholder(text: "Downloading…", displayStyle: displayStyle)
-                }
-            )
+            CustomAsyncImage(pic: pic) { image in
+                image
+                    .resizable()
+                    .if(displayStyle == .grid) {
+                        $0.aspectRatio(1, contentMode: .fit)
+                    }
+                    .if(displayStyle == .standard) {
+                        $0.frame(width: photoWidth, height: photoHeight).aspectRatio(contentMode: .fill)
+                    }
+                                            
+                    .clipShape(.rect(cornerRadius: 12))
+                    //.frame(maxWidth: 300, maxHeight: 300)
+            } placeholder: {
+                PicPlaceholder(text: "Downloading…", displayStyle: displayStyle)
+            }
+
+//            AsyncImage(
+//                //url: URL(string: "http://www.codyburnett.com:8677/budget_app.photo.\(picture.path).jpg"),
+//                url: URL(string: "https://\(Keys.baseURL):8676/pictures/budget_app.photo.\(pic.uuid).jpg"),
+//                content: { image in
+//                    image
+//                        .resizable()
+//                        .if(displayStyle == .grid) {
+//                            $0.aspectRatio(1, contentMode: .fit)
+//                        }
+//                        .if(displayStyle == .standard) {
+//                            $0.frame(width: photoWidth, height: photoHeight).aspectRatio(contentMode: .fill)
+//                        }
+//                                                
+//                        .clipShape(.rect(cornerRadius: 12))
+//                        //.frame(maxWidth: 300, maxHeight: 300)
+//                },
+//                placeholder: {
+//                    PicPlaceholder(text: "Downloading…", displayStyle: displayStyle)
+//                }
+//            )
             .opacity(((props.isDeletingPic && pic.id == props.deletePic?.id) || props.hoverPic == pic || pic.isPlaceholder) ? 0.2 : 1)
             .overlay(ProgressView().tint(.none).opacity(props.isDeletingPic && pic.id == props.deletePic?.id ? 1 : 0))
+        }
+    }
+    
+    struct CustomAsyncImage<Content: View, Placeholder: View>: View {
+        #if os(iOS)
+        @State var uiImage: UIImage?
+        #else
+        @State var nsImage: NSImage?
+        #endif
+
+        var pic: CBPicture
+        @ViewBuilder var content: (Image) -> Content
+        @ViewBuilder var placeholder: () -> Placeholder
+
+        var body: some View {
+            #if os(iOS)
+            if let uiImage = uiImage {
+                content(Image(uiImage: uiImage))
+            } else {
+                placeholder()
+                    .task { await getImage() }
+            }
+            #else
+            if let nsImage = nsImage {
+                content(Image(nsImage: nsImage))
+            } else {
+                placeholder()
+                    .task { await getImage() }
+            }
+            #endif
+        }
+        
+        func getImage() async {
+            let photoModel = PhotoRequestModel(path: "budget_app.photo.\(pic.uuid).jpg")
+            let requestModel = RequestModel(requestType: "download_photo", model: photoModel)
+            let result = await NetworkManager().downloadPicture(requestModel: requestModel)
+            
+            switch result {
+            case .success(let data):
+                if let data = data {
+                    #if os(iOS)
+                    self.uiImage = UIImage(data: data)
+                    #else
+                    self.nsImage = NSImage(data: data)
+                    #endif
+                }
+                
+            case .failure:
+                AppState.shared.showAlert("There was a problem downloading the image.")
+            }
         }
     }
 
