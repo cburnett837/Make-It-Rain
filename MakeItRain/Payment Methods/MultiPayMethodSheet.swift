@@ -45,9 +45,30 @@ struct MultiPayMethodSheet: View {
                 
         .task {
             sections = [
-                PaySection(kind: .debit, payMethods: payModel.paymentMethods.filter { $0.accountType == .checking }),
-                PaySection(kind: .credit, payMethods: payModel.paymentMethods.filter { $0.accountType == .credit }),
-                PaySection(kind: .other, payMethods: payModel.paymentMethods.filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking].contains($0.accountType) })
+                PaySection(
+                    kind: .debit,
+                    payMethods: payModel
+                        .paymentMethods
+                        .filter { $0.accountType == .checking }
+                        .filter { $0.isAllowedToBeViewedByThisUser }
+                        .filter { !$0.isHidden }
+                ),
+                PaySection(
+                    kind: .credit,
+                    payMethods: payModel
+                        .paymentMethods
+                        .filter { $0.accountType == .credit }
+                        .filter { $0.isAllowedToBeViewedByThisUser }
+                        .filter { !$0.isHidden }
+                ),
+                PaySection(
+                    kind: .other,
+                    payMethods: payModel
+                        .paymentMethods
+                        .filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking].contains($0.accountType) }
+                        .filter { $0.isAllowedToBeViewedByThisUser }
+                        .filter { !$0.isHidden }
+                )
             ]
         }
     }

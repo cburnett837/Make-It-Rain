@@ -1248,11 +1248,14 @@ struct TransactionEditView: View {
                     //let _ = DataManager.shared.delete(type: TempTransaction.self, predicate: .byId(.string(trans.id)))
                     
                     Task {
-                        guard let entity = try? await DataManager.shared.getOne(type: TempTransaction.self, predicate: .byId(.string(trans.id)), createIfNotFound: true) else { return }
-                        entity.action = TransactionAction.delete.rawValue
-                        entity.tempAction = TransactionAction.delete.rawValue
-                        let _ = await DataManager.shared.save()
-                        
+                        let context = DataManager.shared.createContext()
+                        context.perform {
+                            if let entity = DataManager.shared.getOne(context: context, type: TempTransaction.self, predicate: .byId(.string(trans.id)), createIfNotFound: true) {
+                                entity.action = TransactionAction.delete.rawValue
+                                entity.tempAction = TransactionAction.delete.rawValue
+                                let _ = DataManager.shared.save(context: context)
+                            }
+                        }                        
                     }
                     
                 } else {

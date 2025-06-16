@@ -362,13 +362,19 @@ class CalendarModel: PhotoUploadCompletedDelegate {
             /// Filter by payment method
             .filter { trans in
                 if sPayMethod?.accountType == .unifiedChecking {
-                    return [AccountType.checking, AccountType.cash].contains { trans.payMethodTypesInCurrentAndDeepCopy.contains($0) } || (trans.action == .add && trans.payMethod == nil)
+                    return ([AccountType.checking, AccountType.cash].contains { trans.payMethodTypesInCurrentAndDeepCopy.contains($0) } || (trans.action == .add && trans.payMethod == nil))
+                    && !trans.hasHiddenMethodInCurrentOrDeepCopy
+                    && trans.isAllowedToBeViewedByThisUser
                     
                 } else if sPayMethod?.accountType == .unifiedCredit {
-                    return [AccountType.credit].contains { trans.payMethodTypesInCurrentAndDeepCopy.contains($0) } || (trans.action == .add && trans.payMethod == nil)
+                    return ([AccountType.credit].contains { trans.payMethodTypesInCurrentAndDeepCopy.contains($0) } || (trans.action == .add && trans.payMethod == nil))
+                    && !trans.hasHiddenMethodInCurrentOrDeepCopy
+                    && trans.isAllowedToBeViewedByThisUser
                     
                 } else {
-                    return sPayMethod?.id == trans.payMethod?.id || sPayMethod?.id == trans.deepCopy?.payMethod?.id
+                    return (sPayMethod?.id == trans.payMethod?.id || sPayMethod?.id == trans.deepCopy?.payMethod?.id)
+                    && !trans.hasHiddenMethodInCurrentOrDeepCopy
+                    && trans.isAllowedToBeViewedByThisUser
                 }
             }
             /// Sort by either enteredDate or title - user preference.
@@ -425,12 +431,18 @@ class CalendarModel: PhotoUploadCompletedDelegate {
             .filter { trans in
                 if meth.accountType == .unifiedChecking {
                     return [AccountType.checking, AccountType.cash].contains(trans.payMethod?.accountType)
+                    && !trans.hasHiddenMethodInCurrentOrDeepCopy
+                    && !trans.hasPrivateMethodInCurrentOrDeepCopy
                     
                 } else if meth.accountType == .unifiedCredit {
                     return [AccountType.credit].contains(trans.payMethod?.accountType)
+                    && !trans.hasHiddenMethodInCurrentOrDeepCopy
+                    && !trans.hasPrivateMethodInCurrentOrDeepCopy
                     
                 } else {
                     return trans.payMethod?.id == meth.id
+                    && !trans.hasHiddenMethodInCurrentOrDeepCopy
+                    && !trans.hasPrivateMethodInCurrentOrDeepCopy
                 }
             }
             .count
@@ -1163,6 +1175,7 @@ class CalendarModel: PhotoUploadCompletedDelegate {
     /// Only called via `saveTransaction(id: day:)` or `saveTemp(trans:)`.
     @MainActor
     private func submit(_ trans: CBTransaction) async -> Bool {
+        let context = DataManager.shared.createContext()
         print("-- \(#function)")
         print("Submitting Trans \(trans.id)")
         /// Allow the transaction more time to save if the user enters the background.
@@ -1187,30 +1200,35 @@ class CalendarModel: PhotoUploadCompletedDelegate {
 //            trans.action = .edit
 //        }
         
-        /// Add a temporary transaction to coredata (For when the app was already loaded, but you went back to it after entering an area of bad network connection)
-        /// This way, if you add a transaction in an area of bad connection, the trans won't be lost when you try and save it.
-        guard let entity = try? await DataManager.shared.getOne(type: TempTransaction.self, predicate: .byId(.string(trans.id)), createIfNotFound: true) else { return false }
-        entity.id = trans.id
-        entity.title = trans.title
-        entity.amount = trans.amount
-        entity.payMethodID = trans.payMethod?.id ?? "0"
-        entity.categoryID = trans.category?.id ?? "0"
-        entity.date = trans.date
-        entity.notes = trans.notes
-        entity.hexCode = trans.color.toHex()
-        //entity.hexCode = trans.color.description
-        //entity.tags = trans.tags
-        entity.enteredDate = trans.enteredDate
-        entity.updatedDate = trans.updatedDate
-        //entity.pictures = trans.pictures
-        entity.factorInCalculations = trans.factorInCalculations
-        entity.notificationOffset = Int64(trans.notificationOffset ?? 0)
-        entity.notifyOnDueDate = trans.notifyOnDueDate
-        //entity.action = isNew ? "add" : trans.action.rawValue
-        entity.action = trans.action.rawValue
-        entity.tempAction = trans.action == .add ? "edit" : trans.action.rawValue
-        entity.isPending = true
-        let _ = await DataManager.shared.save()
+        
+        context.performAndWait {
+            
+            /// Add a temporary transaction to coredata (For when the app was already loaded, but you went back to it after entering an area of bad network connection)
+            /// This way, if you add a transaction in an area of bad connection, the trans won't be lost when you try and save it.
+            if  let entity = DataManager.shared.getOne(context: context, type: TempTransaction.self, predicate: .byId(.string(trans.id)), createIfNotFound: true)  {
+                entity.id = trans.id
+                entity.title = trans.title
+                entity.amount = trans.amount
+                entity.payMethodID = trans.payMethod?.id ?? "0"
+                entity.categoryID = trans.category?.id ?? "0"
+                entity.date = trans.date
+                entity.notes = trans.notes
+                entity.hexCode = trans.color.toHex()
+                //entity.hexCode = trans.color.description
+                //entity.tags = trans.tags
+                entity.enteredDate = trans.enteredDate
+                entity.updatedDate = trans.updatedDate
+                //entity.pictures = trans.pictures
+                entity.factorInCalculations = trans.factorInCalculations
+                entity.notificationOffset = Int64(trans.notificationOffset ?? 0)
+                entity.notifyOnDueDate = trans.notifyOnDueDate
+                //entity.action = isNew ? "add" : trans.action.rawValue
+                entity.action = trans.action.rawValue
+                entity.tempAction = trans.action == .add ? "edit" : trans.action.rawValue
+                entity.isPending = true
+                let _ = DataManager.shared.save(context: context)
+            }
+        }
         
         //self.tempTransactions.append(trans)
         
@@ -1228,25 +1246,8 @@ class CalendarModel: PhotoUploadCompletedDelegate {
         case .success(let model):
             LogManager.networkingSuccessful()
             
-            //tempTransactions.removeAll(where: {$0.id == trans.id})
-            let _ = await DataManager.shared.delete(type: TempTransaction.self, predicate: .byId(.string(trans.id)))
-            //print("Deleting transaction from coredata \(deleteResult)")
-            
-//            if isNew {
-//                /// If a new transaction, update it with its new DBID.
-//                if trans.isFromCoreData {
-//                    let actualTrans = justTransactions.first(where: { $0.id == trans.id })
-//                    if let actualTrans {
-//                        actualTrans.id = String(model?.parentID ?? "0")
-//                        actualTrans.uuid = nil
-//                        actualTrans.action = .edit
-//                    }
-//                } else {
-//                    trans.id = String(model?.parentID ?? "0")
-//                    trans.uuid = nil
-//                    trans.action = .edit
-//                }
-//            }
+            /// Performs in its own context
+            DataManager.shared.delete(context: context, type: TempTransaction.self, predicate: .byId(.string(trans.id)))
             
             if trans.isFromCoreData {
                 let actualTrans = justTransactions.first(where: { $0.id == trans.id })
@@ -1260,10 +1261,7 @@ class CalendarModel: PhotoUploadCompletedDelegate {
                 trans.uuid = nil
                 trans.action = .edit
             }
-            
-            
-            
-            
+                                                
             /// Updated any tags / locations that were added for the first time via this transaction with their new DBID.
             for each in model?.childIDs ?? [] {
                 if each.type == "tag" {
@@ -1276,8 +1274,7 @@ class CalendarModel: PhotoUploadCompletedDelegate {
                     if let index {
                         trans.locations[index].id = String(each.id)
                     }
-                }
-                
+                }                
             }
             
             isThinking = false
@@ -1543,7 +1540,7 @@ class CalendarModel: PhotoUploadCompletedDelegate {
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
         switch await result {
-        case .success(let model):
+        case .success:
             LogManager.networkingSuccessful()
             
         case .failure(let error):
@@ -1572,7 +1569,7 @@ class CalendarModel: PhotoUploadCompletedDelegate {
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
         switch await result {
-        case .success(let model):
+        case .success:
             LogManager.networkingSuccessful()
             
         case .failure(let error):
@@ -2020,7 +2017,6 @@ class CalendarModel: PhotoUploadCompletedDelegate {
                 }
                 
                 for i in 1 ..< month.dayCount + 1 {
-                    
                     if month.enumID == .lastDecember {
                         let components = DateComponents(year: sYear-1, month: 12, day: i)
                         let theDate = Calendar.current.date(from: components)!
@@ -2054,8 +2050,15 @@ class CalendarModel: PhotoUploadCompletedDelegate {
         
         let startingBalance = month.startingAmounts
             .filter { targetAccountTypes.contains($0.payMethod.accountType) }
+            .filter { $0.payMethod.isAllowedToBeViewedByThisUser }
+            .filter {
+                print("\($0.payMethod.title) -- \($0.payMethod.isHidden)")
+                return !$0.payMethod.isHidden
+            }
             .map { $0.amount }
             .reduce(0.0, +)
+        
+        print("\(#function) -- \(startingBalance)")
                                 
         let index = month.startingAmounts.firstIndex(where: { $0.payMethod.accountType == unifiedAccountType })
         if let index {
@@ -2070,6 +2073,7 @@ class CalendarModel: PhotoUploadCompletedDelegate {
     enum DoWhatWhenCalculating { case updateEod, giveMeLastDayEod }
     
     func calculateTotal(for month: CBMonth, using paymentMethod: CBPaymentMethod? = nil, and doWhat: DoWhatWhenCalculating = .updateEod) -> Double {
+        print("-- \(#function) \(month.num) -- \(String(describing: paymentMethod?.title)) -- \(doWhat) ")
         var theMethod: CBPaymentMethod?
         if paymentMethod == nil {
             theMethod = sPayMethod
@@ -2101,7 +2105,9 @@ class CalendarModel: PhotoUploadCompletedDelegate {
             let amounts = day.transactions
                 .filter { $0.payMethod?.accountType == .checking || $0.payMethod?.accountType == .cash }
                 .filter { $0.active }
-                .filter { $0.factorInCalculations == true }
+                .filter { $0.factorInCalculations }
+                .filter { ($0.payMethod?.isAllowedToBeViewedByThisUser ?? true) }
+                .filter { !($0.payMethod?.isHidden ?? true) }
                 .map { $0.amount }
             
             currentAmount += amounts.reduce(0.0, +)
@@ -2132,6 +2138,8 @@ class CalendarModel: PhotoUploadCompletedDelegate {
             let cumulativeLimits = PayMethodModel.shared
                 .paymentMethods
                 .filter { $0.accountType == .credit }
+                .filter { $0.isAllowedToBeViewedByThisUser }
+                .filter { !$0.isHidden }
                 .map { $0.limit ?? 0.0 }
                 .reduce(0.0, +)
             
@@ -2145,7 +2153,9 @@ class CalendarModel: PhotoUploadCompletedDelegate {
             let amounts = day.transactions
                 .filter { $0.payMethod?.accountType == .credit }
                 .filter { $0.active }
-                .filter { $0.factorInCalculations == true }
+                .filter { $0.factorInCalculations }
+                .filter { ($0.payMethod?.isAllowedToBeViewedByThisUser ?? true) }
+                .filter { !($0.payMethod?.isHidden ?? true) }
                 .map { $0.amount }
             
             switch creditEodView {
@@ -2171,7 +2181,7 @@ class CalendarModel: PhotoUploadCompletedDelegate {
         let creditEodView = CreditEodView.fromString(UserDefaults.standard.string(forKey: "creditEodView") ?? "")
         
         var finalEodTotal: Double = 0.0
-        let startingBalance = month.startingAmounts.filter { $0.payMethod.id == paymentMethod?.id }.first
+        let startingBalance = month.startingAmounts.filter { $0.payMethod.id == paymentMethod?.id }.filter { !$0.payMethod.isHidden }.first
         var currentAmount = 0.0
         
         if let startingBalance {
@@ -2184,7 +2194,9 @@ class CalendarModel: PhotoUploadCompletedDelegate {
                 let amounts = day.transactions
                     .filter { $0.payMethod?.id == paymentMethod?.id }
                     .filter { $0.active }
-                    .filter { $0.factorInCalculations == true }
+                    .filter { $0.factorInCalculations }
+                    .filter { ($0.payMethod?.isAllowedToBeViewedByThisUser ?? true) }
+                    .filter { !($0.payMethod?.isHidden ?? true) }
                     .map { $0.amount }
                 
                 switch creditEodView {
@@ -2211,14 +2223,16 @@ class CalendarModel: PhotoUploadCompletedDelegate {
     
     private func calculateChecking(for month: CBMonth, using paymentMethod: CBPaymentMethod?, and doWhat: DoWhatWhenCalculating) -> Double {
         var finalEodTotal: Double = 0.0
-        let startingAmount = month.startingAmounts.filter { $0.payMethod.id == paymentMethod?.id }.first ?? CBStartingAmount()
+        let startingAmount = month.startingAmounts.filter { $0.payMethod.id == paymentMethod?.id }.filter { !$0.payMethod.isHidden }.first ?? CBStartingAmount()
         var currentAmount = startingAmount.amount
         
         month.days.forEach { day in
             let amounts = day.transactions
                 .filter { $0.payMethod?.id == paymentMethod?.id }
                 .filter { $0.active }
-                .filter { $0.factorInCalculations == true }
+                .filter { $0.factorInCalculations }
+                .filter { ($0.payMethod?.isAllowedToBeViewedByThisUser ?? true) }
+                .filter { !($0.payMethod?.isHidden ?? true) }
                 .map { $0.amount }
             
             currentAmount += amounts.reduce(0.0, +)

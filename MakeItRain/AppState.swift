@@ -29,6 +29,7 @@ class AppState {
     var hasBadConnection = false
     
     var deviceUUID: String?
+    var notificationToken: String?
     
     //var keyboardHeight: CGFloat = 0
     //var showKeyboardToolbar = false

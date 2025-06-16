@@ -12,13 +12,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>264</string>
+					<string>340</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>263</string>
+					<string>339</string>
 					<key>Timestamp</key>
-					<string>771261911.7718149</string>
+					<string>771534060.9158289</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -59,13 +59,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>438</string>
+					<string>514</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>437</string>
+					<string>513</string>
 					<key>Timestamp</key>
-					<string>771261942.6973211</string>
+					<string>771534060.915844</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -106,13 +106,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>885</string>
+					<string>986</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>884</string>
+					<string>985</string>
 					<key>Timestamp</key>
-					<string>771274692.307045</string>
+					<string>771534060.915848</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -200,13 +200,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>1605</string>
+					<string>1636</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>1604</string>
+					<string>1635</string>
 					<key>Timestamp</key>
-					<string>770957767.432374</string>
+					<string>771797751.8639309</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -245,15 +245,15 @@
 				<key>location-parameters</key>
 				<dict>
 					<key>EndingColumnNumber</key>
-					<string>16</string>
+					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>57</string>
+					<string>63</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>57</string>
+					<string>62</string>
 					<key>Timestamp</key>
-					<string>768176873.649399</string>
+					<string>771519648.874387</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -269,15 +269,16 @@
 			<key>text-context</key>
 			<dict>
 				<key>focused</key>
-				<string>                </string>
+				<string>                //funcModel.prepareStartingAmounts()
+</string>
 				<key>leading</key>
 				<string>            .padding(.bottom, 15)
             .task {
 </string>
 				<key>trailing</key>
-				<string>//funcModel.prepareStartingAmounts()
-                /// Needed when selecting a month from a category analytic.
+				<string>                /// Needed when selecting a month from a category analytic.
                 let viewingMonth = calModel.months.filter { $0.enumID == enumID }.first!
+                funcModel.prepareStartingAmounts(for: viewingMonth)
 </string>
 			</dict>
 			<key>title</key>
@@ -293,13 +294,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>269</string>
+					<string>284</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>268</string>
+					<string>283</string>
 					<key>Timestamp</key>
-					<string>768176964.921905</string>
+					<string>771520880.317655</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>

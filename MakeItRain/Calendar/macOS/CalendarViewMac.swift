@@ -43,6 +43,11 @@ struct CalendarViewMac: View {
     @FocusState private var focusedField: Int?
     @State private var isHoveringOnSlider: Bool = false
     
+    @State private var selectedDay: CBDay?
+    @State private var transEditID: String?
+    @State private var editTrans: CBTransaction?
+    
+    
     let enumID: NavDestination
     var isInWindow: Bool = false
 
@@ -60,13 +65,20 @@ struct CalendarViewMac: View {
                 let viewingMonth = calModel.months.filter { $0.enumID == enumID }.first!
                 funcModel.prepareStartingAmounts(for: viewingMonth)
                 calModel.setSelectedMonthFromNavigation(navID: enumID, prepareStartAmount: true)
+                
+                let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
+                selectedDay = targetDay
+            }
+            .onChange(of: calModel.sMonth) {
+                let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
+                selectedDay = targetDay
             }
             .onPreferenceChange(ViewWidthKey.self) { extraViewsWidth = $0 }
             //.onPreferenceChange(MaxSizePreferenceKey.self) { maxHeaderHeight = max(maxHeaderHeight, $0) }
                     
             .toolbar {
                 ToolbarItem(placement: .navigation) {
-                    CalendarToolbarLeading(focusedField: $focusedField, enumID: enumID, isInWindow: isInWindow)
+                    CalendarToolbarLeading(transEditID: $transEditID, focusedField: $focusedField, enumID: enumID, isInWindow: isInWindow)
                         //.opacity(LoadingManager.shared.showInitiallyLoadingSpinner ? 0 : 1)
                         .focusSection()
                 }
@@ -119,6 +131,42 @@ struct CalendarViewMac: View {
                 /// Used for hilighting
                 calModel.hilightTrans = nil
                 focusedField = nil
+            }
+            .onChange(of: transEditID) { oldValue, newValue in
+                print(".onChange(of: transEditID)")
+                /// When `newValue` is false, save to the server. We have to use this because `.popover(isPresented:)` has no onDismiss option.
+                if oldValue != nil && newValue == nil {
+//                        calModel.saveTransaction(id: oldValue!, day: day, eventModel: eventModel)
+//
+//                        /// Keep the model clean, and show alert for a photo that may be taking a long time to upload.
+//                        calModel.pictureTransactionID = nil
+                } else {
+                    editTrans = calModel.getTransaction(by: transEditID!, from: .normalList)
+                }
+            }
+                       
+            /// This onChange is needed because you can close the popover without actually clicking the close button.
+            /// `popover()` has no `onDismiss()` option, so I need somewhere to do cleanup.
+            .onChange(of: editTrans) { oldValue, newValue in
+                print(".onChange(of: editTrans)")
+                if oldValue == nil && newValue != nil {
+                    focusedField = nil
+                }
+                
+                if oldValue != nil && newValue == nil {
+                    
+                    /// Copy the selected day as it was when the transaction was being edited.
+                    let transSelectedDay = selectedDay
+                    
+                    /// Set the selected day back to today so the plus button will target it.
+                    let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
+                    selectedDay = targetDay
+                    
+                    let id = oldValue!.id
+                    calModel.saveTransaction(id: id, day: transSelectedDay!)
+//                        calModel.pictureTransactionID = nil
+                    PhotoModel.shared.pictureParent = nil
+                }
             }
         
     }
@@ -192,7 +240,7 @@ struct CalendarViewMac: View {
             GeometryReader { geo in
                 LazyVGrid(columns: sevenColumnGrid, spacing: 0) {
                     ForEach($calModel.sMonth.days) { $day in
-                        DayViewMac(day: $day, cellHeight: geo.size.height / divideBy, focusedField: _focusedField)
+                        DayViewMac(transEditID: $transEditID, editTrans: $editTrans, selectedDay: $selectedDay, day: $day, cellHeight: geo.size.height / divideBy, focusedField: _focusedField)
                             //.border(Color(.gray))
                             .overlay {
                                 Rectangle().stroke(Color(.gray), lineWidth: 1)

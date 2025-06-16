@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import CoreData
 
 
 enum LogField: String {
@@ -219,8 +220,9 @@ class CBLog: Codable, Identifiable, Transferable, Equatable, Hashable {
     }
     
     
-    func createCoreDataEntity() async -> TempTransactionLog? {
-        guard let entity = await DataManager.shared.createBlank(type: TempTransactionLog.self) else { return nil }
+    func createCoreDataEntity(context: NSManagedObjectContext) async -> TempTransactionLog? {
+        let context = DataManager.shared.createContext()
+        guard let entity = DataManager.shared.createBlank(context: context, type: TempTransactionLog.self) else { return nil }
         entity.field = field.rawValue
         entity.oldValue = old
         entity.newValue = new

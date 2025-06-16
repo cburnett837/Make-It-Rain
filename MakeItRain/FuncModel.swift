@@ -8,6 +8,8 @@
 import Foundation
 import SwiftUI
 import LocalAuthentication
+import GRDB
+import CoreData
 
 
 @Observable
@@ -94,7 +96,8 @@ class FuncModel {
     
     
     
-    @MainActor func downloadEverything(setDefaultPayMethod: Bool, createNewStructs: Bool, refreshTechnique: RefreshTechnique, file: String = #file, line: Int = #line, function: String = #function) async {
+    @MainActor
+    func downloadEverything(setDefaultPayMethod: Bool, createNewStructs: Bool, refreshTechnique: RefreshTechnique, file: String = #file, line: Int = #line, function: String = #function) async {
         /// - Parameters:
         ///   - setDefaultPayMethod: Determine if the defaultPaymentMethod should be set.
         ///     I.E. true when launching the app fresh, or false when clicking the refresh buttons.
@@ -153,59 +156,132 @@ class FuncModel {
             AppState.shared.downloadedData.removeAll()
             LoadingManager.shared.downloadAmount = 0
         }
-               
-        //Task {
-            /// Grab anything that got stuffed into temporary storage while the network connection was bad, and send it to the server before trying to download any new data.
-            do {
-                if let entities = try await DataManager.shared.getMany(type: TempTransaction.self) {
-                    for entity in entities {
-                        var category: CBCategory?
-                        var payMethod: CBPaymentMethod?
-                        
-                        
-                        if let categoryID = entity.categoryID {
-                            if let perCategory = try? await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(categoryID)), createIfNotFound: false) {
-                                category = CBCategory(entity: perCategory)
-                            }
+        
+        /// Gather any cached transactions and send them to the server.
+        let context = DataManager.shared.createContext()
+        context.performAndWait {
+            if let entities = DataManager.shared.getMany(context: context, type: TempTransaction.self) {
+                for entity in entities {
+                    var category: CBCategory?
+                    var payMethod: CBPaymentMethod?
+                    
+                    
+                    if let categoryID = entity.categoryID {
+                        if let perCategory = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(categoryID)), createIfNotFound: false) {
+                            category = CBCategory(entity: perCategory)
                         }
-                        
-                        if let payMethodID = entity.payMethodID {
-                            if let perPayMethod = try? await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethodID)), createIfNotFound: false) {
-                                payMethod = CBPaymentMethod(entity: perPayMethod)
-                            }
+                    }
+                    
+                    if let payMethodID = entity.payMethodID {
+                        if let perPayMethod = DataManager.shared.getOne(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethodID)), createIfNotFound: false) {
+                            payMethod = CBPaymentMethod(entity: perPayMethod)
                         }
-                        
-                        var logs: Array<CBLog> = []
-                        if let logEntities = entity.logs {
-                            
-                            let groupID = UUID().uuidString
-                            
-                            logEntities.forEach { entity in
-                                let log = CBLog(transEntity: entity as! TempTransactionLog, groupID: groupID)
-                                logs.append(log)
-                            }
+                    }
+                    
+                    var logs: Array<CBLog> = []
+                    if let logEntities = entity.logs {
+
+                        let groupID = UUID().uuidString
+
+                        logEntities.forEach { entity in
+                            let log = CBLog(transEntity: entity as! TempTransactionLog, groupID: groupID)
+                            logs.append(log)
                         }
-                        
+                    }
+                    
+                    Task { @MainActor [category, payMethod, logs] in
                         if let payMethod = payMethod {
                             let _ = await calModel.saveTemp(trans: CBTransaction(entity: entity, payMethod: payMethod, category: category, logs: logs))
                         }
                     }
                 }
-                
-                
-                let pred = NSPredicate(format: "isPending == %@", NSNumber(value: true))
-                
-                guard let entities = try await DataManager.shared.getMany(type: PersistentCategory.self, predicate: .single(pred)) else { return }
-                for entity in entities { let _ = await catModel.submit(CBCategory(entity: entity)) }
-                            
-                guard let entities = try await DataManager.shared.getMany(type: PersistentKeyword.self, predicate: .single(pred)) else { return }
-                for entity in entities { let _ = await keyModel.submit(CBKeyword(entity: entity)) }
-                
-                guard let entities = try await DataManager.shared.getMany(type: PersistentPaymentMethod.self, predicate: .single(pred)) else { return }
-                for entity in entities { let _ = await payModel.submit(CBPaymentMethod(entity: entity)) }
-            } catch {
-                print(error.localizedDescription)
             }
+        }
+        
+        
+               
+        //Task {
+        
+            /// Grab anything that got stuffed into temporary storage while the network connection was bad, and send it to the server before trying to download any new data.
+        
+        let mainContext = DataManager.shared.container.viewContext
+        await mainContext.perform {
+            let pred = NSPredicate(format: "isPending == %@", NSNumber(value: true))
+            
+            
+            
+            
+                            
+//                if let entities = try DataManager.shared.getMany(context: context, type: PersistentCategory.self, predicate: .single(pred)) {
+//                    let objectIDs = entities.map { $0.objectID }
+//                    let mainObjects = objectIDs.compactMap { mainContext.object(with: $0) as? PersistentCategory }
+//                    for entity in mainObjects {
+//                        let _ = await catModel.submit(CBCategory(entity: entity))
+//                    }
+//                }
+//
+            let cats = DataManager.shared.getMany(context: context, type: PersistentCategory.self, predicate: .single(pred))
+            if let cats {
+                let objectIDs = cats.map { $0.objectID }
+                
+                Task { @MainActor in
+                    let mainObjects = objectIDs.compactMap { mainContext.object(with: $0) as? PersistentCategory }
+                    for entity in mainObjects {
+                        let _ = await self.catModel.submit(CBCategory(entity: entity))
+                    }
+                }
+            }
+                                            
+            let keys = DataManager.shared.getMany(context: context, type: PersistentKeyword.self, predicate: .single(pred))
+            if let keys {
+                let objectIDs = keys.map { $0.objectID }
+                
+                Task { @MainActor in
+                    let mainObjects = objectIDs.compactMap { mainContext.object(with: $0) as? PersistentKeyword }
+                    for entity in mainObjects {
+                        let _ = await self.keyModel.submit(CBKeyword(entity: entity))
+                    }
+                }
+            }
+            
+            let meths = DataManager.shared.getMany(context: context, type: PersistentPaymentMethod.self, predicate: .single(pred))
+            if let meths {
+                let objectIDs = meths.map { $0.objectID }
+                
+                Task { @MainActor in
+                    let mainObjects = objectIDs.compactMap { mainContext.object(with: $0) as? PersistentPaymentMethod }
+                    for entity in mainObjects {
+                        let _ = await self.payModel.submit(CBPaymentMethod(entity: entity))
+                    }
+                }
+            }
+            
+            //keyModel.keywords.sort { $0.keyword < $1.keyword }
+            
+            
+            
+//
+//                if let entities = try DataManager.shared.getMany(context: context, type: PersistentKeyword.self, predicate: .single(pred)) {
+//                    let objectIDs = entities.map { $0.objectID }
+//                    let mainObjects = objectIDs.compactMap { mainContext.object(with: $0) as? PersistentKeyword }
+//                    for entity in mainObjects {
+//                        let _ = await keyModel.submit(CBKeyword(entity: entity))
+//                    }
+//                }
+//
+//                if let entities = try DataManager.shared.getMany(context: context, type: PersistentPaymentMethod.self, predicate: .single(pred)) {
+//                    let objectIDs = entities.map { $0.objectID }
+//                    let mainObjects = objectIDs.compactMap { mainContext.object(with: $0) as? PersistentPaymentMethod }
+//                    for entity in mainObjects {
+//                        let _ = await payModel.submit(CBPaymentMethod(entity: entity))
+//                    }
+//                }
+            
+            
+        }
+            
+                
+        
         //}
         
                 
@@ -545,138 +621,163 @@ class FuncModel {
     /// Not private because it is called directly from the RootView
     func populatePaymentMethodsFromCache(setDefaultPayMethod: Bool) async {
         print("-- \(#function)")
+        let context = DataManager.shared.createContext()
         
-        /// Populate payment methods from cache.
-        do {
-            /// Fetch on coredate queue.
-            let meths = try await DataManager.shared.getMany(type: PersistentPaymentMethod.self)
+        var objectIDs: Array<NSManagedObjectID>?
+        await context.perform {
+            let meths = DataManager.shared.getMany(context: context, type: PersistentPaymentMethod.self)
             if let meths {
-                
                 /// Get object IDs from the core data entities
-                let objectIDs = meths.map { $0.objectID }
-
-                guard let entities = try await DataManager.shared.getMany(type: PersistentPaymentMethod.self) else { return }
+                objectIDs = meths.map { $0.objectID }
+            }
+        }
+        
+        guard let objectIDs else { print("❌ No Object IDs found for pay methods"); return }
                 
-                /// Switch to main actor for sorting
-                await MainActor.run {
-                    //let context = DataManager.shared.container.viewContext
-                    //let mainObjects = objectIDs.compactMap { DataManager.shared.container.viewContext.object(with: $0) as? PersistentPaymentMethod }
-                
-                    
-                    
-                    
-                    /// Sort safely now on main thread
-                    let sortedMeths = entities
-                        .sorted { ($0.title ?? "").lowercased() < ($1.title ?? "").lowercased() }
+        await MainActor.run {
+            let mainContext = DataManager.shared.container.viewContext
+            let mainObjects: [PersistentPaymentMethod] = objectIDs.compactMap {
+                mainContext.object(with: $0) as? PersistentPaymentMethod
+            }
+                                                                    
+            let sortedMeths = mainObjects
+                .sorted { ($0.title ?? "").lowercased() < ($1.title ?? "").lowercased() }
 
-                    for meth in sortedMeths {
-                        if setDefaultPayMethod && meth.isViewingDefault {
-                            calModel.sPayMethod = CBPaymentMethod(entity: meth)
-                        }
-                        
-                        if payModel.paymentMethods.filter({ $0.id == meth.id! }).isEmpty {
-                            payModel.paymentMethods.append(CBPaymentMethod(entity: meth))
-                        }
-                    }
+            for meth in sortedMeths {
+                if setDefaultPayMethod && meth.isViewingDefault {
+                    calModel.sPayMethod = CBPaymentMethod(entity: meth)
                 }
                 
-//                meths
-//                .sorted { ($0.title ?? "").lowercased() < ($1.title ?? "").lowercased() }
-//                //.filter { $0.id != nil } /// Have a weird bug that added blank in CoreData.
-//                .forEach { meth in
-//                    //print(meth.title)
-//                    Task { @MainActor in
-//                        if setDefaultPayMethod && meth.isViewingDefault {
-//                            
-//                            calModel.sPayMethod = CBPaymentMethod(entity: meth)
-//                        }
-//                        if payModel.paymentMethods.filter({ $0.id == meth.id! }).isEmpty {
-//                            payModel.paymentMethods.append(CBPaymentMethod(entity: meth))
-//                        }
-//                    }
-//                    
-//                    
-////                    #warning("remove this")
-////                    let notifications = NotificationManager.shared.scheduledNotifications.filter { $0.payMethodID == meth.id }
-////                    if !notifications.isEmpty {
-////                        NotificationManager.shared.createReminder2(payMethod: CBPaymentMethod(entity: meth))
-////                    }
-//                }
-                                
-                //payModel.paymentMethods.sort { $0.title < $1.title }
+                if let id = meth.id, !payModel.paymentMethods.contains(where: { $0.id == id }) {
+                    payModel.paymentMethods.append(CBPaymentMethod(entity: meth))
+                }
             }
-        } catch {
-            fatalError("Could not find paymentMethods from cache")
         }
     }
         
     /// Not private because it is called directly from the RootView, and from the temp transaction list
     func populateCategoriesFromCache() async {
         print("-- \(#function)")
-        /// Populate categories from cache.
-        do {
-            //let categorySortMode = CategorySortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
-            
-            let cats = try await DataManager.shared.getMany(type: PersistentCategory.self)
-            if let cats {
-                Task { @MainActor in
-                    cats.forEach { cat in
-                        //print("Category Title \(cat.title) - ID \(cat.id)")
-                        if catModel.categories.filter({ $0.id == cat.id! }).isEmpty {
-                            catModel.categories.append(CBCategory(entity: cat))
-                        }
-                    }
-                }
+        let context = DataManager.shared.createContext()
+                        
+        var objectIDs: Array<NSManagedObjectID>?
+        await context.perform {
+            let meths = DataManager.shared.getMany(context: context, type: PersistentCategory.self)
+            if let meths {
+                /// Get object IDs from the core data entities
+                objectIDs = meths.map { $0.objectID }
+            }
+        }
+        
+        guard let objectIDs else { print("❌ No Object IDs found for categories"); return }
+                
+        await MainActor.run {
+            let mainContext = DataManager.shared.container.viewContext
+            let mainObjects: [PersistentCategory] = objectIDs.compactMap {
+                mainContext.object(with: $0) as? PersistentCategory
             }
             
-            //catModel.categories.sort { $0.title < $1.title }
-            
-        } catch {
-            fatalError("Could not find categories from cache")
+            mainObjects.forEach { cat in
+                if let id = cat.id, !catModel.categories.contains(where: { $0.id == id }) {
+                    catModel.categories.append(CBCategory(entity: cat))
+                }
+            }
         }
     }
     
     
     private func populateKeywordsFromCache() async {
         print("-- \(#function)")
-        /// Populate keywords from cache.
-        
-        let man = CacheManager<CBKeyword>(file: .keywords)
-        if let keys = man.loadMany() {
-            Task { @MainActor in
-                keys
-                    .sorted { ($0.keyword).lowercased() < ($1.keyword).lowercased() }
-                    .forEach { key in
-                        if let index = keyModel.keywords.firstIndex(where: { $0.id == key.id }) {
-                            keyModel.keywords[index].setFromAnotherInstance(keyword: key)
-                        } else {
-                            keyModel.keywords.append(key)
-                        }
-                    }
+        let context = DataManager.shared.createContext()
+                
+        var objectIDs: Array<NSManagedObjectID>?
+        await context.perform {
+            let meths = DataManager.shared.getMany(context: context, type: PersistentKeyword.self)
+            if let meths {
+                /// Get object IDs from the core data entities
+                objectIDs = meths.map { $0.objectID }
             }
         }
         
+        guard let objectIDs else { print("❌ No Object IDs found for keywords"); return }
+    
+        await MainActor.run {
+            let mainContext = DataManager.shared.container.viewContext
+            let mainObjects: [PersistentKeyword] = objectIDs.compactMap {
+                mainContext.object(with: $0) as? PersistentKeyword
+            }
+            
+            mainObjects
+                .sorted { ($0.keyword ?? "").lowercased() < ($1.keyword ?? "").lowercased() }
+                .forEach { key in
+                    if let id = key.id, !keyModel.keywords.contains(where: { $0.id == id }) {
+                        keyModel.keywords.append(CBKeyword(entity: key))
+                    }
+                }
+        }
+    
+        
+        
 //        do {
-//            let keys = try await DataManager.shared.getMany(type: PersistentKeyword.self)
-//            if let keys {
+//            let url = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("cache_directory.sqlite")
+//            let dbQueue = try DatabaseQueue(path: url.path)
+//            try await dbQueue.write { db in
+//                let keys = try CBKeyword.fetchAll(db)
 //                Task { @MainActor in
 //                    keys
-//                        .sorted { ($0.keyword ?? "").lowercased() < ($1.keyword ?? "").lowercased() }
-//                    //.filter { $0.id != nil } /// Have a weird bug that added blank in CoreData.
+//                        .sorted { ($0.keyword).lowercased() < ($1.keyword).lowercased() }
 //                        .forEach { key in
-//                            //print(key.keyword)
-//                            if keyModel.keywords.filter({ $0.id == key.id! }).isEmpty {
-//                                keyModel.keywords.append(CBKeyword(entity: key))
+//                            
+//                            if let index = self.keyModel.keywords.firstIndex(where: { $0.id == key.id }) {
+//                                self.keyModel.keywords[index].setFromAnotherInstance(keyword: key)
+//                            } else {
+//                                self.keyModel.keywords.append(key)
 //                            }
 //                        }
 //                }
 //            }
-//            
-//            //keyModel.keywords.sort { $0.keyword < $1.keyword }
-//            
 //        } catch {
-//            fatalError("Could not find keywords from cache")
+//            print(error.localizedDescription)
 //        }
+        
+//        let man = CacheManager<CBKeyword>(file: .keywords)
+//        if let keys = man.loadMany() {
+//            Task { @MainActor in
+//                keys
+//                    .sorted { ($0.keyword).lowercased() < ($1.keyword).lowercased() }
+//                    .forEach { key in
+//
+//                        if let index = keyModel.keywords.firstIndex(where: { $0.id == key.id }) {
+//                            keyModel.keywords[index].setFromAnotherInstance(keyword: key)
+//                        } else {
+//                            keyModel.keywords.append(key)
+//                        }
+//                    }
+//            }
+//        }
+        
+//        let keys = DataManager.shared.getMany(context: context, type: PersistentKeyword.self)
+//        if let keys {
+//            let objectIDs = keys.map { $0.objectID }
+//            
+//            Task { @MainActor in
+//                let mainContext = DataManager.shared.container.viewContext
+//                let mainObjects: [PersistentKeyword] = objectIDs.compactMap {
+//                    mainContext.object(with: $0) as? PersistentKeyword
+//                }
+//                
+//                mainObjects
+//                    .sorted { ($0.keyword ?? "").lowercased() < ($1.keyword ?? "").lowercased() }
+//                //.filter { $0.id != nil } /// Have a weird bug that added blank in CoreData.
+//                    .forEach { key in
+//                        //print(key.keyword)
+//                        if keyModel.keywords.filter({ $0.id == key.id! }).isEmpty {
+//                            keyModel.keywords.append(CBKeyword(entity: key))
+//                        }
+//                    }
+//            }
+//        }
+       
     }
     
     
@@ -937,11 +1038,26 @@ class FuncModel {
                     payModel.upsert(payMethod)
                 }
             }
-            let _ = await payModel.updateCache(for: payMethod)
+            if payMethod.isAllowedToBeViewedByThisUser {
+                let _ = await payModel.updateCache(for: payMethod)
+            } else {
+                let context = DataManager.shared.createContext()
+                DataManager.shared.delete(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)))
+            }
             //print("SaveResult: \(saveResult)")
             
-            calModel.justTransactions.filter { $0.payMethod?.id == payMethod.id }.forEach { $0.payMethod = payMethod }
-            repModel.repTransactions.filter { $0.payMethod?.id == payMethod.id }.forEach { $0.payMethod = payMethod }
+            calModel.justTransactions
+                .filter { $0.payMethod?.id == payMethod.id }
+                .forEach { $0.payMethod?.setFromAnotherInstance(payMethod: payMethod) }
+            
+            calModel.months
+                .flatMap { $0.startingAmounts.compactMap { $0.payMethod } }
+                .filter { $0.id == payMethod.id }
+                .forEach { $0.setFromAnotherInstance(payMethod: payMethod) }
+            
+            repModel.repTransactions
+                .filter { $0.payMethod?.id == payMethod.id }
+                .forEach { $0.payMethod?.setFromAnotherInstance(payMethod: payMethod) }
         }
         
         payModel.determineIfUserIsRequiredToAddPaymentMethod()
@@ -1521,24 +1637,6 @@ class FuncModel {
     
     
     // MARK: - Misc
-    @MainActor func printPersistentMethods() async {
-        do {
-            let meths = try await DataManager.shared.getMany(type: PersistentPaymentMethod.self)
-            if let meths {
-                if meths.count == 0 {
-                    print("there are no saved payment methods")
-                } else {
-                    for meth in meths {
-                        print(meth.id ?? "No Meth ID")
-                    }
-                }
-            }
-        } catch {
-            print("error getting persistent payment methods")
-        }
-    }
-    
-    
     @MainActor func prepareStartingAmounts(for month: CBMonth) {
         print("-- \(#function)")
         for payMethod in payModel.paymentMethods {
@@ -1640,7 +1738,7 @@ class FuncModel {
     
     
     // MARK: - Logout
-    @MainActor func logout() async {
+    @MainActor func logout() {
         print("-- \(#function)")
         /// Clearing all session data related to login and loading indicators.
         AuthState.shared.clearLoginState()
@@ -1677,18 +1775,33 @@ class FuncModel {
         eventModel.events.removeAll()
         eventModel.invitations.removeAll()
         
-        /// Remove all from cache.
-        let _ = await DataManager.shared.deleteAll(for: PersistentPaymentMethod.self, shouldSave: false)
-        //print(saveResult1)
-        let _ = await DataManager.shared.deleteAll(for: PersistentCategory.self, shouldSave: false)
-        //print(saveResult2)
-        let _ = await DataManager.shared.deleteAll(for: PersistentKeyword.self, shouldSave: false)
-        //print(saveResult3)
-        
-        let _ = await DataManager.shared.save()
-        
         NavigationManager.shared.selectedMonth = nil
         NavigationManager.shared.selection = nil
         NavigationManager.shared.navPath.removeAll()
+                        
+        let context = DataManager.shared.createContext()
+        context.perform {
+            let _ = DataManager.shared.deleteAll(context: context, for: PersistentPaymentMethod.self)
+            let _ = DataManager.shared.deleteAll(context: context, for: PersistentCategory.self)
+            let _ = DataManager.shared.deleteAll(context: context, for: PersistentKeyword.self)
+            
+            // Save once after all deletions
+            let _ = DataManager.shared.save(context: context)
+        }
+        
     }
+    
+    
+//    func clearCoreDataCache() {
+//        let context = DataManager.shared.createContext()
+//
+//        let _ = DataManager.shared.deleteAll(context: context, for: PersistentPaymentMethod.self)
+//        let _ = DataManager.shared.deleteAll(context: context, for: PersistentCategory.self)
+//        let _ = DataManager.shared.deleteAll(context: context, for: PersistentKeyword.self)
+//        
+//        // Save once after all deletions
+//        let _ = DataManager.shared.save(context: context)
+//        
+//    }
+    
 }

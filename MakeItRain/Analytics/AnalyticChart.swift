@@ -117,9 +117,9 @@ struct MonthlyAnalyticChart<Content: View>: View {
     var visibleDateRange: ClosedRange<Date> {
         /// Check if the date range of the data is within the visibleRange. Crop accordingly.
         let maxAvailEndDate = data.last?.date.endDateOfMonth ?? Date().endDateOfMonth
-        var idealEndDate: Date = Calendar.current.date(byAdding: .day, value: 365, to: chartScrolledToDate)!
+        let idealEndDate: Date = Calendar.current.date(byAdding: .day, value: 365, to: chartScrolledToDate)!
                 
-        var endRange: Date = idealEndDate > maxAvailEndDate ? maxAvailEndDate : idealEndDate
+        let endRange: Date = idealEndDate > maxAvailEndDate ? maxAvailEndDate : idealEndDate
         
         guard chartScrolledToDate < endRange else { return endRange...endRange }
         return chartScrolledToDate...endRange

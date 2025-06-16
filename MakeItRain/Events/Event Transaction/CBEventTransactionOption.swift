@@ -283,16 +283,16 @@ class CBEventTransactionOption: Codable, Identifiable, Hashable, Equatable, CanE
                     print("- Notes changed: \(deepCopy.notes) → \(self.notes)")
                 }
                 if self.address != deepCopy.address {
-                    print("- Address changed: \(deepCopy.address) → \(self.address)")
+                    print("- Address changed: \(String(describing: deepCopy.address)) → \(String(describing: self.address))")
                 }
                 if self.locations != deepCopy.locations {
                     print("- locations changed: \(deepCopy.locations) → \(self.locations)")
                 }
                 if self.pictures != deepCopy.pictures {
-                    print("- pictures changed: \(deepCopy.pictures) → \(self.pictures)")
+                    print("- pictures changed: \(String(describing: deepCopy.pictures)) → \(String(describing: self.pictures))")
                 }
                 if self.costRange != deepCopy.costRange {
-                    print("- costRange changed: \(deepCopy.costRange) → \(self.costRange)")
+                    print("- costRange changed: \(String(describing: deepCopy.costRange)) → \(String(describing: self.costRange))")
                 }
            }
         } else {

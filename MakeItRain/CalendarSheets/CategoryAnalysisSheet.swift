@@ -231,6 +231,8 @@ struct AnalysisSheet: View {
     func getTransactions(for day: CBDay) -> Array<CBTransaction> {
         transactions
             .filter { $0.dateComponents?.day == day.date?.day }
+            .filter { ($0.payMethod?.isAllowedToBeViewedByThisUser ?? true) }
+            .filter { !($0.payMethod?.isHidden ?? false) }
             .sorted {
                 if transactionSortMode == .title {
                     return $0.title < $1.title
@@ -413,6 +415,7 @@ struct AnalysisSheet: View {
     func prepareData() {
         transactions = calModel.justTransactions
             .filter { calModel.isInMultiSelectMode ? calModel.multiSelectTransactions.map({ $0.id }).contains($0.id) : true }
+            .filter { ($0.payMethod?.isAllowedToBeViewedByThisUser ?? true) && ($0.payMethod?.isHidden ?? false) == false }
             //.filter { $0.payMethod?.id == calModel.sPayMethod?.id }
 //            .filter { trans in
 //                if let sMethod = calModel.sPayMethod {
@@ -443,12 +446,14 @@ struct AnalysisSheet: View {
         
         
         totalSpent = transactions
+            .filter { ($0.payMethod?.isAllowedToBeViewedByThisUser ?? true) }
+            .filter { !($0.payMethod?.isHidden ?? false) }
             .map { $0.payMethod?.accountType == .credit ? $0.amount * -1 : $0.amount }
             .reduce(0.0, +)
         
         self.budget = calModel.justBudgets
-            .filter { $0.month == calModel.sMonth.actualNum }
-            .filter { $0.year == calModel.sMonth.year }
+            //.filter { $0.month == calModel.sMonth.actualNum }
+            //.filter { $0.year == calModel.sMonth.year }
             .filter { calModel.sCategoriesForAnalysis.map { $0.id }.contains($0.category?.id) }
             .map { $0.amount }
             .reduce(0.0, +)
@@ -467,6 +472,7 @@ struct AnalysisSheet: View {
                 let budgetAmount = budget?.amount ?? 0.0
                 
                 let expenses = calModel.justTransactions
+                    .filter { ($0.payMethod?.isAllowedToBeViewedByThisUser ?? true) && ($0.payMethod?.isHidden ?? false) == false }
                     .filter { calModel.isInMultiSelectMode ? calModel.multiSelectTransactions.map({ $0.id }).contains($0.id) : true }
                     .filter { $0.isBudgetable && $0.isExpense && $0.factorInCalculations }
 //                    .filter { trans in
@@ -497,6 +503,7 @@ struct AnalysisSheet: View {
                     .reduce(0.0, +)
                 
                 let income = calModel.sMonth.justTransactions
+                    .filter { ($0.payMethod?.isAllowedToBeViewedByThisUser ?? true) && ($0.payMethod?.isHidden ?? false) == false }
                     .filter { calModel.isInMultiSelectMode ? calModel.multiSelectTransactions.map({ $0.id }).contains($0.id) : true }
                     .filter { $0.isBudgetable && $0.isIncome && $0.factorInCalculations }
                     //.filter { $0.payMethod?.id == calModel.sPayMethod?.id }
@@ -566,6 +573,7 @@ struct AnalysisSheet: View {
         calModel.sMonth.days.forEach { day in
             let doesHaveTransactions = !transactions.filter { $0.dateComponents?.day == day.date?.day }.isEmpty
             let dailyTotal = transactions
+                .filter { ($0.payMethod?.isAllowedToBeViewedByThisUser ?? true) && ($0.payMethod?.isHidden ?? false) == false }
                 .filter { $0.dateComponents?.day == day.date?.day }
                 .map { $0.payMethod?.accountType == .credit ? $0.amount * -1 : $0.amount }
                 .reduce(0.0, +)

@@ -15,10 +15,9 @@ class CBUser: Codable, Identifiable, Hashable, Equatable {
     var name: String
     var initials: String
     var email: String
-    var notificationToken: String = ""
     //var hasPaymentMethodsExisiting: Bool = false
     
-    enum CodingKeys: CodingKey { case id, account_id, name, initials, email, device_uuid, notification_token }
+    enum CodingKeys: CodingKey { case id, account_id, name, initials, email, device_uuid }
     
     init() {
         self.id = 0
@@ -36,7 +35,6 @@ class CBUser: Codable, Identifiable, Hashable, Equatable {
         try container.encode(initials, forKey: .initials)
         try container.encode(email, forKey: .email)
         try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
-        try container.encode(notificationToken, forKey: .notification_token)
 
     }
         

@@ -42,6 +42,7 @@
 		FD0DB2B52DD62F7500475334 /* PayMethodChartModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0DB2B42DD62F7500475334 /* PayMethodChartModels.swift */; };
 		FD2FC7F92D7A267100501D41 /* StandardContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2FC7F82D7A267100501D41 /* StandardContainer.swift */; };
 		FD2FC7FD2D7CB3C600501D41 /* ChartCircleDot.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2FC7FC2D7CB3C600501D41 /* ChartCircleDot.swift */; };
+		FD433CFE2DF9BD2A001B2CB0 /* File.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD433CFD2DF9BD2A001B2CB0 /* File.swift */; };
 		FD49F8832DD66AAE00A563C8 /* DebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD49F8822DD66AAE00A563C8 /* DebugView.swift */; };
 		FD49F8852DD6C57B00A563C8 /* PayMethodViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD49F8842DD6C57B00A563C8 /* PayMethodViewContainer.swift */; };
 		FD49F8872DD77C8000A563C8 /* PayMethodDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD49F8862DD77C8000A563C8 /* PayMethodDashboard.swift */; };
@@ -105,6 +106,7 @@
 		FDBA69D72DEF9152007FB0CB /* ChartSelectedDataContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBA69D62DEF9152007FB0CB /* ChartSelectedDataContainer.swift */; };
 		FDBA69D92DF252FE007FB0CB /* PhotoRequestModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBA69D82DF252FE007FB0CB /* PhotoRequestModel.swift */; };
 		FDBA69DC2DF89C84007FB0CB /* CacheManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBA69DB2DF89C84007FB0CB /* CacheManager.swift */; };
+		FDBA69E42DF8CF04007FB0CB /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = FDBA69E32DF8CF04007FB0CB /* GRDB */; };
 		FDC26E112D3E86D500B0A97C /* DollarParticalEmitterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DB92D3E86D500B0A97C /* DollarParticalEmitterView.swift */; };
 		FDC26E122D3E86D500B0A97C /* RootViewMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DF42D3E86D500B0A97C /* RootViewMac.swift */; };
 		FDC26E132D3E86D500B0A97C /* CBBudget.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DA32D3E86D500B0A97C /* CBBudget.swift */; };
@@ -257,6 +259,8 @@
 		FDE4E7D62D56978A00A883EE /* EditorExample.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDE4E7D52D56978A00A883EE /* EditorExample.swift */; };
 		FDE4E7D82D56AA0100A883EE /* PhotoModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDE4E7D72D56AA0100A883EE /* PhotoModel.swift */; };
 		FDE4E8142D5BF33200A883EE /* UndodoManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDE4E8132D5BF33200A883EE /* UndodoManager.swift */; };
+		FDE773C42DFB8B040061A662 /* CBNotificationToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDE773C32DFB8B040061A662 /* CBNotificationToken.swift */; };
+		FDE773C62E00A2060061A662 /* PlaidForceRefreshCost.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDE773C52E00A2060061A662 /* PlaidForceRefreshCost.swift */; };
 		FDFBC44E2DDE33C9006DE685 /* LinkKit in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = FDFBC44D2DDE33C9006DE685 /* LinkKit */; };
 		FDFBC4502DDE346C006DE685 /* PlaidLinkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDFBC44F2DDE346C006DE685 /* PlaidLinkView.swift */; };
 		FDFBC4522DDEB47D006DE685 /* PlaidServerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDFBC4512DDEB47D006DE685 /* PlaidServerModel.swift */; };
@@ -328,6 +332,7 @@
 		FD292E0E2C9B248B003C18D2 /* MakeItRain.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MakeItRain.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FD2FC7F82D7A267100501D41 /* StandardContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandardContainer.swift; sourceTree = "<group>"; };
 		FD2FC7FC2D7CB3C600501D41 /* ChartCircleDot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartCircleDot.swift; sourceTree = "<group>"; };
+		FD433CFD2DF9BD2A001B2CB0 /* File.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = File.swift; sourceTree = "<group>"; };
 		FD49F8822DD66AAE00A563C8 /* DebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugView.swift; sourceTree = "<group>"; };
 		FD49F8842DD6C57B00A563C8 /* PayMethodViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PayMethodViewContainer.swift; sourceTree = "<group>"; };
 		FD49F8862DD77C8000A563C8 /* PayMethodDashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PayMethodDashboard.swift; sourceTree = "<group>"; };
@@ -546,6 +551,8 @@
 		FDE4E7D52D56978A00A883EE /* EditorExample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorExample.swift; sourceTree = "<group>"; };
 		FDE4E7D72D56AA0100A883EE /* PhotoModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoModel.swift; sourceTree = "<group>"; };
 		FDE4E8132D5BF33200A883EE /* UndodoManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UndodoManager.swift; sourceTree = "<group>"; };
+		FDE773C32DFB8B040061A662 /* CBNotificationToken.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBNotificationToken.swift; sourceTree = "<group>"; };
+		FDE773C52E00A2060061A662 /* PlaidForceRefreshCost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaidForceRefreshCost.swift; sourceTree = "<group>"; };
 		FDFBC44F2DDE346C006DE685 /* PlaidLinkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaidLinkView.swift; sourceTree = "<group>"; };
 		FDFBC4512DDEB47D006DE685 /* PlaidServerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaidServerModel.swift; sourceTree = "<group>"; };
 		FDFBC4532DDED96A006DE685 /* PlaidTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaidTable.swift; sourceTree = "<group>"; };
@@ -561,6 +568,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FDBA69E42DF8CF04007FB0CB /* GRDB in Frameworks */,
 				FDB1ACFE2D779A29001CB2F6 /* Algorithms in Frameworks */,
 				FDFBC44E2DDE33C9006DE685 /* LinkKit in Frameworks */,
 			);
@@ -1012,6 +1020,7 @@
 				FD09FF4C2D9C310900795C28 /* TransactionAndStartingAmountModel.swift */,
 				FDDDF9562DBFB87E00B85979 /* MultiTransactionSubmissionModel.swift */,
 				FDAECC4C2DCA89B600C6EDA5 /* CategoryAnalysisRequestModel.swift */,
+				FDE773C32DFB8B040061A662 /* CBNotificationToken.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -1141,6 +1150,7 @@
 				FDC26DC22D3E86D500B0A97C /* Info.plist */,
 				FDC26DD22D3E86D500B0A97C /* MakeItRain.entitlements */,
 				FDC26D862D3E86D500B0A97C /* Preview Content */,
+				FD433CFD2DF9BD2A001B2CB0 /* File.swift */,
 			);
 			path = MakeItRain;
 			sourceTree = "<group>";
@@ -1201,6 +1211,7 @@
 				FDFBC45D2DDF6017006DE685 /* CBPlaidAccount.swift */,
 				FDFBC45F2DE67FAA006DE685 /* CBPlaidTransaction.swift */,
 				FD06F6AD2DE8B2E000753490 /* CBPlaidBalance.swift */,
+				FDE773C52E00A2060061A662 /* PlaidForceRefreshCost.swift */,
 			);
 			path = "Plaid Models";
 			sourceTree = "<group>";
@@ -1226,6 +1237,7 @@
 			packageProductDependencies = (
 				FDB1ACFD2D779A29001CB2F6 /* Algorithms */,
 				FDFBC44D2DDE33C9006DE685 /* LinkKit */,
+				FDBA69E32DF8CF04007FB0CB /* GRDB */,
 			);
 			productName = MakeItRain;
 			productReference = FD292E0E2C9B248B003C18D2 /* MakeItRain.app */;
@@ -1259,6 +1271,7 @@
 			packageReferences = (
 				FD8ABE542D77995E00F3BB64 /* XCRemoteSwiftPackageReference "swift-algorithms" */,
 				FDFBC44C2DDE33C9006DE685 /* XCRemoteSwiftPackageReference "plaid-link-ios-spm" */,
+				FDBA69E22DF8CF04007FB0CB /* XCRemoteSwiftPackageReference "GRDB.swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = FD292E0F2C9B248B003C18D2 /* Products */;
@@ -1365,6 +1378,7 @@
 				FD09FF492D9B221B00795C28 /* OpenRecordManager.swift in Sources */,
 				FDC26E9D2D3EA7F800B0A97C /* EventParticipantsTable.swift in Sources */,
 				FDC26E382D3E86D500B0A97C /* ButtonStyles.swift in Sources */,
+				FD433CFE2DF9BD2A001B2CB0 /* File.swift in Sources */,
 				FD4BABC22D94511300384AB3 /* CBEventUserVerificationModel.swift in Sources */,
 				FDC26E392D3E86D500B0A97C /* ToolbarNowButton.swift in Sources */,
 				FD678EC62DBAB87500D6BC5E /* RootViewPad.swift in Sources */,
@@ -1398,12 +1412,14 @@
 				FDC26EC82D413B8900B0A97C /* XrefModel.swift in Sources */,
 				FD09FF5D2D9D6E6200795C28 /* EventItemSheetButton.swift in Sources */,
 				FD001B862D91B43C00E5D90D /* BottomPanelContainerView.swift in Sources */,
+				FDE773C62E00A2060061A662 /* PlaidForceRefreshCost.swift in Sources */,
 				FD6D7F012D6682AB0026D39D /* NewTransactionAppIntent.swift in Sources */,
 				FDB066D12D4D40C40060568B /* UIDatePicker.swift in Sources */,
 				FDC26E462D3E86D500B0A97C /* Toasts.swift in Sources */,
 				FD07E28F2D72137800024B11 /* PayMethodRequiredView.swift in Sources */,
 				FD09FF572D9C314300795C28 /* ParentChildIdModel.swift in Sources */,
 				FDC26E472D3E86D500B0A97C /* CalendarViewMac.swift in Sources */,
+				FDE773C42DFB8B040061A662 /* CBNotificationToken.swift in Sources */,
 				FDD6CDE62DA97D78002B00E5 /* StandardMiniMap.swift in Sources */,
 				FDBA69CE2DEE2973007FB0CB /* ProfitLossChart.swift in Sources */,
 				FDFBC4602DE67FAA006DE685 /* CBPlaidTransaction.swift in Sources */,
@@ -1607,6 +1623,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
 		};
@@ -1661,6 +1678,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
 		};
@@ -1811,6 +1829,14 @@
 				minimumVersion = 1.2.1;
 			};
 		};
+		FDBA69E22DF8CF04007FB0CB /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/groue/GRDB.swift.git";
+			requirement = {
+				branch = master;
+				kind = branch;
+			};
+		};
 		FDFBC44C2DDE33C9006DE685 /* XCRemoteSwiftPackageReference "plaid-link-ios-spm" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/plaid/plaid-link-ios-spm.git";
@@ -1826,6 +1852,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = FD8ABE542D77995E00F3BB64 /* XCRemoteSwiftPackageReference "swift-algorithms" */;
 			productName = Algorithms;
+		};
+		FDBA69E32DF8CF04007FB0CB /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FDBA69E22DF8CF04007FB0CB /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			productName = GRDB;
 		};
 		FDFBC44D2DDE33C9006DE685 /* LinkKit */ = {
 			isa = XCSwiftPackageProductDependency;

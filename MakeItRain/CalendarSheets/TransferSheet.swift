@@ -18,6 +18,7 @@ struct TransferSheet: View {
     
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
+    @Environment(CategoryModel.self) private var catModel
     
     
     @State var date: Date
@@ -67,6 +68,21 @@ struct TransferSheet: View {
     }
     
     var body: some View {
+        Group {
+            #if os(macOS)
+            body1
+            #else
+            body2
+            #endif        
+        }
+        .onChange(of: transferType) {
+            if $1 == .payment {
+                transfer.category = catModel.categories.first { $0.isPayment }
+            }
+        }
+    }
+    
+    var body1: some View {
         StandardContainer {
             LabeledRow("From", labelWidth) {
                 PayMethodSheetButton(payMethod: $transfer.from, whichPaymentMethods: .allExceptUnified)
@@ -132,9 +148,113 @@ struct TransferSheet: View {
 //        }
     }
     
+    
+    var body2: some View {
+        StandardContainer(.list) {
+            Section("Account Details") {
+                payFromRow2
+                payToRow2
+            }
+                        
+            Section {
+                categoryRow2
+            }
+            
+            Section {
+                amountRow2
+                DatePicker("Date", selection: $date, displayedComponents: [.date])
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+                        
+            transferButton2
+            
+        } header: {
+            SheetHeader(title: title, close: { dismiss() })
+        }
+        .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
+    }
+    
+    
+    
+    
+    var payFromRow2: some View {
+        HStack {
+            Text("From")
+            Spacer()
+            PayMethodSheetButton2(payMethod: $transfer.from, whichPaymentMethods: .allExceptUnified)
+        }
+    }
+    
+    
+    var payToRow2: some View {
+        HStack {
+            Text("To")
+            Spacer()
+            PayMethodSheetButton2(payMethod: $transfer.to, whichPaymentMethods: .allExceptUnified)
+        }
+    }
+    
+    
+    var categoryRow2: some View {
+        HStack {
+            Text("Category")
+            Spacer()
+            CategorySheetButton2(category: $transfer.category)
+        }
+    }
+    
+    
+    
+    var amountRow2: some View {
+        HStack {
+            Text("Amount")
+            Spacer()
+            
+            Group {
+                #if os(iOS)
+                UITextFieldWrapper(placeholder: "Amount", text: $transfer.amountString, toolbar: {
+                    KeyboardToolbarView(focusedField: $focusedField, removeNavButtons: true)
+                })
+                .uiTag(1)
+                .uiClearButtonMode(.whileEditing)
+                .uiStartCursorAtEnd(true)
+                .uiTextAlignment(.right)
+                .uiKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
+                .uiTextColor(.secondaryLabel)
+                .uiTextAlignment(.right)
+                #else
+                StandardTextField("Amount", text: $transfer.amountString, focusedField: $focusedField, focusValue: 1)
+                #endif
+            }
+            .focused($focusedField, equals: 1)
+            .formatCurrencyLiveAndOnUnFocus(
+                focusValue: 1,
+                focusedField: focusedField,
+                amountString: transfer.amountString,
+                amountStringBinding: $transfer.amountString,
+                amount: transfer.amount
+            )
+        }
+        .validate(transfer.amountString, rules: .regex(.positiveCurrency, "The entered amount must be positive currency"))
+    }
+    
+    
+    var transferButton2: some View {
+        Button(action: validateForm) {
+            Text("Create \(transferLingo)")
+        }
+        .foregroundStyle(Color.fromName(colorTheme))
+        .disabled(transfer.from == nil || transfer.to == nil || transfer.amount == 0.0)
+    }
+    
+    
+    
+    
+    
+    
     var transferButton: some View {
         Button(action: validateForm) {
-            Text("Transfer")
+            Text("Create \(transferLingo)")
         }
         .padding(.bottom, 6)
         #if os(macOS)

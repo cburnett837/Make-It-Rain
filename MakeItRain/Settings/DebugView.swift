@@ -12,13 +12,21 @@ struct DebugView: View {
 
     @Environment(FuncModel.self) var funcModel
     
+    @State private var plaidCosts: Array<PlaidForceRefreshCost> = []
+    
     var body: some View {
         List {
+            Section {
+                dumpCoreDataButton
+            }
+            
             Section("Xcode") {
                 consolePrintToggle
             }
             
             loadTimeSection
+            
+            plaidForceRefreshSection
         }
         .navigationTitle("Debug")
         .toolbar {
@@ -27,6 +35,27 @@ struct DebugView: View {
             #else
             phoneToolbar()
             #endif
+        }
+        .task {
+            await fetchPlaidCosts()
+        }
+    }
+    
+    
+    var dumpCoreDataButton: some View {
+        Button("Clear Core Data") {
+            let context = DataManager.shared.createContext()
+            context.perform {
+                /// Remove all from cache.
+                let _ = DataManager.shared.deleteAll(context: context, for: PersistentPaymentMethod.self)
+                //print(saveResult1)
+                let _ = DataManager.shared.deleteAll(context: context, for: PersistentCategory.self)
+                //print(saveResult2)
+                let _ = DataManager.shared.deleteAll(context: context, for: PersistentKeyword.self)
+                //print(saveResult3)
+                
+                let _ = DataManager.shared.save(context: context)
+            }
         }
     }
     
@@ -56,7 +85,7 @@ struct DebugView: View {
     var loadTimeSection: some View {
         Section {
             if funcModel.loadTimes.isEmpty {
-                Text("No Load Times")
+                Text("App Initial Load Times")
             } else {
                 ForEach(funcModel.loadTimes, id: \.id) { metric in
                     HStack {
@@ -81,6 +110,21 @@ struct DebugView: View {
         }
     }
     
+    
+    var plaidForceRefreshSection: some View {
+        Section("Plaid Force Refresh Costs") {
+            Button("Refresh") {
+                Task { await fetchPlaidCosts() }
+            }
+            ForEach(plaidCosts) { cost in
+                HStack {
+                    Text("\(cost.month)-\(String(cost.year))")
+                    Spacer()
+                    Text(cost.totalCost.currencyWithDecimals(2))
+                }
+            }
+        }
+    }
     
     
     
@@ -131,5 +175,27 @@ struct DebugView: View {
     
     #endif
     
+    
+    @MainActor
+    func fetchPlaidCosts() async {
+        let model = RequestModel(requestType: "plaid_get_force_refresh_cost", model: AppState.shared.user!)
+        typealias ResultResponse = Result<Array<PlaidForceRefreshCost>?, AppError>
+        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+        
+        switch await result {
+        case .success(let model):
+            if let model {
+                self.plaidCosts = model
+            }
+        case .failure (let error):
+            switch error {
+            case .taskCancelled:
+                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
+                print("calModel fetchPlaidTransactionsFromServer Server Task Cancelled")
+            default:
+                AppState.shared.showAlert("There was a problem trying to fetch costs.")
+            }
+        }
+    }
     
 }

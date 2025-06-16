@@ -36,7 +36,7 @@ struct PlaidTable: View {
                 phoneList
                 #endif
             } else {
-                ContentUnavailableView("No Plaid Banks", systemImage: "textformat.abc.dottedunderline", description: Text("Click the plus button above to add a bank."))
+                ContentUnavailableView("No Plaid Banks", systemImage: "building.columns", description: Text("Click the plus button above to add a bank."))
             }
         }
         

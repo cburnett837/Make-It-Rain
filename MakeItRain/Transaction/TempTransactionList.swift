@@ -114,7 +114,8 @@ struct TempTransactionList: View {
             Button("Delete", role: .destructive) {
                 calModel.tempTransactions.removeAll { $0.id == id }
                 Task {
-                    let _ = await DataManager.shared.delete(type: TempTransaction.self, predicate: .byId(.string(id)))
+                    let context = DataManager.shared.createContext()
+                    let _ = await DataManager.shared.delete(context: context, type: TempTransaction.self, predicate: .byId(.string(id)))
                 }
                 
             }
@@ -229,61 +230,80 @@ struct TempTransactionList: View {
         
         trans.tempAction = .edit
         
-        
-        guard let entity = try? await DataManager.shared.getOne(type: TempTransaction.self, predicate: .byId(.string(trans.id)), createIfNotFound: true) else { return }
-        
-        entity.id = trans.id
-        entity.title = trans.title
-        entity.amount = trans.amount
-        entity.payMethodID = trans.payMethod?.id ?? "0"
-        entity.categoryID = trans.category?.id ?? "0"
-        entity.date = trans.date
-        entity.notes = trans.notes
-        entity.hexCode = trans.color.toHex()
-        //entity.hexCode = trans.color.description
-        //entity.tags = trans.tags
-        entity.enteredDate = trans.enteredDate
-        entity.updatedDate = trans.updatedDate
-        //entity.pictures = trans.pictures
-        entity.factorInCalculations = trans.factorInCalculations
-        entity.notificationOffset = Int64(trans.notificationOffset ?? 0)
-        entity.notifyOnDueDate = trans.notifyOnDueDate
-        entity.action = trans.action.rawValue
-        entity.tempAction = trans.tempAction.rawValue
-        entity.isPending = true
-        
-        
-        var set: Set<TempTransactionLog> = Set()
-        
-        for each in trans.logs {
-            if let thing = await each.createCoreDataEntity() {
-                set.insert(thing)
+        let context = DataManager.shared.createContext()
+        await context.perform {
+            if let entity = DataManager.shared.getOne(context: context, type: TempTransaction.self, predicate: .byId(.string(trans.id)), createIfNotFound: true) {
+                
+                entity.id = trans.id
+                entity.title = trans.title
+                entity.amount = trans.amount
+                entity.payMethodID = trans.payMethod?.id ?? "0"
+                entity.categoryID = trans.category?.id ?? "0"
+                entity.date = trans.date
+                entity.notes = trans.notes
+                entity.hexCode = trans.color.toHex()
+                //entity.hexCode = trans.color.description
+                //entity.tags = trans.tags
+                entity.enteredDate = trans.enteredDate
+                entity.updatedDate = trans.updatedDate
+                //entity.pictures = trans.pictures
+                entity.factorInCalculations = trans.factorInCalculations
+                entity.notificationOffset = Int64(trans.notificationOffset ?? 0)
+                entity.notifyOnDueDate = trans.notifyOnDueDate
+                entity.action = trans.action.rawValue
+                entity.tempAction = trans.tempAction.rawValue
+                entity.isPending = true
+                
+                
+                var set: Set<TempTransactionLog> = Set()
+                
+                for each in trans.logs {
+                    if let entity = DataManager.shared.createBlank(context: context, type: TempTransactionLog.self) {
+                        entity.field = each.field.rawValue
+                        entity.oldValue = each.old
+                        entity.newValue = each.new
+                        entity.transactionID = each.itemID
+                        set.insert(entity)
+                    }
+                }
+                entity.logs = NSSet(set: set)
+//                entity.logs = NSSet(set: Set(trans.logs.compactMap {
+//                    if let entity = DataManager.shared.createBlank(context: context, type: TempTransactionLog.self) {
+//                        entity.field = $0.field.rawValue
+//                        entity.oldValue = $0.old
+//                        entity.newValue = $0.new
+//                        entity.transactionID = $0.itemID
+//                        set.insert(entity)
+//                    }
+//                    
+//                }))
+                
+                
+                let _ = DataManager.shared.save(context: context)
             }
         }
-        entity.logs = NSSet(set: set)
-        //entity.logs = NSSet(set: Set(trans.logs.compactMap { $0.createCoreDataEntity() }))
-        
-        
-        let _ = await DataManager.shared.save()
     }
     
     
     func fetchTransactionsFromCache() async {
-        do {
-            calModel.tempTransactions.removeAll()
-            if let entities = try await DataManager.shared.getMany(type: TempTransaction.self) {
+        calModel.tempTransactions.removeAll()
+        
+        let context = DataManager.shared.createContext()
+        
+        await context.perform {
+            if let entities = DataManager.shared.getMany(context: context, type: TempTransaction.self) {
                 for entity in entities {
                     var category: CBCategory?
                     var payMethod: CBPaymentMethod?
                     
                     if let categoryID = entity.categoryID {
-                        if let perCategory = try? await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(categoryID)), createIfNotFound: false) {
+                        if let perCategory = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(categoryID)), createIfNotFound: false) {
                             category = CBCategory(entity: perCategory)
                         }
                     }
                     
                     if let payMethodID = entity.payMethodID {
-                        if let perPayMethod = try? await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethodID)), createIfNotFound: false) {
+                        if let perPayMethod = DataManager.shared.getOne(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethodID)), createIfNotFound: false) {
                             payMethod = CBPaymentMethod(entity: perPayMethod)
                         }
                     }
@@ -308,8 +328,6 @@ struct TempTransactionList: View {
                     }
                 }
             }
-        } catch {
-            print(error.localizedDescription)
         }
     }
     

@@ -64,11 +64,6 @@ struct CategoryView: View {
             "Payments"
         }
     }
-
-    
-    
-    
-    //@Namespace private var monthNavigationNamespace
     
     var title: String {
         if selectedCategoryTab == "details" {
@@ -84,7 +79,7 @@ struct CategoryView: View {
             #if os(iOS)
             TabView(selection: $selectedCategoryTab) {
                 Tab(value: "details") {
-                    categoryPage
+                    categoryPagePhone
                 } label: {
                     Label("Details", systemImage: "list.bullet")
                 }
@@ -95,13 +90,12 @@ struct CategoryView: View {
                     Label("Insights", systemImage: "chart.xyaxis.line")
                 }
             }
-            .tint(category.color)
+            //.tint(category.color)
             #else
-            
             VStack {
                 Group {
                     if selectedCategoryTab == "details" {
-                        categoryPage
+                        categoryPageMac
                     } else {
                         chartPage
                     }
@@ -110,7 +104,6 @@ struct CategoryView: View {
                 
                 fakeMacTabBar
             }
-            
             #endif
         }
         .task {
@@ -127,6 +120,28 @@ struct CategoryView: View {
             Text("This will not delete any associated transactions.")
             #endif
         })
+        .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
+        
+        /// Just for formatting.
+        .onChange(of: focusedField) {
+            if $1 == 1 {
+                if category.amount == 0.0 {
+                    category.amountString = ""
+                }
+            } else {
+                if $0 == 1 {
+                    category.amountString = category.amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                }
+            }
+        }
+        .sheet(isPresented: $showSymbolPicker) {
+            SymbolPicker(selected: $category.emoji, color: category.color)
+                #if os(macOS)
+                .frame(minWidth: 300, minHeight: 500)
+                .presentationSizing(.fitted)
+            //.frame(width: 300)
+                #endif
+        }
     }
     
     
@@ -163,50 +178,49 @@ struct CategoryView: View {
     
     
     // MARK: - Category Edit Page Views
-    var categoryPage: some View {
+    var categoryPageMac: some View {
         StandardContainer {
-            titleRow
-            budgetRow
+            titleRowMac
+            budgetRowMac
             StandardDivider()
             
-            typeRow
+            typeRowMac
             StandardDivider()
             
-            colorRow
+            colorRowMac
             StandardDivider()
             
-            symbolRow
+            symbolRowMac
             StandardDivider()
             
         } header: {
             SheetHeader(title: title, close: { closeSheet() }, view3: { deleteButton })
         }
-        .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
-        
-        /// Just for formatting.
-        .onChange(of: focusedField) {
-            if $1 == 1 {
-                if category.amount == 0.0 {
-                    category.amountString = ""
-                }
-            } else {
-                if $0 == 1 {
-                    category.amountString = category.amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
-                }
+    }
+    
+    
+    var categoryPagePhone: some View {
+        StandardContainer(.list) {
+            Section {
+                titleRowPhone
+                budgetRowPhone
+                typeRowPhone
             }
-        }
-        .sheet(isPresented: $showSymbolPicker) {
-            SymbolPicker(selected: $category.emoji, color: category.color)
-                #if os(macOS)
-                .frame(minWidth: 300, minHeight: 500)
-                .presentationSizing(.fitted)
-            //.frame(width: 300)
-                #endif
+                        
+            Section {
+                colorRowPhone
+            }
+            
+            Section("Symbol") {
+                symbolRowPhone
+            }
+        } header: {
+            SheetHeader(title: title, close: { closeSheet() }, view3: { deleteButton })
         }
     }
     
     
-    var titleRow: some View {
+    var titleRowMac: some View {
         LabeledRow("Name", labelWidth) {
             #if os(iOS)
             StandardUITextField("Title", text: $category.title, onSubmit: {
@@ -224,8 +238,34 @@ struct CategoryView: View {
         }
     }
     
+    var titleRowPhone: some View {
+        HStack {
+            Text("Name")
+                //.bold()
+            Spacer()
+            #if os(iOS)
+            UITextFieldWrapper(placeholder: "Title", text: $category.title, onSubmit: {
+                focusedField = 1
+            }, toolbar: {
+                KeyboardToolbarView(focusedField: $focusedField)
+            })
+            .uiTag(0)
+            .uiClearButtonMode(.whileEditing)
+            .uiStartCursorAtEnd(true)
+            .uiTextAlignment(.right)
+            .uiReturnKeyType(.next)
+            .uiTextColor(.secondaryLabel)
+            #else
+            StandardTextField("Title", text: $category.title, focusedField: $focusedField, focusValue: 0)
+                .onSubmit { focusedField = 1 }
+                .foregroundStyle(.secondary)
+            #endif
+        }
+        .focused($focusedField, equals: 0)
+    }
     
-    var budgetRow: some View {
+    
+    var budgetRowMac: some View {
         LabeledRow("Budget", labelWidth) {
             #if os(iOS)
             StandardUITextField("Monthly Amount", text: $category.amountString ?? "", toolbar: {
@@ -241,9 +281,35 @@ struct CategoryView: View {
             #endif
         }
     }
+        
+    var budgetRowPhone: some View {
+        HStack {
+            Text("Budget")
+                //.bold()
+            Spacer()
+            #if os(iOS)
+            UITextFieldWrapper(placeholder: "Monthly Amount", text: $category.amountString ?? "", toolbar: {
+                KeyboardToolbarView(focusedField: $focusedField, accessoryImage3: "plus.forwardslash.minus", accessoryFunc3: {
+                    Helpers.plusMinus($category.amountString ?? "")
+                })
+            })
+            .uiTag(1)
+            .uiClearButtonMode(.whileEditing)
+            .uiStartCursorAtEnd(true)
+            .uiTextAlignment(.right)
+            .uiReturnKeyType(.next)
+            .uiKeyboardType(.decimalPad)
+            .uiTextColor(.secondaryLabel)
+            #else
+            StandardTextField("Monthly Amount", text: $category.amountString ?? "", focusedField: $focusedField, focusValue: 1)
+                .foregroundStyle(.secondary)
+            #endif
+        }
+        .focused($focusedField, equals: 1)
+    }
     
-    
-    var typeRow: some View {
+        
+    var typeRowMac: some View {
         LabeledRow("Type", labelWidth) {
             Picker("", selection: $category.type) {
                 Text("Expense")
@@ -260,8 +326,23 @@ struct CategoryView: View {
         }
     }
     
+    var typeRowPhone: some View {
+        Picker("Category Type", selection: $category.type) {
+            Text("Expense")
+                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .expense))
+            Text("Income")
+                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .income))
+            Text("Payment")
+                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .payment))
+            Text("Savings")
+                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .savings))
+        }
+        .pickerStyle(.menu)
+        .tint(.secondary)
+    }
     
-    var colorRow: some View {
+    
+    var colorRowMac: some View {
         LabeledRow("Color", labelWidth) {
             #if os(iOS)
             StandardColorPicker(color: $category.color)
@@ -279,9 +360,36 @@ struct CategoryView: View {
             #endif
         }
     }
+        
+    var colorRowPhone: some View {
+        HStack {
+            Text("Color")
+                //.bold()
+            Spacer()
+            #if os(iOS)
+            StandardColorPicker(color: $category.color)
+//                .overlay {
+//                    Text("Tap to change")
+//                        .foregroundStyle(.secondary)
+//                }
+            #else
+            HStack {
+                ColorPicker("", selection: $category.color, supportsOpacity: false)
+                    .labelsHidden()
+                Capsule()
+                    .fill(category.color)
+                    .frame(height: 30)
+                    .onTapGesture {
+                        AppState.shared.showToast(title: "Color Picker", subtitle: "Touch the circle to the left to change the color.", body: nil, symbol: category.emoji ?? "theatermask.and.paintbrush", symbolColor: category.color)
+                    }
+            }
+            #endif
+                        
+        }
+    }
     
     
-    var symbolRow: some View {
+    var symbolRowMac: some View {
         LabeledRow("Symbol", labelWidth) {
             HStack {
                 Image(systemName: category.emoji ?? "questionmark.circle.fill")
@@ -329,6 +437,20 @@ struct CategoryView: View {
 //            }
 //            #endif
 //        }
+    }
+        
+    var symbolRowPhone: some View {
+        Button {
+            showSymbolPicker = true
+        } label: {
+            HStack {
+                Spacer()
+                Image(systemName: category.emoji ?? "questionmark.circle.fill")
+                    .font(.system(size: 100))
+                    .foregroundStyle(category.color.gradient)
+                Spacer()
+            }
+        }
     }
     
     

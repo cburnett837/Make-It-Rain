@@ -408,7 +408,9 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         self.when = repTransaction.when
         self.active = repTransaction.active
         self.repeatingTransactionType = repTransaction.repeatingTransactionType
-    }            
+        self.enteredBy = repTransaction.enteredBy
+        self.updatedBy = repTransaction.updatedBy
+    }
     
     
     static func == (lhs: CBRepeatingTransaction, rhs: CBRepeatingTransaction) -> Bool {

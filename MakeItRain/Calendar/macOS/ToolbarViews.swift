@@ -27,7 +27,7 @@ struct CalendarToolbarLeading: View {
     @State private var showPayMethodSheet = false
     
     
-    
+    @Binding var transEditID: String?
     
     var focusedField: FocusState<Int?>.Binding
     //@FocusState var focusedField: Int?
@@ -58,6 +58,7 @@ struct CalendarToolbarLeading: View {
 //            }
             
             if !isInWindow {
+                addNewTransactionButton
                 previousMonthButton
                 nextMonthButton
                 
@@ -101,6 +102,20 @@ struct CalendarToolbarLeading: View {
                 .presentationSizing(.fitted)
         }
     }
+    
+    var addNewTransactionButton: some View {
+        Button {
+            transEditID = UUID().uuidString
+            //NavigationManager.shared.selection = prev
+        } label: {
+            Image(systemName: "plus")
+                .frame(width: 25)
+        }
+        .disabled(transEditID != nil)
+        .toolbarBorder()
+        .help("Add a new transaction to today.")
+    }
+    
     
     var previousMonthButton: some View {
         Button {

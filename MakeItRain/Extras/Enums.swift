@@ -658,5 +658,6 @@ enum Predicate {
 }
 
 enum CoreDataError: Error {
+    case notFound
     case reason(String)
 }

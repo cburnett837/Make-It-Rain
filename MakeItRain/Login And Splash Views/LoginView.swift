@@ -110,6 +110,12 @@ struct LoginView: View {
                         .opacity(attemptingLogin ? 1 : 0)
                 }
                 Spacer()
+                
+                Button("cody") {
+                    email = "cburnett837@yahoo.com"
+                    password = "idkyet"
+                }
+                
             }
         }        
         .toolbar {

@@ -145,7 +145,7 @@ struct CalendarViewPhone: View {
             .navigationBarBackButtonHidden(true)
             
             .if(AppState.shared.isIpad) { $0.toolbar(.hidden) }
-            .if(!AppState.shared.isIpad) { $0.toolbar { calendarToolbar() } }
+            .if(AppState.shared.isIphone) { $0.toolbar { calendarToolbar() } }
             //.toolbar { calendarToolbar() }
             
             /// BEGIN CURRENT BALANCE TIMER STUFF
@@ -352,13 +352,21 @@ struct CalendarViewPhone: View {
     var calendarView: some View {
         Group {
             VStack(spacing: 0) {
-                if !AppState.shared.isLandscape {
+                if AppState.shared.isIphone {
                     fakeNavHeader
                         .dropDestination(for: CBTransaction.self) { droppedTrans, location in
                             calModel.dragTarget = nil
                             return true
                         }
                 }
+                
+//                if !AppState.shared.isLandscape {
+//                    fakeNavHeader
+//                        .dropDestination(for: CBTransaction.self) { droppedTrans, location in
+//                            calModel.dragTarget = nil
+//                            return true
+//                        }
+//                }
                 
                 Group {
                     weekdayNameGrid
@@ -507,7 +515,7 @@ struct CalendarViewPhone: View {
         HStack {
             HStack(spacing: 20) {
                 /// Show back button if is iPhone, or is iPad being showing in a sheet. (LIke when accessing the calendar from the category view)
-                if (!AppState.shared.isIpad) || (AppState.shared.isIpad && calModel.isShowingFullScreenCoverOnIpad){
+                if (!AppState.shared.isIpad) || (AppState.shared.isIpad && calModel.isShowingFullScreenCoverOnIpad) {
                     backButton
                 } else {
                     if (AppState.shared.isIpad && !calModel.isShowingFullScreenCoverOnIpad && NavigationManager.shared.columnVisibility != .all) {
@@ -516,7 +524,7 @@ struct CalendarViewPhone: View {
                 }
                 
                 /// Show payment method and category buttons when is iPad in landscape mode.
-                if AppState.shared.isIpad && AppState.shared.isLandscape {
+                if AppState.shared.isIpad /*&& AppState.shared.isLandscape*/ {
                     showPayMethodSheetButton
                         .contentShape(Rectangle())
                     categorySheetButtonIpad
@@ -857,24 +865,21 @@ struct CalendarViewPhone: View {
 //            }
 //        }
         
-        var color: Color {
-            plaidModel.trans.filter({ !$0.isAcknowledged }).isEmpty
-            ? Color.secondary
-            : Color.fromName(colorTheme) == .orange ? .red : .orange
-        }
+        var plaidListIsEmpty = plaidModel.trans.filter({ !$0.isAcknowledged }).isEmpty
+        var color: Color { plaidListIsEmpty ? Color.secondary : Color.fromName(colorTheme) == .orange ? .red : .orange }
         
-        Button {
-            withAnimation {
-                //showFitTransactions = true
-                bottomPanelContent = .plaidTransactions
+        if !plaidListIsEmpty {
+            Button {
+                withAnimation {
+                    //showFitTransactions = true
+                    bottomPanelContent = .plaidTransactions
+                }
+            } label: {
+                Image(systemName: "creditcard")
+                    .foregroundStyle(color)
+                    .contentShape(Rectangle())
             }
-        } label: {
-            Image(systemName: "creditcard")
-                .foregroundStyle(color)
-                .contentShape(Rectangle())
-        }
-        
-        
+        }        
     }
     
     
@@ -1266,14 +1271,24 @@ struct CalendarViewPhone: View {
                 if let meth = calModel.sPayMethod {
                     if meth.isUnified {
                         if meth.isDebit {
-                            let debitIDs = payModel.paymentMethods.filter { $0.isDebit }.map { $0.id }
+                            let debitIDs = payModel.paymentMethods
+                                .filter { $0.isDebit }
+                                .filter { $0.isAllowedToBeViewedByThisUser }
+                                .filter { !$0.isHidden }
+                                .map { $0.id }
                             let sum = plaidModel.balances.filter { debitIDs.contains($0.payMethodID) }.map { $0.amount }.reduce(0.0, +)
                             Text("\(sum.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
                                 .font(.callout)
                                 .foregroundStyle(.gray)
                                 .lineLimit(1)
+                            
                         } else {
-                            let creditIDs = payModel.paymentMethods.filter { $0.isCredit }.map { $0.id }
+                            let creditIDs = payModel.paymentMethods
+                                .filter { $0.isCredit }
+                                .filter { $0.isAllowedToBeViewedByThisUser }
+                                .filter { !$0.isHidden }
+                                .map { $0.id }
+                            
                             let sum = plaidModel.balances.filter { creditIDs.contains($0.payMethodID) }.map { $0.amount }.reduce(0.0, +)
                             Text("\(sum.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
                                 .font(.callout)
@@ -1290,7 +1305,23 @@ struct CalendarViewPhone: View {
     //                    }
                         
                         
-                        if let balance = plaidModel.balances.filter({ $0.payMethodID == calModel.sPayMethod?.id }).first {
+                        if let balance = plaidModel.balances
+                            .filter({ $0.payMethodID == calModel.sPayMethod?.id })
+                            .filter ({ bal in
+                                if let meth = payModel.paymentMethods.filter({ $0.id == bal.payMethodID }).first {
+                                    return meth.isAllowedToBeViewedByThisUser
+                                } else {
+                                    return false
+                                }
+                            })
+                            .filter ({ bal in
+                                if let meth = payModel.paymentMethods.filter({ $0.id == bal.payMethodID }).first {
+                                    return !meth.isHidden
+                                } else {
+                                    return false
+                                }
+                            })
+                            .first {
                             Text("\(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)) (\(timeSinceLastBalanceUpdate))")
                                 .font(.callout)
                                 .foregroundStyle(.gray)

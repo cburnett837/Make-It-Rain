@@ -75,11 +75,17 @@ struct StartingAmountSheet: View {
     }
     
     var cashMethods: [CBPaymentMethod] {
-        return payModel.paymentMethods.filter { $0.accountType == .cash || $0.accountType == .checking }
+        return payModel.paymentMethods
+            .filter { $0.accountType == .cash || $0.accountType == .checking }
+            .filter { $0.isAllowedToBeViewedByThisUser }
+            .filter { !$0.isHidden }
     }
     
     var creditMethods: [CBPaymentMethod] {
-        payModel.paymentMethods.filter { $0.accountType == .credit }
+        payModel.paymentMethods
+            .filter { $0.accountType == .credit }
+            .filter { $0.isAllowedToBeViewedByThisUser }
+            .filter { !$0.isHidden }
     }
     
     var otherMethods: [CBPaymentMethod] {
@@ -89,6 +95,8 @@ struct StartingAmountSheet: View {
             && $0.accountType != .credit
             && !$0.isUnified
         }
+        .filter { $0.isAllowedToBeViewedByThisUser }
+        .filter { !$0.isHidden }
     }
     
     

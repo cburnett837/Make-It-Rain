@@ -263,15 +263,15 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 //    
 //    
 //
-    /// `@MainActor`  is required to fix the data race that occurs when `CBUser` tries to get send to the server, and this is trying to set the token inside it.
-    @MainActor
+    
+    
     func sendNotificationTokenToServer(token: String) {
         print("-- \(#function)")
-        AppState.shared.user?.notificationToken = token
-        let user = AppState.shared.user
-        //user?.notificationToken = token
-        //let tokenModel = NotificationToken(token: token)
-        let model = RequestModel(requestType: "add_new_notification_token_for_budget_app", model: user)
+        
+        AppState.shared.notificationToken = token
+        
+        let tokenModel = CBNotificationToken(user: AppState.shared.user!, token: token)
+        let model = RequestModel(requestType: "add_new_notification_token_for_budget_app", model: tokenModel)
         Task {
             typealias ResultResponse = Result<ResultCompleteModel?, AppError>
             async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)

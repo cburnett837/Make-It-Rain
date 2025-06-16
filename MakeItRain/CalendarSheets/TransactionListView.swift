@@ -216,6 +216,8 @@ struct TransactionListView: View {
     func getTransactions(for day: CBDay) -> Array<CBTransaction> {
         transactions
             .filter { $0.dateComponents?.day == day.date?.day }
+            .filter { ($0.payMethod?.isAllowedToBeViewedByThisUser ?? true) }
+            .filter { !($0.payMethod?.isHidden ?? false) }
             .sorted {
                 if transactionSortMode == .title {
                     return $0.title < $1.title
@@ -266,15 +268,23 @@ struct TransactionListView: View {
             .filter { trans in
                 if let sMethod = calModel.sPayMethod {
                     if sMethod.isUnifiedDebit {
-                        let methods: Array<String> = payModel.paymentMethods.filter { $0.isDebit }.map { $0.id }
+                        let methods: Array<String> = payModel.paymentMethods
+                            .filter { $0.isAllowedToBeViewedByThisUser }
+                            .filter { !$0.isHidden }
+                            .filter { $0.isDebit }
+                            .map { $0.id }
                         return methods.contains(trans.payMethod?.id ?? "")
 
                     } else if sMethod.isUnifiedCredit {
-                        let methods: Array<String> = payModel.paymentMethods.filter { $0.isCredit }.map { $0.id }
+                        let methods: Array<String> = payModel.paymentMethods
+                            .filter { $0.isAllowedToBeViewedByThisUser }
+                            .filter { !$0.isHidden }
+                            .filter { $0.isCredit }
+                            .map { $0.id }
                         return methods.contains(trans.payMethod?.id ?? "")
 
                     } else {
-                        return trans.payMethod?.id == sMethod.id
+                        return trans.payMethod?.id == sMethod.id && (trans.payMethod?.isAllowedToBeViewedByThisUser ?? true) && !(trans.payMethod?.isHidden ?? false)
                     }
                 } else {
                     return false

@@ -261,7 +261,7 @@ struct ChevronMenuOverlay: ViewModifier {
                     Image(systemName: "chevron.down")
                         .foregroundStyle(.gray)
                         .bold()
-                        .scaleEffect(0.7)
+                        .scaleEffect(0.6)
                         //.padding(.trailing, 2)
                 }
             }

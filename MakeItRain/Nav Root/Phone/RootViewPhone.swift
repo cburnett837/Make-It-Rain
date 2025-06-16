@@ -112,7 +112,7 @@ struct RootViewPhone: View {
                             Image(systemName: "creditcard.trianglebadge.exclamationmark")
                                 .foregroundStyle(Color.fromName(colorTheme) == .orange ? .red : .orange)
                         } else {
-                            Image(systemName: "list.bullet")
+                            Image(systemName: "building.columns")
                         }
                     }
                 }

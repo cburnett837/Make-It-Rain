@@ -28,6 +28,8 @@ struct BudgetEditView: View {
         calModel.sMonth.days.flatMap {
             $0.transactions.filter { trans in
                 trans.categoryIdsInCurrentAndDeepCopy.contains(budget.category?.id)
+                && !trans.hasHiddenMethodInCurrentOrDeepCopy
+                && !trans.hasPrivateMethodInCurrentOrDeepCopy
             }
         }
     }

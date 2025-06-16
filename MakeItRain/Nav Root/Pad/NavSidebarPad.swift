@@ -79,7 +79,7 @@ struct NavSidebarPad: View {
                         }
                                                 
                         Section("") {
-                            NavLinkPad(destination: .plaid, title: "Plaid", image: "list.bullet", linkWidth: linkWidth, linkHeight: linkHeight)
+                            NavLinkPad(destination: .plaid, title: "Plaid", image: "building.columns", linkWidth: linkWidth, linkHeight: linkHeight)
                                 .listRowSeparator(.hidden)
                         }
                                                                         

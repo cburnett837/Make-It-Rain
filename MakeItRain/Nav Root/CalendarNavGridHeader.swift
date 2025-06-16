@@ -124,6 +124,8 @@ struct CalendarNavGridHeader: View {
                     
                     ToolbarLongPollButton()
                     
+                    ToolbarRefreshButton()
+                    
                     NavigationLink(value: NavDestination.settings) {
                         Image(systemName: "gear")
                     }

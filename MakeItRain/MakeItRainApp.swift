@@ -349,10 +349,8 @@ struct MakeItRainApp: App {
             .transition(.opacity)
             .onAppear {
                 if AuthState.shared.serverRevoked {
-                    Task {
-                        await funcModel.logout()
-                        AuthState.shared.serverRevoked = false
-                    }
+                    funcModel.logout()
+                    AuthState.shared.serverRevoked = false
                 }
             }
     }

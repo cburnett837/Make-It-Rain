@@ -156,7 +156,7 @@ class PhotoModel {
             }
             
             Task {
-                print("Uploading ID \(pictureParent?.id ?? "nil") for type \(pictureParent?.type)")
+                print("Uploading ID \(pictureParent?.id ?? "nil") for type \(String(describing: pictureParent?.type))")
                 typealias ResultResponse = Result<ResultCompleteModel?, AppError>
                 if let _ = await self.uploadPicture(
                     imageData: imageData,

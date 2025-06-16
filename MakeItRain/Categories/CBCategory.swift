@@ -71,7 +71,12 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         self.title = entity.title ?? ""
         self.color = Color.fromHex(entity.hexCode) ?? .clear
         //self.color = Color.fromName(entity.hexCode ?? "white")
-        self.emoji = entity.emoji ?? ""
+        if entity.isNil {
+            self.emoji = nil
+        } else {
+            self.emoji = entity.emoji ?? ""
+        }
+        
         self.active = true
         self.action = CategoryAction.fromString(entity.action!)
         
@@ -263,6 +268,8 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         self.type = category.type
         self.listOrder = category.listOrder
         self.topTitles = category.topTitles
+        self.enteredBy = category.enteredBy
+        self.updatedBy = category.updatedBy
     }
     
     

@@ -133,9 +133,8 @@ class PlaidModel {
         //print(keyword.action)
                     
         switch await result {
-        case .success(let model):
+        case .success:
             LogManager.networkingSuccessful()
-            /// Get the new ID from the server after adding a new activity.
             
             isThinking = false
             if bank.action == .delete {
@@ -203,9 +202,8 @@ class PlaidModel {
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
         switch await result {
-        case .success(let model):
+        case .success:
             LogManager.networkingSuccessful()
-            /// Get the new ID from the server after adding a new activity.
             
             isThinking = false
             account.action = .edit
@@ -377,7 +375,7 @@ class PlaidModel {
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
         switch await result {
-        case .success(let model):
+        case .success:
             LogManager.networkingSuccessful()
             
         case .failure(let error):
@@ -405,7 +403,7 @@ class PlaidModel {
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
         switch await result {
-        case .success(let model):
+        case .success:
             LogManager.networkingSuccessful()
             
         case .failure(let error):

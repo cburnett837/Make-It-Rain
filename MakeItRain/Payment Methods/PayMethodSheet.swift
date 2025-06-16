@@ -70,38 +70,27 @@ struct PayMethodSheet: View {
     }
     
     var debitMethods: [CBPaymentMethod] {
-        if searchText.isEmpty {
-            return payModel.paymentMethods.filter { $0.accountType == .checking }
-        } else {
-            return payModel.paymentMethods.filter { $0.accountType == .checking }
-                .filter { $0.title.localizedStandardContains(searchText) }
-        }
+        payModel.paymentMethods
+            .filter { $0.accountType == .checking }
+            .filter { $0.isAllowedToBeViewedByThisUser }
+            .filter { !$0.isHidden }
+            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
     }
     
     var creditMethods: [CBPaymentMethod] {
-        if searchText.isEmpty {
-            return payModel.paymentMethods.filter { $0.accountType == .credit }
-        } else {
-            return payModel.paymentMethods.filter { $0.accountType == .credit }
-            .filter { $0.title.localizedStandardContains(searchText) }
-        }
+        payModel.paymentMethods
+            .filter { $0.accountType == .credit }
+            .filter { $0.isAllowedToBeViewedByThisUser }
+            .filter { !$0.isHidden }
+            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
     }
     
     var otherMethods: [CBPaymentMethod] {
-        if searchText.isEmpty {
-            return payModel.paymentMethods.filter {
-                $0.accountType != .checking
-                && $0.accountType != .credit
-                && !$0.isUnified
-            }
-        } else {
-            return payModel.paymentMethods.filter {
-                $0.accountType != .checking
-                && $0.accountType != .credit
-                && !$0.isUnified
-            }
-            .filter { $0.title.localizedStandardContains(searchText) }
-        }
+        payModel.paymentMethods
+            .filter { $0.accountType != .checking && $0.accountType != .credit && !$0.isUnified }
+            .filter { $0.isAllowedToBeViewedByThisUser }
+            .filter { !$0.isHidden }
+            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
     }
     
     
@@ -370,27 +359,87 @@ struct PayMethodSheet: View {
         case .all:
             return [
                 //PaySection(kind: .combined, payMethods: payModel.paymentMethods.filter { $0.accountType == .unifiedCredit || $0.accountType == .unifiedChecking }),
-                PaySection(kind: .debit, payMethods: payModel.paymentMethods.filter { $0.accountType == .checking || $0.accountType == .unifiedChecking }),
-                PaySection(kind: .credit, payMethods: payModel.paymentMethods.filter { $0.accountType == .credit || $0.accountType == .unifiedCredit  }),
-                PaySection(kind: .other, payMethods: payModel.paymentMethods.filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking].contains($0.accountType) })
+                PaySection(
+                    kind: .debit,
+                    payMethods: payModel.paymentMethods
+                        .filter { $0.accountType == .checking || $0.accountType == .unifiedChecking }
+                        .filter { $0.isAllowedToBeViewedByThisUser }
+                        .filter { !$0.isHidden }
+                ),
+                PaySection(
+                    kind: .credit,
+                    payMethods: payModel.paymentMethods
+                        .filter { $0.accountType == .credit || $0.accountType == .unifiedCredit }
+                        .filter { $0.isAllowedToBeViewedByThisUser }
+                        .filter { !$0.isHidden }
+                ),
+                PaySection(
+                    kind: .other,
+                    payMethods: payModel.paymentMethods
+                        .filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking].contains($0.accountType) }
+                        .filter { $0.isAllowedToBeViewedByThisUser }
+                        .filter { !$0.isHidden }
+                )
             ]
             
         case .allExceptUnified:
             return [
-                PaySection(kind: .debit, payMethods: payModel.paymentMethods.filter { $0.accountType == .checking }),
-                PaySection(kind: .credit, payMethods: payModel.paymentMethods.filter { $0.accountType == .credit }),
-                PaySection(kind: .other, payMethods: payModel.paymentMethods.filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking].contains($0.accountType) })
+                PaySection(
+                    kind: .debit,
+                    payMethods: payModel.paymentMethods
+                        .filter { $0.accountType == .checking }
+                        .filter { $0.isAllowedToBeViewedByThisUser }
+                        .filter { !$0.isHidden }
+                ),
+                PaySection(
+                    kind: .credit,
+                    payMethods: payModel.paymentMethods
+                        .filter { $0.accountType == .credit }
+                        .filter { $0.isAllowedToBeViewedByThisUser }
+                        .filter { !$0.isHidden }
+                ),
+                PaySection(
+                    kind: .other,
+                    payMethods: payModel.paymentMethods
+                        .filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking].contains($0.accountType) }
+                        .filter { $0.isAllowedToBeViewedByThisUser }
+                        .filter { !$0.isHidden }
+                )
             ]
             
         case .basedOnSelected:
             if calModel.sPayMethod?.accountType == .unifiedChecking {
-                return [PaySection(kind: .debit, payMethods: payModel.paymentMethods.filter { $0.accountType == .checking })]
+                return [
+                    PaySection(
+                    kind: .debit,
+                    payMethods: payModel.paymentMethods
+                        .filter { $0.accountType == .checking }
+                        .filter { $0.isAllowedToBeViewedByThisUser }
+                        .filter { !$0.isHidden }
+                    )
+                ]
     
             } else if calModel.sPayMethod?.accountType == .unifiedCredit {
-                return [PaySection(kind: .credit, payMethods: payModel.paymentMethods.filter { $0.accountType == .credit })]
+                return [
+                    PaySection(
+                    kind: .credit,
+                    payMethods: payModel.paymentMethods
+                        .filter { $0.accountType == .credit }
+                        .filter { $0.isAllowedToBeViewedByThisUser }
+                        .filter { !$0.isHidden }
+                    )
+                ]
     
             } else {
-                return [PaySection(kind: .other, payMethods: payModel.paymentMethods.filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking].contains($0.accountType) })]
+                return [
+                    PaySection(
+                    kind: .other,
+                    payMethods: payModel.paymentMethods
+                        .filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking].contains($0.accountType) }
+                        .filter { $0.isAllowedToBeViewedByThisUser }
+                        .filter { !$0.isHidden }
+                    )
+                ]
             }
             
         case .remainingAvailbleForPlaid:
@@ -398,11 +447,28 @@ struct PayMethodSheet: View {
             print(taken)
                 //.map({ $0.paymentMethodID != nil })
             return [
-                PaySection(kind: .debit, payMethods: payModel.paymentMethods.filter { $0.accountType == .checking && !taken.contains($0.id) }),
-                PaySection(kind: .credit, payMethods: payModel.paymentMethods.filter { $0.accountType == .credit && !taken.contains($0.id) }),
-                PaySection(kind: .other, payMethods: payModel.paymentMethods.filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking].contains($0.accountType) && !taken.contains($0.id)  })
+                PaySection(
+                    kind: .debit,
+                    payMethods: payModel.paymentMethods
+                        .filter { $0.accountType == .checking && !taken.contains($0.id) }
+                        .filter { $0.isAllowedToBeViewedByThisUser }
+                        .filter { !$0.isHidden }
+                ),
+                PaySection(
+                    kind: .credit,
+                    payMethods: payModel.paymentMethods
+                        .filter { $0.accountType == .credit && !taken.contains($0.id) }
+                        .filter { $0.isAllowedToBeViewedByThisUser }
+                        .filter { !$0.isHidden }
+                ),
+                PaySection(
+                    kind: .other,
+                    payMethods: payModel.paymentMethods
+                        .filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking].contains($0.accountType) && !taken.contains($0.id) }
+                        .filter { $0.isAllowedToBeViewedByThisUser }
+                        .filter { !$0.isHidden }
+                )
             ]
-            
         }
     }
     

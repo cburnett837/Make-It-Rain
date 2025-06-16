@@ -101,6 +101,26 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         return [self.payMethod?.accountType, self.deepCopy?.payMethod?.accountType]
     }
     
+    var hasHiddenMethodInCurrentOrDeepCopy: Bool {
+        (self.payMethod?.isHidden ?? false) || (self.deepCopy?.payMethod?.isHidden ?? false)
+    }
+    
+    var hasPrivateMethodInCurrentOrDeepCopy: Bool {
+        (self.payMethod?.isPrivate ?? false) || (self.deepCopy?.payMethod?.isPrivate ?? false)
+    }
+    
+    var isAllowedToBeViewedByThisUser: Bool {
+        if (self.payMethod?.isAllowedToBeViewedByThisUser ?? true) {
+            return true
+        } else if (self.payMethod?.isAllowedToBeViewedByThisUser ?? true) == false {
+            return false
+        } else if self.deepCopy == nil {
+            return true
+        } else {
+            return (self.deepCopy!.payMethod?.isAllowedToBeViewedByThisUser ?? true)
+        }
+    }
+    
     deinit {
         //print("KILLING CBTransaction - \(self.id) - \(self.title)")
     }

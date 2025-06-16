@@ -179,8 +179,13 @@ struct BudgetTable: View {
         .task { createData() }
     }
     
-    
+    @ViewBuilder
     var networthChange: some View {
+        
+        var starts: Array<CBStartingAmount> {
+            calModel.sMonth.startingAmounts
+                .filter { $0.payMethod.isAllowedToBeViewedByThisUser && !$0.payMethod.isHidden }
+        }
         Grid(alignment: .leading) {
             GridRow {
                 Text("Pay Meth")
@@ -190,7 +195,7 @@ struct BudgetTable: View {
                 Text("Percent")
             }
             Divider()
-            ForEach(calModel.sMonth.startingAmounts) { star in
+            ForEach(starts) { star in
                 GridRow {
                     NetWorthChangeView(startingAmount: star)
                         //.frame(maxWidth: .infinity, alignment: .leading)
@@ -215,10 +220,14 @@ struct BudgetTable: View {
             Group {
                 Text(startingAmount.payMethod.title)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                
                 Text(startingAmount.amountString)
+                
                 Text("\(eom.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                
                 Text("\(change.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
                     .foregroundStyle(change < 0 ? Color.red : Color.green)
+                
                 Text("\(percentage.decimals(1))%")
                     .foregroundStyle(percentage < 0 ? Color.red : Color.green)
             }
@@ -746,6 +755,7 @@ struct BudgetTable: View {
             .map { (index, budget) in
                 /// Get the expenses associated with the category from the calModel.
                 let expenses = calModel.sMonth.justTransactions
+                    .filter { ($0.payMethod?.isAllowedToBeViewedByThisUser ?? true) && ($0.payMethod?.isHidden ?? false) == false }
                     .filter { $0.isBudgetable && $0.isExpense && $0.factorInCalculations }
                     .filter { $0.category?.id == budget.category?.id }
                     //.map { $0.amount }
@@ -755,6 +765,7 @@ struct BudgetTable: View {
                 /// Get the income associated with the category from the calModel.
                 /// (Like if Laura sends me money for drinks).
                 let income = calModel.sMonth.justTransactions
+                    .filter { ($0.payMethod?.isAllowedToBeViewedByThisUser ?? true) && ($0.payMethod?.isHidden ?? false) == false }
                     .filter { $0.isBudgetable && $0.isIncome && $0.factorInCalculations }
                     .filter { $0.category?.id == budget.category?.id }
                     //.map { $0.amount }

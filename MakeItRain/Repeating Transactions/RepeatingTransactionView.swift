@@ -8,7 +8,8 @@
 import SwiftUI
 
 struct RepeatingTransactionView: View {
-    @Local(\.useWholeNumbers) var useWholeNumbers    
+    @Local(\.useWholeNumbers) var useWholeNumbers
+    @Local(\.colorTheme) var colorTheme
     @Environment(\.dismiss) var dismiss
     
     @Bindable var repTransaction: CBRepeatingTransaction
@@ -80,6 +81,60 @@ struct RepeatingTransactionView: View {
 //    }
         
     var body: some View {
+        Group {
+            #if os(macOS)
+            body1
+            #else
+            body2
+            #endif
+        }
+        
+        .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
+//        #if os(macOS)
+//        .presentationSizing(.fitted)
+//        .frame(minWidth: 750)
+//        #endif
+        .task {
+            if repTransaction.action == .add {
+                repTransaction.category = catModel.categories.filter { $0.isNil }.first!
+            }
+            
+            repTransaction.deepCopy(.create)
+            /// Just for formatting.
+            repTransaction.amountString = repTransaction.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+            repModel.upsert(repTransaction)
+            
+            
+            #if os(macOS)
+            /// Focus on the title textfield.
+            focusedField = 0
+            #else
+            if repTransaction.action == .add {
+                focusedField = 0
+            }
+            #endif
+        }
+        
+        .confirmationDialog("Delete \"\(repTransaction.title)\"?", isPresented: $showDeleteAlert, actions: {
+            Button("Yes", role: .destructive) {
+                Task {
+                    dismiss()
+                    await repModel.delete(repTransaction, andSubmit: true)
+                }
+            }
+            
+            Button("No", role: .cancel) {
+                showDeleteAlert = false
+            }
+        }, message: {
+            #if os(iOS)
+            Text("Delete \"\(repTransaction.title)\"?")
+            #endif
+        })
+    }
+    
+    
+    var body1: some View {
         StandardContainer {
             LabeledRow("Name", labelWidth) {
                 #if os(iOS)
@@ -98,56 +153,11 @@ struct RepeatingTransactionView: View {
             }
             
             LabeledRow("Amount", labelWidth) {
-                
                 StandardAmountTextField(focusedField: _focusedField, focusID: 1, showSymbol: false, obj: repTransaction)
-                
-//                Group {
-//                    #if os(iOS)
-//                    StandardUITextField("Amount", text: $repTransaction.amountString, toolbar: {
-//                        KeyboardToolbarView(focusedField: $focusedField, accessoryImage3: "plus.forwardslash.minus", accessoryFunc3: {
-//                            Helpers.plusMinus($repTransaction.amountString)
-//                        })
-//                    })
-//                    .cbKeyboardType(.decimalPad)
-//                    .cbClearButtonMode(.whileEditing)
-//                    .cbFocused(_focusedField, equals: 1)
-//                    #else
-//                    StandardTextField("Amount", text: $repTransaction.amountString, focusedField: $focusedField, focusValue: 1)
-//                    #endif
-//                }
-//                .formatCurrencyLiveAndOnUnFocus(
-//                    focusValue: 1,
-//                    focusedField: focusedField,
-//                    amountString: repTransaction.amountString,
-//                    amountStringBinding: $repTransaction.amountString,
-//                    amount: repTransaction.amount
-//                )
-                                        
-//                        .onChange(of: repTransaction.amountString) {
-//                            Helpers.liveFormatCurrency(oldValue: $0, newValue: $1, text: $repTransaction.amountString)
-//                        }
-//                        .onChange(of: focusedField) {
-//                            if let string = Helpers.formatCurrency(focusValue: 1, oldFocus: $0, newFocus: $1, amountString: repTransaction.amountString, amount: repTransaction.amount) {
-//                                repTransaction.amountString = string
-//                            }
-//                        }
-//
-//
-//                        .onChange(of: repTransaction.amountString) { oldValue, newValue in
-//                            if repTransaction.amountString != "-" {
-//                                if repTransaction.amount == 0.0 {
-//                                    repTransaction.amountString = ""
-//                                } else {
-//                                    repTransaction.amountString = repTransaction.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
-//                                }
-//                            }
-//                        }
             }
             
             StandardDivider()
-            
-            
-            
+                                    
             LabeledRow(paymentMethodTitle, labelWidth) {
                 PayMethodSheetButton(payMethod: $repTransaction.payMethod, whichPaymentMethods: .allExceptUnified)
             }
@@ -217,64 +227,210 @@ struct RepeatingTransactionView: View {
         } header: {
             SheetHeader(title: title, close: { editID = nil; dismiss() }, view3: { deleteButton })
         }
-        .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
-//        #if os(macOS)
-//        .presentationSizing(.fitted)
-//        .frame(minWidth: 750)
-//        #endif
-        .task {
-            if repTransaction.action == .add {
-                repTransaction.category = catModel.categories.filter { $0.isNil }.first!
+    }
+    
+    
+    var body2: some View {
+        StandardContainer(.list) {
+            Section {
+                titleRow2
+                amountRow2
+            } footer: {
+                transactionTypeButton
+            }
+                                  
+            Section {
+                payFromRow2
+                
+                if !isRegularTransaction {
+                    payToRow2
+                }
+                
+                typeRow2
+            } footer: {
+                Text("Specify a transaction type to organize your transactions. For example, categorizing as a **payment** will allow you specify a pay-to account and will influence the anaytics in account page.")
             }
             
-            repTransaction.deepCopy(.create)
-            /// Just for formatting.
-            repTransaction.amountString = repTransaction.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
-            repModel.upsert(repTransaction)
+            Section {
+                categoryRow2
+            }
             
+            Section {
+                WeekdayToggles(repTransaction: repTransaction)
+                MonthToggles(repTransaction: repTransaction)
+                DayToggles(repTransaction: repTransaction)
+            } header: {
+                Text("Repeating Schedule")
+            } footer: {
+                Text("Select a combo of weekdays, months, and days to repeat the transaction. For example, selecting **Sunday**, **January**, and **15** will create this transaction on every Sunday in January, **and** on January 15th.")
+            }
+                        
+            colorRow2
             
-            #if os(macOS)
-            /// Focus on the title textfield.
-            focusedField = 0
+        } header: {
+            SheetHeader(title: title, close: { editID = nil; dismiss() }, view3: { deleteButton })
+        }
+    }
+    
+    
+    
+    var titleRow2: some View {
+        HStack {
+            Text("Name")
+            Spacer()
+            #if os(iOS)
+            UITextFieldWrapper(placeholder: "Title", text: $repTransaction.title, onSubmit: {
+                focusedField = 1
+            }, toolbar: {
+                KeyboardToolbarView(focusedField: $focusedField)
+            })
+            .uiTag(0)
+            .uiClearButtonMode(.whileEditing)
+            .uiStartCursorAtEnd(true)
+            .uiTextAlignment(.right)
+            .uiReturnKeyType(.next)
+            .uiTextColor(.secondaryLabel)
             #else
-            if repTransaction.action == .add {
-                focusedField = 0
-            }
+            StandardTextField("Title", text: $repTransaction.title, focusedField: $focusedField, focusValue: 0)
+                .onSubmit { focusedField = 1 }
             #endif
         }
-        
-        .confirmationDialog("Delete \"\(repTransaction.title)\"?", isPresented: $showDeleteAlert, actions: {
-            Button("Yes", role: .destructive) {
-                Task {
-                    dismiss()
-                    await repModel.delete(repTransaction, andSubmit: true)
+        .focused($focusedField, equals: 0)
+    }
+    
+    
+    var amountRow2: some View {
+        HStack {
+            Text("Amount")
+            Spacer()
+            Group {
+                #if os(iOS)
+                UITextFieldWrapper(placeholder: "Amount", text: $repTransaction.amountString, toolbar: {
+                    KeyboardToolbarView(
+                        focusedField: $focusedField,
+                        accessoryImage3: "plus.forwardslash.minus",
+                        accessoryFunc3: {
+                            Helpers.plusMinus($repTransaction.amountString)
+                        })
+                })
+                .uiTag(1)
+                .uiClearButtonMode(.whileEditing)
+                .uiStartCursorAtEnd(true)
+                .uiTextAlignment(.right)
+                .uiKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
+                .uiTextColor(.secondaryLabel)
+                #else
+                StandardTextField("Amount", text: $repTransaction.amountString, focusedField: $focusedField, focusValue: 1)
+                #endif
+            }
+            .focused($focusedField, equals: 1)
+            .formatCurrencyLiveAndOnUnFocus(
+                focusValue: 1,
+                focusedField: focusedField,
+                amountString: repTransaction.amountString,
+                amountStringBinding: $repTransaction.amountString,
+                amount: repTransaction.amount
+            )
+            .onChange(of: focusedField) { oldValue, newValue in
+                if newValue == 1 && repTransaction.amountString.isEmpty {
+                    repTransaction.amountString = "-"
                 }
             }
             
-            Button("No", role: .cancel) {
-                showDeleteAlert = false
-            }
-        }, message: {
-            #if os(iOS)
-            Text("Delete \"\(repTransaction.title)\"?")
-            #endif
-        })
-        
-        
-        
-        /// Just for formatting.
-//        .onChange(of: focusedField) { oldValue, newValue in
-//            if newValue == 1 {
-//                if repTransaction.amount == 0.0 {
-//                    repTransaction.amountString = ""
-//                }
-//            } else {
-//                if oldValue == 1 {
-//                    repTransaction.amountString = repTransaction.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
-//                }
-//            }
-//        }
+            //StandardAmountTextField(focusedField: _focusedField, focusID: 1, showSymbol: false, obj: repTransaction)
+        }
     }
+    
+    
+    var payFromRow2: some View {
+        HStack {
+            Text("Pay From")
+            Spacer()
+            PayMethodSheetButton2(payMethod: $repTransaction.payMethod, whichPaymentMethods: .allExceptUnified)
+        }
+    }
+    
+    
+    var payToRow2: some View {
+        HStack {
+            Text("Pay To")
+            Spacer()
+            PayMethodSheetButton2(payMethod: $repTransaction.payMethodPayTo, whichPaymentMethods: .allExceptUnified)
+        }
+    }
+    
+    
+    var typeRow2: some View {
+        HStack {
+            Text("Transaction Type")
+            Spacer()
+            
+            Picker("", selection: $repTransaction.repeatingTransactionType) {
+                Text("Regular")
+                    .tag(XrefModel.getItem(from: .repeatingTransactionType, byEnumID: .regular))
+                Text("Payment")
+                    .tag(XrefModel.getItem(from: .repeatingTransactionType, byEnumID: .payment))
+                Text("Transfer")
+                    .tag(XrefModel.getItem(from: .repeatingTransactionType, byEnumID: .transfer))
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .tint(.secondary)
+        }
+    }
+    
+    
+    var categoryRow2: some View {
+        HStack {
+            Text("Category")
+            Spacer()
+            CategorySheetButton2(category: $repTransaction.category)
+        }
+    }
+    
+    
+    var colorRow2: some View {
+        HStack {
+            Text("Title Color")
+            Spacer()
+            #if os(iOS)
+            StandardColorPicker(color: $repTransaction.color)
+            #else
+            HStack {
+                ColorPicker("", selection: $repTransaction.color, supportsOpacity: false)
+                    .labelsHidden()
+                Capsule()
+                    .fill(repTransaction.color)
+                    .onTapGesture {
+                        AppState.shared.showToast(title: "Color Picker", subtitle: "Click the circle to the left to change the color.", body: nil, symbol: "theatermask.and.paintbrush", symbolColor: repTransaction.color)
+                    }
+            }
+            #endif
+        }
+    }
+    
+    
+    
+    var transactionTypeButton: some View {
+        HStack(spacing: 1) {
+            Text("Transaction Type: ")
+                .foregroundStyle(.gray)
+            
+            Text(repTransaction.amountTypeLingo)
+                .bold(true)
+                .foregroundStyle(Color.fromName(colorTheme))
+                .onTapGesture {
+                    Helpers.plusMinus($repTransaction.amountString)                    
+                }
+        }
+        .validate(repTransaction.amountString, rules: .regex(.currency, "The field contains invalid characters"))
+        .disabled(repTransaction.amountString.isEmpty)
+    }
+    
+    
+    
+    
+    
     
     
     

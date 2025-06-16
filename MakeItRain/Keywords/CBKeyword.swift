@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import GRDB
 
 @Observable
 class CBKeyword: Codable, Identifiable {
@@ -90,7 +91,7 @@ class CBKeyword: Codable, Identifiable {
 //    }
 //    
     
-    enum CodingKeys: CodingKey { case id, uuid, keyword, trigger_type, category, active, user_id, account_id, device_uuid, entered_by, updated_by, entered_date, updated_date }
+    enum CodingKeys: CodingKey { case id, uuid, keyword, trigger_type, category, category_id, active, user_id, account_id, device_uuid, entered_by, updated_by, entered_date, updated_date }
     
     
     func encode(to encoder: Encoder) throws {
@@ -100,6 +101,7 @@ class CBKeyword: Codable, Identifiable {
         try container.encode(keyword, forKey: .keyword)
         try container.encode(triggerType.rawValue, forKey: .trigger_type)
         try container.encode(category, forKey: .category)
+        //try container.encode(category?.id, forKey: .category_id)
         try container.encode(active ? 1 : 0, forKey: .active)
         try container.encode(AppState.shared.user?.id, forKey: .user_id)
         try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
@@ -124,6 +126,7 @@ class CBKeyword: Codable, Identifiable {
         self.triggerType = KeywordTriggerType(rawValue: keywordTriggerType) ?? .contains
         
         self.category = try container.decode(CBCategory.self, forKey: .category)
+        //self.categoryID = try container.decode(String.self, forKey: .category_id)
         
         let isActive = try container.decode(Int?.self, forKey: .active)
         self.active = isActive == 1 ? true : false
@@ -200,6 +203,8 @@ class CBKeyword: Codable, Identifiable {
         self.triggerType = keyword.triggerType
         self.category = keyword.category
         self.active = keyword.active
+        self.enteredBy = keyword.enteredBy
+        self.updatedBy = keyword.updatedBy
     }
     
     
@@ -224,3 +229,17 @@ extension CBKeyword: Equatable, Hashable {
         hasher.combine(id)
     }
 }
+
+//
+//extension CBKeyword: PersistableRecord, FetchableRecord {
+//    enum Columns {
+//        static var keyword = Column(CodingKeys.keyword)
+//        static var triggerType = Column(CodingKeys.trigger_type)
+//        static var categoryID = Column(CodingKeys.category_id)
+//        static var active = Column(CodingKeys.active)
+//        static var enteredBy = Column(CodingKeys.entered_by)
+//        static var updatedBy = Column(CodingKeys.updated_by)
+//        static var enteredDate = Column(CodingKeys.entered_date)
+//        static var updatedDate = Column(CodingKeys.updated_date)
+//    }
+//}

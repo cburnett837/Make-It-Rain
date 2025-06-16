@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23788" systemVersion="24D70" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23788.4" systemVersion="24D70" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
     <entity name="PersistentCategory" representedClassName="PersistentCategory" syncable="YES" codeGenerationType="class">
         <attribute name="action" optional="YES" attributeType="String"/>
         <attribute name="amount" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
@@ -12,6 +12,11 @@
         <attribute name="title" optional="YES" attributeType="String"/>
         <attribute name="typeID" optional="YES" attributeType="Integer 64" usesScalarValueType="YES"/>
         <relationship name="keywords" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="PersistentKeyword" inverseName="category" inverseEntity="PersistentKeyword"/>
+        <uniquenessConstraints>
+            <uniquenessConstraint>
+                <constraint value="id"/>
+            </uniquenessConstraint>
+        </uniquenessConstraints>
     </entity>
     <entity name="PersistentKeyword" representedClassName="PersistentKeyword" syncable="YES" codeGenerationType="class">
         <attribute name="action" optional="YES" attributeType="String"/>
@@ -21,6 +26,11 @@
         <attribute name="keyword" optional="YES" attributeType="String"/>
         <attribute name="triggerType" optional="YES" attributeType="String"/>
         <relationship name="category" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PersistentCategory" inverseName="keywords" inverseEntity="PersistentCategory"/>
+        <uniquenessConstraints>
+            <uniquenessConstraint>
+                <constraint value="id"/>
+            </uniquenessConstraint>
+        </uniquenessConstraints>
     </entity>
     <entity name="PersistentPaymentMethod" representedClassName="PersistentPaymentMethod" syncable="YES" codeGenerationType="class">
         <attribute name="accountType" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
@@ -30,7 +40,9 @@
         <attribute name="id" attributeType="String"/>
         <attribute name="interestRate" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="isEditingDefault" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="isHidden" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="isPending" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="isPrivate" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="isViewingDefault" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="last4" optional="YES" attributeType="String"/>
         <attribute name="limit" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
@@ -38,6 +50,11 @@
         <attribute name="notificationOffset" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="notifyOnDueDate" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="title" optional="YES" attributeType="String"/>
+        <uniquenessConstraints>
+            <uniquenessConstraint>
+                <constraint value="id"/>
+            </uniquenessConstraint>
+        </uniquenessConstraints>
     </entity>
     <entity name="TempTransaction" representedClassName="TempTransaction" syncable="YES" codeGenerationType="class">
         <attribute name="action" optional="YES" attributeType="String"/>
@@ -61,6 +78,11 @@
         <attribute name="updatedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="url" optional="YES" attributeType="String"/>
         <relationship name="logs" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="TempTransactionLog" inverseName="transaction" inverseEntity="TempTransactionLog"/>
+        <uniquenessConstraints>
+            <uniquenessConstraint>
+                <constraint value="id"/>
+            </uniquenessConstraint>
+        </uniquenessConstraints>
     </entity>
     <entity name="TempTransactionLog" representedClassName="TempTransactionLog" syncable="YES" codeGenerationType="class">
         <attribute name="field" optional="YES" attributeType="String"/>

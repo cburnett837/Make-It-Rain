@@ -11,8 +11,25 @@ import SwiftUI
 enum RegexExpression: String {
     case email = #"^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$"#
     case currency = #"^[0-9\-\$\.\,]+$"#
+    case positiveCurrency = #"^[0-9\$\.\,]+$"#
+    
     case onlyNumbers = #"^[0-9]+$"#
     case onlyDecimals = #"^[0-9\.]+$"#
+    
+//    var genericMessage: String {
+//        switch self {
+//        case .email:
+//            "Must be a valid email address"
+//        case .currency:
+//            "Only currency is allowed"
+//        case .positiveCurrency:
+//            "Only positive currency is allowed"
+//        case .onlyNumbers:
+//            "Only whole numbers are allowed"
+//        case .onlyDecimals:
+//            "Only decimal numbers are allowed"
+//        }
+//    }
 }
 
 enum ValidationRule {

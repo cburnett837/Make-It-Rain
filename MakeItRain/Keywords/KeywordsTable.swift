@@ -63,9 +63,12 @@ struct KeywordsTable: View {
         .searchable(text: $searchText)
         .sheet(item: $editKeyword, onDismiss: { keywordEditID = nil }) { key in
             KeywordView(keyword: key, keyModel: keyModel, catModel: catModel, editID: $keywordEditID)
-                #if os(macOS)
-                .frame(minWidth: 700)
-                #endif
+                #if os(iOS)
+                .presentationSizing(.page)
+                #else
+                .frame(minWidth: 500, minHeight: 700)
+                .presentationSizing(.fitted)
+                #endif                
         }
         .onChange(of: sortOrder) { _, sortOrder in
             keyModel.keywords.sort(using: sortOrder)

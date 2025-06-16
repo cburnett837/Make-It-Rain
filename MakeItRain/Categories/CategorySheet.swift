@@ -43,7 +43,7 @@ struct CategorySheet: View {
     var filteredCategories: Array<CBCategory> {
         if searchText.isEmpty {
             return catModel.categories
-                .filter { !($0.isNil ?? false) }
+                .filter { !$0.isNil }
                 .sorted {
                     categorySortMode == .title
                     ? $0.title.lowercased() < $1.title.lowercased()
@@ -52,7 +52,7 @@ struct CategorySheet: View {
         } else {
             return catModel.categories
                 .filter { $0.title.localizedStandardContains(searchText) }
-                .filter { !($0.isNil ?? false) }
+                .filter { !$0.isNil }
                 .sorted {
                     categorySortMode == .title
                     ? $0.title.lowercased() < $1.title.lowercased()
@@ -118,7 +118,7 @@ struct CategorySheet: View {
             if let newValue {
                 editCategory = catModel.getCategory(by: newValue)
             } else {
-                catModel.saveCategory(id: oldValue!, calModel: calModel)
+                catModel.saveCategory(id: oldValue!, calModel: calModel, keyModel: keyModel)
             }
         }
     }

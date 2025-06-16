@@ -28,6 +28,8 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
     var color: Color
     var isViewingDefault = false
     var isEditingDefault = false
+    var isHidden = false
+    var isPrivate = false
     var active: Bool
     var action: PaymentMethodAction
     
@@ -45,6 +47,15 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
     }
     var loanDurationString: String?
     
+    var isAllowedToBeViewedByThisUser: Bool {
+        if isPrivate {
+            //print("isAllowedToBeViewedByThisUser 1: \(AppState.shared.user!.id) -- \(enteredBy.id)")
+            return AppState.shared.user!.id == enteredBy.id
+        } else {
+            //print("isAllowedToBeViewedByThisUser 2: \(AppState.shared.user!.id) -- \(enteredBy.id)")
+            return true
+        }
+    }
     
     
     var enteredBy: CBUser = AppState.shared.user!
@@ -157,10 +168,12 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
         self.updatedBy = AppState.shared.user!
         self.enteredDate = Date()
         self.updatedDate = Date()
+        self.isHidden = entity.isHidden
+        self.isPrivate = entity.isPrivate
     }
     
     
-    enum CodingKeys: CodingKey { case id, uuid, title, due_date, limit, account_type_id, hex_code, is_viewing_default, is_editing_default, active, user_id, account_id, device_uuid, notification_offset, notify_on_due_date, last_4_digits, entered_by, updated_by, entered_date, updated_date, breakdowns, interest_rate, loan_duration }
+    enum CodingKeys: CodingKey { case id, uuid, title, due_date, limit, account_type_id, hex_code, is_viewing_default, is_editing_default, active, user_id, account_id, device_uuid, notification_offset, notify_on_due_date, last_4_digits, entered_by, updated_by, entered_date, updated_date, breakdowns, interest_rate, loan_duration, is_hidden, is_private }
     
     
     func encode(to encoder: Encoder) throws {
@@ -175,6 +188,8 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
         //try container.encode(color.description, forKey: .hex_code)
         try container.encode(isViewingDefault ? 1 : 0, forKey: .is_viewing_default)
         try container.encode(isEditingDefault ? 1 : 0, forKey: .is_editing_default)
+        try container.encode(isHidden ? 1 : 0, forKey: .is_hidden)
+        try container.encode(isPrivate ? 1 : 0, forKey: .is_private)
         try container.encode(active ? 1 : 0, forKey: .active)
         try container.encode(AppState.shared.user?.id, forKey: .user_id)
         try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
@@ -221,18 +236,24 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
         
         
         let isViewingDefault = try container.decode(Int?.self, forKey: .is_viewing_default)
-        self.isViewingDefault = isViewingDefault == 1 ? true : false
+        self.isViewingDefault = isViewingDefault == 1
         
         let isEditingDefault = try container.decode(Int?.self, forKey: .is_editing_default)
-        self.isEditingDefault = isEditingDefault == 1 ? true : false
+        self.isEditingDefault = isEditingDefault == 1
+        
+        let isHidden = try container.decode(Int?.self, forKey: .is_hidden)
+        self.isHidden = isHidden == 1
+        
+        let isPrivate = try container.decode(Int?.self, forKey: .is_private)
+        self.isPrivate = isPrivate == 1
         
         let isActive = try container.decode(Int?.self, forKey: .active)
-        self.active = isActive == 1 ? true : false
+        self.active = isActive == 1
         
         self.notificationOffset = try container.decode(Int?.self, forKey: .notification_offset)
         
         let notifyOnDueDate = try container.decode(Int?.self, forKey: .notify_on_due_date)
-        self.notifyOnDueDate = notifyOnDueDate == 1 ? true : false
+        self.notifyOnDueDate = notifyOnDueDate == 1
         
         self.last4 = try container.decode(String?.self, forKey: .last_4_digits)
         
@@ -291,6 +312,8 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
             && self.last4 == deepCopy.last4
             && self.interestRate == deepCopy.interestRate
             && self.loanDuration == deepCopy.loanDuration
+            && self.isHidden == deepCopy.isHidden
+            && self.isPrivate == deepCopy.isPrivate
             && self.color == deepCopy.color {
                 return false
             }
@@ -319,6 +342,8 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
             copy.interestRateString = self.interestRateString
             copy.loanDurationString = self.loanDurationString
             copy.active = self.active
+            copy.isHidden = self.isHidden
+            copy.isPrivate = self.isPrivate
             //copy.action = self.action
             self.deepCopy = copy
         case .restore:
@@ -338,6 +363,8 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
                 self.interestRateString = deepCopy.interestRateString
                 self.loanDurationString = deepCopy.loanDurationString
                 self.active = deepCopy.active
+                self.isHidden = deepCopy.isHidden
+                self.isPrivate = deepCopy.isPrivate
                 //self.action = deepCopy.action
             }
         case .clear:
@@ -363,14 +390,23 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
         self.last4 = payMethod.last4
         self.interestRateString = payMethod.interestRateString
         self.loanDurationString = payMethod.loanDurationString
+        self.isHidden = payMethod.isHidden
+        self.isPrivate = payMethod.isPrivate
+        self.enteredBy = payMethod.enteredBy
+        self.updatedBy = payMethod.updatedBy
     }
             
     
     func changeDefault(_ to: Bool) async {
         self.isViewingDefault = to
-        guard let entity = try? await DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(self.id)), createIfNotFound: false) else { return }
-        entity.isViewingDefault = to
-        let _ = await DataManager.shared.save()
+        
+        let context = DataManager.shared.createContext()
+        await context.perform {
+            if let entity = DataManager.shared.getOne(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(self.id)), createIfNotFound: false) {
+                entity.isViewingDefault = to
+                let _ = DataManager.shared.save(context: context)
+            }
+        }
     }
     
 
@@ -389,6 +425,8 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
         && lhs.last4 == rhs.last4
         && lhs.interestRate == rhs.interestRate
         && lhs.loanDuration == rhs.loanDuration
+        && lhs.isHidden == rhs.isHidden
+        && lhs.isPrivate == rhs.isPrivate
         && lhs.active == rhs.active {
             return true
         }

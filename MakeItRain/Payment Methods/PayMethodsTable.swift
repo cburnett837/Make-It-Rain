@@ -34,24 +34,28 @@ struct PayMethodsTable: View {
     var filteredPayMethods: [CBPaymentMethod] {
         payModel.paymentMethods
             .filter { !$0.isUnified }
+            .filter { $0.isAllowedToBeViewedByThisUser }
             .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedStandardContains(searchText) }
             //.sorted { $0.title.lowercased() < $1.title.lowercased() }
     }
     
     var debitMethods: [CBPaymentMethod] {
         payModel.paymentMethods
+            .filter { $0.isAllowedToBeViewedByThisUser }
             .filter { $0.accountType == .checking || $0.accountType == .unifiedChecking }
             .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
     }
     
     var creditMethods: [CBPaymentMethod] {
         payModel.paymentMethods
+            .filter { $0.isAllowedToBeViewedByThisUser }
             .filter { $0.accountType == .credit || $0.accountType == .unifiedCredit }
             .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
     }
     
     var otherMethods: [CBPaymentMethod] {
         payModel.paymentMethods
+            .filter { $0.isAllowedToBeViewedByThisUser }
             .filter { $0.accountType != .checking && $0.accountType != .credit && !$0.isUnified }
             .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
     }
@@ -170,20 +174,17 @@ struct PayMethodsTable: View {
         
     var macTable: some View {
         Table(of: CBPaymentMethod.self, selection: $paymentMethodEditID, sortOrder: $sortOrder, columnCustomization: $columnCustomization) {
-            TableColumn("Color") { meth in
-                if meth.accountType != .unifiedChecking && meth.accountType != .unifiedCredit {
-                    Circle()
-                        .fill(meth.color)
-                        .frame(width: 12, height: 12)
-                } else {
-                    Text("-")
-                }
-            }
-            .width(min: 20, ideal: 30, max: 50)
-            .customizationID("color")
-            
             TableColumn("Title", value: \.title) { meth in
-                Text(meth.title)
+                HStack {
+                    if meth.accountType != .unifiedChecking && meth.accountType != .unifiedCredit {
+                        Circle()
+                            .fill(meth.color)
+                            .frame(width: 12, height: 12)
+                    } else {
+                        Text("-")
+                    }
+                    Text(meth.title)
+                }
             }
             .customizationID("title")
             
@@ -191,15 +192,6 @@ struct PayMethodsTable: View {
                 Text(XrefModel.getItem(from: .accountTypes, byID: meth.accountType.rawValue).description)
             }
             .customizationID("accountType")
-            
-            TableColumn("Limit", value: \.limit.specialDefaultIfNil) { meth in
-                if meth.accountType == .credit {
-                    Text(meth.limit?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-")
-                } else {
-                    Text("-")
-                }
-            }
-            .customizationID("limit")
             
             TableColumn("Last 4", value: \.last4) { meth in
                 if meth.accountType == .checking || meth.accountType == .credit {
@@ -209,6 +201,15 @@ struct PayMethodsTable: View {
                 }
             }
             .customizationID("last4")
+            
+            TableColumn("Limit", value: \.limit.specialDefaultIfNil) { meth in
+                if meth.accountType == .credit {
+                    Text(meth.limit?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-")
+                } else {
+                    Text("-")
+                }
+            }
+            .customizationID("limit")
             
             TableColumn("Due Date", value : \.dueDate.specialDefaultIfNil) { meth in
                 if meth.accountType == .credit {
@@ -236,31 +237,37 @@ struct PayMethodsTable: View {
             }
             .customizationID("reminder")
             
-            TableColumn("Default Viewing") { meth in
-                Toggle(isOn: Binding<Bool>(get: { return meth.isViewingDefault }, set: { meth.isViewingDefault = $0 })) {
-                    EmptyView()
-                }
-                .onChange(of: meth.isViewingDefault) { oldValue, newValue in
-                    if meth.isViewingDefault {
-                        Task { await payModel.setDefaultViewing(meth) }
-                    }
+            TableColumn("Viewing (default)") { meth in
+                if meth.isViewingDefault {
+                    Image(systemName: "checkmark")
                 }
             }
             .width(min: 20, ideal: 30, max: 50)
             .customizationID("defaultViewing")
             
-            TableColumn("Default Editing") { meth in
-                Toggle(isOn: Binding<Bool>(get: { return meth.isEditingDefault }, set: { meth.isEditingDefault = $0 })) {
-                    EmptyView()
-                }
-                .onChange(of: meth.isEditingDefault) { oldValue, newValue in
-                    if meth.isEditingDefault {
-                        Task { await payModel.setDefaultEditing(meth) }
-                    }
+            TableColumn("Editing (default)") { meth in
+                if meth.isEditingDefault {
+                    Image(systemName: "checkmark")
                 }
             }
             .width(min: 20, ideal: 30, max: 50)
-            .customizationID("defaultEditing")            
+            .customizationID("defaultEditing")
+            
+            TableColumn("Private") { meth in
+                if meth.isPrivate {
+                    Image(systemName: "checkmark")
+                }
+            }
+            .width(min: 20, ideal: 30, max: 50)
+            .customizationID("private")
+            
+            TableColumn("Hidden") { meth in
+                if meth.isHidden {
+                    Image(systemName: "checkmark")
+                }
+            }
+            .width(min: 20, ideal: 30, max: 50)
+            .customizationID("hidden")
         } rows: {
 //            Section("Combined Accounts") {
 //                ForEach(payModel.paymentMethods.filter { $0.isUnified }) { meth in
@@ -440,7 +447,7 @@ struct PayMethodsTable: View {
     
     @ViewBuilder func line(for meth: CBPaymentMethod) -> some View {
         if meth.isUnified {
-            HStack {
+            HStack(spacing: 4) {
                 Circle()
                     .fill(AngularGradient(gradient: Gradient(colors: [.red, .yellow, .green, .blue, .purple, .red]), center: .center))
                     .frame(width: 12, height: 12)
@@ -458,15 +465,22 @@ struct PayMethodsTable: View {
                     .frame(width: 12, height: 12)
                     .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
                 
-                if meth.isViewingDefault {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                        .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-                }
-                
+//                if meth.isViewingDefault {
+//                    Image(systemName: "checkmark.circle.fill")
+//                        .foregroundStyle(.green)
+//                        .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+//                }
+//                
                 VStack(alignment: .leading) {
                     HStack {
                         Text(meth.title)
+                        
+                        if meth.isPrivate || meth.isHidden {
+                            Image(systemName: "eye.slash")
+                            //Text("\(meth.isAllowedToBeViewedByThisUser)")
+                        }
+                        
+                        
                         Spacer()
                         Text(XrefModel.getItem(from: .accountTypes, byID: meth.accountType.rawValue).description)
                             .foregroundStyle(.gray)
@@ -641,13 +655,16 @@ struct PayMethodsTable: View {
     
     
     func setDefaultEditingMethod() {
-        //print("-- \(#function)")
+        print("-- \(#function)")
         if let defaultEditingMethod = defaultEditingMethod {
             if let currentDefaultID = payModel.paymentMethods.filter({ $0.isEditingDefault }).first?.id {
                 if currentDefaultID != defaultEditingMethod.id {
                     defaultEditingMethod.isEditingDefault = true
                     Task { await payModel.setDefaultEditing(defaultEditingMethod) }
                 }
+            } else {
+                defaultEditingMethod.isEditingDefault = true
+                Task { await payModel.setDefaultEditing(defaultEditingMethod) }
             }
         } else {
             print("not set")

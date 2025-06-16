@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import GRDB
 
 @MainActor
 @Observable
@@ -58,97 +59,153 @@ class KeywordModel {
     }
     
     func updateCache(for keyword: CBKeyword) async -> Result<Bool, CoreDataError> {
-        guard let entity = try? await DataManager.shared.getOne(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: false) else { return .failure(.reason("notFound")) }
-        
-        guard let categoryEntity = try? await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(keyword.category?.id ?? "0")), createIfNotFound: false) else { return .failure(.reason("notFound"))}
-        
-        entity.id = keyword.id
-        entity.keyword = keyword.keyword
-        entity.category = categoryEntity
-        entity.triggerType = keyword.triggerType.rawValue
-        entity.action = "edit"
-        entity.isPending = false
-        
-        let saveResult = await DataManager.shared.save()
-        return saveResult
-    }
-    
-    
-    
-    @MainActor
-    func fetchKeywords(file: String = #file, line: Int = #line, function: String = #function) async {
-        NSLog("\(file):\(line) : \(function)")
-        LogManager.log()
-        
-        let start = CFAbsoluteTimeGetCurrent()
-        
-        /// Do networking.
-        let model = RequestModel(requestType: "fetch_keywords", model: AppState.shared.user)
-        typealias ResultResponse = Result<Array<CBKeyword>?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
-        
-        switch await result {
-        case .success(let model):
-            
-            /// For testing bad network connection.
-            try? await Task.sleep(nanoseconds: UInt64(20 * Double(NSEC_PER_SEC)))
-
-            LogManager.networkingSuccessful()
-            if let model {
-                if !model.isEmpty {
-                    var activeIds: Array<String> = []
-                    for keyword in model {
-                        activeIds.append(keyword.id)
-                                                                                                            
-                        let index = keywords.firstIndex(where: { $0.id == keyword.id })
-                        if let index {
-                            /// If the payment method is already in the list, update it from the server.
-                            keywords[index].setFromAnotherInstance(keyword: keyword)
-                        } else {
-                            /// Add the payment method to the list (like when the payment method was added on another device).
-                            keywords.append(keyword)
-                        }
-                    }
-                    
-                    /// Delete from model.
-                    for keyword in keywords {
-                        if !activeIds.contains(keyword.id) {
-                            keywords.removeAll { $0.id == keyword.id }
-                        }
-                    }
-                    
-                    
-                    let man = CacheManager<CBKeyword>(file: .keywords)
-                    man.saveMany(self.keywords)
-                    
-                } else {
-                    keywords.removeAll()
-                }
-            }
-            
-            /// Update the progress indicator.
-            AppState.shared.downloadedData.append(.keywords)
-            
-            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-            print("⏰It took \(currentElapsed) seconds to fetch the keywords")
-            
-        case .failure (let error):
-            switch error {
-            case .taskCancelled:
-                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
-                print("keyModel fetchFrom Server Task Cancelled")
-            default:
-                LogManager.error(error.localizedDescription)
-                AppState.shared.showAlert("There was a problem trying to fetch the keywords.")
+        let context = DataManager.shared.createContext()
+        return await context.perform {
+            if let entity = DataManager.shared.getOne(context: context, type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: false),
+               let categoryEntity = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(keyword.category?.id ?? "0")), createIfNotFound: false) {
+                
+                entity.id = keyword.id
+                entity.keyword = keyword.keyword
+                entity.category = categoryEntity
+                entity.triggerType = keyword.triggerType.rawValue
+                entity.action = "edit"
+                entity.isPending = false
+                return DataManager.shared.save(context: context)
+                
+            } else {
+                return .failure(.notFound)
             }
         }
     }
     
     
     
+//    @MainActor
+//    func fetchKeywordsNEW(file: String = #file, line: Int = #line, function: String = #function) async {
+//        NSLog("\(file):\(line) : \(function)")
+//        LogManager.log()
+//        
+//        let start = CFAbsoluteTimeGetCurrent()
+//        
+//        /// Do networking.
+//        let model = RequestModel(requestType: "fetch_keywords", model: AppState.shared.user)
+//        typealias ResultResponse = Result<Array<CBKeyword>?, AppError>
+//        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+//        
+//        switch await result {
+//        case .success(let model):
+//            
+//            /// For testing bad network connection.
+//            try? await Task.sleep(nanoseconds: UInt64(20 * Double(NSEC_PER_SEC)))
+//            
+//            
+//            do {
+//                let url = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("cache_directory.sqlite")
+//                let dbQueue = try DatabaseQueue(path: url.path)
+//                try await dbQueue.write { db in
+//
+//                    // Call this somewhere during app startup, e.g. in your database setup:
+//                    var migrator = DatabaseMigrator()
+//
+//                    migrator.registerMigration("createCBKeyword") { db in
+//                        try db.create(table: "cbKeyword") { t in
+//                            t.column("id", .text).notNull().primaryKey()
+//                            t.column("keyword", .text).notNull()
+//                            t.column("trigger_type", .text).notNull()
+//                            t.column("category", .text)  // Adjust the type if this is a foreign key or ID
+//                            t.column("active", .boolean).notNull().defaults(to: true)
+//                            t.column("entered_by", .text)
+//                            t.column("updated_by", .text)
+//                            t.column("entered_date", .datetime)
+//                            t.column("updated_date", .datetime)
+//                            
+//                            // Add a primary key if needed
+//                            // t.primaryKey(["keyword", "trigger_type"])  // Composite key if those are unique
+//                        }
+//                    }
+//
+//                    // Later in your code:
+//                    try migrator.migrate(dbQueue)
+//                }
+//            } catch {
+//                
+//            }
+//            
+//            
+//            LogManager.networkingSuccessful()
+//            if let model {
+//                if !model.isEmpty {
+//                    var activeIds: Array<String> = []
+//                    for keyword in model {
+//                        activeIds.append(keyword.id)
+//                        
+//                        do {
+//                            let url = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("cache_directory.sqlite")
+//                            let dbQueue = try DatabaseQueue(path: url.path)
+//                            try await dbQueue.write { db in
+//                                try keyword.upsert(db)
+//                            }
+//                        } catch {
+//                            print(error.localizedDescription)
+//                        }
+//                        
+//                        
+//                        
+//                        
+//                        
+//                        
+//                        
+//                                                                                                            
+//                        let index = keywords.firstIndex(where: { $0.id == keyword.id })
+//                        if let index {
+//                            /// If the payment method is already in the list, update it from the server.
+//                            keywords[index].setFromAnotherInstance(keyword: keyword)
+//                        } else {
+//                            /// Add the payment method to the list (like when the payment method was added on another device).
+//                            keywords.append(keyword)
+//                        }
+//                    }
+//                    
+//                    /// Delete from model.
+//                    for keyword in keywords {
+//                        if !activeIds.contains(keyword.id) {
+//                            keywords.removeAll { $0.id == keyword.id }
+//                        }
+//                    }
+//                    
+////                    
+////                    let man = CacheManager<CBKeyword>(file: .keywords)
+////                    man.saveMany(self.keywords)
+//                    
+//                } else {
+//                    keywords.removeAll()
+//                }
+//            }
+//            
+//            /// Update the progress indicator.
+//            AppState.shared.downloadedData.append(.keywords)
+//            
+//            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
+//            print("⏰It took \(currentElapsed) seconds to fetch the keywords")
+//            
+//        case .failure (let error):
+//            switch error {
+//            case .taskCancelled:
+//                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
+//                print("keyModel fetchFrom Server Task Cancelled")
+//            default:
+//                LogManager.error(error.localizedDescription)
+//                AppState.shared.showAlert("There was a problem trying to fetch the keywords.")
+//            }
+//        }
+//    }
+//    
+//    
+//    
     @MainActor
-    func fetchKeywordsOG(file: String = #file, line: Int = #line, function: String = #function) async {
+    func fetchKeywords(file: String = #file, line: Int = #line, function: String = #function) async {
         NSLog("\(file):\(line) : \(function)")
+        let context = DataManager.shared.createContext()
         LogManager.log()
         
         let start = CFAbsoluteTimeGetCurrent()
@@ -162,7 +219,8 @@ class KeywordModel {
         case .success(let model):
             
             /// For testing bad network connection.
-            //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
+            
+            //try? await Task.sleep(nanoseconds: UInt64(20 * Double(NSEC_PER_SEC)))
 
             LogManager.networkingSuccessful()
             if let model {
@@ -173,48 +231,43 @@ class KeywordModel {
                     
                     for keyword in model {
                         activeIds.append(keyword.id)
-                        
-                        
-                        
-                        
+                                                                                                                                                                                                
+                        let index = keywords.firstIndex(where: { $0.id == keyword.id })
+                        if let index {
+                            /// If the payment method is already in the list, update it from the server.
+                            keywords[index].setFromAnotherInstance(keyword: keyword)
+                        } else {
+                            /// Add the payment method to the list (like when the payment method was added on another device).
+                            keywords.append(keyword)
+                        }
+                                                           
                         /// Find the keyword in cache.
-                        let entity = try? await DataManager.shared.getOne(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: true)
-                        
-                        /// Update the cache and add to model (if appolicable).
-                        /// This should always be true because the line above creates the entity if it's not found.
-                        if let entity {
-                            guard let categoryEntity = try? await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(keyword.category?.id ?? "0")), createIfNotFound: true) else { return }
+                        await context.perform {
+                            let entity = DataManager.shared.getOne(context: context, type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: true)
+                            let categoryEntity = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(keyword.category?.id ?? "0")), createIfNotFound: true)
                             
-                            
-                            
-                            if categoryEntity.id == nil {
-                                categoryEntity.id = keyword.category?.id
-                                categoryEntity.title = keyword.category?.title
-                                categoryEntity.amount = keyword.category?.amount ?? 0.0
-                                categoryEntity.hexCode = keyword.category?.color.toHex()
-                                //entity.hexCode = category.color.description
-                                categoryEntity.emoji = keyword.category?.emoji
-                                categoryEntity.action = "edit"
-                                categoryEntity.isPending = false
-                            }
-                            
-                            
-                            
-                            entity.id = keyword.id
-                            entity.keyword = keyword.keyword
-                            entity.category = categoryEntity
-                            entity.triggerType = keyword.triggerType.rawValue
-                            entity.action = "edit"
-                            entity.isPending = false
-                            
-                                                                                    
-                            let index = keywords.firstIndex(where: { $0.id == keyword.id })
-                            if let index {
-                                /// If the payment method is already in the list, update it from the server.
-                                keywords[index].setFromAnotherInstance(keyword: keyword)
-                            } else {
-                                /// Add the payment method to the list (like when the payment method was added on another device).
-                                keywords.append(keyword)
+                            /// Update the cache and add to model (if applicable).
+                            /// This should always be true because the line above creates the entity if it's not found.
+                            if let entity, let categoryEntity {
+                                entity.id = keyword.id
+                                entity.keyword = keyword.keyword
+                                entity.triggerType = keyword.triggerType.rawValue
+                                entity.action = "edit"
+                                entity.isPending = false
+                                
+                                if categoryEntity.id == nil {
+                                    categoryEntity.id = keyword.category?.id
+                                    categoryEntity.title = keyword.category?.title
+                                    categoryEntity.amount = keyword.category?.amount ?? 0.0
+                                    categoryEntity.hexCode = keyword.category?.color.toHex()
+                                    //entity.hexCode = category.color.description
+                                    categoryEntity.emoji = keyword.category?.emoji
+                                    categoryEntity.action = "edit"
+                                    categoryEntity.isPending = false
+                                }
+                                
+                                entity.category = categoryEntity
+                                let _ = DataManager.shared.save(context: context)
                             }
                         }
                     }
@@ -223,13 +276,10 @@ class KeywordModel {
                     for keyword in keywords {
                         if !activeIds.contains(keyword.id) {
                             keywords.removeAll { $0.id == keyword.id }
-                            let _ = await DataManager.shared.delete(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)))
+                            /// Does so in its own perform block.
+                            DataManager.shared.delete(context: context, type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)))
                         }
                     }
-            
-                    /// Save the cache.
-                    let _ = await DataManager.shared.save()
-                    
                 } else {
                     keywords.removeAll()
                 }
@@ -258,24 +308,24 @@ class KeywordModel {
     @MainActor
     func submit(_ keyword: CBKeyword) async -> Bool {
         isThinking = true
-        
         //LoadingManager.shared.startDelayedSpinner()
         LogManager.log()
-                                        
-        guard let entity = try? await DataManager.shared.getOne(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: true) else { return false }
-                        
-        entity.id = keyword.id
-        entity.keyword = keyword.keyword
-        entity.triggerType = keyword.triggerType.rawValue
-        entity.action = keyword.action.rawValue
-        entity.isPending = true
+                
+        let context = DataManager.shared.createContext()
+        await context.perform {
+            let entity = DataManager.shared.getOne(context: context, type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: true)
+            let categoryEntity = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(keyword.category?.id ?? "0")), createIfNotFound: true)
         
-        
-        guard let categoryEntity = try? await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(keyword.category?.id ?? "0")), createIfNotFound: true) else { return false }
-        entity.category = categoryEntity
-        
-        let _ = await DataManager.shared.save()
-        
+            if let entity, let categoryEntity {
+                entity.id = keyword.id
+                entity.keyword = keyword.keyword
+                entity.triggerType = keyword.triggerType.rawValue
+                entity.action = keyword.action.rawValue
+                entity.isPending = true
+                entity.category = categoryEntity
+                let _ = DataManager.shared.save(context: context)
+            }
+        }
         
         
         let model = RequestModel(requestType: keyword.action.serverKey, model: keyword)
@@ -284,29 +334,33 @@ class KeywordModel {
         
         typealias ResultResponse = Result<ReturnIdModel?, AppError>
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
-        
-        
-        //print(keyword.action)
-                    
+                                
         switch await result {
         case .success(let model):
             LogManager.networkingSuccessful()
-            /// Get the new ID from the server after adding a new activity.
+            
             if keyword.action != .delete {
-                guard let entity = try? await DataManager.shared.getOne(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: true) else { return false }
-                
+                await context.perform {
+                    if let entity = DataManager.shared.getOne(context: context, type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: true) {
+                        if keyword.action == .add {
+                            entity.id = model?.id ?? String(0)
+                            entity.action = "edit"
+                        }
+                        entity.isPending = false
+                        let _ = DataManager.shared.save(context: context)
+                    }
+                }
+                                
+                /// Get the new ID from the server after adding a new activity.
                 if keyword.action == .add {
-                    keyword.id = model?.id ?? "0"
+                    keyword.id = model?.id ?? String(0)
                     keyword.uuid = nil
                     keyword.action = .edit
-                    entity.id = model?.id ?? "0"
-                    entity.action = "edit"
                 }
                 
-                entity.isPending = false
-                let _ = await DataManager.shared.save()
             } else {
-                let _ = await DataManager.shared.delete(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)))
+                /// Does so in its own perform block.
+                DataManager.shared.delete(context: context, type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)))
             }
             
             isThinking = false
@@ -337,107 +391,110 @@ class KeywordModel {
     }
     
     
-    @MainActor
-    func submitOG(_ keyword: CBKeyword) async -> Bool {
-        isThinking = true
-        
-        //LoadingManager.shared.startDelayedSpinner()
-        LogManager.log()
-                                        
-        guard let entity = try? await DataManager.shared.getOne(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: true) else { return false }
-                        
-        entity.id = keyword.id
-        entity.keyword = keyword.keyword
-        entity.triggerType = keyword.triggerType.rawValue
-        entity.action = keyword.action.rawValue
-        entity.isPending = true
-        
-        
-        guard let categoryEntity = try? await DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(keyword.category?.id ?? "0")), createIfNotFound: true) else { return false }
-        entity.category = categoryEntity
-        
-        let _ = await DataManager.shared.save()
-        
-        
-        
-        let model = RequestModel(requestType: keyword.action.serverKey, model: keyword)
-        /// Used to test the snapshot data race
-        //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
-        
-        typealias ResultResponse = Result<ReturnIdModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
-        
-        
-        //print(keyword.action)
-                    
-        switch await result {
-        case .success(let model):
-            LogManager.networkingSuccessful()
-            /// Get the new ID from the server after adding a new activity.
-            if keyword.action != .delete {
-                guard let entity = try? await DataManager.shared.getOne(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: true) else { return false }
-                
-                if keyword.action == .add {
-                    keyword.id = model?.id ?? "0"
-                    keyword.uuid = nil
-                    keyword.action = .edit
-                    entity.id = model?.id ?? "0"
-                    entity.action = "edit"
-                }
-                
-                entity.isPending = false
-                let _ = await DataManager.shared.save()
-            } else {
-                let _ = await DataManager.shared.delete(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)))
-            }
-            
-            isThinking = false
-            keyword.action = .edit
-            #if os(macOS)
-            fuckYouSwiftuiTableRefreshID = UUID()
-            #endif
-            return true
-            
-        case .failure(let error):
-            LogManager.error(error.localizedDescription)
-            AppState.shared.showAlert("There was a problem syncing the keyword. Will try again at a later time.")
-//            keyword.deepCopy(.restore)
-//
-//            switch keyword.action {
-//            case .add: keywords.removeAll { $0.id == keyword.id }
-//            case .edit: break
-//            case .delete: keywords.append(keyword)
+//    @MainActor
+//    func submitOG(_ keyword: CBKeyword) async -> Bool {
+//        isThinking = true
+//        
+//        //LoadingManager.shared.startDelayedSpinner()
+//        LogManager.log()
+//                                        
+//        guard let entity = DataManager.shared.getOne(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: true) else { return false }
+//                        
+//        entity.id = keyword.id
+//        entity.keyword = keyword.keyword
+//        entity.triggerType = keyword.triggerType.rawValue
+//        entity.action = keyword.action.rawValue
+//        entity.isPending = true
+//        
+//        
+//        guard let categoryEntity = DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(keyword.category?.id ?? "0")), createIfNotFound: true) else { return false }
+//        entity.category = categoryEntity
+//        
+//        let _ = DataManager.shared.save()
+//        
+//        
+//        
+//        let model = RequestModel(requestType: keyword.action.serverKey, model: keyword)
+//        /// Used to test the snapshot data race
+//        //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
+//        
+//        typealias ResultResponse = Result<ReturnIdModel?, AppError>
+//        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+//        
+//        
+//        //print(keyword.action)
+//                    
+//        switch await result {
+//        case .success(let model):
+//            LogManager.networkingSuccessful()
+//            /// Get the new ID from the server after adding a new activity.
+//            if keyword.action != .delete {
+//                guard let entity = DataManager.shared.getOne(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: true) else { return false }
+//                
+//                if keyword.action == .add {
+//                    keyword.id = model?.id ?? "0"
+//                    keyword.uuid = nil
+//                    keyword.action = .edit
+//                    entity.id = model?.id ?? "0"
+//                    entity.action = "edit"
+//                }
+//                
+//                entity.isPending = false
+//                let _ = DataManager.shared.save()
+//            } else {
+//                let _ = await DataManager.shared.delete(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)))
 //            }
-        }
-        
-        isThinking = false
-        keyword.action = .edit
-        #if os(macOS)
-        fuckYouSwiftuiTableRefreshID = UUID()
-        #endif
-        return false
-    }
-    
+//            
+//            isThinking = false
+//            keyword.action = .edit
+//            #if os(macOS)
+//            fuckYouSwiftuiTableRefreshID = UUID()
+//            #endif
+//            return true
+//            
+//        case .failure(let error):
+//            LogManager.error(error.localizedDescription)
+//            AppState.shared.showAlert("There was a problem syncing the keyword. Will try again at a later time.")
+////            keyword.deepCopy(.restore)
+////
+////            switch keyword.action {
+////            case .add: keywords.removeAll { $0.id == keyword.id }
+////            case .edit: break
+////            case .delete: keywords.append(keyword)
+////            }
+//        }
+//        
+//        isThinking = false
+//        keyword.action = .edit
+//        #if os(macOS)
+//        fuckYouSwiftuiTableRefreshID = UUID()
+//        #endif
+//        return false
+//    }
+//    
     
     func delete(_ keyword: CBKeyword, andSubmit: Bool) async {
+        let context = DataManager.shared.createContext()
         keyword.action = .delete
         keywords.removeAll { $0.id == keyword.id }
         
         if andSubmit {
             let _ = await submit(keyword)
         } else {
-            let _ = await DataManager.shared.delete(type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)))
+            DataManager.shared.delete(context: context, type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)))
         }
     }
     
     
     func deleteAll() async {
+        let context = DataManager.shared.createContext()
         for keyword in keywords {
             keyword.action = .delete
             let _ = await submit(keyword)
         }
         
-        let _ = await DataManager.shared.deleteAll(for: PersistentKeyword.self)
+        let _ = DataManager.shared.deleteAll(context: context, for: PersistentKeyword.self)
+        let _ = DataManager.shared.save(context: context)
         //print("SaveResult: \(saveResult)")
         keywords.removeAll()
     }

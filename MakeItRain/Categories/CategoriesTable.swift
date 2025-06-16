@@ -87,7 +87,7 @@ struct CategoriesTable: View {
             if let newValue {
                 editCategory = catModel.getCategory(by: newValue)
             } else {
-                catModel.saveCategory(id: oldValue!, calModel: calModel)
+                catModel.saveCategory(id: oldValue!, calModel: calModel, keyModel: keyModel)
             }
         }
         .sheet(item: $editCategory, onDismiss: {
@@ -350,13 +350,37 @@ struct CategoriesTable: View {
     }
     
     
+//    func move(from source: IndexSet, to destination: Int) {
+//        print("\(source.map { $0.id }) - \(destination)")
+//        print(catModel.categories[source.map { $0.id }.first!].title)
+//        catModel.categories.filter { !$0.isNil }.move(fromOffsets: source, toOffset: destination)
+////        Task {
+////            let listOrderUpdates = await catModel.setListOrders(calModel: calModel)
+////            let _ = await funcModel.submitListOrders(items: listOrderUpdates, for: .categories)
+////        }
+//        
+//    }
+    
+    
     func move(from source: IndexSet, to destination: Int) {
-        print("\(source.map {$0.id}) - \(destination)")
-        catModel.categories.move(fromOffsets: source, toOffset: destination)
-        Task {
-            let listOrderUpdates = await catModel.setListOrders(calModel: calModel)
-            let _ = await funcModel.submitListOrders(items: listOrderUpdates, for: .categories)
-        }
+        /// Create an index map of non-nil items.
+        let filteredIndices = catModel.categories.enumerated()
+            .filter { !$0.element.isNil }
+            .map { $0.offset }
+
+        /// Convert filtered indices to original indices.
+        guard let sourceInFiltered = source.first, sourceInFiltered < filteredIndices.count, destination <= filteredIndices.count else { return }
+
+        let ogSourceIndex = filteredIndices[sourceInFiltered]
+        let ogDestIndex = destination == filteredIndices.count ? catModel.categories.count : filteredIndices[destination]
+
+        /// Mutate the original array.
+        catModel.categories.move(fromOffsets: IndexSet(integer: ogSourceIndex), toOffset: ogDestIndex)
+                
+         Task {
+             let listOrderUpdates = await catModel.setListOrders(calModel: calModel)
+             let _ = await funcModel.submitListOrders(items: listOrderUpdates, for: .categories)
+         }
     }
 }
 

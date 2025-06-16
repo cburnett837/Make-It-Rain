@@ -168,7 +168,7 @@ struct SettingsView: View {
                     Button("Logout") {
                         Task {
                             showSettings = false
-                            await funcModel.logout()
+                            funcModel.logout()
                         }
                         
                     }
@@ -357,7 +357,7 @@ struct SettingsView: View {
                 }
                                     
                 if NotificationManager.shared.notificationsAreAllowed {
-                    Text(AppState.shared.user?.notificationToken ?? "N/A")
+                    Text(AppState.shared.notificationToken ?? "N/A")
                         .foregroundStyle(.gray)
                         .font(.footnote)
                 } else {

@@ -70,6 +70,12 @@ struct RepeatingTransactionsTable: View {
         }
         .sheet(item: $editRepeatingTransaction, onDismiss: { repTransactionEditID = nil }) { rep in
             RepeatingTransactionView(repTransaction: rep, repModel: repModel, catModel: catModel, payModel: payModel, editID: $repTransactionEditID)
+                #if os(iOS)
+                .presentationSizing(.page)
+                #else
+                .frame(minWidth: 500, minHeight: 700)
+                .presentationSizing(.fitted)
+                #endif
         }
         .onChange(of: repTransactionEditID) { oldValue, newValue in
             if let newValue {

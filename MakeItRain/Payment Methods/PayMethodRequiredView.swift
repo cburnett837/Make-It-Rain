@@ -45,7 +45,7 @@ struct PayMethodRequiredView: View {
                 Button("Logout") {
                     Task {
                         AppState.shared.showPaymentMethodNeededSheet = false
-                        await funcModel.logout()
+                        funcModel.logout()
                     }
                     
                 }

@@ -1049,7 +1049,7 @@ class EventModel: PhotoUploadCompletedDelegate {
         if await PhotoModel.shared.delete(picture) {
             if photoType.enumID == .eventTransaction {
                 if let trans = justTransactions.filter({ $0.id == picture.relatedID }).first {
-                    if let index = trans.pictures?.firstIndex(where: { $0.id == picture.id }) {
+                    if let _ = trans.pictures?.firstIndex(where: { $0.id == picture.id }) {
                         trans.pictures?.removeAll { $0.id == picture.id || $0.uuid == picture.uuid }
                     }
                 }
@@ -1057,7 +1057,7 @@ class EventModel: PhotoUploadCompletedDelegate {
             
             if photoType.enumID == .event {
                 if let event = events.filter({ $0.id == picture.relatedID }).first {
-                    if let index = event.pictures?.firstIndex(where: { $0.id == picture.id }) {
+                    if let _ = event.pictures?.firstIndex(where: { $0.id == picture.id }) {
                         event.pictures?.removeAll { $0.id == picture.id || $0.uuid == picture.uuid }
                     }
                 }
