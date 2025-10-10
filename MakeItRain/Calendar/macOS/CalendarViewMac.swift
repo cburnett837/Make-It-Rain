@@ -47,6 +47,7 @@ struct CalendarViewMac: View {
     @State private var transEditID: String?
     @State private var editTrans: CBTransaction?
     
+    @State private var pulse = false
     
     let enumID: NavDestination
     var isInWindow: Bool = false
@@ -59,6 +60,11 @@ struct CalendarViewMac: View {
                 $0.frame(minWidth: calendarWidth - (extraViewsWidth / 2))
             }
             .padding(.bottom, 15)
+            .if(calModel.isPlayground) {
+                $0
+                    .border(Color(.orange).opacity(pulse ? 0.6 : 1), width: 3)
+                    //.onAppear { withAnimation(.easeInOut(duration: 1).repeatForever(autoreverses: true)) { pulse.toggle() } }
+            }
             .task {
                 //funcModel.prepareStartingAmounts()
                 /// Needed when selecting a month from a category analytic.

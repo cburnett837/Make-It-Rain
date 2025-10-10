@@ -33,9 +33,28 @@ struct KeyboardToolbarView: View {
 //    
     var extraDoneFunctionality: (() -> Void)?
     
+    
+    private var canUseLiquidGlass: Bool {
+        guard #available(iOS 26, *) else {
+            return false
+        }
+        return true
+    }
+    
     var body: some View {
+        if #available(iOS 26, *) {
+            theView
+                .glassEffect()
+                .padding(.bottom, 5)
+        } else {
+            theView
+        }
+        
+    }
+    
+    var theView: some View {
         VStack(spacing: 0) {
-            Divider()
+            //Divider()
             
             HStack {
                 HStack(spacing: 15) {
@@ -124,7 +143,7 @@ struct KeyboardToolbarView: View {
 //                            }
 //                        }
 //                    }
-//                    
+//
                     Button {
                         focusedField.wrappedValue = nil
                         
@@ -142,11 +161,13 @@ struct KeyboardToolbarView: View {
             }
             .padding(.horizontal)
             .padding(.vertical, 10)
-            .background(Color(.tertiarySystemBackground))
+            .if(!canUseLiquidGlass) {
+                $0.background(Color(.tertiarySystemBackground))
+            }
+            //.background(Color(.red))
             .font(.title3)
             .foregroundStyle(Color.fromName(colorTheme))
         }
-        
     }
 }
 

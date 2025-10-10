@@ -11,9 +11,9 @@ struct PayMethodsTable: View {
     @Environment(\.dismiss) var dismiss
     
     @Local(\.useWholeNumbers) var useWholeNumbers
-    #if os(macOS)
+    //#if os(macOS)
     @AppStorage("paymentMethodTableColumnOrder") private var columnCustomization: TableColumnCustomization<CBPaymentMethod>
-    #endif
+    //#endif
     
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
@@ -49,7 +49,7 @@ struct PayMethodsTable: View {
     var creditMethods: [CBPaymentMethod] {
         payModel.paymentMethods
             .filter { $0.isAllowedToBeViewedByThisUser }
-            .filter { $0.accountType == .credit || $0.accountType == .unifiedCredit }
+            .filter { $0.accountType == .credit || $0.accountType == .unifiedCredit || $0.accountType == .loan }
             .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
     }
     
@@ -68,7 +68,11 @@ struct PayMethodsTable: View {
                 #if os(macOS)
                 macTable
                 #else
-                phoneList
+                if AppState.shared.isIphone {
+                    phoneList
+                } else {
+                    macTable
+                }
                 #endif
             } else {
                 ContentUnavailableView("No Accounts", systemImage: "creditcard", description: Text("Click the plus button above to add a new account."))
@@ -104,9 +108,7 @@ struct PayMethodsTable: View {
             payModel.determineIfUserIsRequiredToAddPaymentMethod()
         }) { meth in
             PayMethodView(payMethod: meth, editID: $paymentMethodEditID)
-                #if os(iOS)
-                .presentationSizing(.page)
-                #else
+                #if os(macOS)
                 .frame(minWidth: 500, minHeight: 700)
                 .presentationSizing(.fitted)
                 #endif
@@ -171,7 +173,8 @@ struct PayMethodsTable: View {
             Spacer()
         }
     }
-        
+      
+    #endif
     var macTable: some View {
         Table(of: CBPaymentMethod.self, selection: $paymentMethodEditID, sortOrder: $sortOrder, columnCustomization: $columnCustomization) {
             TableColumn("Title", value: \.title) { meth in
@@ -212,7 +215,7 @@ struct PayMethodsTable: View {
             .customizationID("limit")
             
             TableColumn("Due Date", value : \.dueDate.specialDefaultIfNil) { meth in
-                if meth.accountType == .credit {
+                if meth.accountType == .credit || meth.accountType == .loan {
                     Text("The \(meth.dueDate?.withOrdinal() ?? "N/A") of every month")
                     //Text("The \(String(meth.dueDate ?? 0)) of every month")
                 } else {
@@ -222,7 +225,7 @@ struct PayMethodsTable: View {
             .customizationID("dueDate")
             
             TableColumn("Reminder", value: \.notificationOffset.specialDefaultIfNil) { meth in
-                if meth.accountType == .credit {
+                if meth.accountType == .credit || meth.accountType == .loan {
                     if meth.notifyOnDueDate {
                         Label {
                             let text = meth.notificationOffset == 0 ? "On day of" : (meth.notificationOffset == 1 ? "The day before" : "2 days before")
@@ -305,63 +308,25 @@ struct PayMethodsTable: View {
         .clipped()
 
     }   
-    #endif
+    //#endif
     
     #if os(iOS)
     @ToolbarContentBuilder
     func phoneToolbar() -> some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
-            if AppState.shared.isIphone {
-                HStack {
-                    defaultPayMethodMenu
-//                    Button {
-//                        dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
-//                    } label: {
-//                        HStack(spacing: 4) {
-//                            Image(systemName: "chevron.left")
-//                            Text("Back")
-//                        }
-//                    }
-                    //ToolbarLongPollButton()
-                }
-                
-            } else {
-                HStack(spacing: 20) {
-                    Button {
-                        paymentMethodEditID = UUID().uuidString
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    //.disabled(payModel.isThinking)
-                    
-                    ToolbarRefreshButton()
-                        .disabled(!AppState.shared.methsExist)
-                                        
-                    defaultPayMethodMenu
-                        .disabled(!AppState.shared.methsExist)
-                    
-                    ToolbarLongPollButton()
-                }
-            }
+            defaultPayMethodMenu
         }
-        
-        if AppState.shared.isIphone {
-            ToolbarItem(placement: .topBarTrailing) {
-                HStack(spacing: 20) {
-                    
-                    ToolbarLongPollButton()
-                    
-                    ToolbarRefreshButton()
-                        .disabled(!AppState.shared.methsExist)
-                    
-                    Button {
-                        paymentMethodEditID = UUID().uuidString
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    //.disabled(payModel.isThinking)
-                }
+                
+        ToolbarItem(placement: .topBarTrailing) { ToolbarLongPollButton() }
+        ToolbarItem(placement: .topBarTrailing) { ToolbarRefreshButton().disabled(!AppState.shared.methsExist) }
+        ToolbarSpacer(.fixed, placement: .topBarTrailing)
+        ToolbarItem(placement: .topBarTrailing) {
+            Button {
+                paymentMethodEditID = UUID().uuidString
+            } label: {
+                Image(systemName: "plus")
             }
+            .tint(.none)
         }
     }
     
@@ -474,13 +439,9 @@ struct PayMethodsTable: View {
                 VStack(alignment: .leading) {
                     HStack {
                         Text(meth.title)
-                        
-                        if meth.isPrivate || meth.isHidden {
-                            Image(systemName: "eye.slash")
-                            //Text("\(meth.isAllowedToBeViewedByThisUser)")
-                        }
-                        
-                        
+                        if meth.isPrivate { Image(systemName: "person.slash") }
+                        if meth.isHidden { Image(systemName: "eye.slash") }
+                                                
                         Spacer()
                         Text(XrefModel.getItem(from: .accountTypes, byID: meth.accountType.rawValue).description)
                             .foregroundStyle(.gray)
@@ -492,9 +453,7 @@ struct PayMethodsTable: View {
                         HStack {
                             //Text("Balance as of \(balance.lastTimeICheckedPlaidSyncedDate?.string(to: .monthDayYearHrMinAmPm) ?? "N/A"):")
                             Text("Balance as of \(balance.enteredDate?.string(to: .monthDayYearHrMinAmPm) ?? "N/A"):")
-                            
                             Spacer()
-                            
                             Text(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
                         }
                         .foregroundStyle(.gray)
@@ -502,42 +461,42 @@ struct PayMethodsTable: View {
                     }
                     
                     
-                    if meth.accountType == .checking || meth.accountType == .credit {
-                        HStack {
-                            Text("Last 4:")
-                            Spacer()
-                            if meth.last4 == nil {
-                                Text("N/A")
-                            } else {
-                                Text("xxxxx\(meth.last4 ?? "-")")
-                            }
-                        }
-                        .foregroundStyle(.gray)
-                        .font(.caption)
-                    }
+//                    if meth.accountType == .checking || meth.accountType == .credit {
+//                        HStack {
+//                            Text("Last 4:")
+//                            Spacer()
+//                            if meth.last4 == nil {
+//                                Text("N/A")
+//                            } else {
+//                                Text("xxxxx\(meth.last4 ?? "-")")
+//                            }
+//                        }
+//                        .foregroundStyle(.gray)
+//                        .font(.caption)
+//                    }
                     
-                    if meth.accountType == .credit {
-                        HStack {
-                            Text("Limit:")
-                            Spacer()
-                            if meth.accountType == .credit {
-                                Text(meth.limit?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-")
-                            }
-                        }
-                        .foregroundStyle(.gray)
-                        .font(.caption)
-                    
-                    
-                        HStack {
-                            Text("Due Date:")
-                            Spacer()
-                            VStack(alignment: .trailing) {
-                                Text("The \(meth.dueDate?.withOrdinal() ?? "N/A")")
-                            }
-                        }
-                        .foregroundStyle(.gray)
-                        .font(.caption)
-                    }
+//                    if meth.accountType == .credit {
+//                        HStack {
+//                            Text("Limit:")
+//                            Spacer()
+//                            if meth.accountType == .credit {
+//                                Text(meth.limit?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-")
+//                            }
+//                        }
+//                        .foregroundStyle(.gray)
+//                        .font(.caption)
+//                    
+//                    
+//                        HStack {
+//                            Text("Due Date:")
+//                            Spacer()
+//                            VStack(alignment: .trailing) {
+//                                Text("The \(meth.dueDate?.withOrdinal() ?? "N/A")")
+//                            }
+//                        }
+//                        .foregroundStyle(.gray)
+//                        .font(.caption)
+//                    }
                     
                     
                     if meth.notifyOnDueDate {
@@ -584,8 +543,9 @@ struct PayMethodsTable: View {
 //            }
             
         } label: {
-            Image(systemName: "ellipsis.circle")
+            Image(systemName: "ellipsis")
         }
+        .tint(.none)
     }
     
     var showDefaultForViewingSheetButton: some View {

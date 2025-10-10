@@ -35,13 +35,19 @@ struct PopulateMonthOptionsSheet: View {
     @State private var model = PopulateOptions()
     
     var body: some View {
-        StandardContainer(.list) {
-            paymentMethodSection
-            budgetSection
-        } header: {
-            SheetHeader(title: "Populate Options", close: { dismiss() })
-        } footer: {
-            populateButton
+        NavigationStack {
+            StandardContainerWithToolbar(.list) {
+                paymentMethodSection
+                budgetSection
+            }
+            #if os(iOS)
+            .navigationTitle("Populate Options")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) { closeButton }
+                ToolbarItem(placement: .bottomBar) { populateButton }
+            }
+            #endif
         }
         .task {
             payModel.paymentMethods
@@ -103,14 +109,22 @@ struct PopulateMonthOptionsSheet: View {
         } label: {
             Text("Populate")
         }
-        .padding(.bottom, 6)
         #if os(macOS)
         .foregroundStyle(Color.fromName(colorTheme))
         .buttonStyle(.codyStandardWithHover)
         #else
         .tint(Color.fromName(colorTheme))
-        .buttonStyle(.borderedProminent)
+        .buttonStyle(.glassProminent)
         #endif
     
+    }
+    
+    var closeButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "checkmark")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        }
     }
 }

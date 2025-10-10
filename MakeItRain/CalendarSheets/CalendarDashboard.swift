@@ -13,6 +13,7 @@ struct ChartData: Identifiable {
     let category: CBCategory
     var budget: Double
     var income: Double
+    var incomeMinusPayments: Double
     var expenses: Double
     var expensesMinusIncome: Double
     var chartPercentage: Double
@@ -26,7 +27,7 @@ struct ChartData: Identifiable {
 //    let amount: Double
 //}
 
-struct BudgetTable: View {
+struct CalendarDashboard: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
     @Local(\.colorTheme) var colorTheme
@@ -34,6 +35,7 @@ struct BudgetTable: View {
     @AppStorage("viewMode") var viewMode = CalendarViewMode.scrollable
     @Local(\.useWholeNumbers) var useWholeNumbers
     @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
+    
     
     @Environment(CalendarModel.self) private var calModel
     @Environment(CategoryModel.self) private var catModel
@@ -68,85 +70,34 @@ struct BudgetTable: View {
     
     var body: some View {
         //let _ = Self._printChanges()
-        
-//        VStack {
-//            DashboardHeader()
-//            
-//            VStack {
-//                if AppState.shared.isIpad {
-//                    ScrollView {
-//                        LazyVGrid(columns: columns, spacing: 20) {
-//                            widgetGrid
-//                        }
-//                        .padding(.horizontal)
-//                    }
-//                } else {
-//                    List {
-//                        widgetList
-//                    }
-//                    .listStyle(.plain)
-//                    .padding(.top, 1)
-//                    .layoutPriority(1)
-//                    .scrollIndicators(.hidden)
-//                }
-//                //Spacer() // Put this back if tabbar starts acting weird again
-//            }
-//        }
-//        .onChange(of: budgetEditID) { oldValue, newValue in
-//            if let newValue {
-//                editBudget = calModel.sMonth.budgets.filter { $0.id == newValue }.first!
-//            } else if newValue == nil && oldValue != nil {
-//                let budget = calModel.sMonth.budgets.filter { $0.id == oldValue! }.first!
-//                Task {
-//                    if budget.hasChanges() {
-//                        print("HAS CHANGES")
-//                        await calModel.submit(budget)
-//                    } else {
-//                        print("NO CHANGES")
-//                    }
-//                }
-//            }
-//        }
-//        .sheet(item: $editBudget, onDismiss: {
-//            budgetEditID = nil
-//        }, content: { budget in
-//            BudgetEditView(budget: budget, calModel: calModel)
-//                .presentationSizing(.page)
-//                //#if os(iOS)
-//                //.presentationDetents([.medium, .large])
-//                //#endif
-//                //#if os(macOS)
-//                //.frame(minWidth: 700)
-//                //#endif
-//                //.frame(maxWidth: 300)
-//        })
-//        .task { createData() }
-        
-        
-        
-        
-        StandardContainer(.list) {
-            Section {
-                if breakdownOrChart == "chart" {
-                    verticalBarChart
-                } else {
-                    BudgetBreakdownView(wrappedInSection: false, chartData: data, calculateDataFunction: createData)
+        NavigationStack {
+            StandardContainerWithToolbar(.list) {
+                Section {
+                    if breakdownOrChart == "chart" {
+                        verticalBarChart
+                    } else {
+                        BudgetBreakdownView(wrappedInSection: false, chartData: data, calculateDataFunction: createData)
+                    }
+                } header: {
+                    expenseByCategoryHeaderMenu
                 }
-            } header: {
-                expenseByCategoryHeaderMenu
+                .textCase(nil)
+                
+                Section("Spending Overview") {
+                    pieChart
+                }
+                
+                Section("Net Worth Change") {
+                    networthChange
+                }
             }
-            .textCase(nil)
-            
-            Section("Spending Overview") {
-                pieChart
+            #if os(iOS)
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) { closeButton }
             }
-            
-            Section("Net Worth Change") {
-                networthChange
-            }
-            
-        } header: {
-            SheetHeader(title: title, close: { dismiss() })
+            #endif
         }
         .onChange(of: budgetEditID) { oldValue, newValue in
             if let newValue {
@@ -177,6 +128,15 @@ struct BudgetTable: View {
                 //.frame(maxWidth: 300)
         })
         .task { createData() }
+        /// Recalculate the analysis data when the month or year changes.
+        .onChange(of: DataChangeTriggers.shared.calendarDidChange) {
+            print("🤞🏻 CalendarDashboard.body: Received recalc trigger")
+            createData()
+//            Task {
+//                try? await Task.sleep(nanoseconds: UInt64(0.3 * Double(NSEC_PER_SEC)))
+//                createData()
+//            }
+        }
     }
     
     @ViewBuilder
@@ -209,6 +169,7 @@ struct BudgetTable: View {
     
     struct NetWorthChangeView: View {
         @Local(\.useWholeNumbers) var useWholeNumbers
+        @Environment(DataChangeTriggers.self) var dataChangeTriggers
         @Environment(CalendarModel.self) private var calModel
         
         var startingAmount: CBStartingAmount
@@ -232,14 +193,51 @@ struct BudgetTable: View {
                     .foregroundStyle(percentage < 0 ? Color.red : Color.green)
             }
             .task {
-                eom = calModel.calculateTotal(for: calModel.sMonth, using: startingAmount.payMethod, and: .giveMeLastDayEod)
-                change = eom - startingAmount.amount
-                percentage = Helpers.netWorthPercentageChange(start: startingAmount.amount, end: eom)
+                calculate()
             }
+            /// Recalculate when transaction amounts change.
+//            .onChange(of: calModel.sMonth.justTransactions.map{ $0.amount }) {
+//                /// Put a slight delay so the app has time to switch all the transactions to the new month.
+//                Task {
+//                    try? await Task.sleep(nanoseconds: UInt64(0.3 * Double(NSEC_PER_SEC)))
+//                    calculate()
+//                }
+//            }
+//            .onChange(of: calModel.sMonth.justTransactions.map{ $0.factorInCalculations }) {
+//                /// Put a slight delay so the app has time to switch all the transactions to the new month.
+//                Task {
+//                    try? await Task.sleep(nanoseconds: UInt64(0.3 * Double(NSEC_PER_SEC)))
+//                    calculate()
+//                }
+//            }
+            .onChange(of: DataChangeTriggers.shared.calendarDidChange) { oldValue, newValue in
+//                print("🤞🏻 NetWorthChangeView.body: Received recalc trigger newValue: \(newValue), oldValue: \(oldValue)")
+//                if newValue != oldValue {
+//                    print("NetWorthChangeView.body: will recalc")
+//                    calculate()
+//                }
+                
+                calculate()
+            }
+        }
+        
+        func calculate() {
+            eom = calModel.calculateTotal(for: calModel.sMonth, using: startingAmount.payMethod, and: .giveMeLastDayEod)
+            change = eom - startingAmount.amount
+            percentage = Helpers.netWorthPercentageChange(start: startingAmount.amount, end: eom)
         }
     }
     
     
+    
+    var closeButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "checkmark")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        }
+    }
     
     var expenseByCategoryHeaderMenu: some View {
         Menu {
@@ -372,8 +370,8 @@ struct BudgetTable: View {
     var barSection: some View {
         VStack {
             ForEach(relevantData) { item in
-                let expenses = String(item.expensesMinusIncome.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                let budget = String(item.budget.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                //let expenses = String(item.expensesMinusIncome.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                //let budget = String(item.budget.currencyWithDecimals(useWholeNumbers ? 0 : 2))
                 VStack(spacing: 0) {
                     Label {
                         Text(item.category.title)
@@ -756,21 +754,49 @@ struct BudgetTable: View {
                 /// Get the expenses associated with the category from the calModel.
                 let expenses = calModel.sMonth.justTransactions
                     .filter { ($0.payMethod?.isAllowedToBeViewedByThisUser ?? true) && ($0.payMethod?.isHidden ?? false) == false }
-                    .filter { $0.isBudgetable && $0.isExpense && $0.factorInCalculations }
+                    //.filter { $0.isBudgetable && $0.isExpense && $0.factorInCalculations }
+                    .filter { $0.isExpense && $0.factorInCalculations }
                     .filter { $0.category?.id == budget.category?.id }
                     //.map { $0.amount }
-                    .map { $0.payMethod?.accountType == .credit ? $0.amount * -1 : $0.amount }
+                    .map { ($0.payMethod?.isCreditOrLoan ?? false) ? $0.amount * -1 : $0.amount }
                     .reduce(0.0, +)
                                                            
                 /// Get the income associated with the category from the calModel.
                 /// (Like if Laura sends me money for drinks).
                 let income = calModel.sMonth.justTransactions
                     .filter { ($0.payMethod?.isAllowedToBeViewedByThisUser ?? true) && ($0.payMethod?.isHidden ?? false) == false }
-                    .filter { $0.isBudgetable && $0.isIncome && $0.factorInCalculations }
+//                    .filter { $0.isBudgetable && $0.isIncome && $0.factorInCalculations }
+                    .filter { $0.isIncome && $0.factorInCalculations }
                     .filter { $0.category?.id == budget.category?.id }
                     //.map { $0.amount }
-                    .map { $0.payMethod?.accountType == .credit ? $0.amount * -1 : $0.amount }
+                    .map { ($0.payMethod?.isCreditOrLoan ?? false) ? $0.amount * -1 : $0.amount }
                     .reduce(0.0, +)
+                
+                
+                let incomeMinusPayments = calModel.sMonth.justTransactions
+                    .filter ({
+                        ($0.payMethod?.isAllowedToBeViewedByThisUser ?? true)
+                        && ($0.payMethod?.isHidden ?? false) == false
+                        && $0.isIncome
+                        && $0.factorInCalculations
+                        && $0.category?.id == budget.category?.id
+                    })
+//                    .filter { $0.isBudgetable && $0.isIncome && $0.factorInCalculations }
+                    //.filter ({ $0.isIncome && $0.factorInCalculations && $0.category?.id == budget.category?.id })
+                    /// Ignore transactions that are the beneficiaries of payments.
+                    .filter { trans in
+                        if trans.relatedTransactionID != nil {
+                            if calModel.sMonth.justTransactions.filter ({ $0.id == trans.relatedTransactionID! }).first != nil {
+                                if trans.isPaymentOrigin {
+                                    return false
+                                }
+                            }
+                        }
+                        return true
+                    }
+                    .map { ($0.payMethod?.isCreditOrLoan ?? false) ? $0.amount * -1 : $0.amount }
+                    .reduce(0.0, +)
+                
                 
                 var chartPer = 0.0
                 var actualPer = 0.0
@@ -794,6 +820,7 @@ struct BudgetTable: View {
                     category: budget.category!,
                     budget: budget.amount,
                     income: income,
+                    incomeMinusPayments: incomeMinusPayments,
                     expenses: expenses,
                     expensesMinusIncome: expensesMinusIncome,
                     chartPercentage: chartPer,

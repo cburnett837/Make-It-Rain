@@ -45,7 +45,7 @@ struct KeywordsTable: View {
             }
         }
         #if os(iOS)
-        .navigationTitle("Keywords")
+        .navigationTitle("Rules")
         //.navigationBarTitleDisplayMode(.inline)
         #endif
         /// There seems to be a bug in SwiftUI `Table` that prevents the view from refreshing when adding a new keyword, and then trying to edit it.
@@ -63,9 +63,10 @@ struct KeywordsTable: View {
         .searchable(text: $searchText)
         .sheet(item: $editKeyword, onDismiss: { keywordEditID = nil }) { key in
             KeywordView(keyword: key, keyModel: keyModel, catModel: catModel, editID: $keywordEditID)
-                #if os(iOS)
-                .presentationSizing(.page)
-                #else
+//                #if os(iOS)
+//                .presentationSizing(.page)
+//                #else
+                #if os(macOS)
                 .frame(minWidth: 500, minHeight: 700)
                 .presentationSizing(.fitted)
                 #endif                
@@ -148,47 +149,16 @@ struct KeywordsTable: View {
             
     @ToolbarContentBuilder
     func phoneToolbar() -> some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            if AppState.shared.isIphone {
-                HStack {
-//                    Button {
-//                        dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
-//                    } label: {
-//                        HStack(spacing: 4) {
-//                            Image(systemName: "chevron.left")
-//                            Text("Back")
-//                        }
-//                    }
-                    //ToolbarLongPollButton()
-                }
-                
-            } else {
-                HStack(spacing: 20) {
-                    Button {
-                        keywordEditID = UUID().uuidString
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    //.disabled(keyModel.isThinking)
-                    ToolbarRefreshButton()
-                    ToolbarLongPollButton()
-                }
+        ToolbarItem(placement: .topBarTrailing) { ToolbarLongPollButton() }
+        ToolbarItem(placement: .topBarTrailing) { ToolbarRefreshButton() }
+        ToolbarSpacer(.fixed, placement: .topBarTrailing)
+        ToolbarItem(placement: .topBarTrailing) {
+            Button {
+                keywordEditID = UUID().uuidString
+            } label: {
+                Image(systemName: "plus")
             }
-        }
-        
-        if AppState.shared.isIphone {
-            ToolbarItem(placement: .topBarTrailing) {
-                HStack(spacing: 20) {
-                    ToolbarLongPollButton()
-                    ToolbarRefreshButton()
-                    Button {
-                        keywordEditID = UUID().uuidString
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    //.disabled(keyModel.isThinking)
-                }                
-            }
+            .tint(.none)
         }
     }
     

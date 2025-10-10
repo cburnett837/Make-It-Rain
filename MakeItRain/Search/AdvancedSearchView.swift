@@ -35,6 +35,8 @@ struct AdvancedSearchView: View {
     
     @FocusState private var focusedField: Int?
     
+    @State private var searchTerm = ""
+    
     var categoryFilterTitle: String {
         let cats = searchModel.categories
         if cats.isEmpty {
@@ -116,7 +118,15 @@ struct AdvancedSearchView: View {
         .task {
             //focusedField = 0
         }
-        
+        .searchable(text: $searchTerm, prompt: "Search Terms (Separate by comma)")
+        .onSubmit(of: .search) {
+            let terms = searchTerm
+                .split(separator: ",")                // split by comma
+                .map { $0.trimmingCharacters(in: .whitespaces) } // trim spaces
+            searchModel.searchTerms.append(contentsOf: terms)
+            searchTerm = ""
+            search()
+        }
         .toolbar {
             #if os(macOS)
             macToolbar()
@@ -263,7 +273,7 @@ struct AdvancedSearchView: View {
                 
                 TableColumn("Amount") { trans in
                     Group {
-                        if trans.payMethod?.accountType == .credit {
+                        if trans.payMethod?.accountType == .credit || trans.payMethod?.accountType == .loan {
                             Text((trans.amount * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2))
                         } else {
                             Text(trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
@@ -435,7 +445,7 @@ struct AdvancedSearchView: View {
             
             if !calModel.searchedTransactions.isEmpty {
                 let sum = calModel.searchedTransactions
-                    .map({ $0.payMethod?.accountType == .credit ? $0.amount * -1 : $0.amount })
+                    .map({ ($0.payMethod?.accountType == .credit || $0.payMethod?.accountType == .loan) ? $0.amount * -1 : $0.amount })
                     .reduce(0.0, +)
                 
                 Section("Transaction Summary") {

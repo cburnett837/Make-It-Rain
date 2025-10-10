@@ -14,14 +14,16 @@ struct TransactionListView: View {
     @AppStorage("transactionSortMode") var transactionSortMode: TransactionSortMode = .title
     @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
     @Local(\.useWholeNumbers) var useWholeNumbers
-    
+    @Local(\.colorTheme) var colorTheme
+    @Environment(\.colorScheme) private var colorScheme
+
     @Environment(CalendarModel.self) private var calModel
     @Environment(PayMethodModel.self) private var payModel
-
     @Environment(EventModel.self) private var eventModel
 
     @State private var transactions: [CBTransaction] = []
     @State private var totalSpent: Double = 0.0
+    @State private var searchText = ""
 
     @State private var transEditID: String?
     @State private var editTrans: CBTransaction?
@@ -31,11 +33,13 @@ struct TransactionListView: View {
     
     @Binding var showTransactionListSheet: Bool
     
-    
-    
     @State private var showTransferSheet = false
     @State private var showPhotosPicker = false
     @State private var showCamera = false
+    @State private var showPaymentMethodSheet = false
+    
+    @Namespace var paymentMethodMenuButtonNamespace
+
     
 
     struct CumTotal {
@@ -43,45 +47,71 @@ struct TransactionListView: View {
         var total: Double
     }
     
-    var sheetTitle: String {
-        "\(calModel.sPayMethod?.title ?? "N/A") \(calModel.sMonth.name) \(String(calModel.sYear))"
-    }
+//    var sheetTitle: String {
+//        "\(calModel.sPayMethod?.title ?? "N/A") \(calModel.sMonth.name) \(String(calModel.sYear))"
+//    }
     
     var body: some View {
         @Bindable var calModel = calModel
         @Bindable var photoModel = PhotoModel.shared
         
-        StandardContainer(AppState.shared.isIpad ? .sidebarList : .list) {
-            transactionList
-        } header: {
-            if AppState.shared.isIpad {
-                SidebarHeader(
-                    title: sheetTitle,
-                    close: {
-                        #if os(iOS)
-                        withAnimation { showTransactionListSheet = false }
-                        #else
-                        dismiss()
-                        #endif
-                    }, view1: {
-                        NewTransactionMenuButton(transEditID: $transEditID, showTransferSheet: $showTransferSheet, showPhotosPicker: $showPhotosPicker, showCamera: $showCamera)
-                    }
-                )
-            } else {
-                SheetHeader(
-                    title: sheetTitle,
-                    close: {
-                        #if os(iOS)
-                        withAnimation { showTransactionListSheet = false }
-                        #else
-                        dismiss()
-                        #endif
-                    }, view1: {
-                        NewTransactionMenuButton(transEditID: $transEditID, showTransferSheet: $showTransferSheet, showPhotosPicker: $showPhotosPicker, showCamera: $showCamera)
-                    }
-                )
+        NavigationStack {
+            StandardContainerWithToolbar(.list) {
+                transactionList
             }
+            .searchable(text: $searchText, prompt: Text("Search"))
+            .navigationTitle("\(calModel.sMonth.name) \(String(calModel.sYear))")
+            .navigationSubtitle(calModel.sPayMethod?.title ?? "N/A")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    NewTransactionMenuButton(transEditID: $transEditID, showTransferSheet: $showTransferSheet, showPhotosPicker: $showPhotosPicker, showCamera: $showCamera)
+                }
+                                
+//                ToolbarItem(placement: .topBarTrailing) { paymentMethodButton }
+//                    .matchedTransitionSource(id: "myButton", in: paymentMethodMenuButtonNamespace)
+//                ToolbarSpacer(.fixed, placement: .topBarTrailing)
+                ToolbarItem(placement: .topBarTrailing) { closeButton }
+            }
+            #endif
         }
+        
+        
+        
+        
+        
+//        StandardContainer(AppState.shared.isIpad ? .sidebarList : .list) {
+//            transactionList
+//        } header: {
+//            if AppState.shared.isIpad {
+//                SidebarHeader(
+//                    title: sheetTitle,
+//                    close: {
+//                        #if os(iOS)
+//                        withAnimation { showTransactionListSheet = false }
+//                        #else
+//                        dismiss()
+//                        #endif
+//                    }, view1: {
+//                        NewTransactionMenuButton(transEditID: $transEditID, showTransferSheet: $showTransferSheet, showPhotosPicker: $showPhotosPicker, showCamera: $showCamera)
+//                    }
+//                )
+//            } else {
+//                SheetHeader(
+//                    title: sheetTitle,
+//                    close: {
+//                        #if os(iOS)
+//                        withAnimation { showTransactionListSheet = false }
+//                        #else
+//                        dismiss()
+//                        #endif
+//                    }, view1: {
+//                        NewTransactionMenuButton(transEditID: $transEditID, showTransferSheet: $showTransferSheet, showPhotosPicker: $showPhotosPicker, showCamera: $showCamera)
+//                    }
+//                )
+//            }
+//        }
         .task {
             setSelectedDay()
             prepareData()
@@ -125,19 +155,52 @@ struct TransactionListView: View {
             editTrans: $editTrans,
             selectedDay: $transDay
         )
+        .sheet(isPresented: $showPaymentMethodSheet) {
+            
+        } content: {
+            PayMethodSheet(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all, showStartingAmountOption: false)
+                .navigationTransition(.zoom(sourceID: "myButton", in: paymentMethodMenuButtonNamespace))
+        }
 
     }
     
     
+    var paymentMethodButton: some View {
+        Button {
+            showPaymentMethodSheet = true
+        } label: {
+            Image(systemName: "creditcard")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        }
+    }
+    
+    
+    var closeButton: some View {
+        Button {
+            #if os(iOS)
+            withAnimation { showTransactionListSheet = false }
+            #else
+            dismiss()
+            #endif
+        } label: {
+            Image(systemName: "checkmark")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        }
+    }
+    
+    
+    
     var transactionList: some View {
-        ForEach(calModel.sMonth.days) { day in
-            let doesHaveTransactions = transactions
+        ForEach(calModel.sMonth.days.filter { $0.date != nil }) { day in
+            let filteredTrans = getTransactions(for: day)
+            
+            let doesHaveTransactions = filteredTrans
                 .filter { $0.dateComponents?.day == day.date?.day }
                 .count > 0
             
             let dailyTotal = transactions
                 .filter { $0.dateComponents?.day == day.date?.day }
-                .map { $0.payMethod?.accountType == .credit ? $0.amount * -1 : $0.amount }
+                .map { ($0.payMethod?.isCreditOrLoan ?? false) ? $0.amount * -1 : $0.amount }
                 .reduce(0.0, +)
             
             let dailyCount = transactions
@@ -154,17 +217,20 @@ struct TransactionListView: View {
                             }
                     }
                 } else {
-                    Text("No Transactions")
-                        .foregroundStyle(.gray)
+                    if searchText.isEmpty {
+                        Text("No Transactions")
+                            .foregroundStyle(.gray)
+                    }
+                    
                 }
             } header: {
-                if day.date?.day == AppState.shared.todayDay && day.date?.month == AppState.shared.todayMonth && day.date?.year == AppState.shared.todayYear {
+                if let date = day.date, date.isToday {
                     HStack {
                         Text("TODAY")
-                            .foregroundStyle(.green)
+                            .foregroundStyle(Color.fromName(colorTheme))
                         VStack {
                             Divider()
-                                .overlay(.green)
+                                .overlay(Color.fromName(colorTheme))
                         }
                     }
                 } else {
@@ -215,9 +281,11 @@ struct TransactionListView: View {
     
     func getTransactions(for day: CBDay) -> Array<CBTransaction> {
         transactions
+            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
             .filter { $0.dateComponents?.day == day.date?.day }
             .filter { ($0.payMethod?.isAllowedToBeViewedByThisUser ?? true) }
-            .filter { !($0.payMethod?.isHidden ?? false) }
+            //.filter { !($0.payMethod?.isHidden ?? false) && $0.payMethod?.id == calModel.sPayMethod?.id }
+            //.filter { $0.payMethod?.id == calModel.sPayMethod?.id }
             .sorted {
                 if transactionSortMode == .title {
                     return $0.title < $1.title

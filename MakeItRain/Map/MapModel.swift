@@ -339,9 +339,10 @@ extension MKLocalSearchCompletion {
      that matches the current query fragment.
      */
     /// - Tag: HighlightFragment
-    private func createHighlightedString(text: String, rangeValues: [NSValue]) -> NSAttributedString {
+    private func createHighlightedString(text: String, rangeValues: [NSValue], hilightColor: Color) -> NSAttributedString {
         #if os(iOS)
-        let attributes = [NSAttributedString.Key.backgroundColor: UIColor(named: "suggestionHighlight")!]
+        //let attributes = [NSAttributedString.Key.foregroundColor: UIColor(named: "suggestionHighlight")!/*.withAlphaComponent(0.5)*/]
+        let attributes = [NSAttributedString.Key.foregroundColor:  UIColor(hilightColor)/*.withAlphaComponent(0.5)*/]
         #endif
         let highlightedString = NSMutableAttributedString(string: text)
         
@@ -357,11 +358,22 @@ extension MKLocalSearchCompletion {
     }
     
     var highlightedTitleStringForDisplay: NSAttributedString {
-        return createHighlightedString(text: title, rangeValues: titleHighlightRanges)
+        @Local(\.colorTheme) var colorTheme
+        return createHighlightedString(
+            text: title,
+            rangeValues: titleHighlightRanges,
+            hilightColor: Color.fromName(colorTheme)
+        )
     }
     
     var highlightedSubtitleStringForDisplay: NSAttributedString {
-        return createHighlightedString(text: subtitle, rangeValues: subtitleHighlightRanges)
+        @Local(\.colorTheme) var colorTheme
+        return createHighlightedString(
+            text: "\(String(subtitle.prefix(15)))…",
+            rangeValues: subtitleHighlightRanges,
+            hilightColor: Color.fromName(colorTheme)
+        )
+        //return createHighlightedString(text: subtitle, rangeValues: subtitleHighlightRanges)
     }
 }
 

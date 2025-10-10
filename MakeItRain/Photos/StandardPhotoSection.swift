@@ -36,6 +36,7 @@ struct StandardPhotoSection: View {
     //@State private var safariUrl: URL?
     @State private var showPicWebView: Bool = false
     @State private var props = PhotoViewProps()
+    @State private var selectedPicUuid: String?
     
     
     var photoType: XrefItem {
@@ -47,12 +48,12 @@ struct StandardPhotoSection: View {
     var body: some View {
         @Bindable var photoModel = PhotoModel.shared
         HStack(alignment: .top) {
-            if displayStyle == .standard {
-                
-                Image(systemName: "photo.fill")
-                    .foregroundColor(.gray)
-                    .frame(width: symbolWidth)
-            }
+//            if displayStyle == .standard {
+//                
+//                Image(systemName: "photo.fill")
+//                    .foregroundColor(.gray)
+//                    .frame(width: symbolWidth)
+//            }
             
             /// Check for active for 1 situation only - if a photo fails to upload, we deactivate it to hide the view.
             if let pictures = pictures?.filter({ $0.active }) {
@@ -66,14 +67,26 @@ struct StandardPhotoSection: View {
                             ScrollView {
                                 LazyVGrid(columns: threeColumnGrid, spacing: 5) {
                                     ForEach(pictures) { pic in
-                                        ConditionalPicView(pic: pic, showPicWebView: $showPicWebView, displayStyle: displayStyle)
+                                        ConditionalPicView(
+                                            pic: pic,
+                                            selectedPicUuid: $selectedPicUuid,
+                                            displayStyle: displayStyle,
+                                            photoType: photoType,
+                                            photoUploadCompletedDelegate: photoUploadCompletedDelegate
+                                        )
                                     }
                                 }
                             }
                         } else {
                             LazyVGrid(columns: threeColumnGrid, spacing: 5) {
                                 ForEach(pictures) { pic in
-                                    ConditionalPicView(pic: pic, showPicWebView: $showPicWebView, displayStyle: displayStyle)
+                                    ConditionalPicView(
+                                        pic: pic,
+                                        selectedPicUuid: $selectedPicUuid,
+                                        displayStyle: displayStyle,
+                                        photoType: photoType,
+                                        photoUploadCompletedDelegate: photoUploadCompletedDelegate
+                                    )
                                 }
                             }
                         }
@@ -86,7 +99,13 @@ struct StandardPhotoSection: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(alignment: .top, spacing: 4) {
                                 ForEach(pictures) { pic in
-                                    ConditionalPicView(pic: pic, showPicWebView: $showPicWebView, displayStyle: displayStyle)
+                                    ConditionalPicView(
+                                        pic: pic,
+                                        selectedPicUuid: $selectedPicUuid,
+                                        displayStyle: displayStyle,
+                                        photoType: photoType,
+                                        photoUploadCompletedDelegate: photoUploadCompletedDelegate
+                                    )
                                 }
                                 photoPickerButton
                             }
@@ -94,7 +113,13 @@ struct StandardPhotoSection: View {
                     } else {
                         HStack(alignment: .top, spacing: 4) {
                             ForEach(pictures) { pic in
-                                ConditionalPicView(pic: pic, showPicWebView: $showPicWebView, displayStyle: displayStyle)
+                                ConditionalPicView(
+                                    pic: pic,
+                                    selectedPicUuid: $selectedPicUuid,
+                                    displayStyle: displayStyle,
+                                    photoType: photoType,
+                                    photoUploadCompletedDelegate: photoUploadCompletedDelegate
+                                )
                             }
                             photoPickerButton
                         }
@@ -111,6 +136,14 @@ struct StandardPhotoSection: View {
             }
             
         }
+        #if os(iOS)
+        .sheet(item: $selectedPicUuid) { uuid in
+            //SFSafariView(url: $0)
+            //Text(uuid)
+            WebView(requestModel: RequestModel(requestType: "download_photo", model: PhotoRequestModel(path: "budget_app.photo.\(uuid).jpg")))
+        }
+        #endif
+        
         .photosPicker(isPresented: $showPhotosPicker, selection: $photoModel.imagesFromLibrary, selectionBehavior: .continuousAndOrdered, matching: .images, photoLibrary: .shared())
         .onChange(of: showPhotosPicker) { oldValue, newValue in
             if !newValue {
@@ -141,17 +174,17 @@ struct StandardPhotoSection: View {
 ////        }
 //        #endif
         
-        .confirmationDialog("Delete this picture?", isPresented: $props.showDeletePicAlert) {
-            Button("Yes", role: .destructive) {
-                deletePicture()
-            }
-            Button("No", role: .cancel) {
-                props.hoverPic = nil
-                props.deletePic = nil
-            }
-        } message: {
-            Text("Delete this picture?")
-        }
+//        .confirmationDialog("Delete this picture?", isPresented: $props.showDeletePicAlert) {
+//            Button("Yes", role: .destructive) {
+//                deletePicture()
+//            }
+//            Button("No", role: .cancel) {
+//                props.hoverPic = nil
+//                props.deletePic = nil
+//            }
+//        } message: {
+//            Text("Delete this picture?")
+//        }
     }
 
     var noPhotoInGridView: some View {
@@ -179,7 +212,7 @@ struct StandardPhotoSection: View {
             Button(action: {
                 showPhotosPicker = true
             }, label: {
-                RoundedRectangle(cornerRadius: 8)
+                RoundedRectangle(cornerRadius: 14)
                     .fill(addPhotoButtonHoverColor2)
                     #if os(iOS)
                     .frame(width: photoWidth, height: (photoHeight / 2) - 3)
@@ -204,7 +237,7 @@ struct StandardPhotoSection: View {
             Button {
                 showCamera = true
             } label: {
-                RoundedRectangle(cornerRadius: 8)
+                RoundedRectangle(cornerRadius: 14)
                     .fill(addPhotoButtonHoverColor2)
                     .frame(width: photoWidth, height: (photoHeight / 2) - 3)
                     .overlay {
@@ -233,11 +266,16 @@ struct StandardPhotoSection: View {
         
         var pic: CBPicture
         //@Binding var safariUrl: URL?
-        @Binding var showPicWebView: Bool
+        @Binding var selectedPicUuid: String?
         var displayStyle: PhotoSectionDisplayStyle
+        var photoType: XrefItem
+        var photoUploadCompletedDelegate: PhotoUploadCompletedDelegate
+        @State private var showDeletePicAlert = false
         
         var body: some View {
+            @Bindable var props = props
             VStack {
+                //Text(pic.uuid)
                 ZStack {
                     if pic.isPlaceholder {
                         PicPlaceholder(text: "Uploading…", displayStyle: displayStyle)
@@ -270,27 +308,48 @@ struct StandardPhotoSection: View {
             
             /// Open inline safari-sheet
             .onTapGesture {
-                showPicWebView = true
+                selectedPicUuid = pic.uuid
+                //showPicWebView = true
                 //safariUrl = URL(string: "https://\(Keys.baseURL):8676/pictures/budget_app.photo.\(pic.uuid).jpg")!
             }
             /// Long press to show delete (no share sheet option. Can share directly from safari sheet)
             .onLongPressGesture {
                 //buzzPhone(.warning)
                 props.deletePic = pic
-                props.showDeletePicAlert = true
+                showDeletePicAlert = true
             }
             .sensoryFeedback(.warning, trigger: props.showDeletePicAlert) { !$0 && $1 }
             //            .sheet(item: $safariUrl) { _ in
             //                //SFSafariView(url: $0)
             //                WebView(requestModel: RequestModel(requestType: "download_photo", model: PhotoRequestModel(path: "budget_app.photo.\(pic.uuid).jpg")))
             //            }
-            .sheet(isPresented: $showPicWebView) {
-                //SFSafariView(url: $0)
-                WebView(requestModel: RequestModel(requestType: "download_photo", model: PhotoRequestModel(path: "budget_app.photo.\(pic.uuid).jpg")))
-            }
+//            .sheet(isPresented: $showPicWebView) {
+//                //SFSafariView(url: $0)
+//                Text(pic.uuid)
+//                WebView(requestModel: RequestModel(requestType: "download_photo", model: PhotoRequestModel(path: "budget_app.photo.\(pic.uuid).jpg")))
+//            }
             #endif
             
-
+            .confirmationDialog("Delete this picture?", isPresented: $showDeletePicAlert) {
+                Button("Yes", role: .destructive) {
+                    deletePicture()
+                }
+                Button("No", role: .cancel) {
+                    props.hoverPic = nil
+                    props.deletePic = nil
+                }
+            } message: {
+                Text("Delete this picture?")
+            }
+        }
+        
+        func deletePicture() {
+            Task {
+                props.isDeletingPic = true
+                let _ = await photoUploadCompletedDelegate.delete(picture: props.deletePic!, photoType: photoType)
+                props.isDeletingPic = false
+                props.deletePic = nil
+            }
         }
     }
                  
@@ -309,10 +368,13 @@ struct StandardPhotoSection: View {
                         $0.aspectRatio(1, contentMode: .fit)
                     }
                     .if(displayStyle == .standard) {
-                        $0.frame(width: photoWidth, height: photoHeight).aspectRatio(contentMode: .fill)
+                        $0
+                        .frame(width: photoWidth, height: photoHeight)
+                        .aspectRatio(contentMode: .fill)
                     }
                                             
-                    .clipShape(.rect(cornerRadius: 12))
+                    .clipShape(.rect(cornerRadius: 14))
+                    //.clipShape(.rect(corners: .concentric(), isUniform: true))
                     //.frame(maxWidth: 300, maxHeight: 300)
             } placeholder: {
                 PicPlaceholder(text: "Downloading…", displayStyle: displayStyle)
@@ -399,7 +461,8 @@ struct StandardPhotoSection: View {
         var displayStyle: PhotoSectionDisplayStyle
         
         var body: some View {
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: 14)
+                //.clipShape(.rect(corners: .concentric(), isUniform: true))
                 .fill(Color.gray.opacity(0.1))
                 .if(displayStyle == .grid) {
                     $0.aspectRatio(1, contentMode: .fit)
@@ -471,12 +534,12 @@ struct StandardPhotoSection: View {
     
     
     
-    func deletePicture() {
-        Task {
-            props.isDeletingPic = true
-            let _ = await photoUploadCompletedDelegate.delete(picture: props.deletePic!, photoType: photoType)
-            props.isDeletingPic = false
-            props.deletePic = nil
-        }
-    }
+//    func deletePicture() {
+//        Task {
+//            props.isDeletingPic = true
+//            let _ = await photoUploadCompletedDelegate.delete(picture: props.deletePic!, photoType: photoType)
+//            props.isDeletingPic = false
+//            props.deletePic = nil
+//        }
+//    }
 }

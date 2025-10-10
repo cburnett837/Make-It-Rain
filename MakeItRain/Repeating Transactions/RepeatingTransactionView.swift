@@ -11,6 +11,8 @@ struct RepeatingTransactionView: View {
     @Local(\.useWholeNumbers) var useWholeNumbers
     @Local(\.colorTheme) var colorTheme
     @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+
     
     @Bindable var repTransaction: CBRepeatingTransaction
     @Bindable var repModel: RepeatingTransactionModel
@@ -26,13 +28,14 @@ struct RepeatingTransactionView: View {
     @State private var showDeleteAlert = false
     @State private var labelWidth: CGFloat = 20.0
         
-    var title: String { repTransaction.action == .add ? "New Rep. Transaction" : "Edit Rep. Transaction" }
+    var title: String { repTransaction.action == .add ? "New Reoccuring" : "Edit Reoccuring" }
     
     @FocusState private var focusedField: Int?
     @State private var showKeyboardToolbar = false
     
     @State private var showPayMethodSheet = false
     @State private var showCategorySheet = false
+    @State private var showColorPicker = false
     
     var deleteButton: some View {
         Button {
@@ -41,6 +44,21 @@ struct RepeatingTransactionView: View {
             Image(systemName: "trash")
         }
         .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
+        .tint(.none)
+        .confirmationDialog("Delete \"\(repTransaction.title)\"?", isPresented: $showDeleteAlert, actions: {
+            Button("Yes", role: .destructive) {
+                Task {
+                    dismiss()
+                    await repModel.delete(repTransaction, andSubmit: true)
+                }
+            }
+            
+            //Button("No", role: .cancel) { showDeleteAlert = false }
+        }, message: {
+            #if os(iOS)
+            Text("Delete \"\(repTransaction.title)\"?")
+            #endif
+        })
     }
     
     var paymentMethodTitle: String {
@@ -68,6 +86,11 @@ struct RepeatingTransactionView: View {
         repTransaction.repeatingTransactionType.enumID == .regular
     }
     
+    var isValidToSave: Bool {
+        (repTransaction.action == .add && !repTransaction.title.isEmpty && repTransaction.payMethod != nil)
+        || (repTransaction.hasChanges() && (!repTransaction.title.isEmpty && repTransaction.payMethod != nil))
+    }
+    
     
 //    var header: some View {
 //        Group {
@@ -82,18 +105,13 @@ struct RepeatingTransactionView: View {
         
     var body: some View {
         Group {
-            #if os(macOS)
-            body1
+            #if os(iOS)
+            bodyPhone
             #else
-            body2
+            bodyMac
             #endif
         }
-        
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
-//        #if os(macOS)
-//        .presentationSizing(.fitted)
-//        .frame(minWidth: 750)
-//        #endif
         .task {
             if repTransaction.action == .add {
                 repTransaction.category = catModel.categories.filter { $0.isNil }.first!
@@ -103,8 +121,7 @@ struct RepeatingTransactionView: View {
             /// Just for formatting.
             repTransaction.amountString = repTransaction.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
             repModel.upsert(repTransaction)
-            
-            
+                        
             #if os(macOS)
             /// Focus on the title textfield.
             focusedField = 0
@@ -114,42 +131,14 @@ struct RepeatingTransactionView: View {
             }
             #endif
         }
-        
-        .confirmationDialog("Delete \"\(repTransaction.title)\"?", isPresented: $showDeleteAlert, actions: {
-            Button("Yes", role: .destructive) {
-                Task {
-                    dismiss()
-                    await repModel.delete(repTransaction, andSubmit: true)
-                }
-            }
-            
-            Button("No", role: .cancel) {
-                showDeleteAlert = false
-            }
-        }, message: {
-            #if os(iOS)
-            Text("Delete \"\(repTransaction.title)\"?")
-            #endif
-        })
     }
     
     
-    var body1: some View {
+    var bodyMac: some View {
         StandardContainer {
             LabeledRow("Name", labelWidth) {
-                #if os(iOS)
-                StandardUITextField("Title", text: $repTransaction.title, onSubmit: {
-                    focusedField = 1
-                }, toolbar: {
-                    KeyboardToolbarView(focusedField: $focusedField)
-                })
-                .cbFocused(_focusedField, equals: 0)
-                .cbClearButtonMode(.whileEditing)
-                .cbSubmitLabel(.next)
-                #else
                 StandardTextField("Title", text: $repTransaction.title, focusedField: $focusedField, focusValue: 0)
                     .onSubmit { focusedField = 1 }
-                #endif
             }
             
             LabeledRow("Amount", labelWidth) {
@@ -208,10 +197,6 @@ struct RepeatingTransactionView: View {
             StandardDivider()
             
             LabeledRow("Color", labelWidth) {
-                //ColorPickerButton(color: $repTransaction.color)
-                #if os(iOS)
-                StandardColorPicker(color: $repTransaction.color)
-                #else
                 HStack {
                     ColorPicker("", selection: $repTransaction.color, supportsOpacity: false)
                         .labelsHidden()
@@ -221,7 +206,6 @@ struct RepeatingTransactionView: View {
                             AppState.shared.showToast(title: "Color Picker", subtitle: "Click the circle to the left to change the color.", body: nil, symbol: "theatermask.and.paintbrush", symbolColor: repTransaction.color)
                         }
                 }
-                #endif
             }
             
         } header: {
@@ -230,54 +214,107 @@ struct RepeatingTransactionView: View {
     }
     
     
-    var body2: some View {
-        StandardContainer(.list) {
-            Section {
-                titleRow2
-                amountRow2
-            } footer: {
-                transactionTypeButton
-            }
-                                  
-            Section {
-                payFromRow2
-                
-                if !isRegularTransaction {
-                    payToRow2
+    var bodyPhone: some View {
+        NavigationStack {
+            StandardContainerWithToolbar(.list) {
+                Section {
+                    titleRow
+                    amountRow
+                } header: {
+                    Text("Title & Amount")
+                } footer: {
+                    TransactionTypeButton(amountTypeLingo: repTransaction.amountTypeLingo, amountString: $repTransaction.amountString)
                 }
                 
-                typeRow2
-            } footer: {
-                Text("Specify a transaction type to organize your transactions. For example, categorizing as a **payment** will allow you specify a pay-to account and will influence the anaytics in account page.")
+                Section {
+                    payFromRow
+                    if !isRegularTransaction { payToRow }
+                    typeRow
+                } header: {
+                    Text("Transaction Details")
+                } footer: {
+                    Text("Specify a transaction type to organize your transactions. For example, categorizing as a **payment** will allow you specify a pay-to account and will influence the anaytics in the account page.")
+                }
+                
+                Section("Additional Details") {
+                    CategorySheetButton3(category: $repTransaction.category)
+                    colorRow
+                }
+                
+                Section {
+                    VStack(alignment: .leading) {
+                        Text("On Specific Weekdays")
+                            .foregroundStyle(.secondary)
+                            .font(.subheadline)
+                        WeekdayToggles(repTransaction: repTransaction)
+                    }
+                    
+                    VStack(alignment: .leading) {
+                        Text("During Specific Months")
+                            .foregroundStyle(.secondary)
+                            .font(.subheadline)
+                        MonthToggles(repTransaction: repTransaction)
+                    }
+                    
+                    VStack(alignment: .leading) {
+                        Text("On Specific Days")
+                            .foregroundStyle(.secondary)
+                            .font(.subheadline)
+                        DayToggles(repTransaction: repTransaction)
+                    }
+                    
+                } header: {
+                    Text("Repeating Schedule")
+                } footer: {
+                    Text("Select a combo of weekdays, months, and days to repeat the transaction. For example, selecting **Sunday**, **January**, and **15** will create this transaction on every Sunday in January, **and** on January 15th.")
+                }
             }
-            
-            Section {
-                categoryRow2
+            #if os(iOS)
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) { deleteButton }
+                ToolbarSpacer(.fixed, placement: .topBarLeading)
+                ToolbarItem(placement: .topBarTrailing) {
+                    if isValidToSave {
+                        closeButton
+                            #if os(iOS)
+                            .buttonStyle(.glassProminent)
+                            #endif
+                    } else {
+                        closeButton
+                    }
+                }
+                
+                ToolbarItem(placement: .bottomBar) {
+                    EnteredByAndUpdatedByView(enteredBy: repTransaction.enteredBy, updatedBy: repTransaction.updatedBy, enteredDate: repTransaction.enteredDate, updatedDate: repTransaction.updatedDate)
+                }
+                .sharedBackgroundVisibility(.hidden)
             }
-            
-            Section {
-                WeekdayToggles(repTransaction: repTransaction)
-                MonthToggles(repTransaction: repTransaction)
-                DayToggles(repTransaction: repTransaction)
-            } header: {
-                Text("Repeating Schedule")
-            } footer: {
-                Text("Select a combo of weekdays, months, and days to repeat the transaction. For example, selecting **Sunday**, **January**, and **15** will create this transaction on every Sunday in January, **and** on January 15th.")
-            }
-                        
-            colorRow2
-            
-        } header: {
-            SheetHeader(title: title, close: { editID = nil; dismiss() }, view3: { deleteButton })
+            #endif
         }
     }
     
     
+    var closeButton: some View {
+        Button {
+            editID = nil; dismiss()
+        } label: {
+            Image(systemName: isValidToSave ? "checkmark" : "xmark")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        }
+    }
     
-    var titleRow2: some View {
-        HStack {
-            Text("Name")
-            Spacer()
+    
+    var titleRow: some View {
+        HStack(spacing: 0) {
+            Label {
+                Text("")
+            } icon: {
+                Image(systemName: "t.circle")
+                    .foregroundStyle(.gray)
+            }
+            
             #if os(iOS)
             UITextFieldWrapper(placeholder: "Title", text: $repTransaction.title, onSubmit: {
                 focusedField = 1
@@ -287,9 +324,10 @@ struct RepeatingTransactionView: View {
             .uiTag(0)
             .uiClearButtonMode(.whileEditing)
             .uiStartCursorAtEnd(true)
-            .uiTextAlignment(.right)
+            .uiTextAlignment(.left)
             .uiReturnKeyType(.next)
-            .uiTextColor(.secondaryLabel)
+            //.uiTextColor(.secondaryLabel)
+            //.uiFont(UIFont.systemFont(ofSize: 24.0))
             #else
             StandardTextField("Title", text: $repTransaction.title, focusedField: $focusedField, focusValue: 0)
                 .onSubmit { focusedField = 1 }
@@ -299,10 +337,14 @@ struct RepeatingTransactionView: View {
     }
     
     
-    var amountRow2: some View {
-        HStack {
-            Text("Amount")
-            Spacer()
+    var amountRow: some View {
+        HStack(spacing: 0) {
+            Label {
+                Text("")
+            } icon: {
+                Image(systemName: "dollarsign.circle")
+                    .foregroundStyle(.gray)
+            }
             Group {
                 #if os(iOS)
                 UITextFieldWrapper(placeholder: "Amount", text: $repTransaction.amountString, toolbar: {
@@ -316,9 +358,10 @@ struct RepeatingTransactionView: View {
                 .uiTag(1)
                 .uiClearButtonMode(.whileEditing)
                 .uiStartCursorAtEnd(true)
-                .uiTextAlignment(.right)
+                .uiTextAlignment(.left)
                 .uiKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
-                .uiTextColor(.secondaryLabel)
+                //.uiTextColor(.secondaryLabel)
+                //.uiFont(UIFont.systemFont(ofSize: 24.0))
                 #else
                 StandardTextField("Amount", text: $repTransaction.amountString, focusedField: $focusedField, focusValue: 1)
                 #endif
@@ -342,60 +385,72 @@ struct RepeatingTransactionView: View {
     }
     
     
-    var payFromRow2: some View {
-        HStack {
-            Text("Pay From")
-            Spacer()
-            PayMethodSheetButton2(payMethod: $repTransaction.payMethod, whichPaymentMethods: .allExceptUnified)
-        }
+    var payFromRow: some View {
+        PayMethodSheetButton2(text: "Pay From", image: repTransaction.payMethod?.accountType == .checking ? "banknote.fill" : "creditcard.fill", payMethod: $repTransaction.payMethod, whichPaymentMethods: .allExceptUnified)
     }
     
     
-    var payToRow2: some View {
-        HStack {
-            Text("Pay To")
-            Spacer()
-            PayMethodSheetButton2(payMethod: $repTransaction.payMethodPayTo, whichPaymentMethods: .allExceptUnified)
-        }
+    var payToRow: some View {
+        PayMethodSheetButton2(text: "Pay From", image: repTransaction.payMethodPayTo?.accountType == .checking ? "banknote.fill" : "creditcard.fill", payMethod: $repTransaction.payMethodPayTo, whichPaymentMethods: .allExceptUnified)
     }
     
     
-    var typeRow2: some View {
-        HStack {
-            Text("Transaction Type")
-            Spacer()
-            
-            Picker("", selection: $repTransaction.repeatingTransactionType) {
-                Text("Regular")
-                    .tag(XrefModel.getItem(from: .repeatingTransactionType, byEnumID: .regular))
-                Text("Payment")
-                    .tag(XrefModel.getItem(from: .repeatingTransactionType, byEnumID: .payment))
-                Text("Transfer")
-                    .tag(XrefModel.getItem(from: .repeatingTransactionType, byEnumID: .transfer))
+    var typeRow: some View {
+        Picker(selection: $repTransaction.repeatingTransactionType) {
+            Text("Regular")
+                .tag(XrefModel.getItem(from: .repeatingTransactionType, byEnumID: .regular))
+            Text("Payment")
+                .tag(XrefModel.getItem(from: .repeatingTransactionType, byEnumID: .payment))
+            Text("Transfer")
+                .tag(XrefModel.getItem(from: .repeatingTransactionType, byEnumID: .transfer))
+        } label: {
+            Label {
+                Text("Transaction Type")
+            } icon: {
+                Image(systemName: "dollarsign.bank.building")
+                    .foregroundStyle(.gray)
             }
-            .labelsHidden()
-            .pickerStyle(.menu)
-            .tint(.secondary)
         }
+        .pickerStyle(.menu)
+        .tint(.secondary)
     }
     
     
-    var categoryRow2: some View {
-        HStack {
-            Text("Category")
-            Spacer()
-            CategorySheetButton2(category: $repTransaction.category)
-        }
-    }
+//    var categoryRow: some View {
+//        HStack {
+//            Text("Category")
+//            Spacer()
+//            CategorySheetButton2(category: $repTransaction.category)
+//        }
+//    }
     
     
-    var colorRow2: some View {
+    var colorRow: some View {
         HStack {
+            #if os(iOS)
+            //StandardColorPicker(color: $repTransaction.color)
+            Button {
+                showColorPicker = true
+            } label: {
+                HStack {
+                    Label {
+                        Text("Title Color")
+                            .foregroundStyle(colorScheme == .dark ? .white : .black)
+                    } icon: {
+                        Image(systemName: "lightspectrum.horizontal")
+                            .foregroundStyle(.gray)
+                    }
+                    Spacer()
+                    //StandardColorPicker(color: $payMethod.color)
+                    Image(systemName: "circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(repTransaction.color.gradient)
+                }
+            }
+            .colorPickerSheet(isPresented: $showColorPicker, selection: $repTransaction.color, supportsAlpha: false)
+            #else
             Text("Title Color")
             Spacer()
-            #if os(iOS)
-            StandardColorPicker(color: $repTransaction.color)
-            #else
             HStack {
                 ColorPicker("", selection: $repTransaction.color, supportsOpacity: false)
                     .labelsHidden()
@@ -410,27 +465,27 @@ struct RepeatingTransactionView: View {
     }
     
     
-    
-    var transactionTypeButton: some View {
-        HStack(spacing: 1) {
-            Text("Transaction Type: ")
-                .foregroundStyle(.gray)
-            
-            Text(repTransaction.amountTypeLingo)
-                .bold(true)
-                .foregroundStyle(Color.fromName(colorTheme))
-                .onTapGesture {
-                    Helpers.plusMinus($repTransaction.amountString)                    
-                }
-        }
-        .validate(repTransaction.amountString, rules: .regex(.currency, "The field contains invalid characters"))
-        .disabled(repTransaction.amountString.isEmpty)
-    }
-    
-    
-    
-    
-    
+//    
+//    var transactionTypeButton: some View {
+//        HStack(spacing: 1) {
+//            Text("Transaction Type: ")
+//                .foregroundStyle(.gray)
+//            
+//            Text(repTransaction.amountTypeLingo)
+//                .bold(true)
+//                .foregroundStyle(Color.fromName(colorTheme))
+//                .onTapGesture {
+//                    Helpers.plusMinus($repTransaction.amountString)                    
+//                }
+//        }
+//        .validate(repTransaction.amountString, rules: .regex(.currency, "The field contains invalid characters"))
+//        .disabled(repTransaction.amountString.isEmpty)
+//    }
+//    
+//    
+//    
+//    
+//    
     
     
     

@@ -12,60 +12,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>340</string>
+					<string>521</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>339</string>
+					<string>520</string>
 					<key>Timestamp</key>
-					<string>771534060.9158289</string>
-				</dict>
-				<key>rebasable-url</key>
-				<dict>
-					<key>base</key>
-					<string>workspace</string>
-					<key>payload</key>
-					<dict>
-						<key>relative-path</key>
-						<string>MakeItRain/FuncModel.swift</string>
-					</dict>
-				</dict>
-			</dict>
-			<key>text-context</key>
-			<dict>
-				<key>focused</key>
-				<string>                self.prepareStartingAmounts(for: viewingMonth)
-</string>
-				<key>leading</key>
-				<string>                
-                //#warning("prepareStartingAmounts()")
-</string>
-				<key>trailing</key>
-				<string>                                
-                if ![.lastDecember, .nextJanuary].contains(viewingMonth.enumID) {
-                    next = calModel.months.filter { $0.num == (currentNavSelection.monthNum ?? 0) + 1 }.first!
-</string>
-			</dict>
-			<key>title</key>
-			<string>Expression is 'async' but is not marked with 'await'</string>
-			<key>type</key>
-			<string>bookmark</string>
-		</dict>
-		<dict>
-			<key>destination</key>
-			<dict>
-				<key>location-parameters</key>
-				<dict>
-					<key>EndingColumnNumber</key>
-					<string>0</string>
-					<key>EndingLineNumber</key>
-					<string>514</string>
-					<key>StartingColumnNumber</key>
-					<string>0</string>
-					<key>StartingLineNumber</key>
-					<string>513</string>
-					<key>Timestamp</key>
-					<string>771534060.915844</string>
+					<string>781741824.908685</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -106,13 +59,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>986</string>
+					<string>993</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>985</string>
+					<string>992</string>
 					<key>Timestamp</key>
-					<string>771534060.915848</string>
+					<string>781741824.908114</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -200,13 +153,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>1636</string>
+					<string>307</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>1635</string>
+					<string>306</string>
 					<key>Timestamp</key>
-					<string>771797751.8639309</string>
+					<string>781536113.4561729</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -222,16 +175,15 @@
 			<key>text-context</key>
 			<dict>
 				<key>focused</key>
-				<string>            funcModel.prepareStartingAmounts(for: month)
+				<string>}
 </string>
 				<key>leading</key>
-				<string>            let month = calModel.months.filter {$0.enumID == enumID}.first!
-            
+				<string>        }
+    }
 </string>
 				<key>trailing</key>
-				<string>            calModel.setSelectedMonthFromNavigation(navID: enumID, prepareStartAmount: true)
-            
-            let targetDay = month.days.filter { $0.dateComponents?.day == (month.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
+				<string>
+#endif
 </string>
 			</dict>
 			<key>title</key>
@@ -247,13 +199,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>63</string>
+					<string>69</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>62</string>
+					<string>68</string>
 					<key>Timestamp</key>
-					<string>771519648.874387</string>
+					<string>779056675.452544</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -272,7 +224,7 @@
 				<string>                //funcModel.prepareStartingAmounts()
 </string>
 				<key>leading</key>
-				<string>            .padding(.bottom, 15)
+				<string>            }
             .task {
 </string>
 				<key>trailing</key>
@@ -294,13 +246,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>284</string>
+					<string>288</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>283</string>
+					<string>287</string>
 					<key>Timestamp</key>
-					<string>771520880.317655</string>
+					<string>779057253.958474</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>

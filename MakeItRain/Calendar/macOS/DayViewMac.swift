@@ -286,8 +286,7 @@ struct DayViewMac: View {
     func createEodHelpDescription() -> String {
         let creditEodView = CreditEodView.fromString(UserDefaults.standard.string(forKey: "creditEodView") ?? "")
         
-        if calModel.sPayMethod?.accountType == .credit {
-            
+        if calModel.sPayMethod?.accountType == .credit || calModel.sPayMethod?.accountType == .loan {
             switch creditEodView {
             case .availableCredit:
                 return "Credit available out of limit of \(calModel.sPayMethod?.limit?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-")"
@@ -301,7 +300,7 @@ struct DayViewMac: View {
                 
                 let cumulativeLimits = PayMethodModel.shared
                     .paymentMethods
-                    .filter { $0.accountType == .credit }
+                    .filter { $0.accountType == .credit  || $0.accountType == .loan }
                     .map { $0.limit ?? 0.0 }
                     .reduce(0.0, +)
                 

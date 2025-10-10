@@ -289,7 +289,8 @@ extension View {
         overviewDay: Binding<CBDay?> = .constant(nil),
         findTransactionWhere: Binding<WhereToLookForTransaction> = .constant(.normalList),
         presentTip: Bool = false,
-        resetSelectedDayOnClose: Bool = false
+        resetSelectedDayOnClose: Bool = false,
+        //newTransactionMenuButtonNamespace: Namespace.ID = NamespaceContainer.defaultNamespace
     ) -> some View {
         modifier(TransactionEditSheetAndLogic(
             calModel: calModel,
@@ -299,7 +300,8 @@ extension View {
             overviewDay: overviewDay,
             findTransactionWhere: findTransactionWhere,
             presentTip: presentTip,
-            resetSelectedDayOnClose: resetSelectedDayOnClose
+            resetSelectedDayOnClose: resetSelectedDayOnClose,
+            //newTransactionMenuButtonNamespace: newTransactionMenuButtonNamespace
         ))
     }
 }

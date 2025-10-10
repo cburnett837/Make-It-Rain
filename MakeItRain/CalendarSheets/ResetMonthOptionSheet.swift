@@ -95,14 +95,20 @@ struct ResetMonthOptionSheet: View {
     @State private var showResetMonthAlert = false
     
     var body: some View {
-        StandardContainer(.list) {
-            paymentMethodSection
-            budgetSection
-            populatedStatusSection
-        } header: {
-            SheetHeader(title: "Reset Options", close: { dismiss() })
-        } footer: {
-            resetButton
+        NavigationStack {
+            StandardContainerWithToolbar(.list) {
+                paymentMethodSection
+                budgetSection
+                populatedStatusSection
+            }
+            #if os(iOS)
+            .navigationTitle("Reset Options")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) { closeButton }
+                ToolbarItem(placement: .bottomBar) { resetButton }
+            }
+            #endif
         }
         .task {
             payModel.paymentMethods
@@ -209,15 +215,23 @@ struct ResetMonthOptionSheet: View {
         } label: {
             Text("Reset")
         }
-        .padding(.bottom, 6)
         #if os(macOS)
         .foregroundStyle(.red)
         .buttonStyle(.codyStandardWithHover)
         #else
         .tint(.red)
-        .buttonStyle(.borderedProminent)
-        .sensoryFeedback(.warning, trigger: showResetMonthAlert) { !$0 && $1 }        
+        .buttonStyle(.glassProminent)
+        .sensoryFeedback(.warning, trigger: showResetMonthAlert) { !$0 && $1 }
         #endif
     
+    }
+    
+    var closeButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "checkmark")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        }
     }
 }

@@ -15,26 +15,39 @@ struct StandardUrlTextField: View {
     var showSymbol: Bool = true
     
     var body: some View {
-        HStack(alignment: .circleAndTitle) {
-            if showSymbol {
-                Image(systemName: "network")
-                    .foregroundColor(.gray)
-                    .frame(width: symbolWidth)
-                    .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-            }
-                     
-            VStack(alignment: .leading) {
+        VStack {
+            HStack {
+                Label {
+                    Text("URL")
+                } icon: {
+                    Image(systemName: "network")
+                        .foregroundStyle(.gray)
+                }
+
                 HStack {
                     #if os(iOS)
-                    StandardUITextField("URL", text: $url, onSubmit: {
+                    
+                    UITextFieldWrapper(placeholder: "https://www.google.com", text: $url, onSubmit: {
                         focusedField.wrappedValue = nil
                     }, toolbar: {
                         KeyboardToolbarView(focusedField: focusedField.projectedValue)
                     })
-                    .cbClearButtonMode(.whileEditing)
-                    .cbFocused(focusedField, equals: focusID)
-                    .cbAutoCorrectionDisabled(true)
-                    .cbKeyboardType(.URL)
+                    .uiTag(focusID)
+                    .uiClearButtonMode(.whileEditing)
+                    .uiStartCursorAtEnd(true)
+                    .uiTextAlignment(.right)
+                    .uiAutoCorrectionDisabled(true)
+                    .uiKeyboardType(.URL)
+
+    //                    StandardUITextField("URL", text: $url, onSubmit: {
+    //                        focusedField.wrappedValue = nil
+    //                    }, toolbar: {
+    //                        KeyboardToolbarView(focusedField: focusedField.projectedValue)
+    //                    })
+    //                    .cbClearButtonMode(.whileEditing)
+    //                    .cbFocused(focusedField, equals: focusID)
+    //                    .cbAutoCorrectionDisabled(true)
+    //                    .cbKeyboardType(.URL)
                     #else
                     StandardTextField("URL", text: $url, focusedField: focusedField.projectedValue, focusValue: focusID)
                         .autocorrectionDisabled(true)
@@ -49,18 +62,17 @@ struct StandardUrlTextField: View {
                     }
                     #endif
                 }
-                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-                                
-                #if os(iOS)
-                if let url = URL(string: url) {
-                    LinkItemView(url: url)
-                    
-//                    LinkPreviewView(previewURL: url)
-//                        .aspectRatio(contentMode: .fit)
-                }
-                #endif
-                                                
             }
+            
+            #if os(iOS)
+            if let url = URL(string: url) {
+                LinkItemView(url: url)
+                    .padding(.top, 5)
+                
+            //                    LinkPreviewView(previewURL: url)
+            //                        .aspectRatio(contentMode: .fit)
+            }
+            #endif
         }
         .padding(.bottom, 6)
     }

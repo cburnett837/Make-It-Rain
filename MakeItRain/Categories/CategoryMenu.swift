@@ -43,6 +43,7 @@ struct CategoryMenu<Content: View>: View {
     
     var sortedCategories: Array<CBCategory> {
         return catModel.categories
+            .filter { !$0.isHidden }
             .sorted {
                 categorySortMode == .title
                 ? $0.title.lowercased() < $1.title.lowercased()
@@ -98,16 +99,18 @@ struct CategoryMenu<Content: View>: View {
                             HStack { /// This can be a button or whatever you want
                                 Text(cat.title)
                                 Image(systemName: "circle.fill")
+                                    .tint(cat.color)
                                     //.foregroundStyle(cat.color)
-                                    .foregroundStyle(cat.color, cat.color, cat.color)
+                                    //.foregroundStyle(cat.color, cat.color, cat.color)
                             }
                         } else {
                             if let emoji = cat.emoji {
                                 HStack { /// This can be a button or whatever you want
                                     Text(cat.title)
                                     Image(systemName: emoji)
+                                        .tint(cat.color)
                                         //.foregroundStyle(cat.color)
-                                        .foregroundStyle(cat.color, cat.color, cat.color)
+                                        //.foregroundStyle(cat.color, cat.color, cat.color)
                                 }
                             } else {
                                 Text(cat.title)
@@ -117,7 +120,6 @@ struct CategoryMenu<Content: View>: View {
                 }
             }
         }
-        
     }
 }
 

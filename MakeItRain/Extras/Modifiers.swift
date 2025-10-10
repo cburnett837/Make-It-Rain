@@ -441,7 +441,9 @@ struct MaxChartWidthObserver: ViewModifier {
 }
 
 
-
+struct NamespaceContainer {
+    @Namespace static var defaultNamespace
+}
 
 struct TransactionEditSheetAndLogic: ViewModifier {
     @Bindable var calModel: CalendarModel
@@ -452,6 +454,9 @@ struct TransactionEditSheetAndLogic: ViewModifier {
     @Binding var findTransactionWhere: WhereToLookForTransaction
     var presentTip: Bool
     var resetSelectedDayOnClose: Bool
+    
+    //let newTransactionMenuButtonNamespace: Namespace.ID?
+
     
     func body(content: Content) -> some View {
         return content
@@ -466,6 +471,7 @@ struct TransactionEditSheetAndLogic: ViewModifier {
                     .onDisappear {
                         transEditID = nil
                     }
+                    //.navigationTransition(.zoom(sourceID: "myButton", in: newTransactionMenuButtonNamespace ?? NamespaceContainer.defaultNamespace))
                     //.presentationSizing(.page)
             }
         }

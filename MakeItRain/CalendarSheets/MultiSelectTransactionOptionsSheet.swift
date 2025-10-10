@@ -9,34 +9,45 @@ import SwiftUI
 
 struct MultiSelectTransactionOptionsSheet: View {
     @Local(\.colorTheme) var colorTheme
-    
+    @Environment(\.colorScheme) private var colorScheme
     #if os(macOS)
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openWindow) private var openWindow
     #endif
+    @Environment(CalendarProps.self) private var calProps
     @Environment(CalendarModel.self) private var calModel
     
-    @Binding var bottomPanelContent: BottomPanelContent?
-    @Binding var bottomPanelHeight: CGFloat
-    @Binding var scrollContentMargins: CGFloat
-    @Binding var showAnalysisSheet: Bool
+//    @Binding var bottomPanelContent: BottomPanelContent?
+//    @Binding var bottomPanelHeight: CGFloat
+//    @Binding var scrollContentMargins: CGFloat
+//    @Binding var showAnalysisSheet: Bool
     
     @State private var shouldSave = false
         
+    @Binding var showInspector: Bool
+    
     
     var body: some View {
-        StandardContainer(AppState.shared.isIpad ? .sidebarScrolling : .bottomPanel) {
-            content
-        } header: {
-            if AppState.shared.isIpad {
-                sidebarHeader
-            } else {
+        if AppState.shared.isIphone {
+            StandardContainer(.bottomPanel) {
+                contentGrid
+            } header: {
                 sheetHeader
             }
-        } subHeader: {
-            Text("What would you like to do with the selected transactions?")
-                .foregroundStyle(.secondary)
-                .font(.subheadline)
+        } else {
+            NavigationStack {
+                StandardContainerWithToolbar(.list) {
+                    contentList
+                }
+                .navigationTitle("Multi-Select Options")
+                .navigationSubtitle("What would you like to do with the selected transactions?")
+                #if os(iOS)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) { closeButton }
+                }
+                #endif
+            }
         }
         /// Need this in case the user clicks the red close button.
         #if os(macOS)
@@ -59,94 +70,71 @@ struct MultiSelectTransactionOptionsSheet: View {
     }
     
     
-    var content: some View {
+    @ViewBuilder
+    var contentList: some View {
+        summarizeButton
+        MultiTitleColorMenu(transactions: calModel.multiSelectTransactions, shouldSave: $shouldSave) { Text("Change Title Color") }
+        factorInCalculationsButton
+    }
+    
+    
+    var contentGrid: some View {
         TagLayout {
-            Button("Summarize") {
-                calModel.sCategoriesForAnalysis = calModel.multiSelectTransactions
-                    .compactMap(\.category)
-                    .uniqued(on: \.id)
-                
-                #if os(iOS)
-                withAnimation {
-                    showAnalysisSheet = true
-                    
-                    if AppState.shared.isIpad {
-                        bottomPanelContent = .categoryAnalysis
-                    }
-                }
-                #else
-                openWindow(id: "analysisSheet")
-                #endif
-                
-            }
-            .buttonStyle(.borderedProminent)
-                        
-            MultiTitleColorMenu(transactions: calModel.multiSelectTransactions, shouldSave: $shouldSave) {
-                Text("Change Title Color")
-            }
-            .buttonStyle(.borderedProminent)
-            
+            summarizeButton
+            MultiTitleColorMenu(transactions: calModel.multiSelectTransactions, shouldSave: $shouldSave) { Text("Change Title Color") }
             factorInCalculationsButton
         }
+        .buttonStyle(.borderedProminent)
         .padding(.top, 6)
     }
     
     
-    var sheetHeader: some View {
+    @ViewBuilder var sheetHeader: some View {
+        @Bindable var calProps = calProps
         SheetHeader(
             title: "Multi-Select Options",
             close: {
-                #if os(iOS)
-                withAnimation {
-                    bottomPanelContent = nil
-                    calModel.isInMultiSelectMode = false
-                    calModel.sCategoriesForAnalysis.removeAll()
-                    
-                    if shouldSave {
-                        Task {
-                            await calModel.editMultiple(trans: calModel.multiSelectTransactions)
-                            calModel.multiSelectTransactions.removeAll()
-                        }
-                    } else {
-                        calModel.multiSelectTransactions.removeAll()
-                    }
-                }
-                #else
-                /// Clean up & saving logic will be handled in the .onDisappear()
-                dismiss()
-                #endif
+                closeSheet()
             }
         )
-        #if os(iOS)
-        .bottomPanelAndScrollViewHeightAdjuster(bottomPanelHeight: $bottomPanelHeight, scrollContentMargins: $scrollContentMargins)
-        #endif
+//        #if os(iOS)
+//        .bottomPanelAndScrollViewHeightAdjuster(bottomPanelHeight: $calProps.bottomPanelHeight, scrollContentMargins: $calProps.scrollContentMargins)
+//        #endif
     }
     
     
-    var sidebarHeader: some View {
-        SidebarHeader(
-            title: "Multi-Select Options",
-            close: {
-                #if os(iOS)
-                withAnimation {
-                    bottomPanelContent = nil
-                    calModel.isInMultiSelectMode = false
-                    calModel.sCategoriesForAnalysis.removeAll()
-                    
-                    if shouldSave {
-                        Task {
-                            await calModel.editMultiple(trans: calModel.multiSelectTransactions)
-                            calModel.multiSelectTransactions.removeAll()
-                        }
-                    } else {
-                        calModel.multiSelectTransactions.removeAll()
-                    }
+    var closeButton: some View {
+        Button {
+            closeSheet()
+        } label: {
+            Image(systemName: "checkmark")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        }
+    }
+    
+    
+    var summarizeButton: some View {
+        Button("Summarize") {
+            calModel.sCategoriesForAnalysis = calModel.multiSelectTransactions
+                .compactMap(\.category)
+                .uniqued(on: \.id)
+            
+            #if os(iOS)
+            withAnimation {
+                //calProps.showAnalysisSheet = true
+                
+                if AppState.shared.isIphone {
+                    calProps.showAnalysisSheet = true
+                } else {
+                    calProps.inspectorContent = .analysisSheet
+                    calProps.showInspector = true
                 }
-                #else
-                dismiss()
-                #endif
             }
-        )
+            #else
+            openWindow(id: "analysisSheet")
+            #endif
+            
+        }
     }
     
     
@@ -170,6 +158,32 @@ struct MultiSelectTransactionOptionsSheet: View {
                 Image(systemName: isTrue ? "eye.slash.fill" : "eye.fill")
             }
         }
-        .buttonStyle(.borderedProminent)
+    }
+    
+    
+    func closeSheet() {
+        #if os(iOS)
+            withAnimation {
+                if AppState.shared.isIphone {
+                    calProps.bottomPanelContent = nil
+                } else {
+                    showInspector = false
+                }
+                calModel.isInMultiSelectMode = false
+                calModel.sCategoriesForAnalysis.removeAll()
+                
+                if shouldSave {
+                    Task {
+                        await calModel.editMultiple(trans: calModel.multiSelectTransactions)
+                        calModel.multiSelectTransactions.removeAll()
+                    }
+                } else {
+                    calModel.multiSelectTransactions.removeAll()
+                }
+            }
+        #else
+            /// Clean up & saving logic will be handled in the .onDisappear()
+            dismiss()
+        #endif
     }
 }

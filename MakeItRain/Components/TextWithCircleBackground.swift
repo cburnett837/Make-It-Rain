@@ -23,6 +23,7 @@ struct TextWithCircleBackground: View {
                         width: height >= width ? height : width,
                         height: height
                     )
+                    .padding(-4)
             }
             
             Text(text)
@@ -36,6 +37,7 @@ struct TextWithCircleBackground: View {
                         }
                     }.hidden()
                 )
+                .padding(-4)
             
         }
     }

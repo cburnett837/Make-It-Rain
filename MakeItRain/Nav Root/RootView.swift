@@ -44,7 +44,10 @@ struct RootView: View {
 //            }
             #if os(iOS)
             if !AppState.shared.isIpad {
-                calModel.showMonth = true
+                if !AppState.shared.showPaymentMethodNeededSheet {
+                    calModel.showMonth = true
+                }
+                
             }
             #endif
         }
@@ -147,6 +150,7 @@ struct RootView: View {
                 calModel.months.forEach { month in
                     month.days.removeAll()
                     month.startingAmounts.removeAll()
+                    month.budgets.removeAll()
                     
                     if month.enumID == .lastDecember {
                         month.year = newValue - 1

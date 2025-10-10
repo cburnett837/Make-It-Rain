@@ -9,7 +9,60 @@
 import SwiftUI
 import Charts
 
-struct ChartSelectedDataContainer<Headers: View, Rows: View, Summary: View>: View {
+struct ChartSelectedDataContainer<Headers: View, Rows: View, Summary: View>: View {    
+    @Bindable var vm: PayMethodViewModel
+    @Bindable var payMethod: CBPaymentMethod
+    var columnCount: Int
+    var showOverviewDataPerMethodOnUnifiedChart: Bool
+    
+    @ViewBuilder var headers: Headers
+    @ViewBuilder var rows: Rows
+    @ViewBuilder var summary: Summary
+        
+//    var gridColumnsCount: Int {
+//        (payMethod.isCreditOrLoan || payMethod.isUnifiedCredit) ? 5 : 4
+//    }
+    
+    var gridColumns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 5, alignment: .topLeading), count: columnCount)
+    }
+                
+    var body: some View {
+        Grid(alignment: .leading) {
+            GridRow(alignment: .top) {
+                headers
+            }
+            .font(.caption)
+            .bold()
+            
+            if (payMethod.isUnified && showOverviewDataPerMethodOnUnifiedChart) || !payMethod.isUnified {
+                Divider()
+                rows
+            }
+            
+            if payMethod.isUnified {
+                Divider()
+                GridRow(alignment: .top) {
+                    HStack(spacing: 5) {
+                        CircleDotGradient(width: 5)
+                        Text("All")
+                            .foregroundStyle(.gray)
+                    }
+                    summary
+                        .foregroundStyle(.gray)
+                }
+            }
+        }
+        .font(.caption2)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+
+
+
+
+struct ChartSelectedDataContainerOG<Headers: View, Rows: View, Summary: View>: View {
     @Bindable var vm: PayMethodViewModel
     @Bindable var payMethod: CBPaymentMethod
     var selectedDate: Date

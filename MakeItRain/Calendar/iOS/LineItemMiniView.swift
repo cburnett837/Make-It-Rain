@@ -34,7 +34,7 @@ struct LineItemMiniView: View {
     @State private var showDeleteAlert = false
     
     var amountColor: Color {
-        if trans.payMethod?.accountType == .credit {
+        if trans.payMethod?.accountType == .credit || trans.payMethod?.accountType == .loan {
             trans.amount < 0 ? Color.fromName(incomeColor) : colorScheme == .dark ? .gray : .totalDarkGray
         } else {
             trans.amount > 0 ? Color.fromName(incomeColor) : colorScheme == .dark ? .gray : .totalDarkGray

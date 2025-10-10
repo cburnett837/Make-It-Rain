@@ -123,6 +123,7 @@ class OpenRecordManager {
             
         case .failure(let error):
             LogManager.error(error.localizedDescription)
+            print("⚠️ \(error.localizedDescription)")
             AppState.shared.showAlert("There was a problem trying to fetch the open or closed events.")
             #warning("Undo behavior")
         }

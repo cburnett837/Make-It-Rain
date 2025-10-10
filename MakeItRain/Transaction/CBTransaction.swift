@@ -26,7 +26,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     var amountString: String
     
     var amountTypeLingo: String {
-        if payMethod?.accountType == .credit {
+        if (payMethod?.isCreditOrLoan ?? false) {
             amountString.contains("-") ? "Payment" : "Expense"
         } else {
             amountString.contains("-") ? "Expense" : "Income"
@@ -86,11 +86,15 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     var smartTransactionIssue: XrefItem?
     var smartTransactionIsAcknowledged: Bool?
     
-    var isPayment: Bool?
+    var isPaymentOrigin: Bool
+    var isPaymentDest: Bool
+    var isTransferOrigin: Bool
+    var isTransferDest: Bool
     
     var isBudgetable: Bool { self.payMethod?.accountType == .cash || self.payMethod?.accountType == .checking }
-    var isIncome: Bool { self.amount > 0 }
-    var isExpense: Bool { self.amount < 0 }
+    var isIncome: Bool { (self.payMethod ?? CBPaymentMethod()).isCreditOrLoan ? self.amount < 0 : self.amount > 0 }
+    var isExpense: Bool { (self.payMethod ?? CBPaymentMethod()).isCreditOrLoan ? self.amount > 0 : self.amount < 0 }
+//    var isExpense: Bool { self.amount < 0 }
     var logs: Array<CBLog> = []
     
     var categoryIdsInCurrentAndDeepCopy: Array<String?> {
@@ -105,9 +109,9 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         (self.payMethod?.isHidden ?? false) || (self.deepCopy?.payMethod?.isHidden ?? false)
     }
     
-    var hasPrivateMethodInCurrentOrDeepCopy: Bool {
-        (self.payMethod?.isPrivate ?? false) || (self.deepCopy?.payMethod?.isPrivate ?? false)
-    }
+//    var hasPrivateMethodInCurrentOrDeepCopy: Bool {
+//        (self.payMethod?.isPrivate ?? false) || (self.deepCopy?.payMethod?.isPrivate ?? false)
+//    }
     
     var isAllowedToBeViewedByThisUser: Bool {
         if (self.payMethod?.isAllowedToBeViewedByThisUser ?? true) {
@@ -150,6 +154,11 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         self.locations = []
         self.wasAddedFromPopulate = false
         
+        self.isPaymentOrigin = false
+        self.isPaymentDest = false
+        self.isTransferOrigin = false
+        self.isTransferDest = false
+        
        // self.undoManager = TransUndoManager(trans: self)
     }
     
@@ -176,6 +185,11 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         self.tags = []
         self.locations = []
         self.wasAddedFromPopulate = false
+        
+        self.isPaymentOrigin = false
+        self.isPaymentDest = false
+        self.isTransferOrigin = false
+        self.isTransferDest = false
         
         //self.undoManager = TransUndoManager(trans: self)
     }
@@ -224,6 +238,11 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         
         self.logs = logs
         
+        self.isPaymentOrigin = false
+        self.isPaymentDest = false
+        self.isTransferOrigin = false
+        self.isTransferDest = false
+        
         //self.undoManager = TransUndoManager(trans: self)
     }
     
@@ -251,6 +270,11 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         self.locations = []
         self.wasAddedFromPopulate = true
         
+        self.isPaymentOrigin = false
+        self.isPaymentDest = false
+        self.isTransferOrigin = false
+        self.isTransferDest = false
+        
         //self.undoManager = TransUndoManager(trans: self)
     }
     
@@ -277,6 +301,11 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         self.tags = []
         self.locations = []
         self.wasAddedFromPopulate = false
+        
+        self.isPaymentOrigin = false
+        self.isPaymentDest = false
+        self.isTransferOrigin = false
+        self.isTransferDest = false
                 
         self.action = eventTrans.actionForRealTransaction!
     }
@@ -305,6 +334,11 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         self.tags = []
         self.locations = []
         self.wasAddedFromPopulate = false
+        
+        self.isPaymentOrigin = false
+        self.isPaymentDest = false
+        self.isTransferOrigin = false
+        self.isTransferDest = false
                 
         self.action = .add
     }
@@ -332,12 +366,17 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         self.tags = []
         self.locations = []
         self.wasAddedFromPopulate = false
+        
+        self.isPaymentOrigin = false
+        self.isPaymentDest = false
+        self.isTransferOrigin = false
+        self.isTransferDest = false
                 
         self.action = .add
     }
     
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, entered_date, updated_date, pictures, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, related_transaction_type_id, fit_id, is_smart_transaction, smart_transaction_issue_id, smart_transaction_is_acknowledged, locations, action, is_payment, plaid_id }
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, entered_date, updated_date, pictures, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, related_transaction_type_id, fit_id, is_smart_transaction, smart_transaction_issue_id, smart_transaction_is_acknowledged, locations, action, is_payment_origin, is_payment_dest, is_transfer_origin, is_transfer_dest, plaid_id }
     
     
     func encode(to encoder: Encoder) throws {
@@ -383,7 +422,10 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         try container.encode((isSmartTransaction ?? false) ? 1 : 0, forKey: .is_smart_transaction) // for the Transferable protocol
         try container.encode(smartTransactionIssue?.id, forKey: .smart_transaction_issue_id) // for the Transferable protocol
         
-        try container.encode((isPayment ?? false) ? 1 : 0, forKey: .is_payment)
+        try container.encode(isPaymentOrigin ? 1 : 0, forKey: .is_payment_origin)
+        try container.encode(isPaymentDest ? 1 : 0, forKey: .is_payment_dest)
+        try container.encode(isTransferOrigin ? 1 : 0, forKey: .is_transfer_origin)
+        try container.encode(isTransferDest ? 1 : 0, forKey: .is_transfer_dest)
     }
     
     
@@ -517,11 +559,32 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         
         
         /// Set when creating a payment via the transfer sheet
-        let isPayment = try container.decode(Int?.self, forKey: .is_payment)
-        if isPayment == nil {
-            self.isPayment = false
+        let isPaymentOrigin = try container.decode(Int?.self, forKey: .is_payment_origin)
+        if isPaymentOrigin == nil {
+            self.isPaymentOrigin = false
         } else {
-            self.isPayment = isPayment == 1
+            self.isPaymentOrigin = isPaymentOrigin == 1
+        }
+        
+        let isPaymentDest = try container.decode(Int?.self, forKey: .is_payment_dest)
+        if isPaymentDest == nil {
+            self.isPaymentDest = false
+        } else {
+            self.isPaymentDest = isPaymentDest == 1
+        }
+        
+        let isTransferOrigin = try container.decode(Int?.self, forKey: .is_transfer_origin)
+        if isTransferOrigin == nil {
+            self.isTransferOrigin = false
+        } else {
+            self.isTransferOrigin = isTransferOrigin == 1
+        }
+        
+        let isTransferDest = try container.decode(Int?.self, forKey: .is_transfer_dest)
+        if isTransferDest == nil {
+            self.isTransferDest = false
+        } else {
+            self.isTransferDest = isTransferDest == 1
         }
         
         
@@ -552,33 +615,187 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     }
     
     
+//    func hasChanges() -> Bool {
+//        if let deepCopy = deepCopy {
+//            if self.title == deepCopy.title
+//            && self.amount == deepCopy.amount
+//            && self.payMethod?.id == deepCopy.payMethod?.id
+//            && self.category?.id == deepCopy.category?.id
+//            && self.notes == deepCopy.notes
+//            && self.factorInCalculations == deepCopy.factorInCalculations
+//            && self.color == deepCopy.color
+//            && self.tags == deepCopy.tags
+//            && self.locations == deepCopy.locations
+//            && self.notificationOffset == deepCopy.notificationOffset
+//            && self.notifyOnDueDate == deepCopy.notifyOnDueDate
+//            && self.trackingNumber == deepCopy.trackingNumber
+//            && self.orderNumber == deepCopy.orderNumber
+//            && self.url == deepCopy.url
+//            && self.wasAddedFromPopulate == deepCopy.wasAddedFromPopulate
+//            && self.pictures == deepCopy.pictures
+//            && self.date == deepCopy.date {
+//                return false
+//            }
+//            
+//            log(deepCopy: deepCopy)
+//        }
+//        
+//        return true
+//    }
+    
     func hasChanges() -> Bool {
-        if let deepCopy = deepCopy {
-            if self.title == deepCopy.title
-            && self.amount == deepCopy.amount
-            && self.payMethod?.id == deepCopy.payMethod?.id
-            && self.category?.id == deepCopy.category?.id
-            && self.notes == deepCopy.notes
-            && self.factorInCalculations == deepCopy.factorInCalculations
-            && self.color == deepCopy.color
-            && self.tags == deepCopy.tags
-            && self.locations == deepCopy.locations
-            && self.notificationOffset == deepCopy.notificationOffset
-            && self.notifyOnDueDate == deepCopy.notifyOnDueDate
-            && self.trackingNumber == deepCopy.trackingNumber
-            && self.orderNumber == deepCopy.orderNumber
-            && self.url == deepCopy.url
-            && self.wasAddedFromPopulate == deepCopy.wasAddedFromPopulate
-            && self.pictures == deepCopy.pictures
-            && self.date == deepCopy.date {
-                return false
-            }
-            
-            log(deepCopy: deepCopy)
+        guard let deepCopy = deepCopy else {
+            print("No deepCopy available → assuming changes")
+            return true
         }
         
-        return true
+        var changes: [String] = []
+        
+        if self.title != deepCopy.title {
+            changes.append("title: \(String(describing: deepCopy.title)) → \(String(describing: self.title))")
+        }
+        if self.amount != deepCopy.amount {
+            changes.append("amount: \(deepCopy.amount) → \(self.amount)")
+        }
+        if self.payMethod?.id != deepCopy.payMethod?.id {
+            changes.append("payMethod: \(String(describing: deepCopy.payMethod?.id)) → \(String(describing: self.payMethod?.id))")
+        }
+        if self.category?.id != deepCopy.category?.id {
+            changes.append("category: \(String(describing: deepCopy.category?.id)) → \(String(describing: self.category?.id))")
+        }
+        if self.notes != deepCopy.notes {
+            changes.append("notes: \(String(describing: deepCopy.notes)) → \(String(describing: self.notes))")
+        }
+        if self.factorInCalculations != deepCopy.factorInCalculations {
+            changes.append("factorInCalculations: \(deepCopy.factorInCalculations) → \(self.factorInCalculations)")
+        }
+        if self.color != deepCopy.color {
+            changes.append("color: \(String(describing: deepCopy.color)) → \(String(describing: self.color))")
+        }
+        if self.tags != deepCopy.tags {
+            changes.append("tags: \(deepCopy.tags) → \(self.tags)")
+        }
+        if self.locations != deepCopy.locations {
+            #warning("need to ignore locations that has 0.0, 0.0 as coordinates. It is causing false saves.")
+            changes.append("locations: \(deepCopy.locations.map {$0.coordinates}) → \(self.locations.map {$0.coordinates})")
+        }
+        if self.notificationOffset != deepCopy.notificationOffset {
+            changes.append("notificationOffset: \(String(describing: deepCopy.notificationOffset)) → \(String(describing: self.notificationOffset))")
+        }
+        if self.notifyOnDueDate != deepCopy.notifyOnDueDate {
+            changes.append("notifyOnDueDate: \(deepCopy.notifyOnDueDate) → \(self.notifyOnDueDate)")
+        }
+        if self.trackingNumber != deepCopy.trackingNumber {
+            changes.append("trackingNumber: \(String(describing: deepCopy.trackingNumber)) → \(String(describing: self.trackingNumber))")
+        }
+        if self.orderNumber != deepCopy.orderNumber {
+            changes.append("orderNumber: \(String(describing: deepCopy.orderNumber)) → \(String(describing: self.orderNumber))")
+        }
+        if self.url != deepCopy.url {
+            changes.append("url: \(String(describing: deepCopy.url)) → \(String(describing: self.url))")
+        }
+        if self.wasAddedFromPopulate != deepCopy.wasAddedFromPopulate {
+            changes.append("wasAddedFromPopulate: \(deepCopy.wasAddedFromPopulate) → \(self.wasAddedFromPopulate)")
+        }
+        if self.pictures != deepCopy.pictures {
+            changes.append("pictures: \(deepCopy.pictures) → \(self.pictures)")
+        }
+        if self.date != deepCopy.date {
+            changes.append("date: \(deepCopy.date) → \(self.date)")
+        }
+        
+        if !changes.isEmpty {
+            print("Changes detected:")
+            for change in changes {
+                print(" - \(change)")
+            }
+            log(deepCopy: deepCopy)
+            return true
+        } else {
+            return false
+        }
     }
+    
+    
+//    func hasChanges() -> Bool {
+//        guard let deepCopy = deepCopy else {
+//            return true // if no deep copy, assume changes
+//        }
+//        
+//        var hasChanges = false
+//        
+//        if self.title != deepCopy.title {
+//            print("⚠️title changed: \(String(describing: deepCopy.title)) → \(String(describing: self.title))")
+//            hasChanges = true
+//        }
+//        if self.amount != deepCopy.amount {
+//            print("⚠️amount changed: \(deepCopy.amount) → \(self.amount)")
+//            hasChanges = true
+//        }
+//        if self.payMethod?.id != deepCopy.payMethod?.id {
+//            print("⚠️payMethod changed: \(String(describing: deepCopy.payMethod?.id)) → \(String(describing: self.payMethod?.id))")
+//            hasChanges = true
+//        }
+//        if self.category?.id != deepCopy.category?.id {
+//            print("⚠️category changed: \(String(describing: deepCopy.category?.id)) → \(String(describing: self.category?.id))")
+//            hasChanges = true
+//        }
+//        if self.notes != deepCopy.notes {
+//            print("⚠️notes changed: \(String(describing: deepCopy.notes)) → \(String(describing: self.notes))")
+//            hasChanges = true
+//        }
+//        if self.factorInCalculations != deepCopy.factorInCalculations {
+//            print("⚠️factorInCalculations changed: \(deepCopy.factorInCalculations) → \(self.factorInCalculations)")
+//            hasChanges = true
+//        }
+//        if self.color != deepCopy.color {
+//            print("⚠️color changed: \(String(describing: deepCopy.color)) → \(String(describing: self.color))")
+//            hasChanges = true
+//        }
+//        if self.tags != deepCopy.tags {
+//            print("⚠️tags changed")
+//            hasChanges = true
+//        }
+//        if self.locations != deepCopy.locations {
+//            print("⚠️locations changed")
+//            hasChanges = true
+//        }
+//        if self.notificationOffset != deepCopy.notificationOffset {
+//            print("⚠️notificationOffset changed: \(String(describing: deepCopy.notificationOffset)) → \(String(describing: self.notificationOffset))")
+//            hasChanges = true
+//        }
+//        if self.notifyOnDueDate != deepCopy.notifyOnDueDate {
+//            print("⚠️notifyOnDueDate changed: \(deepCopy.notifyOnDueDate) → \(self.notifyOnDueDate)")
+//            hasChanges = true
+//        }
+//        if self.trackingNumber != deepCopy.trackingNumber {
+//            print("⚠️trackingNumber changed: \(String(describing: deepCopy.trackingNumber)) → \(String(describing: self.trackingNumber))")
+//            hasChanges = true
+//        }
+//        if self.orderNumber != deepCopy.orderNumber {
+//            print("⚠️orderNumber changed: \(String(describing: deepCopy.orderNumber)) → \(String(describing: self.orderNumber))")
+//            hasChanges = true
+//        }
+//        if self.url != deepCopy.url {
+//            print("⚠️url changed: \(String(describing: deepCopy.url)) → \(String(describing: self.url))")
+//            hasChanges = true
+//        }
+//        if self.wasAddedFromPopulate != deepCopy.wasAddedFromPopulate {
+//            print("⚠️wasAddedFromPopulate changed: \(deepCopy.wasAddedFromPopulate) → \(self.wasAddedFromPopulate)")
+//            hasChanges = true
+//        }
+//        if self.pictures != deepCopy.pictures {
+//            print("⚠️pictures changed")
+//            hasChanges = true
+//        }
+//        if self.date != deepCopy.date {
+//            print("⚠️date changed: \(deepCopy.date) → \(self.date)")
+//            hasChanges = true
+//        }
+//        
+//        return hasChanges
+//    }
+    
     
     
     func log(deepCopy: CBTransaction) {
@@ -633,6 +850,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     
     
     func log(field: LogField, old: String?, new: String?, groupID: String) {
+        print("Change \(field) - \(String(describing: old)) --> \(String(describing: new))")
         let log = CBLog(itemID: self.id, logType: .transaction, field: field, old: old, new: new, groupID: groupID)
         self.logs.append(log)
     }

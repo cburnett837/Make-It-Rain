@@ -21,7 +21,7 @@ struct TransactionListLine: View {
                 Spacer()
                 
                 Group {
-                    if trans.payMethod?.accountType == .credit {
+                    if trans.payMethod?.accountType == .credit || trans.payMethod?.accountType == .loan {
                         Text((trans.amount * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2))
                     } else {
                         Text(trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))

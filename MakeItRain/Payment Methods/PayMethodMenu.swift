@@ -34,8 +34,7 @@ struct PayMethodMenu<Content: View>: View {
     #if os(iOS)
     @Environment(PlaidModel.self) private var plaidModel
     #endif
-    
-    
+        
     @Binding var payMethod: CBPaymentMethod?
     var trans: CBTransaction?
     let calcAndSaveOnChange: Bool
@@ -74,7 +73,7 @@ struct PayMethodMenu<Content: View>: View {
                 menuItems
             } label: {
                 content
-                .foregroundStyle((payMethod?.title ?? "").isEmpty ? .gray : .primary)
+                    .foregroundStyle((payMethod?.title ?? "").isEmpty ? .gray : .primary)
             }
         }
         
@@ -102,7 +101,8 @@ struct PayMethodMenu<Content: View>: View {
                                     //.frame(maxWidth: 30, maxHeight: 30)
                                 
                                 Image(systemName: payMethod?.id == meth.id ? "checkmark" : "circle.fill")
-                                    .foregroundStyle(meth.isUnified ? (colorScheme == .dark ? .white : .black) : meth.color, .primary, .secondary)
+                                    .tint(meth.isUnified ? (colorScheme == .dark ? .white : .black) : meth.color)
+                                    //.foregroundStyle(meth.isUnified ? (colorScheme == .dark ? .white : .black) : meth.color, .primary, .secondary)
                                 Text(meth.title)
                             }
                         }
@@ -119,15 +119,15 @@ struct PayMethodMenu<Content: View>: View {
             return [
                 PaySection(kind: .combined, payMethods: payModel.paymentMethods.filter { $0.accountType == .unifiedCredit || $0.accountType == .unifiedChecking }),
                 PaySection(kind: .debit, payMethods: payModel.paymentMethods.filter { $0.accountType == .checking }),
-                PaySection(kind: .credit, payMethods: payModel.paymentMethods.filter { $0.accountType == .credit }),
-                PaySection(kind: .other, payMethods: payModel.paymentMethods.filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking].contains($0.accountType) })
+                PaySection(kind: .credit, payMethods: payModel.paymentMethods.filter { $0.accountType == .credit || $0.accountType == .loan }),
+                PaySection(kind: .other, payMethods: payModel.paymentMethods.filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking, .loan].contains($0.accountType) })
             ]
             
         case .allExceptUnified:
             return [
                 PaySection(kind: .debit, payMethods: payModel.paymentMethods.filter { $0.accountType == .checking }),
-                PaySection(kind: .credit, payMethods: payModel.paymentMethods.filter { $0.accountType == .credit }),
-                PaySection(kind: .other, payMethods: payModel.paymentMethods.filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking].contains($0.accountType) })
+                PaySection(kind: .credit, payMethods: payModel.paymentMethods.filter { $0.accountType == .credit || $0.accountType == .loan }),
+                PaySection(kind: .other, payMethods: payModel.paymentMethods.filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking, .loan].contains($0.accountType) })
             ]
             
         case .basedOnSelected:
@@ -135,10 +135,10 @@ struct PayMethodMenu<Content: View>: View {
                 return [PaySection(kind: .debit, payMethods: payModel.paymentMethods.filter { $0.accountType == .checking })]
     
             } else if calModel.sPayMethod?.accountType == .unifiedCredit {
-                return [PaySection(kind: .credit, payMethods: payModel.paymentMethods.filter { $0.accountType == .credit })]
+                return [PaySection(kind: .credit, payMethods: payModel.paymentMethods.filter { $0.accountType == .credit || $0.accountType == .loan })]
     
             } else {
-                return [PaySection(kind: .other, payMethods: payModel.paymentMethods.filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking].contains($0.accountType) })]
+                return [PaySection(kind: .other, payMethods: payModel.paymentMethods.filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking, .loan].contains($0.accountType) })]
             }
             
         case .remainingAvailbleForPlaid:
@@ -146,8 +146,8 @@ struct PayMethodMenu<Content: View>: View {
             let taken: Array<String> = plaidModel.banks.flatMap ({ $0.accounts.compactMap({ $0.paymentMethodID }) })
             return [
                 PaySection(kind: .debit, payMethods: payModel.paymentMethods.filter { $0.accountType == .checking && !taken.contains($0.id) }),
-                PaySection(kind: .credit, payMethods: payModel.paymentMethods.filter { $0.accountType == .credit && !taken.contains($0.id) }),
-                PaySection(kind: .other, payMethods: payModel.paymentMethods.filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking].contains($0.accountType) && !taken.contains($0.id)  })
+                PaySection(kind: .credit, payMethods: payModel.paymentMethods.filter { ($0.accountType == .credit || $0.accountType == .loan) && !taken.contains($0.id) }),
+                PaySection(kind: .other, payMethods: payModel.paymentMethods.filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking, .loan].contains($0.accountType) && !taken.contains($0.id)  })
             ]
             #else
             return []

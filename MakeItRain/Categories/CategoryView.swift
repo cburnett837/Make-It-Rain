@@ -11,16 +11,18 @@ import Charts
 
 struct CategoryView: View {
     @Local(\.useWholeNumbers) var useWholeNumbers
+    @Local(\.colorTheme) var colorTheme
+
     @AppStorage("monthlyAnalyticChartVisibleYearCount") var chartVisibleYearCount: MonthlyAnalyticChartRange = .year1
-    @AppStorage("selectedCategoryTab") var selectedCategoryTab: String = "details"
+    @AppStorage("selectedCategoryTab") var selectedTab: DetailsOrInsights = .details
     @AppStorage("showAllCategoryChartData") var showAllChartData = false
 
-    
+    @Environment(\.colorScheme) var colorScheme
+    @Environment(\.dismiss) var dismiss
     #if os(macOS)
     @Environment(\.openWindow) private var openWindow
     @Environment(\.dismissWindow) private var dismissWindow
     #endif
-    @Environment(\.dismiss) var dismiss
     @Environment(EventModel.self) private var eventModel
     
     @Bindable var category: CBCategory
@@ -34,6 +36,8 @@ struct CategoryView: View {
     @State private var showDeleteAlert = false
     @State private var labelWidth: CGFloat = 20.0
     @State private var showSymbolPicker = false
+    @State private var showColorPicker = false
+
     @State private var showMonth = false
     
     @State private var data: Array<AnalyticData> = []
@@ -46,6 +50,8 @@ struct CategoryView: View {
     @State private var isLoadingMoreHistory = false
     //@State private var safeToLoadMoreHistory = false
     
+    @Namespace private var namespace
+        
     var displayData: Array<AnalyticData> {
         if chartVisibleYearCount == .yearToDate {
             return data
@@ -66,38 +72,89 @@ struct CategoryView: View {
     }
     
     var title: String {
-        if selectedCategoryTab == "details" {
+        if selectedTab == .details {
             category.action == .add ? "New Category" : "Edit Category"
         } else {
             category.title
         }
     }
+   
+    var isValidToSave: Bool {
+        (category.action == .add && !category.title.isEmpty)
+        || (category.hasChanges() && !category.title.isEmpty)
+    }
     
     
     var body: some View {
         Group {
-            #if os(iOS)
-            TabView(selection: $selectedCategoryTab) {
-                Tab(value: "details") {
-                    categoryPagePhone
-                } label: {
-                    Label("Details", systemImage: "list.bullet")
+        #if os(iOS)
+            NavigationStack {
+                VStack {
+                    if category.action != .add {
+                        Picker("", selection: $selectedTab.animation()) {
+                            Text("Details")
+                                .tag(DetailsOrInsights.details)
+                            Text("Insights")
+                                .tag(DetailsOrInsights.insights)
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.segmented)
+                        .scenePadding(.horizontal)
+                    }
+                    
+                    switch selectedTab {
+                    case .details: categoryPagePhone
+                    case .insights: chartPage
+                    }
+                }
+                .navigationTitle(title)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    if selectedTab != .insights {
+                        ToolbarItem(placement: .topBarLeading) {
+                            GlassEffectContainer {
+                                deleteButton
+                                    .glassEffectID("delete", in: namespace)
+                            }
+                        }
+                    }
+                    
+                    if selectedTab == .insights {
+                        ToolbarSpacer(.fixed, placement: .topBarLeading)
+                        
+                        ToolbarItem(placement: .topBarLeading) {
+                            GlassEffectContainer {
+                                refreshButton
+                                    .glassEffectID("refresh", in: namespace)
+                            }
+                        }
+                    }
+                    
+                    ToolbarItem(placement: .topBarTrailing) {
+                        if isValidToSave {
+                            closeButton
+                                #if os(iOS)
+                                .tint(category.color == .primary ? Color.fromName(colorTheme) : category.color)
+                                .buttonStyle(.glassProminent)
+                                #endif
+                        } else {
+                            closeButton
+                        }
+                    }
+                    
+                    ToolbarItem(placement: .bottomBar) {
+                        EnteredByAndUpdatedByView(enteredBy: category.enteredBy, updatedBy: category.updatedBy, enteredDate: category.enteredDate, updatedDate: category.updatedDate)
+                    }
+                    .sharedBackgroundVisibility(.hidden)
                 }
                 
-                Tab(value: "analytics") {
-                    chartPage
-                } label: {
-                    Label("Insights", systemImage: "chart.xyaxis.line")
-                }
             }
-            //.tint(category.color)
             #else
             VStack {
                 Group {
-                    if selectedCategoryTab == "details" {
-                        categoryPageMac
-                    } else {
-                        chartPage
+                    switch selectedTab {
+                    case .details: categoryPagePhone
+                    case .insights: chartPage
                     }
                 }
                 .frame(maxHeight: .infinity)
@@ -110,16 +167,6 @@ struct CategoryView: View {
             print("TASK")
             await prepareCategoryView()
         }
-        .confirmationDialog("Delete \"\(category.title)\"?", isPresented: $showDeleteAlert, actions: {
-            Button("Yes", role: .destructive) { deleteCategory() }
-            Button("No", role: .cancel) { showDeleteAlert = false }
-        }, message: {
-            #if os(iOS)
-            Text("Delete \"\(category.title)\"?\nThis will not delete any associated transactions.")
-            #else
-            Text("This will not delete any associated transactions.")
-            #endif
-        })
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
         
         /// Just for formatting.
@@ -145,6 +192,28 @@ struct CategoryView: View {
     }
     
     
+    
+    #if os(iOS)
+//    @ToolbarContentBuilder
+//    func phoneToolbar() -> some ToolbarContent {
+//        
+//        
+//        ToolbarItemGroup(placement: .topBarTrailing) {
+//            //HStack(spacing: 20) {
+//                deleteButton
+//            //ToolbarSpacer(.fixed)
+//                Button {
+//                    closeSheet()
+//                } label: {
+//                    Image(systemName: "xmark")
+//                }
+//            //}
+//        }
+//    }
+    #endif
+
+    
+    
     var fakeMacTabBar: some View {
         HStack(spacing: 0) {
             Rectangle()
@@ -153,10 +222,10 @@ struct CategoryView: View {
                 .contentShape(Rectangle())
                 .overlay {
                     Label("Details", systemImage: "list.bullet")
-                        .foregroundStyle(selectedCategoryTab == "details" ? category.color : .gray)
+                        .foregroundStyle(selectedTab == .details ? category.color : .gray)
                 }
                 .onTapGesture {
-                    selectedCategoryTab = "details"
+                    selectedTab = .details
                 }
             Rectangle()
                 .fill(.clear)
@@ -164,10 +233,10 @@ struct CategoryView: View {
                 .contentShape(Rectangle())
                 .overlay {
                     Label("Insights", systemImage: "chart.xyaxis.line")
-                        .foregroundStyle(selectedCategoryTab == "analytics" ? category.color : .gray)
+                        .foregroundStyle(selectedTab == .insights ? category.color : .gray)
                 }
                 .onTapGesture {
-                    selectedCategoryTab = "analytics"
+                    selectedTab = .insights
                 }
         }
         //.fixedSize(horizontal: false, vertical: true)
@@ -180,17 +249,23 @@ struct CategoryView: View {
     // MARK: - Category Edit Page Views
     var categoryPageMac: some View {
         StandardContainer {
-            titleRowMac
-            budgetRowMac
+            titleRow
+            budgetRow
             StandardDivider()
             
-            typeRowMac
+            typeRow
             StandardDivider()
             
-            colorRowMac
+            Section {
+                isHiddenRow
+            } footer: {
+                Text("Hide this category from **my** menus. (This will not delete any data).")
+            }
+            
+            colorRow
             StandardDivider()
             
-            symbolRowMac
+            symbolRow
             StandardDivider()
             
         } header: {
@@ -200,50 +275,50 @@ struct CategoryView: View {
     
     
     var categoryPagePhone: some View {
-        StandardContainer(.list) {
-            Section {
-                titleRowPhone
-                budgetRowPhone
-                typeRowPhone
-            }
-                        
-            Section {
-                colorRowPhone
+        StandardContainerWithToolbar(.list) {
+            Section("Title & Budget") {
+                titleRow
+                budgetRow
             }
             
-            Section("Symbol") {
-                symbolRowPhone
+            
+            Section("Details") {
+                typeRow
+                symbolRow
             }
-        } header: {
-            SheetHeader(title: title, close: { closeSheet() }, view3: { deleteButton })
+                        
+//            Section {
+//                colorRow
+//            }
+            
+//            Section("Symbol & Color") {
+//                symbolRow
+//                //colorRow
+//            }
+            
+            Section {
+                isHiddenRow
+            } footer: {
+                Text("Hide this category from **my** menus. (This will not delete any data).")
+            }
+            
         }
+//        header: {
+//            SheetHeader(title: title, close: { closeSheet() }, view3: { deleteButton })
+//        }
     }
     
     
-    var titleRowMac: some View {
-        LabeledRow("Name", labelWidth) {
-            #if os(iOS)
-            StandardUITextField("Title", text: $category.title, onSubmit: {
-                focusedField = 1
-            }, toolbar: {
-                KeyboardToolbarView(focusedField: $focusedField)
-            })
-            .cbFocused(_focusedField, equals: 0)
-            .cbClearButtonMode(.whileEditing)
-            .cbSubmitLabel(.next)
-            #else
-            StandardTextField("Title", text: $category.title, focusedField: $focusedField, focusValue: 0)
-                .onSubmit { focusedField = 1 }
-            #endif
-        }
-    }
-    
-    var titleRowPhone: some View {
-        HStack {
-            Text("Name")
-                //.bold()
-            Spacer()
-            #if os(iOS)
+    var titleRow: some View {
+        #if os(iOS)
+        HStack(spacing: 0) {
+            Label {
+                Text("")
+            } icon: {
+                Image(systemName: "t.circle")
+                    .foregroundStyle(.gray)
+            }
+            
             UITextFieldWrapper(placeholder: "Title", text: $category.title, onSubmit: {
                 focusedField = 1
             }, toolbar: {
@@ -252,42 +327,32 @@ struct CategoryView: View {
             .uiTag(0)
             .uiClearButtonMode(.whileEditing)
             .uiStartCursorAtEnd(true)
-            .uiTextAlignment(.right)
+            .uiTextAlignment(.left)
             .uiReturnKeyType(.next)
-            .uiTextColor(.secondaryLabel)
-            #else
-            StandardTextField("Title", text: $category.title, focusedField: $focusedField, focusValue: 0)
-                .onSubmit { focusedField = 1 }
-                .foregroundStyle(.secondary)
-            #endif
+            //.uiFont(UIFont.systemFont(ofSize: 24.0))
+            //.uiTextColor(.secondaryLabel)
         }
         .focused($focusedField, equals: 0)
-    }
-    
-    
-    var budgetRowMac: some View {
-        LabeledRow("Budget", labelWidth) {
-            #if os(iOS)
-            StandardUITextField("Monthly Amount", text: $category.amountString ?? "", toolbar: {
-                KeyboardToolbarView(focusedField: $focusedField, accessoryImage3: "plus.forwardslash.minus", accessoryFunc3: {
-                    Helpers.plusMinus($category.amountString ?? "")
-                })
-            })
-            .cbFocused(_focusedField, equals: 1)
-            .cbClearButtonMode(.whileEditing)
-            .cbKeyboardType(.decimalPad)
-            #else
-            StandardTextField("Monthly Amount", text: $category.amountString ?? "", focusedField: $focusedField, focusValue: 1)
-            #endif
-        }
-    }
         
-    var budgetRowPhone: some View {
-        HStack {
-            Text("Budget")
-                //.bold()
-            Spacer()
-            #if os(iOS)
+        #else
+        LabeledRow("Name", labelWidth) {
+            StandardTextField("Title", text: $category.title, focusedField: $focusedField, focusValue: 0)
+                .onSubmit { focusedField = 1 }
+        }
+        #endif
+    }
+       
+    
+    var budgetRow: some View {
+        #if os(iOS)
+        HStack(spacing: 0) {
+            Label {
+                Text("")
+            } icon: {
+                Image(systemName: "chart.pie")
+                    .foregroundStyle(.gray)
+            }
+            
             UITextFieldWrapper(placeholder: "Monthly Amount", text: $category.amountString ?? "", toolbar: {
                 KeyboardToolbarView(focusedField: $focusedField, accessoryImage3: "plus.forwardslash.minus", accessoryFunc3: {
                     Helpers.plusMinus($category.amountString ?? "")
@@ -296,20 +361,60 @@ struct CategoryView: View {
             .uiTag(1)
             .uiClearButtonMode(.whileEditing)
             .uiStartCursorAtEnd(true)
-            .uiTextAlignment(.right)
-            .uiReturnKeyType(.next)
+            .uiTextAlignment(.left)
+            //.uiReturnKeyType(.next)
             .uiKeyboardType(.decimalPad)
-            .uiTextColor(.secondaryLabel)
-            #else
-            StandardTextField("Monthly Amount", text: $category.amountString ?? "", focusedField: $focusedField, focusValue: 1)
-                .foregroundStyle(.secondary)
-            #endif
+            //.uiTextColor(.secondaryLabel)
         }
         .focused($focusedField, equals: 1)
+        
+        #else
+        LabeledRow("Budget", labelWidth) {
+            StandardTextField("Monthly Amount", text: $category.amountString ?? "", focusedField: $focusedField, focusValue: 1)
+        }
+        #endif
     }
     
         
-    var typeRowMac: some View {
+    var typeRow: some View {
+        #if os(iOS)
+        
+        Picker(selection: $category.type) {
+            Text("Expense")
+                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .expense))
+            Text("Income")
+                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .income))
+            Text("Payment")
+                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .payment))
+            Text("Savings")
+                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .savings))
+        } label: {
+            Label {
+                Text("Category Type")
+            } icon: {
+                Image(systemName: "creditcard")
+                    .foregroundStyle(.gray)
+            }
+        }
+        .pickerStyle(.menu)
+        .tint(.secondary)
+
+        
+        
+//        Picker("Category Type", selection: $category.type) {
+//            Text("Expense")
+//                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .expense))
+//            Text("Income")
+//                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .income))
+//            Text("Payment")
+//                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .payment))
+//            Text("Savings")
+//                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .savings))
+//        }
+//        .pickerStyle(.menu)
+//        .tint(.secondary)
+        
+        #else
         LabeledRow("Type", labelWidth) {
             Picker("", selection: $category.type) {
                 Text("Expense")
@@ -324,55 +429,47 @@ struct CategoryView: View {
             .pickerStyle(.segmented)
             .labelsHidden()
         }
-    }
-    
-    var typeRowPhone: some View {
-        Picker("Category Type", selection: $category.type) {
-            Text("Expense")
-                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .expense))
-            Text("Income")
-                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .income))
-            Text("Payment")
-                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .payment))
-            Text("Savings")
-                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .savings))
-        }
-        .pickerStyle(.menu)
-        .tint(.secondary)
-    }
-    
-    
-    var colorRowMac: some View {
-        LabeledRow("Color", labelWidth) {
-            #if os(iOS)
-            StandardColorPicker(color: $category.color)
-            #else
-            HStack {
-                ColorPicker("", selection: $category.color, supportsOpacity: false)
-                    .labelsHidden()
-                Capsule()
-                    .fill(category.color)
-                    .frame(height: 30)
-                    .onTapGesture {
-                        AppState.shared.showToast(title: "Color Picker", subtitle: "Touch the circle to the left to change the color.", body: nil, symbol: category.emoji ?? "theatermask.and.paintbrush", symbolColor: category.color)
-                    }                        
-            }
-            #endif
-        }
-    }
+        #endif
         
-    var colorRowPhone: some View {
+    }
+    
+    // MARK: - Is Hidden
+    var isHiddenRow: some View {
+        #if os(iOS)
+        Toggle(isOn: $category.isHidden.animation()) {
+            Label {
+                Text("Mark as Hidden")
+                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+            } icon: {
+                Image(systemName: "eye.slash")
+                    .foregroundStyle(.gray)
+            }
+        }
+        .tint(category.color == .primary ? Color.fromName(colorTheme) : category.color)
+        
+        #else
+        LabeledRow("Hidden", labelWidth) {
+            Toggle(isOn: $category.isHidden.animation()) {
+                Text("Mark as Hidden")
+            }
+        } subContent: {
+            Text("Hide this category from view (This will not delete any data).")
+        }
+        #endif
+        
+    }
+    
+    
+    var colorRow: some View {
+        #if os(iOS)
         HStack {
             Text("Color")
-                //.bold()
             Spacer()
-            #if os(iOS)
             StandardColorPicker(color: $category.color)
-//                .overlay {
-//                    Text("Tap to change")
-//                        .foregroundStyle(.secondary)
-//                }
-            #else
+        }
+        
+        #else
+        LabeledRow("Color", labelWidth) {
             HStack {
                 ColorPicker("", selection: $category.color, supportsOpacity: false)
                     .labelsHidden()
@@ -383,74 +480,88 @@ struct CategoryView: View {
                         AppState.shared.showToast(title: "Color Picker", subtitle: "Touch the circle to the left to change the color.", body: nil, symbol: category.emoji ?? "theatermask.and.paintbrush", symbolColor: category.color)
                     }
             }
-            #endif
-                        
         }
+        #endif
     }
+      
     
-    
-    var symbolRowMac: some View {
+    var symbolRow: some View {
+        #if os(iOS)
+        Menu {
+            Button("Change Symbol") {
+                showSymbolPicker = true
+            }
+            Button("Change Color") {
+                showColorPicker = true
+            }
+        } label: {
+            HStack {
+                Label {
+                    Text("Symbol")
+                        .foregroundStyle(colorScheme == .dark ? .white : .black)
+                } icon: {
+                    Image(systemName: "tree")
+                        .foregroundStyle(.gray)
+                }
+                
+                //Text("Symbol")
+                    //.foregroundStyle(colorScheme == .dark ? .white : .black)
+                Spacer()
+                Image(systemName: category.emoji ?? "questionmark.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundStyle(category.color.gradient)
+                //Spacer()
+            }
+        }
+        .colorPickerSheet(isPresented: $showColorPicker, selection: $category.color, supportsAlpha: false)
+
+        
+        
+//        Button {
+//            showSymbolPicker = true
+//        } label: {
+//            HStack {
+//                Text("Symbol")
+//                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+//                Spacer()
+//                Image(systemName: category.emoji ?? "questionmark.circle.fill")
+//                    .font(.system(size: 24))
+//                    .foregroundStyle(category.color.gradient)
+//                //Spacer()
+//            }
+//        }
+        
+        #else
         LabeledRow("Symbol", labelWidth) {
             HStack {
                 Image(systemName: category.emoji ?? "questionmark.circle.fill")
                     .font(.system(size: 100))
                     .foregroundStyle(category.color.gradient)
                 Spacer()
-                
             }
             .contentShape(Rectangle())
             .onTapGesture {
                 showSymbolPicker = true
             }
         }
-        
-        
-//        LabeledRow("Symbol", labelWidth) {
-//            #if os(macOS)
-//            HStack {
-//                Button {
-//                    //                      Task {
-//                    //                          focusedField = .emoji
-//                    //                          try? await Task.sleep(for: .milliseconds(100))
-//                    //                          NSApp.orderFrontCharacterPalette($category.emoji)
-//                    //                      }
-//                    showSymbolPicker = true
-//                } label: {
-//                    Image(systemName: category.emoji ?? "questionmark.circle.fill")
-//                        .foregroundStyle(category.color)
-//                }
-//                .buttonStyle(.codyStandardWithHover)
-//                Spacer()
-//            }
-//            
-//            #else
-//            HStack {
-//                Image(systemName: category.emoji ?? "questionmark.circle.fill")
-//                    .font(.title2)
-//                    .foregroundStyle(category.color.gradient)
-//                
-//                Spacer()
-//            }
-//            .contentShape(Rectangle())
-//            .onTapGesture {
-//                showSymbolPicker = true
-//            }
-//            #endif
-//        }
+        #endif
     }
-        
-    var symbolRowPhone: some View {
+   
+    
+    var closeButton: some View {
         Button {
-            showSymbolPicker = true
+            closeSheet()
         } label: {
-            HStack {
-                Spacer()
-                Image(systemName: category.emoji ?? "questionmark.circle.fill")
-                    .font(.system(size: 100))
-                    .foregroundStyle(category.color.gradient)
-                Spacer()
-            }
+            Image(systemName: isValidToSave ? "checkmark" : "xmark")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
         }
+        #if os(iOS)
+        //.buttonStyle(.glassProminent)
+        #endif
+        //.tint(confirmButtonTint)
+        //.background(confirmButtonTint)
+        //.foregroundStyle(confirmButtonTint)
+        //}
     }
     
     
@@ -461,6 +572,17 @@ struct CategoryView: View {
             Image(systemName: "trash")
         }
         .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
+        .tint(.none)
+        .confirmationDialog("Delete \"\(category.title)\"?", isPresented: $showDeleteAlert, actions: {
+            Button("Delete", role: .destructive) { deleteCategory() }
+            //Button("No", role: .close) { showDeleteAlert = false }
+        }, message: {
+            #if os(iOS)
+            Text("Delete \"\(category.title)\"?\nThis will not delete any associated transactions.")
+            #else
+            Text("This will not delete any associated transactions.")
+            #endif
+        })
     }
     
     
@@ -468,37 +590,23 @@ struct CategoryView: View {
     
     // MARK: - Chart Page Views
     var chartPage: some View {
-        Group {
+        StandardContainerWithToolbar(.list) {
             if category.action == .add {
                 ContentUnavailableView("Insights are not available when adding a new category", systemImage: "square.stack.3d.up.slash.fill")
             } else {
-                StandardContainer {
-                    MonthlyAnalyticChart(
-                        data: data,
-                        displayData: displayData,
-                        config: MonthlyAnalyticChartConfig(enableShowExpenses: true, enableShowBudget: true, enableShowAverage: true, color: category.color, headerLingo: headerLingo),
-                        isLoadingHistory: $isLoadingHistory,
-                        chartScrolledToDate: $chartScrolledToDate,
-                        rawDataList: { rawDataList }
-                    )
-                } header: {
-                    SheetHeader(
-                        title: title,
-                        close: { closeSheet() },
-                        view1: { refreshButton },
-                        //view2: { ProgressView().opacity(isLoadingMoreHistory ? 1 : 0).tint(.none) },
-                        view3: { deleteButton }
-                    )
-                }
-                .listStyle(.plain)
-                #if os(iOS)
-                .listSectionSpacing(50)
-                #endif
-                .opacity(isLoadingHistory ? 0 : 1)
-                .overlay { ProgressView("Loading Insights…").tint(.none).opacity(isLoadingHistory ? 1 : 0) }
-                .focusable(false)
+                MonthlyAnalyticChart(
+                    data: data,
+                    displayData: displayData,
+                    config: MonthlyAnalyticChartConfig(enableShowExpenses: true, enableShowBudget: true, enableShowAverage: true, color: category.color, headerLingo: headerLingo),
+                    isLoadingHistory: $isLoadingHistory,
+                    chartScrolledToDate: $chartScrolledToDate,
+                    rawDataList: { rawDataList }
+                )
             }
         }
+        .opacity(isLoadingHistory ? 0 : 1)
+        .overlay { ProgressView("Loading Insights…").tint(.none).opacity(isLoadingHistory ? 1 : 0) }
+        .focusable(false)
     }
     
     
@@ -514,48 +622,55 @@ struct CategoryView: View {
         } label: {
             Image(systemName: "arrow.triangle.2.circlepath")
         }
+        .tint(.none)
+        .symbolEffect(.rotate, options: SymbolEffectOptions.repeat(.continuous).speed(3), isActive: isLoadingHistory)
     }
     
     
     var rawDataList: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Data (\(String(fetchYearStart)) - \(String(AppState.shared.todayYear)))")
-                .foregroundStyle(.gray)
-                .font(.subheadline)
-                //.padding(.leading, 6)
-            Divider()
-            
-            DisclosureGroup(isExpanded: $showAllChartData) {
-                VStack(spacing: 0) {
-                    Divider()
-                        .padding(.leading, 25)
-                    
-                    LazyVStack {
-                        ForEach(displayData.sorted(by: { $0.date > $1.date })) { data in
-                            RawDataLineItem(category: category, data: data)
-                                .padding(.leading, 25)
-                                .onScrollVisibilityChange {
-                                    if $0 && data.id == displayData.sorted(by: { $0.date > $1.date }).last?.id {
-                                        fetchMoreHistory()
-                                    }
-                                }
+        Section {
+            NavigationLink {
+                List(displayData.sorted(by: { $0.date > $1.date })) { data in
+                    RawDataLineItem(category: category, data: data)
+                        .onScrollVisibilityChange {
+                            if $0 && data.id == displayData.sorted(by: { $0.date > $1.date }).last?.id {
+                                fetchMoreHistory()
+                            }
                         }
+                }
+                .navigationTitle("\(category.title) Data")
+                .navigationSubtitle("\(String(fetchYearStart)) - \(String(AppState.shared.todayYear))")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        refreshButton
                     }
                 }
             } label: {
                 Text("Show All")
-                    .onTapGesture {
-                        withAnimation {
-                            showAllChartData.toggle()
-                        }
-                    }
             }
-            
-            //.foregroundStyle(category.color)
-            .tint(category.color)
-            //.padding(.vertical, 8)
-            .padding(.bottom, 10)
-            //.rowBackground()
+
+//            DisclosureGroup(isExpanded: $showAllChartData) {
+//                LazyVStack {
+//                    ForEach(displayData.sorted(by: { $0.date > $1.date })) { data in
+//                        RawDataLineItem(category: category, data: data)
+//                            .padding(.leading, 25)
+//                            .onScrollVisibilityChange {
+//                                if $0 && data.id == displayData.sorted(by: { $0.date > $1.date }).last?.id {
+//                                    fetchMoreHistory()
+//                                }
+//                            }
+//                    }
+//                }
+//            } label: {
+//                Text("Show All")
+//                    .onTapGesture {
+//                        withAnimation {
+//                            showAllChartData.toggle()
+//                        }
+//                    }
+//            }
+            .tint(Color.fromName(colorTheme))
             .onChange(of: calModel.showMonth) { oldValue, newValue in
                 if newValue == false && oldValue == true {
                     Task {
@@ -568,11 +683,16 @@ struct CategoryView: View {
                     await fetchHistory(setChartAsNew: false)
                 }
             }
+        } header: {
+            Text("Data By Month")
         }
+
     }    
     
     
     struct RawDataLineItem: View {
+        @Environment(\.colorScheme) var colorScheme
+
         #if os(macOS)
         @Environment(\.openWindow) private var openWindow
         @Environment(\.dismissWindow) private var dismissWindow
@@ -585,19 +705,19 @@ struct CategoryView: View {
         @State private var backgroundColor: Color = .clear
         
         var body: some View {
-            VStack(spacing: 0) {
+            Button {
+                openMonthlySheet()
+            } label: {
                 HStack {
                     Text("\(data.date, format: .dateTime.month(.wide)) \(String(data.year))")
                     Spacer()
                     Text("\(data.expensesString)")
                 }
-                .padding(.vertical, 6)
-                Divider()
             }
-            .contentShape(Rectangle())
+            .tint(.none)
+            .foregroundStyle(colorScheme == .dark ? .white : .black)
             .background(backgroundColor)
             .onHover { backgroundColor = $0 ? .gray.opacity(0.2) : .clear }
-            .onTapGesture { openMonthlySheet() }
         }
         
         
@@ -610,6 +730,7 @@ struct CategoryView: View {
             
             #if os(iOS)
             if AppState.shared.isIpad {
+                /// Block the navigation stack from trying to change to the calendar section on iPad.
                 calModel.isShowingFullScreenCoverOnIpad = true
             }
             
@@ -659,12 +780,10 @@ struct CategoryView: View {
             focusedField = 0
         }
         #endif
-        
+       
         if category.action == .add {
-            selectedCategoryTab = "details"
-        }
-        
-        if category.action != .add {
+            selectedTab = .details
+        } else {
             await fetchHistory(setChartAsNew: true)
         }
     }

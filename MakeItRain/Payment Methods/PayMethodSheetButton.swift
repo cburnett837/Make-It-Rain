@@ -10,6 +10,7 @@ import SwiftUI
 struct PayMethodSheetButton: View {
     @State private var showPayMethodSheet = false
     @State private var payMethodMenuColor: Color = Color(.tertiarySystemFill)
+    
     @Binding var payMethod: CBPaymentMethod?
     var trans: CBTransaction? = nil
     var saveOnChange: Bool = false
@@ -39,8 +40,13 @@ struct PayMethodSheetButton: View {
 
 
 struct PayMethodSheetButton2: View {
+    @Environment(\.colorScheme) var colorScheme
+    
     @State private var showPayMethodSheet = false
     @State private var payMethodMenuColor: Color = Color(.tertiarySystemFill)
+        
+    var text: String
+    var image: String? = nil
     @Binding var payMethod: CBPaymentMethod?
     var trans: CBTransaction? = nil
     var saveOnChange: Bool = false
@@ -51,14 +57,27 @@ struct PayMethodSheetButton2: View {
             showPayMethodSheet = true
         } label: {
             HStack {
+                if let image = image {
+                    Label {
+                        Text(text)
+                            .foregroundStyle(colorScheme == .dark ? .white : .black)
+                    } icon: {
+                        Image(systemName: image)
+                            .foregroundStyle(payMethod == nil ? .gray : payMethod!.color)
+                            //.frame(width: symbolWidth)
+                    }
+                } else {
+                    Text(text)
+                        .foregroundStyle(colorScheme == .dark ? .white : .black)
+                }
+                                
                 Spacer()
+                
                 HStack(spacing: 4) {
                     Text(payMethod?.title ?? "Select Account")
                     Image(systemName: "chevron.up.chevron.down")
                         .font(.caption)
                         .fontWeight(.semibold)
-                        //.bold()
-                        //.scaleEffect(0.6)
                 }
                 .tint(.none)
                 #if os(iOS)

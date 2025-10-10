@@ -857,7 +857,7 @@ struct UITextFieldWrapper<Toolbar: View>: UIViewRepresentable {
     private var returnKeyType: UIReturnKeyType = .default
     private var isSecure: Bool = false
     private var clearsOnBeginEditing: Bool = false
-    private var clearButtonMode: UITextField.ViewMode?
+    private var clearButtonMode: UITextField.ViewMode? = .whileEditing
     private var isUserInteractionEnabled: Bool = true
     private var tag: Int?
     private var maxLength: Int?
@@ -893,6 +893,7 @@ struct UITextFieldWrapper<Toolbar: View>: UIViewRepresentable {
         if toolbar() is EmptyView { } else {
             let toolbarController = UIHostingController(rootView: toolbar())
             toolbarController.view.frame = .init(origin: .zero, size: toolbarController.view.intrinsicContentSize)
+            toolbarController.view.backgroundColor = .clear
             textField.inputAccessoryView = toolbarController.view
         }
         

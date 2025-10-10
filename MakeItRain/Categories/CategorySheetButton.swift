@@ -64,10 +64,9 @@ struct CategorySheetButton2: View {
     
     var title: String {
         if let category {
-            return category.isNil ? "Select Category" : category.title
-        } else {
-            return "Select Category"
+            return category.isNil ? "Select" : category.title
         }
+        return "Select"
     }
     
     var body: some View {
@@ -81,8 +80,6 @@ struct CategorySheetButton2: View {
                     Image(systemName: "chevron.up.chevron.down")
                         .font(.caption)
                         .fontWeight(.semibold)
-                        //.bold()
-                        //.scaleEffect(0.6)
                 }
                 .tint(.none)
                 #if os(iOS)
@@ -101,6 +98,38 @@ struct CategorySheetButton2: View {
                 .frame(minWidth: 300, minHeight: 500)
                 .presentationSizing(.fitted)
             #endif
+        }
+    }
+}
+
+
+
+struct CategorySheetButton3: View {
+    @State private var showCategorySheet = false
+    @State private var categoryMenuColor: Color = Color(.tertiarySystemFill)
+    @Binding var category: CBCategory?
+    
+    var body: some View {
+        HStack {
+            Label {
+                Text("Category")
+            } icon: {
+                if let cat = category {
+                    if cat.isNil {
+                        Image(systemName: "questionmark.circle")
+                            .foregroundStyle(.gray)
+                    } else {
+                        Image(systemName: cat.emoji ?? "questionmark.circle")
+                            .foregroundStyle(cat.color)
+                    }
+                } else {
+                    Image(systemName: category?.emoji ?? "questionmark.circle")
+                        .foregroundStyle(category?.color ?? .gray)
+                }
+            }
+            
+            Spacer()
+            CategorySheetButton2(category: $category)
         }
     }
 }

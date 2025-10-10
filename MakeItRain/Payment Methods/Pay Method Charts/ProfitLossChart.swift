@@ -8,23 +8,145 @@
 import SwiftUI
 import Charts
 
-
 struct ProfitLossChartWidget: View {
+    @Local(\.useWholeNumbers) var useWholeNumbers
+    @AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false
+
+    @Environment(\.colorScheme) var colorScheme
+
     @Bindable var vm: PayMethodViewModel
     @Bindable var payMethod: CBPaymentMethod
-    @State private var showOptions = false
+    
+    @State private var showChartSheet = false
+    
+    @State private var rawSelectedDate: Date?
+    @State private var persistedDate: Date?
+    var selectedDate: Date? {
+        if let raw = rawSelectedDate {
+            let breakdowns = vm.payMethods.first?.breakdowns
+            if vm.viewByQuarter {
+                return breakdowns?.first { $0.date.year == raw.year && $0.date.startOfQuarter == raw.startOfQuarter }?.date
+            } else {
+                return breakdowns?.first { raw.matchesMonth(of: $0.date) }?.date
+            }
+        } else {
+            return nil
+        }
+    }
         
     var body: some View {
-        VStack(alignment: .leading) {
-            WidgetLabelButton(title: "Profit/Loss") {
-                showOptions.toggle()
-            }
+        Section {
             
-            ProfitLossChart(vm: vm, payMethod: payMethod, showOptions: $showOptions, detailStyle: .overlay)
-                .padding()
-                .widgetShape()
+            NavigationLink {
+                detailsSheet
+                    .onDisappear {
+                        rawSelectedDate = nil
+                        persistedDate = nil
+                    }
+            } label: {
+                ProfitLossChart(vm: vm, payMethod: payMethod, rawSelectedDate: $rawSelectedDate, persistedDate: persistedDate, allowSelection: false, showChartSheet: $showChartSheet)
+            }
+            .navigationLinkIndicatorVisibility(.hidden)
+            
+//            ProfitLossChart(vm: vm, payMethod: payMethod, rawSelectedDate: $rawSelectedDate, persistedDate: persistedDate, allowSelection: false, showChartSheet: $showChartSheet)
+//                .sheet(isPresented: $showChartSheet, onDismiss: {
+//                    rawSelectedDate = nil
+//                    persistedDate = nil
+//                }) {
+//                    detailsSheet
+//                }
+        } header: {
+            Text("Profit/Loss")
         }
-        .padding(.bottom, 30)
+        .onChange(of: selectedDate) { oldValue, newValue in
+            if newValue != nil {
+                self.persistedDate = newValue
+            }
+        }
+    }
+    
+    
+    var detailsSheet: some View {
+        //NavigationStack {
+            StandardContainerWithToolbar(.list) {
+                Section("Details \(persistedDate == nil ? "" : vm.overViewTitle(for: persistedDate))") {
+                    selectedDataView
+                }
+                                
+                PaymentMethodChartDetailsSectionContainer(vm: vm, payMethod: payMethod) {
+                    ProfitLossChart(vm: vm, payMethod: payMethod, rawSelectedDate: $rawSelectedDate, persistedDate: persistedDate, allowSelection: true, showChartSheet: $showChartSheet)
+                }
+                                                
+                Section {
+                    ChartOptionsSheet(vm: vm, payMethod: payMethod)
+                }
+            }
+            .navigationTitle("Profit/Loss")
+            .navigationSubtitle(payMethod.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) { PaymentMethodChartStyleMenu(vm: vm) }
+                //ToolbarItem(placement: .topBarTrailing) { closeButton }
+            }
+        //}
+    }
+    
+    
+    var closeButton: some View {
+        Button {
+            showChartSheet = false
+        } label: {
+            Image(systemName: "xmark")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        }
+    }
+    
+    
+    @ViewBuilder
+    var selectedDataView: some View {
+        if let persistedDate = persistedDate {
+            ChartSelectedDataContainer(
+                vm: vm,
+                payMethod: payMethod,
+                columnCount: (payMethod.isCreditOrLoan || payMethod.isUnifiedCredit) ? 5 : 4,
+                showOverviewDataPerMethodOnUnifiedChart: showOverviewDataPerMethodOnUnifiedChart
+            ) {
+                Text("Account")
+                Text("Begin")
+                Text("End")
+                Text("PL $")
+                Text("PL %")
+            } rows: {
+                ForEach(vm.breakdownPerMethod(on: persistedDate)) { breakdown in
+                    GridRow(alignment: .top) {
+                        HStack(spacing: 5) {
+                            CircleDot(color: breakdown.color, width: 5)
+                            Text(breakdown.title)
+                        }
+                        
+                        Text(breakdown.startingAmounts.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                        Text(breakdown.monthEnd.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                        
+                        Text(breakdown.profitLoss.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                            .foregroundStyle(breakdown.profitLoss < 0 ? . red : .green)
+                        
+                        Text("\(breakdown.profitLossPercentage.decimals(1))%")
+                            .foregroundStyle(breakdown.profitLossPercentage < 0 ? . red : .green)
+                    }
+                }
+            } summary: {
+                let breakdown = vm.breakdownForMethod(method: vm.mainPayMethod, on: persistedDate)
+                Text(breakdown.startingAmounts.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                Text(breakdown.monthEnd.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                Text(breakdown.profitLoss.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                    .foregroundStyle(breakdown.profitLoss < 0 ? . red : .green)
+                Text("\(breakdown.profitLossPercentage.decimals(1))%")
+                    .foregroundStyle(breakdown.profitLossPercentage < 0 ? . red : .green)
+            }
+        } else {
+            Text("Drag across the chart to see details")
+                .foregroundStyle(.gray)
+        }
     }
 }
 
@@ -40,31 +162,14 @@ struct ProfitLossChart: View {
 
     @Bindable var vm: PayMethodViewModel
     @Bindable var payMethod: CBPaymentMethod
-    @Binding var showOptions: Bool
-    var detailStyle: DetailStyle
-    
-    @State private var chartWidth: CGFloat = 0
-    @State private var showDetailsSheet = false
-    
-    @State private var rawSelectedDate: Date?
-    var selectedDate: Date? {
-        if let raw = rawSelectedDate {
-            let breakdowns = vm.payMethods.first?.breakdowns
-            if vm.viewByQuarter {
-                return breakdowns?.first {
-                    $0.date.year == raw.year && $0.date.startOfQuarter == raw.startOfQuarter
-                }?.date
-            } else {
-                return breakdowns?.first { raw.matchesMonth(of: $0.date) }?.date
-            }
-        } else {
-            return nil
-        }
-    }
+    @Binding var rawSelectedDate: Date?
+    var persistedDate: Date?
+    var allowSelection: Bool
+    @Binding var showChartSheet: Bool
     
     var body: some View {
         VStack(spacing: 0) {
-            if payMethod.isUnified {
+            if payMethod.isUnified && !allowSelection {
                 if metrics == .summary {
                     ChartLegendView(items: [
                         (id: UUID(), title: "Profit", color: Color.green),
@@ -79,8 +184,8 @@ struct ProfitLossChart: View {
                 /// WARNING! This cannot be a computed property.
                 let positionForNewColor: Double? = vm.getGradientPosition(for: style == .amount ? .amount : .percentage, flipAt: 0)
                 
-                if let selectedDate {
-                    vm.selectionRectangle(for: selectedDate, content: selectedDataView)
+                if let persistedDate {
+                    vm.selectionRectangle(for: persistedDate, color: Color.fromName(colorTheme))
                 }
                      
                 if metrics == .summary {
@@ -98,17 +203,18 @@ struct ProfitLossChart: View {
             .frame(minHeight: 150)
             .chartYAxis { vm.yAxis(symbol: style == .amount ? "$" : "%") }
             .chartXAxis { vm.xAxis() }
-            //.chartXVisibleDomain(length: vm.visibleChartAreaDomain)
-            .chartXScale(domain: vm.chartXScale)
-            .chartXSelection(value: $rawSelectedDate)
-            .maxChartWidthObserver()
-            .onPreferenceChange(MaxChartSizePreferenceKey.self) { chartWidth = max(chartWidth, $0) }
+            .if(allowSelection) {
+                $0
+                .chartXScale(domain: vm.chartXScale)
+                .chartXSelection(value: $rawSelectedDate)
+            }
         }
-        //.gesture(vm.moveYearGesture)
-        .sensoryFeedback(.selection, trigger: selectedDate) { $0 != nil && $1 != nil }
-        .sheet(isPresented: $showOptions) {
-            ChartOptionsSheet(vm: vm, payMethod: payMethod, showOptions: $showOptions)
-        }
+        .sensoryFeedback(.selection, trigger: persistedDate) { $0 != nil && $1 != nil }
+//        .if(!allowSelection) {
+//            $0.onTapGesture {
+//                showChartSheet = true
+//            }
+//        }
     }
     
     @ChartContentBuilder
@@ -169,54 +275,6 @@ struct ProfitLossChart: View {
         .foregroundStyle(meth.color)
         .interpolationMethod(.catmullRom)
     }
-    
-    @ViewBuilder
-    var selectedDataView: some View {
-        if let selectedDate = selectedDate {
-            ChartSelectedDataContainer(vm: vm, payMethod: payMethod, selectedDate: selectedDate, chartWidth: chartWidth, showOverviewDataPerMethodOnUnifiedChart: showOverviewDataPerMethodOnUnifiedChart) {
-                if showOverviewDataPerMethodOnUnifiedChart { Text("Method") }
-                Text("Begin")
-                Text("End")
-                Text("PL $")
-                Text("PL %")
-            } rows: {
-                if showOverviewDataPerMethodOnUnifiedChart {
-                    ForEach(vm.breakdownPerMethod(on: selectedDate)) { breakdown in
-                        GridRow(alignment: .top) {
-                            HStack(spacing: 0) {
-                                CircleDot(color: breakdown.color)
-                                Text(breakdown.title)
-                            }
-                            
-                            Text(breakdown.startingAmounts.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                            Text(breakdown.monthEnd.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                            
-                            Text(breakdown.profitLoss.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                                .foregroundStyle(breakdown.profitLoss < 0 ? . red : .green)
-                            
-                            Text("\(breakdown.profitLossPercentage.decimals(1))%")
-                                .foregroundStyle(breakdown.profitLossPercentage < 0 ? . red : .green)
-                                                        
-                        }
-                    }
-                } else {
-                    EmptyView()
-                }
-            } summary: {
-                let breakdown = vm.breakdownForMethod(method: vm.mainPayMethod, on: selectedDate)
-                
-                Text(breakdown.startingAmounts.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                Text(breakdown.monthEnd.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                
-                Text(breakdown.profitLoss.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                    .foregroundStyle(breakdown.profitLoss < 0 ? . red : .green)
-                
-                Text("\(breakdown.profitLossPercentage.decimals(1))%")
-                    .foregroundStyle(breakdown.profitLossPercentage < 0 ? . red : .green)
-                                
-            }
-        }
-    }
 }
 
 
@@ -228,38 +286,16 @@ fileprivate struct ChartOptionsSheet: View {
     
     @Bindable var vm: PayMethodViewModel
     @Bindable var payMethod: CBPaymentMethod
-    @Binding var showOptions: Bool
     
     let styleDesc: LocalizedStringKey = "View the difference between the start of the month and the end of the month as either a dollar amount, or percentage."
     let metricDesc: LocalizedStringKey = "View a summary of profit/loss or split by each payment method."
     
     
     var body: some View {
-        LittleBottomSheetContainer {
-            
-            //let thing = vm.relevantBreakdowns()
-            
-//            ForEach(vm.relevantBreakdowns()) { thing in
-//                Text("\(thing.payMethodID)-\(thing.profitLossString)-\(thing.profitLossPercentage)")
-//            }
-            
-//            Text("Calculations are made using the difference between the balance at the start of the month and the end of the month.")
-//                .multilineTextAlignment(.center)
-//                .font(.caption2)
-//                .frame(maxWidth: .infinity, alignment: .leading)
-//                .foregroundStyle(.secondary)
-//            
-//            Divider()
-            
-            ChartOptionMenu(description: styleDesc, title: "Profit Loss Style", menu: profitLossStyleMenu)
-                .padding(.bottom, 6)
-            
-            if payMethod.isUnified {
-                ChartOptionMenu(description: metricDesc, title: "Metric Style", menu: profitLossMetricsMenu)
-                    .padding(.bottom, 6)
-            }
-        } header: {
-            SheetHeader(title: "Profit/Loss Details", close: { showOptions = false })
+        ChartOptionMenu(description: styleDesc, title: "Profit Loss Style", menu: profitLossStyleMenu)
+        
+        if payMethod.isUnified {
+            ChartOptionMenu(description: metricDesc, title: "Metric Style", menu: profitLossMetricsMenu)
         }
     }
         

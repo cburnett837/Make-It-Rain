@@ -18,6 +18,7 @@ enum RefType {
     case repeatingTransactionType
     case categoryTypes
     case accountTypes
+    case paymentMethodUserOptions
 }
 
 enum XrefEnum {
@@ -58,7 +59,10 @@ enum XrefEnum {
     case investment
     case loan
     
-    
+    /// Payment Method Options
+    case isHidden
+    case defaultForEditing
+    case defaultForViewing
 }
 
 struct XrefItem: Identifiable, Equatable, Hashable {
@@ -138,15 +142,21 @@ struct XrefModel {
     ]
     
     static let accountTypes: Array<XrefItem> = [
-        XrefItem(id: 30, refType: "category_type", description: "Unified Checking", enumID: .unifiedChecking),
-        XrefItem(id: 31, refType: "category_type", description: "Unified Credit", enumID: .unifiedCredit),
-        XrefItem(id: 32, refType: "category_type", description: "Checking", enumID: .checking),
-        XrefItem(id: 33, refType: "category_type", description: "Credit", enumID: .credit),
-        XrefItem(id: 34, refType: "category_type", description: "Cash", enumID: .cash),
-        XrefItem(id: 35, refType: "category_type", description: "Savings", enumID: .savings),
-        XrefItem(id: 36, refType: "category_type", description: "401K", enumID: .k401),
-        XrefItem(id: 37, refType: "category_type", description: "Investment", enumID: .investment),
-        XrefItem(id: 38, refType: "category_type", description: "Loan", enumID: .loan)
+        XrefItem(id: 30, refType: "account_type", description: "Unified Checking", enumID: .unifiedChecking),
+        XrefItem(id: 31, refType: "account_type", description: "Unified Credit", enumID: .unifiedCredit),
+        XrefItem(id: 32, refType: "account_type", description: "Checking", enumID: .checking),
+        XrefItem(id: 33, refType: "account_type", description: "Credit", enumID: .credit),
+        XrefItem(id: 34, refType: "account_type", description: "Cash", enumID: .cash),
+        XrefItem(id: 35, refType: "account_type", description: "Savings", enumID: .savings),
+        XrefItem(id: 36, refType: "account_type", description: "401K", enumID: .k401),
+        XrefItem(id: 37, refType: "account_type", description: "Investment", enumID: .investment),
+        XrefItem(id: 38, refType: "account_type", description: "Loan", enumID: .loan)
+    ]
+    
+    static let paymentMethodUserOptions: Array<XrefItem> = [
+        XrefItem(id: 39, refType: "payment_method_user_option", description: "Is Hidden", enumID: .isHidden),
+        XrefItem(id: 40, refType: "payment_method_user_option", description: "Default For Editing", enumID: .defaultForEditing),
+        XrefItem(id: 41, refType: "payment_method_user_option", description: "Default For Viewing", enumID: .defaultForViewing)
     ]
     
     
@@ -181,6 +191,9 @@ struct XrefModel {
             
         case .accountTypes:
             return accountTypes
+            
+        case .paymentMethodUserOptions:
+            return paymentMethodUserOptions
         }
     }
     

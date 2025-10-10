@@ -293,7 +293,7 @@ class PayMethodViewModel {
         if payMethod.isUnified {
             let accountType = payMethod.accountType
             if accountType == .unifiedCredit {
-                for each in payModel.paymentMethods.filter({ $0.accountType == .credit }) {
+                for each in payModel.paymentMethods.filter({ $0.accountType == .credit || $0.accountType == .loan }) {
                     ids.append(each.id)
                 }
             } else {
@@ -308,7 +308,7 @@ class PayMethodViewModel {
         
         let model = AnalysisRequestModel(recordIDs: ids, fetchYearStart: fetchYearStart, fetchYearEnd: fetchYearEnd)
         
-        if let payMethods = await payModel.fetchStartingAmountsForDateRange2(model) {
+        if let payMethods = await payModel.fetchAnalytics(model) {
             
             var thePayMethods: [CBPaymentMethod] = []
             /// If a unified view, summarize all the data.
@@ -867,38 +867,60 @@ class PayMethodViewModel {
         }
     }
     
-    func overViewTitle(for date: Date) -> String {
-        if viewByQuarter {
-            date.quarterString(includeYear: true)
+    func overViewTitle(for date: Date?) -> String {
+        if let date = date {
+            if viewByQuarter {
+                date.quarterString(includeYear: true)
+            } else {
+                date.string(to: .monthNameYear)
+            }
         } else {
-            date.string(to: .monthNameYear)
+            "Select Date"
         }
+        
     }
     
     #if os(iOS)
     @ChartContentBuilder
-    func selectionRectangle<Content: View>(for date: Date, color: Color = Color(.tertiarySystemBackground), content: Content) -> some ChartContent {
-//        RectangleMark(
-//            xStart: .value("Start Date", viewByQuarter ? date.startOfQuarter : date, unit: .month),
-//            xEnd: .value("End Date", viewByQuarter ? date.endOfQuarter : date.endDateOfMonth, unit: .day)
-//        )
+    func selectionRectangle(for date: Date, color: Color = Color(.tertiarySystemBackground)) -> some ChartContent {
+        RuleMark(x: .value("Start Date", viewByQuarter ? date.startOfQuarter : date, unit: .month))        
+            .foregroundStyle(color.opacity(0.5))
+            .zIndex(-1)
+    }
+    #else
+    @ChartContentBuilder
+    func selectionRectangle(for date: Date, color: Color = Color(.secondarySystemFill)) -> some ChartContent {
+        RuleMark(x: .value("Start Date", viewByQuarter ? date.startOfQuarter : date, unit: .month))        
+            .foregroundStyle(color)
+            .zIndex(-1)
+    }
+    #endif
+        
+        
+    #if os(iOS)
+    @ChartContentBuilder
+    func selectionRectangleOG<Content: View>(for date: Date, color: Color = Color(.tertiarySystemBackground), content: Content) -> some ChartContent {
+    //        RectangleMark(
+    //            xStart: .value("Start Date", viewByQuarter ? date.startOfQuarter : date, unit: .month),
+    //            xEnd: .value("End Date", viewByQuarter ? date.endOfQuarter : date.endDateOfMonth, unit: .day)
+    //        )
         
         RuleMark(x: .value("Start Date", viewByQuarter ? date.startOfQuarter : date, unit: .month))
         
         .foregroundStyle(color)
         .zIndex(-1)
-        .offset(yStart: -20)
+        //.offset(yStart: -20)
         .annotation(position: .top, spacing: 0, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
             content
         }
     }
     #else
     @ChartContentBuilder
-    func selectionRectangle<Content: View>(for date: Date, color: Color = Color(.secondarySystemFill), content: Content) -> some ChartContent {
-//        RectangleMark(
-//            xStart: .value("Start Date", viewByQuarter ? date.startOfQuarter : date, unit: .month),
-//            xEnd: .value("End Date", viewByQuarter ? date.endOfQuarter : date.endDateOfMonth, unit: .day)
-//        )
+    func selectionRectangleOG<Content: View>(for date: Date, color: Color = Color(.secondarySystemFill), content: Content) -> some ChartContent {
+    //        RectangleMark(
+    //            xStart: .value("Start Date", viewByQuarter ? date.startOfQuarter : date, unit: .month),
+    //            xEnd: .value("End Date", viewByQuarter ? date.endOfQuarter : date.endDateOfMonth, unit: .day)
+    //        )
         
         RuleMark(x: .value("Start Date", viewByQuarter ? date.startOfQuarter : date, unit: .month))
         

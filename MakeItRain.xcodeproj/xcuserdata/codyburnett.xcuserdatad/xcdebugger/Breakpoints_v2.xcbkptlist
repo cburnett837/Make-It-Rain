@@ -7,17 +7,17 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "D8371990-C3F0-4495-BBD7-DDED32AADB14"
+            uuid = "9FC90AE3-CF0F-4BFC-A46E-ECC5AE87CFEA"
             shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "MakeItRain/Calendar/iOS/CalendarViewPhone.swift"
+            filePath = "MakeItRain/CalendarSheets/CategoryAnalysisSheet.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "121"
-            endingLineNumber = "121"
-            landmarkName = "body"
-            landmarkType = "24">
+            startingLineNumber = "764"
+            endingLineNumber = "764"
+            landmarkName = "prepareData()"
+            landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

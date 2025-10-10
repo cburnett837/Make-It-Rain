@@ -71,6 +71,9 @@ struct StandardMiniMap: View {
             }
         }
         
+        /// Fix for iOS 26 not being able to touch the map directly.
+        .overlay { Color.gray.opacity(0.01) }
+        
         .task {
             /// Create a map item for each CBLocation.
             for loc in locations {

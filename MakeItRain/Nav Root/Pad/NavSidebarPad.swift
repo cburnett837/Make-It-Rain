@@ -74,7 +74,7 @@ struct NavSidebarPad: View {
                             NavLinkPad(destination: .repeatingTransactions, title: "Reoccuring Transactions", image: "repeat", linkWidth: linkWidth, linkHeight: linkHeight)
                                 .listRowSeparator(.hidden)
                             
-                            NavLinkPad(destination: .keywords, title: "Keywords", image: "textformat.abc.dottedunderline", linkWidth: linkWidth, linkHeight: linkHeight)
+                            NavLinkPad(destination: .keywords, title: "Rules", image: "textformat.abc.dottedunderline", linkWidth: linkWidth, linkHeight: linkHeight)
                                 .listRowSeparator(.hidden)
                         }
                                                 
@@ -83,12 +83,14 @@ struct NavSidebarPad: View {
                                 .listRowSeparator(.hidden)
                         }
                                                                         
-                        if AppState.shared.user?.id == 1 {
-                            Section("") {
+                        Section("") {
+                            if AppState.shared.user?.id == 1 {
                                 NavLinkPad(destination: .debug, title: "Debug", image: "ladybug", linkWidth: linkWidth, linkHeight: linkHeight)
                                     .listRowSeparator(.hidden)
                                     .badge(funcModel.loadTimes.count)
                             }
+                            
+                            NavLinkPad(destination: .settings, title: "Settings", image: "gear", linkWidth: linkWidth, linkHeight: linkHeight)
                         }
                     }
                 }

@@ -11,6 +11,7 @@ import SwiftUI
 
 #if os(iOS)
 struct PlaidTable: View {
+    @Environment(\.colorScheme) var colorScheme
     @Environment(PlaidModel.self) private var plaidModel
     //@State private var fetchBanks = false
         
@@ -19,6 +20,8 @@ struct PlaidTable: View {
     @State private var bankEditID: CBPlaidBank.ID?
     @State private var sortOrder = [KeyPathComparator(\CBPlaidBank.title)]
     @State private var labelWidth: CGFloat = 20.0
+    
+    @State private var showInfoSheet = false
     
     var filteredBanks: [CBPlaidBank] {
         plaidModel.banks
@@ -77,6 +80,9 @@ struct PlaidTable: View {
                 plaidModel.saveBank(id: oldValue!)
             }
         }
+        .sheet(isPresented: $showInfoSheet) {
+            PlaidSyncInfoSheet()
+        }
     }
     
     
@@ -85,49 +91,19 @@ struct PlaidTable: View {
     @ToolbarContentBuilder
     func phoneToolbar() -> some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
-            if AppState.shared.isIphone {
-                HStack {
-//                    Button {
-//                        dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
-//                    } label: {
-//                        HStack(spacing: 4) {
-//                            Image(systemName: "chevron.left")
-//                            Text("Back")
-//                        }
-//                    }
-                    //ToolbarLongPollButton()
-                }
+            if AppState.shared.user?.id == 1 {
+                infoButton
+            }
+        }
                 
-            } else {
-                HStack(spacing: 20) {
-                    PlaidLinkView(plaidModel: plaidModel, linkMode: .newBank)
-//                    Button {
-//                        plaidBankEditID = UUID().uuidString
-//                    } label: {
-//                        Image(systemName: "plus")
-//                    }
-                    //.disabled(keyModel.isThinking)
-                    ToolbarRefreshButton()
-                    ToolbarLongPollButton()
-                }
-            }
+        ToolbarItem(placement: .topBarTrailing) { ToolbarLongPollButton() }
+        ToolbarItem(placement: .topBarTrailing) { ToolbarRefreshButton() }
+        ToolbarSpacer(.fixed, placement: .topBarTrailing)
+        ToolbarItem(placement: .topBarTrailing) {
+            PlaidLinkView(plaidModel: plaidModel, linkMode: .newBank)
+            .tint(.none)
         }
-        
-        if AppState.shared.isIphone {
-            ToolbarItem(placement: .topBarTrailing) {
-                HStack(spacing: 20) {
-                    ToolbarLongPollButton()
-                    ToolbarRefreshButton()
-                    PlaidLinkView(plaidModel: plaidModel, linkMode: .newBank)
-//                    Button {
-//                        plaidBankEditID = UUID().uuidString
-//                    } label: {
-//                        Image(systemName: "plus")
-//                    }
-                    //.disabled(keyModel.isThinking)
-                }
-            }
-        }
+    
     }
     
     var phoneList: some View {
@@ -159,6 +135,19 @@ struct PlaidTable: View {
         }
         .listStyle(.plain)
     }
-                    
+    
+    
+    
+    
+    var infoButton: some View {
+        Button {
+            showInfoSheet = true
+        } label: {
+            Image(systemName: "info")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        }
+    }
+    
+    
 }
 #endif

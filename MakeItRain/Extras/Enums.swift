@@ -642,6 +642,13 @@ enum PlaidLinkMode: String {
 }
 
 
+enum DetailsOrInsights: String {
+    case details = "details"
+    case insights = "insights"
+}
+
+
+
 
 //MARK: Core Data Stuff
 

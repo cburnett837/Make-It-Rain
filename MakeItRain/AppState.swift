@@ -101,6 +101,12 @@ class AppState {
         }
     }
     
+    
+    func getUserBy(id: Int) -> CBUser? {
+        return AppState.shared.accountUsers.filter {$0.id == id}.first
+    }
+    
+    
     func hasBadConnection() async -> Bool {
         print("-- \(#function)")
         
@@ -206,6 +212,19 @@ class AppState {
     var todayDay = Calendar.current.component(.day, from: Date())
     var todayMonth = Calendar.current.component(.month, from: Date())
     var todayYear = Calendar.current.component(.year, from: Date())
+    
+//    func isToday(date: Date?) -> Bool {
+//        if let date {
+//            return
+//                date.day == AppState.shared.todayDay
+//                && date.month == AppState.shared.todayMonth
+//                && date.year == AppState.shared.todayYear
+//        } else {
+//            return false
+//        }
+//        
+//    }
+    
 
     /// Called via `currentDateTimer`. The onReceive() modifier that calls this is in ``CalendarViewPhone``.
     func setNow() -> Bool {

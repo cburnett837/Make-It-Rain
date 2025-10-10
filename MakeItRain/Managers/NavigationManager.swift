@@ -69,7 +69,7 @@ enum NavDestination: String, Codable, Hashable, Identifiable {
         case .repeatingTransactions:    return "Reoccuring Transactions"
         case .paymentMethods:           return "Accounts"
         case .categories:               return "Categories"
-        case .keywords:                 return "Keywords"
+        case .keywords:                 return "Rules"
         case .search:                   return "Search"
         case .analytics:                return "Analytics"
         case .events:                   return "Events"

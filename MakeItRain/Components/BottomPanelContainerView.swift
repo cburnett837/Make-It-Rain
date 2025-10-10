@@ -8,11 +8,16 @@
 import SwiftUI
 
 struct BottomPanelContainerView<Content: View>: View {
-    @Binding var height: CGFloat
+    //@Binding var height: CGFloat
     var content: Content
     
-    init (_ height: Binding<CGFloat>, @ViewBuilder content: () -> Content) {
-        self._height = height
+//    init (_ height: Binding<CGFloat>, @ViewBuilder content: () -> Content) {
+//        self._height = height
+//        self.content = content()
+//    }
+    
+    init (@ViewBuilder content: () -> Content) {
+        //self._height = height
         self.content = content()
     }
     
@@ -24,28 +29,36 @@ struct BottomPanelContainerView<Content: View>: View {
         .if(!AppState.shared.isIpad) {
             $0.background {
                 //Color.darkGray.ignoresSafeArea(edges: .bottom)
+//                ConcentricRectangle()
+//                    .fill(Color(.secondarySystemBackground))
+//                    .padding(8)
+//                    .ignoresSafeArea(edges: .bottom)
+                
                 Color(.secondarySystemBackground)
                     .clipShape(
                         .rect(
-                            topLeadingRadius: 15,
+                            topLeadingRadius: 30,
                             bottomLeadingRadius: 0,
                             bottomTrailingRadius: 0,
-                            topTrailingRadius: 15
+                            topTrailingRadius: 30
                         )
                     )
                     .ignoresSafeArea(edges: .bottom)
             }
         }
-        .frame(height: AppState.shared.isLandscape ? AppState.shared.isIpad ? 300 : 150 : AppState.shared.isIpad ? 500 : height)
+        //.frame(height: AppState.shared.isLandscape ? AppState.shared.isIpad ? 300 : 150 : AppState.shared.isIpad ? 500 : height)
+        
+        //.frame(height: 300)
         #endif
         .frame(maxHeight: .infinity, alignment: .bottom)
+        //.padding(.horizontal, 5)
         //.transition(.move(edge: .bottom))
         //.offset(y: height)
         //.transition(.opacity)
         //.transition(.opacity.combined(with: .move(edge: .bottom)))
-        .onDisappear {
-            height = 300
-        }
+//        .onDisappear {
+//            height = 300
+//        }
         
     }
 }

@@ -1,0 +1,314 @@
+//
+//  TransactionSplitSheet.swift
+//  MakeItRain
+//
+//  Created by Cody Burnett on 10/1/25.
+//
+
+
+import SwiftUI
+import PhotosUI
+import SafariServices
+import TipKit
+import MapKit
+
+struct TransactionSplitSheet: View {
+    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
+    @Environment(\.colorScheme) var colorScheme
+    @Environment(\.dismiss) var dismiss
+    @Environment(CalendarModel.self) private var calModel
+    @Local(\.useWholeNumbers) var useWholeNumbers
+    
+    @Bindable var trans: CBTransaction
+    @Binding var showSplitSheet: Bool
+    
+    @State private var additionalTrans: Array<CBTransaction> = []
+    @FocusState private var focusedField: Int?
+
+    @State private var originalAmount = 0.0
+    
+    
+    var body: some View {
+        NavigationStack {
+            StandardContainerWithToolbar(.list) {
+                HStack{
+                    Text("Original Total")
+                    Spacer()
+                    Text(originalAmount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                }
+                     
+                TransactionLine(title: "Original Transaction", trans: trans, additionalTrans: $additionalTrans)
+                                                
+                ForEach(additionalTrans) { newTrans in
+                    TransactionLine(trans: newTrans, additionalTrans: $additionalTrans, showRemoveButton: true)
+                }
+                
+                //splitButton
+            }
+            #if os(iOS)
+            .navigationTitle("Split Transaction")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) { addTransButton }
+                ToolbarItem(placement: .topBarTrailing) { closeButton }
+                ToolbarItem(placement: .bottomBar) { splitButton }
+            }
+            #endif
+        }
+//        StandardContainer {
+//            VStack {
+//                VStack {
+//                    HStack {
+//                        Text("Original Total \(originalAmount.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+//                        Spacer()
+//                    }
+//                    HStack {
+//                        Text("Original Transaction")
+//                        Spacer()
+//                    }
+//                    StandardTitleTextField(symbolWidth: 26, focusedField: _focusedField, focusID: 0, showSymbol: true, parentType: XrefEnum.transaction, showTitleSuggestions: .constant(false), obj: trans)
+//                    
+//                    StandardAmountTextField(symbolWidth: 26, focusedField: _focusedField, focusID: 1, showSymbol: true, negativeOnFocusIfEmpty: trans.payMethod?.accountType != .credit, obj: trans)
+//                        .disabled(true)
+//                    
+//                    categoryMenu
+//                    
+//                    Divider()
+//                        .padding(.bottom, 12)
+//                }
+//                
+//                
+//                ForEach(additionalTrans) { newTrans in
+//                    TransactionLine(trans: newTrans, additionalTrans: $additionalTrans)
+//                    Divider()
+//                        .padding(.bottom, 12)
+//                }
+//                
+//                splitButton
+//            }
+//        } header: {
+//            SheetHeader(title: "Split Transaction") {
+//                trans.amountString = String(originalAmount)
+//                showSplitSheet = false
+//            } view1: {
+//                addTransButton
+//            }
+//        }
+        .task {
+            originalAmount = trans.amount
+            addTrans()
+        }
+        .onChange(of: additionalTrans.map { $0.amount }) { oldValue, newValue in
+            let newAmount = newValue.reduce(0, +)
+            trans.amountString = String(originalAmount - newAmount)
+        }
+    }
+    
+    
+    func addTrans() {
+        let newTrans = CBTransaction(uuid: UUID().uuidString)
+        newTrans.title = trans.title
+        newTrans.date = trans.date
+        newTrans.payMethod = trans.payMethod
+        withAnimation {
+            additionalTrans.append(newTrans)
+        }
+    }
+    
+    
+    var addTransButton: some View {
+        Button(action: addTrans) {
+            Image(systemName: "plus")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        }
+    }
+    
+    
+    var splitButton: some View {
+        Button {
+            showSplitSheet = false
+                            
+            if let day = calModel.sMonth.days.filter({ $0.dateComponents?.day == trans.dateComponents?.day }).first {
+                for each in additionalTrans {
+                    day.upsert(each)
+                }
+            }
+            
+            Task {
+                await calModel.editMultiple(trans: additionalTrans)
+            }
+        } label: {
+            Text("Perform Split")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        }
+        .buttonStyle(.glassProminent)
+        .disabled(additionalTrans.isEmpty || additionalTrans.map { $0.amount }.contains(0))
+        //.buttonStyle(.borderedProminent)
+    }
+    
+    
+    var closeButton: some View {
+        Button {
+            trans.amountString = String(originalAmount)
+            showSplitSheet = false
+        } label: {
+            Image(systemName: "checkmark")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        }
+        //#if os(iOS)
+        //.buttonStyle(.glassProminent)
+        //#endif
+    }
+    
+    
+            
+//    var categoryMenu: some View {
+//        HStack {
+//            Group {
+//                if lineItemIndicator == .dot {
+//                    Image(systemName: "books.vertical.fill")
+//                        .foregroundStyle((trans.category?.color ?? .gray).gradient)
+//                    
+//                } else if let emoji = trans.category?.emoji {
+//                    Image(systemName: emoji)
+//                        .foregroundStyle((trans.category?.color ?? .gray).gradient)
+//                    //Text(emoji)
+//                } else {
+//                    Image(systemName: "books.vertical.fill")
+//                        .foregroundStyle(.gray.gradient)
+//                }
+//            }
+//            .frame(width: 26)
+//            
+//            CategorySheetButton(category: $trans.category)
+//        }
+//    }
+    
+    
+    private struct TransactionLine: View {
+        var title: String?
+        @Bindable var trans: CBTransaction
+        @Binding var additionalTrans: [CBTransaction]
+        var showRemoveButton = false
+        
+        @FocusState private var focusedField: Int?
+        
+        var body: some View {
+            Section {
+                TitleRow(trans: trans)
+                AmountRow(trans: trans)
+                CategorySheetButton3(category: $trans.category)
+            } header: {
+                if let title = title {
+                    Text(title)
+                }
+            } footer: {
+                if showRemoveButton {
+                    Button("Remove") {
+                        withAnimation { additionalTrans.removeAll(where: { $0.id == trans.id }) }
+                    }
+                    #if os(iOS)
+                    .buttonStyle(.glassProminent)
+                    #endif
+                }
+            }
+        }
+    }
+    
+    
+    
+    
+    struct TitleRow: View {
+        @Bindable var trans: CBTransaction
+        @FocusState private var focusedField: Int?
+        
+        var body: some View {
+            HStack(spacing: 0) {
+                Label {
+                    Text("")
+                } icon: {
+                    Image(systemName: "t.circle")
+                        .foregroundStyle(.gray)
+                }
+
+                //Spacer()
+                Group {
+                    #if os(iOS)
+                    UITextFieldWrapper(placeholder: "Title", text: $trans.title, onSubmit: {
+                        focusedField = 1
+                    }, toolbar: {
+                        KeyboardToolbarView(focusedField: $focusedField)
+                    })
+                    .uiTag(0)
+                    .uiClearButtonMode(.whileEditing)
+                    .uiStartCursorAtEnd(true)
+                    .uiTextAlignment(.left)
+                    .uiReturnKeyType(.next)
+                    .uiTextColor(UIColor(trans.color))
+
+                    //.uiTextColor(.secondaryLabel)
+                    //.uiFont(UIFont.systemFont(ofSize: 24.0))
+                    #else
+                    StandardTextField("Title", text: $trans.title, focusedField: $focusedField, focusValue: 0)
+                        .onSubmit { focusedField = 1 }
+                    #endif
+                }
+                .focused($focusedField, equals: 0)
+            }
+        }
+    }
+    
+    
+    struct AmountRow: View {
+        @Local(\.useWholeNumbers) var useWholeNumbers
+
+        @Bindable var trans: CBTransaction
+        @FocusState private var focusedField: Int?
+        
+        var body: some View {
+            HStack(spacing: 0) {
+                Label {
+                    Text("")
+                } icon: {
+                    Image(systemName: "dollarsign.circle")
+                        .foregroundStyle(.gray)
+                }
+                
+                Group {
+                    #if os(iOS)
+                    UITextFieldWrapper(placeholder: "Amount", text: $trans.amountString, toolbar: {
+                        KeyboardToolbarView(
+                            focusedField: $focusedField,
+                            accessoryImage3: "plus.forwardslash.minus",
+                            accessoryFunc3: {
+                                Helpers.plusMinus($trans.amountString)
+                            })
+                    })
+                    .uiTag(1)
+                    .uiClearButtonMode(.whileEditing)
+                    .uiStartCursorAtEnd(true)
+                    .uiTextAlignment(.left)
+                    .uiKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
+                    //.uiTextColor(.secondaryLabel)
+                    //.uiFont(UIFont.systemFont(ofSize: 24.0))
+                    #else
+                    StandardTextField("Amount", text: $trans.amountString, focusedField: $focusedField, focusValue: 1)
+                    #endif
+                }
+                .focused($focusedField, equals: 1)
+                .formatCurrencyLiveAndOnUnFocus(
+                    focusValue: 1,
+                    focusedField: focusedField,
+                    amountString: trans.amountString,
+                    amountStringBinding: $trans.amountString,
+                    amount: trans.amount
+                )
+                .onChange(of: focusedField) { oldValue, newValue in
+                    if newValue == 1 && trans.amountString.isEmpty {
+                        trans.amountString = "-"
+                    }
+                }
+            }
+        }
+    }
+}

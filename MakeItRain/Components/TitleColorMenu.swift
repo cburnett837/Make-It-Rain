@@ -57,11 +57,12 @@ struct TitleColorMenu<Content: View>: View {
                         HStack { /// This can be a button or whatever you want
                             Text(color.description.capitalized)
                             Image(systemName: "circle.fill")
-                                #if os(iOS)
                                 .tint(color)
-                                #else
-                                .foregroundStyle(color, color, color)
-                                #endif
+//                                #if os(iOS)
+//                                .tint(color)
+//                                #else
+//                                .foregroundStyle(color, color, color)
+//                                #endif
                                 //.foregroundStyle(color, .primary, .secondary)
                           }
                     }
@@ -115,11 +116,12 @@ struct MultiTitleColorMenu<Content: View>: View {
                         HStack {
                             Text(color.description.capitalized)
                             Image(systemName: "circle.fill")
-                                #if os(iOS)
                                 .tint(color)
-                                #else
-                                .foregroundStyle(color, .primary, .secondary)
-                                #endif
+//                                #if os(iOS)
+//                                .tint(color)
+//                                #else
+//                                .foregroundStyle(color, .primary, .secondary)
+//                                #endif
                                 
                           }
                     }

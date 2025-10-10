@@ -9,36 +9,56 @@ import SwiftUI
 
 struct PlaidTransactionOverlay: View {
     @Local(\.colorTheme) var colorTheme
-    
+    @Environment(\.colorScheme) private var colorScheme
     #if os(macOS)
     @Environment(\.dismiss) private var dismiss
     #endif
+    @Environment(CalendarProps.self) private var calProps    
     @Environment(CalendarModel.self) private var calModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(PayMethodModel.self) private var payModel
     @Environment(PlaidModel.self) private var plaidModel
     
-    @Binding var bottomPanelContent: BottomPanelContent?
-    @Binding var bottomPanelHeight: CGFloat
-    @Binding var scrollContentMargins: CGFloat
+    //@Binding var bottomPanelContent: BottomPanelContent?
+    //@Binding var bottomPanelHeight: CGFloat
+    //@Binding var scrollContentMargins: CGFloat
     
     @State private var showClearBeforeDatePicker = false
     @State private var clearDate: Date = Date()
     
     @State private var rowNumber = 1
+    @State private var selectedMeth: CBPaymentMethod?
+    
+    @Binding var showInspector: Bool
     
     var plaidTransactions: [CBPlaidTransaction] {
-        plaidModel.trans.filter({ !$0.isAcknowledged })
+        plaidModel.trans
+            .filter({ !$0.isAcknowledged })
+            .filter({ selectedMeth == nil ? true : $0.payMethod == selectedMeth })
     }
     
     var body: some View {
-        StandardContainer(AppState.shared.isIpad ? .sidebarScrolling : .bottomPanel) {
-            content
-        } header: {
-            if AppState.shared.isIpad {
-                sidebarHeader
-            } else {
+        if AppState.shared.isIphone {
+            StandardContainer(AppState.shared.isIpad ? .sidebarScrolling : .bottomPanel) {
+                content
+            } header: {
                 sheetHeader
+            }
+        } else {
+            NavigationStack {
+                StandardContainerWithToolbar(.list) {
+                    content
+                }
+                .navigationTitle("Plaid Transactions")
+                #if os(iOS)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) { refreshButton }
+                    ToolbarSpacer(.fixed, placement: .topBarLeading)
+                    ToolbarItem(placement: .topBarLeading) { moreMenu }
+                    ToolbarItem(placement: .topBarTrailing) { closeButton }
+                }
+                #endif
             }
         }
     }
@@ -111,33 +131,28 @@ struct PlaidTransactionOverlay: View {
     }
     
     
-    var sheetHeader: some View {
+    @ViewBuilder var sheetHeader: some View {
+        @Bindable var calProps = calProps
         SheetHeader(
             title: "Plaid Transactions",
             close: {
                 #if os(iOS)
                 withAnimation {
-                    bottomPanelContent = nil
+                    calProps.bottomPanelContent = nil
                 }
                 #else
                 dismiss()
                 #endif
             },
             view1: {
-                Button {
-                    rowNumber = 1
-                    loadFromServer(removeAllBefore: true)
-                } label: {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .contentShape(Rectangle())
-                }
+                refreshButton
             },
             view2: { moreMenu }
         )
         //.background(Color.red)
-        #if os(iOS)
-        .bottomPanelAndScrollViewHeightAdjuster(bottomPanelHeight: $bottomPanelHeight, scrollContentMargins: $scrollContentMargins)
-        #endif
+//        #if os(iOS)
+//        .bottomPanelAndScrollViewHeightAdjuster(bottomPanelHeight: $calProps.bottomPanelHeight, scrollContentMargins: $calProps.scrollContentMargins)
+//        #endif
     }
     
     @ViewBuilder
@@ -146,45 +161,71 @@ struct PlaidTransactionOverlay: View {
             Button("Reject everything before date…") {
                 showClearBeforeDatePicker = true
             }
+            
+            Menu("Filter By Account") {
+                Picker("", selection: $selectedMeth) {
+                    let meths = plaidModel.trans
+                        .compactMap { $0.payMethod }
+                        .uniqued(on: \.id)
+                    
+                    Text("None")
+                        .strikethrough()
+                        .tag(nil as CBPaymentMethod?)
+                    
+                    ForEach(meths) { meth in
+                        Text(meth.title)
+                            .tag(meth)
+                    }
+                }
+                .labelsHidden()
+            }
+            
+            
         } label: {
             Image(systemName: "ellipsis")
                 .contentShape(Rectangle())
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
         }
     }
     
     
-    var sidebarHeader: some View {
-        SidebarHeader(
-            title: "Plaid Transactions",
-            close: {
-                rowNumber = 1
-                #if os(iOS)
-                withAnimation {
-                    bottomPanelContent = nil
-                }
-                #else
-                dismiss()
-                #endif
-            },
-            view1: {
-                Button {
-                    rowNumber = 1
-                    loadFromServer(removeAllBefore: true)
-                } label: {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .contentShape(Rectangle())
-                }
-            }
-        )
+    var refreshButton: some View {
+        Button {
+            rowNumber = 1
+            loadFromServer(removeAllBefore: true)
+        } label: {
+            Image(systemName: "arrow.triangle.2.circlepath")
+                .contentShape(Rectangle())
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        }
     }
-        
+    
+    
+    var closeButton: some View {
+        Button {
+            rowNumber = 1
+            #if os(iOS)
+                if AppState.shared.isIphone {
+                    withAnimation { calProps.bottomPanelContent = nil }
+                } else {
+                    showInspector = false
+                }
+            #else
+                dismiss()
+            #endif
+        } label: {
+            Image(systemName: "checkmark")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        }
+    }
+    
     
     var loadMoreButton: some View {
         Button {
             rowNumber += 50
             loadFromServer(removeAllBefore: false)
         } label: {
-            Text("Fetch 50 more")
+            Text("Fetch next 50")
                 .opacity(plaidModel.isFetchingMoreTransactions ? 0 : 1)
         }
         .disabled(plaidModel.isFetchingMoreTransactions)
@@ -198,7 +239,6 @@ struct PlaidTransactionOverlay: View {
     
     
     func loadFromServer(removeAllBefore: Bool) {
-        
         if removeAllBefore {
             plaidModel.trans.removeAll()
         }
@@ -276,8 +316,11 @@ struct PlaidTransactionOverlay: View {
                     .tint(.gray)
                 }
                 
-                Divider()
-                    .padding(.vertical, 2)
+                if AppState.shared.isIphone {
+                    Divider()
+                        .padding(.vertical, 2)
+                }
+                
             }
             .listRowInsets(EdgeInsets())
         }

@@ -78,21 +78,14 @@ struct BudgetBreakdownView: View {
                                 //.alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        //.frame(maxWidth: .infinity, alignment: .leading)
                         
                         Text(metric.budget.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                            //.frame(maxWidth: .infinity, alignment: .leading)
                             
-                        Text((metric.expenses == 0 ? 0 : metric.expenses * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                            //.frame(maxWidth: .infinity, alignment: .leading)
-                            
-                        
+                        Text((metric.expenses == 0 ? 0 : metric.expenses * -1 - metric.income).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                                                    
                         Text((metric.income).currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                            //.frame(maxWidth: .infinity, alignment: .leading)
-                            
-                        
+                                                    
                         let overUnder = metric.budget + (metric.expenses + metric.income)
-                        
                         Text(abs(overUnder).currencyWithDecimals(useWholeNumbers ? 0 : 2))
                             .foregroundStyle(overUnder < 0 ? .red : .green)
                             //.frame(maxWidth: .infinity, alignment: .leading)
@@ -101,7 +94,18 @@ struct BudgetBreakdownView: View {
                     .contentShape(Rectangle())
                     .onTapGesture {
                         if let objc = metric.budgetObject {
+                            //print("OnTap for \(objc.month)-\(objc.year)")
                             budgetEditID = objc.id
+                        } else {
+                            AppState.shared.showAlert("No budget currently exists for \(metric.category.title). Please create via the populate screen.")
+                            
+                            //#warning("Smonth will contains budgets that don't belong to it")
+                            //print("OnTap Budget does not exist for \(metric.category.title)")
+                            //print("budgets in Smonth \(calModel.sMonth.actualNum) \(calModel.sMonth.year) vvvv")
+                            //print(calModel.sMonth.budgets.map {"\(String(describing: $0.category?.id)) \($0.month) \($0.year)"})
+                            
+                            
+                            //createBudget(for: metric.category)
                         }
                     }
                 }
@@ -112,14 +116,14 @@ struct BudgetBreakdownView: View {
             }
         }
         /// NOTE: The sheet HAS to be attached to the grid.
-        /// If not, it will cause a "open and immediately dismiss" issues.
+        /// If not, it will cause an "open and immediately dismiss" issue.
         .onChange(of: budgetEditID) { oldValue, newValue in
             if let newValue {
                 editBudget = calModel.sMonth.budgets.filter { $0.id == newValue }.first!
             } else if newValue == nil && oldValue != nil {
                 let budget = calModel.sMonth.budgets.filter { $0.id == oldValue! }.first!
                 Task {
-                    if budget.hasChanges() {
+                    if budget.hasChanges() || budget.action == .add {
                         await calModel.submit(budget)
                     }
                 }
@@ -133,6 +137,32 @@ struct BudgetBreakdownView: View {
                 .presentationSizing(.page)
         }
     }
+    
+    
+//    func createBudget(for cat: CBCategory) {
+//        let budgetExists = !calModel.sMonth.budgets.filter { $0.category?.id == cat.id }.isEmpty
+//        if !budgetExists {
+//            print("-- \(#function) - creating budget")
+//            
+//            let budgetID = UUID().uuidString
+//            let budget = CBBudget(uuid: budgetID)
+//            budget.month = calModel.sMonth.actualNum
+//            budget.year = calModel.sMonth.year
+//            budget.amountString = cat.amountString ?? ""
+//            budget.category = cat
+//            
+//            //budgetsToServer.append(budget)
+//            calModel.sMonth.budgets.append(budget)
+//            
+//            budgetEditID = budgetID
+//        } else {
+//            print("Budget for \(cat.title) already exists")
+//            print("Smonth \(calModel.sMonth.actualNum) \(calModel.sMonth.year)")
+//            print(calModel.sMonth.budgets.map {"\(String(describing: $0.category?.id)) \($0.month) \($0.year)"})
+//        }
+//    
+//    }
+    
     
     
     var exportCsvButton: some View {

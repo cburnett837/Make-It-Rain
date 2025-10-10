@@ -7,14 +7,21 @@
 
 import SwiftUI
 
+enum CalendarInspectorContent {
+    case budgetTable, analysisSheet, transactionList, plaidTransactions, multiSelectOptions, smartTransactionsWithIssues
+}
+
 #if os(iOS)
 struct RootViewPad: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(CalendarProps.self) var calProps
     @Environment(CalendarModel.self) var calModel
     @Environment(PayMethodModel.self) var payModel
     @Environment(CategoryModel.self) var catModel
     @Environment(KeywordModel.self) var keyModel
     @Environment(RepeatingTransactionModel.self) var repModel
     @Environment(EventModel.self) var eventModel
+    @Environment(PlaidModel.self) var plaidModel
     
     //@FocusState private var focusedField: Int?
     //@FocusState private var searchFocus: Int?
@@ -24,6 +31,8 @@ struct RootViewPad: View {
         
     var body: some View {
         @Bindable var navManager = NavigationManager.shared
+        @Bindable var calProps = calProps
+        
         NavigationSplitView(columnVisibility: $navManager.columnVisibility) {
             NavSidebarPad(monthNavigationNamespace: monthNavigationNamespace)
         } detail: {
@@ -70,6 +79,74 @@ struct RootViewPad: View {
                 }
             }
         }
+        .inspector(isPresented: $calProps.showInspector) {
+            if let content = calProps.inspectorContent {
+                Group {
+                    switch content {
+                    case .budgetTable:
+                        CalendarDashboard()
+                        
+                    case .analysisSheet:
+                        AnalysisSheet(showAnalysisSheet: $calProps.showInspector)
+                            .onDisappear { calModel.isInMultiSelectMode = false }
+                        
+                    case .transactionList:
+                        TransactionListView(showTransactionListSheet: $calProps.showInspector)
+                        
+                    case .plaidTransactions:
+                        PlaidTransactionOverlay(showInspector: $calProps.showInspector)
+                        
+                    case .multiSelectOptions:
+                        MultiSelectTransactionOptionsSheet(showInspector: $calProps.showInspector)
+                        
+                    case .smartTransactionsWithIssues:
+                        SmartTransactionsWithIssuesOverlay(showInspector: $calProps.showInspector)
+                    }
+                }
+                .inspectorColumnWidth(min: 300, ideal: 450, max: 600)
+                .presentationBackground(.thinMaterial)
+                /// Clear multi select mode since you can navigate to the analytic inspector via the multi select inspector.
+                
+            } else {
+                /// Have a fallback view with options in case the inspector gets left open.
+                /// Inspector state is retained by the SwiftUI framework.
+                noInspectorContentView
+            }
+        }
+        /// Hide the inspector when leaving the calendar.
+        .onChange(of: navManager.selection) { old, new in
+            calProps.showInspector = false
+            calProps.inspectorContent = nil
+        }
+    }
+    
+    
+    var noInspectorContentView: some View {
+        NavigationStack {
+            StandardContainerWithToolbar(.list) {
+                Button("Insights") { calProps.inspectorContent = .analysisSheet }
+                Button("Transactions") { calProps.inspectorContent = .transactionList }
+                Button("Multi-select") {
+                    calModel.isInMultiSelectMode.toggle()
+                    calProps.inspectorContent = .multiSelectOptions
+                }
+            }
+            .navigationTitle("Inspector")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        calProps.showInspector = false
+                    } label: {
+                        Image(systemName: "checkmark")
+                            .foregroundStyle(colorScheme == .dark ? .white : .black)
+                    }
+                }
+            }
+            #endif
+        }
+        .inspectorColumnWidth(min: 200, ideal: 250, max: 300)
     }
 }
 

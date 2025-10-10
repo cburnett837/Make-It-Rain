@@ -31,6 +31,7 @@ struct ToolbarLongPollButton: View {
                     Image(systemName: "ipad.and.iphone.slash")
                         .foregroundStyle(Color.fromName(colorTheme) == .red ? .orange : .red)
                 }
+                .tint(.red)
             }
         }
     }

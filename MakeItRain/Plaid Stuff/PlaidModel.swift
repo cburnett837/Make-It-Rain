@@ -329,23 +329,34 @@ class PlaidModel {
         switch await result {
         case .success(let model):
             if let model {
-                for each in model {
+                if !model.isEmpty {
+                    var activeIds: Array<Int> = []
                     
-                    let index = trans.firstIndex(where: { $0.id == each.id })
-                    if let index {
-                        /// If the trans is already in the list, update it from the server.
-                        trans[index].setFromAnotherInstance(trans: each)
-                    } else {
-                        /// Add the trans  to the list (like when the trans was added from plaid).
-                        trans.append(each)
+                    for each in model {
+                        activeIds.append(each.id)
+                        let index = trans.firstIndex(where: { $0.id == each.id })
+                        if let index {
+                            /// If the trans is already in the list, update it from the server.
+                            trans[index].setFromAnotherInstance(trans: each)
+                        } else {
+                            /// Add the trans  to the list (like when the trans was added from plaid).
+                            trans.append(each)
+                        }
                     }
-                }
-                //self.trans = model
-                
+                    
+                    /// Delete from model.
+                    for tran in self.trans {
+                        if !activeIds.contains(tran.id) {
+                            trans.removeAll { $0.id == tran.id }
+                        }
+                    }
+                } else {
+                   trans.removeAll()
+               }
             }
             
             let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-            print("⏰It took \(currentElapsed) seconds to fetch the plaid transaction")
+            print("⏰It took \(currentElapsed) seconds to fetch the plaid transactions")
             
         case .failure (let error):
             switch error {
@@ -473,6 +484,91 @@ class PlaidModel {
             default:
                 LogManager.error(error.localizedDescription)
                 AppState.shared.showAlert("There was a problem trying to fetch plaid balances.")
+            }
+        }
+    }
+    
+    
+    
+    @MainActor
+    func forceSyncBalance(for bank: CBPlaidBank) async {
+        //print("-- \(#function)")
+        LogManager.log()
+        
+        let start = CFAbsoluteTimeGetCurrent()
+        
+        //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
+        //print("DONE FETCHING")
+        
+        let plaidModel = PlaidServerModel(bank: bank)
+                            
+        //let month = months.filter { $0.num == monthNum }.first!
+        let model = RequestModel(requestType: "plaid_force_sync_balances_for_bank", model: plaidModel)
+        typealias ResultResponse = Result<Array<CBPlaidBalance>?, AppError>
+        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+        
+        switch await result {
+        case .success(let model):
+            if let model {
+                for balance in model {
+                    let index = balances.firstIndex(where: { $0.internalAccountID == balance.internalAccountID })
+                    if let index {
+                        /// If the balance is already in the list, update it from the server.
+                        balances[index].setFromAnotherInstance(bal: balance)
+                    } else {
+                        /// Add the balance to the list (like when the balance was added on another device).
+                        balances.append(balance)
+                    }
+                }
+            }
+            
+            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
+            print("⏰It took \(currentElapsed) seconds to force sync plaid balances for bankID \(bank.id).")
+            
+        case .failure (let error):
+            switch error {
+            case .taskCancelled:
+                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
+                print("calModel forceSyncBalance Server Task Cancelled")
+            default:
+                LogManager.error(error.localizedDescription)
+                AppState.shared.showAlert("There was a problem trying to force sync plaid balances for bankID \(bank.id).")
+            }
+        }
+    }
+    
+    
+    
+    @MainActor
+    func forceSyncTransactions(for bank: CBPlaidBank) async {
+        //print("-- \(#function)")
+        LogManager.log()
+        
+        let start = CFAbsoluteTimeGetCurrent()
+        
+        //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
+        //print("DONE FETCHING")
+        
+        let plaidModel = PlaidServerModel(bank: bank)
+                            
+        //let month = months.filter { $0.num == monthNum }.first!
+        let model = RequestModel(requestType: "plaid_force_sync_transactions_for_bank", model: plaidModel)
+        typealias ResultResponse = Result<ResultCompleteModel?, AppError>
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        
+        switch await result {
+        case .success(let model):
+            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
+            print("⏰It took \(currentElapsed) seconds to force sync plaid transactions for bankID \(bank.id).")
+            
+        case .failure (let error):
+            switch error {
+            case .taskCancelled:
+                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
+                print("calModel forceSyncBalance Server Task Cancelled")
+            default:
+                LogManager.error(error.localizedDescription)
+                AppState.shared.showAlert("There was a problem trying to force sync plaid transactions for bankID \(bank.id).")
             }
         }
     }

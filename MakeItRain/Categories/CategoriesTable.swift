@@ -10,6 +10,7 @@ import Algorithms
 
 struct CategoriesTable: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
     
     @Local(\.useWholeNumbers) var useWholeNumbers
     @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
@@ -24,9 +25,10 @@ struct CategoriesTable: View {
     @State private var searchText = ""
     @State private var editCategory: CBCategory?
     @State private var categoryEditID: CBCategory.ID?
-    
-    #if os(macOS)
+
     @AppStorage("categoryTableColumnOrder") private var columnCustomization: TableColumnCustomization<CBCategory>
+    #if os(macOS)
+    
     @State private var showReorderList = false
     #endif
     
@@ -45,11 +47,16 @@ struct CategoriesTable: View {
         @Bindable var catModel = catModel
         
         Group {
-            if !catModel.categories.isEmpty {
+            if !catModel.categories.filter({ !$0.isNil }).isEmpty {
                 #if os(macOS)
                 macTable
                 #else
-                listForPhoneAndMacSort
+                if AppState.shared.isIphone {
+                    listForPhoneAndMacSort
+                } else {
+                    macTable
+                }
+                
                 #endif
             } else {
                 ContentUnavailableView("No Categories", systemImage: "books.vertical", description: Text("Click the plus button above to add a category."))
@@ -100,9 +107,7 @@ struct CategoriesTable: View {
             
         }) { cat in
             CategoryView(category: cat, catModel: catModel, calModel: calModel, keyModel: keyModel, editID: $categoryEditID)
-                #if os(iOS)
-                .presentationSizing(.page)
-                #else
+                #if os(macOS)
                 .frame(minWidth: 500, minHeight: 700)
                 .presentationSizing(.fitted)
                 #endif
@@ -175,6 +180,7 @@ struct CategoriesTable: View {
             Spacer()
         }
     }
+    #endif
     
     var macTable: some View {
         Table(filteredCategories, selection: $categoryEditID, sortOrder: $sortOrder, columnCustomization: $columnCustomization) {
@@ -195,6 +201,7 @@ struct CategoriesTable: View {
             
             TableColumn("Title", value: \.title) { cat in
                 Text(cat.title)
+                    .foregroundStyle(colorScheme == .dark ? .white : .black)
             }
             .customizationID("title")
             
@@ -214,55 +221,25 @@ struct CategoriesTable: View {
         }
         .clipped()
     }    
-    #endif
+    //#endif
     
     #if os(iOS)
     @ToolbarContentBuilder
     func phoneToolbar() -> some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
-            if AppState.shared.isIphone {
-                sortMenu
-//                HStack {
-//                    Button {
-//                        dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
-//                    } label: {
-//                        HStack(spacing: 4) {
-//                            Image(systemName: "chevron.left")
-//                            Text("Back")
-//                        }
-//                    }
-//                    ToolbarLongPollButton()
-//                }
-                
-            } else {
-                HStack(spacing: 20) {
-                    Button {
-                        categoryEditID = UUID().uuidString
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    //.disabled(catModel.isThinking)
-                    ToolbarRefreshButton()
-                    sortMenu
-                    ToolbarLongPollButton()
-                }
-            }
+            sortMenu
         }
-        
-        if AppState.shared.isIphone {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                HStack(spacing: 20) {
-                    //sortMenu
-                    ToolbarLongPollButton()
-                    ToolbarRefreshButton()
-                    Button {
-                        categoryEditID = UUID().uuidString
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    //.disabled(catModel.isThinking)
-                }
+                
+        ToolbarItem(placement: .topBarTrailing) { ToolbarLongPollButton() }
+        ToolbarItem(placement: .topBarTrailing) { ToolbarRefreshButton() }
+        ToolbarSpacer(.fixed, placement: .topBarTrailing)
+        ToolbarItem(placement: .topBarTrailing) {
+            Button {
+                categoryEditID = UUID().uuidString
+            } label: {
+                Image(systemName: "plus")
             }
+            .tint(.none)
         }
     }
     #endif
@@ -279,7 +256,10 @@ struct CategoriesTable: View {
         ForEach(filteredCategories) { cat in
             HStack(alignment: .center) {
                 VStack(alignment: .leading) {
-                    Text(cat.title)
+                    HStack {
+                        Text(cat.title)
+                        if cat.isHidden { Image(systemName: "eye.slash") }
+                    }
                     Text(cat.amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-")
                         .foregroundStyle(.gray)
                         .font(.caption)
@@ -345,7 +325,9 @@ struct CategoriesTable: View {
             }
         } label: {
             Image(systemName: "arrow.up.arrow.down")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
         }
+        
 
     }
     

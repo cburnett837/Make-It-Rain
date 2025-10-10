@@ -116,7 +116,7 @@ struct SettingsView: View {
         }
         #if os(iOS)
         .navigationTitle("Settings")
-        .navigationBarTitleDisplayMode(.inline)
+        //.navigationBarTitleDisplayMode(.inline)
         #endif
         //.navigationBarBackButtonHidden(true)
         .toolbar {
@@ -152,7 +152,6 @@ struct SettingsView: View {
         Group {
             Section("Your Details") {
                 HStack {
-                    
                     Label {
                         VStack(alignment: .leading) {
                             Text("\(AppState.shared.user?.name ?? "N/A")")
@@ -162,6 +161,7 @@ struct SettingsView: View {
                         }
                     } icon: {
                         Image(systemName: "person.crop.circle")
+                            .foregroundStyle(.gray)
                     }
                     Spacer()
                     
@@ -170,9 +170,9 @@ struct SettingsView: View {
                             showSettings = false
                             funcModel.logout()
                         }
-                        
                     }
                     .focusable(false)
+                    .buttonStyle(.borderedProminent)
                 }
                 
                 HStack {
@@ -180,6 +180,7 @@ struct SettingsView: View {
                         Text("Account #")
                     } icon: {
                         Image(systemName: "number.circle")
+                            .foregroundStyle(.gray)
                     }
                     
                     Spacer()
@@ -231,6 +232,7 @@ struct SettingsView: View {
                                     
                                 } icon: {
                                     Image(systemName: "person.crop.circle")
+                                        .foregroundStyle(.gray)
                                 }
                                 
                             }

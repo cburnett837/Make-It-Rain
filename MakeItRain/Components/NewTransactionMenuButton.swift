@@ -8,8 +8,10 @@
 import SwiftUI
 
 struct NewTransactionMenuButton: View {
+    @Local(\.colorTheme) var colorTheme
+    @Environment(\.colorScheme) var colorScheme
     @Environment(CalendarModel.self) private var calModel
-    
+        
     #if os(iOS)
     let touchAndHoldPlusButtonTip = TouchAndHoldPlusButtonTip()
     #endif
@@ -31,13 +33,19 @@ struct NewTransactionMenuButton: View {
             }
         } label: {
             Image(systemName: "plus")
+                /// This is needed to fix the liquid class bug.
+                .allowsHitTesting(false)
+                //.tint(.none)
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
         } primaryAction: {
+            print("Button clicked")
             transEditID = UUID().uuidString
         }
         #if os(iOS)
         .popoverTip(touchAndHoldPlusButtonTip)
         #endif
     }
+    
     
     var newTransactionButton: some View {
         Button {

@@ -39,7 +39,7 @@ struct LittleBottomSheetContainer<Content: View, Content2: View, Content3: View,
                         content
                     }
                     .padding(.horizontal, 12)
-                    .padding(.top, 12)
+                    .padding(.vertical, 12)
                 }
                 .scrollDismissesKeyboard(.immediately)
                                                     

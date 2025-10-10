@@ -98,7 +98,7 @@ class NetworkManager {
                 #else
                 let decodedData = try? JSONDecoder().decode(Array<U>?.self, from: data)
                 #endif
-                LogManager.log("data has been decoded", session: sesh)
+            LogManager.log("data has been decoded", session: sesh)
                 guard let decodedData else {
                     LogManager.log("something went wrong with the decoded data", session: sesh)
                     return .failure(.serverError(firstLine))

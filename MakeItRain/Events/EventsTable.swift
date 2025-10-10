@@ -255,72 +255,26 @@ struct EventsTable: View {
     @ToolbarContentBuilder
     func phoneToolbar() -> some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
-            if AppState.shared.isIphone {
-                HStack {
-//                    Button {
-//                        dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
-//                    } label: {
-//                        HStack(spacing: 4) {
-//                            Image(systemName: "chevron.left")
-//                            Text("Back")
-//                        }
-//                    }
-                    //ToolbarLongPollButton()
-                    
-                    if !eventModel.invitations.isEmpty {
-                        Button {
-                            showPendingInviteSheet = true
-                        } label: {
-                            Image(systemName: "envelope.badge")
-                                .foregroundStyle(.red)
-                        }
-                    }
-                }
-            } else {
-                HStack(spacing: 20) {
-                    if !eventModel.invitations.isEmpty {
-                        Button {
-                            showPendingInviteSheet = true
-                        } label: {
-                            Image(systemName: "envelope.badge")
-                                .foregroundStyle(.red)
-                        }
-                    }
-                                        
-                    Button {
-                        eventEditID = UUID().uuidString
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    //.disabled(eventModel.isThinking)
-                    
-                    ToolbarRefreshButton()
-                    //ToolbarLongPollButton()
+            if !eventModel.invitations.isEmpty {
+                Button {
+                    showPendingInviteSheet = true
+                } label: {
+                    Image(systemName: "envelope.badge")
+                        .foregroundStyle(.red)
                 }
             }
         }
         
-        if AppState.shared.isIphone {
-            ToolbarItem(placement: .topBarTrailing) {
-                HStack(spacing: 20) {
-//                    if !eventModel.invitations.isEmpty {
-//                        Button {
-//                            showPendingInviteSheet = true
-//                        } label: {
-//                            Image(systemName: "envelope.badge")
-//                                .foregroundStyle(.red)
-//                        }
-//                    }
-                    ToolbarLongPollButton()
-                    ToolbarRefreshButton()
-                    Button {
-                        eventEditID = UUID().uuidString
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    //.disabled(eventModel.isThinking)
-                }
+        ToolbarItem(placement: .topBarTrailing) { ToolbarLongPollButton() }
+        ToolbarItem(placement: .topBarTrailing) { ToolbarRefreshButton() }
+        ToolbarSpacer(.fixed, placement: .topBarTrailing)
+        ToolbarItem(placement: .topBarTrailing) {
+            Button {
+                eventEditID = UUID().uuidString
+            } label: {
+                Image(systemName: "plus")
             }
+            .tint(.none)
         }
     }
     

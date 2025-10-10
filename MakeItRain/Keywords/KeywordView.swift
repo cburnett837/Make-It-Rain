@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct KeywordView: View {
+    @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
     @Bindable var keyword: CBKeyword
     @Bindable var keyModel: KeywordModel
@@ -20,7 +21,12 @@ struct KeywordView: View {
     @State private var showDeleteAlert = false
     @State private var showCategorySheet = false
         
-    var title: String { keyword.action == .add ? "New Keyword" : "Edit Keyword" }
+    var title: String { keyword.action == .add ? "New Rule" : "Edit Rule" }
+            
+    var isValidToSave: Bool {
+        (keyword.action == .add && !keyword.keyword.isEmpty)
+        || (keyword.hasChanges() && !keyword.keyword.isEmpty)
+    }
     
     var deleteButton: some View {
         Button {
@@ -29,6 +35,30 @@ struct KeywordView: View {
             Image(systemName: "trash")
         }
         .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
+        .tint(.none)
+        .confirmationDialog("Delete \"\(keyword.keyword)\"?", isPresented: $showDeleteAlert, actions: {
+            Button("Yes", role: .destructive) {
+                Task {
+                    dismiss()
+                    await keyModel.delete(keyword, andSubmit: true)
+                }
+            }
+            
+            //Button("No", role: .cancel) { showDeleteAlert = false }
+        }, message: {
+            #if os(iOS)
+            Text("Delete \"\(keyword.keyword)\"?")
+            #endif
+        })
+    }
+    
+    var closeButton: some View {
+        Button {
+            editID = nil; dismiss()
+        } label: {
+            Image(systemName: isValidToSave ? "checkmark" : "xmark")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        }
     }
     
 //    var header: some View {
@@ -44,37 +74,41 @@ struct KeywordView: View {
     
     
     var body: some View {
-        StandardContainer(.list) {
-            titleSection
-            categorySection
-            
-        } header: {
-            SheetHeader(title: title, close: { editID = nil; dismiss() }, view3: { deleteButton })
+        NavigationStack {
+            StandardContainerWithToolbar(.list) {
+                titleSection
+                categorySection
+                
+            }
+            .navigationTitle(title)
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) { deleteButton }
+                ToolbarItem(placement: .topBarTrailing) {
+                    if isValidToSave {
+                        closeButton
+                            #if os(iOS)
+                            .buttonStyle(.glassProminent)
+                            #endif
+                    } else {
+                        closeButton
+                    }
+                }
+                
+                ToolbarItem(placement: .bottomBar) {
+                    EnteredByAndUpdatedByView(enteredBy: keyword.enteredBy, updatedBy: keyword.updatedBy, enteredDate: keyword.enteredDate, updatedDate: keyword.updatedDate)
+                }
+                .sharedBackgroundVisibility(.hidden)
+            }
+            #endif
         }
-        .frame(minWidth: 200)
+        
         .task {
             keyword.deepCopy(.create)
             keyModel.upsert(keyword)
             //focusedField = 0
         }
-        
-        .confirmationDialog("Delete \"\(keyword.keyword)\"?", isPresented: $showDeleteAlert, actions: {
-            Button("Yes", role: .destructive) {
-                Task {
-                    dismiss()
-                    await keyModel.delete(keyword, andSubmit: true)
-                }
-            }
-            
-            Button("No", role: .cancel) {
-                showDeleteAlert = false
-            }
-        }, message: {
-            #if os(iOS)
-            Text("Delete \"\(keyword.keyword)\"?")
-            #endif
-        })
-        
         .sheet(isPresented: $showCategorySheet) {
             CategorySheet(category: $keyword.category)
             #if os(macOS)
@@ -194,6 +228,8 @@ struct KeywordView: View {
             HStack {
                 Text("Category")
                 Spacer()
+//                Image(systemName: keyword.category?.emoji ?? "questionmark.circle")
+//                    .foregroundStyle(keyword.category?.color ?? .primary)
                 CategorySheetButton2(category: $keyword.category)
             }
         } header: {

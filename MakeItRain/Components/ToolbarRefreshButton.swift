@@ -35,6 +35,7 @@ struct ToolbarRefreshButton: View {
                 //.symbolEffect(.rotate, options: SymbolEffectOptions.repeat(.continuous), value: funcModel.isLoading)
             
         }
+        .tint(.none)
         //.disabled(calModel.refreshTask != nil)
         .help("Refresh all data from the server")
         .disabled(funcModel.isLoading)

@@ -59,6 +59,28 @@ struct WidgetLabelButton: View {
     }
 }
 
+
+struct WidgetLabelButton2: View {
+    var title: String
+    var action: () -> Void
+    
+    var body: some View {
+        Button {
+            action()
+        } label: {
+            Label {
+                Text(title)
+            } icon: {
+                Image(systemName: "info.circle")
+            }
+            .bold()
+        }
+        .foregroundColor(.gray)
+    }
+}
+
+
+
 struct WidgetLabelMenu: View {
     var title: String
     let sections: [WidgetLabelOptionSection]

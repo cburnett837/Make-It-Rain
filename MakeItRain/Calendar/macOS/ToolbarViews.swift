@@ -66,6 +66,10 @@ struct CalendarToolbarLeading: View {
                 ToolbarNowButton()
                     .disabled(calModel.sYear == AppState.shared.todayYear && calModel.sMonth.num == AppState.shared.todayMonth)
                 //}
+                
+                PlaygroundButton()
+                    .disabled(calModel.isPlayground)
+                
                 Divider()
                 
                 populateButton
@@ -321,16 +325,16 @@ struct CalendarToolbarLeading: View {
             }
                                                 
             /// Show a total limit field for credit or unified credit views.
-            if sMeth?.accountType == .credit || sMeth?.accountType == .unifiedCredit {
+            if sMeth?.accountType == .credit || sMeth?.accountType == .unifiedCredit || sMeth?.accountType == .loan {
                 Text("of")
                     .foregroundStyle(.gray)
                 
-                if sMeth?.accountType == .credit {
+                if sMeth?.accountType == .credit || sMeth?.accountType == .loan {
                     StaticAmountText(amount: sMeth?.limit, alertText: "Please edit the credit limit from the payment methods screen.")
                         .help("Current \(sMeth?.title ?? "?") credit limit")
                     
                 } else {
-                    let doubleAmount = payModel.paymentMethods.filter { $0.accountType == .credit }.map { $0.limit ?? 0.0 }.reduce(0.0, +)
+                    let doubleAmount = payModel.paymentMethods.filter { $0.accountType == .credit || $0.accountType == .loan }.map { $0.limit ?? 0.0 }.reduce(0.0, +)
                     StaticAmountText(amount: doubleAmount, alertText: "This credit limit is auto-calculated from your other credit accounts.")
                 }
             }

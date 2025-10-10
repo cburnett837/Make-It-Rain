@@ -27,7 +27,7 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
     }
     var amountString: String
     var amountTypeLingo: String {
-        if payMethod?.accountType == .credit {
+        if payMethod?.accountType == .credit || payMethod?.accountType == .loan {
             amountString.contains("-") ? "Payment" : "Expense"
         } else {
             amountString.contains("-") ? "Expense" : "Income"

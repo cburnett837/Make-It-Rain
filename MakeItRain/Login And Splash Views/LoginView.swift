@@ -110,12 +110,6 @@ struct LoginView: View {
                         .opacity(attemptingLogin ? 1 : 0)
                 }
                 Spacer()
-                
-                Button("cody") {
-                    email = "cburnett837@yahoo.com"
-                    password = "idkyet"
-                }
-                
             }
         }        
         .toolbar {
@@ -164,7 +158,23 @@ struct LoginView: View {
         attemptingLogin = false
         switch type {
         case .email:
-            AppState.shared.showAlert(config: AlertConfig(title: "Email cannot be blank", symbol: .init(name: "envelope", color: .orange)))
+            
+            //let buttonConfig = AlertConfig.ButtonConfig(text: "Fuck", role: .cancel) { AppState.shared.closeAlert() }
+//            let config = AlertConfig(
+//                title: "Accept \(trans.title)?",
+//                subtitle: trans.prettyDate ?? "N/A",
+//                symbol: .init(name: "checkmark.circle.badge.questionmark", color: .green),
+//                primaryButton: AlertConfig.AlertButton(config: buttonConfig)
+//            )
+            
+            
+            AppState.shared.showAlert(
+                config: AlertConfig(
+                    title: "Email cannot be blank",
+                    symbol: .init(name: "envelope", color: .orange),
+                    //primaryButton: AlertConfig.AlertButton(config: buttonConfig)
+                )
+            )
         case .password:
             AppState.shared.showAlert(config: AlertConfig(title: "Password cannot be blank", symbol: .init(name: "lock", color: .orange)))
         case .invalid:

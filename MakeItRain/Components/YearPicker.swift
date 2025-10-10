@@ -15,9 +15,18 @@ struct YearPicker: View {
     var body: some View {
         @Bindable var calModel = calModel
         Picker("", selection: $calModel.sYear) {
-            ForEach(years, id: \.self) {
-                Text(String($0))
+            Section {
+                Text("Playground")
+                    .tag(1900)
             }
+            
+            Section("Years") {
+                ForEach(years, id: \.self) {
+                    Text(String($0))
+                        .tag($0)
+                }
+            }
+            
         }
         .labelsHidden()
         .pickerStyle(.menu)

@@ -11,24 +11,25 @@ import SwiftUI
 struct DayOverviewView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
-    
+    @Environment(CalendarProps.self) private var calProps    
     @Environment(EventModel.self) private var eventModel
     
     @Binding var day: CBDay?
     /// The transaction Sheet and the transfer sheet use the selected day - so keep it up to date with the day being displayed in the bottom panel
-    @Binding var selectedDay: CBDay?
-    @Binding var transEditID: String?
-    @Binding var showTransferSheet: Bool
-    @Binding var showCamera: Bool
-    @Binding var showPhotosPicker: Bool
-    @Binding var bottomPanelHeight: CGFloat
-    @Binding var scrollContentMargins: CGFloat
-    @Binding var bottomPanelContent: BottomPanelContent?
+//    @Binding var selectedDay: CBDay?
+//    @Binding var transEditID: String?
+//    @Binding var showTransferSheet: Bool
+//    @Binding var showCamera: Bool
+//    @Binding var showPhotosPicker: Bool
+//    @Binding var bottomPanelHeight: CGFloat
+//    @Binding var scrollContentMargins: CGFloat
+//    @Binding var bottomPanelContent: BottomPanelContent?
     
     @State private var showDropActions = false
     @State private var showDailyActions = false
     
     var body: some View {
+        @Bindable var calProps = calProps
         if day != nil {
             StandardContainer(AppState.shared.isIpad ? .sidebarScrolling : .bottomPanel) {
                 content
@@ -46,7 +47,8 @@ struct DayOverviewView: View {
     }
     
     
-    var content: some View {
+    @ViewBuilder var content: some View {
+        @Bindable var calProps = calProps
         Group {
             if let day {
                 Group {
@@ -57,7 +59,7 @@ struct DayOverviewView: View {
                     if filteredTrans.isEmpty {
                         ContentUnavailableView("No Transactions", systemImage: "bag.fill.badge.questionmark")
                         Button("Add") {
-                            transEditID = UUID().uuidString
+                            calProps.transEditID = UUID().uuidString
                         }
                         .frame(maxWidth: .infinity)
                         
@@ -106,14 +108,7 @@ struct DayOverviewView: View {
                 }
                 
                 .confirmationDialog("\(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())", isPresented: $showDailyActions) {
-                    DayContextMenu(
-                        day: day,
-                        selectedDay: $day,
-                        transEditID: $transEditID,
-                        showTransferSheet: $showTransferSheet,
-                        showCamera: $showCamera,
-                        showPhotosPicker: $showPhotosPicker
-                    )
+                    DayContextMenu(day: day, selectedDay: $day)
                 } message: {
                     Text("\(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())")
                 }
@@ -123,23 +118,24 @@ struct DayOverviewView: View {
     
     
     
-    var sheetHeader: some View {
+    @ViewBuilder var sheetHeader: some View {
+        @Bindable var calProps = calProps
         SheetHeader(
             title: day!.displayDate,
             close: {
                 /// When closing, set the selected day back to today or the first of the month if not viewing the current month (which would be the default)
                 withAnimation {
-                    bottomPanelContent = nil
+                    calProps.bottomPanelContent = nil
                     self.day = nil
                 }
                 let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
-                selectedDay = targetDay
+                calProps.selectedDay = targetDay
             },
             view1: { moreButton }
         )
-        #if os(iOS)
-        .bottomPanelAndScrollViewHeightAdjuster(bottomPanelHeight: $bottomPanelHeight, scrollContentMargins: $scrollContentMargins)
-        #endif
+//        #if os(iOS)
+//        .bottomPanelAndScrollViewHeightAdjuster(bottomPanelHeight: $calProps.bottomPanelHeight, scrollContentMargins: $calProps.scrollContentMargins)
+//        #endif
     }
     
     
@@ -149,27 +145,21 @@ struct DayOverviewView: View {
             close: {
                 /// When closing, set the selected day back to today or the first of the month if not viewing the current month (which would be the default)
                 withAnimation {
-                    bottomPanelContent = nil
+                    calProps.bottomPanelContent = nil
                     self.day = nil
                 }
                 let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
-                selectedDay = targetDay
+                calProps.selectedDay = targetDay
             },
             view1: { moreButton }
         )
     }
     
     
-    var moreButton: some View {
+    @ViewBuilder var moreButton: some View {
+        @Bindable var calProps = calProps
         Menu {
-            DayContextMenu(
-                day: day!,
-                selectedDay: $day,
-                transEditID: $transEditID,
-                showTransferSheet: $showTransferSheet,
-                showCamera: $showCamera,
-                showPhotosPicker: $showPhotosPicker
-            )
+            DayContextMenu(day: day!, selectedDay: $day)
         } label: {
             Image(systemName: AppState.shared.isIpad ? "ellipsis.circle" : "ellipsis")
                 .contentShape(Rectangle())

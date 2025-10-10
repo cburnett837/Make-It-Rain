@@ -9,28 +9,43 @@ import SwiftUI
 
 struct SmartTransactionsWithIssuesOverlay: View {
     @Local(\.colorTheme) var colorTheme
+    @Environment(\.colorScheme) private var colorScheme
     #if os(macOS)
     @Environment(\.dismiss) private var dismiss
     #endif
+    @Environment(CalendarProps.self) private var calProps
     @Environment(CalendarModel.self) private var calModel
     @Environment(PayMethodModel.self) private var payModel
     
-    @Binding var bottomPanelContent: BottomPanelContent?
-    @Binding var transEditID: String?
-    @Binding var findTransactionWhere: WhereToLookForTransaction
-    @Binding var bottomPanelHeight: CGFloat
-    @Binding var scrollContentMargins: CGFloat
+//    @Binding var bottomPanelContent: BottomPanelContent?
+//    @Binding var transEditID: String?
+//    @Binding var findTransactionWhere: WhereToLookForTransaction
+//    @Binding var bottomPanelHeight: CGFloat
+//    @Binding var scrollContentMargins: CGFloat
+    
+    @Binding var showInspector: Bool
     
     var body: some View {
-        let _ = Self._printChanges()
-        
-        StandardContainer(AppState.shared.isIpad ? .sidebarScrolling : .bottomPanel) {
-            content
-        } header: {
-            if AppState.shared.isIpad {
-                sidebarHeader
-            } else {
+        //let _ = Self._printChanges()
+                
+        if AppState.shared.isIphone {
+            StandardContainer(.bottomPanel) {
+                content
+            } header: {
                 sheetHeader
+            }
+        } else {
+            NavigationStack {
+                StandardContainerWithToolbar(.list) {
+                    content
+                }
+                .navigationTitle("Pending Smart Transactions")
+                #if os(iOS)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) { closeButton }
+                }
+                #endif
             }
         }
     }
@@ -83,15 +98,15 @@ struct SmartTransactionsWithIssuesOverlay: View {
                                 }
                                 
                                 Spacer()
-                                Button("Fix") {
+                                Button("Fix & Save") {
                                     trans.smartTransactionIsAcknowledged = true
-                                    findTransactionWhere = .smartList
-                                    transEditID = trans.id
+                                    calProps.findTransactionWhere = .smartList
+                                    calProps.transEditID = trans.id
                                 }
                                 .buttonStyle(.borderedProminent)
                                 .tint(Color.fromName(colorTheme))
                                 
-                                Button("Ignore") {
+                                Button("Discard") {
                                     Task {
                                         await calModel.denySmartTransaction(trans)
                                     }
@@ -100,8 +115,10 @@ struct SmartTransactionsWithIssuesOverlay: View {
                                 .tint(.gray)
                             }
                             
-                            Divider()
-                                .padding(.vertical, 2)
+                            if AppState.shared.isIphone {
+                                Divider()
+                                    .padding(.vertical, 2)
+                            }
                         }
                         .listRowInsets(EdgeInsets())
                         .padding(.horizontal, 8)
@@ -111,39 +128,42 @@ struct SmartTransactionsWithIssuesOverlay: View {
         }
     }
     
+    var closeButton: some View {
+        Button {
+            #if os(iOS)
+                if AppState.shared.isIphone {
+                    withAnimation { calProps.bottomPanelContent = nil }
+                } else {
+                    showInspector = false
+                }
+            #else
+                dismiss()
+            #endif
+        } label: {
+            Image(systemName: "checkmark")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        }
+    }
     
+    
+    @ViewBuilder
     var sheetHeader: some View {
+        @Bindable var calProps = calProps
         SheetHeader(
             title: "Pending Smart Transactions",
             close: {
                 #if os(iOS)
                 withAnimation {
-                    bottomPanelContent = nil
+                    calProps.bottomPanelContent = nil
                 }
                 #else
                 dismiss()
                 #endif
             }
         )
-        #if os(iOS)
-        .bottomPanelAndScrollViewHeightAdjuster(bottomPanelHeight: $bottomPanelHeight, scrollContentMargins: $scrollContentMargins)
-        #endif
-    }
-    
-    
-    var sidebarHeader: some View {
-        SidebarHeader(
-            title: "Pending Smart Transactions",
-            close: {
-                #if os(iOS)
-                withAnimation {
-                    bottomPanelContent = nil
-                }
-                #else
-                dismiss()
-                #endif
-            }
-        )
+//        #if os(iOS)
+//        .bottomPanelAndScrollViewHeightAdjuster(bottomPanelHeight: $calProps.bottomPanelHeight, scrollContentMargins: $calProps.scrollContentMargins)
+//        #endif
     }
 }
 

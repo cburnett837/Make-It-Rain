@@ -223,6 +223,12 @@ class CategoryModel {
                 entity.typeID = Int64(category.type.id)
                 entity.listOrder = Int64(category.listOrder ?? 0)
                 entity.isNil = category.isNil
+                
+                entity.enteredByID = Int64(category.enteredBy.id)
+                entity.updatedByID = Int64(category.updatedBy.id)
+                entity.enteredDate = category.enteredDate
+                entity.updatedDate = category.updatedDate
+                
                 return DataManager.shared.save(context: context)
             } else {
                 return .failure(.notFound)
@@ -277,6 +283,12 @@ class CategoryModel {
                                 entity.isPending = false
                                 entity.typeID = Int64(category.type.id)
                                 entity.isNil = category.isNil
+                                
+                                entity.enteredByID = Int64(category.enteredBy.id)
+                                entity.updatedByID = Int64(category.updatedBy.id)
+                                entity.enteredDate = category.enteredDate
+                                entity.updatedDate = category.updatedDate
+                                
                                 let _ = DataManager.shared.save(context: context)
                             }
                         }
@@ -393,6 +405,12 @@ class CategoryModel {
                 entity.typeID = Int64(category.type.id)
                 entity.isPending = true
                 entity.isNil = category.isNil
+                
+                entity.enteredByID = Int64(category.enteredBy.id)
+                entity.updatedByID = Int64(category.updatedBy.id)
+                entity.enteredDate = category.enteredDate
+                entity.updatedDate = category.updatedDate
+                
                 let _ = DataManager.shared.save(context: context)
             }
         }

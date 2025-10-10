@@ -16,6 +16,10 @@ struct CalendarNavGridHeader: View {
     @Environment(PlaidModel.self) var plaidModel
     
     let monthNavigationNamespace: Namespace.ID
+    
+    var isPlayground: Bool {
+        return calModel.sYear == 1900
+    }
 
     
     var body: some View {
@@ -32,11 +36,23 @@ struct CalendarNavGridHeader: View {
                 
                 Section {
                     Picker("", selection: $calModel.sYear) {
-                        var years: [Int] {
-                            [calModel.sYear-1, calModel.sYear, calModel.sYear+1]
-                        }
-                        ForEach(years, id: \.self) {
-                            Text(String($0))
+                        Text("Playground")
+                            .tag(1900)
+                    }
+                }
+                
+                if !isPlayground {
+                    Section {
+                        Picker("", selection: $calModel.sYear) {
+                            var years: [Int] {
+                                [calModel.sYear - 1, calModel.sYear, calModel.sYear + 1]
+                            }
+                            
+                            ForEach(years, id: \.self) {
+                                Text(String($0))
+                                    .tag($0)
+                                //.foregroundStyle($0 == AppState.shared.todayYear ? Color.fromName(colorTheme) : .primary)
+                            }
                         }
                     }
                 }
@@ -46,6 +62,8 @@ struct CalendarNavGridHeader: View {
                         var years: [Int] { Array(2000...2099).map { $0 } }
                         ForEach(years, id: \.self) {
                             Text(String($0))
+                                .tag($0)
+                                //.foregroundStyle($0 == AppState.shared.todayYear ? Color.fromName(colorTheme) : .primary)
                         }
                     }
                     .pickerStyle(.menu)
@@ -59,7 +77,7 @@ struct CalendarNavGridHeader: View {
                         .lineLimit(1)
                     
                     HStack(spacing: 2) {
-                        Text("\(String(calModel.sYear))")
+                        Text("\(isPlayground ? "Playground" : String(calModel.sYear))")
                         //Image(systemName: "chevron.right")
                     }
                     .font(.title)
@@ -73,13 +91,13 @@ struct CalendarNavGridHeader: View {
                 }
             }
             .layoutPriority(1)
-            .padding(.leading, 16)
+            //.padding(.leading, 16)
             .padding(.bottom, 4)
             .frame(maxWidth: .infinity, alignment: .leading)
             
             .contentShape(Rectangle())
         }
-        .padding(.leading, -13) /// Negate the scrollContent margins
+        //.padding(.leading, -13) /// Negate the scrollContent margins
         .toolbar {
             //CalendarNavGridToolbar()
             ToolbarItemGroup(placement: .topBarLeading) {
@@ -94,14 +112,17 @@ struct CalendarNavGridHeader: View {
                         Image(systemName: "creditcard.trianglebadge.exclamationmark")
                             .foregroundStyle(Color.fromName(colorTheme) == .orange ? .red : .orange)
                     }
+                    .tint(.none)
                 }
             }
             
-            ToolbarItemGroup(placement: .topBarTrailing) {
+            ToolbarItem(placement: .topBarTrailing) {
                 if !eventModel.invitations.isEmpty {
                     ShowEventInvitesView()
                 }
-                
+            }
+            ToolbarSpacer(.fixed, placement: .topBarTrailing)
+            ToolbarItem(placement: .topBarTrailing) {
                 if AppState.shared.isIpad {
                     Button {
                         NavigationManager.shared.selectedMonth = nil
@@ -109,29 +130,72 @@ struct CalendarNavGridHeader: View {
                     } label: {
                         Image(systemName: "magnifyingglass")
                     }
-                    
-                    Button {
-                        NavigationManager.shared.selectedMonth = nil
-                        NavigationManager.shared.selection = .settings
-                    } label: {
-                        Image(systemName: "gear")
-                    }
+                    .tint(.none)
                 } else {
-//                    NavigationLink(value: NavDestination.search) {
-//                        Image(systemName: "magnifyingglass")
-//                    }
-//                    .matchedTransitionSource(id: NavDestination.search, in: monthNavigationNamespace)
-                    
                     ToolbarLongPollButton()
-                    
-                    ToolbarRefreshButton()
-                    
+                }
+            }
+            
+            if AppState.shared.isIpad {
+                ToolbarSpacer(.fixed, placement: .topBarTrailing)
+            }
+            
+            ToolbarItem(placement: .topBarTrailing) {
+                ToolbarRefreshButton()
+            }
+            
+            if AppState.shared.isIphone {
+                ToolbarSpacer(.fixed, placement: .topBarTrailing)
+                
+                ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink(value: NavDestination.settings) {
                         Image(systemName: "gear")
                     }
+                    .tint(.none)
                     .matchedTransitionSource(id: NavDestination.settings, in: monthNavigationNamespace)
                 }
             }
+            
+            
+            
+//            ToolbarItemGroup(placement: .topBarTrailing) {
+//                if !eventModel.invitations.isEmpty {
+//                    ShowEventInvitesView()
+//                }
+//                
+//                if AppState.shared.isIpad {
+//                    Button {
+//                        NavigationManager.shared.selectedMonth = nil
+//                        NavigationManager.shared.selection = .search
+//                    } label: {
+//                        Image(systemName: "magnifyingglass")
+//                    }
+//                    
+//                    Button {
+//                        NavigationManager.shared.selectedMonth = nil
+//                        NavigationManager.shared.selection = .settings
+//                    } label: {
+//                        Image(systemName: "gear")
+//                    }
+//                } else {
+////                    NavigationLink(value: NavDestination.search) {
+////                        Image(systemName: "magnifyingglass")
+////                    }
+////                    .matchedTransitionSource(id: NavDestination.search, in: monthNavigationNamespace)
+//                    
+//                    ToolbarLongPollButton()
+//                    
+//                    ToolbarRefreshButton()
+//                    
+//                    NavigationLink(value: NavDestination.settings) {
+//                        Image(systemName: "gear")
+//                    }
+//                    .matchedTransitionSource(id: NavDestination.settings, in: monthNavigationNamespace)
+//                }
+//            }
+            
+            
+            
         }
     }
 }

@@ -63,7 +63,7 @@ struct RootViewMac: View {
                         if AppState.shared.methsExist {
                             NavLinkMac(destination: .events, title: "Events", image: "beach.umbrella")
                             NavLinkMac(destination: .repeatingTransactions, title: "Reoccuring Transactions", image: "repeat")
-                            NavLinkMac(destination: .keywords, title: "Keywords", image: "textformat.abc.dottedunderline")
+                            NavLinkMac(destination: .keywords, title: "Rules", image: "textformat.abc.dottedunderline")
                             
                             if AppState.shared.user?.id == 1 {
                                 NavLinkMac(destination: .debug, title: "Debug", image: "ladybug")

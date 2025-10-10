@@ -105,7 +105,7 @@ struct MonthNavigationLink: View {
         NavigationManager.shared.selectedMonth = month.enumID
         NavigationManager.shared.selection = nil
         
-        if !AppState.shared.isIpad {
+        if AppState.shared.isIphone {
             calModel.showMonth = true
         }
     }

@@ -8,14 +8,13 @@
 import SwiftUI
 
 struct TransferSheet: View {
-    
     private enum TransferType {
         case cashAdvance, deposit, payment, transfer
     }
     
     @Local(\.colorTheme) var colorTheme
     @Local(\.useWholeNumbers) var useWholeNumbers
-    
+    @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
     @Environment(CategoryModel.self) private var catModel
@@ -28,7 +27,7 @@ struct TransferSheet: View {
     @FocusState private var focusedField: Int?
 
     private var transferType: TransferType {
-        if transfer.from?.accountType == .credit {
+        if transfer.from?.accountType == .credit || transfer.from?.accountType == .loan {
             return .cashAdvance
         } else if transfer.from?.accountType == .cash && transfer.to?.accountType == .checking {
             return .deposit
@@ -67,13 +66,33 @@ struct TransferSheet: View {
         }
     }
     
+    
+    var isValidToSave: Bool {
+        (transfer.from != nil && transfer.to != nil && transfer.amount != 0.0)
+    }
+    
     var body: some View {
-        Group {
-            #if os(macOS)
-            body1
+        NavigationStack {
+            #if os(iOS)
+            bodyPhone
+                .navigationTitle(title)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        if isValidToSave {
+                            closeButton
+                                #if os(iOS)
+                                .buttonStyle(.glassProminent)
+                                #endif
+                        } else {
+                            closeButton
+                                
+                        }
+                    }
+                }
             #else
-            body2
-            #endif        
+            bodyMac
+            #endif
         }
         .onChange(of: transferType) {
             if $1 == .payment {
@@ -82,7 +101,7 @@ struct TransferSheet: View {
         }
     }
     
-    var body1: some View {
+    var bodyMac: some View {
         StandardContainer {
             LabeledRow("From", labelWidth) {
                 PayMethodSheetButton(payMethod: $transfer.from, whichPaymentMethods: .allExceptUnified)
@@ -120,14 +139,6 @@ struct TransferSheet: View {
                     amountStringBinding: $transfer.amountString,
                     amount: transfer.amount
                 )
-
-//                    StandardTextField("Amount", text: $transfer.amountString, focusedField: $focusedField, focusValue: 0)
-//                        .onChange(of: transfer.amountString) { oldValue, newValue in
-//                            transfer.amountString = transfer.amountString.replacingOccurrences(of: "-", with: "")
-//                        }
-//                        #if os(iOS)
-//                        .keyboardType(.decimalPad)
-//                        #endif
             }
             
             StandardDivider()
@@ -140,7 +151,7 @@ struct TransferSheet: View {
         } header: {
             SheetHeader(title: title, close: { dismiss() })
         } footer: {
-            transferButton
+            transferButtonMac
         }
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
 //        .task {
@@ -149,27 +160,24 @@ struct TransferSheet: View {
     }
     
     
-    var body2: some View {
-        StandardContainer(.list) {
+    var bodyPhone: some View {
+        StandardContainerWithToolbar(.list) {
             Section("Account Details") {
-                payFromRow2
-                payToRow2
+                payFromRowPhone
+                payToRowPhone
             }
                         
             Section {
-                categoryRow2
+                categoryRowPhone
             }
             
             Section {
-                amountRow2
+                amountRowPhone
                 DatePicker("Date", selection: $date, displayedComponents: [.date])
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
                         
-            transferButton2
-            
-        } header: {
-            SheetHeader(title: title, close: { dismiss() })
+            transferButtonPhone
         }
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
     }
@@ -177,25 +185,17 @@ struct TransferSheet: View {
     
     
     
-    var payFromRow2: some View {
-        HStack {
-            Text("From")
-            Spacer()
-            PayMethodSheetButton2(payMethod: $transfer.from, whichPaymentMethods: .allExceptUnified)
-        }
+    var payFromRowPhone: some View {
+        PayMethodSheetButton2(text: "From", payMethod: $transfer.from, whichPaymentMethods: .allExceptUnified)
     }
     
     
-    var payToRow2: some View {
-        HStack {
-            Text("To")
-            Spacer()
-            PayMethodSheetButton2(payMethod: $transfer.to, whichPaymentMethods: .allExceptUnified)
-        }
+    var payToRowPhone: some View {
+        PayMethodSheetButton2(text: "To", payMethod: $transfer.to, whichPaymentMethods: .allExceptUnified)
     }
     
     
-    var categoryRow2: some View {
+    var categoryRowPhone: some View {
         HStack {
             Text("Category")
             Spacer()
@@ -203,9 +203,8 @@ struct TransferSheet: View {
         }
     }
     
-    
-    
-    var amountRow2: some View {
+        
+    var amountRowPhone: some View {
         HStack {
             Text("Amount")
             Spacer()
@@ -239,7 +238,7 @@ struct TransferSheet: View {
     }
     
     
-    var transferButton2: some View {
+    var transferButtonPhone: some View {
         Button(action: validateForm) {
             Text("Create \(transferLingo)")
         }
@@ -248,11 +247,7 @@ struct TransferSheet: View {
     }
     
     
-    
-    
-    
-    
-    var transferButton: some View {
+    var transferButtonMac: some View {
         Button(action: validateForm) {
             Text("Create \(transferLingo)")
         }
@@ -266,6 +261,18 @@ struct TransferSheet: View {
         #endif
         .disabled(transfer.from == nil || transfer.to == nil || transfer.amount == 0.0)
     }
+    
+    
+    var closeButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: isValidToSave ? "checkmark" : "xmark")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        }
+    }
+
+
     
     func validateForm() {
         if transfer.from == nil {
@@ -294,7 +301,7 @@ struct TransferSheet: View {
             fromTrans.title = "\(transferLingo) to \(transfer.to?.title ?? "N/A")"
             fromTrans.date = date
                                     
-            if transfer.from?.accountType == .credit || transfer.to?.accountType == .loan {
+            if transfer.from?.accountType == .credit || transfer.from?.accountType == .loan {
                 fromTrans.amountString = (transfer.amount * 1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
             } else {
                 fromTrans.amountString = (transfer.amount * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
@@ -324,8 +331,14 @@ struct TransferSheet: View {
             
             
             if transferType == .payment {
-                toTrans.isPayment = true
+                fromTrans.isPaymentOrigin = true
+                toTrans.isPaymentDest = true
+            } else {
+                fromTrans.isTransferOrigin = true
+                toTrans.isTransferDest = true
             }
+            
+            
             
                                     
             let transferMonth = date.month

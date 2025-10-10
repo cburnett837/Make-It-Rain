@@ -13,6 +13,26 @@ import TipKit
 import UIKit
 #endif
 
+enum ViewThatTriggeredChange {
+    case calendar
+}
+
+
+@Observable
+class DataChangeTriggers {
+    static let shared: DataChangeTriggers = DataChangeTriggers()
+    
+    var calendarDidChange = false
+    
+    func viewDidChange(_ view: ViewThatTriggeredChange, source: String = #function) {
+        switch view {
+        case .calendar:
+            self.calendarDidChange.toggle()
+        }
+    }
+}
+
+
 @main
 struct MakeItRainApp: App {
     #if os(macOS)
@@ -47,9 +67,12 @@ struct MakeItRainApp: App {
     
     @State private var photoModel = PhotoModel.shared
     @State private var locationManager = LocationManager.shared
+    @State private var dataChangeTriggers = DataChangeTriggers.shared
     @State private var mapModel = MapModel()
     
-    @State private var isUnlocked = false
+    @State private var calProps = CalendarProps()
+    
+    //@State private var isUnlocked = false
     
     @Namespace private var monthNavigationNamespace
     
@@ -96,6 +119,7 @@ struct MakeItRainApp: App {
         
     var body: some Scene {
         WindowGroup {
+            /// Allow for universal sheets. Such as Payment Method sheet when first downloading the app, universal alerts, etc.
             RootViewWrapper {
                 CalendarSheetLayerWrapper(monthNavigationNamespace: monthNavigationNamespace) {
                     @Bindable var appState = AppState.shared
@@ -156,6 +180,8 @@ struct MakeItRainApp: App {
             .environment(repModel)
             .environment(eventModel)
             .environment(plaidModel)
+            .environment(calProps)
+            .environment(dataChangeTriggers)
             //.preferredColorScheme(colorScheme)
         }
         .defaultSize(width: 1000, height: 600)
@@ -174,7 +200,7 @@ struct MakeItRainApp: App {
         
         #if os(macOS)
         Window("Budget", id: "budgetWindow") {
-            BudgetTable()
+            CalendarDashboard()
                 .frame(minWidth: 300, minHeight: 200)
                 .environment(calModel)
                 .environment(payModel)
@@ -183,16 +209,19 @@ struct MakeItRainApp: App {
                 .environment(repModel)
                 .environment(eventModel)
                 .environment(plaidModel)
+                .environment(calProps)
+                .environment(dataChangeTriggers)
         }
         .auxilaryWindow()
         
-        Window("Pending Fit Transactions", id: "pendingFitTransactions") {
-            FitTransactionOverlay(bottomPanelContent: .constant(.fitTransactions), bottomPanelHeight: .constant(0), scrollContentMargins: .constant(0))
-                .frame(minWidth: 300, minHeight: 200)
-                .environment(calModel)
-                .environment(payModel)
-        }
-        .auxilaryWindow()
+//        Window("Pending Fit Transactions", id: "pendingFitTransactions") {
+//            FitTransactionOverlay(bottomPanelContent: .constant(.fitTransactions), bottomPanelHeight: .constant(0), scrollContentMargins: .constant(0))
+//                .frame(minWidth: 300, minHeight: 200)
+//                .environment(calModel)
+//                .environment(payModel)
+//                .environment(calProps)
+//        }
+//        .auxilaryWindow()
         
         Window("Pending Plaid Transactions", id: "pendingPlaidTransactions") {
             PlaidTransactionOverlay(bottomPanelContent: .constant(.plaidTransactions), bottomPanelHeight: .constant(0), scrollContentMargins: .constant(0))
@@ -201,6 +230,8 @@ struct MakeItRainApp: App {
                 .environment(payModel)
                 .environment(plaidModel)
                 .environment(catModel)
+                .environment(calProps)
+                .environment(dataChangeTriggers)
         }
         .auxilaryWindow()
         
@@ -215,6 +246,8 @@ struct MakeItRainApp: App {
                 .environment(repModel)
                 .environment(eventModel)
                 .environment(plaidModel)
+                .environment(calProps)
+                .environment(dataChangeTriggers)
                 //.environment(mapModel)
         }
         .auxilaryWindow()
@@ -236,6 +269,8 @@ struct MakeItRainApp: App {
             .environment(repModel)
             .environment(eventModel)
             .environment(plaidModel)
+            .environment(calProps)
+            .environment(dataChangeTriggers)
 //            .onDisappear {
 //                calModel.isInMultiSelectMode = false
 //            }
@@ -263,6 +298,8 @@ struct MakeItRainApp: App {
                     .environment(repModel)
                     .environment(eventModel)
                     .environment(plaidModel)
+                    .environment(calProps)
+                    .environment(dataChangeTriggers)
                     //.environment(mapModel)
                     .onAppear {
                         if let window = NSApp.windows.first(where: {$0.title.contains("MonthlyWindowPlaceHolder")}) {
@@ -289,6 +326,8 @@ struct MakeItRainApp: App {
                 .environment(repModel)
                 .environment(eventModel)
                 .environment(plaidModel)
+                .environment(calProps)
+                .environment(dataChangeTriggers)
                 //.environment(mapModel)
         }
         #endif
@@ -302,7 +341,8 @@ struct MakeItRainApp: App {
         
         /// If `AuthState.attemptLogin()` is successful, it will ...
             /// 1. Return true to this task, which will  run ``FuncModel.downloadInitial()``.
-            /// As the download function runs, it will eventually hide the splash screen and show the main app when the first month completes its download.
+            /// As the download function runs, it will eventually hide the splash screen and show the `RootView` when the first month completes its download.
+            /// The task in `RootView` will trigger the calendar full screen cover to show.
         
         /// If `AuthState.attemptLogin()`fails, it will set ...
             /// 1. Set `AuthState.isLoggedIn = false`
@@ -337,7 +377,13 @@ struct MakeItRainApp: App {
         /// If `AuthState.attemptLogin()` is successful, it will set ...
             /// 1. Set `AuthState.isLoggedIn = true`
             /// 2. Set `AuthState.isThinking = false`.
+            ///
+            /// This will then call `AuthState.loginViaKeychain2` ----> This is a bug 6/21/25.
+            /// This happens because when the variables above flip, the show the splash screen, which runs the login via keychain.
+            /// At this point, if no payment methods exist, it will show the add sheet.
+            ///
             /// 3. Set `AppState.appShouldShowSplashScreen = true`.  --- This will trigger the splash screen to show, which will run ``FuncModel.downloadInitial()``.
+            /// --- See description in `private var splashScreen` for further information.
         
         /// If `AuthState.attemptLogin()`fails, it will...
             /// 1. Set `AuthState.isLoggedIn = false`

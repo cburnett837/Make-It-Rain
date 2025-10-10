@@ -30,6 +30,9 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
     var actualNum: Int {
         num == 13 ? 1 : num == 0 ? 12 : num
     }
+//    var actualYear: Int {
+//        num == 13 ? self.year + 1 : num == 0 ? self.year - 1 : year
+//    }
     /// This is needed so this class can calculate its `dayCount`. This is set with a didSet on the ``Model`` `year` property.
     var year: Int
     var days: Array<CBDay> = []

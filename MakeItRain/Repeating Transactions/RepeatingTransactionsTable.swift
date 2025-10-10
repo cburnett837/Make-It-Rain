@@ -69,10 +69,8 @@ struct RepeatingTransactionsTable: View {
             repModel.repTransactions.sort(using: sortOrder)
         }
         .sheet(item: $editRepeatingTransaction, onDismiss: { repTransactionEditID = nil }) { rep in
-            RepeatingTransactionView(repTransaction: rep, repModel: repModel, catModel: catModel, payModel: payModel, editID: $repTransactionEditID)
-                #if os(iOS)
-                .presentationSizing(.page)
-                #else
+            RepeatingTransactionView(repTransaction: rep, repModel: repModel, catModel: catModel, payModel: payModel, editID: $repTransactionEditID)                
+                #if os(macOS)
                 .frame(minWidth: 500, minHeight: 700)
                 .presentationSizing(.fitted)
                 #endif
@@ -162,48 +160,17 @@ struct RepeatingTransactionsTable: View {
     #if os(iOS)
     @ToolbarContentBuilder
     func phoneToolbar() -> some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            if AppState.shared.isIphone {
-                HStack {
-//                    Button {
-//                        dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
-//                    } label: {
-//                        HStack(spacing: 4) {
-//                            Image(systemName: "chevron.left")
-//                            Text("Back")
-//                        }
-//                    }
-                    //ToolbarLongPollButton()
-                }
-                
-            } else {
-                HStack(spacing: 20) {
-                    Button {
-                        repTransactionEditID = UUID().uuidString
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    //.disabled(repModel.isThinking)
-                    ToolbarRefreshButton()
-                    ToolbarLongPollButton()
-                }
+        ToolbarItem(placement: .topBarTrailing) { ToolbarLongPollButton() }
+        ToolbarItem(placement: .topBarTrailing) { ToolbarRefreshButton() }
+        ToolbarSpacer(.fixed, placement: .topBarTrailing)
+        ToolbarItem(placement: .topBarTrailing) {
+            Button {
+                repTransactionEditID = UUID().uuidString
+            } label: {
+                Image(systemName: "plus")
             }
-        }
-        
-        if AppState.shared.isIphone {
-            ToolbarItem(placement: .topBarTrailing) {
-                HStack(spacing: 20) {
-                    ToolbarLongPollButton()
-                    ToolbarRefreshButton()
-                    Button {
-                        repTransactionEditID = UUID().uuidString
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    //.disabled(repModel.isThinking)
-                }
-            }
-        }
+            .tint(.none)
+        }    
     }
     
     var phoneList: some View {

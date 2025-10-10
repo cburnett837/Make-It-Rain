@@ -8,7 +8,6 @@
 import SwiftUI
 
 
-
 struct CustomAlert: View {
     
     let config: AlertConfig
@@ -51,30 +50,70 @@ struct CustomAlert: View {
             VStack(spacing: 0) {
                 Divider()
                 
-                HStack(spacing: 0) {
-                    if let button = config.secondaryButton {
-                        button
-                        Divider()
-                    } else {
-                        if let _ = config.primaryButton {
-                            AlertConfig.CancelButton(isAlone: false)
-                            Divider()
-                        } else {
-                            AlertConfig.CancelButton(isAlone: true)
-                        }
+                if config.primaryButton == nil && config.secondaryButton == nil {
+                    let buttonConfig = AlertConfig.ButtonConfig(
+                        text: "Cancel",
+                        role: .cancel,
+                        edge: .horizontal
+                    ) {
+                        AppState.shared.closeAlert()
                     }
                     
-                    if let button = config.primaryButton {
-                        button
+                    AlertConfig.AlertButton(config: buttonConfig)
+                    
+                    //AlertConfig.CancelButton(isAlone: true)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    HStack(spacing: 0) {
+                        if let button = config.secondaryButton {
+                            button
+                            Divider()
+                        } else {
+                            if let _ = config.primaryButton {
+                                //AlertConfig.CancelButton(isAlone: false)
+                                let buttonConfig = AlertConfig.ButtonConfig(
+                                    text: "Cancel",
+                                    role: .cancel,
+                                    edge: .leading
+                                ) {
+                                    AppState.shared.closeAlert()
+                                }
+                                AlertConfig.AlertButton(config: buttonConfig)
+                                Divider()
+                            } else {
+                                let buttonConfig = AlertConfig.ButtonConfig(
+                                    text: "Cancel",
+                                    role: .cancel,
+                                    edge: .horizontal
+                                ) {
+                                    AppState.shared.closeAlert()
+                                }
+                                AlertConfig.AlertButton(config: buttonConfig)
+                                //AlertConfig.CancelButton(isAlone: true)
+                            }
+                        }
+                        
+                        if let button = config.primaryButton {
+                            button
+                        }
                     }
+                    .fixedSize(horizontal: false, vertical: true)
                 }
-                .fixedSize(horizontal: false, vertical: true)
+                
+                
             }
         }
+        //.glassEffect(in: .rect(cornerRadius: 15))
+        //.padding(.top, 30)
         //.padding([.horizontal, .bottom], 15)
         .background {
             RoundedRectangle(cornerRadius: 15)
-                .fill(.ultraThickMaterial)
+                .opacity(0)
+                #if os(iOS)
+                .glassEffect(.regular, in: .rect(cornerRadius: 15))
+                #endif
+                //.glassEffect(in: .rect(cornerRadius: 15))
+                //.fill(.ultraThickMaterial)
                 .padding(.top, 30)
         }
         .frame(maxWidth: 310)
@@ -105,7 +144,6 @@ struct AlertConfig {
         var id: UUID = UUID()
         var text: String
         var role: AlertConfig.ButtonRole? = nil
-        var function: () -> Void
         var color: Color {
             switch role {
             case .cancel, .primary, .some(.none), nil:
@@ -114,7 +152,8 @@ struct AlertConfig {
                 .red
             }
         }
-        var edge: Edge = .trailing
+        var edge: Edge.Set = .trailing
+        var function: () -> Void
     }
     
     enum ButtonRole {
@@ -126,8 +165,18 @@ struct AlertConfig {
         var closeOnFunction: Bool = true
         var showSpinnerOnClick: Bool = false
         var config: ButtonConfig
+        //var isAlone: Bool = false
+        //var curvedEdges: Edge.Set = .horizontal
         
         @State private var showSpinner: Bool = false
+//        
+        var leadingEdge: CGFloat {
+            config.edge == .horizontal || config.edge == .leading ? 15 : 0
+        }
+        
+        var trailingEdge: CGFloat {
+            config.edge == .horizontal || config.edge == .trailing ? 15 : 0
+        }
         
         var body: some View {
             Button {
@@ -150,8 +199,8 @@ struct AlertConfig {
             .clipShape(
                 .rect(
                     topLeadingRadius: 0,
-                    bottomLeadingRadius: config.edge == .trailing ? 0 : 15,
-                    bottomTrailingRadius: config.edge == .trailing ? 15 : 0,
+                    bottomLeadingRadius: leadingEdge,
+                    bottomTrailingRadius: trailingEdge,
                     topTrailingRadius: 0
                 )
             )

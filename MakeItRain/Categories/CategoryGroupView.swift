@@ -11,6 +11,8 @@ struct CategoryGroupView: View {
     @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
     @Environment(\.layoutDirection) private var layoutDirection: LayoutDirection
     @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    
     @Environment(CategoryModel.self) private var catModel
     
     @Bindable var group: CBCategoryGroup
@@ -72,69 +74,86 @@ struct CategoryGroupView: View {
     }
     
     var body: some View {
-        StandardContainer(.list) {
-            titleTextField
-            
-            if !filteredSelectedCategories.isEmpty {
-                Section("Selected Categories") {
-                    ForEach(filteredSelectedCategories) { cat in
+        NavigationStack {
+            StandardContainerWithToolbar(.list) {
+                Section("Title") {
+                    titleRow
+                }
+                
+                if !filteredSelectedCategories.isEmpty {
+                    Section("Selected Categories") {
+                        ForEach(filteredSelectedCategories) { cat in
+                            MultiCategoryPickerLineItem(cat: cat, categories: $group.categories, labelWidth: labelWidth, selectFunction: { doit(cat) })
+                        }
+                    }
+                }
+                
+                
+                Section("Available Categories") {
+                    ForEach(filteredAvailableCategories) { cat in
                         MultiCategoryPickerLineItem(cat: cat, categories: $group.categories, labelWidth: labelWidth, selectFunction: { doit(cat) })
                     }
                 }
             }
-            
-            
-            Section("Available Categories") {
-                ForEach(filteredAvailableCategories) { cat in
-                    MultiCategoryPickerLineItem(cat: cat, categories: $group.categories, labelWidth: labelWidth, selectFunction: { doit(cat) })
-                }
+            .searchable(text: $searchText, prompt: Text("Search"))
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                //ToolbarItem(placement: .topBarLeading) { deleteButton }
+                ToolbarItem(placement: .topBarTrailing) { closeButton }
             }
-        } header: {
-            SheetHeader(title: title, close: { closeSheet() }, view3: { deleteButton })
-        } subHeader: {
-            SearchTextField(title: "Categories", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)
-                .padding(.horizontal, -20)
-                #if os(macOS)
-                .focusable(false) /// prevent mac from auto focusing
-                #endif
         }
+        
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
         .task { prepareView() }
     }
     
-    var titleTextField: some View {
-        HStack {
-            Text("Name")
-            Spacer()
+    var titleRow: some View {
+        HStack(spacing: 0) {
+            Label {
+                Text("")
+            } icon: {
+                Image(systemName: "t.circle")
+                    .foregroundStyle(.gray)
+            }
+            
             #if os(iOS)
             UITextFieldWrapper(placeholder: "Name", text: $group.title, toolbar: {
                 KeyboardToolbarView(focusedField: $focusedField)
             })
-            .uiTextAlignment(layoutDirection == .leftToRight ? .right : .left)
+            //.uiTextAlignment(layoutDirection == .leftToRight ? .right : .left)
+            .uiTextAlignment(.left)
             .uiClearButtonMode(.whileEditing)
             .uiStartCursorAtEnd(true)
-            .uiTag(1)
+            .uiTag(0)
             #else
-            StandardTextField("Name", text: $group.title, focusedField: $focusedField, focusValue: 1)
-                .onSubmit { focusedField = 2 }
+            StandardTextField("Name", text: $group.title, focusedField: $focusedField, focusValue: 0)
+                .onSubmit { focusedField = 1 }
             #endif
         }
-        .focused($focusedField, equals: 1)
+        .focused($focusedField, equals: 0)
     }
     
-    var deleteButton: some View {
+//    var deleteButton: some View {
+//        Button {
+//            showDeleteAlert = true
+//        } label: {
+//            Image(systemName: "trash")
+//                .foregroundStyle(colorScheme == .dark ? .white : .black)
+//        }
+//        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
+//    }
+    
+    
+    var closeButton: some View {
         Button {
-            showDeleteAlert = true
+            editID = nil; dismiss()
         } label: {
-            Image(systemName: "trash")
+            Image(systemName: "checkmark")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
         }
-        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
     }
     
-    func closeSheet() {
-        editID = nil
-        dismiss()
-    }
     
     func doit(_ category: CBCategory) {
         print("-- \(#function)")
@@ -145,7 +164,7 @@ struct CategoryGroupView: View {
                 group.categories[index].active = false
             }
         } else {
-            print("doesn 't conain")
+            print("doesn't conain")
             if let index = group.categories.firstIndex(where: {$0.id == category.id}) {
                 group.categories[index].active = true
             } else {
@@ -161,10 +180,10 @@ struct CategoryGroupView: View {
         
         #if os(macOS)
         /// Focus on the title textfield.
-        focusedField = 1
+        focusedField = 0
         #else
         if group.action == .add {
-            focusedField = 1
+            focusedField = 0
         }
         #endif
     }

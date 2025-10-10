@@ -87,18 +87,19 @@ struct SheetHeaderButtonStyle: ButtonStyle {
     
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .buttonStyle(.plain)
+            //.buttonStyle(.plain)
             //.symbolRenderingMode(.hierarchical)
-            .foregroundStyle(.gray)
-            .imageScale(.small)
+            //.foregroundStyle(.gray)
+            //.foregroundStyle(.gray)
+            //.imageScale(.small)
             .frame(minWidth: 30, minHeight: 30)
-            .foregroundStyle(.gray)
-            #if os(macOS)
-            .background(configuration.isPressed ? Color(.darkGray) : buttonColor)
-            #else
-            .background(configuration.isPressed ? colorScheme == .light ? Color(.systemGray3) : Color(.darkGray) : buttonColor)
-            #endif
-            .clipShape(Circle())
+            //.foregroundStyle(.gray)
+            //#if os(macOS)
+            //.background(configuration.isPressed ? Color(.darkGray) : buttonColor)
+            //#else
+            //.background(configuration.isPressed ? colorScheme == .light ? Color(.systemGray3) : Color(.darkGray) : buttonColor)
+            //#endif
+            //.clipShape(Circle())
                                                 
             .onHover { buttonColor = $0 ? Color(.systemFill) : Color(.tertiarySystemFill) }
             //.scaleEffect(configuration.isPressed ? 1.2 : 1)
@@ -115,6 +116,7 @@ struct AlertButtonStyle: ButtonStyle {
             .padding(.vertical, 14)
             .frame(maxWidth: .infinity)
             .background(configuration.isPressed ? Material.ultraThinMaterial : Material.ultraThickMaterial)
+            //.glassEffect(.regular, in: .rect())
         
             //.scaleEffect(configuration.isPressed ? 1.2 : 1)
             //.animation(.easeOut(duration: 0.2), value: configuration.isPressed)

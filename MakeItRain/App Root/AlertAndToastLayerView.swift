@@ -52,12 +52,16 @@ struct AlertAndToastLayerView: View {
             .overlay {
                 if let config = AppState.shared.alertConfig {
                     Rectangle()
+                        #if os(iOS)
+                        .glassEffect(in: .rect())
+                        #endif
                         //.fill(.ultraThickMaterial)
-                        .fill(Color.darkGray3)
+                        //.fill(Color.darkGray3)
                         .opacity(0.8)
                         .ignoresSafeArea()
                         .overlay { CustomAlert(config: config) }
                         .opacity(appState.showCustomAlert ? 1 : 0)
+                        .accessibilityIdentifier("UniversalAlertContent")
                                             
                 }
             }

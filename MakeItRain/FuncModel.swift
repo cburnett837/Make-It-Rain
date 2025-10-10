@@ -111,7 +111,10 @@ class FuncModel {
         
         print("-- \(#function) -- Called from: \(file):\(line) : \(function)")
         
-        isLoading = true
+        withAnimation {
+            isLoading = true
+        }
+        
         
         AppState.shared.lastNetworkTime = .now
         
@@ -329,7 +332,7 @@ class FuncModel {
             /// If viewing a month, determine current and adjacent months.
             if NavDestination.justMonths.contains(currentNavSelection) {
                 
-                /// Grab Payment Methods (only not logging in. We need this to have a payment method in place before the viewing month loads.)
+                /// Grab Payment Methods (only when logging in. We need this to have a payment method in place before the viewing month loads.)
                 if AppState.shared.isLoggingInForFirstTime {
                     await payModel.fetchPaymentMethods(calModel: calModel)
                 }
@@ -398,7 +401,10 @@ class FuncModel {
         //AppState.shared.showToast(title: "🔴Everything took \(final) seconds to fetch")
         let metric = (id: UUID(), date: Date(), load: final)
         loadTimes.append(metric)
-        isLoading = false
+        withAnimation {
+            isLoading = false
+        }
+        
     }
     
     
@@ -445,9 +451,10 @@ class FuncModel {
 //            }
 //        }
         
-        //withAnimation(.easeOut(duration: 1)) {
+        
+            /// This willl flip from the splash screen to `RootView`. `RootView` task will open the calendar sheet.
             AppState.shared.appShouldShowSplashScreen = false
-        //}
+        
     }
         
     
@@ -1665,6 +1672,56 @@ class FuncModel {
                 let _ = calModel.updateUnifiedStartingAmount(month: month, for: payMethod.accountType)
             }
         }
+    }
+    
+    
+    
+    @MainActor func getPlaidDebitSums() -> Double {
+        let debitIDs = payModel.paymentMethods
+            .filter { $0.isDebit }
+            .filter { $0.isAllowedToBeViewedByThisUser }
+            .filter { !$0.isHidden }
+            .map { $0.id }
+        
+        return plaidModel.balances
+            .filter { debitIDs.contains($0.payMethodID) }
+            .map { $0.amount }
+            .reduce(0.0, +)
+    }
+    
+    
+    @MainActor func getPlaidCreditSums() -> Double {
+        let creditIDs = payModel.paymentMethods
+            .filter { $0.isCredit }
+            .filter { $0.isAllowedToBeViewedByThisUser }
+            .filter { !$0.isHidden }
+            .map { $0.id }
+        
+        return plaidModel.balances
+            .filter { creditIDs.contains($0.payMethodID) }
+            .map { $0.amount }
+            .reduce(0.0, +)
+    }
+    
+    
+    @MainActor func getPlaidBalance() -> CBPlaidBalance? {
+        plaidModel.balances
+        .filter({ $0.payMethodID == calModel.sPayMethod?.id })
+        .filter ({ bal in
+            if let meth = payModel.paymentMethods.filter({ $0.id == bal.payMethodID }).first {
+                return meth.isAllowedToBeViewedByThisUser
+            } else {
+                return false
+            }
+        })
+        .filter ({ bal in
+            if let meth = payModel.paymentMethods.filter({ $0.id == bal.payMethodID }).first {
+                return !meth.isHidden
+            } else {
+                return false
+            }
+        })
+        .first
     }
     
         

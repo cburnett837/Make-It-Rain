@@ -123,7 +123,7 @@ public enum MetricByPaymentMethodType: String {
 
 
 
-public enum ChartCropingStyle: String {
+public enum ChartCropingStyle: String, CaseIterable {
     case showFullCurrentYear, endAtCurrentMonth
     
     var prettyValue: String {

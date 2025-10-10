@@ -19,7 +19,8 @@ struct StandardNoteTextEditor: View {
             if showSymbol {
                 Image(systemName: "note.text")
                     .foregroundColor(.gray)
-                    .frame(width: symbolWidth)
+                    .font(.title2)
+                    //.frame(width: symbolWidth)
             }
             
             TextEditor(text: $notes)
@@ -30,7 +31,7 @@ struct StandardNoteTextEditor: View {
                 .frame(minHeight: 100)
                 .focused(focusedField.projectedValue, equals: focusID)
                 #if os(iOS)
-                .offset(y: -10)
+                .offset(y: -8)
                 #else
                 .offset(y: 1)
                 #endif
@@ -41,7 +42,7 @@ struct StandardNoteTextEditor: View {
                         .opacity(!notes.isEmpty || focusedField.wrappedValue == focusID ? 0 : 1)
                         .allowsHitTesting(false)
                         #if os(iOS)
-                        .padding(.top, -2)
+                        .padding(.top, 2)
                         #else
                         .offset(y: -1)
                         #endif

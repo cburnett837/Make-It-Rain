@@ -30,11 +30,12 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
     var isNil: Bool = false
     var topTitles: [String] = []
     
-    var isIncome: Bool { type == XrefModel.getItem(from: .categoryTypes, byEnumID: .income) }
-    var isPayment: Bool { type == XrefModel.getItem(from: .categoryTypes, byEnumID: .payment) }
-    var isExpense: Bool { type == XrefModel.getItem(from: .categoryTypes, byEnumID: .expense) }
+    var isIncome: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .income) }
+    var isPayment: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .payment) }
+    var isExpense: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .expense) }
+    var isHidden = false
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, hex_code, emoji, active, user_id, account_id, device_uuid, type_id, list_order, entered_by, updated_by, entered_date, updated_date, is_nil, top_titles }
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, hex_code, emoji, active, user_id, account_id, device_uuid, type_id, list_order, entered_by, updated_by, entered_date, updated_date, is_nil, top_titles, is_hidden }
         
     init() {
         let uuid = UUID().uuidString
@@ -86,11 +87,22 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         self.type = XrefModel.getItem(from: .categoryTypes, byID: Int(entity.typeID) == 0 ? 27 : Int(entity.typeID))
         //self.type = XrefModel.getItem(from: .categoryTypes, byID: Int(entity.typeID))
         self.listOrder = Int(entity.listOrder)
-        self.enteredBy = AppState.shared.user!
-        self.updatedBy = AppState.shared.user!
-        self.enteredDate = Date()
-        self.updatedDate = Date()
+        
+//        self.enteredBy = AppState.shared.user!
+//        self.updatedBy = AppState.shared.user!
+//        self.enteredDate = Date()
+//        self.updatedDate = Date()
+        
+        self.enteredBy = AppState.shared.getUserBy(id: Int(entity.enteredByID)) ?? AppState.shared.user!
+        self.updatedBy = AppState.shared.getUserBy(id: Int(entity.updatedByID)) ?? AppState.shared.user!
+        self.enteredDate = entity.enteredDate ?? Date()
+        self.updatedDate = entity.updatedDate ?? Date()
+        
+        
+        
+        
         self.isNil = entity.isNil
+        self.isHidden = entity.isHidden
     }
     
 //    init(entity: TempCategory) {
@@ -126,6 +138,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date) // for the Transferable protocol
         
         try container.encode(isNil ? 1 : 0, forKey: .is_nil) // for the Transferable protocol
+        try container.encode(isHidden ? 1 : 0, forKey: .is_hidden)
     }
     
     
@@ -195,6 +208,9 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         
         
         self.topTitles = try container.decodeIfPresent(Array<String>.self, forKey: .top_titles) ?? []
+        
+        let isHidden = try container.decode(Int?.self, forKey: .is_hidden)
+        self.isHidden = isHidden == 1
     }
     
     
@@ -213,6 +229,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
             && self.color == deepCopy.color
             && self.type.id == deepCopy.type.id
             && self.listOrder == deepCopy.listOrder
+            && self.isHidden == deepCopy.isHidden
             && self.emoji == deepCopy.emoji {
                 return false
             }
@@ -236,6 +253,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
             copy.action = self.action
             copy.type = self.type
             copy.listOrder = self.listOrder
+            copy.isHidden = self.isHidden
             self.deepCopy = copy
         case .restore:
             if let deepCopy = self.deepCopy {
@@ -248,6 +266,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
                 self.active = deepCopy.active
                 self.action = deepCopy.action
                 self.type = deepCopy.type
+                self.isHidden = deepCopy.isHidden
                 self.listOrder = deepCopy.listOrder
             }
         case .clear:
@@ -268,8 +287,12 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         self.type = category.type
         self.listOrder = category.listOrder
         self.topTitles = category.topTitles
+        self.isHidden = category.isHidden
+        
         self.enteredBy = category.enteredBy
         self.updatedBy = category.updatedBy
+        self.enteredDate = category.enteredDate
+        self.updatedDate = category.updatedDate
     }
     
     
@@ -288,6 +311,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
             && lhs.type == rhs.type
             && lhs.listOrder == rhs.listOrder
             && lhs.isNil == rhs.isNil
+            && lhs.isHidden == rhs.isHidden
             && lhs.active == rhs.active {
             return true
         }

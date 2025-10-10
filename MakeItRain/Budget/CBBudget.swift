@@ -48,6 +48,20 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
     }
     
     
+    init(uuid: String) {
+        self.id = uuid
+        self.uuid = uuid
+        self.category = nil
+        self.month = 0
+        self.year = 0
+        self.amountString = ""
+        self.amountString2 = ""
+        self.active = true
+        self.action = .add
+    }
+    
+    
+    
     enum CodingKeys: CodingKey { case id, uuid, category, month, year, amount, amount2, active, user_id, account_id, device_uuid }
     
     

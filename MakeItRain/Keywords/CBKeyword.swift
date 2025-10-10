@@ -69,10 +69,15 @@ class CBKeyword: Codable, Identifiable {
         self.action = .edit
         self.active = true
         self.action = KeywordAction.fromString(entity.action!)
-        self.enteredBy = AppState.shared.user!
-        self.updatedBy = AppState.shared.user!
-        self.enteredDate = Date()
-        self.updatedDate = Date()
+        //self.enteredBy = AppState.shared.user!
+        //self.updatedBy = AppState.shared.user!
+        //self.enteredDate = Date()
+        //self.updatedDate = Date()
+        
+        self.enteredBy = AppState.shared.getUserBy(id: Int(entity.enteredByID)) ?? AppState.shared.user!
+        self.updatedBy = AppState.shared.getUserBy(id: Int(entity.updatedByID)) ?? AppState.shared.user!
+        self.enteredDate = entity.enteredDate ?? Date()
+        self.updatedDate = entity.updatedDate ?? Date()
     }
     
 //    init(entity: TempKeyword) {
@@ -203,8 +208,11 @@ class CBKeyword: Codable, Identifiable {
         self.triggerType = keyword.triggerType
         self.category = keyword.category
         self.active = keyword.active
+        
         self.enteredBy = keyword.enteredBy
         self.updatedBy = keyword.updatedBy
+        self.enteredDate = keyword.enteredDate
+        self.updatedDate = keyword.updatedDate
     }
     
     

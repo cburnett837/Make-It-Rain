@@ -9,15 +9,12 @@ import SwiftUI
 
 #if os(iOS)
 struct CalendarOptionsSheet: View {
-    @Environment(\.dismiss) var dismiss
-    
-    @Local(\.useWholeNumbers) var useWholeNumbers
     @AppStorage("tightenUpEodTotals") var tightenUpEodTotals = true
-
+    @Local(\.useWholeNumbers) var useWholeNumbers
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
     @Environment(FuncModel.self) var funcModel
-    //@Environment(RootViewModelPhone.self) var vm
     @Environment(CalendarModel.self) var calModel
-    
     @Environment(PayMethodModel.self) var payModel
     @Environment(CategoryModel.self) var catModel
     @Environment(RepeatingTransactionModel.self) var repModel
@@ -37,26 +34,35 @@ struct CalendarOptionsSheet: View {
     var body: some View {
         @Bindable var calModel = calModel
         
-        StandardContainer(.list) {
-            Section {
-                populateButton
-            } footer: {
-                if calModel.sMonth.hasBeenPopulated {
-                    Label(title: {
-                        Text("NOTE: This month has already been populated.")
-                    }, icon: {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
-                    })
+        NavigationStack {
+            StandardContainerWithToolbar(.list) {
+                Section {
+                    populateButton
+                } footer: {
+                    if calModel.sMonth.hasBeenPopulated {
+                        Label(title: {
+                            Text("NOTE: This month has already been populated.")
+                        }, icon: {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange)
+                        })
+                    }
                 }
+                
+                SettingsViewInsert(withDividers: true)
+                resetButton
+                
             }
-            
-            SettingsViewInsert(withDividers: true)
-            resetButton
-            
-        } header: {
-            SheetHeader(title: "Monthly Options", close: { dismiss() })
+            #if os(iOS)
+            .navigationTitle("Monthly Options")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) { closeButton }
+            }
+            #endif
         }
+        
+        
         .sheet(isPresented: $showResetOptionsSheet) {
             ResetMonthOptionSheet()
         }
@@ -265,6 +271,15 @@ struct CalendarOptionsSheet: View {
         }
         .tint(.red)
         .sensoryFeedback(.warning, trigger: buzzForResetMonth) { !$0 && $1 }        
+    }
+    
+    var closeButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "checkmark")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        }
     }
 }
 

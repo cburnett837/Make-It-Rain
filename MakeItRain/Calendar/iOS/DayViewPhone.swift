@@ -9,18 +9,18 @@ import SwiftUI
 
 #if os(iOS)
 struct DayViewPhone: View {
-    @Environment(\.colorScheme) var colorScheme
-    @Local(\.colorTheme) var colorTheme
     @AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
-    @Local(\.useWholeNumbers) var useWholeNumbers
     @AppStorage("tightenUpEodTotals") var tightenUpEodTotals = true
-    @Local(\.threshold) var threshold
     @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
     @AppStorage("phoneLineItemDisplayItem") var phoneLineItemDisplayItem: PhoneLineItemDisplayItem = .both
     
+    @Local(\.colorTheme) var colorTheme
+    @Local(\.useWholeNumbers) var useWholeNumbers
+    @Local(\.threshold) var threshold
     
+    @Environment(\.colorScheme) var colorScheme
+    @Environment(CalendarProps.self) private var calProps
     @Environment(CalendarModel.self) private var calModel
-    
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
@@ -34,19 +34,20 @@ struct DayViewPhone: View {
             return .orange
         }
     }
+    
     private var isToday: Bool {
         AppState.shared.todayDay == (day.dateComponents?.day ?? 0) && AppState.shared.todayMonth == calModel.sMonth.actualNum && AppState.shared.todayYear == calModel.sMonth.year
     }
     
-    @Binding var transEditID: String?
+    //@Binding var transEditID: String?
     @Binding var day: CBDay
-    @Binding var selectedDay: CBDay?
-    @Binding var showTransferSheet: Bool
-    //@Binding var putBackToBottomPanelViewOnRotate: Bool
-    @Binding var showPhotosPicker: Bool
-    @Binding var showCamera: Bool
-    @Binding var overviewDay: CBDay?
-    @Binding var bottomPanelContent: BottomPanelContent?
+    //@Binding var selectedDay: CBDay?
+    //@Binding var showTransferSheet: Bool
+    ////@Binding var putBackToBottomPanelViewOnRotate: Bool
+    //@Binding var showPhotosPicker: Bool
+    //@Binding var showCamera: Bool
+    //@Binding var overviewDay: CBDay?
+    //@Binding var bottomPanelContent: BottomPanelContent?
     
     @State private var showDropActions = false
     @State private var showDailyActions = false
@@ -58,10 +59,23 @@ struct DayViewPhone: View {
     }
     
     let columnGrid = Array(repeating: GridItem(.flexible(), spacing: 3), count: 2)
+        
+    var droppedTitle: String {
+        "\(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())\n\(calModel.transactionToCopy?.title ?? "N/A")"
+    }
+    
+    var droppedMessage: String {
+        "\(calModel.transactionToCopy?.title ?? "N/A")\nDropped on \(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())"
+    }
+    
+    var dateText: String {
+        "\(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())"
+    }
     
    
     var body: some View {
         //let _ = Self._printChanges()
+        @Bindable var calProps = calProps
         @Bindable var calModel = calModel
         Group {
             if day.date == nil {
@@ -89,13 +103,11 @@ struct DayViewPhone: View {
                 .onTapGesture {
                     if phoneLineItemDisplayItem != .both {
                         withAnimation {
-                            overviewDay = day
+                            calProps.overviewDay = day
                             /// Set `selectedDay` to the same day as the overview day that way any transactions or transfers initiated via the bottom panel will have the date of the bottom panel.
                             /// (Since `TransactionEditView` and `TransferSheet` use `selectedDate` as their default date.)
-                            selectedDay = day
-                            
-                            bottomPanelContent = .overviewDay
-                            
+                            calProps.selectedDay = day
+                            calProps.bottomPanelContent = .overviewDay
                         }
                     }
                 }
@@ -107,7 +119,7 @@ struct DayViewPhone: View {
                 .background(
                     RoundedRectangle(cornerRadius: 6)
                         /// Use this to only hilight the overview day.
-                        .fill((overviewDay == day && bottomPanelContent == .overviewDay) || calModel.dragTarget == day ? Color(.tertiarySystemFill) : Color.clear)
+                        .fill((calProps.overviewDay == day && calProps.bottomPanelContent == .overviewDay) || calModel.dragTarget == day ? Color(.tertiarySystemFill) : Color.clear)
                         /// Offset the overlay divider line in `CalendarViewPhone` that separates the weeks.
                         .padding(.bottom, 2)
                 )
@@ -117,7 +129,13 @@ struct DayViewPhone: View {
                     if let trans {
                         if trans.date == day.date {
                             calModel.dragTarget = nil
-                            AppState.shared.showToast(title: "Operation Cancelled", subtitle: "Can't copy or move to the original day", body: "Please try again", symbol: "hand.raised.fill", symbolColor: .orange)
+                            AppState.shared.showToast(
+                                title: "Operation Cancelled",
+                                subtitle: "Can't copy or move to the original day",
+                                body: "Please try again",
+                                symbol: "hand.raised.fill",
+                                symbolColor: .orange
+                            )
                             calModel.transactionToCopy = nil
                             return true
                         }
@@ -136,7 +154,7 @@ struct DayViewPhone: View {
                     }
                 }
                 
-                .confirmationDialog("\(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())\n\(calModel.transactionToCopy?.title ?? "N/A")", isPresented: $showDropActions) {
+                .confirmationDialog(droppedTitle, isPresented: $showDropActions) {
                     moveButton
                     copyAndPasteButton
                     Button("Cancel", role: .cancel) {
@@ -144,22 +162,13 @@ struct DayViewPhone: View {
                         calModel.transactionToCopy = nil
                     }
                 } message: {
-                    Text("\(calModel.transactionToCopy?.title ?? "N/A")\nDropped on \(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())")
+                    Text(droppedMessage)
                 }
                 
-                .confirmationDialog("\(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())", isPresented: $showDailyActions) {
-                    DayContextMenu(
-                        day: day,
-                        selectedDay: $selectedDay,
-                        transEditID: $transEditID,
-                        showTransferSheet: $showTransferSheet,
-                        showCamera: $showCamera,
-                        showPhotosPicker: $showPhotosPicker,
-                        overviewDay: $overviewDay,
-                        bottomPanelContent: $bottomPanelContent
-                    )
+                .confirmationDialog(dateText, isPresented: $showDailyActions) {
+                    DayContextMenu(day: day, selectedDay: $calProps.selectedDay)
                 } message: {
-                    Text("\(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())")
+                    Text(dateText)
                 }
             }
         }
@@ -234,7 +243,9 @@ struct DayViewPhone: View {
     }
     
     
+    @ViewBuilder
     var dailyTransactionList: some View {
+        @Bindable var calProps = calProps
         VStack(alignment: .leading, spacing: 2) {
             
             if calModel.sMonth.transactionCount > (calModel.sMonth.dayCount * 5)
@@ -242,7 +253,7 @@ struct DayViewPhone: View {
                 && phoneLineItemDisplayItem == .both
             {
                 ForEach(filteredTrans.prefix(5)) { trans in
-                    LineItemMiniView(transEditID: $transEditID, trans: trans, day: day)
+                    LineItemMiniView(transEditID: $calProps.transEditID, trans: trans, day: day)
                 }
                 HStack(spacing: 2) {
                     Canvas { context, size in
@@ -277,12 +288,12 @@ struct DayViewPhone: View {
                 
                 if showMoreTrans {
                     ForEach(filteredTrans.suffix(filteredTrans.count - 5)) { trans in
-                        LineItemMiniView(transEditID: $transEditID, trans: trans, day: day)
+                        LineItemMiniView(transEditID: $calProps.transEditID, trans: trans, day: day)
                     }
                 }
             } else {
                 ForEach(filteredTrans) { trans in
-                    LineItemMiniView(transEditID: $transEditID, trans: trans, day: day)
+                    LineItemMiniView(transEditID: $calProps.transEditID, trans: trans, day: day)
                 }
             }
             

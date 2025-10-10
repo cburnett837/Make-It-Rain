@@ -50,7 +50,6 @@ struct LogManager {
     
     
     static func error(_ text: String? = nil, _ file: String? = #fileID, _ line: Int? = #line, _ function: String? = #function, session: String? = nil) {
-        return
         var sesh = ""
         if let session { sesh = "\(session)\n" } else { sesh = "" }
         
@@ -61,6 +60,8 @@ struct LogManager {
             
             """
         )
+        
+        return
         
         if let text {
             Self.logger.log(

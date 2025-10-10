@@ -45,6 +45,10 @@ class CalendarModel: PhotoUploadCompletedDelegate {
     }
     var sCategory: CBCategory? // **EXTRACT**
     var sCategories: [CBCategory] = [] // **EXTRACT**
+    
+    var isPlayground: Bool {
+        sYear == 1900
+    }
    
     
     /// This gets set to prevent that currently edited transaction from being updates by the long poll or scene change.
@@ -246,9 +250,11 @@ class CalendarModel: PhotoUploadCompletedDelegate {
                 if let budgets = model.budgets {
                     for budget in budgets {
                         if month.budgets.contains(where: { $0.id == budget.id }) {
+                            print("Processing budget for \(month.actualNum)-\(month.year) --- \(budget.category?.title)-\(budget.month)-\(budget.year) -- updating")
                             let index = month.budgets.firstIndex(where: { $0.id == budget.id })!
                             month.budgets[index] = budget
                         } else {
+                            print("Processing budget for \(month.actualNum)-\(month.year) --- \(budget.category?.title)-\(budget.month)-\(budget.year) -- adding")
                             month.budgets.append(budget)
                         }
                     }
@@ -264,6 +270,15 @@ class CalendarModel: PhotoUploadCompletedDelegate {
 //                }
                 
                 let _ = calculateTotal(for: month)
+                
+                
+                /// Run this when switching years.
+                if month.enumID == self.sMonth.enumID {
+                    /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
+                    /// So we use the ``DataChangeTriggers`` class to send a notification to the view to tell it to recalculate.
+                    DataChangeTriggers.shared.viewDidChange(.calendar)
+                }
+                
             }
             if createNewStructs {
                 withAnimation {
@@ -330,7 +345,9 @@ class CalendarModel: PhotoUploadCompletedDelegate {
         /// The reason being - in case we change a transction category or payment method from what is currently being viewed. This will allow the transaction sheet to remain on screen until we close it, at which point the save function will clear the deepCopy.
         return day.transactions
             /// FIlter by active transactions.
-            .filter { trans in trans.active }
+            .filter { $0.active }
+            /// Omit transactions that are being added.
+            .filter { $0.action == .edit }
             /// Filter by search term & category.
             .filter { trans in
                 if searchText.isEmpty {
@@ -367,7 +384,7 @@ class CalendarModel: PhotoUploadCompletedDelegate {
                     && trans.isAllowedToBeViewedByThisUser
                     
                 } else if sPayMethod?.accountType == .unifiedCredit {
-                    return ([AccountType.credit].contains { trans.payMethodTypesInCurrentAndDeepCopy.contains($0) } || (trans.action == .add && trans.payMethod == nil))
+                    return ([AccountType.credit, AccountType.loan].contains { trans.payMethodTypesInCurrentAndDeepCopy.contains($0) } || (trans.action == .add && trans.payMethod == nil))
                     && !trans.hasHiddenMethodInCurrentOrDeepCopy
                     && trans.isAllowedToBeViewedByThisUser
                     
@@ -401,6 +418,8 @@ class CalendarModel: PhotoUploadCompletedDelegate {
             .filter { $0.active }
             .filter { $0.dateComponents?.month == cbMonth.actualNum && $0.dateComponents?.year == cbMonth.year }
             //.filter { $0.payMethod?.id == meth.id }
+        
+            /// Filter by search term.
             .filter { trans in
                 if searchText.isEmpty {
                     if !sCategories.isEmpty {
@@ -428,23 +447,39 @@ class CalendarModel: PhotoUploadCompletedDelegate {
                     }
                 }
             }
+            /// Filter by account type and if the method is supposed to be hidden from the list.
             .filter { trans in
                 if meth.accountType == .unifiedChecking {
                     return [AccountType.checking, AccountType.cash].contains(trans.payMethod?.accountType)
                     && !trans.hasHiddenMethodInCurrentOrDeepCopy
-                    && !trans.hasPrivateMethodInCurrentOrDeepCopy
+                    //&& !trans.hasPrivateMethodInCurrentOrDeepCopy
+                    //&& (trans.payMethod ?? CBPaymentMethod()).isAllowedToBeViewedByThisUser ? true : !trans.hasPrivateMethodInCurrentOrDeepCopy
                     
                 } else if meth.accountType == .unifiedCredit {
-                    return [AccountType.credit].contains(trans.payMethod?.accountType)
+                    return [AccountType.credit, AccountType.loan].contains(trans.payMethod?.accountType)
                     && !trans.hasHiddenMethodInCurrentOrDeepCopy
-                    && !trans.hasPrivateMethodInCurrentOrDeepCopy
+                    //&& !trans.hasPrivateMethodInCurrentOrDeepCopy
                     
                 } else {
                     return trans.payMethod?.id == meth.id
                     && !trans.hasHiddenMethodInCurrentOrDeepCopy
-                    && !trans.hasPrivateMethodInCurrentOrDeepCopy
+                    //&& !trans.hasPrivateMethodInCurrentOrDeepCopy
                 }
             }
+            /// Filter the private payment methods.
+            .filter { trans in
+                if let meth = trans.payMethod {
+                    if meth.isAllowedToBeViewedByThisUser {
+                        return true
+                    } else {
+                        return false
+                    }
+                } else {
+                    return true
+                }
+            }
+        
+        
             .count
     }
     
@@ -695,6 +730,7 @@ class CalendarModel: PhotoUploadCompletedDelegate {
             return false
         }
         
+        print("-- \(#function) -- default assumption")
         return true
     }
   
@@ -974,6 +1010,9 @@ class CalendarModel: PhotoUploadCompletedDelegate {
                     trans2.updatedBy = AppState.shared.user!
                     trans2.updatedDate = Date()
                     
+                    trans2.factorInCalculations = trans.factorInCalculations
+                    //trans2.color = trans.color
+                    
                     /// Update the linked date
                     if trans.dateChanged() {
                         trans2.date = trans.date
@@ -983,14 +1022,14 @@ class CalendarModel: PhotoUploadCompletedDelegate {
                     /// Update the dollar amounts accordingly
                     let useWholeNumbers = LocalStorage.shared.useWholeNumbers
                     if trans.payMethod?.accountType != .credit {
-                        if trans2.payMethod?.accountType == .credit {
+                        if trans2.payMethod?.accountType == .credit || trans2.payMethod?.accountType == .loan {
                             trans2.amountString = (trans.amount * 1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
                         } else {
                             trans2.amountString = (trans.amount * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
                         }
                         
                     } else {
-                        if trans2.payMethod?.accountType == .credit {
+                        if trans2.payMethod?.accountType == .credit || trans2.payMethod?.accountType == .loan {
                             trans2.amountString = (trans.amount * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
                         } else {
                             trans2.amountString = (trans.amount * 1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
@@ -1036,6 +1075,10 @@ class CalendarModel: PhotoUploadCompletedDelegate {
                 }
                 
             }
+            
+            /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
+            /// So we use the ``DataChangeTriggers`` class to send a notification to the view to tell it to recalculate.
+            DataChangeTriggers.shared.viewDidChange(.calendar)
         } else {
             print("❌ Trans is not valid to save")
         }
@@ -1360,6 +1403,11 @@ class CalendarModel: PhotoUploadCompletedDelegate {
     @MainActor
     func addMultiple(trans: Array<CBTransaction>, budgets: Array<CBBudget>, isTransfer: Bool) async {
         
+        /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
+        /// So we use the ``DataChangeTriggers`` class to send a notification to the view to tell it to recalculate.
+        DataChangeTriggers.shared.viewDidChange(.calendar)
+        
+        
         //LoadingManager.shared.startDelayedSpinner()
         LogManager.log()
         
@@ -1408,14 +1456,6 @@ class CalendarModel: PhotoUploadCompletedDelegate {
                         }
                     }
                 }
-                
-                
-//                if isTransfer {
-//                    transferTransactions[0].relatedTransactionID = transferTransactions[1].id
-//                    transferTransactions[1].relatedTransactionID = transferTransactions[0].id
-//                }
-                
-                
             }
         case .failure(let error):
             LogManager.error(error.localizedDescription)
@@ -2087,7 +2127,7 @@ class CalendarModel: PhotoUploadCompletedDelegate {
         } else if theMethod?.accountType == .unifiedCredit {            
             return calculateUnifiedCredit(for: month, and: doWhat)
                                                 
-        } else if theMethod?.accountType == .credit {
+        } else if theMethod?.accountType == .credit || theMethod?.accountType == .loan {
             return calculateCredit(for: month, using: theMethod, and: doWhat)
             
         } else {
@@ -2137,7 +2177,7 @@ class CalendarModel: PhotoUploadCompletedDelegate {
             /// To show available credit.
             let cumulativeLimits = PayMethodModel.shared
                 .paymentMethods
-                .filter { $0.accountType == .credit }
+                .filter { $0.isCreditOrLoan }
                 .filter { $0.isAllowedToBeViewedByThisUser }
                 .filter { !$0.isHidden }
                 .map { $0.limit ?? 0.0 }
@@ -2151,7 +2191,7 @@ class CalendarModel: PhotoUploadCompletedDelegate {
                             
         month.days.forEach { day in
             let amounts = day.transactions
-                .filter { $0.payMethod?.accountType == .credit }
+                .filter { ($0.payMethod?.isCreditOrLoan ?? false) }
                 .filter { $0.active }
                 .filter { $0.factorInCalculations }
                 .filter { ($0.payMethod?.isAllowedToBeViewedByThisUser ?? true) }
@@ -2322,13 +2362,13 @@ class CalendarModel: PhotoUploadCompletedDelegate {
                                             
                                             fromTrans.relatedTransactionID = toTrans.id
                                             fromTrans.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
-                                            
-                                            
-                                            
+                                                                                                                                    
                                             if repTrans.repeatingTransactionType.enumID == XrefEnum.payment {
                                                 fromTrans.title = "Payment to \(repTrans.payMethodPayTo?.title ?? "")"
+                                                fromTrans.isPaymentOrigin = true
                                             } else {
                                                 fromTrans.title = "Transfer to \(repTrans.payMethodPayTo?.title ?? "")"
+                                                fromTrans.isTransferOrigin = true
                                             }
                                             
                                             toTrans.relatedTransactionID = fromTrans.id
@@ -2337,15 +2377,12 @@ class CalendarModel: PhotoUploadCompletedDelegate {
                                             
                                             if repTrans.repeatingTransactionType.enumID == XrefEnum.payment {
                                                 toTrans.title = "Payment from \(repTrans.payMethod?.title ?? "")"
+                                                toTrans.isPaymentDest = true
                                             } else {
                                                 toTrans.title = "Transfer from \(repTrans.payMethod?.title ?? "")"
+                                                toTrans.isTransferDest = true
                                             }
-                                            
-                                            if repTrans.repeatingTransactionType.enumID == XrefEnum.payment {
-                                                toTrans.isPayment = true
-                                            }
-                                            
-                                            
+                                                                                        
                                             if fromTrans.isExpense && repTrans.repeatingTransactionType.enumID != XrefEnum.payment {
                                                 toTrans.amountString = toTrans.amountString.replacingOccurrences(of: "-", with: "")
                                             }

@@ -29,8 +29,10 @@ class FetchLogModel: Encodable {
 }
 
 struct LogSheet: View {
+    @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
     
+    var title: String
     let itemID: String
     let logType: LogType
     @State private var logGroups: [CBLogGroup] = []
@@ -55,29 +57,35 @@ struct LogSheet: View {
                     }
                 } label: {
                     Image(systemName: "arrow.triangle.2.circlepath")
+                        .foregroundStyle(colorScheme == .dark ? .white : .black)
                 }
             }
         }
     }
     
     var body: some View {
-        StandardContainer(.plainList) {
-            if showNoLogs {
-                Spacer()
-                ContentUnavailableView("No Logs", systemImage: "square.stack.3d.up.slash.fill", description: Text("Logs will appear here when changes are made."))
-                Spacer()
-            } else {
-                content
+        NavigationStack {
+            StandardContainerWithToolbar(showNoLogs ? .scrolling : .plainList) {
+                if showNoLogs {
+                    Spacer()
+                    ContentUnavailableView("No Logs", systemImage: "square.stack.3d.up.slash.fill", description: Text("Logs will appear here when changes are made."))
+                    Spacer()
+                } else {
+                    content
+                }
             }
-        } header: {
-            SheetHeader(
-                title: "Change Logs",
-                close: { dismiss() },
-                view1: { refreshButton }
-            )
-        }
-        .task {
-            await fetchLogs()
+            .navigationTitle("Change Logs")
+            .navigationSubtitle(title)
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) { refreshButton }
+                ToolbarItem(placement: .topBarTrailing) { closeButton }
+            }
+            #endif
+            .task {
+                await fetchLogs()
+            }
         }
     }
     
@@ -117,6 +125,17 @@ struct LogSheet: View {
         #if os(iOS)
         .listSectionSpacing(50)
         #endif
+    }
+    
+    
+    var closeButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "checkmark")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        }
+        //.buttonStyle(.glassProminent)
     }
     
     

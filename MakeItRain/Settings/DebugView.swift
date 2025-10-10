@@ -10,6 +10,7 @@ import SwiftUI
 struct DebugView: View {
     @AppStorage("debugPrint") var debugPrint = false
 
+    @Environment(CalendarModel.self) var calModel
     @Environment(FuncModel.self) var funcModel
     
     @State private var plaidCosts: Array<PlaidForceRefreshCost> = []
@@ -18,6 +19,7 @@ struct DebugView: View {
         List {
             Section {
                 dumpCoreDataButton
+                printAllBudgetsButton
             }
             
             Section("Xcode") {
@@ -55,6 +57,19 @@ struct DebugView: View {
                 //print(saveResult3)
                 
                 let _ = DataManager.shared.save(context: context)
+            }
+        }
+    }
+    
+    
+    var printAllBudgetsButton: some View {
+        Button("Print Budgets") {
+            for month in calModel.months {
+                let budgets = month.budgets
+                for budget in budgets {
+                    print("budget for \(month.actualNum)-\(month.year) --- \(budget.category?.title)-\(budget.month)-\(budget.year)")
+                }
+                
             }
         }
     }
@@ -152,25 +167,8 @@ struct DebugView: View {
     
     @ToolbarContentBuilder
     func phoneToolbar() -> some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            if AppState.shared.isIpad {
-                HStack(spacing: 20) {
-                    ToolbarRefreshButton()
-                        .disabled(!AppState.shared.methsExist)
-                    
-                    ToolbarLongPollButton()
-                }
-            }
-        }
-        
-        if AppState.shared.isIphone {
-            ToolbarItem(placement: .topBarTrailing) {
-                HStack(spacing: 20) {
-                    ToolbarRefreshButton()
-                        .disabled(!AppState.shared.methsExist)
-                }
-            }
-        }
+        ToolbarItem(placement: .topBarTrailing) { ToolbarLongPollButton() }
+        ToolbarItem(placement: .topBarTrailing) { ToolbarRefreshButton() }                        
     }
     
     #endif

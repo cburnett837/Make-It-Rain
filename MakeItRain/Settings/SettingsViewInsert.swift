@@ -33,6 +33,8 @@ struct SettingsViewInsert: View {
     @Environment(CategoryModel.self) var catModel
     @Environment(CalendarModel.self) var calModel
     
+    @State private var showDemoSheet = false
+    @State private var demoButtonText = "Show Sheet Demo"
 
     
     @State private var demoDay = CBDay(date: Date())
@@ -87,6 +89,15 @@ struct SettingsViewInsert: View {
             updatedByOtherPerson
                     
             sortingOptions
+            
+            Button(demoButtonText) {
+                showDemoSheet = true
+            }
+            .sheet(isPresented: $showDemoSheet, onDismiss: {
+                demoButtonText = "Dismissed"
+            }) {
+                Text("hey")
+            }
             
             
             Section {

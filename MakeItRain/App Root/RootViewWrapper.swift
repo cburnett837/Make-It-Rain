@@ -13,6 +13,8 @@ import UIKit
 
 struct RootViewWrapper<Content: View>: View {
     @Environment(FuncModel.self) var funcModel
+    @Environment(DataChangeTriggers.self) var dataChangeTriggers
+    @Environment(CalendarProps.self) private var calProps
     @Environment(CalendarModel.self) private var calModel
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
@@ -54,6 +56,8 @@ struct RootViewWrapper<Content: View>: View {
                     .environment(repModel)
                     .environment(eventModel)
                     .environment(plaidModel)
+                    .environment(calProps)
+                    .environment(dataChangeTriggers)
                     //.environment(mapModel)
             }
             .sheet(isPresented: $appState.showPaymentMethodNeededSheet, onDismiss: funcModel.downloadInitial) {
@@ -76,6 +80,8 @@ struct RootViewWrapper<Content: View>: View {
                     .environment(repModel)
                     .environment(eventModel)
                     .environment(plaidModel)
+                    .environment(calProps)
+                    .environment(dataChangeTriggers)
                     //.environment(mapModel)
             )
             rootVC.view.backgroundColor = .clear

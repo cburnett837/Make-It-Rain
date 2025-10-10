@@ -9,44 +9,43 @@ import SwiftUI
 
 struct DayContextMenu: View {
     @Local(\.colorTheme) var colorTheme
-    
+    @Environment(CalendarProps.self) private var calProps
     @Environment(CalendarModel.self) private var calModel
         
     @Bindable var day: CBDay
-    
     @Binding var selectedDay: CBDay?
-    @Binding var transEditID: String?
-    @Binding var showTransferSheet: Bool
-    @Binding var showCamera: Bool
-    @Binding var showPhotosPicker: Bool
-    @Binding var overviewDay: CBDay?
-    @Binding var bottomPanelContent: BottomPanelContent?
+    //@Binding var transEditID: String?
+    //@Binding var showTransferSheet: Bool
+    //@Binding var showCamera: Bool
+    //@Binding var showPhotosPicker: Bool
+    //@Binding var overviewDay: CBDay?
+    //@Binding var bottomPanelContent: BottomPanelContent?
     
     init(
         day: CBDay,
         selectedDay: Binding<CBDay?>,
-        transEditID: Binding<String?>,
-        showTransferSheet: Binding<Bool>,
-        showCamera: Binding<Bool>,
-        showPhotosPicker: Binding<Bool>,
-        overviewDay: Binding<CBDay?> = Binding.constant(nil),
-        bottomPanelContent: Binding<BottomPanelContent?> = Binding.constant(nil)
+        //transEditID: Binding<String?>,
+        //showTransferSheet: Binding<Bool>,
+        //showCamera: Binding<Bool>,
+        //showPhotosPicker: Binding<Bool>,
+        //overviewDay: Binding<CBDay?> = Binding.constant(nil),
+        //bottomPanelContent: Binding<BottomPanelContent?> = Binding.constant(nil)
     ) {
         self.day = day
         self._selectedDay = selectedDay
-        self._transEditID = transEditID
-        self._showTransferSheet = showTransferSheet
-        self._showCamera = showCamera
-        self._showPhotosPicker = showPhotosPicker
-        self._overviewDay = overviewDay
-        self._bottomPanelContent = bottomPanelContent
+        //self._transEditID = transEditID
+        //self._showTransferSheet = showTransferSheet
+        //self._showCamera = showCamera
+        //self._showPhotosPicker = showPhotosPicker
+        //self._overviewDay = overviewDay
+        //self._bottomPanelContent = bottomPanelContent
     }
     
     var body: some View {
         Section {
             Button {
                 selectedDay = day
-                transEditID = UUID().uuidString
+                calProps.transEditID = UUID().uuidString
             } label: {
                 Label {
                     Text("New Transaction")
@@ -57,7 +56,7 @@ struct DayContextMenu: View {
             
             Button {
                 selectedDay = day
-                showTransferSheet = true
+                calProps.showTransferSheet = true
             } label: {
                 Label {
                     Text("New Transfer / Payment")
@@ -79,7 +78,7 @@ struct DayContextMenu: View {
                 calModel.smartTransactionDate = day.date!
                 calModel.isUploadingSmartTransactionPicture = true
                 
-                showCamera = true
+                calProps.showCamera = true
             } label: {
                 Label {
                     Text("Capture Receipt")
@@ -96,7 +95,7 @@ struct DayContextMenu: View {
                 calModel.isUploadingSmartTransactionPicture = true
                 //calModel.pendingSmartTransaction = trans
                 //calModel.pictureTransactionID = newID
-                showPhotosPicker = true
+                calProps.showPhotosPicker = true
             } label: {
                 Label {
                     Text("Select Receipt")
@@ -132,12 +131,12 @@ struct DayContextMenu: View {
         
         Button {
             withAnimation {
-                overviewDay = day
+                calProps.overviewDay = day
                 /// Set `selectedDay` to the same day as the overview day that way any transactions or transfers initiated via the bottom panel will have the date of the bottom panel.
                 /// (Since `TransactionEditView` and `TransferSheet` use `selectedDate` as their default date.)
                 selectedDay = day
                 
-                bottomPanelContent = .overviewDay
+                calProps.bottomPanelContent = .overviewDay
             }
         } label: {
             Text("Overview")

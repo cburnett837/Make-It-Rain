@@ -94,6 +94,12 @@ class PayMethodModel {
                 entity.isPrivate = payMethod.isPrivate
                 entity.action = "edit"
                 entity.isPending = false
+                
+                entity.enteredByID = Int64(payMethod.enteredBy.id)
+                entity.updatedByID = Int64(payMethod.updatedBy.id)
+                entity.enteredDate = payMethod.enteredDate
+                entity.updatedDate = payMethod.updatedDate
+                
                 return DataManager.shared.save(context: context)
             } else {
                 return .failure(.notFound)
@@ -165,6 +171,11 @@ class PayMethodModel {
                                 entity.action = "edit"
                                 entity.isPending = false
                                 
+                                entity.enteredByID = Int64(payMethod.enteredBy.id)
+                                entity.updatedByID = Int64(payMethod.updatedBy.id)
+                                entity.enteredDate = payMethod.enteredDate
+                                entity.updatedDate = payMethod.updatedDate
+                                
                                 let _ = DataManager.shared.save(context: context)
                             }
                         }
@@ -229,6 +240,12 @@ class PayMethodModel {
                 entity.isHidden = payMethod.isHidden
                 entity.isPrivate = payMethod.isPrivate
                 entity.isPending = true
+                
+                entity.enteredByID = Int64(payMethod.enteredBy.id)
+                entity.updatedByID = Int64(payMethod.updatedBy.id)
+                entity.enteredDate = payMethod.enteredDate
+                entity.updatedDate = payMethod.updatedDate
+                
                 let _ = DataManager.shared.save(context: context)
             }
         }
@@ -468,13 +485,13 @@ class PayMethodModel {
     
     
     @MainActor
-    func fetchStartingAmountsForDateRange2(_ analModel: AnalysisRequestModel) async -> Array<CBPaymentMethod>? {
+    func fetchAnalytics(_ analModel: AnalysisRequestModel) async -> Array<CBPaymentMethod>? {
         print("-- \(#function)")
         //LoadingManager.shared.startDelayedSpinner()
         LogManager.log()
       
         /// Networking
-        let model = RequestModel(requestType: "fetch_starting_amounts_for_date_range2", model: analModel)
+        let model = RequestModel(requestType: "fetch_analytics_for_payment_method", model: analModel)
         
         typealias ResultResponse = Result<Array<CBPaymentMethod>?, AppError>
         async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)

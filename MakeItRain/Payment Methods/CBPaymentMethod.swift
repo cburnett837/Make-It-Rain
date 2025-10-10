@@ -48,6 +48,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
     var loanDurationString: String?
     
     var isAllowedToBeViewedByThisUser: Bool {
+        //return isPrivate ? AppState.shared.user!.id == enteredBy.id : true
         if isPrivate {
             //print("isAllowedToBeViewedByThisUser 1: \(AppState.shared.user!.id) -- \(enteredBy.id)")
             return AppState.shared.user!.id == enteredBy.id
@@ -55,6 +56,10 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
             //print("isAllowedToBeViewedByThisUser 2: \(AppState.shared.user!.id) -- \(enteredBy.id)")
             return true
         }
+    }
+    
+    var isCreditOrLoan: Bool {
+        self.accountType == .credit || self.accountType == .loan
     }
     
     
@@ -87,7 +92,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
     
     // MARK: - View Helper Variables
     var isUnified: Bool { accountType == .unifiedChecking || accountType == .unifiedCredit }
-    var isCredit: Bool { accountType == .unifiedCredit || accountType == .credit }
+    var isCredit: Bool { accountType == .unifiedCredit || accountType == .credit || accountType == .loan }
     var isDebit: Bool { accountType == .unifiedChecking || accountType == .checking || accountType == .cash }
     var isUnifiedDebit: Bool { accountType == .unifiedChecking }
     var isUnifiedCredit: Bool { accountType == .unifiedCredit }
@@ -164,10 +169,18 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
         self.last4 = entity.last4
         self.interestRateString = String(entity.interestRate)
         self.loanDurationString = String(entity.loanDuration)
-        self.enteredBy = AppState.shared.user!
-        self.updatedBy = AppState.shared.user!
-        self.enteredDate = Date()
-        self.updatedDate = Date()
+        
+//        self.enteredBy = AppState.shared.user!
+//        self.updatedBy = AppState.shared.user!
+//        self.enteredDate = Date()
+//        self.updatedDate = Date()
+        
+        self.enteredBy = AppState.shared.getUserBy(id: Int(entity.enteredByID)) ?? AppState.shared.user!
+        self.updatedBy = AppState.shared.getUserBy(id: Int(entity.updatedByID)) ?? AppState.shared.user!
+        self.enteredDate = entity.enteredDate ?? Date()
+        self.updatedDate = entity.updatedDate ?? Date()
+        
+        
         self.isHidden = entity.isHidden
         self.isPrivate = entity.isPrivate
     }
@@ -392,8 +405,11 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
         self.loanDurationString = payMethod.loanDurationString
         self.isHidden = payMethod.isHidden
         self.isPrivate = payMethod.isPrivate
+        
         self.enteredBy = payMethod.enteredBy
         self.updatedBy = payMethod.updatedBy
+        self.enteredDate = payMethod.enteredDate
+        self.updatedDate = payMethod.updatedDate
     }
             
     

@@ -6,6 +6,22 @@
 //
 
 import Foundation
+
+extension Date? {
+    public var isToday: Bool {
+        let now = Date()
+        //var todayDay = Calendar.current.component(.day, from: now)
+        //var todayMonth = Calendar.current.component(.month, from: now)
+        //var todayYear = Calendar.current.component(.year, from: now)
+        
+        return
+            self?.day == AppState.shared.todayDay
+            && self?.month == AppState.shared.todayMonth
+            && self?.year == AppState.shared.todayYear
+    }
+}
+
+
 extension Date {
     func string(to format: DateFormat) -> String {
         let dateFormatter = DateFormatter()
@@ -138,6 +154,18 @@ extension Date {
     
     public var year: Int {
         return Calendar.current.dateComponents([.year], from: self).year!
+    }
+    
+    public var isToday: Bool {
+        let now = Date()
+        var todayDay = Calendar.current.component(.day, from: now)
+        var todayMonth = Calendar.current.component(.month, from: now)
+        var todayYear = Calendar.current.component(.year, from: now)
+        
+        return
+            self.day == AppState.shared.todayDay
+            && self.month == AppState.shared.todayMonth
+            && self.year == AppState.shared.todayYear
     }
     
 //    func getAllDates() -> [Date] {

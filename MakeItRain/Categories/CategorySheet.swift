@@ -9,6 +9,8 @@ import SwiftUI
 
 struct CategorySheet: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+
     @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
     @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
     
@@ -43,6 +45,7 @@ struct CategorySheet: View {
     var filteredCategories: Array<CBCategory> {
         if searchText.isEmpty {
             return catModel.categories
+                .filter { !$0.isHidden }
                 .filter { !$0.isNil }
                 .sorted {
                     categorySortMode == .title
@@ -52,6 +55,7 @@ struct CategorySheet: View {
         } else {
             return catModel.categories
                 .filter { $0.title.localizedStandardContains(searchText) }
+                .filter { !$0.isHidden }
                 .filter { !$0.isNil }
                 .sorted {
                     categorySortMode == .title
@@ -61,46 +65,42 @@ struct CategorySheet: View {
         }
     }
     
-    var sortMenu: some View {
-        Menu {
-            Button {
-                categorySortMode = .title
-            } label: {
-                Label {
-                    Text("Title")
-                } icon: {
-                    Image(systemName: categorySortMode == .title ? "checkmark" : "textformat.abc")
-                }
-            }
-            
-            Button {
-                categorySortMode = .listOrder
-            } label: {
-                Label {
-                    Text("Custom")
-                } icon: {
-                    Image(systemName: categorySortMode == .listOrder ? "checkmark" : "list.bullet")
-                }
-            }
-        } label: {
-            Image(systemName: "arrow.up.arrow.down")
-        }
-    }
-    
     
     var body: some View {
-        StandardContainer(.list) {
-            noneSection
-            yourCategoriesSection
-        } header: {
-            SheetHeader(title: "Select Category", close: { dismiss() }, view1: { sortMenu })
-        } subHeader: {
-            SearchTextField(title: "Categories", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)
-                .padding(.horizontal, -20)
-                #if os(macOS)
-                .focusable(false) /// prevent mac from auto focusing
-                #endif
+        NavigationStack {
+            StandardContainerWithToolbar(.list) {
+                if filteredCategories.isEmpty {
+                    ContentUnavailableView("No categories found", systemImage: "exclamationmark.magnifyingglass")
+                } else {
+                    noneSection
+                    yourCategoriesSection
+                }
+            }
+            //.scrollEdgeEffectStyle(.hard, for: .all)
+            .searchable(text: $searchText, prompt: Text("Search"))
+            #if os(iOS)
+            .navigationTitle("Select Category")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) { sortMenu }
+                ToolbarItem(placement: .topBarTrailing) { closeButton }
+            }
+            #endif
         }
+        
+//        
+//        StandardContainer(.list) {
+//            noneSection
+//            yourCategoriesSection
+//        } header: {
+//            SheetHeader(title: "Select Category", close: { dismiss() }, view1: { sortMenu })
+//        } subHeader: {
+//            SearchTextField(title: "Categories", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)
+//                .padding(.horizontal, -20)
+//                #if os(macOS)
+//                .focusable(false) /// prevent mac from auto focusing
+//                #endif
+//        }
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
         .sheet(item: $editCategory, onDismiss: {
             categoryEditID = nil
@@ -138,6 +138,7 @@ struct CategorySheet: View {
             .onTapGesture { doIt(theNil) }
         }
     }
+    
     
     var yourCategoriesSection: some View {
         Section("Your Categories") {
@@ -188,6 +189,49 @@ struct CategorySheet: View {
             }
         }
     }
+    
+    
+    var sortMenu: some View {
+        Menu {
+            Button {
+                withAnimation {
+                    categorySortMode = .title
+                }
+            } label: {
+                Label {
+                    Text("Title")
+                } icon: {
+                    Image(systemName: categorySortMode == .title ? "checkmark" : "textformat.abc")
+                }
+            }
+            
+            Button {
+                withAnimation {
+                    categorySortMode = .listOrder
+                }
+            } label: {
+                Label {
+                    Text("Custom")
+                } icon: {
+                    Image(systemName: categorySortMode == .listOrder ? "checkmark" : "list.bullet")
+                }
+            }
+        } label: {
+            Image(systemName: "arrow.up.arrow.down")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        }
+    }
+        
+    
+    var closeButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "checkmark")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        }
+    }
+    
     
     func doIt(_ cat: CBCategory?) {
         category = cat

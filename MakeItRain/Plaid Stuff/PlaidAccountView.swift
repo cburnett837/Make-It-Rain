@@ -10,6 +10,7 @@ import SwiftUI
 #if os(iOS)
 struct PlaidAccountView: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
     @Environment(PlaidModel.self) private var plaidModel
     @Environment(PayMethodModel.self) private var payModel
     
@@ -30,66 +31,60 @@ struct PlaidAccountView: View {
 
     
     var body: some View {
-        StandardContainer(.list) {
-            titleRow
-            
-            
-            if account.paymentMethodID == nil {
-                Section {
-                    Button("Link to Make It Rain") {
-                        showPayMethodSheet = true
-                    }
-                } footer: {
-                    Text("In order to see transactions from this plaid account, please link it with a Make It Rain account.")
-                }
-            } else {
-                if let payMethod = payModel.paymentMethods.filter({ $0.id == account.paymentMethodID! }).first {
+        NavigationStack {
+            StandardContainerWithToolbar(.list) {
+                titleRow
+                
+                if account.paymentMethodID == nil {
                     Section {
-                        HStack {
-                            Circle()
-                                .fill(payMethod.color)
-                                .frame(width: 12, height: 12)
-                            Text("\(payMethod.title)")
-                            Spacer()
-                        }
-                        .contentShape(Rectangle())
-                        .onTapGesture {
+                        Button("Link to Make It Rain") {
                             showPayMethodSheet = true
                         }
-                        
-                        Button("Unlink") {
-                            account.paymentMethodID = nil
-                            plaidModel.trans.removeAll(where: { $0.payMethod?.id == payMethod.id })
-                            
-                            Task {
-                                await plaidModel.submit(account)
-                            }
-                        }
-                        .tint(.red)
-                    } header: {
-                        Text("Make It Rain Account")
                     } footer: {
-                        Text("If you unlink this account, you will no longer receive transactions from it.")
+                        Text("In order to see transactions from this plaid account, please link it with a Make It Rain account.")
+                    }
+                } else {
+                    if let payMethod = payModel.paymentMethods.filter({ $0.id == account.paymentMethodID! }).first {
+                        Section {
+                            HStack {
+                                Circle()
+                                    .fill(payMethod.color)
+                                    .frame(width: 12, height: 12)
+                                Text("\(payMethod.title)")
+                                Spacer()
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                showPayMethodSheet = true
+                            }
+                            
+                            Button("Unlink") {
+                                account.paymentMethodID = nil
+                                plaidModel.trans.removeAll(where: { $0.payMethod?.id == payMethod.id })
+                                
+                                Task {
+                                    await plaidModel.submit(account)
+                                }
+                            }
+                            .tint(.red)
+                        } header: {
+                            Text("Make It Rain Account")
+                        } footer: {
+                            Text("If you unlink this account, you will no longer receive transactions from it.")
+                        }
                     }
                 }
+                
             }
-            
-        } header: {
-            header
+            .navigationTitle(account.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) { deleteButton }
+                ToolbarItem(placement: .topBarTrailing) { closeButton }
+            }
         }
         .task { await prepareView() }
-        .confirmationDialog("Delete \"\(account.title)\"?", isPresented: $showDeleteAlert, actions: {
-            Button("Yes", role: .destructive, action: deleteAccount)
-            Button("No", role: .cancel) { showDeleteAlert = false }
-        }, message: {
-            #if os(iOS)
-            Text("Delete \"\(account.title)\"?\nThis will also delete all associated transactions.")
-            #else
-            Text("This will also delete all associated transactions.")
-            #endif
-        })
         .sheet(isPresented: $showPayMethodSheet) {
-            
             if let resultingPayMethod = resultingPayMethod {
                 account.paymentMethodID = resultingPayMethod.id
                 Task {
@@ -98,24 +93,31 @@ struct PlaidAccountView: View {
             }
             
             resultingPayMethod = nil
-            
         } content: {
             PayMethodSheet(payMethod: $resultingPayMethod, whichPaymentMethods: .remainingAvailbleForPlaid)
         }
     }
     
+    
     var titleRow: some View {
-        LabeledRow("Name", labelWidth) {
+        HStack(spacing: 0) {
+            Label {
+                Text("")
+            } icon: {
+                Image(systemName: "t.circle")
+                    .foregroundStyle(.gray)
+            }
             Group {
                 #if os(iOS)
                 UITextFieldWrapper(placeholder: "Name", text: $account.title, toolbar: {
                     KeyboardToolbarView(focusedField: $focusedField)
                 })
                 .uiTag(0)
-                .uiTextAlignment(.right)
                 .uiClearButtonMode(.whileEditing)
                 .uiStartCursorAtEnd(true)
-
+                .uiTextAlignment(.left)
+                //.uiFont(UIFont.systemFont(ofSize: 24.0))
+                
                 //            StandardUITextField("Name", text: $bank.title, toolbar: {
                 //                KeyboardToolbarView(focusedField: $focusedField)
                 //            })
@@ -126,17 +128,31 @@ struct PlaidAccountView: View {
                 #endif
             }
             .focused($focusedField, equals: 0)
-            
         }
+            
+        
     }
     
-    var header: some View {
-        SheetHeader(
-            title: account.title,
-            close: { editID = nil; dismiss() },
-            view3: { deleteButton }
-        )
+    
+//    var header: some View {
+//        SheetHeader(
+//            title: account.title,
+//            close: { editID = nil; dismiss() },
+//            view3: { deleteButton }
+//        )
+//    }
+    
+    
+    var closeButton: some View {
+        Button {
+            editID = nil; dismiss()
+        } label: {
+            Image(systemName: "checkmark")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        }
+        .buttonStyle(.glassProminent)
     }
+    
     
     var deleteButton: some View {
         Button {
@@ -145,6 +161,17 @@ struct PlaidAccountView: View {
             Image(systemName: "trash")
         }
         .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
+        .tint(.none)
+        .confirmationDialog("Delete \"\(account.title)\"?", isPresented: $showDeleteAlert, actions: {
+            Button("Yes", role: .destructive, action: deleteAccount)
+//            Button("No", role: .cancel) { showDeleteAlert = false }
+        }, message: {
+            #if os(iOS)
+            Text("Delete \"\(account.title)\"?\nThis will also delete all associated transactions.")
+            #else
+            Text("This will also delete all associated transactions.")
+            #endif
+        })
     }
     
     // MARK: - Functions

@@ -174,102 +174,88 @@ struct SymbolPicker: View {
         }
     }
     
+    
     var body: some View {
-        StandardContainer(.list) {
-            ForEach(filteredSections.sorted { $0.title < $1.title }) { section in
-                Section(section.title) {
-                    LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
-                        let filtered = searchText.isEmpty
-                        ? section.symbols.sorted { $0 < $1 }
-                        : section.symbols.filter { $0.localizedStandardContains(searchText) }.sorted { $0 < $1 }
+        NavigationStack {
+            ScrollView {
+                content
+            }
+            #if os(iOS)
+            .searchable(text: $searchText, prompt: "Search")
+            .navigationTitle("Symbols")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) { closeButton }
+            }
+            #endif
+        }
+    }
+    
+    
+    @ViewBuilder
+    var content: some View {
+        if filteredSections.isEmpty {
+            ContentUnavailableView("No symbols found", systemImage: "exclamationmark.magnifyingglass")
+        } else {
+            VStack(alignment: .leading, spacing: 24) {
+                ForEach(filteredSections.sorted { $0.title < $1.title }) { section in
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(section.title)
+                            .font(.headline)
+                            .padding(.horizontal)
                         
-                        ForEach(filtered, id: \.self) { sym in
-                            if (selected ?? "") == sym {
-                                RoundedRectangle(cornerRadius: 15)
-                                    //.fill(Color.fromName(colorTheme))
-                                    .fill(color == .primary ? Color.fromName(colorTheme) : Color(.systemFill))
-                                    .onTapGesture {
-                                        selected = sym
-                                        dismiss()
-                                    }
-                                    .overlay {
-                                        Image(systemName: sym)
-                                            .foregroundStyle(color)
-                                            .frame(maxWidth: .infinity, alignment: .center)
-                                            .font(.title)
-                                    }
-                            } else {
-                                Image(systemName: sym)
-                                    .frame(maxWidth: .infinity, alignment: .center)
-                                    .font(.title)
-                                    .foregroundStyle(color)
-                                    .onTapGesture {
-                                        selected = sym
-                                        dismiss()
-                                    }
-                            }
-                            
-//                            Image(systemName: sym)
-//                                .frame(maxWidth: .infinity, alignment: .center)
-//                                .font(.title)
-//                                .onTapGesture {
-//                                    selected = sym
-//                                    dismiss()
-//                                }
-//                                .padding(5)
-//                                .background {
-//                                    Circle()
-//                                        .fill((selected ?? "") == sym ? Color.fromName(colorTheme) : Color.clear)
-//                                }
+                        LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
+                            ForEach(getSymbols(for: section), id: \.self) { symbolCell($0) }
                         }
+                        .padding(.horizontal)
                     }
                 }
             }
-        } header: {
-            SheetHeader(title: "Symbols", close: { dismiss() })
-        } subHeader: {
-            SearchTextField(title: "Symbols", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)
-                .padding(.horizontal, -20)
         }
-
-//        
-//        VStack {
-//            SheetHeader(title: "Symbols", close: { dismiss() })
-//                .padding(.bottom, 12)
-//                .padding(.horizontal, 20)
-//                .padding(.top)
-//            
-//            SearchTextField(title: "Symbols", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)                        
-//            
-//            List {
-//                ForEach(filteredSections.sorted { $0.title < $1.title }) { section in
-//                    Section(section.title) {
-//                        LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
-//                            ForEach(searchText.isEmpty
-//                                    ? section.symbols.sorted { $0 < $1 }
-//                                    : section.symbols.filter { $0.localizedStandardContains(searchText) }.sorted { $0 < $1 },
-//                                    id: \.self)
-//                            { sym in
-//                                Image(systemName: sym)
-//                                    .frame(maxWidth: .infinity, alignment: .center)
-//                                    .font(.title)
-//                                    .onTapGesture {
-//                                        selected = sym
-//                                        dismiss()
-//                                    }
-//                                    .padding(5)
-//                                    .background {
-//                                        Circle()
-//                                            .fill((selected ?? "") == sym ? Color.fromName(colorTheme) : Color.clear)
-//                                    }
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//            #if os(iOS)
-//            .listSectionSpacing(2)
-//            #endif
-//        }
+    }
+    
+    
+    fileprivate func getSymbols(for section: SymbolSection) -> Array<String> {
+        let filtered = searchText.isEmpty
+        ? section.symbols.sorted { $0 < $1 }
+        : section.symbols.filter { $0.localizedStandardContains(searchText) }.sorted { $0 < $1 }
+        return filtered
+    }
+    
+    
+    @ViewBuilder
+    private func symbolCell(_ sym: String) -> some View {
+        Group {
+            if (selected ?? "") == sym {
+                RoundedRectangle(cornerRadius: 15)
+                    .fill(color == .primary ? Color.fromName(colorTheme) : Color(.systemFill))
+                    .overlay(image(sym))
+            } else {
+                image(sym)
+            }
+        }
+        .onTapGesture {
+            selected = sym
+            dismiss()
+        }
+        
+    }
+    
+    
+    @ViewBuilder func image(_ sym: String) -> some View {
+        Image(systemName: sym)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .font(.title)
+            .foregroundStyle(color)
+    }
+    
+    
+    var closeButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "checkmark")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        }
     }
 }

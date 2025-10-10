@@ -29,20 +29,21 @@ struct MultiPayMethodSheet: View {
         }
     }
     
-    var body: some View {        
-        StandardContainer(.list) {
-            content
-        } header: {
-            SheetHeader(
-                title: "Accounts",
-                close: { dismiss() },
-                view1: { selectButton }
-            )
-        } subHeader: {
-            SearchTextField(title: "Accounts", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)
-                .padding(.horizontal, -20)
+    var body: some View {
+        NavigationStack {
+            StandardContainerWithToolbar(.list) {
+                content
+            }
+            #if os(iOS)
+            .searchable(text: $searchText, prompt: "Search")
+            .navigationTitle("Accounts")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) { selectButton }
+                ToolbarItem(placement: .topBarTrailing) { closeButton }
+            }
+            #endif
         }
-                
         .task {
             sections = [
                 PaySection(
@@ -57,7 +58,7 @@ struct MultiPayMethodSheet: View {
                     kind: .credit,
                     payMethods: payModel
                         .paymentMethods
-                        .filter { $0.accountType == .credit }
+                        .filter { $0.accountType == .credit || $0.accountType == .loan }
                         .filter { $0.isAllowedToBeViewedByThisUser }
                         .filter { !$0.isHidden }
                 ),
@@ -73,41 +74,60 @@ struct MultiPayMethodSheet: View {
         }
     }
     
+    
+    @ViewBuilder
     var content: some View {
-        ForEach(filteredSections) { section in
-            if !section.payMethods.isEmpty {
-                Section(section.kind.rawValue) {
-                    ForEach(searchText.isEmpty ? section.payMethods : section.payMethods.filter { $0.title.localizedStandardContains(searchText) }) { meth in
-                        HStack {
-                            Image(systemName: "circle.fill")
-                                .if(meth.isUnified) {
-                                    $0.foregroundStyle(AngularGradient(gradient: Gradient(colors: [.red, .yellow, .green, .blue, .purple, .red]), center: .center))
-                                }
-                                .if(!meth.isUnified) {
-                                    $0.foregroundStyle(meth.isUnified ? (colorScheme == .dark ? .white : .black) : meth.color, .primary, .secondary)
-                                }
-                            Text(meth.title)
+        if filteredSections.isEmpty {
+            ContentUnavailableView("No accounts found", systemImage: "exclamationmark.magnifyingglass")
+        } else {
+            ForEach(filteredSections) { section in
+                if !section.payMethods.isEmpty {
+                    Section(section.kind.rawValue) {
+                        ForEach(searchText.isEmpty ? section.payMethods : section.payMethods.filter { $0.title.localizedStandardContains(searchText) }) { meth in
+                            HStack {
+                                Image(systemName: "circle.fill")
+                                    .if(meth.isUnified) {
+                                        $0.foregroundStyle(AngularGradient(gradient: Gradient(colors: [.red, .yellow, .green, .blue, .purple, .red]), center: .center))
+                                    }
+                                    .if(!meth.isUnified) {
+                                        $0.foregroundStyle(meth.isUnified ? (colorScheme == .dark ? .white : .black) : meth.color, .primary, .secondary)
+                                    }
+                                Text(meth.title)
                                 //.bold(meth.isUnified)
-                            Spacer()
-                            
-                            Image(systemName: "checkmark")
-                                .opacity(payMethods.contains(meth) ? 1 : 0)
+                                Spacer()
+                                
+                                Image(systemName: "checkmark")
+                                    .opacity(payMethods.contains(meth) ? 1 : 0)
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture { doIt(meth) }
                         }
-                        .contentShape(Rectangle())
-                        .onTapGesture { doIt(meth) }
                     }
                 }
             }
         }
     }
     
+    
     var selectButton: some View {
         Button {
             payMethods = payMethods.isEmpty ? payModel.paymentMethods : []                        
         } label: {
             Image(systemName: payMethods.isEmpty ? "checklist.checked" : "checklist.unchecked")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
         }
     }
+    
+    
+    var closeButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "checkmark")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        }
+    }
+    
     
     func doIt(_ payMethod: CBPaymentMethod) {
         if payMethods.contains(payMethod) {

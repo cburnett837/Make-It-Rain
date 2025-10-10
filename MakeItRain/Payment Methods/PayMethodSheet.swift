@@ -24,6 +24,7 @@ struct PayMethodSheet: View {
     @FocusState private var focusedField: Int?
     @State private var searchText = ""
     @State private var sections: Array<PaySection> = []
+    //@State private var hoveredID: String?
         
     @Binding var payMethod: CBPaymentMethod?
     var trans: CBTransaction?
@@ -69,6 +70,15 @@ struct PayMethodSheet: View {
         }
     }
     
+    var monthText: String {
+        if calModel.isPlayground {
+            "\(calModel.sMonth.name) Playground"
+        } else {
+            "\(calModel.sMonth.actualNum)/\(String(calModel.sMonth.year))"
+        }
+        
+    }
+    
     var debitMethods: [CBPaymentMethod] {
         payModel.paymentMethods
             .filter { $0.accountType == .checking }
@@ -79,7 +89,7 @@ struct PayMethodSheet: View {
     
     var creditMethods: [CBPaymentMethod] {
         payModel.paymentMethods
-            .filter { $0.accountType == .credit }
+            .filter { $0.accountType == .credit || $0.accountType == .loan }
             .filter { $0.isAllowedToBeViewedByThisUser }
             .filter { !$0.isHidden }
             .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
@@ -87,7 +97,7 @@ struct PayMethodSheet: View {
     
     var otherMethods: [CBPaymentMethod] {
         payModel.paymentMethods
-            .filter { $0.accountType != .checking && $0.accountType != .credit && !$0.isUnified }
+            .filter { $0.accountType != .checking && $0.accountType != .credit && $0.accountType != .loan && !$0.isUnified }
             .filter { $0.isAllowedToBeViewedByThisUser }
             .filter { !$0.isHidden }
             .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
@@ -95,25 +105,37 @@ struct PayMethodSheet: View {
     
     
     var body: some View {
-        StandardContainer(.list, scrollDismissesKeyboard: .never) {
-            if paymentMethodSheetViewMode == .select {
-                content
-            } else {
-                startingAmounts
+        NavigationStack {
+            StandardContainerWithToolbar(.list, scrollDismissesKeyboard: .never) {
+                if filteredSections.isEmpty {
+                    ContentUnavailableView("No accounts found", systemImage: "exclamationmark.magnifyingglass")
+                } else {
+                    if paymentMethodSheetViewMode == .select {
+                        content
+                    } else {
+                        startingAmounts
+                    }
+                }
             }
-        } header: {
-            header
-        } subHeader: {
-            SearchTextField(title: "Accounts", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)
-                .padding(.horizontal, -20)
-                #if os(macOS)
-                .focusable(false) /// prevent mac from auto focusing
-                #endif
-        
-        } footer: {
-            footer
+            //.scrollEdgeEffectStyle(.hard, for: .all)
+            .task { prepareView() }
+            .searchable(text: $searchText, prompt: Text("Search"))
+            .navigationTitle(paymentMethodSheetViewMode == .select ? "Select Account" : "Starting Amounts \(monthText)")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            //.navigationSubtitle(paymentMethodSheetViewMode == .edit ? "\(calModel.sMonth.name) \(String(calModel.sMonth.year))" : "")
+//            .if(paymentMethodSheetViewMode == .edit) {
+//                $0.navigationSubtitle("\(calModel.sMonth.name) \(String(calModel.sMonth.year))")
+//            }
+            .toolbar {
+                if showStartingAmountOption {
+                    ToolbarItem(placement: .topBarLeading) { editButton }
+                }
+                
+                ToolbarItem(placement: .topBarTrailing) { closeButton }
+            }
+            #endif
         }
-        .task { prepareView() }
     }
         
     
@@ -140,12 +162,13 @@ struct PayMethodSheet: View {
                                     TextWithCircleBackground(text: "\(count)")
                                 }
                             }
-                            
-                            
+                                                        
                             if payMethod?.id == meth.id {
                                 Image(systemName: "checkmark")
                             }
                         }
+                        //.background(hoveredID == meth.id ? Color(.systemFill) : Color.clear)
+
                         .contentShape(Rectangle())
                         .onTapGesture {
                             if calcAndSaveOnChange && trans != nil {
@@ -166,6 +189,15 @@ struct PayMethodSheet: View {
                             }
                             dismiss()
                         }
+                        #if os(macOS)
+//                        .onHover {
+//                            if $0 {
+//                                hoveredID = meth.id
+//                            } else {
+//                                hoveredID = nil
+//                            }
+//                        }
+                        #endif
                     }
                 }
             }
@@ -223,41 +255,59 @@ struct PayMethodSheet: View {
         Button {
             paymentMethodSheetViewMode = paymentMethodSheetViewMode == .select ? .edit : .select
         } label: {
-            Image(systemName: paymentMethodSheetViewMode == .select ? "dollarsign" : "checklist")
-            
+            //Image(systemName: paymentMethodSheetViewMode == .select ? "dollarsign" : "checklist")
+            Image(systemName: paymentMethodSheetViewMode == .select ? "square.and.pencil" : "list.bullet")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
         }
+        .contentTransition(.symbolEffect(.replace))
+        //.buttonStyle(.glassProminent)
     }
     
     
-    var header: some View {
-        Group {
-            if showStartingAmountOption {
-                SheetHeader(
-                    title: paymentMethodSheetViewMode == .select ? "Select Account" : "Edit Starting Amounts",
-                    close: { dismiss() },
-                    view1: { editButton }
-                )
-            } else {
-                SheetHeader(
-                    title: "Select Account",
-                    close: { dismiss() }
-                )
-            }
+    var closeButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "checkmark")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
         }
+        //.buttonStyle(.glassProminent)
+        //.tint(confirmButtonTint)
+        //.background(confirmButtonTint)
+        //.foregroundStyle(confirmButtonTint)
+        //}
     }
     
     
-    var footer: some View {
-        Group {
-            if paymentMethodSheetViewMode == .edit {
-                Text("\(calModel.sMonth.name) \(String(calModel.sMonth.year))")
-                   .font(.caption2)
-                   .foregroundStyle(.gray)
-            } else {
-                EmptyView()
-            }
-        }
-    }
+//    var header: some View {
+//        Group {
+//            if showStartingAmountOption {
+//                SheetHeader(
+//                    title: paymentMethodSheetViewMode == .select ? "Select Account" : "Edit Starting Amounts",
+//                    close: { dismiss() },
+//                    view1: { editButton }
+//                )
+//            } else {
+//                SheetHeader(
+//                    title: "Select Account",
+//                    close: { dismiss() }
+//                )
+//            }
+//        }
+//    }
+//    
+//    
+//    var footer: some View {
+//        Group {
+//            if paymentMethodSheetViewMode == .edit {
+//                Text("\(calModel.sMonth.name) \(String(calModel.sMonth.year))")
+//                   .font(.caption2)
+//                   .foregroundStyle(.gray)
+//            } else {
+//                EmptyView()
+//            }
+//        }
+//    }
     
         
     struct StartingAmountLine: View {
@@ -369,14 +419,14 @@ struct PayMethodSheet: View {
                 PaySection(
                     kind: .credit,
                     payMethods: payModel.paymentMethods
-                        .filter { $0.accountType == .credit || $0.accountType == .unifiedCredit }
+                        .filter { $0.accountType == .credit || $0.accountType == .loan || $0.accountType == .unifiedCredit }
                         .filter { $0.isAllowedToBeViewedByThisUser }
                         .filter { !$0.isHidden }
                 ),
                 PaySection(
                     kind: .other,
                     payMethods: payModel.paymentMethods
-                        .filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking].contains($0.accountType) }
+                        .filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking, .loan].contains($0.accountType) }
                         .filter { $0.isAllowedToBeViewedByThisUser }
                         .filter { !$0.isHidden }
                 )
@@ -394,14 +444,14 @@ struct PayMethodSheet: View {
                 PaySection(
                     kind: .credit,
                     payMethods: payModel.paymentMethods
-                        .filter { $0.accountType == .credit }
+                        .filter { $0.accountType == .credit || $0.accountType == .loan }
                         .filter { $0.isAllowedToBeViewedByThisUser }
                         .filter { !$0.isHidden }
                 ),
                 PaySection(
                     kind: .other,
                     payMethods: payModel.paymentMethods
-                        .filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking].contains($0.accountType) }
+                        .filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking, .loan].contains($0.accountType) }
                         .filter { $0.isAllowedToBeViewedByThisUser }
                         .filter { !$0.isHidden }
                 )
@@ -424,7 +474,7 @@ struct PayMethodSheet: View {
                     PaySection(
                     kind: .credit,
                     payMethods: payModel.paymentMethods
-                        .filter { $0.accountType == .credit }
+                        .filter { $0.accountType == .credit || $0.accountType == .loan }
                         .filter { $0.isAllowedToBeViewedByThisUser }
                         .filter { !$0.isHidden }
                     )
@@ -435,7 +485,7 @@ struct PayMethodSheet: View {
                     PaySection(
                     kind: .other,
                     payMethods: payModel.paymentMethods
-                        .filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking].contains($0.accountType) }
+                        .filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking, .loan].contains($0.accountType) }
                         .filter { $0.isAllowedToBeViewedByThisUser }
                         .filter { !$0.isHidden }
                     )
@@ -457,7 +507,7 @@ struct PayMethodSheet: View {
                 PaySection(
                     kind: .credit,
                     payMethods: payModel.paymentMethods
-                        .filter { $0.accountType == .credit && !taken.contains($0.id) }
+                        .filter { ($0.accountType == .credit || $0.accountType == .loan) && !taken.contains($0.id) }
                         .filter { $0.isAllowedToBeViewedByThisUser }
                         .filter { !$0.isHidden }
                 ),

@@ -23,12 +23,13 @@ struct RootViewPhone: View {
     let monthNavigationNamespace: Namespace.ID
     
     @State private var toolbarVisibility = Visibility.visible
+    @State private var sel: String = ""
 
     
     var body: some View {
         @Bindable var navManager = NavigationManager.shared
-        TabView {
-            Tab("Calendar", systemImage: "calendar") {
+        TabView(selection: $sel) {
+            Tab("Calendar", systemImage: "calendar", value: "calendar") {
                 NavigationStack {
                     CalendarNavGridPhone(monthNavigationNamespace: monthNavigationNamespace)
                         .onAppear { toolbar(to: .visible) }
@@ -46,7 +47,7 @@ struct RootViewPhone: View {
                 .toolbar(toolbarVisibility, for: .tabBar)
             }
             
-            Tab("Categories", systemImage: "books.vertical") {
+            Tab("Categories", systemImage: "books.vertical", value: "categories") {
                 NavigationStack {
                     CategoriesTable()
                 }
@@ -60,20 +61,19 @@ struct RootViewPhone: View {
 //            .badge(eventModel.invitations.count)
             
             
-            Tab("Accounts", systemImage: "creditcard") {
+            Tab("Accounts", systemImage: "creditcard", value: "accounts") {
                 NavigationStack {
                     PayMethodsTable()
                 }
             }
             
-            
-            Tab("Search", systemImage: "magnifyingglass") {
+            Tab("Search", systemImage: "magnifyingglass", value: "search", role: .search) {
                 NavigationStack {
                     AdvancedSearchView()
                 }
             }
             
-            Tab("More", systemImage: "ellipsis") {
+            Tab("More", systemImage: "ellipsis", value: "more") {
                 NavigationStack {
                     moreTabList
                 }
@@ -81,6 +81,25 @@ struct RootViewPhone: View {
             }
             .badge(plaidModel.banksWithIssues.count)
         }
+        .tabViewStyle(.sidebarAdaptable)
+        
+        //.tabBarMinimizeBehavior(.onScrollDown)
+//        .tabViewBottomAccessory {
+//            switch sel {
+//            case "calendar":
+//                TextField("Search", text: .constant(""))
+//            case "categories":
+//                TextField("Search", text: .constant(""))
+//            case "accounts":
+//                TextField("Search", text: .constant(""))
+//            case "search":
+//                TextField("Search", text: .constant(""))
+//            case "more":
+//                TextField("Search", text: .constant(""))
+//            default:
+//                TextField("Search", text: .constant(""))
+//            }
+//        }
     }
     
     var moreTabList: some View {
@@ -89,7 +108,7 @@ struct RootViewPhone: View {
 //                Label { Text("Payment Methods") } icon: { Image(systemName: "creditcard") }
 //            }
             
-            Section("Extras") {
+            Section {
                 NavigationLink(value: NavDestination.events) {
                     Label { Text("Events") } icon: { Image(systemName: "beach.umbrella") }
                 }
@@ -100,7 +119,7 @@ struct RootViewPhone: View {
                     }
                     
                     NavigationLink(value: NavDestination.keywords) {
-                        Label { Text("Keywords") } icon: { Image(systemName: "textformat.abc.dottedunderline") }
+                        Label { Text("Rules") } icon: { Image(systemName: "textformat.abc.dottedunderline") }
                     }
                 }
             }

@@ -47,7 +47,6 @@ struct PayMethodRequiredView: View {
                         AppState.shared.showPaymentMethodNeededSheet = false
                         funcModel.logout()
                     }
-                    
                 }
                 .focusable(false)
                 .padding(.vertical, 12)

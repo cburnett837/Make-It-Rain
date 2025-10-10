@@ -70,6 +70,12 @@ class KeywordModel {
                 entity.triggerType = keyword.triggerType.rawValue
                 entity.action = "edit"
                 entity.isPending = false
+                
+                entity.enteredByID = Int64(keyword.enteredBy.id)
+                entity.updatedByID = Int64(keyword.updatedBy.id)
+                entity.enteredDate = keyword.enteredDate
+                entity.updatedDate = keyword.updatedDate
+                
                 return DataManager.shared.save(context: context)
                 
             } else {
@@ -255,6 +261,11 @@ class KeywordModel {
                                 entity.action = "edit"
                                 entity.isPending = false
                                 
+                                entity.enteredByID = Int64(keyword.enteredBy.id)
+                                entity.updatedByID = Int64(keyword.updatedBy.id)
+                                entity.enteredDate = keyword.enteredDate
+                                entity.updatedDate = keyword.updatedDate
+                                
                                 if categoryEntity.id == nil {
                                     categoryEntity.id = keyword.category?.id
                                     categoryEntity.title = keyword.category?.title
@@ -323,6 +334,12 @@ class KeywordModel {
                 entity.action = keyword.action.rawValue
                 entity.isPending = true
                 entity.category = categoryEntity
+                
+                entity.enteredByID = Int64(keyword.enteredBy.id)
+                entity.updatedByID = Int64(keyword.updatedBy.id)
+                entity.enteredDate = keyword.enteredDate
+                entity.updatedDate = keyword.updatedDate
+                
                 let _ = DataManager.shared.save(context: context)
             }
         }

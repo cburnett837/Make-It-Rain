@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct NowButton: View {
+    @Environment(\.colorScheme) var colorScheme
     @Environment(CalendarModel.self) var calModel
     
     var body: some View {
@@ -23,6 +24,7 @@ struct NowButton: View {
             }
         } label: {
             Text("Now")
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
         }
     }
 }

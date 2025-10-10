@@ -22,11 +22,12 @@ struct SheetHeader<Content: View, Content2: View, Content3: View>: View {
     var view2: () -> Content2?
     var view3: () -> Content3?
     
-    init(title: String,
-         close: @escaping (() -> Void),
-         @ViewBuilder view1: @escaping () -> Content? = { SheetHeaderPlaceHolderButton() },
-         @ViewBuilder view2: @escaping () -> Content2? = { SheetHeaderPlaceHolderButton() },
-         @ViewBuilder view3: @escaping () -> Content3? = { SheetHeaderPlaceHolderButton() }
+    init(
+        title: String,
+        close: @escaping (() -> Void),
+        @ViewBuilder view1: @escaping () -> Content? = { EmptyView() },
+        @ViewBuilder view2: @escaping () -> Content2? = { EmptyView() },
+        @ViewBuilder view3: @escaping () -> Content3? = { EmptyView() }
     ) {
         self.title = title
         self.close = close
@@ -34,12 +35,29 @@ struct SheetHeader<Content: View, Content2: View, Content3: View>: View {
         self.view2 = view2
         self.view3 = view3
     }
+
+    // small generic helper that returns either the provided view or a placeholder
+    @ViewBuilder
+    private func slot<V: View>(_ build: () -> V?) -> some View {
+        if let v = build(), !(v is EmptyView) {
+            v
+                .buttonStyle(.sheetHeader)
+                .padding(7)
+                #if os(iOS)
+                .glassEffect(.regular.interactive())
+                #endif
+        } else {
+            SheetHeaderPlaceHolderButton()
+                .buttonStyle(.sheetHeader)
+                .padding(7)
+        }
+    }
                 
     var body: some View {
         HStack(spacing: 0) {
             HStack {
-                view1()
-                view2()
+                slot(view1)
+                slot(view2)
             }
                                                 
             Text(title)
@@ -49,19 +67,41 @@ struct SheetHeader<Content: View, Content2: View, Content3: View>: View {
                 .lineLimit(1)
             
             HStack {
-                view3()
+                slot(view3)
                 
                 Button {
                     close?()
                 } label: {
-                    Image(systemName: "xmark")
+                    Image(systemName: "checkmark")
                 }
-                .keyboardShortcut(.return, modifiers: [.command]) /// Just because I am used to it from the original app.
+                .buttonStyle(.sheetHeader)
+                .padding(7)
+                #if os(iOS)
+                .glassEffect(.regular.interactive())
+                #endif
+                .keyboardShortcut(.return, modifiers: [.command])
             }
         }
-        .buttonStyle(.sheetHeader)
         .focusable(false)
-        .padding()
+        //.padding()
+        .scenePadding()
+        //.background(Color(uiColor: .systemGroupedBackground))
+        #if os(iOS)
+        //.background(Color(uiColor: .secondarySystemBackground))
+        //.background(Color(.orange))
+//        .background {
+//            Color(.secondarySystemBackground)
+//                .clipShape(
+//                    .rect(
+//                        topLeadingRadius: 30,
+//                        bottomLeadingRadius: 0,
+//                        bottomTrailingRadius: 0,
+//                        topTrailingRadius: 30
+//                    )
+//                )
+//                .ignoresSafeArea(edges: .bottom)
+//        }
+        #endif
     }
 }
 
