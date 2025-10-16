@@ -59,22 +59,42 @@ class KeywordModel {
     }
     
     func updateCache(for keyword: CBKeyword) async -> Result<Bool, CoreDataError> {
+        let keywordID = keyword.id
+        let theKeyword = keyword.keyword
+        let categoryID = keyword.category?.id ?? "0"
+        let triggerType = keyword.triggerType.rawValue
+        //let action = "edit"
+        //let isPending = false
+        let enteredByID = Int64(keyword.enteredBy.id)
+        let updatedByID = Int64(keyword.updatedBy.id)
+        let enteredDate = keyword.enteredDate
+        let updatedDate = keyword.updatedDate
+                        
         let context = DataManager.shared.createContext()
         return await context.perform {
-            if let entity = DataManager.shared.getOne(context: context, type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: false),
-               let categoryEntity = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(keyword.category?.id ?? "0")), createIfNotFound: false) {
-                
-                entity.id = keyword.id
-                entity.keyword = keyword.keyword
+            if let entity = DataManager.shared.getOne(
+                context: context,
+                type: PersistentKeyword.self,
+                predicate: .byId(.string(keywordID)),
+                createIfNotFound: false
+            ),
+            let categoryEntity = DataManager.shared.getOne(
+                context: context,
+                type: PersistentCategory.self,
+                predicate: .byId(.string(categoryID)),
+                createIfNotFound: false
+            ) {
+                entity.id = keywordID
+                entity.keyword = theKeyword
                 entity.category = categoryEntity
-                entity.triggerType = keyword.triggerType.rawValue
+                entity.triggerType = triggerType
                 entity.action = "edit"
                 entity.isPending = false
                 
-                entity.enteredByID = Int64(keyword.enteredBy.id)
-                entity.updatedByID = Int64(keyword.updatedBy.id)
-                entity.enteredDate = keyword.enteredDate
-                entity.updatedDate = keyword.updatedDate
+                entity.enteredByID = enteredByID
+                entity.updatedByID = updatedByID
+                entity.enteredDate = enteredDate
+                entity.updatedDate = updatedDate
                 
                 return DataManager.shared.save(context: context)
                 
@@ -237,7 +257,25 @@ class KeywordModel {
                     
                     for keyword in model {
                         activeIds.append(keyword.id)
-                                                                                                                                                                                                
+                                                
+                        let keywordID = keyword.id
+                        let theKeyword = keyword.keyword
+                        let triggerType = keyword.triggerType.rawValue
+                        //let action = keyword.action.rawValue
+                        //let isPending = false
+                        let enteredByID = Int64(keyword.enteredBy.id)
+                        let updatedByID = Int64(keyword.updatedBy.id)
+                        let enteredDate = keyword.enteredDate
+                        let updatedDate = keyword.updatedDate
+                        
+                        let categoryID = keyword.category?.id ?? "0"
+                        let categoryTitle = keyword.category?.title
+                        let categoryAmount = keyword.category?.amount ?? 0.0
+                        let categoryHexCode = keyword.category?.color.toHex()
+                        let categoryEmoji = keyword.category?.emoji
+                        
+                        
+                        
                         let index = keywords.firstIndex(where: { $0.id == keyword.id })
                         if let index {
                             /// If the payment method is already in the list, update it from the server.
@@ -249,30 +287,29 @@ class KeywordModel {
                                                            
                         /// Find the keyword in cache.
                         await context.perform {
-                            let entity = DataManager.shared.getOne(context: context, type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: true)
-                            let categoryEntity = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(keyword.category?.id ?? "0")), createIfNotFound: true)
+                            let entity = DataManager.shared.getOne(context: context, type: PersistentKeyword.self, predicate: .byId(.string(keywordID)), createIfNotFound: true)
+                            let categoryEntity = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(categoryID)), createIfNotFound: true)
                             
                             /// Update the cache and add to model (if applicable).
                             /// This should always be true because the line above creates the entity if it's not found.
                             if let entity, let categoryEntity {
-                                entity.id = keyword.id
-                                entity.keyword = keyword.keyword
-                                entity.triggerType = keyword.triggerType.rawValue
+                                entity.id = keywordID
+                                entity.keyword = theKeyword
+                                entity.triggerType = triggerType
                                 entity.action = "edit"
                                 entity.isPending = false
                                 
-                                entity.enteredByID = Int64(keyword.enteredBy.id)
-                                entity.updatedByID = Int64(keyword.updatedBy.id)
-                                entity.enteredDate = keyword.enteredDate
-                                entity.updatedDate = keyword.updatedDate
+                                entity.enteredByID = enteredByID
+                                entity.updatedByID = updatedByID
+                                entity.enteredDate = enteredDate
+                                entity.updatedDate = updatedDate
                                 
                                 if categoryEntity.id == nil {
-                                    categoryEntity.id = keyword.category?.id
-                                    categoryEntity.title = keyword.category?.title
-                                    categoryEntity.amount = keyword.category?.amount ?? 0.0
-                                    categoryEntity.hexCode = keyword.category?.color.toHex()
-                                    //entity.hexCode = category.color.description
-                                    categoryEntity.emoji = keyword.category?.emoji
+                                    categoryEntity.id = categoryID
+                                    categoryEntity.title = categoryTitle
+                                    categoryEntity.amount = categoryAmount
+                                    categoryEntity.hexCode = categoryHexCode
+                                    categoryEntity.emoji = categoryEmoji
                                     categoryEntity.action = "edit"
                                     categoryEntity.isPending = false
                                 }
@@ -321,24 +358,34 @@ class KeywordModel {
         isThinking = true
         //LoadingManager.shared.startDelayedSpinner()
         LogManager.log()
+        
+        let keywordID = keyword.id
+        let theKeyword = keyword.keyword
+        let categoryID = keyword.category?.id ?? "0"
+        let triggerType = keyword.triggerType.rawValue
+        let action = keyword.action
+        let enteredByID = Int64(keyword.enteredBy.id)
+        let updatedByID = Int64(keyword.updatedBy.id)
+        let enteredDate = keyword.enteredDate
+        let updatedDate = keyword.updatedDate
                 
         let context = DataManager.shared.createContext()
         await context.perform {
-            let entity = DataManager.shared.getOne(context: context, type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: true)
-            let categoryEntity = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(keyword.category?.id ?? "0")), createIfNotFound: true)
+            let entity = DataManager.shared.getOne(context: context, type: PersistentKeyword.self, predicate: .byId(.string(keywordID)), createIfNotFound: true)
+            let categoryEntity = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(categoryID)), createIfNotFound: true)
         
             if let entity, let categoryEntity {
-                entity.id = keyword.id
-                entity.keyword = keyword.keyword
-                entity.triggerType = keyword.triggerType.rawValue
-                entity.action = keyword.action.rawValue
+                entity.id = keywordID
+                entity.keyword = theKeyword
+                entity.triggerType = triggerType
+                entity.action = action.rawValue
                 entity.isPending = true
                 entity.category = categoryEntity
                 
-                entity.enteredByID = Int64(keyword.enteredBy.id)
-                entity.updatedByID = Int64(keyword.updatedBy.id)
-                entity.enteredDate = keyword.enteredDate
-                entity.updatedDate = keyword.updatedDate
+                entity.enteredByID = enteredByID
+                entity.updatedByID = updatedByID
+                entity.enteredDate = enteredDate
+                entity.updatedDate = updatedDate
                 
                 let _ = DataManager.shared.save(context: context)
             }
@@ -354,13 +401,14 @@ class KeywordModel {
                                 
         switch await result {
         case .success(let model):
+            let modelID = model?.id ?? String(0)
             LogManager.networkingSuccessful()
             
             if keyword.action != .delete {
                 await context.perform {
-                    if let entity = DataManager.shared.getOne(context: context, type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: true) {
-                        if keyword.action == .add {
-                            entity.id = model?.id ?? String(0)
+                    if let entity = DataManager.shared.getOne(context: context, type: PersistentKeyword.self, predicate: .byId(.string(keywordID)), createIfNotFound: true) {
+                        if action == .add {
+                            entity.id = modelID
                             entity.action = "edit"
                         }
                         entity.isPending = false

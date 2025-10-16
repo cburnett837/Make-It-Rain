@@ -214,7 +214,7 @@ struct PlaidTransactionOverlay: View {
                 dismiss()
             #endif
         } label: {
-            Image(systemName: "checkmark")
+            Image(systemName: "xmark")
                 .foregroundStyle(colorScheme == .dark ? .white : .black)
         }
     }
@@ -268,16 +268,34 @@ struct PlaidTransactionOverlay: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         VStack(alignment: .leading, spacing: 0) {
                             
+                            //Text(trans.title.capitalized)
+                            
                             HStack(spacing: 0) {
+//                                if let emoji = trans.category?.emoji {
+//                                    Image(systemName: emoji)
+//                                        .foregroundStyle(trans.category?.color ?? .primary)
+//                                        .font(.footnote)
+//                                } else {
+//                                    CircleDot(color: trans.category?.color, width: 10)
+//                                }
                                 CircleDot(color: trans.category?.color, width: 10)
                                 Text(trans.title.capitalized)
                             }
                             
                             HStack(spacing: 0) {
+                                
+                                
+//                                let theText = "\(trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)) / \(trans.payMethod?.title ?? "N/A") / \(trans.category?.title ?? "N/A") / \(trans.prettyDate ?? "N/A")"
+//                                
+//                                Text(theText)
+//                                    .foregroundStyle(.gray)
+//                                    .font(.footnote)
+                                
                                 CircleDot(color: trans.payMethod?.color, width: 10)
                                 Text(trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
                                     .foregroundStyle(.gray)
                                     .font(.footnote)
+                                
                             }
                             
                             Text(trans.prettyDate ?? "N/A")

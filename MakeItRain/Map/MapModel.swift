@@ -20,6 +20,7 @@ class MapModel: NSObject {
     private let completer = MKLocalSearchCompleter()
     var completions: [MKLocalSearchCompletion] = []
     
+    var recentQueries: Array<String> = []
     var searchQuery: String = ""
     var searchResults: [CBLocation] = []
     var visibleRegion: MKCoordinateRegion?
@@ -32,7 +33,10 @@ class MapModel: NSObject {
     
     var blockCompletion = false
     
-    var panelContent: MapBottomPanelContent = .search
+    var lastSearchQuery: String = ""
+    
+    var showSearchSuggestions = false
+    var panelContent: MapBottomPanelContent?
     
     private let defaultRegion = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 40.83657722488077, longitude: 14.306896671048852),
@@ -59,12 +63,27 @@ class MapModel: NSObject {
     }
     
     
-    func search(parentID: String, parentType: XrefEnum) {
+    func addQueryToRecents() {
+        if recentQueries.count > 5 {
+            recentQueries.removeFirst()
+        }
+        if !searchQuery.isEmpty {
+            recentQueries.append(searchQuery)
+        }
+    }
+    
+    
+    
+    func search(parentID: String, parentType: XrefEnum, useLastQuery: Bool = false) {
         // If there's another search already// in progress, cancel it.
         currentSearch?.cancel()
         
+        if !useLastQuery {
+            lastSearchQuery = searchQuery
+        }
+        
         let request = MKLocalSearch.Request()
-        request.naturalLanguageQuery = searchQuery
+        request.naturalLanguageQuery = useLastQuery ? lastSearchQuery : searchQuery
         request.resultTypes = [.address, .pointOfInterest]
         request.region = visibleRegion ?? defaultRegion
         
@@ -93,7 +112,10 @@ class MapModel: NSObject {
         let response = try? await search.start()
         let mapItems = response?.mapItems ?? []
         if mapItems.count > 0 {
-            let viewCord = CLLocationCoordinate2D(latitude: mapItems[0].placemark.coordinate.latitude/* - 0.004*/, longitude: mapItems[0].placemark.coordinate.longitude)
+            let viewCord = CLLocationCoordinate2D(
+                latitude: mapItems[0].location.coordinate.latitude/* - 0.004*/,
+                longitude: mapItems[0].location.coordinate.longitude
+            )
             let span = MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
             let region = MKCoordinateRegion(center: viewCord, span: span)
             
@@ -114,12 +136,11 @@ class MapModel: NSObject {
         searchResults.removeAll()
                 
         do {
-            let geocoder = CLGeocoder()
             let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-            let placemarks = try await geocoder.reverseGeocodeLocation(location)
-            if !placemarks.isEmpty {
-                let mkPlaceMark = MKPlacemark(placemark: placemarks.first!)
-                let item = MKMapItem(placemark: mkPlaceMark)
+            
+            if let request = MKReverseGeocodingRequest(location: location) {
+                let mapItems = try await request.mapItems
+                let item = mapItems.first!
                 let location = CBLocation(relatedID: parentID, locationType: parentType, title: item.name ?? "N/A", mapItem: item)
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -143,14 +164,10 @@ class MapModel: NSObject {
     
     func createMapItemFrom(coordinates: CLLocationCoordinate2D) async -> MKMapItem? {
         do {
-            let geocoder = CLGeocoder()
             let location = CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude)
-            let placemarks = try await geocoder.reverseGeocodeLocation(location)
-            if !placemarks.isEmpty {
-                let mkPlaceMark = MKPlacemark(placemark: placemarks.first!)
-                let item = MKMapItem(placemark: mkPlaceMark)
-                return item
-                
+            if let request = MKReverseGeocodingRequest(location: location) {
+                let mapItems = try await request.mapItems
+                return mapItems.first!
             } else {
                 print("Cant make map item")
                 return nil
@@ -185,6 +202,7 @@ class MapModel: NSObject {
                 //let location = CBLocation(id: UUID().uuidString, name: mapItem.name ?? "N/A", mapItem: mapItem)
                 selectedMapItem = selection?.value
                 getDirection()
+                panelContent = .details
             }
             
         } else if let feature = selection?.feature {
@@ -202,6 +220,7 @@ class MapModel: NSObject {
                         let location = CBLocation(relatedID: parentID, locationType: parentType, title: mapItem?.name ?? "N/A", mapItem: mapItem)
                         selectedMapItem = location
                         getDirection()
+                        panelContent = .details
                     }
                 } catch {
                     print(error.localizedDescription)
@@ -213,24 +232,20 @@ class MapModel: NSObject {
             withAnimation {
                 route = nil
                 selectedMapItem = nil
+                panelContent = nil
             }
         }
     }
     
             
     func saveCurrentLocation(parentID: String, parentType: XrefEnum) async -> CBLocation? {
-        print("-- \(#function)")
-                
         if let coordinate = LocationManager.shared.currentLocation {
             do {
-                let geocoder = CLGeocoder()
                 let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-                let placemarks = try await geocoder.reverseGeocodeLocation(location)
-                if !placemarks.isEmpty {
-                    let mkPlaceMark = MKPlacemark(placemark: placemarks.first!)
-                    let item = MKMapItem(placemark: mkPlaceMark)
+                if let request = MKReverseGeocodingRequest(location: location) {
+                    let mapItems = try await request.mapItems
+                    let item = mapItems.first!
                     let location = CBLocation(relatedID: parentID, locationType: parentType, title: item.name ?? "N/A", mapItem: item)
-                                    
                     return location
                 } else {
                     return nil
@@ -349,8 +364,13 @@ extension MKLocalSearchCompletion {
     #if os(iOS)
         // Each `NSValue` wraps an `NSRange` that functions as a style attribute's range with `NSAttributedString`.
         let ranges = rangeValues.map { $0.rangeValue }
-        for range in ranges {
-            highlightedString.addAttributes(attributes, range: range)
+                        
+        for range in ranges where range.location != NSNotFound {
+            if range.location + range.length <= highlightedString.length {
+                highlightedString.addAttributes(attributes, range: range)
+            } else {
+                print("⚠️ Skipping invalid range: \(range) for text: '\(text)' (\(highlightedString.length) chars)")
+            }
         }
         #endif
 
@@ -366,10 +386,21 @@ extension MKLocalSearchCompletion {
         )
     }
     
-    var highlightedSubtitleStringForDisplay: NSAttributedString {
+    var truncatedHighlightedSubtitleStringForDisplay: NSAttributedString {
         @Local(\.colorTheme) var colorTheme
         return createHighlightedString(
             text: "\(String(subtitle.prefix(15)))…",
+            rangeValues: subtitleHighlightRanges,
+            hilightColor: Color.fromName(colorTheme)
+        )
+        //return createHighlightedString(text: subtitle, rangeValues: subtitleHighlightRanges)
+    }
+    
+    
+    var highlightedSubtitleStringForDisplay: NSAttributedString {
+        @Local(\.colorTheme) var colorTheme
+        return createHighlightedString(
+            text: String(subtitle),
             rangeValues: subtitleHighlightRanges,
             hilightColor: Color.fromName(colorTheme)
         )

@@ -56,9 +56,20 @@ struct TransactionListView: View {
         @Bindable var photoModel = PhotoModel.shared
         
         NavigationStack {
-            StandardContainerWithToolbar(.list) {
-                transactionList
+            
+            ScrollViewReader { scrollProxy in
+                List {
+                    transactionList
+                }
+                /// Scroll to today when the view loads (if applicable)
+                .onAppear { scrollToTodayOnAppearOfScrollView(scrollProxy) }
             }
+            
+            
+//            StandardContainerWithToolbar(.list) {
+//                transactionList
+//            }
+            
             .searchable(text: $searchText, prompt: Text("Search"))
             .navigationTitle("\(calModel.sMonth.name) \(String(calModel.sYear))")
             .navigationSubtitle(calModel.sPayMethod?.title ?? "N/A")
@@ -183,7 +194,7 @@ struct TransactionListView: View {
             dismiss()
             #endif
         } label: {
-            Image(systemName: "checkmark")
+            Image(systemName: "xmark")
                 .foregroundStyle(colorScheme == .dark ? .white : .black)
         }
     }
@@ -242,6 +253,7 @@ struct TransactionListView: View {
                     SectionFooter(day: day, dailyCount: dailyCount, dailyTotal: dailyTotal, cumTotals: cumTotals)
                 }
             }
+            .id(day.id)
         }
     }
     
@@ -275,6 +287,17 @@ struct TransactionListView: View {
                     Text(dailyTotal.currencyWithDecimals(useWholeNumbers ? 0 : 2))
                 }
             }
+        }
+    }
+    
+    
+    func scrollToTodayOnAppearOfScrollView(_ proxy: ScrollViewProxy) {
+        if calModel.sMonth.actualNum == AppState.shared.todayMonth {
+            //DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                //withAnimation {
+                    proxy.scrollTo(AppState.shared.todayDay, anchor: .top)
+                //}
+            //}
         }
     }
     

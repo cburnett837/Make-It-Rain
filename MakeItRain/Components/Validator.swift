@@ -76,9 +76,13 @@ struct ValidationModifier: ViewModifier {
                     
                     /// Set the error message if a rule was broken, else invalid the error message so the error view disappears.
                     if let errorMessage = errorMessage {
-                        withAnimation { self.message = errorMessage }
+                        //withAnimation {
+                            self.message = errorMessage
+                        //}
                     } else {
-                        withAnimation { self.message = nil }
+                        //withAnimation {
+                            self.message = nil
+                        //}
                     }
                 }
                 /// Set the initlal value when the view appears.

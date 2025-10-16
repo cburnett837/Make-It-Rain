@@ -67,6 +67,7 @@ struct CalendarViewPhone: View {
                 }
             }
             .searchable(text: $calModel.searchText, prompt: Text("Search"))
+            .searchPresentationToolbarBehavior(.avoidHidingContent)
             .toolbar {
                 DefaultToolbarItem(kind: .search, placement: .bottomBar)
                 ToolbarSpacer(.flexible, placement: .bottomBar)

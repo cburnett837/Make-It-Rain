@@ -209,45 +209,45 @@ class DataManager {
     }
     
     
-    func deleteAllOG<T: NSManagedObject>(context: NSManagedObjectContext, for entity: T.Type, predicate: Predicate? = nil) async {
-        await withCheckedContinuation { continuation in
-            context.perform {
-                let fetchRequest = T.fetchRequest()
-                switch predicate {
-                case nil: break
-                case .single(let predicate): fetchRequest.predicate = predicate
-                case .compound(let predicate): fetchRequest.predicate = predicate
-                case .byId(let idType):
-                    switch idType {
-                    case .int(let id): fetchRequest.predicate = NSPredicate(format: "id == %@", NSNumber(value: id))
-                    case .string(let id): fetchRequest.predicate = NSPredicate(format: "id == %@", id)
-                    }
-                }
-                        
-                let batchDeleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
-                // Configure the request to return the IDs of the objects it deletes.
-                batchDeleteRequest.resultType = .resultTypeObjectIDs
-                do {
-                    // Execute the request.
-                    let deleteResult = try context.execute(batchDeleteRequest) as? NSBatchDeleteResult
-                    
-                    // Extract the IDs of the deleted managed objectss from the request's result.
-                    if let objectIDs = deleteResult?.result as? [NSManagedObjectID] {
-                        
-                        // Merge the deletions into the app's managed object context.
-                        NSManagedObjectContext.mergeChanges(
-                            fromRemoteContextSave: [NSDeletedObjectsKey: objectIDs],
-                            into: [self.container.viewContext]
-                        )
-                    }
-                } catch {
-                    print(error.localizedDescription)
-                    LogManager.error(error.localizedDescription)
-                }
-                continuation.resume()
-            }
-        }
-    }
+//    func deleteAllOG<T: NSManagedObject>(context: NSManagedObjectContext, for entity: T.Type, predicate: Predicate? = nil) async {
+//        await withCheckedContinuation { continuation in
+//            context.perform {
+//                let fetchRequest = T.fetchRequest()
+//                switch predicate {
+//                case nil: break
+//                case .single(let predicate): fetchRequest.predicate = predicate
+//                case .compound(let predicate): fetchRequest.predicate = predicate
+//                case .byId(let idType):
+//                    switch idType {
+//                    case .int(let id): fetchRequest.predicate = NSPredicate(format: "id == %@", NSNumber(value: id))
+//                    case .string(let id): fetchRequest.predicate = NSPredicate(format: "id == %@", id)
+//                    }
+//                }
+//                        
+//                let batchDeleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+//                // Configure the request to return the IDs of the objects it deletes.
+//                batchDeleteRequest.resultType = .resultTypeObjectIDs
+//                do {
+//                    // Execute the request.
+//                    let deleteResult = try context.execute(batchDeleteRequest) as? NSBatchDeleteResult
+//                    
+//                    // Extract the IDs of the deleted managed objectss from the request's result.
+//                    if let objectIDs = deleteResult?.result as? [NSManagedObjectID] {
+//                        
+//                        // Merge the deletions into the app's managed object context.
+//                        NSManagedObjectContext.mergeChanges(
+//                            fromRemoteContextSave: [NSDeletedObjectsKey: objectIDs],
+//                            into: [self.container.viewContext]
+//                        )
+//                    }
+//                } catch {
+//                    print(error.localizedDescription)
+//                    LogManager.error(error.localizedDescription)
+//                }
+//                continuation.resume()
+//            }
+//        }
+//    }
     
     
     

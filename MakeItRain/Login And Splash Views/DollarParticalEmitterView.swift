@@ -9,6 +9,7 @@ import Foundation
 import SwiftUI
 
 #if os(iOS)
+
 struct EmitterView: UIViewRepresentable {
     func makeUIView(context: Context) -> UIView {
         let view = UIView()

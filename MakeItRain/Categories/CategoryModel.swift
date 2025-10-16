@@ -134,18 +134,34 @@ class CategoryModel {
             }
         }
         
-        
+        /// Updated for concurrency rules.
         func updatePersistentKeywords(category: CBCategory) async {
+            let categoryID = category.id
+            // Copy only the simple data you need
+            let keywordInfos = await MainActor.run {
+                keyModel.keywords.map { (id: $0.id, categoryId: $0.category?.id) }
+            }
+            
             let context = DataManager.shared.createContext()
             await context.perform {
-                for keyword in keyModel.keywords.filter({ $0.category?.id == category.id }) {
-                    if let entity = DataManager.shared.getOne(context: context, type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)), createIfNotFound: false),
-                       let categoryEntity = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(keyword.category?.id ?? "0")), createIfNotFound: false) {
+                for keyword in keywordInfos.filter({ $0.categoryId == categoryID }) {
+                    if let entity = DataManager.shared.getOne(
+                        context: context,
+                        type: PersistentKeyword.self,
+                        predicate: .byId(.string(keyword.id)),
+                        createIfNotFound: false
+                    ),
+                    let categoryEntity = DataManager.shared.getOne(
+                        context: context,
+                        type: PersistentCategory.self,
+                        predicate: .byId(.string(keyword.categoryId ?? "0")),
+                        createIfNotFound: false
+                    ) {
                         entity.category = categoryEntity
                     }
                 }
                 
-                let _ = DataManager.shared.save(context: DataManager.shared.container.viewContext)
+                _ = DataManager.shared.save(context: DataManager.shared.container.viewContext)
             }
         }
     }
@@ -208,35 +224,88 @@ class CategoryModel {
         }
     }
     
+//    func updateCache(for category: CBCategory) async -> Result<Bool, CoreDataError> {
+//        let context = DataManager.shared.createContext()
+//        return await context.perform {
+//            if let entity = DataManager.shared.getOne(
+//                context: context,
+//                type: PersistentCategory.self,
+//                predicate: .byId(.string(category.id)),
+//                createIfNotFound: false
+//            ) {
+//                entity.id = category.id
+//                entity.title = category.title
+//                entity.amount = category.amount ?? 0.0
+//                entity.hexCode = category.color.toHex()
+//                //entity.hexCode = category.color.description
+//                entity.emoji = category.emoji ?? ""
+//                entity.action = "edit"
+//                entity.isPending = false
+//                entity.typeID = Int64(category.type.id)
+//                entity.listOrder = Int64(category.listOrder ?? 0)
+//                entity.isNil = category.isNil
+//                
+//                entity.enteredByID = Int64(category.enteredBy.id)
+//                entity.updatedByID = Int64(category.updatedBy.id)
+//                entity.enteredDate = category.enteredDate
+//                entity.updatedDate = category.updatedDate
+//                
+//                return DataManager.shared.save(context: context)
+//            } else {
+//                return .failure(.notFound)
+//            }
+//        }
+//    }
+    
+    /// Updated for concurrency rules.
     func updateCache(for category: CBCategory) async -> Result<Bool, CoreDataError> {
+        // Extract only value-type data before crossing the actor boundary
+        let id = category.id
+        let title = category.title
+        let amount = category.amount ?? 0.0
+        let hexCode = category.color.toHex()
+        let emoji = category.emoji ?? ""
+        let action = "edit"
+        let isPending = false
+        let typeID = Int64(category.type.id)
+        let listOrder = Int64(category.listOrder ?? 0)
+        let isNil = category.isNil
+        let enteredByID = Int64(category.enteredBy.id)
+        let updatedByID = Int64(category.updatedBy.id)
+        let enteredDate = category.enteredDate
+        let updatedDate = category.updatedDate
+
         let context = DataManager.shared.createContext()
         return await context.perform {
-            if let entity = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(category.id)), createIfNotFound: false) {
-                entity.id = category.id
-                entity.title = category.title
-                entity.amount = category.amount ?? 0.0
-                entity.hexCode = category.color.toHex()
-                //entity.hexCode = category.color.description
-                entity.emoji = category.emoji ?? ""
-                entity.action = "edit"
-                entity.isPending = false
-                entity.typeID = Int64(category.type.id)
-                entity.listOrder = Int64(category.listOrder ?? 0)
-                entity.isNil = category.isNil
-                
-                entity.enteredByID = Int64(category.enteredBy.id)
-                entity.updatedByID = Int64(category.updatedBy.id)
-                entity.enteredDate = category.enteredDate
-                entity.updatedDate = category.updatedDate
-                
-                return DataManager.shared.save(context: context)
-            } else {
+            guard let entity = DataManager.shared.getOne(
+                context: context,
+                type: PersistentCategory.self,
+                predicate: .byId(.string(id)),
+                createIfNotFound: false
+            ) else {
                 return .failure(.notFound)
             }
+
+            entity.id = id
+            entity.title = title
+            entity.amount = amount
+            entity.hexCode = hexCode
+            entity.emoji = emoji
+            entity.action = action
+            entity.isPending = isPending
+            entity.typeID = typeID
+            entity.listOrder = listOrder
+            entity.isNil = isNil
+            entity.enteredByID = enteredByID
+            entity.updatedByID = updatedByID
+            entity.enteredDate = enteredDate
+            entity.updatedDate = updatedDate
+
+            return DataManager.shared.save(context: context)
         }
     }
     
-    
+    /// Updated for concurrency rules.
     @MainActor
     func fetchCategories(file: String = #file, line: Int = #line, function: String = #function) async {
         NSLog("\(file):\(line) : \(function)")
@@ -258,8 +327,24 @@ class CategoryModel {
                 if !model.isEmpty {
                     var activeIds: Array<String> = []
                     for category in model {
-                        activeIds.append(category.id)
-                        let index = categories.firstIndex(where: { $0.id == category.id })
+                        
+                        let id = category.id
+                        let title = category.title
+                        let amount = category.amount ?? 0.0
+                        let hexCode = category.color.toHex()
+                        let emoji = category.emoji ?? ""
+                        let action = category.action
+                        let typeID = Int64(category.type.id)
+                        //let listOrder = Int64(category.listOrder ?? 0)
+                        let isNil = category.isNil
+                        let enteredByID = Int64(category.enteredBy.id)
+                        let updatedByID = Int64(category.updatedBy.id)
+                        let enteredDate = category.enteredDate
+                        let updatedDate = category.updatedDate
+                        
+                        
+                        activeIds.append(id)
+                        let index = categories.firstIndex(where: { $0.id == id })
                         if let index {
                             /// If the category is already in the list, update it from the server.
                             categories[index].setFromAnotherInstance(category: category)
@@ -272,22 +357,21 @@ class CategoryModel {
                         await context.perform {
                             /// Find the category in cache.
                             /// This should always be true because the line above creates the entity if it's not found.
-                            if let entity = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(category.id)), createIfNotFound: true) {
-                                entity.id = category.id
-                                entity.title = category.title
-                                entity.amount = category.amount ?? 0.0
-                                entity.hexCode = category.color.toHex()
+                            if let entity = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(id)), createIfNotFound: true) {
+                                entity.id = id
+                                entity.title = title
+                                entity.amount = amount
+                                entity.hexCode = hexCode
                                 //entity.hexCode = category.color.description
-                                entity.emoji = category.emoji
-                                entity.action = "edit"
+                                entity.emoji = emoji
+                                entity.action = action.rawValue
                                 entity.isPending = false
-                                entity.typeID = Int64(category.type.id)
-                                entity.isNil = category.isNil
-                                
-                                entity.enteredByID = Int64(category.enteredBy.id)
-                                entity.updatedByID = Int64(category.updatedBy.id)
-                                entity.enteredDate = category.enteredDate
-                                entity.updatedDate = category.updatedDate
+                                entity.typeID = typeID
+                                entity.isNil = isNil
+                                entity.enteredByID = enteredByID
+                                entity.updatedByID = updatedByID
+                                entity.enteredDate = enteredDate
+                                entity.updatedDate = updatedDate
                                 
                                 let _ = DataManager.shared.save(context: context)
                             }
@@ -384,6 +468,7 @@ class CategoryModel {
     }
     
     
+    /// Updated for concurrency rules.
     @MainActor
     func submit(_ category: CBCategory) async -> Bool {
         print("-- \(#function)")
@@ -391,25 +476,44 @@ class CategoryModel {
         //LoadingManager.shared.startDelayedSpinner()
         LogManager.log()
         
+        let id = category.id
+        let title = category.title
+        let amount = category.amount ?? 0.0
+        let hexCode = category.color.toHex()
+        let emoji = category.emoji ?? ""
+        let action = category.action
+        let typeID = Int64(category.type.id)
+        //let listOrder = Int64(category.listOrder ?? 0)
+        let isNil = category.isNil
+        let enteredByID = Int64(category.enteredBy.id)
+        let updatedByID = Int64(category.updatedBy.id)
+        let enteredDate = category.enteredDate
+        let updatedDate = category.updatedDate
+        
         /// Add the edited category into core data.
         let context = DataManager.shared.createContext()
         await context.perform {
-            if let entity = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(category.id)), createIfNotFound: true) {
-                entity.id = category.id
-                entity.title = category.title
-                entity.amount = category.amount ?? 0.0
-                entity.hexCode = category.color.toHex()
+            if let entity = DataManager.shared.getOne(
+                context: context,
+                type: PersistentCategory.self,
+                predicate: .byId(.string(id)),
+                createIfNotFound: true
+            ) {
+                entity.id = id
+                entity.title = title
+                entity.amount = amount
+                entity.hexCode = hexCode
                 //entity.hexCode = category.color.description
-                entity.emoji = category.emoji ?? ""
-                entity.action = category.action.rawValue
-                entity.typeID = Int64(category.type.id)
+                entity.emoji = emoji
+                entity.action = action.rawValue
+                entity.typeID = typeID
                 entity.isPending = true
-                entity.isNil = category.isNil
+                entity.isNil = isNil
                 
-                entity.enteredByID = Int64(category.enteredBy.id)
-                entity.updatedByID = Int64(category.updatedBy.id)
-                entity.enteredDate = category.enteredDate
-                entity.updatedDate = category.updatedDate
+                entity.enteredByID = enteredByID
+                entity.updatedByID = updatedByID
+                entity.enteredDate = enteredDate
+                entity.updatedDate = updatedDate
                 
                 let _ = DataManager.shared.save(context: context)
             }
@@ -426,13 +530,20 @@ class CategoryModel {
         switch await result {
         case .success(let model):
             LogManager.networkingSuccessful()            
-                        
+                       
+            let modelID = model?.id ?? String(0)
+            
             if category.action != .delete {
                 await context.perform {
-                    if let entity = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(category.id)), createIfNotFound: true) {
+                    if let entity = DataManager.shared.getOne(
+                        context: context,
+                        type: PersistentCategory.self,
+                        predicate: .byId(.string(id)),
+                        createIfNotFound: true
+                    ) {
                         /// If adding a new category, update core data with the server ID by finding it via the UUID.
-                        if category.action == .add {
-                            entity.id = model?.id ?? String(0)
+                        if action == .add {
+                            entity.id = modelID
                             entity.action = "edit"
                         }
                         /// Set pending = false since the internet connection would have worked if we made it to this point.
@@ -695,7 +806,7 @@ class CategoryModel {
     
     
     @MainActor
-    func fetchExpensesByCategory(_ analModel: AnalysisRequestModel) async -> Array<CBBudget>? {
+    func fetchExpensesByCategory(_ analModel: AnalysisRequestModel) async -> Array<CategoryAnalysisResponseModel>? {
         print("-- \(#function)")
         //LoadingManager.shared.startDelayedSpinner()
         LogManager.log()
@@ -703,7 +814,7 @@ class CategoryModel {
         /// Networking
         let model = RequestModel(requestType: "fetch_expenses_by_category", model: analModel)
         
-        typealias ResultResponse = Result<Array<CBBudget>?, AppError>
+        typealias ResultResponse = Result<Array<CategoryAnalysisResponseModel>?, AppError>
         async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
                     
         switch await result {

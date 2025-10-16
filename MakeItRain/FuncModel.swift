@@ -161,45 +161,63 @@ class FuncModel {
         }
         
         /// Gather any cached transactions and send them to the server.
+        
+        //var tempTransactions: [(TempTransaction, CBCategory?, CBPaymentMethod?, [CBLog])] = []
+
         let context = DataManager.shared.createContext()
-        context.performAndWait {
+
+        let tempTransactions: [(TempTransaction, CBCategory?, CBPaymentMethod?, [CBLog])] = await context.perform {
+            var results: [(TempTransaction, CBCategory?, CBPaymentMethod?, [CBLog])] = []
+
             if let entities = DataManager.shared.getMany(context: context, type: TempTransaction.self) {
                 for entity in entities {
                     var category: CBCategory?
                     var payMethod: CBPaymentMethod?
-                    
-                    
-                    if let categoryID = entity.categoryID {
-                        if let perCategory = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(categoryID)), createIfNotFound: false) {
-                            category = CBCategory(entity: perCategory)
-                        }
+                    var logs: [CBLog] = []
+
+                    if let categoryID = entity.categoryID,
+                       let perCategory = DataManager.shared.getOne(
+                           context: context,
+                           type: PersistentCategory.self,
+                           predicate: .byId(.string(categoryID)),
+                           createIfNotFound: false
+                       ) {
+                        category = CBCategory(entity: perCategory)
                     }
-                    
-                    if let payMethodID = entity.payMethodID {
-                        if let perPayMethod = DataManager.shared.getOne(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethodID)), createIfNotFound: false) {
-                            payMethod = CBPaymentMethod(entity: perPayMethod)
-                        }
+
+                    if let payMethodID = entity.payMethodID,
+                       let perPayMethod = DataManager.shared.getOne(
+                           context: context,
+                           type: PersistentPaymentMethod.self,
+                           predicate: .byId(.string(payMethodID)),
+                           createIfNotFound: false
+                       ) {
+                        payMethod = CBPaymentMethod(entity: perPayMethod)
                     }
-                    
-                    var logs: Array<CBLog> = []
+
                     if let logEntities = entity.logs {
-
                         let groupID = UUID().uuidString
+                        for case let logEntity as TempTransactionLog in logEntities {
+                            logs.append(CBLog(transEntity: logEntity, groupID: groupID))
+                        }
+                    }
 
-                        logEntities.forEach { entity in
-                            let log = CBLog(transEntity: entity as! TempTransactionLog, groupID: groupID)
-                            logs.append(log)
-                        }
-                    }
-                    
-                    Task { @MainActor [category, payMethod, logs] in
-                        if let payMethod = payMethod {
-                            let _ = await calModel.saveTemp(trans: CBTransaction(entity: entity, payMethod: payMethod, category: category, logs: logs))
-                        }
-                    }
+                    results.append((entity, category, payMethod, logs))
+                }
+            }
+
+            return results
+        }
+
+        // Now safely on the main actor
+        await MainActor.run {
+            for (entity, category, payMethod, logs) in tempTransactions {
+                if let payMethod {
+                    Task { await self.calModel.saveTemp(trans: CBTransaction(entity: entity, payMethod: payMethod, category: category, logs: logs)) }
                 }
             }
         }
+
         
         
                
@@ -207,88 +225,90 @@ class FuncModel {
         
             /// Grab anything that got stuffed into temporary storage while the network connection was bad, and send it to the server before trying to download any new data.
         
-        let mainContext = DataManager.shared.container.viewContext
-        await mainContext.perform {
-            let pred = NSPredicate(format: "isPending == %@", NSNumber(value: true))
-            
-            
-            
-            
-                            
-//                if let entities = try DataManager.shared.getMany(context: context, type: PersistentCategory.self, predicate: .single(pred)) {
-//                    let objectIDs = entities.map { $0.objectID }
+//        let mainContext = DataManager.shared.container.viewContext
+//        await mainContext.perform {
+//            let pred = NSPredicate(format: "isPending == %@", NSNumber(value: true))            
+//            let cats = DataManager.shared.getMany(context: context, type: PersistentCategory.self, predicate: .single(pred))
+//            if let cats {
+//                let objectIDs = cats.map { $0.objectID }
+//                
+//                Task { @MainActor in
 //                    let mainObjects = objectIDs.compactMap { mainContext.object(with: $0) as? PersistentCategory }
 //                    for entity in mainObjects {
-//                        let _ = await catModel.submit(CBCategory(entity: entity))
+//                        let _ = await self.catModel.submit(CBCategory(entity: entity))
 //                    }
 //                }
-//
-            let cats = DataManager.shared.getMany(context: context, type: PersistentCategory.self, predicate: .single(pred))
-            if let cats {
-                let objectIDs = cats.map { $0.objectID }
-                
-                Task { @MainActor in
-                    let mainObjects = objectIDs.compactMap { mainContext.object(with: $0) as? PersistentCategory }
-                    for entity in mainObjects {
-                        let _ = await self.catModel.submit(CBCategory(entity: entity))
-                    }
-                }
-            }
-                                            
-            let keys = DataManager.shared.getMany(context: context, type: PersistentKeyword.self, predicate: .single(pred))
-            if let keys {
-                let objectIDs = keys.map { $0.objectID }
-                
-                Task { @MainActor in
-                    let mainObjects = objectIDs.compactMap { mainContext.object(with: $0) as? PersistentKeyword }
-                    for entity in mainObjects {
-                        let _ = await self.keyModel.submit(CBKeyword(entity: entity))
-                    }
-                }
-            }
-            
-            let meths = DataManager.shared.getMany(context: context, type: PersistentPaymentMethod.self, predicate: .single(pred))
-            if let meths {
-                let objectIDs = meths.map { $0.objectID }
-                
-                Task { @MainActor in
-                    let mainObjects = objectIDs.compactMap { mainContext.object(with: $0) as? PersistentPaymentMethod }
-                    for entity in mainObjects {
-                        let _ = await self.payModel.submit(CBPaymentMethod(entity: entity))
-                    }
-                }
-            }
-            
-            //keyModel.keywords.sort { $0.keyword < $1.keyword }
-            
-            
-            
-//
-//                if let entities = try DataManager.shared.getMany(context: context, type: PersistentKeyword.self, predicate: .single(pred)) {
-//                    let objectIDs = entities.map { $0.objectID }
+//            }
+//                                            
+//            let keys = DataManager.shared.getMany(context: context, type: PersistentKeyword.self, predicate: .single(pred))
+//            if let keys {
+//                let objectIDs = keys.map { $0.objectID }
+//                
+//                Task { @MainActor in
 //                    let mainObjects = objectIDs.compactMap { mainContext.object(with: $0) as? PersistentKeyword }
 //                    for entity in mainObjects {
-//                        let _ = await keyModel.submit(CBKeyword(entity: entity))
+//                        let _ = await self.keyModel.submit(CBKeyword(entity: entity))
 //                    }
 //                }
-//
-//                if let entities = try DataManager.shared.getMany(context: context, type: PersistentPaymentMethod.self, predicate: .single(pred)) {
-//                    let objectIDs = entities.map { $0.objectID }
+//            }
+//            
+//            let meths = DataManager.shared.getMany(context: context, type: PersistentPaymentMethod.self, predicate: .single(pred))
+//            if let meths {
+//                let objectIDs = meths.map { $0.objectID }
+//                
+//                Task { @MainActor in
 //                    let mainObjects = objectIDs.compactMap { mainContext.object(with: $0) as? PersistentPaymentMethod }
 //                    for entity in mainObjects {
-//                        let _ = await payModel.submit(CBPaymentMethod(entity: entity))
+//                        let _ = await self.payModel.submit(CBPaymentMethod(entity: entity))
 //                    }
 //                }
-            
-            
+//            }
+//        }
+        
+        
+        
+        let mainContext = DataManager.shared.container.viewContext
+        // Thread-safe arrays to hold the IDs
+        var catIDs: [NSManagedObjectID] = []
+        var keyIDs: [NSManagedObjectID] = []
+        var methIDs: [NSManagedObjectID] = []
+
+        // Perform the fetches on the context’s queue
+        await mainContext.perform {
+            let pred = NSPredicate(format: "isPending == %@", NSNumber(value: true))
+
+            if let cats = DataManager.shared.getMany(context: context, type: PersistentCategory.self, predicate: .single(pred)) {
+                catIDs = cats.map { $0.objectID }
+            }
+            if let keys = DataManager.shared.getMany(context: context, type: PersistentKeyword.self, predicate: .single(pred)) {
+                keyIDs = keys.map { $0.objectID }
+            }
+            if let meths = DataManager.shared.getMany(context: context, type: PersistentPaymentMethod.self, predicate: .single(pred)) {
+                methIDs = meths.map { $0.objectID }
+            }
         }
+
+        // Now that we have the IDs, switch to the main actor
+        await MainActor.run {
+            let catObjects = catIDs.compactMap { mainContext.object(with: $0) as? PersistentCategory }
+            for entity in catObjects {
+                Task { await self.catModel.submit(CBCategory(entity: entity)) }
+            }
             
-                
+            let keyObjects = keyIDs.compactMap { mainContext.object(with: $0) as? PersistentKeyword }
+            for entity in keyObjects {
+                Task { await self.keyModel.submit(CBKeyword(entity: entity)) }
+            }
+            
+            let methObjects = methIDs.compactMap { mainContext.object(with: $0) as? PersistentPaymentMethod }
+            for entity in methObjects {
+                Task { await self.payModel.submit(CBPaymentMethod(entity: entity)) }
+            }
+        }
         
-        //}
         
-                
-                    
+        
+                                                    
         withAnimation {
             if createNewStructs {
                 /// This is the progress bar at the bottom of the navigation stack.

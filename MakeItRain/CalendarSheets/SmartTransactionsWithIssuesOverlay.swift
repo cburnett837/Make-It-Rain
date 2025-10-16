@@ -140,7 +140,7 @@ struct SmartTransactionsWithIssuesOverlay: View {
                 dismiss()
             #endif
         } label: {
-            Image(systemName: "checkmark")
+            Image(systemName: "xmark")
                 .foregroundStyle(colorScheme == .dark ? .white : .black)
         }
     }

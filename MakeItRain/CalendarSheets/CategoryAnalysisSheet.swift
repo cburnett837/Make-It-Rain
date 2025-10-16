@@ -665,7 +665,7 @@ struct AnalysisSheet: View {
             dismiss()
             #endif
         } label: {
-            Image(systemName: "checkmark")
+            Image(systemName: "xmark")
         }
         .tint(.none)
         //.buttonStyle(.glassProminent)

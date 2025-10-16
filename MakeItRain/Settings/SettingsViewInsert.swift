@@ -136,19 +136,35 @@ struct SettingsViewInsert: View {
                 Text("Low Balance Threshold")
             } footer: {
                 Group {
-                    Text("Any EOD total under \(threshold.currencyWithDecimals(useWholeNumbers ? 0 : 2)) will be hilighted in ")
+                    let text1 = Text("Any EOD total under \(threshold.currencyWithDecimals(useWholeNumbers ? 0 : 2)) will be hilighted in ")
                         .foregroundStyle(.gray)
                         .font(.footnote)
-                    + Text("orange")
+                    let text2 = Text("orange")
                         .foregroundStyle(.orange)
                         .font(.footnote)
-                    + Text(".")
-                    + Text(" Any EOD total under \(0.currencyWithDecimals(useWholeNumbers ? 0 : 2)) will be hilighted in ")
+                    let text3 = Text(".")
+                    let text4 = Text(" Any EOD total under \(0.currencyWithDecimals(useWholeNumbers ? 0 : 2)) will be hilighted in ")
                         .foregroundStyle(.gray)
                         .font(.footnote)
-                    + Text("red")
+                    let text5 = Text("red")
                         .foregroundStyle(.red)
                         .font(.footnote)
+                    
+                    Text("\(text1)\(text2)\(text3)\(text4)\(text5)")
+                    
+//                    Text("Any EOD total under \(threshold.currencyWithDecimals(useWholeNumbers ? 0 : 2)) will be hilighted in ")
+//                        .foregroundStyle(.gray)
+//                        .font(.footnote)
+//                    + Text("orange")
+//                        .foregroundStyle(.orange)
+//                        .font(.footnote)
+//                    + Text(".")
+//                    + Text(" Any EOD total under \(0.currencyWithDecimals(useWholeNumbers ? 0 : 2)) will be hilighted in ")
+//                        .foregroundStyle(.gray)
+//                        .font(.footnote)
+//                    + Text("red")
+//                        .foregroundStyle(.red)
+//                        .font(.footnote)
                 }
             }
         }
@@ -276,19 +292,31 @@ struct SettingsViewInsert: View {
     
     var lineItemIndicatorPickerAddendum: some View {
         Group {
-            Text("If viewing the calendar as ")
-            +
-            Text("full").italic(true).bold(true)
-            +
-            Text(", choose how to indicate categories.")
+            let text1 = Text("If viewing the calendar as ")
+            let text2 = Text("full").italic(true).bold(true)
+            let text3 = Text(", choose how to indicate categories.")
+            Text("\(text1)\(text2)\(text3)")
             
             if lineItemIndicator == .emoji {
-                Text("Note: Symbols will be displayed as dots when viewing as ")
-                +
-                Text("full").italic(true).bold(true)
-                +
-                Text(" due to space constraints.")
+                let text4 = Text("Note: Symbols will be displayed as dots when viewing as ")
+                let text5 = Text("full").italic(true).bold(true)
+                let text6 = Text(" due to space constraints.")
+                Text("\(text4)\(text5)\(text6)")
             }
+            
+//            Text("If viewing the calendar as ")
+//            +
+//            Text("full").italic(true).bold(true)
+//            +
+//            Text(", choose how to indicate categories.")
+//            
+//            if lineItemIndicator == .emoji {
+//                Text("Note: Symbols will be displayed as dots when viewing as ")
+//                +
+//                Text("full").italic(true).bold(true)
+//                +
+//                Text(" due to space constraints.")
+//            }
             
         }
     }
@@ -382,11 +410,16 @@ struct SettingsViewInsert: View {
         } footer: {
             VStack(alignment: .leading) {
                 Group {
-                    Text("If viewing ")
-                    +
-                    Text("credit").italic(true).bold(true)
-                    +
-                    Text(" transactions, choose how the EOD's are displayed.")
+                    let text1 = Text("If viewing ")
+                    let text2 = Text("credit").italic(true).bold(true)
+                    let text3 = Text(" transactions, choose how the EOD's are displayed.")
+                    Text("\(text1)\(text2)\(text3)")
+                    
+//                    Text("If viewing ")
+//                    +
+//                    Text("credit").italic(true).bold(true)
+//                    +
+//                    Text(" transactions, choose how the EOD's are displayed.")
                 }
                 .foregroundStyle(.gray)
                 .font(.footnote)
@@ -412,11 +445,16 @@ struct SettingsViewInsert: View {
         } footer: {
             VStack(alignment: .leading) {
                 Group {
-                    Text("If viewing the calendar as ")
-                    +
-                    Text("full").italic(true).bold(true)
-                    +
-                    Text(", choose what to display for the line items.")
+                    let text1 = Text("If viewing the calendar as ")
+                    let text2 = Text("full").italic(true).bold(true)
+                    let text3 = Text(", choose what to display for the line items.")
+                    Text("\(text1)\(text2)\(text3)")
+                    
+//                    Text("If viewing the calendar as ")
+//                    +
+//                    Text("full").italic(true).bold(true)
+//                    +
+//                    Text(", choose what to display for the line items.")
                 }
                 .foregroundStyle(.gray)
                 .font(.footnote)

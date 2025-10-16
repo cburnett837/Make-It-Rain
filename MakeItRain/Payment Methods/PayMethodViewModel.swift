@@ -293,11 +293,15 @@ class PayMethodViewModel {
         if payMethod.isUnified {
             let accountType = payMethod.accountType
             if accountType == .unifiedCredit {
-                for each in payModel.paymentMethods.filter({ $0.accountType == .credit || $0.accountType == .loan }) {
+                for each in payModel.paymentMethods
+                    .filter({ $0.accountType == .credit || $0.accountType == .loan })
+                    .filter({ !$0.isHidden }) {
                     ids.append(each.id)
                 }
             } else {
-                for each in payModel.paymentMethods.filter({ $0.accountType == .checking || $0.accountType == .cash }) {
+                for each in payModel.paymentMethods
+                    .filter({ $0.accountType == .checking || $0.accountType == .cash })
+                    .filter({ !$0.isHidden }) {
                     ids.append(each.id)
                 }
             }
@@ -306,7 +310,7 @@ class PayMethodViewModel {
         }
         
         
-        let model = AnalysisRequestModel(recordIDs: ids, fetchYearStart: fetchYearStart, fetchYearEnd: fetchYearEnd)
+        let model = AnalysisRequestModel(recordIDs: ids, fetchYearStart: fetchYearStart, fetchYearEnd: fetchYearEnd, isUnifiedRequest: payMethod.isUnified)
         
         if let payMethods = await payModel.fetchAnalytics(model) {
             

@@ -129,13 +129,36 @@ struct TransactionEditView: View {
         return hasher.finalize()
     }
     
-    var isValidToSave: Bool {
-        if trans.title.isEmpty { return false }
-        if trans.payMethod == nil { return false }
-        if trans.date == nil && (trans.isSmartTransaction ?? false) { return false }
-//        if !trans.hasChanges() { return false }
-        return true
+    
+    var transactionValuesChanged: Int {
+        var hasher = Hasher()
+        hasher.combine(trans.factorInCalculations)
+        hasher.combine(trans.notificationOffset)
+        hasher.combine(trans.notifyOnDueDate)
+        hasher.combine(trans.title)
+        hasher.combine(trans.amountString)
+        hasher.combine(trans.payMethod)
+        hasher.combine(trans.category)
+        hasher.combine(trans.date)
+        hasher.combine(trans.locations)
+        hasher.combine(trans.trackingNumber)
+        hasher.combine(trans.orderNumber)
+        hasher.combine(trans.url)
+        hasher.combine(trans.tags)
+        hasher.combine(trans.notes)
+        return hasher.finalize()
     }
+    
+    
+    @State private var isValidToSave = false
+    
+//    var isValidToSave: Bool {
+//        if trans.title.isEmpty { return false }
+//        if trans.payMethod == nil { return false }
+//        if trans.date == nil && (trans.isSmartTransaction ?? false) { return false }
+//        if !trans.hasChanges() { return false }
+//        return true
+//    }
 
     
 //    var header: some View {
@@ -217,13 +240,26 @@ struct TransactionEditView: View {
             .sheet(isPresented: $showSplitSheet) {
                 TransactionSplitSheet(trans: trans, showSplitSheet: $showSplitSheet)
             }
+            .sheet(isPresented: $showLogSheet) {
+                LogSheet(title: trans.title, itemID: trans.id, logType: .transaction)
+                    #if os(macOS)
+                    .frame(minWidth: 300, minHeight: 500)
+                    .presentationSizing(.fitted)
+                    #endif
+            }
             .environment(mapModel)
-            // MARK: - Undo Stuff
+            /// Check what color the save button should be.
+            .onChange(of: transactionValuesChanged) { checkIfTransactionIsValidToSave() }
+                                    
             #if os(iOS)
+            /// Prompt for undo/redo on shake.
             .onShake {
                 UndodoManager.shared.getChangeFields(trans: trans)
                 UndodoManager.shared.showAlert = true
             }
+            /// Handle undo and redo.
+            .onChange(of: undoRedoValuesChanged) { UndodoManager.shared.processChange(trans: trans) }
+            /// Handle undo and redo.
             .onChange(of: UndodoManager.shared.returnMe) {
                 if let new = $1 {
                     trans.title = new.title ?? ""
@@ -241,24 +277,9 @@ struct TransactionEditView: View {
                     })
                 }
             }
-            .onChange(of: undoRedoValuesChanged) { UndodoManager.shared.processChange(trans: trans) }
-    //        .onChange(of: trans.title) { UndodoManager.shared.processChange(trans: trans) }
-    //        .onChange(of: trans.amountString) { UndodoManager.shared.processChange(trans: trans) }
-    //        .onChange(of: trans.payMethod) { UndodoManager.shared.processChange(trans: trans) }
-    //        .onChange(of: trans.category) { UndodoManager.shared.processChange(trans: trans) }
-    //        //.onChange(of: trans.date) { UndodoManager.shared.commitChange(trans: trans) }
-    //        .onChange(of: trans.trackingNumber) { UndodoManager.shared.processChange(trans: trans) }
-    //        .onChange(of: trans.orderNumber) { UndodoManager.shared.processChange(trans: trans) }
-    //        .onChange(of: trans.url) { UndodoManager.shared.processChange(trans: trans) }
-    //        .onChange(of: trans.notes) { UndodoManager.shared.processChange(trans: trans) }
-            .onChange(of: trans.date) { oldValue, newValue in
-                if oldValue != nil { /// Date is nil when creating a new transaction.
-                    focusedField = nil /// Clear any focused text field when changing the date.
-                    UndodoManager.shared.processChange(trans: trans)
-                }
-            }
-            .onChange(of: focusedField) { oldValue, newValue in
-                if newValue != nil {
+            /// Handle undo and redo.
+            .onChange(of: focusedField) {
+                if $1 != nil {
                     if trans.action == .add && blockUndoCommitOnLoad {
                         blockUndoCommitOnLoad = false
                     } else {
@@ -267,92 +288,24 @@ struct TransactionEditView: View {
                     }
                 }
             }
-            
-            //.onChange(of: mapModel.position) { self.position = $1 }
             #endif
-            
-            .onChange(of: trans.title) { oldValue, newValue in
-                if !blockKeywordChangeWhenViewLoads {
-                    let upVal = newValue.uppercased()
-                    
-                    for key in keyModel.keywords {
-                        let upKey = key.keyword.uppercased()
-                        
-                        switch key.triggerType {
-                        case .equals:
-                            if upVal == upKey { trans.category = key.category }
-                        case .contains:
-                            if upVal.contains(upKey) { trans.category = key.category }
-                        }
-                    }
-                } else {
-                    blockKeywordChangeWhenViewLoads = false
-                }
-            }
-            .sheet(isPresented: $showLogSheet) {
-                LogSheet(title: trans.title, itemID: trans.id, logType: .transaction)
-                    #if os(macOS)
-                    .frame(minWidth: 300, minHeight: 500)
-                    .presentationSizing(.fitted)
-                    #endif
-            }
         }
     }
+
         
     @ViewBuilder
     var content: some View {
-        //titleTextField
-        
         Section {
             titleRow
-                .onChange(of: trans.category) { oldValue, newValue in
-                    if let newValue {
-                        if trans.action == .add && trans.title.isEmpty && !newValue.isNil {
-                            showTopTitles = true
-                        }
-                    }
-                }
-                /// Handle search suggestions
-                .onChange(of: trans.title) { oldTerm, newTerm in
-                    if !showTopTitles {
-                        mapModel.getAutoCompletions(for: newTerm)
-                    }
-                    if !newTerm.isEmpty {
-                        showTopTitles = false
-                    }
-                }
-                .onChange(of: focusedField) { oldValue, newValue in
-                    if oldValue == 1 && newValue != 1 {
-                        withAnimation {
-                            mapModel.completions.removeAll()
-                        }
-                    }
-                }
-            /// NEED TITLE SUGGESTIONS AND MAP SUGGESTIONS HERE. They're in ``StandardTitleTextField``
-            
-            amountRow
-        } footer: {
-            VStack(alignment: .leading) {
-                let titleSuggestions = trans.category?.topTitles ?? []
-                
-                if showTopTitles && !titleSuggestions.isEmpty {
-                    categoryTitleSuggestions
-                } else if !mapModel.completions.isEmpty {
-                    mapLocationSuggestions
-                } else {
-                    TransactionTypeButton(amountTypeLingo: trans.amountTypeLingo, amountString: $trans.amountString)
-                }
+            TransactionAmountRow(amountTypeLingo: trans.amountTypeLingo, amountString: $trans.amountString) {
+                amountRow
             }
         }
-        
-        
-        
         
         Section {
             PayMethodSheetButton2(text: "Account", image: trans.payMethod?.accountType == .checking ? "banknote.fill" : "creditcard.fill", payMethod: $trans.payMethod, whichPaymentMethods: .allExceptUnified)
             CategorySheetButton3(category: $trans.category)
         }
-        
         
         Section {
             datePickerRow
@@ -367,20 +320,16 @@ struct TransactionEditView: View {
                     parent: trans,
                     parentID: trans.id,
                     parentType: XrefEnum.transaction,
-                    //addCurrentLocation: trans.action == .add
                     addCurrentLocation: trans.action == .add
                 )
-                //.cornerRadius(8)
-                    .listRowInsets(EdgeInsets())
-                    //.listRowInsets(.init(top: 0, leading: 25, bottom: 0, trailing: 25))
+                .listRowInsets(EdgeInsets())
             }
         }
         
         if trans.notifyOnDueDate && !isTemp {
             reminderRow
         }
-        
-       
+               
         trackingAndOrderRow
         
         if !isTemp {
@@ -396,103 +345,12 @@ struct TransactionEditView: View {
                     showCamera: $showCamera,
                     showPhotosPicker: $showPhotosPicker
                 )
-                //.listRowInsets(EdgeInsets())
             }
         }
         
         Section {
             StandardNoteTextEditor(notes: $trans.notes, symbolWidth: symbolWidth, focusedField: _focusedField, focusID: showTrackingOrderAndUrlFields ? 5 : 2, showSymbol: true)
         }
-        
-//        if !isTemp {
-//            Section {
-//                logs
-//            }
-//        }
-//        
-//        StandardTitleTextField(
-//            symbolWidth: symbolWidth,
-//            focusedField: _focusedField,
-//            focusID: 0,
-//            showSymbol: true,
-//            parentType: XrefEnum.transaction,
-//            showTitleSuggestions: $showTopTitles,
-//            titleSuggestions: trans.category?.topTitles ?? [],
-//            obj: trans
-//        )
-//            .onChange(of: trans.category) { oldValue, newValue in
-//                if let newValue {
-//                    if trans.action == .add && trans.title.isEmpty && !newValue.isNil {
-//                        showTopTitles = true
-//                    }
-//                }
-//            }
-//        
-//        StandardAmountTextField(symbolWidth: symbolWidth, focusedField: _focusedField, focusID: 1, showSymbol: true, negativeOnFocusIfEmpty: trans.payMethod?.accountType != .credit, obj: trans)
-//        StandardDivider()
-//        
-//        paymentMethodMenu
-//        categoryMenu
-//        
-//        StandardDivider()
-//        
-//        #if os(iOS)
-//        datePickerSection
-//        StandardDivider()
-//        #endif
-//        
-//        if !isTemp {
-//            HStack(alignment: .top) {
-//                Image(systemName: "map.fill")
-//                    .foregroundColor(.gray)
-//                    .frame(width: symbolWidth)
-//                
-//                StandardMiniMap(locations: $trans.locations, parent: trans, parentID: trans.id, parentType: XrefEnum.transaction, addCurrentLocation: trans.action == .add)
-//                    .cornerRadius(8)
-//            }
-//            .padding(.bottom, 6)
-//            
-//            StandardDivider()
-//        }
-//        
-//        
-//        if trans.notifyOnDueDate {
-//            if !isTemp {
-//                reminderSection
-//                StandardDivider()
-//            }
-//        }
-//        
-//        trackingAndOrderSection
-//        StandardDivider()
-//        
-//        if !isTemp {
-//            hashtags
-//            StandardDivider()
-//        }
-//                                                        
-//        if !isTemp {
-////                photoSection
-//            StandardPhotoSection(
-//                pictures: $trans.pictures,
-//                photoUploadCompletedDelegate: calModel,
-//                parentType: .transaction,
-//                showCamera: $showCamera,
-//                showPhotosPicker: $showPhotosPicker
-//            )
-//            StandardDivider()
-//        }
-//                                
-//        StandardNoteTextEditor(notes: $trans.notes, symbolWidth: symbolWidth, focusedField: _focusedField, focusID: showTrackingOrderAndUrlFields ? 5 : 2, showSymbol: true)
-//        
-//        StandardDivider()
-//        
-//        if !isTemp {
-//            logs
-//            StandardDivider()
-//        }
-//                                
-//        alteredBy
     }
     
     
@@ -509,10 +367,7 @@ struct TransactionEditView: View {
                         trans.title = title.capitalized
                         showTopTitles = false
                     } label: {
-                        HStack {
-                            Image(systemName: "brain")
-                            Text("\(title.capitalized)?")
-                        }
+                        Text("\(title.capitalized)?")
                         .foregroundStyle(.gray)
                         .font(.subheadline)
                     }
@@ -547,7 +402,7 @@ struct TransactionEditView: View {
                                     .font(.caption2)
                                     .foregroundStyle(.gray)
                                 
-                                Text(AttributedString(completion.highlightedSubtitleStringForDisplay))
+                                Text(AttributedString(completion.truncatedHighlightedSubtitleStringForDisplay))
                                     .font(.caption2)
                                     .foregroundStyle(.gray)
                             }
@@ -569,7 +424,9 @@ struct TransactionEditView: View {
     
     var mapLocationCurrentButton: some View {
         Button {
-            withAnimation { mapModel.completions.removeAll() }
+            //withAnimation {
+                mapModel.completions.removeAll()
+            //}
             Task {
                 if let location = await mapModel.saveCurrentLocation(parentID: trans.id, parentType: XrefEnum.transaction) {
                     trans.upsert(location)
@@ -589,7 +446,9 @@ struct TransactionEditView: View {
     
     var mapLocationClearButton: some View {
         Button {
-            withAnimation { mapModel.completions.removeAll() }
+            //withAnimation {
+                mapModel.completions.removeAll()
+            //}
         } label: {
             Image(systemName: "xmark")
         }
@@ -602,35 +461,58 @@ struct TransactionEditView: View {
     }
     
     
+    @ViewBuilder
     var titleRow: some View {
-        HStack(spacing: 0) {
-            Label {
-                Text("")
-            } icon: {
-                Image(systemName: "t.circle")
-                    .foregroundStyle(.gray)
-            }
-
-            //Spacer()
-            #if os(iOS)
-            UITextFieldWrapper(placeholder: "Title", text: $trans.title, onSubmit: {
-                focusedField = 1
-            }, toolbar: {
-                KeyboardToolbarView(focusedField: $focusedField)
-            })
-            .uiTag(0)
-            .uiClearButtonMode(.whileEditing)
-            .uiStartCursorAtEnd(true)
-            .uiTextAlignment(.left)
-            .uiReturnKeyType(.next)
-            .uiTextColor(UIColor(trans.color))
+        VStack {
+            HStack(spacing: 0) {
+                Label {
+                    Text("")
+                } icon: {
+                    Image(systemName: "t.circle")
+                        .foregroundStyle(.gray)
+                }
             
-            //.uiTextColor(.secondaryLabel)
-            //.uiFont(UIFont.systemFont(ofSize: 24.0))
-            #else
-            StandardTextField("Title", text: $trans.title, focusedField: $focusedField, focusValue: 0)
-                .onSubmit { focusedField = 1 }
-            #endif
+                //Spacer()
+                #if os(iOS)
+                UITextFieldWrapper(placeholder: "Title", text: $trans.title, onSubmit: {
+                    focusedField = 1
+                }, toolbar: {
+                    KeyboardToolbarView(focusedField: $focusedField)
+                })
+                .uiTag(0)
+                .uiClearButtonMode(.whileEditing)
+                .uiStartCursorAtEnd(true)
+                .uiTextAlignment(.left)
+                .uiReturnKeyType(.next)
+                .uiTextColor(UIColor(trans.color))
+                
+                //.uiTextColor(.secondaryLabel)
+                //.uiFont(UIFont.systemFont(ofSize: 24.0))
+                #else
+                StandardTextField("Title", text: $trans.title, focusedField: $focusedField, focusValue: 0)
+                    .onSubmit { focusedField = 1 }
+                #endif
+            }
+            
+            let titleSuggestions = trans.category?.topTitles ?? []
+            if (showTopTitles && !titleSuggestions.isEmpty) || !mapModel.completions.isEmpty {
+                HStack(spacing: 0) {
+                    Label {
+                        Text("")
+                    } icon: {
+                        Image(systemName: "brain")
+                            .foregroundStyle(.gray)
+                    }
+                                        
+                    VStack(alignment: .leading) {
+                        if showTopTitles && !titleSuggestions.isEmpty {
+                            categoryTitleSuggestions
+                        } else if !mapModel.completions.isEmpty {
+                            mapLocationSuggestions
+                        }
+                    }
+                }
+            }
         }
         .overlay {
             Color.red
@@ -638,6 +520,50 @@ struct TransactionEditView: View {
                 .opacity(trans.factorInCalculations ? 0 : 1)
         }
         .focused($focusedField, equals: 0)
+        /// Suggest top titles associated with a category if the title has not yet been entered when the category is selected.
+        .onChange(of: trans.category) {
+            if let newValue = $1 {
+                if trans.action == .add && trans.title.isEmpty && !newValue.isNil {
+                    showTopTitles = true
+                }
+            }
+        }
+        /// Handle search suggestions
+        .onChange(of: trans.title) {
+            if !showTopTitles {
+                mapModel.getAutoCompletions(for: $1)
+            }
+            if !$1.isEmpty {
+                showTopTitles = false
+            }
+        }
+        /// Clear map suggestions when unfocusing from the title field.
+        .onChange(of: focusedField) {
+            if $0 == 1 && $1 != 1 {
+                //withAnimation {
+                    mapModel.completions.removeAll()
+                //}
+            }
+        }
+        /// Suggest adding a new keyword for common titles that may not have one.
+        .onChange(of: trans.title) {
+            if !blockKeywordChangeWhenViewLoads {
+                let upVal = $1.uppercased()
+                
+                for key in keyModel.keywords {
+                    let upKey = key.keyword.uppercased()
+                    
+                    switch key.triggerType {
+                    case .equals:
+                        if upVal == upKey { trans.category = key.category }
+                    case .contains:
+                        if upVal.contains(upKey) { trans.category = key.category }
+                    }
+                }
+            } else {
+                blockKeywordChangeWhenViewLoads = false
+            }
+        }
     }
     
     
@@ -680,12 +606,10 @@ struct TransactionEditView: View {
                 amount: trans.amount
             )
             .onChange(of: focusedField) { oldValue, newValue in
-                if newValue == 1 && trans.amountString.isEmpty {
+                if newValue == 1 && trans.amountString.isEmpty && (trans.payMethod ?? CBPaymentMethod()).isDebit {
                     trans.amountString = "-"
                 }
             }
-            
-            //StandardAmountTextField(focusedField: _focusedField, focusID: 1, showSymbol: false, obj: repTransaction)
         }
         .overlay {
             Color.red
@@ -693,66 +617,7 @@ struct TransactionEditView: View {
                 .opacity(trans.factorInCalculations ? 0 : 1)
         }
     }
-    
-    
-//    var transactionTypeButton: some View {
-//        HStack(spacing: 1) {
-//            Text("Transaction Type: ")
-//                .foregroundStyle(.gray)
-//            
-//            Text(trans.amountTypeLingo)
-//                .bold(true)
-//                .foregroundStyle(Color.fromName(colorTheme))
-//                .onTapGesture {
-//                    Helpers.plusMinus($trans.amountString)
-//                }
-//        }
-//        .validate(trans.amountString, rules: .regex(.currency, "The field contains invalid characters"))
-//        .disabled(trans.amountString.isEmpty)
-//    }
-    
-    
-//    var accountRow: some View {
-//        HStack {
-//            Label {
-//                Text("Account")
-//            } icon: {
-//                Image(systemName: trans.payMethod?.accountType == .checking ? "banknote.fill" : "creditcard.fill")
-//                    .foregroundStyle(trans.payMethod == nil ? .gray : trans.payMethod!.color)
-//                    //.frame(width: symbolWidth)
-//            }
-//            Spacer()
-//            
-//            
-//            PayMethodSheetButton2(text: "Account", image: trans.payMethod?.accountType == .checking ? "banknote.fill" : "creditcard.fill", payMethod: $trans.payMethod, whichPaymentMethods: .allExceptUnified)
-//        }
-//    }
-//    
-    
-//    var categoryRow: some View {
-//        HStack {
-//            Label {
-//                Text("Category")
-//            } icon: {
-//                if let cat = trans.category {
-//                    if cat.isNil {
-//                        Image(systemName: "questionmark.circle")
-//                            .foregroundStyle(.gray)
-//                    } else {
-//                        Image(systemName: cat.emoji ?? "questionmark.circle")
-//                            .foregroundStyle(cat.color)
-//                    }
-//                } else {
-//                    Image(systemName: trans.category?.emoji ?? "questionmark.circle")
-//                        .foregroundStyle(trans.category?.color ?? .gray)
-//                }
-//            }
-//            
-//            Spacer()
-//            CategorySheetButton2(category: $trans.category)
-//        }
-//    }
-    
+   
     
     @ViewBuilder
     var datePickerRow: some View {
@@ -790,7 +655,12 @@ struct TransactionEditView: View {
                 #endif
             }
         }
-        
+        .onChange(of: trans.date) {
+            if $0 != nil { /// Date is nil when creating a new transaction.
+                focusedField = nil /// Clear any focused text field when changing the date.
+                UndodoManager.shared.processChange(trans: trans)
+            }
+        }
     }
     
     
@@ -876,9 +746,6 @@ struct TransactionEditView: View {
     }
     
     
-    
-    
-    
     var trackingNumberTextField: some View {
         HStack {
             Label {
@@ -907,6 +774,7 @@ struct TransactionEditView: View {
                     .onSubmit { focusedField = 3 }
                 #endif
             }
+            .focused($focusedField, equals: 2)
         }
         .padding(.bottom, 6)
     }
@@ -950,6 +818,7 @@ struct TransactionEditView: View {
                     .onSubmit { focusedField = 4 }
                 #endif
             }
+            .focused($focusedField, equals: 3)
         }
         .padding(.bottom, 6)
     }
@@ -976,9 +845,9 @@ struct TransactionEditView: View {
                 
             }
         }
+        .focused($focusedField, equals: 4)
     }
         
-    
     
     var categoryMenu: some View {
         HStack(alignment: .circleAndTitle) {
@@ -1127,40 +996,7 @@ struct TransactionEditView: View {
             
     }
     
-    
-//    var logs: some View {
-//        Button {
-//            withAnimation { showLogSheet = true }
-//        } label: {
-//            HStack {
-//                Label {
-//                    Text("Change Logs")
-//                } icon: {
-//                    Image(systemName: "list.clipboard.fill")
-//                        .foregroundStyle(.gray)
-//                }
-//                
-//                Spacer()
-//                
-//                HStack {
-//                    Text("View")
-//                    Image(systemName: "chevron.right")
-//                }
-//                .foregroundStyle(.gray)
-//                .contentShape(Rectangle())
-//            }
-//        }
-//        .foregroundStyle(colorScheme == .dark ? .white : .black)
-//        .sheet(isPresented: $showLogSheet) {
-//            LogSheet(itemID: trans.id, logType: .transaction)
-//                #if os(macOS)
-//                .frame(minWidth: 300, minHeight: 500)
-//                .presentationSizing(.fitted)
-//                #endif
-//        }
-//    }
-    
-                
+  
     var alteredBy: some View {
         HStack {
             Image(systemName: "person.fill")
@@ -1216,9 +1052,6 @@ struct TransactionEditView: View {
                 .foregroundStyle(colorScheme == .dark ? .white : .black)
         }
     }
-    
-    
-    
     
     
     
@@ -1696,6 +1529,29 @@ struct TransactionEditView: View {
     
     
     // MARK: - Functions
+    
+    func checkIfTransactionIsValidToSave() {
+        print("Checking validity")
+        if trans.title.isEmpty {
+            isValidToSave = false; return
+        }
+        if trans.payMethod == nil {
+            isValidToSave = false; return
+        }
+        if trans.date == nil && (trans.isSmartTransaction ?? false) {
+            isValidToSave = false; return
+        }
+        if !trans.hasChanges(shouldLog: false) {
+            print("Transaction does not have changes")
+            isValidToSave = false; return
+        } else {
+            print("Transaction does! have changes")
+            isValidToSave = true; return
+        }
+    }
+    
+    
+    
     func prepareTransactionForEditing(isTemp: Bool) {
         /// `WARNING!` Can't do this logic in `init()` due to redraws.
 
@@ -1789,6 +1645,8 @@ struct TransactionEditView: View {
             }
         }
         #endif
+        
+        checkIfTransactionIsValidToSave()
         
         
         /// Remove the date from the deepCopy if editing from a smart transaction that has a date as a problem.

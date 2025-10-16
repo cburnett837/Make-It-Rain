@@ -9,7 +9,7 @@ import Foundation
 
 extension Date? {
     public var isToday: Bool {
-        let now = Date()
+        //let now = Date()
         //var todayDay = Calendar.current.component(.day, from: now)
         //var todayMonth = Calendar.current.component(.month, from: now)
         //var todayYear = Calendar.current.component(.year, from: now)
@@ -157,10 +157,10 @@ extension Date {
     }
     
     public var isToday: Bool {
-        let now = Date()
-        var todayDay = Calendar.current.component(.day, from: now)
-        var todayMonth = Calendar.current.component(.month, from: now)
-        var todayYear = Calendar.current.component(.year, from: now)
+        //let now = Date()
+        //var todayDay = Calendar.current.component(.day, from: now)
+        //var todayMonth = Calendar.current.component(.month, from: now)
+        //var todayYear = Calendar.current.component(.year, from: now)
         
         return
             self.day == AppState.shared.todayDay

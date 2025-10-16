@@ -49,6 +49,21 @@ struct AlertAndToastLayerView: View {
                 }
             }
             /// Custom alerts.
+//            .alert(AppState.shared.alertConfig?.title ?? "N/A",
+//                isPresented: $appState.showCustomAlert,
+//                presenting: AppState.shared.alertConfig,
+//                actions: { config in
+//                    config.primaryButton
+//                    config.secondaryButton
+//                
+//                    Button(role: .cancel) {
+//                        
+//                    }
+//                },
+//                message: { config in
+//                    Text(config.subtitle ?? "")
+//                }
+//            )
             .overlay {
                 if let config = AppState.shared.alertConfig {
                     Rectangle()

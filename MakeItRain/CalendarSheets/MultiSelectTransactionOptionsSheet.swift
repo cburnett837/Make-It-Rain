@@ -107,7 +107,7 @@ struct MultiSelectTransactionOptionsSheet: View {
         Button {
             closeSheet()
         } label: {
-            Image(systemName: "checkmark")
+            Image(systemName: "xmark")
                 .foregroundStyle(colorScheme == .dark ? .white : .black)
         }
     }

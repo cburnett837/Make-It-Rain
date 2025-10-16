@@ -9,7 +9,7 @@
 //
 //struct PayMethodViewContainer: View {
 //    @Local(\.incomeColor) var incomeColor
-//    @AppStorage("monthlyAnalyticChartVisibleYearCount") var chartVisibleYearCount: MonthlyAnalyticChartRange = .year1
+//    @AppStorage("monthlyAnalyticChartVisibleYearCount") var chartVisibleYearCount: CategoryAnalyticChartRange = .year1
 //
 //    @Environment(PayMethodModel.self) private var payModel
 //    @Environment(CalendarModel.self) private var calModel

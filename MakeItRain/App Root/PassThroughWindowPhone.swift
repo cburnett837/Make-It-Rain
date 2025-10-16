@@ -13,9 +13,41 @@ import UIKit
 
 #if os(iOS)
 class PassThroughWindowPhone: UIWindow {
+    
+//    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+//        guard let rootView = rootViewController?.view else { return nil }
+//
+//        // Perform default hit test
+//        let hitView = super.hitTest(point, with: event)
+//        print("Initial hitView: \(hitView?.accessibilityIdentifier)")
+//
+//        // For iOS 26+, use layer hit testing logic
+//        if #available(iOS 26, *) {
+//            // Do a layer-level hit test to check if anything visible was hit
+//            let layerHit = rootView.layer.hitTest(point)
+//            print("layerHit.name: \(layerHit?.name)")
+//
+//            // If layerHit has no name, it’s probably a transparent SwiftUI region
+//            if layerHit?.name == nil {
+//                print("laterHit name is nil")
+//                // Nothing meaningful hit — ignore this touch
+//                return nil
+//            }
+//        } else {
+//            // On older systems, skip root view itself
+//            if hitView == rootView {
+//                return nil
+//            }
+//        }
+//
+//        print("returning hitView")
+//        return hitView
+//    }
+    
+    /// Kavsoft / my hybrid that works with the alerts and rectange with 0.8 opacity... but does not work with toast.
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         let view = super.hitTest(point, with: event)
-        
+                
         if #available(iOS 26, *) {
             guard let view, _hitTest(point, from: view) != rootViewController?.view else { return nil }
         } else {
@@ -23,45 +55,20 @@ class PassThroughWindowPhone: UIWindow {
         }
         
         return view
-        
-        guard let hitView = super.hitTest(point, with: event),
-                let rootView = rootViewController?.view
-        else { return nil }
-
-        if #available(iOS 26, *) {
-            if rootView.layer.hitTest(point)?.name == nil {
-                return rootView
-            } else {
-                return nil
-            }
-        } else {
-            if #available(iOS 18, *) {
-                for subview in rootView.subviews.reversed() {
-                    /// Finding if any of rootview's is receving hit test
-                    let pointInSubView = subview.convert(point, from: rootView)
-                    if subview.hitTest(pointInSubView, with: event) != nil {
-                        return hitView
-                    }
-                }
-                
-                return nil
-            } else {
-                return hitView == rootView ? nil : hitView
-            }
-        }
     }
     
+    
+    /// Original iOS 18 version
 //    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-//        guard let rootView = rootViewController?.view else {
-//            return nil
+//        let view = super.hitTest(point, with: event)
+//        
+//        if #available(iOS 18, *) {
+//            guard let view, _hitTest(point, from: view) != rootViewController?.view else { return nil }
+//        } else {
+//            guard view != rootViewController?.view else { return nil }
 //        }
 //        
-//        if rootView.layer.hitTest(point)?.name == nil {
-//            return rootView
-//        } else {
-//            // pass through the touch to the window below
-//            return nil
-//        }
+//        return view
 //    }
     
     private func _hitTest(_ point: CGPoint, from view: UIView) -> UIView? {

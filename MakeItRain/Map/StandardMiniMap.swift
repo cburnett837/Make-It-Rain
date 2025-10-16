@@ -95,12 +95,14 @@ struct StandardMiniMap: View {
                 
                 
                 if addCurrentLocation {
+                    print("should add current location to parent")
                     if let location = await mapModel.saveCurrentLocation(parentID: parentID, parentType: parentType) {
                         parent.upsert(location)
                         focusOnFirst(locations: parent.locations)
                     }
                 }
             } else {
+                print("setting camera to current location")
                 /// Set the camera to the first location in the list when opening the map.
                 focusOnFirst(locations: locations)
             }

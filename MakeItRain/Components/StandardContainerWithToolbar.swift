@@ -19,7 +19,7 @@ struct StandardContainerWithToolbar<Content: View>: View {
     
     init(
         _ contentType: SheetContainerContentType = .scrolling,
-        scrollDismissesKeyboard: ScrollDismissesKeyboardMode = .immediately,
+        scrollDismissesKeyboard: ScrollDismissesKeyboardMode = .interactively,
         selectionID: Binding<String?> = .constant(nil),
         @ViewBuilder content: @escaping () -> Content,
     ) {

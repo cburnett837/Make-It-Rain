@@ -44,9 +44,9 @@ struct TagView: View {
     
     var body: some View {
         NavigationStack {
-            StandardContainerWithToolbar {
+            StandardContainerWithToolbar(.list) {
                 if !calModel.tags.isEmpty {
-                    GroupBox {
+                    //GroupBox {
                         if filteredTags.isEmpty {
                             VStack {
                                 Text("No Tags…")
@@ -80,53 +80,62 @@ struct TagView: View {
                                 }
                             }
                         }
-                    }
+                    //}
                 }
                 
                 
-                GroupBox {
-                    Group {
-#if os(iOS)
+                //GroupBox {
+                    Section {
+                        #if os(iOS)
                         UITextFieldWrapper(placeholder: "Add New Tag…", text: $newTag, onSubmit: { onSubmit() }, toolbar: {
                             KeyboardToolbarView(
                                 focusedField: $focusedField,
-                                accessoryText1: "Add",
-                                accessoryFunc1: {
-                                    if !newTag.isEmpty {
-                                        let newTag = CBTag(tag: newTag)
-                                        addOrFind(tag: newTag)
-                                    }
-                                    //focusedField = nil
-                                    newTag = ""
-                                }
+                                removeNavButtons: true
+//                                accessoryText1: "Add",
+//                                accessoryFunc1: {
+//                                    if !newTag.isEmpty {
+//                                        let newTag = CBTag(tag: newTag)
+//                                        addOrFind(tag: newTag)
+//                                    }
+//                                    //focusedField = nil
+//                                    newTag = ""
+//                                }
                             )
                         })
                         .uiTag(0)
                         .uiClearButtonMode(.whileEditing)
                         .uiStartCursorAtEnd(true)
                         .uiReturnKeyType(.done)
-#else
+                        #else
                         TextField("Add New Tag…", text: $newTag)
                             .textFieldStyle(.plain)
                             .onSubmit {
                                 onSubmit()
                             }
-#endif
+                        #endif
+                        
+                        if !newTag.isEmpty {
+                            Button("Add") {
+                                let newTag = CBTag(tag: newTag)
+                                addOrFind(tag: newTag)
+                                self.newTag = ""
+                            }
+                        }
                     }
                     .onChange(of: newTag) { old, new in
                         newTag = new.replacingOccurrences(of: " ", with: "")
                     }
                     .focused($focusedField, equals: 0)
-                }
-                .searchable(text: $searchText, prompt: Text("Search"))
-                .navigationTitle("Tags")
-                #if os(iOS)
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) { closeButton }
-                }
-                #endif
+                //}
             }
+            .searchable(text: $searchText, prompt: Text("Search"))
+            .navigationTitle("Tags")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) { closeButton }
+            }
+            #endif
             
         }
 
@@ -260,7 +269,7 @@ struct TagView: View {
         Button {
             dismiss()
         } label: {
-            Image(systemName: "checkmark")
+            Image(systemName: "xmark")
                 .foregroundStyle(colorScheme == .dark ? .white : .black)
         }
     }

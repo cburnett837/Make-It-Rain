@@ -115,7 +115,7 @@ struct TempTransactionList: View {
                 calModel.tempTransactions.removeAll { $0.id == id }
                 Task {
                     let context = DataManager.shared.createContext()
-                    let _ = await DataManager.shared.delete(context: context, type: TempTransaction.self, predicate: .byId(.string(id)))
+                    let _ = DataManager.shared.delete(context: context, type: TempTransaction.self, predicate: .byId(.string(id)))
                 }
                 
             }

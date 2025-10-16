@@ -70,7 +70,7 @@ struct PlaidSyncInfoSheet: View {
         Button {
             dismiss()
         } label: {
-            Image(systemName: "checkmark")
+            Image(systemName: "xmark")
                 .foregroundStyle(colorScheme == .dark ? .white : .black)
         }
     }

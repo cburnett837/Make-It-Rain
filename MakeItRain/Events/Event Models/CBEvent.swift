@@ -467,7 +467,7 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
     }
     
     func saveParticipant(id: String) -> Bool {
-        let part = getParticipant(by: id)
+        //let part = getParticipant(by: id)
 //        if part.title.isEmpty {
 //            if part.action != .add && part.title.isEmpty {
 //                part.title = part.deepCopy?.title ?? ""

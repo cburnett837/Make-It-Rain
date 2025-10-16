@@ -140,7 +140,8 @@ struct StandardPhotoSection: View {
         .sheet(item: $selectedPicUuid) { uuid in
             //SFSafariView(url: $0)
             //Text(uuid)
-            WebView(requestModel: RequestModel(requestType: "download_photo", model: PhotoRequestModel(path: "budget_app.photo.\(uuid).jpg")))
+            PhotoWebPreview(uuid: uuid)
+            
         }
         #endif
         
@@ -352,6 +353,46 @@ struct StandardPhotoSection: View {
             }
         }
     }
+    
+    
+    struct PhotoWebPreview: View {
+        @Environment(\.colorScheme) var colorScheme
+        @Environment(\.dismiss) var dismiss
+        
+        let uuid: String
+        
+        var body: some View {
+            NavigationStack {
+                WebView(requestModel: RequestModel(
+                    requestType: "download_photo",
+                    model: PhotoRequestModel(path: "budget_app.photo.\(uuid).jpg")
+                ))
+                .navigationTitle("Photo Preview")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+//                    ToolbarItem(placement: .topBarLeading) {
+//                        ShareLink(item: URL(string: "https://\(Keys.baseURL):8676/pictures/budget_app.photo.\(uuid).jpg")!) {
+//                            Image(systemName: "square.and.arrow.up")
+//                                //.frame(width: 30, height: 30)
+//                                //.foregroundStyle(Color.accentColor)
+//                                //.background(RoundedRectangle(cornerRadius: 4).fill(.ultraThickMaterial))
+//                        }
+//                        //.buttonStyle(.plain)
+//                    }
+                    ToolbarItem(placement: .topBarTrailing) { closeButton }
+                }
+            }
+        }
+        
+        var closeButton: some View {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+            }
+        }
+    }
                  
     
     struct PicImage: View {
@@ -359,23 +400,32 @@ struct StandardPhotoSection: View {
         var pic: CBPicture
         var displayStyle: PhotoSectionDisplayStyle
         
+        var isDeletingPic: Bool {
+            props.isDeletingPic && pic.id == props.deletePic?.id
+        }
+        
+        var dimImage: Bool {
+            isDeletingPic
+            || props.hoverPic == pic
+            || pic.isPlaceholder
+        }
+        
         var body: some View {
             @Bindable var props = props
             CustomAsyncImage(pic: pic) { image in
-                image
-                    .resizable()
-                    .if(displayStyle == .grid) {
-                        $0.aspectRatio(1, contentMode: .fit)
-                    }
-                    .if(displayStyle == .standard) {
-                        $0
+                switch displayStyle {
+                case .standard:
+                    image
+                        .resizable()
                         .frame(width: photoWidth, height: photoHeight)
                         .aspectRatio(contentMode: .fill)
-                    }
-                                            
-                    .clipShape(.rect(cornerRadius: 14))
-                    //.clipShape(.rect(corners: .concentric(), isUniform: true))
-                    //.frame(maxWidth: 300, maxHeight: 300)
+                        .clipShape(.rect(cornerRadius: 14))
+                case .grid:
+                    image
+                        .resizable()
+                        .aspectRatio(1, contentMode: .fit)
+                        .clipShape(.rect(cornerRadius: 14))
+                }
             } placeholder: {
                 PicPlaceholder(text: "Downloading…", displayStyle: displayStyle)
             }
@@ -400,8 +450,8 @@ struct StandardPhotoSection: View {
 //                    PicPlaceholder(text: "Downloading…", displayStyle: displayStyle)
 //                }
 //            )
-            .opacity(((props.isDeletingPic && pic.id == props.deletePic?.id) || props.hoverPic == pic || pic.isPlaceholder) ? 0.2 : 1)
-            .overlay(ProgressView().tint(.none).opacity(props.isDeletingPic && pic.id == props.deletePic?.id ? 1 : 0))
+            .opacity(dimImage ? 0.2 : 1)
+            .overlay(ProgressView().tint(.none).opacity(isDeletingPic ? 1 : 0))
         }
     }
     
@@ -421,15 +471,13 @@ struct StandardPhotoSection: View {
             if let uiImage = uiImage {
                 content(Image(uiImage: uiImage))
             } else {
-                placeholder()
-                    .task { await getImage() }
+                placeholder().task { await getImage() }
             }
             #else
             if let nsImage = nsImage {
                 content(Image(nsImage: nsImage))
             } else {
-                placeholder()
-                    .task { await getImage() }
+                placeholder().task { await getImage() }
             }
             #endif
         }
@@ -461,22 +509,42 @@ struct StandardPhotoSection: View {
         var displayStyle: PhotoSectionDisplayStyle
         
         var body: some View {
-            RoundedRectangle(cornerRadius: 14)
-                //.clipShape(.rect(corners: .concentric(), isUniform: true))
-                .fill(Color.gray.opacity(0.1))
-                .if(displayStyle == .grid) {
-                    $0.aspectRatio(1, contentMode: .fit)
+            Group {
+                switch displayStyle {
+                case .standard:
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Color.gray.opacity(0.1))
+                        .frame(width: photoWidth, height: photoHeight)
+                case .grid:
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Color.gray.opacity(0.1))
+                        .aspectRatio(1, contentMode: .fit)
                 }
-                .if(displayStyle == .standard) {
-                    $0.frame(width: photoWidth, height: photoHeight)
+            }
+            .overlay {
+                VStack {
+                    ProgressView()
+                        .tint(.none)
+                    Text(text)
                 }
-                .overlay {
-                    VStack {
-                        ProgressView()
-                            .tint(.none)
-                        Text(text)
-                    }
-                }
+            }
+            
+//            RoundedRectangle(cornerRadius: 14)
+//                //.clipShape(.rect(corners: .concentric(), isUniform: true))
+//                .fill(Color.gray.opacity(0.1))
+//                .if(displayStyle == .grid) {
+//                    $0.aspectRatio(1, contentMode: .fit)
+//                }
+//                .if(displayStyle == .standard) {
+//                    $0.frame(width: photoWidth, height: photoHeight)
+//                }
+//                .overlay {
+//                    VStack {
+//                        ProgressView()
+//                            .tint(.none)
+//                        Text(text)
+//                    }
+//                }
         }
     }
     

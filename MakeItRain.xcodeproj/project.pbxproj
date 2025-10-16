@@ -107,7 +107,7 @@
 		FDAECC482DCA6E2500C6EDA5 /* CalendarSheetLayerWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDAECC472DCA6E2400C6EDA5 /* CalendarSheetLayerWrapper.swift */; };
 		FDAECC4A2DCA6E3D00C6EDA5 /* PassThroughWindowPhone.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDAECC492DCA6E3D00C6EDA5 /* PassThroughWindowPhone.swift */; };
 		FDAECC4D2DCA89B600C6EDA5 /* CategoryAnalysisRequestModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDAECC4C2DCA89B600C6EDA5 /* CategoryAnalysisRequestModel.swift */; };
-		FDAECC502DCB9D7800C6EDA5 /* AnalyticChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDAECC4F2DCB9D7800C6EDA5 /* AnalyticChart.swift */; };
+		FDAECC502DCB9D7800C6EDA5 /* CategoryAnalyticChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDAECC4F2DCB9D7800C6EDA5 /* CategoryAnalyticChart.swift */; };
 		FDAECC522DCBA42B00C6EDA5 /* CategoryViewOG.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDAECC512DCBA42A00C6EDA5 /* CategoryViewOG.swift */; };
 		FDAECC542DCC12BB00C6EDA5 /* BudgetTableOG.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDAECC532DCC12B200C6EDA5 /* BudgetTableOG.swift */; };
 		FDAECC562DCD9C6300C6EDA5 /* BudgetBreakdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDAECC552DCD9C6300C6EDA5 /* BudgetBreakdownView.swift */; };
@@ -420,7 +420,7 @@
 		FDAECC472DCA6E2400C6EDA5 /* CalendarSheetLayerWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarSheetLayerWrapper.swift; sourceTree = "<group>"; };
 		FDAECC492DCA6E3D00C6EDA5 /* PassThroughWindowPhone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassThroughWindowPhone.swift; sourceTree = "<group>"; };
 		FDAECC4C2DCA89B600C6EDA5 /* CategoryAnalysisRequestModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryAnalysisRequestModel.swift; sourceTree = "<group>"; };
-		FDAECC4F2DCB9D7800C6EDA5 /* AnalyticChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticChart.swift; sourceTree = "<group>"; };
+		FDAECC4F2DCB9D7800C6EDA5 /* CategoryAnalyticChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryAnalyticChart.swift; sourceTree = "<group>"; };
 		FDAECC512DCBA42A00C6EDA5 /* CategoryViewOG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryViewOG.swift; sourceTree = "<group>"; };
 		FDAECC532DCC12B200C6EDA5 /* BudgetTableOG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetTableOG.swift; sourceTree = "<group>"; };
 		FDAECC552DCD9C6300C6EDA5 /* BudgetBreakdownView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetBreakdownView.swift; sourceTree = "<group>"; };
@@ -811,7 +811,6 @@
 		FDAECC4E2DCB9D6700C6EDA5 /* Analytics */ = {
 			isa = PBXGroup;
 			children = (
-				FDAECC4F2DCB9D7800C6EDA5 /* AnalyticChart.swift */,
 				FDAECC552DCD9C6300C6EDA5 /* BudgetBreakdownView.swift */,
 			);
 			path = Analytics;
@@ -935,6 +934,7 @@
 			isa = PBXGroup;
 			children = (
 				FDC26DA42D3E86D500B0A97C /* CBCategory.swift */,
+				FDAECC4F2DCB9D7800C6EDA5 /* CategoryAnalyticChart.swift */,
 				FDC26D9C2D3E86D500B0A97C /* CategoriesTable.swift */,
 				FDC26D9E2D3E86D500B0A97C /* CategoryMenu.swift */,
 				FDC26D9F2D3E86D500B0A97C /* CategoryModel.swift */,
@@ -1438,7 +1438,7 @@
 				FDAECC562DCD9C6300C6EDA5 /* BudgetBreakdownView.swift in Sources */,
 				FD49F8A22DD9999500A563C8 /* LocalStorage.swift in Sources */,
 				FDC26E2F2D3E86D500B0A97C /* CBPaymentMethod.swift in Sources */,
-				FDAECC502DCB9D7800C6EDA5 /* AnalyticChart.swift in Sources */,
+				FDAECC502DCB9D7800C6EDA5 /* CategoryAnalyticChart.swift in Sources */,
 				FDC26E302D3E86D500B0A97C /* MakeItRainApp.swift in Sources */,
 				FDAECC522DCBA42B00C6EDA5 /* CategoryViewOG.swift in Sources */,
 				FDC26E312D3E86D500B0A97C /* AdvancedSearchView.swift in Sources */,

@@ -17,7 +17,101 @@ struct Toast {
     var action: () -> Void = {}
 }
 
+
+
+
+
 struct ToastView: View {
+    @Local(\.colorTheme) var colorTheme
+    var toast: Toast?
+    let timer = Timer.publish(every: 3.5, on: .main, in: .common).autoconnect()
+        
+    var body: some View {
+        HStack(spacing: 12) {
+            symbol
+            
+            VStack(alignment: .leading, spacing: 0) {
+                header
+                title
+                message
+            }
+            
+            Spacer(minLength: 0)
+        }
+        #if os(macOS)
+            .frame(maxWidth: 400)
+        #else
+            .if(AppState.shared.isIpad) {
+                $0.frame(maxWidth: 400)
+            }
+        #endif
+        .foregroundStyle(.primary)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 15)
+        .glassEffect(in: .rect(cornerRadius: 24))
+        .scenePadding(.horizontal)
+        .frame(maxWidth: .infinity, alignment: .center)
+        .transition(.asymmetric(insertion: .offset(y: -200), removal: .offset(y: -200))) // top
+        .onReceive(timer) { _ in dismissToast() }
+    }
+    
+    @ViewBuilder var symbol: some View {
+        Image(systemName: toast?.symbol ?? "")
+            .if(toast?.symbolColor == Color.white || toast?.symbolColor == Color.black) {
+                $0.foregroundStyle(toast?.symbolColor == Color.white ? Color.black : Color.white)
+            }
+            .padding(10)
+            .background(symbolBackground)
+    }
+    
+    @ViewBuilder var symbolBackground: some View {
+        if let toast = toast {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(toast.symbolColor == nil ? Color.fromName(colorTheme) : Color(toast.symbolColor!))
+                .frame(width: 30, height: 30)
+        }
+    }
+    
+    @ViewBuilder var header: some View {
+        Text(toast?.header ?? "")
+            .font(.callout)
+            .bold()
+    }
+    
+    @ViewBuilder var title: some View {
+        if let title = toast?.title {
+            Text(title)
+                .font(.caption2)
+        }
+    }
+    
+    @ViewBuilder var message: some View {
+        if let message = toast?.message {
+            Text(message)
+                .font(.caption2)
+                .foregroundStyle(.gray)
+        }
+    }
+    
+    func dismissToast() {
+        timer.upstream.connect().cancel()
+        if let toast = toast {
+            if toast.autoDismiss {
+                withAnimation(.bouncy) {
+                    AppState.shared.toast = nil
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+struct ToastViewWithButtonThatDoesntWorkThanksToIos26: View {
     @Local(\.colorTheme) var colorTheme
     var toast: Toast?
     let timer = Timer.publish(every: 5, on: .main, in: .common).autoconnect()
@@ -129,3 +223,5 @@ struct ToastView: View {
         }
     }
 }
+
+

@@ -10,6 +10,7 @@ import SwiftUI
 #if os(iOS)
 struct KeyboardToolbarView: View {
     @Local(\.colorTheme) var colorTheme
+    @Environment(\.colorScheme) var colorScheme
     
     var focusedField: FocusState<Int?>.Binding
     
@@ -45,7 +46,8 @@ struct KeyboardToolbarView: View {
         if #available(iOS 26, *) {
             theView
                 .glassEffect()
-                .padding(.bottom, 5)
+                .padding(.bottom, 8)
+                .scenePadding(.horizontal)
         } else {
             theView
         }
@@ -166,7 +168,8 @@ struct KeyboardToolbarView: View {
             }
             //.background(Color(.red))
             .font(.title3)
-            .foregroundStyle(Color.fromName(colorTheme))
+            .foregroundStyle(colorScheme == .dark ? .white : .black)
+            //.foregroundStyle(Color.fromName(colorTheme))
         }
     }
 }

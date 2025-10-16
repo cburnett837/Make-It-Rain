@@ -41,31 +41,10 @@ struct LogSheet: View {
     @State private var showNoLogs = false
     
     let columnGrid = Array(repeating: GridItem(.flexible(), spacing: 0), count: 3)
-    
-    
-    var refreshButton: some View {
-        Group {
-            if showLoadingSpinner {
-                ProgressView()
-                    .opacity(showLoadingSpinner ? 1 : 0)
-                    .tint(.none)
-            } else {
-                Button {
-                    Task {
-                        showLoadingSpinner = true
-                        await fetchLogs()
-                    }
-                } label: {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .foregroundStyle(colorScheme == .dark ? .white : .black)
-                }
-            }
-        }
-    }
-    
+            
     var body: some View {
-        NavigationStack {
-            StandardContainerWithToolbar(showNoLogs ? .scrolling : .plainList) {
+        NavigationStack {            
+            StandardContainerWithToolbar(showNoLogs ? .scrolling : .list) {
                 if showNoLogs {
                     Spacer()
                     ContentUnavailableView("No Logs", systemImage: "square.stack.3d.up.slash.fill", description: Text("Logs will appear here when changes are made."))
@@ -104,22 +83,17 @@ struct LogSheet: View {
                 }
             } header: {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("\(group.enteredBy.initials) - \(group.enteredDate.string(to: .monthDayShortYear)) - \(group.enteredDate.string(to: .timeAmPm))")
-                    
-//                                Text(group.enteredDate.string(to: .monthDayHrMinAmPm))
-//                                Text(group.enteredBy.initials)
-                        .padding(.bottom, 4)
-                    
                     LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
-                        Text("What")
+                        Text("What Field")
                         Text("Old")
                         Text("New")
-                        //Text("Who")
-                        //Text("When")
                     }
                     .font(.caption2)
                     .bold()
                 }
+            } footer: {
+                Text("\(group.enteredBy.initials) - \(group.enteredDate.string(to: .monthDayShortYear)) - \(group.enteredDate.string(to: .timeAmPm))")
+                    //.padding(.bottom, 4)
             }
         }
         #if os(iOS)
@@ -128,11 +102,33 @@ struct LogSheet: View {
     }
     
     
+    var refreshButton: some View {
+        Group {
+            if showLoadingSpinner {
+                ProgressView()
+                    .opacity(showLoadingSpinner ? 1 : 0)
+                    .tint(.none)
+            } else {
+                Button {
+                    Task {
+                        showLoadingSpinner = true
+                        await fetchLogs()
+                    }
+                } label: {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .foregroundStyle(colorScheme == .dark ? .white : .black)
+                }
+            }
+        }
+    }
+    
+    
+    
     var closeButton: some View {
         Button {
             dismiss()
         } label: {
-            Image(systemName: "checkmark")
+            Image(systemName: "xmark")
                 .foregroundStyle(colorScheme == .dark ? .white : .black)
         }
         //.buttonStyle(.glassProminent)

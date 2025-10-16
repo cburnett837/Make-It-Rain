@@ -12,7 +12,8 @@ struct CategoryGroupView: View {
     @Environment(\.layoutDirection) private var layoutDirection: LayoutDirection
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
-    
+    @Local(\.colorTheme) var colorTheme
+
     @Environment(CategoryModel.self) private var catModel
     
     @Bindable var group: CBCategoryGroup
@@ -73,6 +74,12 @@ struct CategoryGroupView: View {
         }
     }
     
+    var isValidToSave: Bool {
+        if group.title.isEmpty { return false }
+        if !group.hasChanges() { return false }
+        return true
+    }
+    
     var body: some View {
         NavigationStack {
             StandardContainerWithToolbar(.list) {
@@ -100,7 +107,17 @@ struct CategoryGroupView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 //ToolbarItem(placement: .topBarLeading) { deleteButton }
-                ToolbarItem(placement: .topBarTrailing) { closeButton }
+                ToolbarItem(placement: .topBarTrailing) {
+                    if isValidToSave {
+                        closeButton
+                            #if os(iOS)
+                            .tint(Color.fromName(colorTheme))
+                            .buttonStyle(.glassProminent)
+                            #endif
+                    } else {
+                        closeButton
+                    }
+                }
             }
         }
         
@@ -149,7 +166,7 @@ struct CategoryGroupView: View {
         Button {
             editID = nil; dismiss()
         } label: {
-            Image(systemName: "checkmark")
+            Image(systemName: isValidToSave ? "checkmark" : "xmark")
                 .foregroundStyle(colorScheme == .dark ? .white : .black)
         }
     }

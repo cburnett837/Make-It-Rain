@@ -18,6 +18,8 @@ struct TransactionSplitSheet: View {
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
     @Local(\.useWholeNumbers) var useWholeNumbers
+    @Local(\.colorTheme) var colorTheme
+
     
     @Bindable var trans: CBTransaction
     @Binding var showSplitSheet: Bool
@@ -26,6 +28,23 @@ struct TransactionSplitSheet: View {
     @FocusState private var focusedField: Int?
 
     @State private var originalAmount = 0.0
+    
+    var isValidToSave: Bool {
+        if additionalTrans.isEmpty {
+            return false
+        }
+        
+        if !additionalTrans.isEmpty {
+            for each in additionalTrans {
+                if each.amount == 0 || each.amountString.isEmpty {
+                    return false
+                }
+            }
+            return true
+        }
+        
+        return true
+    }
     
     
     var body: some View {
@@ -50,8 +69,29 @@ struct TransactionSplitSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { addTransButton }
-                ToolbarItem(placement: .topBarTrailing) { closeButton }
-                ToolbarItem(placement: .bottomBar) { splitButton }
+                ToolbarItem(placement: .topBarTrailing) {
+                    if isValidToSave {
+                        closeButton
+                            #if os(iOS)
+                            .tint(Color.fromName(colorTheme))
+                            .buttonStyle(.glassProminent)
+                            #endif
+                    } else {
+                        closeButton
+                    }
+                }
+                ToolbarItem(placement: .bottomBar) {
+                    if isValidToSave {
+                        splitButton
+                            #if os(iOS)
+                            .tint(Color.fromName(colorTheme))
+                            .buttonStyle(.glassProminent)
+                            #endif
+                    } else {
+                        splitButton
+                            .disabled(true)
+                    }
+                }
             }
             #endif
         }
@@ -95,12 +135,12 @@ struct TransactionSplitSheet: View {
 //            }
 //        }
         .task {
-            originalAmount = trans.amount
+            originalAmount = trans.amount            
             addTrans()
         }
-        .onChange(of: additionalTrans.map { $0.amount }) { oldValue, newValue in
-            let newAmount = newValue.reduce(0, +)
-            trans.amountString = String(originalAmount - newAmount)
+        .onChange(of: additionalTrans.map { $0.amount }) {
+            let newAmount = originalAmount - $1.reduce(0, +)
+            trans.amountString = newAmount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
         }
     }
     
@@ -140,19 +180,16 @@ struct TransactionSplitSheet: View {
         } label: {
             Text("Perform Split")
                 .foregroundStyle(colorScheme == .dark ? .white : .black)
-        }
-        .buttonStyle(.glassProminent)
-        .disabled(additionalTrans.isEmpty || additionalTrans.map { $0.amount }.contains(0))
-        //.buttonStyle(.borderedProminent)
+        }        
     }
     
     
     var closeButton: some View {
         Button {
-            trans.amountString = String(originalAmount)
+            trans.amountString =  originalAmount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
             showSplitSheet = false
         } label: {
-            Image(systemName: "checkmark")
+            Image(systemName: isValidToSave ? "checkmark" : "xmark")
                 .foregroundStyle(colorScheme == .dark ? .white : .black)
         }
         //#if os(iOS)
@@ -196,7 +233,9 @@ struct TransactionSplitSheet: View {
         var body: some View {
             Section {
                 TitleRow(trans: trans)
-                AmountRow(trans: trans)
+                TransactionAmountRow(amountTypeLingo: trans.amountTypeLingo, amountString: $trans.amountString) {
+                    AmountRow(trans: trans)
+                }
                 CategorySheetButton3(category: $trans.category)
             } header: {
                 if let title = title {
@@ -210,6 +249,7 @@ struct TransactionSplitSheet: View {
                     #if os(iOS)
                     .buttonStyle(.glassProminent)
                     #endif
+                    .tint(.red)
                 }
             }
         }
@@ -288,7 +328,8 @@ struct TransactionSplitSheet: View {
                     .uiClearButtonMode(.whileEditing)
                     .uiStartCursorAtEnd(true)
                     .uiTextAlignment(.left)
-                    .uiKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
+                    //.uiKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
+                    .uiKeyboardType(AppState.shared.isIpad ? .default : useWholeNumbers ? .numberPad : .decimalPad)
                     //.uiTextColor(.secondaryLabel)
                     //.uiFont(UIFont.systemFont(ofSize: 24.0))
                     #else
@@ -304,7 +345,7 @@ struct TransactionSplitSheet: View {
                     amount: trans.amount
                 )
                 .onChange(of: focusedField) { oldValue, newValue in
-                    if newValue == 1 && trans.amountString.isEmpty {
+                    if newValue == 1 && trans.amountString.isEmpty && (trans.payMethod ?? CBPaymentMethod()).isDebit {
                         trans.amountString = "-"
                     }
                 }

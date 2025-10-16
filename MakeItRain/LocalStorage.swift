@@ -39,6 +39,10 @@ class LocalKeys: NSObject {
             static let startingAmount = "\(LocalKeys.className)_\(Charts.className)_\(MetricByPaymentMethod.className))_startingAmount"
             static let payments = "\(LocalKeys.className)_\(Charts.className)_\(MetricByPaymentMethod.className))_payments"
         }
+        
+        class CategoryAnalytics: NSObject {
+            static let displayedMetric = "\(LocalKeys.className)_\(Charts.className)_\(CategoryAnalytics.className))_displayedMetric"
+        }
     }
 }
 

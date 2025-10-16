@@ -643,11 +643,16 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
 //        return true
 //    }
     
-    func hasChanges() -> Bool {
+        
+    
+    func hasChanges(shouldLog: Bool = true) -> Bool {
+        //print("-- \(#function) \(function)")
         guard let deepCopy = deepCopy else {
             print("No deepCopy available → assuming changes")
             return true
         }
+        
+        print("deepCopy available")
         
         var changes: [String] = []
         
@@ -677,7 +682,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         }
         if self.locations != deepCopy.locations {
             #warning("need to ignore locations that has 0.0, 0.0 as coordinates. It is causing false saves.")
-            changes.append("locations: \(deepCopy.locations.map {$0.coordinates}) → \(self.locations.map {$0.coordinates})")
+            changes.append("locations: \(deepCopy.locations.map { $0.coordinates }) → \(self.locations.map { $0.coordinates })")
         }
         if self.notificationOffset != deepCopy.notificationOffset {
             changes.append("notificationOffset: \(String(describing: deepCopy.notificationOffset)) → \(String(describing: self.notificationOffset))")
@@ -698,10 +703,10 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
             changes.append("wasAddedFromPopulate: \(deepCopy.wasAddedFromPopulate) → \(self.wasAddedFromPopulate)")
         }
         if self.pictures != deepCopy.pictures {
-            changes.append("pictures: \(deepCopy.pictures) → \(self.pictures)")
+            changes.append("pictures: \(String(describing: deepCopy.pictures)) → \(String(describing: self.pictures))")
         }
         if self.date != deepCopy.date {
-            changes.append("date: \(deepCopy.date) → \(self.date)")
+            changes.append("date: \(String(describing: deepCopy.date)) → \(String(describing: self.date))")
         }
         
         if !changes.isEmpty {
@@ -709,7 +714,11 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
             for change in changes {
                 print(" - \(change)")
             }
-            log(deepCopy: deepCopy)
+            
+            if shouldLog {
+                log(deepCopy: deepCopy)
+            }
+            
             return true
         } else {
             return false
@@ -1089,7 +1098,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
             /// Enforce only allowing 1 item
             for each in locations {
                 if each.action == .add {
-                    locations.removeAll(where: {$0.id == each.id})
+                    locations.removeAll(where: { $0.id == each.id })
                 } else {
                     each.action = .delete
                     each.active = false
@@ -1097,11 +1106,14 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
             }
             
             locations.append(location)
+        } else {
+            locations.filter { $0.id == location.id }.first?.active = true
+            locations.filter { $0.id == location.id }.first?.action = .add
         }
     }
     
     func deleteLocation(id: String) {
-        let index = locations.firstIndex(where: {$0.id == id})
+        let index = locations.firstIndex(where: { $0.id == id })
         if let index {
             locations[index].active = false
             locations[index].action = .delete

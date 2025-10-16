@@ -17,7 +17,7 @@
 //    @AppStorage("colorTheme") private var colorTheme: String = Color.blue.description
 //    @AppStorage("threshold") var threshold: Double = 500.00
 //    
-//    @AppStorage("monthlyAnalyticChartVisibleYearCount") private var chartVisibleYearCount: MonthlyAnalyticChartRange = .year1
+//    @AppStorage("monthlyAnalyticChartVisibleYearCount") private var chartVisibleYearCount: CategoryAnalyticChartRange = .year1
 //    
 //    @AppStorage("showIncomeOnAnalyticChart") private var showIncome: Bool = true
 //    @AppStorage("showIncomeAndPositiveAmountsOnAnalyticChart") private var showIncomeAndPositiveAmountsOnAnalyticChart: Bool = true
@@ -792,12 +792,12 @@
 //    
 //    var chartVisibleYearPicker: some View {
 //        Picker("", selection: $chartVisibleYearCount) {
-//            Text("TY").tag(MonthlyAnalyticChartRange.yearToDate)
-//            Text("1Y").tag(MonthlyAnalyticChartRange.year1)
-//            Text("2Y").tag(MonthlyAnalyticChartRange.year2)
-//            Text("3Y").tag(MonthlyAnalyticChartRange.year3)
-//            Text("4Y").tag(MonthlyAnalyticChartRange.year4)
-//            Text("5Y").tag(MonthlyAnalyticChartRange.year5)
+//            Text("TY").tag(CategoryAnalyticChartRange.yearToDate)
+//            Text("1Y").tag(CategoryAnalyticChartRange.year1)
+//            Text("2Y").tag(CategoryAnalyticChartRange.year2)
+//            Text("3Y").tag(CategoryAnalyticChartRange.year3)
+//            Text("4Y").tag(CategoryAnalyticChartRange.year4)
+//            Text("5Y").tag(CategoryAnalyticChartRange.year5)
 //        }
 //        .pickerStyle(.segmented)
 //        .labelsHidden()

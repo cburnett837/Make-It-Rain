@@ -205,6 +205,7 @@ extension View {
                     ToastView(toast: toast)
                 }
             }
+            .accessibilityIdentifier("UniversalToastContent")
     }
     
     func toolbarKeyboard(padding: Double = 6, alignment: TextAlignment = .leading) -> some View {
@@ -259,6 +260,7 @@ extension View {
     func getRect() -> CGRect {
         return UIScreen.main.bounds
     }
+    
     
     func onShake(perform action: @escaping () -> Void) -> some View {
         modifier(DeviceShakeViewModifier(action: action))

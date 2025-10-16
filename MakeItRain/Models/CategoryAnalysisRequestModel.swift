@@ -11,14 +11,16 @@ class AnalysisRequestModel: Encodable {
     let recordIDs: Array<String>
     let fetchYearStart: Int
     let fetchYearEnd: Int
+    let isUnifiedRequest: Bool
     
-    enum CodingKeys: CodingKey { case record_ids, fetch_year_start, fetch_year_end, user_id, account_id, device_uuid }
+    enum CodingKeys: CodingKey { case record_ids, fetch_year_start, fetch_year_end, user_id, account_id, device_uuid, is_unified_request }
     
     
-    init(recordIDs: Array<String>, fetchYearStart: Int, fetchYearEnd: Int) {
+    init(recordIDs: Array<String>, fetchYearStart: Int, fetchYearEnd: Int, isUnifiedRequest: Bool) {
         self.recordIDs = recordIDs
         self.fetchYearStart = fetchYearStart
         self.fetchYearEnd = fetchYearEnd
+        self.isUnifiedRequest = isUnifiedRequest
     }
     
     func encode(to encoder: Encoder) throws {
@@ -26,8 +28,63 @@ class AnalysisRequestModel: Encodable {
         try container.encode(recordIDs, forKey: .record_ids)
         try container.encode(fetchYearStart, forKey: .fetch_year_start)
         try container.encode(fetchYearEnd, forKey: .fetch_year_end)
+        try container.encode(isUnifiedRequest ? 1 : 0, forKey: .is_unified_request)
         try container.encode(AppState.shared.user?.id, forKey: .user_id)
         try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
         try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
     }
 }
+
+
+
+class CategoryAnalysisResponseModel: Decodable, Identifiable {
+    var id: String
+    var uuid: String?
+    var category: CBCategory?
+    var month: Int
+    var year: Int
+    var date: Date {
+        Helpers.createDate(month: month, year: year)!
+    }
+    
+    var expensesString: String
+    var expenses: Double {
+        Double(expensesString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
+    }
+    
+    var incomeString: String
+    var income: Double {
+        Double(incomeString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
+    }
+    
+    var budgetString: String
+    var budget: Double {
+        Double(budgetString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
+    }
+    
+    
+    enum CodingKeys: CodingKey { case id, uuid, category, month, year, expenses, income, budget, user_id, account_id, device_uuid }
+            
+    
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        do {
+            id = try String(container.decode(Int.self, forKey: .id))
+        } catch {
+            id = try container.decode(String.self, forKey: .id)
+        }
+        self.category = try container.decode(CBCategory?.self, forKey: .category)
+        month = try container.decode(Int.self, forKey: .month)
+        year = try container.decode(Int.self, forKey: .year)
+                
+        let expenses = try container.decode(Double.self, forKey: .expenses)
+        self.expensesString = expenses.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
+                
+        let income = try container.decode(Double.self, forKey: .income)
+        self.incomeString = income.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
+        
+        let budget = try container.decode(Double.self, forKey: .budget)
+        self.budgetString = budget.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
+    }
+}
+

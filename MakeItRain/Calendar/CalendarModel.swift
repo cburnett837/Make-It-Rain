@@ -250,11 +250,11 @@ class CalendarModel: PhotoUploadCompletedDelegate {
                 if let budgets = model.budgets {
                     for budget in budgets {
                         if month.budgets.contains(where: { $0.id == budget.id }) {
-                            print("Processing budget for \(month.actualNum)-\(month.year) --- \(budget.category?.title)-\(budget.month)-\(budget.year) -- updating")
+                            print("Processing budget for \(month.actualNum)-\(month.year) --- \(String(describing: budget.category?.title))-\(budget.month)-\(budget.year) -- updating")
                             let index = month.budgets.firstIndex(where: { $0.id == budget.id })!
                             month.budgets[index] = budget
                         } else {
-                            print("Processing budget for \(month.actualNum)-\(month.year) --- \(budget.category?.title)-\(budget.month)-\(budget.year) -- adding")
+                            print("Processing budget for \(month.actualNum)-\(month.year) --- \(String(describing: budget.category?.title))-\(budget.month)-\(budget.year) -- adding")
                             month.budgets.append(budget)
                         }
                     }

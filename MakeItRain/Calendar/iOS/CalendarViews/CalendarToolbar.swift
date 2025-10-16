@@ -149,7 +149,7 @@ struct CalendarToolbar: ToolbarContent {
     @ViewBuilder
     var plaidTransactionButton: some View {
         let plaidListIsEmpty = plaidModel.trans.filter({ !$0.isAcknowledged }).isEmpty
-        var color: Color { plaidListIsEmpty ? Color.secondary : Color.fromName(colorTheme) == .orange ? .red : .orange }
+        //var color: Color { plaidListIsEmpty ? Color.secondary : Color.fromName(colorTheme) == .orange ? .red : .orange }
         
         if !plaidListIsEmpty {
             Button {
@@ -165,9 +165,12 @@ struct CalendarToolbar: ToolbarContent {
                 }
             } label: {
                 Image(systemName: "dollarsign.bank.building")
-                    .foregroundStyle(color)
+                    //.foregroundStyle(color)
+                    .foregroundStyle(colorScheme == .dark ? .white : .black)
                     .contentShape(Rectangle())
             }
+            .badge(plaidModel.trans.filter { !$0.isAcknowledged }.count)
+            .id(plaidModel.trans.filter { !$0.isAcknowledged }.count)
         }
     }
     

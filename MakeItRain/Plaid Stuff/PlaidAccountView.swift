@@ -147,7 +147,7 @@ struct PlaidAccountView: View {
         Button {
             editID = nil; dismiss()
         } label: {
-            Image(systemName: "checkmark")
+            Image(systemName: "xmark")
                 .foregroundStyle(colorScheme == .dark ? .white : .black)
         }
         .buttonStyle(.glassProminent)

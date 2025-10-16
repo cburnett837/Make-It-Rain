@@ -73,32 +73,60 @@ class PayMethodModel {
     }
     
     func updateCache(for payMethod: CBPaymentMethod) async -> Result<Bool, CoreDataError> {
+        
+        let id = payMethod.id
+        let title = payMethod.title
+        let dueDate = Int64(payMethod.dueDate ?? 0)
+        let limit = payMethod.limit ?? 0.0
+        let accountType = Int64(payMethod.accountType.rawValue)
+        let hexCode = payMethod.color.toHex()
+        let isViewingDefault = payMethod.isViewingDefault
+        let notificationOffset = Int64(payMethod.notificationOffset ?? 0)
+        let notifyOnDueDate = payMethod.notifyOnDueDate
+        let last4 = payMethod.last4
+        let interestRate = payMethod.interestRate ?? 0
+        let loanDuration = Int64(payMethod.loanDuration ?? 0)
+        let isHidden = payMethod.isHidden
+        let isPrivate = payMethod.isPrivate
+        //let action = "edit"
+        //let isPending = false
+        let enteredByID = Int64(payMethod.enteredBy.id)
+        let updatedByID = Int64(payMethod.updatedBy.id)
+        let enteredDate = payMethod.enteredDate
+        let updatedDate = payMethod.updatedDate
+        
+        
         let context = DataManager.shared.createContext()
         return await context.perform {
             /// Create this if not found because if a method gets marked as private from another device after this one has already cached it, it will get deleted from the cache by the long poll.
-            if let entity = DataManager.shared.getOne(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)), createIfNotFound: true) {
-                entity.id = payMethod.id
-                entity.title = payMethod.title
-                entity.dueDate = Int64(payMethod.dueDate ?? 0)
-                entity.limit = payMethod.limit ?? 0.0
-                entity.accountType = Int64(payMethod.accountType.rawValue)
-                entity.hexCode = payMethod.color.toHex()
+            if let entity = DataManager.shared.getOne(
+                context: context,
+                type: PersistentPaymentMethod.self,
+                predicate: .byId(.string(id)),
+                createIfNotFound: true
+            ) {
+                entity.id = id
+                entity.title = title
+                entity.dueDate = dueDate
+                entity.limit = limit
+                entity.accountType = accountType
+                entity.hexCode = hexCode
                 //entity.hexCode = payMethod.color.description
-                entity.isViewingDefault = payMethod.isViewingDefault
-                entity.notificationOffset = Int64(payMethod.notificationOffset ?? 0)
-                entity.notifyOnDueDate = payMethod.notifyOnDueDate
-                entity.last4 = payMethod.last4
-                entity.interestRate = payMethod.interestRate ?? 0
-                entity.loanDuration = Int64(payMethod.loanDuration ?? 0)
-                entity.isHidden = payMethod.isHidden
-                entity.isPrivate = payMethod.isPrivate
+                entity.isViewingDefault = isViewingDefault
+                entity.notificationOffset = notificationOffset
+                entity.notifyOnDueDate = notifyOnDueDate
+                entity.last4 = last4
+                entity.interestRate = interestRate
+                entity.loanDuration = loanDuration
+                entity.isHidden = isHidden
+                entity.isPrivate = isPrivate
                 entity.action = "edit"
                 entity.isPending = false
                 
-                entity.enteredByID = Int64(payMethod.enteredBy.id)
-                entity.updatedByID = Int64(payMethod.updatedBy.id)
-                entity.enteredDate = payMethod.enteredDate
-                entity.updatedDate = payMethod.updatedDate
+                entity.enteredByID = enteredByID
+                entity.updatedByID = updatedByID
+                entity.enteredDate = enteredDate
+                entity.updatedDate = updatedDate
                 
                 return DataManager.shared.save(context: context)
             } else {
@@ -135,6 +163,30 @@ class PayMethodModel {
                     for payMethod in model {
                         activeIds.append(payMethod.id)
                         
+                        let id = payMethod.id
+                        let title = payMethod.title
+                        let dueDate = Int64(payMethod.dueDate ?? 0)
+                        let limit = payMethod.limit ?? 0.0
+                        let accountType = Int64(payMethod.accountType.rawValue)
+                        let hexCode = payMethod.color.toHex()
+                        let isViewingDefault = payMethod.isViewingDefault
+                        let notificationOffset = Int64(payMethod.notificationOffset ?? 0)
+                        let notifyOnDueDate = payMethod.notifyOnDueDate
+                        let last4 = payMethod.last4
+                        let interestRate = payMethod.interestRate ?? 0
+                        let loanDuration = Int64(payMethod.loanDuration ?? 0)
+                        let isHidden = payMethod.isHidden
+                        let isPrivate = payMethod.isPrivate
+                        //let action = "edit"
+                        //let isPending = false
+                        let enteredByID = Int64(payMethod.enteredBy.id)
+                        let updatedByID = Int64(payMethod.updatedBy.id)
+                        let enteredDate = payMethod.enteredDate
+                        let updatedDate = payMethod.updatedDate
+                        
+                        
+                        
+                        
                         if calModel.sPayMethod == nil && payMethod.isViewingDefault {
                             calModel.sPayMethod = payMethod
                         }
@@ -152,29 +204,34 @@ class PayMethodModel {
                         await context.perform {
                             /// Update the cache and add to model (if appolicable).
                             /// This should always be true because the line above creates the entity if it's not found.
-                            if let entity = DataManager.shared.getOne(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)), createIfNotFound: true) {
-                                entity.id = payMethod.id
-                                entity.title = payMethod.title
-                                entity.dueDate = Int64(payMethod.dueDate ?? 0)
-                                entity.limit = payMethod.limit ?? 0.0
-                                entity.accountType = Int64(payMethod.accountType.rawValue)
-                                entity.hexCode = payMethod.color.toHex()
+                            if let entity = DataManager.shared.getOne(
+                                context: context,
+                                type: PersistentPaymentMethod.self,
+                                predicate: .byId(.string(id)),
+                                createIfNotFound: true
+                            ) {
+                                entity.id = id
+                                entity.title = title
+                                entity.dueDate = dueDate
+                                entity.limit = limit
+                                entity.accountType = accountType
+                                entity.hexCode = hexCode
                                 //entity.hexCode = payMethod.color.description
-                                entity.isViewingDefault = payMethod.isViewingDefault
-                                entity.notificationOffset = Int64(payMethod.notificationOffset ?? 0)
-                                entity.notifyOnDueDate = payMethod.notifyOnDueDate
-                                entity.last4 = payMethod.last4
-                                entity.interestRate = payMethod.interestRate ?? 0
-                                entity.loanDuration = Int64(payMethod.loanDuration ?? 0)
-                                entity.isHidden = payMethod.isHidden
-                                entity.isPrivate = payMethod.isPrivate
+                                entity.isViewingDefault = isViewingDefault
+                                entity.notificationOffset = notificationOffset
+                                entity.notifyOnDueDate = notifyOnDueDate
+                                entity.last4 = last4
+                                entity.interestRate = interestRate
+                                entity.loanDuration = loanDuration
+                                entity.isHidden = isHidden
+                                entity.isPrivate = isPrivate
                                 entity.action = "edit"
                                 entity.isPending = false
                                 
-                                entity.enteredByID = Int64(payMethod.enteredBy.id)
-                                entity.updatedByID = Int64(payMethod.updatedBy.id)
-                                entity.enteredDate = payMethod.enteredDate
-                                entity.updatedDate = payMethod.updatedDate
+                                entity.enteredByID = enteredByID
+                                entity.updatedByID = updatedByID
+                                entity.enteredDate = enteredDate
+                                entity.updatedDate = updatedDate
                                 
                                 let _ = DataManager.shared.save(context: context)
                             }
@@ -186,7 +243,11 @@ class PayMethodModel {
                         if !activeIds.contains(payMethod.id) {
                             paymentMethods.removeAll { $0.id == payMethod.id }
                             /// Does so in its own perform block.
-                            DataManager.shared.delete(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)))
+                            DataManager.shared.delete(
+                                context: context,
+                                type: PersistentPaymentMethod.self,
+                                predicate: .byId(.string(payMethod.id))
+                            )
                         }
                     }
                 } else {
@@ -219,32 +280,58 @@ class PayMethodModel {
         isThinking = true
         //LoadingManager.shared.startDelayedSpinner()
         LogManager.log()
+        
+        let id = payMethod.id
+        let title = payMethod.title
+        let dueDate = Int64(payMethod.dueDate ?? 0)
+        let limit = payMethod.limit ?? 0.0
+        let accountType = Int64(payMethod.accountType.rawValue)
+        let hexCode = payMethod.color.toHex()
+        let isViewingDefault = payMethod.isViewingDefault
+        let notificationOffset = Int64(payMethod.notificationOffset ?? 0)
+        let notifyOnDueDate = payMethod.notifyOnDueDate
+        let last4 = payMethod.last4
+        let interestRate = payMethod.interestRate ?? 0
+        let loanDuration = Int64(payMethod.loanDuration ?? 0)
+        let isHidden = payMethod.isHidden
+        let isPrivate = payMethod.isPrivate
+        let action = payMethod.action
+        //let isPending = false
+        let enteredByID = Int64(payMethod.enteredBy.id)
+        let updatedByID = Int64(payMethod.updatedBy.id)
+        let enteredDate = payMethod.enteredDate
+        let updatedDate = payMethod.updatedDate
+        
                 
         let context = DataManager.shared.createContext()
         await context.perform {
-            if let entity = DataManager.shared.getOne(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)), createIfNotFound: true) {
-                entity.id = payMethod.id
-                entity.title = payMethod.title
-                entity.dueDate = Int64(payMethod.dueDate ?? 0)
-                entity.limit = payMethod.limit ?? 0.0
-                entity.accountType = Int64(payMethod.accountType.rawValue)
-                entity.hexCode = payMethod.color.toHex()
+            if let entity = DataManager.shared.getOne(
+                context: context,
+                type: PersistentPaymentMethod.self,
+                predicate: .byId(.string(id)),
+                createIfNotFound: true
+            ) {
+                entity.id = id
+                entity.title = title
+                entity.dueDate = dueDate
+                entity.limit = limit
+                entity.accountType = accountType
+                entity.hexCode = hexCode
                 //entity.hexCode = payMethod.color.description
-                entity.isViewingDefault = payMethod.isViewingDefault
-                entity.notificationOffset = Int64(payMethod.notificationOffset ?? 0)
-                entity.notifyOnDueDate = payMethod.notifyOnDueDate
-                entity.last4 = payMethod.last4
-                entity.interestRate = payMethod.interestRate ?? 0
-                entity.loanDuration = Int64(payMethod.loanDuration ?? 0)
-                entity.action = payMethod.action.rawValue
-                entity.isHidden = payMethod.isHidden
-                entity.isPrivate = payMethod.isPrivate
+                entity.isViewingDefault = isViewingDefault
+                entity.notificationOffset = notificationOffset
+                entity.notifyOnDueDate = notifyOnDueDate
+                entity.last4 = last4
+                entity.interestRate = interestRate
+                entity.loanDuration = loanDuration
+                entity.isHidden = isHidden
+                entity.isPrivate = isPrivate
+                entity.action = action.rawValue
                 entity.isPending = true
-                
-                entity.enteredByID = Int64(payMethod.enteredBy.id)
-                entity.updatedByID = Int64(payMethod.updatedBy.id)
-                entity.enteredDate = payMethod.enteredDate
-                entity.updatedDate = payMethod.updatedDate
+                entity.enteredByID = enteredByID
+                entity.updatedByID = updatedByID
+                entity.enteredDate = enteredDate
+                entity.updatedDate = updatedDate
                 
                 let _ = DataManager.shared.save(context: context)
             }
@@ -262,12 +349,19 @@ class PayMethodModel {
         case .success(let model):
             LogManager.networkingSuccessful()
                         
+            let modelID = model?.id ?? String(0)
+            
             if payMethod.action != .delete {
                 await context.perform {
-                    if let entity = DataManager.shared.getOne(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)), createIfNotFound: true) {
+                    if let entity = DataManager.shared.getOne(
+                        context: context,
+                        type: PersistentPaymentMethod.self,
+                        predicate: .byId(.string(id)),
+                        createIfNotFound: true
+                    ) {
                         /// If adding a new pay method, update core data with the server ID by finding it via the UUID.
-                        if payMethod.action == .add {
-                            entity.id = model?.id ?? String(0)
+                        if action == .add {
+                            entity.id = modelID
                             entity.action = "edit"
                         }
                         entity.isPending = false
@@ -375,10 +469,14 @@ class PayMethodModel {
             $0.isViewingDefault = $0.id == payMethod.id
             return optionItem
         })
+                
+        let methInfos = await MainActor.run {
+            self.paymentMethods.map { (id: $0.id, isViewingDefault: $0.isViewingDefault) }
+        }
         
         let context = DataManager.shared.createContext()
         await context.perform {
-            for method in self.paymentMethods {
+            for method in methInfos {
                 if let entity = DataManager.shared.getOne(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(method.id)), createIfNotFound: true) {
                     entity.isViewingDefault = method.isViewingDefault
                 }
@@ -419,10 +517,13 @@ class PayMethodModel {
             return optionItem
         })
         
+        let methInfos = await MainActor.run {
+            self.paymentMethods.map { (id: $0.id, isEditingDefault: $0.isEditingDefault) }
+        }
         
         let context = DataManager.shared.createContext()
         await context.perform {
-            for method in self.paymentMethods {
+            for method in methInfos {
                 if let entity = DataManager.shared.getOne(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(method.id)), createIfNotFound: true) {
                     entity.isEditingDefault = method.isEditingDefault
                 }

@@ -226,7 +226,7 @@
 //    
 //    
 //    
-//    func setChartScrolledToDate(_ newValue: MonthlyAnalyticChartRange) {
+//    func setChartScrolledToDate(_ newValue: CategoryAnalyticChartRange) {
 //        /// Set the scrollPosition to which ever is smaller, the targetDate, or the minDate.
 //        var targetDate: Date
 //        /// If 0, which means it's YTD, start with the maxDate and work backwards to January 1st.

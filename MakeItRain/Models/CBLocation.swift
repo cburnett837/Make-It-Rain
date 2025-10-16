@@ -46,11 +46,11 @@ class CBLocation: Codable, Identifiable, Equatable, Hashable {
         self.title = title
         self.mapItem = mapItem
         
-        print(mapItem?.identifier?.rawValue)
+        //print(mapItem?.identifier?.rawValue)
         
         self.identifier = mapItem?.identifier?.rawValue
-        self.lat = mapItem?.placemark.coordinate.latitude ?? 0
-        self.lon = mapItem?.placemark.coordinate.longitude ?? 0
+        self.lat = mapItem?.location.coordinate.latitude ?? 0
+        self.lon = mapItem?.location.coordinate.longitude ?? 0
         self.active = true
         self.action = .add
         self.enteredBy = AppState.shared.user!
@@ -154,6 +154,8 @@ class CBLocation: Codable, Identifiable, Equatable, Hashable {
             copy.active = self.active
             copy.action = self.action
             copy.identifier = self.identifier
+            copy.lat = self.lat
+            copy.lon = self.lon
             self.deepCopy = copy
         case .restore:
             if let deepCopy = self.deepCopy {

@@ -83,7 +83,7 @@ struct CalendarGridPhone: View {
         if enumID.monthNum == AppState.shared.todayMonth {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 withAnimation {
-                    proxy.scrollTo(AppState.shared.todayDay, anchor: .bottom)
+                    proxy.scrollTo(AppState.shared.todayDay, anchor: .top)
                 }
             }
         }

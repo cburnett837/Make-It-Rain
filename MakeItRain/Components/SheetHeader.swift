@@ -72,7 +72,7 @@ struct SheetHeader<Content: View, Content2: View, Content3: View>: View {
                 Button {
                     close?()
                 } label: {
-                    Image(systemName: "checkmark")
+                    Image(systemName: "xmark")
                 }
                 .buttonStyle(.sheetHeader)
                 .padding(7)

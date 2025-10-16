@@ -83,9 +83,9 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         
         let useWholeNumbers = LocalStorage.shared.useWholeNumbers
         self.amountString = entity.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
-        #warning("remove this when Laura installs")
-        self.type = XrefModel.getItem(from: .categoryTypes, byID: Int(entity.typeID) == 0 ? 27 : Int(entity.typeID))
-        //self.type = XrefModel.getItem(from: .categoryTypes, byID: Int(entity.typeID))
+        //#warning("remove this when Laura installs")
+        //self.type = XrefModel.getItem(from: .categoryTypes, byID: Int(entity.typeID) == 0 ? 27 : Int(entity.typeID))
+        self.type = XrefModel.getItem(from: .categoryTypes, byID: Int(entity.typeID))
         self.listOrder = Int(entity.listOrder)
         
 //        self.enteredBy = AppState.shared.user!

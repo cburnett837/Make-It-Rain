@@ -13,7 +13,7 @@ struct CategoryView: View {
     @Local(\.useWholeNumbers) var useWholeNumbers
     @Local(\.colorTheme) var colorTheme
 
-    @AppStorage("monthlyAnalyticChartVisibleYearCount") var chartVisibleYearCount: MonthlyAnalyticChartRange = .year1
+    @AppStorage("monthlyAnalyticChartVisibleYearCount") var chartVisibleYearCount: CategoryAnalyticChartRange = .year1
     @AppStorage("selectedCategoryTab") var selectedTab: DetailsOrInsights = .details
     @AppStorage("showAllCategoryChartData") var showAllChartData = false
 
@@ -555,13 +555,6 @@ struct CategoryView: View {
             Image(systemName: isValidToSave ? "checkmark" : "xmark")
                 .foregroundStyle(colorScheme == .dark ? .white : .black)
         }
-        #if os(iOS)
-        //.buttonStyle(.glassProminent)
-        #endif
-        //.tint(confirmButtonTint)
-        //.background(confirmButtonTint)
-        //.foregroundStyle(confirmButtonTint)
-        //}
     }
     
     
@@ -594,10 +587,10 @@ struct CategoryView: View {
             if category.action == .add {
                 ContentUnavailableView("Insights are not available when adding a new category", systemImage: "square.stack.3d.up.slash.fill")
             } else {
-                MonthlyAnalyticChart(
+                CategoryAnalyticChart(
                     data: data,
                     displayData: displayData,
-                    config: MonthlyAnalyticChartConfig(enableShowExpenses: true, enableShowBudget: true, enableShowAverage: true, color: category.color, headerLingo: headerLingo),
+                    config: CategoryAnalyticChartConfig(enableShowExpenses: true, enableShowBudget: true, enableShowAverage: true, color: category.color, headerLingo: headerLingo),
                     isLoadingHistory: $isLoadingHistory,
                     chartScrolledToDate: $chartScrolledToDate,
                     rawDataList: { rawDataList }
@@ -624,19 +617,26 @@ struct CategoryView: View {
         }
         .tint(.none)
         .symbolEffect(.rotate, options: SymbolEffectOptions.repeat(.continuous).speed(3), isActive: isLoadingHistory)
+        .symbolEffect(.rotate, options: SymbolEffectOptions.repeat(.continuous).speed(3), isActive: isLoadingMoreHistory)
     }
     
     
     var rawDataList: some View {
         Section {
             NavigationLink {
-                List(displayData.sorted(by: { $0.date > $1.date })) { data in
-                    RawDataLineItem(category: category, data: data)
-                        .onScrollVisibilityChange {
-                            if $0 && data.id == displayData.sorted(by: { $0.date > $1.date }).last?.id {
-                                fetchMoreHistory()
-                            }
-                        }
+                List {
+                    ForEach(displayData.sorted(by: { $0.date > $1.date })) { data in
+                        RawDataLineItem(category: category, data: data)
+//                        .onScrollVisibilityChange {
+//                            if $0 && data.id == displayData.sorted(by: { $0.date > $1.date }).last?.id {
+//                                fetchMoreHistory()
+//                            }
+//                        }
+                    }
+                    
+                    Button("Fetch \(String(fetchYearStart - 10)) - \(String(fetchYearEnd - 10))", action: fetchMoreHistory)
+                        .tint(category.color)
+                    
                 }
                 .navigationTitle("\(category.title) Data")
                 .navigationSubtitle("\(String(fetchYearStart)) - \(String(AppState.shared.todayYear))")
@@ -649,44 +649,18 @@ struct CategoryView: View {
             } label: {
                 Text("Show All")
             }
-
-//            DisclosureGroup(isExpanded: $showAllChartData) {
-//                LazyVStack {
-//                    ForEach(displayData.sorted(by: { $0.date > $1.date })) { data in
-//                        RawDataLineItem(category: category, data: data)
-//                            .padding(.leading, 25)
-//                            .onScrollVisibilityChange {
-//                                if $0 && data.id == displayData.sorted(by: { $0.date > $1.date }).last?.id {
-//                                    fetchMoreHistory()
-//                                }
-//                            }
-//                    }
-//                }
-//            } label: {
-//                Text("Show All")
-//                    .onTapGesture {
-//                        withAnimation {
-//                            showAllChartData.toggle()
-//                        }
-//                    }
-//            }
             .tint(Color.fromName(colorTheme))
-            .onChange(of: calModel.showMonth) { oldValue, newValue in
-                if newValue == false && oldValue == true {
-                    Task {
-                        await fetchHistory(setChartAsNew: false)
-                    }
+            .onChange(of: calModel.showMonth) {
+                if !$1 && $0 {
+                    Task { await fetchHistory(setChartAsNew: false) }
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .updateCategoryAnalytics, object: nil)) { _ in
-                Task {
-                    await fetchHistory(setChartAsNew: false)
-                }
+                Task { await fetchHistory(setChartAsNew: false) }
             }
         } header: {
             Text("Data By Month")
         }
-
     }    
     
     
@@ -813,27 +787,28 @@ struct CategoryView: View {
             isLoadingHistory = true
         }
                 
-        let model = AnalysisRequestModel(recordIDs: [category.id], fetchYearStart: fetchYearStart, fetchYearEnd: fetchYearEnd)
+        let model = AnalysisRequestModel(recordIDs: [category.id], fetchYearStart: fetchYearStart, fetchYearEnd: fetchYearEnd, isUnifiedRequest: false)
         
         if let data = await catModel.fetchExpensesByCategory(model) {
             withAnimation {
                 //var localData: Array<AnalyticData> = []
                 for each in data {
                     if let index = self.data.firstIndex(where: { $0.month == each.month && $0.year == each.year }) {
-                        self.data[index].budgetString = each.amountString
-                        self.data[index].expensesString = each.amountString2
+                        self.data[index].budgetString = each.budgetString
+                        self.data[index].expensesString = each.expensesString
+                        self.data[index].incomeString = each.incomeString
                     } else {
                         let anal = AnalyticData(
                             record: .init(id: each.category?.id ?? UUID().uuidString, title: each.category?.title ?? "", color: each.category?.color ?? .primary),
                             type: "category",
                             month: each.month,
                             year: each.year,
-                            budgetString: each.amountString,
-                            expensesString: each.amountString2
+                            budgetString: each.budgetString,
+                            expensesString: each.expensesString,
+                            incomeString: each.incomeString
                         )
                         self.data.append(anal)
                     }
-                    
                 }
                                 
                 self.data.sort(by: { $0.date < $1.date })

@@ -12,7 +12,7 @@
 //struct CategoryViewOG: View {
 //    @Local(\.useWholeNumbers) var useWholeNumbers
 //    @Local(\.colorTheme) var colorTheme
-//    @AppStorage("chartVisibleYearCount") var chartVisibleYearCount: MonthlyAnalyticChartRange = .year1
+//    @AppStorage("chartVisibleYearCount") var chartVisibleYearCount: CategoryAnalyticChartRange = .year1
 //    @AppStorage("selectedCategoryTab") var selectedCategoryTab: String = "details"
 //    @AppStorage("showAverageOnCategoryChart") var showAverageOnCategoryChart: Bool = true
 //    @AppStorage("showBudgetOnCategoryChart") var showBudgetOnCategoryChart: Bool = true
@@ -458,12 +458,12 @@
 //    
 //    var chartVisibleYearPicker: some View {
 //        Picker("", selection: $chartVisibleYearCount.animation()) {
-//            Text("YTD").tag(MonthlyAnalyticChartRange.yearToDate)
-//            Text("1Y").tag(MonthlyAnalyticChartRange.year1)
-//            Text("2Y").tag(MonthlyAnalyticChartRange.year2)
-//            Text("3Y").tag(MonthlyAnalyticChartRange.year3)
-//            Text("4Y").tag(MonthlyAnalyticChartRange.year4)
-//            Text("5Y").tag(MonthlyAnalyticChartRange.year5)
+//            Text("YTD").tag(CategoryAnalyticChartRange.yearToDate)
+//            Text("1Y").tag(CategoryAnalyticChartRange.year1)
+//            Text("2Y").tag(CategoryAnalyticChartRange.year2)
+//            Text("3Y").tag(CategoryAnalyticChartRange.year3)
+//            Text("4Y").tag(CategoryAnalyticChartRange.year4)
+//            Text("5Y").tag(CategoryAnalyticChartRange.year5)
 //        }
 //        .pickerStyle(.segmented)
 //        .labelsHidden()
@@ -858,7 +858,7 @@
 //    }
 //    
 //    
-//    func setChartScrolledToDate(_ newValue: MonthlyAnalyticChartRange) {
+//    func setChartScrolledToDate(_ newValue: CategoryAnalyticChartRange) {
 //        /// Set the scrollPosition to which ever is smaller, the targetDate, or the minDate.
 //        let minDate = data.first?.date ?? Date()
 //        let maxDate = data.last?.date ?? Date()
