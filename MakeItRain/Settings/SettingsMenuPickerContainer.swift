@@ -10,7 +10,7 @@ import SwiftUI
 
 struct SettingsMenuPickerContainer<Content: View>: View {
     @Environment(\.colorScheme) var colorScheme
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     
     var title: String
     var selectedTitle: String
@@ -20,7 +20,7 @@ struct SettingsMenuPickerContainer<Content: View>: View {
     var body: some View {
         HStack {
             Text(title)
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+                .schemeBasedForegroundStyle()
             
             Spacer()
             
@@ -36,7 +36,7 @@ struct SettingsMenuPickerContainer<Content: View>: View {
                     Image(systemName: "chevron.up.chevron.down")
                         .font(.footnote)
                 }
-                .foregroundStyle(Color.fromName(colorTheme))
+                .foregroundStyle(Color.theme)
             }
         }
     }

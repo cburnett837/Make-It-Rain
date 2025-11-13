@@ -9,7 +9,7 @@ import SwiftUI
 
 struct CategoryMenu<Content: View>: View {
     @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
-    @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
+    @AppStorage("categorySortMode") var categorySortMode: SortMode = .title
 
     
     @Environment(CalendarModel.self) private var calModel
@@ -42,13 +42,9 @@ struct CategoryMenu<Content: View>: View {
     }
     
     var sortedCategories: Array<CBCategory> {
-        return catModel.categories
+        catModel.categories
             .filter { !$0.isHidden }
-            .sorted {
-                categorySortMode == .title
-                ? $0.title.lowercased() < $1.title.lowercased()
-                : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
-            }
+            .sorted(by: Helpers.categorySorter())
     }
     
     
@@ -66,22 +62,7 @@ struct CategoryMenu<Content: View>: View {
     }
     
     var menuItems: some View {
-        Group {
-            Button {
-                if saveOnChange && trans != nil {
-                    trans!.log(field: .category, old: trans!.category?.id, new: nil, groupID: UUID().uuidString)
-                    category = nil
-                    calModel.saveTransaction(id: trans!.id)
-                } else {
-                    category = nil
-                }
-            } label: {
-                HStack {
-                    Text("None")
-                        .strikethrough(true)
-                }
-            }
-                            
+        Group {     
             ForEach(sortedCategories) { cat in
                 Button {
                     if saveOnChange && trans != nil {

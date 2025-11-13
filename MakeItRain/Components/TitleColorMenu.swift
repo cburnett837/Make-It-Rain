@@ -75,6 +75,76 @@ struct TitleColorMenu<Content: View>: View {
 }
 
 
+struct TitleColorList: View {
+    @Environment(\.colorScheme) var colorScheme
+    @Environment(CalendarModel.self) private var calModel
+    
+    @Bindable var trans: CBTransaction
+    let saveOnChange: Bool
+    @Binding var navPath: NavigationPath
+
+    
+    var body: some View {
+        List {
+            Section("Default") {
+                Button {
+                    trans.color = .primary
+                    trans.updatedBy = AppState.shared.user!
+                    trans.updatedDate = Date()
+                    if saveOnChange {
+                        calModel.saveTransaction(id: trans.id)
+                    }
+                    navPath.removeLast()
+                    
+                } label: {
+                    HStack {
+                        Label(colorScheme == .dark ? "White" : "Black", systemImage: "circle.fill")
+                            .schemeBasedForegroundStyle()
+                        Spacer()
+                        
+                        if trans.color == .primary {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                    
+                }
+            }
+            
+            Section("Others") {
+                ForEach(AppState.shared.colorMenuOptions, id: \.self) { color in
+                    Button {
+                        trans.color = color
+                        trans.updatedBy = AppState.shared.user!
+                        trans.updatedDate = Date()
+                        if saveOnChange {
+                            calModel.saveTransaction(id: trans.id)
+                        }
+                        navPath.removeLast()
+                    } label: {
+                        HStack {
+                            Label {
+                                Text(color.description.capitalized)
+                                    .schemeBasedForegroundStyle()
+                            } icon: {
+                                Image(systemName: "circle.fill")
+                                    .foregroundStyle(color)
+                            }
+                            
+                            Spacer()
+                            
+                            if trans.color == color {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle("Title Color")
+    }
+}
+
+
 struct MultiTitleColorMenu<Content: View>: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(CalendarModel.self) private var calModel

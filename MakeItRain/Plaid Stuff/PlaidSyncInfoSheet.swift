@@ -20,7 +20,7 @@ struct PlaidSyncInfoSheet: View {
                     Text("Gets all balances for all accounts at the bank.")
                     Text("Balance will be returned in the payload.")
                 } header: {
-                    Text("Force Balance Sync")
+                    Text("Force Sync Balances Button")
                 } footer: {
                     Text("Cost: $0.10 per successful call")
                 }
@@ -31,7 +31,7 @@ struct PlaidSyncInfoSheet: View {
                     Text("Gets all transactions for all accounts at the bank.")
                     Text("Will initiate request, and send a webhook to server when transactions are available to consume.")
                 } header: {
-                    Text("Force Transaction Sync")
+                    Text("Force Sync Transactions Button")
                 } footer: {
                     VStack(alignment: .leading) {
                         Text("$0.30 per account/month")
@@ -44,7 +44,7 @@ struct PlaidSyncInfoSheet: View {
                     Text("The last time Plaid initiated a sync event with the bank.")
                     Text("This fetches both the balances and transactions.")
                 } header: {
-                    Text("Last Plaid To Bank Sync")
+                    Text("Last Plaid To Bank Sync Time")
                 }
                 
                 
@@ -53,7 +53,7 @@ struct PlaidSyncInfoSheet: View {
                     Text("The last time I checked the Plaid API, to see when they last synced with the bank.")
                     Text("This will check the Plaid API to see when they last synced with the bank. I will then check my database to see if what I have on record happened before the last time Plaid synced with the bank. If the Plaid data is newer, I will grab it and alert the user.")
                 } header: {
-                    Text("Last Cody Sync")
+                    Text("Last Cody Sync Time")
                 }
             }
             .navigationTitle("Plaid Sync Info")
@@ -71,7 +71,7 @@ struct PlaidSyncInfoSheet: View {
             dismiss()
         } label: {
             Image(systemName: "xmark")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+                .schemeBasedForegroundStyle()
         }
     }
 }

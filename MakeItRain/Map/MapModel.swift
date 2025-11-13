@@ -26,6 +26,7 @@ class MapModel: NSObject {
     var visibleRegion: MKCoordinateRegion?
     var selection:  MapSelection<CBLocation>?
     var selectedMapItem: CBLocation?
+    var didTouchAndHold = false
     
     private var currentSearch: MKLocalSearch?
     var route: MKRoute?
@@ -112,15 +113,25 @@ class MapModel: NSObject {
         let response = try? await search.start()
         let mapItems = response?.mapItems ?? []
         if mapItems.count > 0 {
-            let viewCord = CLLocationCoordinate2D(
-                latitude: mapItems[0].location.coordinate.latitude/* - 0.004*/,
-                longitude: mapItems[0].location.coordinate.longitude
-            )
+            #if os(iOS)
+                let viewCord = CLLocationCoordinate2D(
+                    latitude: mapItems[0].location.coordinate.latitude/* - 0.004*/,
+                    longitude: mapItems[0].location.coordinate.longitude
+                )
+            #else
+                let viewCord = CLLocationCoordinate2D(
+                    latitude: mapItems[0].placemark.coordinate.latitude/* - 0.004*/,
+                    longitude: mapItems[0].placemark.coordinate.longitude
+                )
+            #endif
             let span = MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
             let region = MKCoordinateRegion(center: viewCord, span: span)
             
             let location = CBLocation(relatedID: parentID, locationType: parentType, title: mapItems[0].name ?? "N/A", mapItem: mapItems[0])
             
+            
+            
+            print("Setting map selection")
             selection = MapSelection(location)
             //searchResults = [mapItems[0]]
             //searchResults = [location]
@@ -134,13 +145,39 @@ class MapModel: NSObject {
     func addLocationViaTouchAndHold(coordinate: CLLocationCoordinate2D, parentID: String, parentType: XrefEnum) async -> CBLocation? {
         print("-- \(#function)")
         searchResults.removeAll()
-                
+        
+        #if os(iOS)
         do {
             let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
             
             if let request = MKReverseGeocodingRequest(location: location) {
                 let mapItems = try await request.mapItems
                 let item = mapItems.first!
+                let cbLocation = CBLocation(relatedID: parentID, locationType: parentType, title: item.name ?? "N/A", mapItem: item)
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    withAnimation {
+                        self.selection = MapSelection(cbLocation)
+                        self.panelContent = .details
+                    }
+                }
+                
+                return cbLocation
+            } else {
+                return nil
+            }
+        } catch {
+            print(error.localizedDescription)
+            return nil
+        }
+        #else
+        do {
+            let geocoder = CLGeocoder()
+            let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+            let placemarks = try await geocoder.reverseGeocodeLocation(location)
+            if !placemarks.isEmpty {
+                let mkPlaceMark = MKPlacemark(placemark: placemarks.first!)
+                let item = MKMapItem(placemark: mkPlaceMark)
                 let location = CBLocation(relatedID: parentID, locationType: parentType, title: item.name ?? "N/A", mapItem: item)
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -158,11 +195,16 @@ class MapModel: NSObject {
             print(error.localizedDescription)
             return nil
         }
+        #endif
+        
+                
+        
     
     }
     
     
     func createMapItemFrom(coordinates: CLLocationCoordinate2D) async -> MKMapItem? {
+        #if os(iOS)
         do {
             let location = CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude)
             if let request = MKReverseGeocodingRequest(location: location) {
@@ -177,6 +219,26 @@ class MapModel: NSObject {
             print(error.localizedDescription)
             return nil
         }
+        #else
+        do {
+            let geocoder = CLGeocoder()
+            let location = CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude)
+            let placemarks = try await geocoder.reverseGeocodeLocation(location)
+            if !placemarks.isEmpty {
+                let mkPlaceMark = MKPlacemark(placemark: placemarks.first!)
+                let item = MKMapItem(placemark: mkPlaceMark)
+                return item
+                
+            } else {
+                print("Cant make map item")
+                return nil
+            }
+        } catch {
+            print("Cant make map item")
+            print(error.localizedDescription)
+            return nil
+        }
+        #endif
     }
     
     func createMapItem(for location: CBLocation) async -> MKMapItem? {
@@ -239,6 +301,7 @@ class MapModel: NSObject {
     
             
     func saveCurrentLocation(parentID: String, parentType: XrefEnum) async -> CBLocation? {
+        #if os(iOS)
         if let coordinate = LocationManager.shared.currentLocation {
             do {
                 let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
@@ -257,6 +320,29 @@ class MapModel: NSObject {
         } else {
             return nil
         }
+        #else
+        if let coordinate = LocationManager.shared.currentLocation {
+            do {
+                let geocoder = CLGeocoder()
+                let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+                let placemarks = try await geocoder.reverseGeocodeLocation(location)
+                if !placemarks.isEmpty {
+                    let mkPlaceMark = MKPlacemark(placemark: placemarks.first!)
+                    let item = MKMapItem(placemark: mkPlaceMark)
+                    let location = CBLocation(relatedID: parentID, locationType: parentType, title: item.name ?? "N/A", mapItem: item)
+                                    
+                    return location
+                } else {
+                    return nil
+                }
+            } catch {
+                print(error.localizedDescription)
+                return nil
+            }
+        } else {
+            return nil
+        }
+        #endif
     }
     
     
@@ -310,9 +396,12 @@ class MapModel: NSObject {
         options.insert(.providedUnit)
         options.insert(.naturalScale)
         formatter.unitOptions = options
-        let meterValue = Measurement(value: meters, unit: UnitLength.meters)
-        let yardsValue = Measurement(value: meters, unit: UnitLength.yards)
-        return formatter.string(from: userLocale.measurementSystem == .metric ? meterValue : yardsValue)
+        let meterValue = Measurement(value: round(meters), unit: UnitLength.meters)
+        let yardsValue = Measurement(value: round(meters), unit: UnitLength.yards)
+        
+        let distance = formatter.string(from: userLocale.measurementSystem == .metric ? meterValue : yardsValue)
+        
+        return distance
     }
     
     
@@ -378,31 +467,31 @@ extension MKLocalSearchCompletion {
     }
     
     var highlightedTitleStringForDisplay: NSAttributedString {
-        @Local(\.colorTheme) var colorTheme
+        //@Local(\.colorTheme) var colorTheme
         return createHighlightedString(
             text: title,
             rangeValues: titleHighlightRanges,
-            hilightColor: Color.fromName(colorTheme)
+            hilightColor: Color.theme
         )
     }
     
     var truncatedHighlightedSubtitleStringForDisplay: NSAttributedString {
-        @Local(\.colorTheme) var colorTheme
+        //@Local(\.colorTheme) var colorTheme
         return createHighlightedString(
             text: "\(String(subtitle.prefix(15)))…",
             rangeValues: subtitleHighlightRanges,
-            hilightColor: Color.fromName(colorTheme)
+            hilightColor: Color.theme
         )
         //return createHighlightedString(text: subtitle, rangeValues: subtitleHighlightRanges)
     }
     
     
     var highlightedSubtitleStringForDisplay: NSAttributedString {
-        @Local(\.colorTheme) var colorTheme
+        //@Local(\.colorTheme) var colorTheme
         return createHighlightedString(
             text: String(subtitle),
             rangeValues: subtitleHighlightRanges,
-            hilightColor: Color.fromName(colorTheme)
+            hilightColor: Color.theme
         )
         //return createHighlightedString(text: subtitle, rangeValues: subtitleHighlightRanges)
     }

@@ -13,6 +13,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
     var id: String
     var uuid: String?
     var title: String
+    //var titleLower: String { title.lowercased() }
     var amount: Double? {
         Double(amountString?.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "") ?? "0.0") ?? 0.0
     }
@@ -23,6 +24,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
     var action: CategoryAction
     var type: XrefItem = XrefModel.getItem(from: .categoryTypes, byEnumID: .expense)
     var listOrder: Int?
+    //var unwrappedListOrder: Int { listOrder ?? 0 }
     var enteredBy: CBUser = AppState.shared.user!
     var updatedBy: CBUser = AppState.shared.user!
     var enteredDate: Date
@@ -33,6 +35,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
     var isIncome: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .income) }
     var isPayment: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .payment) }
     var isExpense: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .expense) }
+    var isSavings: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .savings) }
     var isHidden = false
     
     enum CodingKeys: CodingKey { case id, uuid, title, amount, hex_code, emoji, active, user_id, account_id, device_uuid, type_id, list_order, entered_by, updated_by, entered_date, updated_date, is_nil, top_titles, is_hidden }

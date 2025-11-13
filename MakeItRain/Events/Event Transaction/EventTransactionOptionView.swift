@@ -10,7 +10,7 @@ import MapKit
 
 struct EventTransactionOptionView: View {
     @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @Local(\.useWholeNumbers) var useWholeNumbers
     
     @State private var mapModel = MapModel()
@@ -86,9 +86,9 @@ struct EventTransactionOptionView: View {
             }
             .padding(.bottom, 6)
             
-            StandardPhotoSection(
-                pictures: $transOption.pictures,
-                photoUploadCompletedDelegate: eventModel,
+            StandardFileSection(
+                files: $transOption.files,
+                fileUploadCompletedDelegate: eventModel,
                 parentType: .eventTransactionOption,
                 showCamera: $showCamera,
                 showPhotosPicker: $showPhotosPicker
@@ -152,7 +152,7 @@ struct EventTransactionOptionView: View {
                                 Text(user.name)
                                     .bold()
                                     .font(.caption2)
-                                    .foregroundStyle(Color.fromName(colorTheme))
+                                    .foregroundStyle(Color.theme)
                             }
                         }
                     }
@@ -172,7 +172,7 @@ struct EventTransactionOptionView: View {
             focusedField = 0
         }
         
-        setPhotoModelId()
+        setFileModelId()
         
         /// Copy it so we can compare for smart saving.
         transOption.deepCopy(.create)
@@ -185,7 +185,7 @@ struct EventTransactionOptionView: View {
     }
     
     
-    func setPhotoModelId() {
-        PhotoModel.shared.pictureParent = PictureParent(id: transOption.id, type: XrefModel.getItem(from: .photoTypes, byEnumID: .eventTransactionOption))
+    func setFileModelId() {
+        FileModel.shared.fileParent = FileParent(id: transOption.id, type: XrefModel.getItem(from: .fileTypes, byEnumID: .eventTransactionOption))
     }
 }

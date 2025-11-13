@@ -34,7 +34,7 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
     
     var activeParticipantUserIds: [Int]
     var participants: [CBEventParticipant]
-    var pictures: Array<CBPicture>?
+    var files: Array<CBFile>?
     var items: Array<CBEventItem>
     var transactions: Array<CBEventTransaction>
     var categories: Array<CBEventCategory>
@@ -79,7 +79,7 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
         self.updatedDate = Date()
     }
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, event_type, start_date, end_date, active, entered_by, updated_by, entered_date, updated_date, user_id, account_id, device_uuid, participants, items, transactions, categories, pictures, active_participant_user_ids }
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, event_type, start_date, end_date, active, entered_by, updated_by, entered_date, updated_date, user_id, account_id, device_uuid, participants, items, transactions, categories, files, active_participant_user_ids }
     
     
     func encode(to encoder: Encoder) throws {
@@ -97,7 +97,7 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
         try container.encode(items, forKey: .items)
         try container.encode(transactions, forKey: .transactions)
         try container.encode(categories, forKey: .categories)
-        try container.encode(pictures, forKey: .pictures)
+        try container.encode(files, forKey: .files)
         
         try container.encode(enteredBy, forKey: .entered_by)
         try container.encode(updatedBy, forKey: .updated_by)
@@ -149,7 +149,7 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
         self.transactions = try container.decodeIfPresent(Array<CBEventTransaction>.self, forKey: .transactions) ?? []
         self.categories = try container.decodeIfPresent(Array<CBEventCategory>.self, forKey: .categories) ?? []
         self.activeParticipantUserIds = try container.decodeIfPresent(Array<Int>.self, forKey: .active_participant_user_ids) ?? []
-        self.pictures = try container.decode(Array<CBPicture>?.self, forKey: .pictures)
+        self.files = try container.decode(Array<CBFile>?.self, forKey: .files)
         
         //invitationsToSend = try container.decode(Array<CBEventInvite>.self, forKey: .invitations_to_send)
         //participantsToRemove = try container.decode(Array<CBUser>.self, forKey: .participants_to_remove)
@@ -185,7 +185,7 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
             && self.amountString == deepCopy.amountString
             && self.eventType == deepCopy.eventType
             && self.startDate == deepCopy.startDate
-            && self.pictures == deepCopy.pictures
+            && self.files == deepCopy.files
             && self.endDate == deepCopy.endDate {
                 return false
             }
@@ -207,7 +207,7 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
             copy.startDate = self.startDate
             copy.endDate = self.endDate
             copy.activeParticipantUserIds = self.activeParticipantUserIds
-            copy.pictures = self.pictures
+            copy.files = self.files
             
             copy.participants = self.participants.map {
                 $0.deepCopy(.create)
@@ -257,7 +257,7 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
                 self.categories = deepCopy.categories
                 self.active = deepCopy.active
                 self.activeParticipantUserIds = deepCopy.activeParticipantUserIds
-                self.pictures = deepCopy.pictures
+                self.files = deepCopy.files
             }
         case .clear:
             break
@@ -276,7 +276,7 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
         self.active = event.active
         self.action = event.action
         self.activeParticipantUserIds = event.activeParticipantUserIds
-        self.pictures = event.pictures
+        self.files = event.files
         
         var activeIds: Array<String> = []
         
@@ -405,7 +405,7 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
         self.endDate = event.endDate
         self.active = event.active
         self.action = event.action
-        self.pictures = event.pictures
+        self.files = event.files
         self.activeParticipantUserIds = event.activeParticipantUserIds
     }
     
@@ -423,7 +423,7 @@ class CBEvent: Codable, Identifiable, Equatable, Hashable {
         && lhs.items == rhs.items
         && lhs.transactions == rhs.transactions
         && lhs.categories == rhs.categories
-        && lhs.pictures == rhs.pictures
+        && lhs.files == rhs.files
         && lhs.active == rhs.active {
             return true
         }

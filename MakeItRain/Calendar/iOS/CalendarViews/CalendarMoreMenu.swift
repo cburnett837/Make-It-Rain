@@ -6,47 +6,118 @@
 //
 
 import SwiftUI
-
+#if os(iOS)
 struct CalendarMoreMenu: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarProps.self) private var calProps
     @Environment(CalendarModel.self) private var calModel
     
+    /// Retain this here so we don't lose the data when we leave the sheet
+    @State private var categoryAnalysisModel = CategoryInsightsModel()
+    
     var body: some View {
         @Bindable var calProps = calProps
         Menu {
             Section("Analytics") {
-                budgetSheetButton
+                dashboardSheetButton
                 analysisSheetButton
+                budgetSheetButton
+                transactionListSheetButton
             }
             
-            Section {
-                transactionListSheetButton
+            Section("Tools") {
                 multiSelectButton
             }
             
-            Section {
+            Section("More") {
                 refreshButton
                 settingsSheetButton
             }
         } label: {
             Image(systemName: "ellipsis")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+                .schemeBasedForegroundStyle()
                 //.symbolEffect(.rotate, options: SymbolEffectOptions.repeat(.continuous).speed(3), isActive: funcModel.isLoading)
                 .tint(.none)
         }
-        .sheet(isPresented: $calProps.showBudgetSheet) {
+        .sheet(isPresented: $calProps.showDashboardSheet) {
             CalendarDashboard()
         }
         .sheet(isPresented: $calProps.showAnalysisSheet) {
-            AnalysisSheet(showAnalysisSheet: $calProps.showAnalysisSheet)
+            CategoryInsightsSheet(showAnalysisSheet: $calProps.showAnalysisSheet, model: categoryAnalysisModel)
         }
         .sheet(isPresented: $calProps.showTransactionListSheet) {
             TransactionListView(showTransactionListSheet: $calProps.showTransactionListSheet)
         }
         .sheet(isPresented: $calProps.showCalendarOptionsSheet) {
             CalendarOptionsSheet(selectedDay: $calProps.selectedDay)
+        }
+        .sheet(isPresented: $calProps.showBudgetSheet) {
+            BudgetTable()
+        }
+    }
+    
+    
+    var dashboardSheetButton: some View {
+        Button {
+            if AppState.shared.isIphone {
+                /// Sheet is in ``CalendarMoreMenu``.
+                calProps.showDashboardSheet = true
+            } else {
+                /// Inspector is in ``RootViewPad``.
+                calProps.inspectorContent = .dashboard
+                calProps.showInspector = true
+            }
+        } label: {
+            Label("Dashboard", systemImage: "rectangle.grid.1x3.fill")
+        }
+    }
+    
+    
+    var budgetSheetButton: some View {
+        Button {
+            if AppState.shared.isIphone {
+                /// Sheet is in ``CalendarMoreMenu``.
+                calProps.showBudgetSheet = true
+            } else {
+                /// Inspector is in ``RootViewPad``.
+                calProps.inspectorContent = .budgets
+                calProps.showInspector = true
+            }
+        } label: {
+            Label("Budgets", systemImage: "chart.pie")
+        }
+    }
+    
+    
+    var analysisSheetButton: some View {
+        Button {
+            if AppState.shared.isIphone {
+                /// Sheet is in ``CalendarMoreMenu``.
+                calProps.showAnalysisSheet = true
+            } else {
+                /// Inspector is in ``RootViewPad``.
+                calProps.inspectorContent = .analysisSheet
+                calProps.showInspector = true
+            }
+        } label: {
+            Label("Insights", systemImage: "chart.bar.doc.horizontal")
+        }
+    }
+    
+    
+    var transactionListSheetButton: some View {
+        Button {
+            if AppState.shared.isIphone {
+                /// Sheet is in ``CalendarMoreMenu``.
+                calProps.showTransactionListSheet = true
+            } else {
+                /// Inspector is in ``RootViewPad``.
+                calProps.inspectorContent = .transactionList
+                calProps.showInspector = true
+            }
+        } label: {
+            Label("All Transactions", systemImage: "list.bullet")
         }
     }
     
@@ -69,65 +140,7 @@ struct CalendarMoreMenu: View {
                 calProps.showInspector = true
             }
         } label: {
-            Label { Text("Multi-Select") } icon: { Image(systemName: "rectangle.and.hand.point.up.left.filled") }
-        }
-    }
-    
-    
-    var budgetSheetButton: some View {
-        Button {
-            if AppState.shared.isIphone {
-                /// Sheet is in ``CalendarMoreMenu``.
-                calProps.showBudgetSheet = true
-            } else {
-                /// Inspector is in ``RootViewPad``.
-                calProps.inspectorContent = .budgetTable
-                calProps.showInspector = true
-            }
-        } label: {
-            Label { Text("Dashboard") } icon: { Image(systemName: "chart.pie") }
-        }
-    }
-    
-    
-    var analysisSheetButton: some View {
-        Button {
-            if AppState.shared.isIphone {
-                /// Sheet is in ``CalendarMoreMenu``.
-                calProps.showAnalysisSheet = true
-            } else {
-                /// Inspector is in ``RootViewPad``.
-                calProps.inspectorContent = .analysisSheet
-                calProps.showInspector = true
-            }
-        } label: {
-            Label { Text("Insights") } icon: { Image(systemName: "chart.bar.doc.horizontal") }
-        }
-    }
-    
-    
-    var transactionListSheetButton: some View {
-        Button {
-            if AppState.shared.isIphone {
-                /// Sheet is in ``CalendarMoreMenu``.
-                calProps.showTransactionListSheet = true
-            } else {
-                /// Inspector is in ``RootViewPad``.
-                calProps.inspectorContent = .transactionList
-                calProps.showInspector = true
-            }
-        } label: {
-            Label { Text("Transaction List") } icon: { Image(systemName: "list.bullet") }
-        }
-    }
-    
-    
-    var settingsSheetButton: some View {
-        Button {
-            /// Sheet is in ``CalendarMoreMenu``.
-            calProps.showCalendarOptionsSheet = true
-        } label: {
-            Label { Text("Settings") } icon: { Image(systemName: "gear") }
+            Label("Multi-Select", systemImage: "rectangle.and.hand.point.up.left.filled")
         }
     }
     
@@ -153,4 +166,16 @@ struct CalendarMoreMenu: View {
         }
         .disabled(funcModel.isLoading)
     }
+    
+    
+    var settingsSheetButton: some View {
+        Button {
+            /// Sheet is in ``CalendarMoreMenu``.
+            calProps.showCalendarOptionsSheet = true
+        } label: {
+            Label("Settings", systemImage: "gear")
+        }
+    }
 }
+#endif
+

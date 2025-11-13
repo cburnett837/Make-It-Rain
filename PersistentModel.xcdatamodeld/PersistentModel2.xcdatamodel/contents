@@ -41,6 +41,16 @@
             </uniquenessConstraint>
         </uniquenessConstraints>
     </entity>
+    <entity name="PersistentLogo" representedClassName="PersistentLogo" syncable="YES" codeGenerationType="class">
+        <attribute name="id" optional="YES" attributeType="String"/>
+        <attribute name="localEnteredDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="localUpdatedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="photoData" optional="YES" attributeType="Binary"/>
+        <attribute name="relatedID" optional="YES" attributeType="String"/>
+        <attribute name="relatedTypeID" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="serverEnteredDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="serverUpdatedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
     <entity name="PersistentPaymentMethod" representedClassName="PersistentPaymentMethod" syncable="YES" codeGenerationType="class">
         <attribute name="accountType" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="action" optional="YES" attributeType="String"/>
@@ -57,6 +67,7 @@
         <attribute name="isViewingDefault" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="last4" optional="YES" attributeType="String"/>
         <attribute name="limit" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="listOrder" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="loanDuration" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="notificationOffset" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="notifyOnDueDate" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
@@ -68,6 +79,15 @@
                 <constraint value="id"/>
             </uniquenessConstraint>
         </uniquenessConstraints>
+    </entity>
+    <entity name="PersistentToast" representedClassName="PersistentToast" syncable="YES" codeGenerationType="class">
+        <attribute name="body" optional="YES" attributeType="String"/>
+        <attribute name="enteredDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="hexCode" optional="YES" attributeType="String"/>
+        <attribute name="id" optional="YES" attributeType="String"/>
+        <attribute name="subtitle" optional="YES" attributeType="String"/>
+        <attribute name="symbol" optional="YES" attributeType="String"/>
+        <attribute name="title" optional="YES" attributeType="String"/>
     </entity>
     <entity name="TempTransaction" representedClassName="TempTransaction" syncable="YES" codeGenerationType="class">
         <attribute name="action" optional="YES" attributeType="String"/>

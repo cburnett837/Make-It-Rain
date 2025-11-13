@@ -11,11 +11,11 @@
 //struct BudgetTableOG: View {
 //    @Environment(\.dismiss) var dismiss
 //    @Environment(\.colorScheme) var colorScheme
-//    @Local(\.colorTheme) var colorTheme
+//    //@Local(\.colorTheme) var colorTheme
 //    @AppStorage("calendarChartMode") var chartMode = CalendarChartModel.verticalBar
 //    @AppStorage("viewMode") var viewMode = CalendarViewMode.scrollable
 //    @Local(\.useWholeNumbers) var useWholeNumbers
-//    @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
+//    @AppStorage("categorySortMode") var categorySortMode: SortMode = .title
 //    
 //    @Environment(CalendarModel.self) private var calModel
 //    @Environment(CategoryModel.self) private var catModel
@@ -180,10 +180,10 @@
 //            
 //            .padding(.bottom, 6)
 //            #if os(macOS)
-//            .foregroundStyle(Color.fromName(colorTheme))
+//            .foregroundStyle(Color.theme)
 //            .buttonStyle(.codyStandardWithHover)
 //            #else
-//            .tint(Color.fromName(colorTheme))
+//            .tint(Color.theme)
 //            .buttonStyle(.borderedProminent)
 //            #endif
 //        }

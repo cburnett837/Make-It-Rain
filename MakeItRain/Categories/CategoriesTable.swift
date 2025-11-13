@@ -9,11 +9,11 @@ import SwiftUI
 import Algorithms
 
 struct CategoriesTable: View {
-    @Environment(\.dismiss) var dismiss
+    //@Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
     
     @Local(\.useWholeNumbers) var useWholeNumbers
-    @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
+    @AppStorage("categorySortMode") var categorySortMode: SortMode = .title
     
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
@@ -38,7 +38,7 @@ struct CategoriesTable: View {
     var filteredCategories: [CBCategory] {
         catModel.categories
             .filter { !$0.isNil }
-            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedStandardContains(searchText) }
+            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedCaseInsensitiveContains(searchText) }
             /// NOTE: Sorting must be done in the task and not in the computed property. If done in the computed property, when reording, they get all messed up.
     }
     
@@ -51,10 +51,16 @@ struct CategoriesTable: View {
                 #if os(macOS)
                 macTable
                 #else
-                if AppState.shared.isIphone {
-                    listForPhoneAndMacSort
+//                if AppState.shared.isIphone {
+//                    listForPhoneAndMacSort
+//                } else {
+//                    macTable
+//                }
+                
+                if filteredCategories.isEmpty {
+                    ContentUnavailableView("No categories found", systemImage: "exclamationmark.magnifyingglass")
                 } else {
-                    macTable
+                    listForPhoneAndMacSort
                 }
                 
                 #endif
@@ -67,20 +73,18 @@ struct CategoriesTable: View {
         .navigationTitle("Categories")
         //.navigationBarTitleDisplayMode(.inline)
         #endif
+        #if os(macOS)
         /// There seems to be a bug in SwiftUI `Table` that prevents the view from refreshing when adding a new category, and then trying to edit it.
         /// When I add a new category, and then update `model.categories` with the new ID from the server, the table still contains an ID of 0 on the newly created category.
         /// Setting this id forces the view to refresh and update the relevant category with the new ID.
         .id(catModel.fuckYouSwiftuiTableRefreshID)
+        #endif
         .navigationBarBackButtonHidden(true)
         .task {
             /// NOTE: Sorting must be done here and not in the computed property. If done in the computed property, when reording, they get all messed up.
-            let categorySortMode = CategorySortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
+            //let categorySortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
                                 
-            catModel.categories.sort {
-                categorySortMode == .title
-                ? ($0.title).lowercased() < ($1.title).lowercased()
-                : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
-            }
+            catModel.categories.sort(by: Helpers.categorySorter())
         }
         .toolbar {
             #if os(macOS)
@@ -95,6 +99,7 @@ struct CategoriesTable: View {
                 editCategory = catModel.getCategory(by: newValue)
             } else {
                 catModel.saveCategory(id: oldValue!, calModel: calModel, keyModel: keyModel)
+                //catModel.categories.sort(by: Helpers.categorySorter())
             }
         }
         .sheet(item: $editCategory, onDismiss: {
@@ -106,10 +111,14 @@ struct CategoriesTable: View {
             }            
             
         }) { cat in
-            CategoryView(category: cat, catModel: catModel, calModel: calModel, keyModel: keyModel, editID: $categoryEditID)
+            CategoryView(category: cat, editID: $categoryEditID)
                 #if os(macOS)
                 .frame(minWidth: 500, minHeight: 700)
                 .presentationSizing(.fitted)
+                #else
+                .presentationSizing(.page) // big sheet
+                //.presentationSizing(.fitted) // small sheet - resizable - doesn't work on iOS
+                //.presentationSizing(.form) // seems to be the same as a regular sheet
                 #endif
         }
         #if os(macOS)
@@ -201,7 +210,7 @@ struct CategoriesTable: View {
             
             TableColumn("Title", value: \.title) { cat in
                 Text(cat.title)
-                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+                    .schemeBasedForegroundStyle()
             }
             .customizationID("title")
             
@@ -226,10 +235,7 @@ struct CategoriesTable: View {
     #if os(iOS)
     @ToolbarContentBuilder
     func phoneToolbar() -> some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            sortMenu
-        }
-                
+        ToolbarItem(placement: .topBarLeading) { CategorySortMenu() }
         ToolbarItem(placement: .topBarTrailing) { ToolbarLongPollButton() }
         ToolbarItem(placement: .topBarTrailing) { ToolbarRefreshButton() }
         ToolbarSpacer(.fixed, placement: .topBarTrailing)
@@ -254,30 +260,58 @@ struct CategoriesTable: View {
     
     var listForPhoneAndMacSortContent: some View {
         ForEach(filteredCategories) { cat in
-            HStack(alignment: .center) {
+            Label {
                 VStack(alignment: .leading) {
                     HStack {
                         Text(cat.title)
                         if cat.isHidden { Image(systemName: "eye.slash") }
+                        
+                        Spacer()
+                        Text(cat.amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-")
+                            //.foregroundStyle(.gray)
+                            //.font(.caption)
                     }
-                    Text(cat.amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-")
-                        .foregroundStyle(.gray)
-                        .font(.caption)
                 }
+            } icon: {
                 
-                Spacer()
+                StandardCategorySymbol(cat: cat, labelWidth: labelWidth)
                 
-                if let emoji = cat.emoji {
-                    Image(systemName: emoji)
-                        .foregroundStyle(cat.color.gradient)
-                        .frame(minWidth: labelWidth, alignment: .center)
-                        .maxViewWidthObserver()
-                } else {
-                    Circle()
-                        .fill(cat.color.gradient)
-                        .frame(width: 12, height: 12)
-                }
+//                if let emoji = cat.emoji {
+//                    Image(systemName: emoji)
+//                        .foregroundStyle(cat.color.gradient)
+//                        .frame(minWidth: labelWidth, alignment: .center)
+//                        .maxViewWidthObserver()
+//                } else {
+//                    Circle()
+//                        .fill(cat.color.gradient)
+//                        .frame(width: 12, height: 12)
+//                }
             }
+
+//            HStack(alignment: .center) {
+//                VStack(alignment: .leading) {
+//                    HStack {
+//                        Text(cat.title)
+//                        if cat.isHidden { Image(systemName: "eye.slash") }
+//                    }
+//                    Text(cat.amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-")
+//                        .foregroundStyle(.gray)
+//                        .font(.caption)
+//                }
+//                
+//                Spacer()
+//                
+//                if let emoji = cat.emoji {
+//                    Image(systemName: emoji)
+//                        .foregroundStyle(cat.color.gradient)
+//                        .frame(minWidth: labelWidth, alignment: .center)
+//                        .maxViewWidthObserver()
+//                } else {
+//                    Circle()
+//                        .fill(cat.color.gradient)
+//                        .frame(width: 12, height: 12)
+//                }
+//            }
             #if os(macOS)            
             .selectionDisabled()
             #endif
@@ -288,49 +322,50 @@ struct CategoriesTable: View {
     }
     
     
-    var sortMenu: some View {
-        Menu {
-            Button {
-                categorySortMode = .title
-                withAnimation {
-                    #if os(macOS)
-                    sortOrder = [KeyPathComparator(\CBCategory.title)]
-                    #else
-                    catModel.categories.sort { ($0.title).lowercased() < ($1.title).lowercased() }
-                    #endif
-                }
-            } label: {
-                Label {
-                    Text("Title")
-                } icon: {
-                    Image(systemName: categorySortMode == .title ? "checkmark" : "textformat.abc")
-                }
-            }
-            
-            Button {
-                categorySortMode = .listOrder
-                withAnimation {
-                    #if os(macOS)
-                    sortOrder = [KeyPathComparator(\CBCategory.listOrder.specialDefaultIfNil)]
-                    #else
-                    catModel.categories.sort { $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000 }
-                    #endif
-                }
-            } label: {
-                Label {
-                    Text("Custom")
-                } icon: {
-                    Image(systemName: categorySortMode == .listOrder ? "checkmark" : "list.bullet")
-                }
-            }
-        } label: {
-            Image(systemName: "arrow.up.arrow.down")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
-        }
-        
-
-    }
-    
+//    var sortMenu: some View {
+//        Menu {
+//            Button {
+//                categorySortMode = .title
+//                withAnimation {
+//                    #if os(macOS)
+//                    sortOrder = [KeyPathComparator(\CBCategory.title)]
+//                    #else
+//                    catModel.categories.sort(by: Helpers.categorySorter())
+//                    //catModel.categories.sort { ($0.title).lowercased() < ($1.title).lowercased() }
+//                    #endif
+//                }
+//            } label: {
+//                Label {
+//                    Text("Title")
+//                } icon: {
+//                    Image(systemName: categorySortMode == .title ? "checkmark" : "textformat.abc")
+//                }
+//            }
+//            
+//            Button {
+//                categorySortMode = .listOrder
+//                withAnimation {
+//                    #if os(macOS)
+//                    sortOrder = [KeyPathComparator(\CBCategory.listOrder.specialDefaultIfNil)]
+//                    #else
+//                    catModel.categories.sort(by: Helpers.categorySorter())
+//                    #endif
+//                }
+//            } label: {
+//                Label {
+//                    Text("Custom")
+//                } icon: {
+//                    Image(systemName: categorySortMode == .listOrder ? "checkmark" : "list.bullet")
+//                }
+//            }
+//        } label: {
+//            Image(systemName: "arrow.up.arrow.down")
+//                .schemeBasedForegroundStyle()
+//        }
+//        
+//
+//    }
+//    
     
 //    func move(from source: IndexSet, to destination: Int) {
 //        print("\(source.map { $0.id }) - \(destination)")

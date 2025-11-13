@@ -153,6 +153,7 @@ struct Breakdown: Identifiable {
 
 // MARK: - PayMethodMonthlyBreakdown
 class PayMethodMonthlyBreakdown: Identifiable, Decodable, Equatable {
+    var animate: Bool = false
     var id: String { "\(month)-\(year)-\(payMethodID)" }
     var payMethodID: String
     var title: String = ""

@@ -78,6 +78,11 @@ public class LocalStorage {
         get { get(\.incomeColor, key: "incomeColor", default: Color.blue.description) }
         set { set(\.incomeColor, key: "incomeColor", new: newValue) }
     }
+    
+    public var useBusinessLogos: Bool {
+        get { get(\.useBusinessLogos, key: "useBusinessLogos", default: true) }
+        set { set(\.useBusinessLogos, key: "useBusinessLogos", new: newValue) }
+    }
         
     
     // MARK: - Chart Variables

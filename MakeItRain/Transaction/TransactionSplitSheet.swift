@@ -18,7 +18,7 @@ struct TransactionSplitSheet: View {
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
     @Local(\.useWholeNumbers) var useWholeNumbers
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
 
     
     @Bindable var trans: CBTransaction
@@ -73,8 +73,8 @@ struct TransactionSplitSheet: View {
                     if isValidToSave {
                         closeButton
                             #if os(iOS)
-                            .tint(Color.fromName(colorTheme))
-                            .buttonStyle(.glassProminent)
+                            //.tint(Color.theme)
+                            //.buttonStyle(.glassProminent)
                             #endif
                     } else {
                         closeButton
@@ -84,7 +84,7 @@ struct TransactionSplitSheet: View {
                     if isValidToSave {
                         splitButton
                             #if os(iOS)
-                            .tint(Color.fromName(colorTheme))
+                            .tint(Color.theme)
                             .buttonStyle(.glassProminent)
                             #endif
                     } else {
@@ -159,7 +159,7 @@ struct TransactionSplitSheet: View {
     var addTransButton: some View {
         Button(action: addTrans) {
             Image(systemName: "plus")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+                .schemeBasedForegroundStyle()
         }
     }
     
@@ -179,8 +179,8 @@ struct TransactionSplitSheet: View {
             }
         } label: {
             Text("Perform Split")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
-        }        
+                .schemeBasedForegroundStyle()
+        }
     }
     
     
@@ -189,8 +189,9 @@ struct TransactionSplitSheet: View {
             trans.amountString =  originalAmount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
             showSplitSheet = false
         } label: {
-            Image(systemName: isValidToSave ? "checkmark" : "xmark")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+            //Image(systemName: isValidToSave ? "checkmark" : "xmark")
+            Image(systemName: "xmark")
+                .schemeBasedForegroundStyle()
         }
         //#if os(iOS)
         //.buttonStyle(.glassProminent)
@@ -329,7 +330,8 @@ struct TransactionSplitSheet: View {
                     .uiStartCursorAtEnd(true)
                     .uiTextAlignment(.left)
                     //.uiKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
-                    .uiKeyboardType(AppState.shared.isIpad ? .default : useWholeNumbers ? .numberPad : .decimalPad)
+                    .uiKeyboardType(.custom(.numpad))
+                    //.uiKeyboardType(AppState.shared.isIpad ? .default : useWholeNumbers ? .numberPad : .decimalPad)
                     //.uiTextColor(.secondaryLabel)
                     //.uiFont(UIFont.systemFont(ofSize: 24.0))
                     #else

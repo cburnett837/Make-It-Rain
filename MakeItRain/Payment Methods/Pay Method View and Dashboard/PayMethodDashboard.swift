@@ -16,7 +16,7 @@ struct PayMethodDashboard: View {
 
     @Local(\.incomeColor) var incomeColor
     @Local(\.useWholeNumbers) var useWholeNumbers
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @Local(\.threshold) var threshold
     
     @AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false
@@ -43,7 +43,7 @@ struct PayMethodDashboard: View {
             return first
                 .breakdowns
                 //.filter { chartVisibleYearCount == .yearToDate ? $0.year == AppState.shared.todayYear : true }
-                .filter { searchText.isEmpty ? true : $0.date.string(to: .monthNameYear).localizedStandardContains(searchText) }
+                .filter { searchText.isEmpty ? true : $0.date.string(to: .monthNameYear).localizedCaseInsensitiveContains(searchText) }
                 .sorted(by: { $0.date > $1.date })
         } else {
             return []
@@ -61,16 +61,83 @@ struct PayMethodDashboard: View {
     
     @State private var showMenuDemo: Bool = false
     
+    let iPadChartGrid = Array(repeating: GridItem(.flexible(), spacing: 30, alignment: .top), count: 2)
+    
     // MARK: - Views
     var body: some View {
-        
-        ChartDateRangeHeader(vm: vm, payMethod: payMethod)
-                
-        .scenePadding(.horizontal)
-        
-        StandardContainerWithToolbar(.list) {
-            chartStack
+        VStack {
+            ChartDateRangeHeader(vm: vm, payMethod: payMethod)
+                .scenePadding(.horizontal)
+            
+            Group {
+                if AppState.shared.isIpad {
+                    ScrollView {
+                        LazyVGrid(columns: iPadChartGrid, spacing: 30) {
+                            GroupBox {
+                                IncomeExpenseChartWidget(vm: vm, payMethod: payMethod)
+                            } label: {
+                                Text("Transactions")
+                            }
+                            .cornerRadius(25)
+                                    
+                            if !payMethod.isCredit {
+                                GroupBox {
+                                    ProfitLossChartWidget(vm: vm, payMethod: payMethod)
+                                } label: {
+                                    Text("Net Worth")
+                                }
+                                .cornerRadius(25)
+                            }
+                            
+                            GroupBox {
+                                MinMaxEodChartWidget(vm: vm, payMethod: payMethod)
+                            } label: {
+                                Text("Min/Max EOD Amounts")
+                            }
+                            .cornerRadius(25)
+                            
+                            /// NOTE: This is slightly different because it has it's own view model.
+                            if payMethod.isUnified {
+                                MetricByPaymentMethodChartWidget(vm: vm, payMethod: payMethod)
+                            }
+                        }
+                    }
+                    .scenePadding(.horizontal)
+                    
+                } else {
+                    StandardContainerWithToolbar(.list) {
+                        Section {
+                            IncomeExpenseChartWidget(vm: vm, payMethod: payMethod)
+                        } header: {
+                            Text("Transactions")
+                        }
+                                
+                        if !payMethod.isCredit {
+                            Section {
+                                ProfitLossChartWidget(vm: vm, payMethod: payMethod)
+                            } header: {
+                                Text("Net Worth")
+                            }
+                        }
+                        
+                        Section {
+                            MinMaxEodChartWidget(vm: vm, payMethod: payMethod)
+                        } header: {
+                            Text("Min/Max EOD Amounts")
+                        }
+                        
+                        /// NOTE: This is slightly different because it has it's own view model.
+                        if payMethod.isUnified {
+                            MetricByPaymentMethodChartWidget(vm: vm, payMethod: payMethod)
+                        }
+                    }
+                }
+            }
         }
+        
+        
+        
+        
         
         
 //        VStack(spacing: 0) {
@@ -453,7 +520,7 @@ struct PayMethodDashboardOG: View {
 
     @Local(\.incomeColor) var incomeColor
     @Local(\.useWholeNumbers) var useWholeNumbers
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @Local(\.threshold) var threshold
     
     @AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false
@@ -480,7 +547,7 @@ struct PayMethodDashboardOG: View {
             return first
                 .breakdowns
                 //.filter { chartVisibleYearCount == .yearToDate ? $0.year == AppState.shared.todayYear : true }
-                .filter { searchText.isEmpty ? true : $0.date.string(to: .monthNameYear).localizedStandardContains(searchText) }
+                .filter { searchText.isEmpty ? true : $0.date.string(to: .monthNameYear).localizedCaseInsensitiveContains(searchText) }
                 .sorted(by: { $0.date > $1.date })
         } else {
             return []

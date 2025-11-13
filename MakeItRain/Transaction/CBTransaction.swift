@@ -10,7 +10,7 @@ import UniformTypeIdentifiers
 import SwiftUI
 
 @Observable
-class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, CanEditTitleWithLocation, CanEditAmount {    
+class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, CanEditTitleWithLocation, CanEditAmount {
     var id: String
     var uuid: String?
     var fitID: String?
@@ -57,6 +57,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     var active: Bool
     var color: Color
     var action: TransactionAction
+    var intendedServerAction: TransactionAction = .add
     var actionBeforeSave: TransactionAction = .add
     var tempAction: TransactionAction = .add
     var factorInCalculations: Bool
@@ -68,7 +69,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     var updatedDate: Date
     
     var locations: Array<CBLocation>
-    var pictures: Array<CBPicture>?
+    var files: Array<CBFile>?
     var tags: Array<CBTag>
     
     var notificationOffset: Int? = 0
@@ -113,15 +114,15 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
 //        (self.payMethod?.isPrivate ?? false) || (self.deepCopy?.payMethod?.isPrivate ?? false)
 //    }
     
-    var isAllowedToBeViewedByThisUser: Bool {
-        if (self.payMethod?.isAllowedToBeViewedByThisUser ?? true) {
+    var isPermitted: Bool {
+        if (self.payMethod?.isPermitted ?? true) {
             return true
-        } else if (self.payMethod?.isAllowedToBeViewedByThisUser ?? true) == false {
+        } else if (self.payMethod?.isPermitted ?? true) == false {
             return false
         } else if self.deepCopy == nil {
             return true
         } else {
-            return (self.deepCopy!.payMethod?.isAllowedToBeViewedByThisUser ?? true)
+            return (self.deepCopy!.payMethod?.isPermitted ?? true)
         }
     }
     
@@ -343,6 +344,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         self.action = .add
     }
     
+    
     init(plaidTrans: CBPlaidTransaction) {
         let uuid = UUID().uuidString
         self.id = uuid
@@ -376,7 +378,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     }
     
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, entered_date, updated_date, pictures, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, related_transaction_type_id, fit_id, is_smart_transaction, smart_transaction_issue_id, smart_transaction_is_acknowledged, locations, action, is_payment_origin, is_payment_dest, is_transfer_origin, is_transfer_dest, plaid_id }
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, entered_date, updated_date, files, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, related_transaction_type_id, fit_id, is_smart_transaction, smart_transaction_issue_id, smart_transaction_is_acknowledged, locations, action, is_payment_origin, is_payment_dest, is_transfer_origin, is_transfer_dest, plaid_id }
     
     
     func encode(to encoder: Encoder) throws {
@@ -401,7 +403,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
         try container.encode(enteredDate.string(to: .serverDateTime), forKey: .entered_date) // for the Transferable protocol
         try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date) // for the Transferable protocol
-        try container.encode(pictures, forKey: .pictures)
+        try container.encode(files, forKey: .files)
         try container.encode(tags, forKey: .tags)
         try container.encode(locations, forKey: .locations)
         try container.encode(notificationOffset, forKey: .notification_offset)
@@ -416,7 +418,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         
         try container.encode(fitID, forKey: .fit_id)
         try container.encode(plaidID, forKey: .plaid_id)
-        try container.encode(action.serverKey, forKey: .action)
+        try container.encode(intendedServerAction.serverKey, forKey: .action)
                 
         try container.encode((smartTransactionIsAcknowledged ?? false) ? 1 : 0, forKey: .smart_transaction_is_acknowledged)
         try container.encode((isSmartTransaction ?? false) ? 1 : 0, forKey: .is_smart_transaction) // for the Transferable protocol
@@ -482,7 +484,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         self.enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
         self.updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
         
-        self.pictures = try container.decode(Array<CBPicture>?.self, forKey: .pictures)
+        self.files = try container.decode(Array<CBFile>?.self, forKey: .files)
         self.tags = try container.decode(Array<CBTag>?.self, forKey: .tags) ?? []
         self.locations = try container.decode(Array<CBLocation>.self, forKey: .locations)
         
@@ -494,6 +496,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
 
         
         self.action = .edit
+        self.intendedServerAction = .edit
         //factorInCalculations = true
         
         let date = try container.decode(String?.self, forKey: .date)
@@ -632,7 +635,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
 //            && self.orderNumber == deepCopy.orderNumber
 //            && self.url == deepCopy.url
 //            && self.wasAddedFromPopulate == deepCopy.wasAddedFromPopulate
-//            && self.pictures == deepCopy.pictures
+//            && self.files == deepCopy.files
 //            && self.date == deepCopy.date {
 //                return false
 //            }
@@ -702,8 +705,8 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         if self.wasAddedFromPopulate != deepCopy.wasAddedFromPopulate {
             changes.append("wasAddedFromPopulate: \(deepCopy.wasAddedFromPopulate) → \(self.wasAddedFromPopulate)")
         }
-        if self.pictures != deepCopy.pictures {
-            changes.append("pictures: \(String(describing: deepCopy.pictures)) → \(String(describing: self.pictures))")
+        if self.files != deepCopy.files {
+            changes.append("files: \(String(describing: deepCopy.files)) → \(String(describing: self.files))")
         }
         if self.date != deepCopy.date {
             changes.append("date: \(String(describing: deepCopy.date)) → \(String(describing: self.date))")
@@ -793,8 +796,8 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
 //            print("⚠️wasAddedFromPopulate changed: \(deepCopy.wasAddedFromPopulate) → \(self.wasAddedFromPopulate)")
 //            hasChanges = true
 //        }
-//        if self.pictures != deepCopy.pictures {
-//            print("⚠️pictures changed")
+//        if self.files != deepCopy.files {
+//            print("⚠️files changed")
 //            hasChanges = true
 //        }
 //        if self.date != deepCopy.date {
@@ -894,7 +897,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
             copy.url = self.url
             copy.active = self.active
             copy.wasAddedFromPopulate = self.wasAddedFromPopulate
-            copy.pictures = self.pictures
+            copy.files = self.files
             //copy.action = self.action
             self.deepCopy = copy
             
@@ -923,7 +926,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
                 self.url = deepCopy.url
                 self.active = deepCopy.active
                 self.wasAddedFromPopulate = deepCopy.wasAddedFromPopulate
-                self.pictures = deepCopy.pictures
+                self.files = deepCopy.files
                 //self.action = deepCopy.action
             }
             
@@ -965,7 +968,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         self.updatedDate = transaction.updatedDate
         self.enteredBy = transaction.enteredBy
         self.updatedBy = transaction.updatedBy
-        self.pictures = transaction.pictures
+        self.files = transaction.files
         
         #warning("If I add the ability to rename these locations manually, then we need to change the setting to preserve the object identity.")
         self.locations = transaction.locations
@@ -1018,7 +1021,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         }
                 
         if self.payMethod?.id != new.payMethod?.id {
-            changes.append("pay method")
+            changes.append("account")
             count += 1
         }
         
@@ -1093,6 +1096,10 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         return !locations.filter { $0.id == location.id }.isEmpty
     }
     
+    func setTitle(_ text: String) {
+        self.title = text
+    }
+    
     func upsert(_ location: CBLocation) {
         if !doesExist(location) {
             /// Enforce only allowing 1 item
@@ -1106,6 +1113,11 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
             }
             
             locations.append(location)
+            
+//            if self.title.isEmpty {
+//                self.title = location.title
+//            }
+            
         } else {
             locations.filter { $0.id == location.id }.first?.active = true
             locations.filter { $0.id == location.id }.first?.action = .add

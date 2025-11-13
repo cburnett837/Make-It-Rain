@@ -9,7 +9,7 @@ import SwiftUI
 
 struct RepeatingTransactionView: View {
     @Local(\.useWholeNumbers) var useWholeNumbers
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
 
@@ -47,13 +47,14 @@ struct RepeatingTransactionView: View {
         .tint(.none)
         .confirmationDialog("Delete \"\(repTransaction.title)\"?", isPresented: $showDeleteAlert, actions: {
             Button("Yes", role: .destructive) {
-                Task {
+                //Task {
+                    repTransaction.action = .delete
                     dismiss()
-                    await repModel.delete(repTransaction, andSubmit: true)
-                }
+                    //await repModel.delete(repTransaction, andSubmit: true)
+                //}
             }
             
-            //Button("No", role: .cancel) { showDeleteAlert = false }
+            Button("No", role: .close) { showDeleteAlert = false }
         }, message: {
             #if os(iOS)
             Text("Delete \"\(repTransaction.title)\"?")
@@ -67,7 +68,7 @@ struct RepeatingTransactionView: View {
         } else if repTransaction.repeatingTransactionType.enumID == .transfer {
              "Transfer From"
         } else {
-            "Pay Meth"
+            "Account"
         }
     }
     
@@ -78,7 +79,7 @@ struct RepeatingTransactionView: View {
         } else if repTransaction.repeatingTransactionType.enumID == .transfer {
              "Transfer To"
         } else {
-            "Pay Meth"
+            "Account"
         }
     }
     
@@ -219,11 +220,13 @@ struct RepeatingTransactionView: View {
             StandardContainerWithToolbar(.list) {
                 Section {
                     titleRow
-                    amountRow
+                    
+                    TransactionAmountRow(amountTypeLingo: repTransaction.amountTypeLingo, amountString: $repTransaction.amountString) {
+                        amountRow
+                    }
+                    
                 } header: {
                     Text("Title & Amount")
-                } footer: {
-                    TransactionTypeButton(amountTypeLingo: repTransaction.amountTypeLingo, amountString: $repTransaction.amountString)
                 }
                 
                 Section {
@@ -276,14 +279,7 @@ struct RepeatingTransactionView: View {
                 ToolbarItem(placement: .topBarLeading) { deleteButton }
                 ToolbarSpacer(.fixed, placement: .topBarLeading)
                 ToolbarItem(placement: .topBarTrailing) {
-                    if isValidToSave {
-                        closeButton
-                            #if os(iOS)
-                            .buttonStyle(.glassProminent)
-                            #endif
-                    } else {
-                        closeButton
-                    }
+                    AnimatedCloseButton(isValidToSave: isValidToSave, closeButton: closeButton)                    
                 }
                 
                 ToolbarItem(placement: .bottomBar) {
@@ -298,10 +294,16 @@ struct RepeatingTransactionView: View {
     
     var closeButton: some View {
         Button {
-            editID = nil; dismiss()
+            if repTransaction.action == .add && !repTransaction.title.isEmpty && repTransaction.payMethod == nil {
+                AppState.shared.showAlert("Please select an account.")
+                return
+            }
+            
+            editID = nil
+            dismiss()
         } label: {
             Image(systemName: isValidToSave ? "checkmark" : "xmark")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+                .schemeBasedForegroundStyle()
         }
     }
     
@@ -359,7 +361,8 @@ struct RepeatingTransactionView: View {
                 .uiClearButtonMode(.whileEditing)
                 .uiStartCursorAtEnd(true)
                 .uiTextAlignment(.left)
-                .uiKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
+                .uiKeyboardType(.custom(.numpad))
+                //.uiKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
                 //.uiTextColor(.secondaryLabel)
                 //.uiFont(UIFont.systemFont(ofSize: 24.0))
                 #else
@@ -391,7 +394,7 @@ struct RepeatingTransactionView: View {
     
     
     var payToRow: some View {
-        PayMethodSheetButton2(text: "Pay From", image: repTransaction.payMethodPayTo?.accountType == .checking ? "banknote.fill" : "creditcard.fill", payMethod: $repTransaction.payMethodPayTo, whichPaymentMethods: .allExceptUnified)
+        PayMethodSheetButton2(text: "Pay To", image: repTransaction.payMethodPayTo?.accountType == .checking ? "banknote.fill" : "creditcard.fill", payMethod: $repTransaction.payMethodPayTo, whichPaymentMethods: .allExceptUnified)
     }
     
     
@@ -435,7 +438,7 @@ struct RepeatingTransactionView: View {
                 HStack {
                     Label {
                         Text("Title Color")
-                            .foregroundStyle(colorScheme == .dark ? .white : .black)
+                            .schemeBasedForegroundStyle()
                     } icon: {
                         Image(systemName: "lightspectrum.horizontal")
                             .foregroundStyle(.gray)
@@ -473,7 +476,7 @@ struct RepeatingTransactionView: View {
 //            
 //            Text(repTransaction.amountTypeLingo)
 //                .bold(true)
-//                .foregroundStyle(Color.fromName(colorTheme))
+//                .foregroundStyle(Color.theme)
 //                .onTapGesture {
 //                    Helpers.plusMinus($repTransaction.amountString)                    
 //                }
@@ -490,7 +493,7 @@ struct RepeatingTransactionView: View {
     
     
     struct WeekdayToggles: View {
-        @Local(\.colorTheme) var colorTheme
+        //@Local(\.colorTheme) var colorTheme
         @Environment(RepeatingTransactionModel.self) private var repModel
         @Bindable var repTransaction: CBRepeatingTransaction
         
@@ -503,8 +506,8 @@ struct RepeatingTransactionView: View {
                     } label: {
                         Text("All")
                             .frame(width: 40, height: 40)
-                            .foregroundStyle(isAll ? Color.fromName(colorTheme) : Color.primary)
-                            .background(isAll ? Color.fromName(colorTheme).opacity(0.2) : Color.clear)
+                            .foregroundStyle(isAll ? Color.theme : Color.primary)
+                            .background(isAll ? Color.theme.opacity(0.2) : Color.clear)
                             .clipShape(Circle())
                             .font(.caption)
                             .bold()
@@ -520,8 +523,8 @@ struct RepeatingTransactionView: View {
                         } label: {
                             Text(when.displayTitle)
                                 .frame(width: 40, height: 40)
-                                .foregroundStyle(when.active ? Color.fromName(colorTheme) : Color.primary)
-                                .background(when.active ? Color.fromName(colorTheme).opacity(0.2) : Color.clear)
+                                .foregroundStyle(when.active ? Color.theme : Color.primary)
+                                .background(when.active ? Color.theme.opacity(0.2) : Color.clear)
                                 .clipShape(Circle())
                                 .font(.caption)
                                 .bold()
@@ -538,7 +541,7 @@ struct RepeatingTransactionView: View {
     
     
     struct MonthToggles: View {
-        @Local(\.colorTheme) var colorTheme
+        //@Local(\.colorTheme) var colorTheme
         @Environment(RepeatingTransactionModel.self) private var repModel
         @Bindable var repTransaction: CBRepeatingTransaction
         
@@ -551,8 +554,8 @@ struct RepeatingTransactionView: View {
                     } label: {
                         Text("All")
                             .frame(width: 40, height: 40)
-                            .foregroundStyle(isAll ? Color.fromName(colorTheme) : Color.primary)
-                            .background(isAll ? Color.fromName(colorTheme).opacity(0.2) : Color.clear)
+                            .foregroundStyle(isAll ? Color.theme : Color.primary)
+                            .background(isAll ? Color.theme.opacity(0.2) : Color.clear)
                             .clipShape(Circle())
                             .font(.caption)
                             .bold()
@@ -568,8 +571,8 @@ struct RepeatingTransactionView: View {
                         } label: {
                             Text(when.displayTitle)
                                 .frame(width: 40, height: 40)
-                                .foregroundStyle(when.active ? Color.fromName(colorTheme) : Color.primary)
-                                .background(when.active ? Color.fromName(colorTheme).opacity(0.2) : Color.clear)
+                                .foregroundStyle(when.active ? Color.theme : Color.primary)
+                                .background(when.active ? Color.theme.opacity(0.2) : Color.clear)
                                 .clipShape(Circle())
                                 .font(.caption)
                                 .bold()
@@ -586,7 +589,7 @@ struct RepeatingTransactionView: View {
     
     
     struct DayToggles: View {
-        @Local(\.colorTheme) var colorTheme
+        //@Local(\.colorTheme) var colorTheme
         @Environment(RepeatingTransactionModel.self) private var repModel
         @Bindable var repTransaction: CBRepeatingTransaction
         
@@ -609,7 +612,7 @@ struct RepeatingTransactionView: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        .background(day.active ? Color.fromName(colorTheme) : .clear)
+                        .background(day.active ? Color.theme : .clear)
                         .border(Color(.gray))
                     }
                 }

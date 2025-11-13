@@ -6,6 +6,9 @@
 //
 
 import Foundation
+#if os(iOS)
+import UIKit
+#endif
 
 enum InAppAlertPreference {
     case alert, toast
@@ -31,372 +34,10 @@ enum FunkyChatGptDateError: Error {
     case funkyYear, funkyMonth
 }
 
-enum TransactionAction: String {
-    case add, edit, delete
-    
-    var serverKey: String {
-        switch self {
-        case .add:      return "add_cb_transaction"
-        case .edit:     return "edit_cb_transaction"
-        case .delete:   return "delete_cb_transaction"
-        }
-    }
-    
-    static func fromString(_ theString: String) -> Self {
-        switch theString {
-        case "add": return .add
-        case "edit": return .edit
-        case "delete": return .delete
-        default: return .add
-        }
-    }
-}
-
-enum RepeatingTransactionAction {
-    case add, edit, delete
-    
-    var serverKey: String {
-        switch self {
-        case .add:      return "add_cb_repeating_transaction"
-        case .edit:     return "edit_cb_repeating_transaction"
-        case .delete:   return "delete_cb_repeating_transaction"
-        }
-    }
-}
-
-
-enum PaymentMethodAction: String {
-    case add, edit, delete
-    
-    var serverKey: String {
-        switch self {
-        case .add:      return "add_cb_payment_method"
-        case .edit:     return "edit_cb_payment_method"
-        case .delete:   return "delete_cb_payment_method"
-        }
-    }
-    
-    static func fromString(_ theString: String) -> Self {
-        switch theString {
-        case "add": return .add
-        case "edit": return .edit
-        case "delete": return .delete
-        default: return .add
-        }
-    }
-}
-
-enum PlaidBankAction: String {
-    case edit, delete
-    
-    var serverKey: String {
-        switch self {
-        case .edit:     return "edit_cb_plaid_bank"
-        case .delete:   return "delete_cb_plaid_bank"
-        }
-    }
-    
-    static func fromString(_ theString: String) -> Self {
-        switch theString {
-        case "edit": return .edit
-        case "delete": return .delete
-        default: return .edit
-        }
-    }
-}
-
-enum PlaidAccountAction: String {
-    case edit, delete
-    
-    var serverKey: String {
-        switch self {
-        case .edit:     return "edit_cb_plaid_account"
-        case .delete:   return "delete_cb_plaid_account"
-        }
-    }
-    
-    static func fromString(_ theString: String) -> Self {
-        switch theString {
-        case "edit": return .edit
-        case "delete": return .delete
-        default: return .edit
-        }
-    }
-}
-
-
-
-enum StartingAmountAction: String {
-    case add, edit, delete
-    
-    var serverKey: String {
-        switch self {
-        case .add:      return "add_cb_starting_amount"
-        case .edit:     return "edit_cb_starting_amount"
-        case .delete:   return "delete_cb_starting_amount"
-        }
-    }
-    
-    static func fromString(_ theString: String) -> Self {
-        switch theString {
-        case "add": return .add
-        case "edit": return .edit
-        case "delete": return .delete
-        default: return .add
-        }
-    }
-}
-
-enum KeywordAction: String {
-    case add, edit, delete
-    
-    var serverKey: String {
-        switch self {
-        case .add:      return "add_cb_keyword"
-        case .edit:     return "edit_cb_keyword"
-        case .delete:   return "delete_cb_keyword"
-        }
-    }
-    
-    static func fromString(_ theString: String) -> Self {
-        switch theString {
-        case "add": return .add
-        case "edit": return .edit
-        case "delete": return .delete
-        default: return .add
-        }
-    }
-}
-
-enum EventAction: String {
-    case add, edit, delete
-    
-    var serverKey: String {
-        switch self {
-        case .add:      return "add_cb_event"
-        case .edit:     return "edit_cb_event"
-        case .delete:   return "delete_cb_event"
-        }
-    }
-    
-    static func fromString(_ theString: String) -> Self {
-        switch theString {
-        case "add": return .add
-        case "edit": return .edit
-        case "delete": return .delete
-        default: return .add
-        }
-    }
-}
-
-
-enum EventParticipantAction: String {
-    case add, edit, delete
-    
-    var serverKey: String {
-        switch self {
-        case .add:      return "add_cb_event_participant"
-        case .edit:     return "edit_cb_event_participant"
-        case .delete:   return "delete_cb_event_participant"
-        }
-    }
-    
-    static func fromString(_ theString: String) -> Self {
-        switch theString {
-        case "add": return .add
-        case "edit": return .edit
-        case "delete": return .delete
-        default: return .add
-        }
-    }
-}
-
-
-enum EventItemAction: String {
-    case add, edit, delete
-    
-    var serverKey: String {
-        switch self {
-        case .add:      return "add_cb_event_item"
-        case .edit:     return "edit_cb_event_item"
-        case .delete:   return "delete_cb_event_item"
-        }
-    }
-    
-    static func fromString(_ theString: String) -> Self {
-        switch theString {
-        case "add": return .add
-        case "edit": return .edit
-        case "delete": return .delete
-        default: return .add
-        }
-    }
-}
-
-enum EventTransactionOptionAction: String {
-    case add, edit, delete
-    
-    var serverKey: String {
-        switch self {
-        case .add:      return "add_cb_event_transaction_option"
-        case .edit:     return "edit_cb_event_transaction_option"
-        case .delete:   return "delete_cb_event_transaction_option"
-        }
-    }
-    
-    static func fromString(_ theString: String) -> Self {
-        switch theString {
-        case "add": return .add
-        case "edit": return .edit
-        case "delete": return .delete
-        default: return .add
-        }
-    }
-}
-
-
-enum EventCategoryAction: String {
-    case add, edit, delete
-    
-    var serverKey: String {
-        switch self {
-        case .add:      return "add_cb_event_category"
-        case .edit:     return "edit_cb_event_category"
-        case .delete:   return "delete_cb_event_category"
-        }
-    }
-    
-    static func fromString(_ theString: String) -> Self {
-        switch theString {
-        case "add": return .add
-        case "edit": return .edit
-        case "delete": return .delete
-        default: return .add
-        }
-    }    
-}
-
-
-
-enum EventTransactionAction: String {
-    case add, edit, delete
-    
-    var serverKey: String {
-        switch self {
-        case .add:      return "add_cb_event_transaction"
-        case .edit:     return "edit_cb_event_transaction"
-        case .delete:   return "delete_cb_event_transaction"
-        }
-    }
-    
-    static func fromString(_ theString: String) -> Self {
-        switch theString {
-        case "add": return .add
-        case "edit": return .edit
-        case "delete": return .delete
-        default: return .add
-        }
-    }
-}
-
-
-
 enum KeywordTriggerType: String {
     case equals = "equals"
     case contains = "contains"
 }
-
-
-enum TagAction {
-    case add, edit, delete
-    
-    var serverKey: String {
-        switch self {
-        case .add:      return "add_cb_tag"
-        case .edit:     return "edit_cb_tag"
-        case .delete:   return "delete_cb_tag"
-        }
-    }
-}
-
-
-enum CategoryAction: String {
-    case add, edit, delete
-    
-    var serverKey: String {
-        switch self {
-        case .add:      return "add_cb_category"
-        case .edit:     return "edit_cb_category"
-        case .delete:   return "delete_cb_category"
-        }
-    }
-    
-    static func fromString(_ theString: String) -> Self {
-        switch theString {
-        case "add": return .add
-        case "edit": return .edit
-        case "delete": return .delete
-        default: return .add
-        }
-    }
-}
-
-
-enum CategoryGroupAction: String {
-    case add, edit, delete
-    
-    var serverKey: String {
-        switch self {
-        case .add:      return "add_cb_category_group"
-        case .edit:     return "edit_cb_category_group"
-        case .delete:   return "delete_cb_category_group"
-        }
-    }
-    
-    static func fromString(_ theString: String) -> Self {
-        switch theString {
-        case "add": return .add
-        case "edit": return .edit
-        case "delete": return .delete
-        default: return .add
-        }
-    }
-}
-
-
-enum LocationAction: String {
-    case add, edit, delete
-    
-    var serverKey: String {
-        switch self {
-        case .add:      return "add_cb_location"
-        case .edit:     return "edit_cb_location"
-        case .delete:   return "delete_cb_location"
-        }
-    }
-    
-    static func fromString(_ theString: String) -> Self {
-        switch theString {
-        case "add": return .add
-        case "edit": return .edit
-        case "delete": return .delete
-        default: return .add
-        }
-    }
-}
-
-enum BudgetAction {
-    case add, edit, delete
-    
-    var serverKey: String {
-        switch self {
-        case .add:      return "add_cb_budget"
-        case .edit:     return "edit_cb_budget"
-        case .delete:   return "delete_cb_budget"
-        }
-    }
-}
-
 
 enum WhenType: String {
     case weekday = "weekday"
@@ -408,7 +49,6 @@ enum WhenType: String {
 enum ShadowCopyAction {
     case create, restore, clear
 }
-
 
 enum TextFieldInputType {
     case text, double, currency
@@ -428,6 +68,35 @@ enum AccountType: Int {
     case unifiedChecking = 30
     case unifiedCredit = 31
     case loan = 38
+    case crypto = 45
+    case brokerage = 46
+    
+    var prettyValue: String {
+        switch self {
+        case .checking:
+            "Checking"
+        case .credit:
+            "Credit"
+        case .savings:
+            "Savings"
+        case .investment:
+            "Investment"
+        case .k401:
+            "401K"
+        case .cash:
+            "Cash"
+        case .unifiedChecking:
+            "Unified Checking"
+        case .unifiedCredit:
+            "Unified Credit"
+        case .loan:
+            "Loan"
+        case .crypto:
+            "Crypto"
+        case .brokerage:
+            "Brokerage"
+        }
+    }
     
 }
 
@@ -447,7 +116,7 @@ enum LineItemIndicator: String, CaseIterable {
 //    case dot, emoji
 //}
 
-enum CategorySortMode: String, CaseIterable {
+enum SortMode: String, CaseIterable {
     case title, listOrder
     
     static func fromString(_ theString: String) -> Self {
@@ -491,6 +160,28 @@ enum TransactionSortMode: String, CaseIterable {
         }
     }
 }
+
+enum TransactionListDisplayMode: String, CaseIterable {
+    case full, condensed
+    
+    static func fromString(_ theString: String) -> Self {
+        switch theString {
+        case "full": return .full
+        case "condensed": return .condensed
+        default: return .condensed
+        }
+    }
+    
+    var prettyValue: String {
+        switch self {
+        case .full:
+            "Full"
+        case .condensed:
+            "Condensed"
+        }
+    }
+}
+
 
 enum PhoneLineItemDisplayItem: String, CaseIterable {
     case title, total, category, both
@@ -594,11 +285,9 @@ enum CalendarChartModel: String {
     case verticalBar, horizontalBar, pie, donut, line
 }
 
-
 enum RefreshTechnique: String {
     case viaInitial, viaButton, viaSceneChange, viaLongPoll, viaTempListButton, viaTempListSceneChange
 }
-
 
 enum UserPreferedColorScheme: String {
     case userLight, userDark, userSystem
@@ -608,8 +297,8 @@ enum ListOrderUpdateType: String {
     case categories = "categories"
     case eventCategories = "event_categories"
     case eventItems = "event_items"
+    case paymentMethods = "payment_methods"
 }
-
 
 enum OpenOrClosed: String {
     case open, closed
@@ -619,9 +308,7 @@ enum OpenRecordViewType: String {
     case event, transaction, eventTransactionOption
 }
 
-
-
-enum PhotoUploadProgress {
+enum FileUploadProgress {
     case performCleanup
     case readyForPlaceholder(String?, String)
     case uploaded(String?, String)
@@ -631,28 +318,90 @@ enum PhotoUploadProgress {
     case done(String?, String)
 }
 
-
-
-
-
 enum PlaidLinkMode: String {
     case addAccount = "add"
     case updateBank = "update"
     case newBank = "new"
 }
 
-
 enum DetailsOrInsights: String {
     case details = "details"
     case insights = "insights"
+    case edit = "edit"
+}
+
+#if os(iOS)
+enum CBKeyboardType {
+    case system(UIKeyboardType)
+    case custom(CustomKeyboardType)
+}
+
+enum CustomKeyboardType {
+    case numpad
+}
+
+enum DecimalKeyboardButtonType {
+    case number, delete, decimalPoint, posNeg
+}
+#endif
+
+enum FileType: String {
+    case photo = "photo"
+    case pdf = "pdf"
+    case csv = "csv"
+    case spreadsheet = "spreadsheet"
+    
+    var mimeType: String {
+        switch self {
+        case .photo: "image/jpeg"
+        case .pdf: "application/pdf"
+        case .csv: "text/csv"
+        case .spreadsheet: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        }
+    }
+    
+    var ext: String {
+        switch self {
+        case .photo:
+            "jpg"
+        case .pdf:
+            "pdf"
+        case .csv:
+            "csv"
+        case .spreadsheet:
+            "xlsx"
+        }
+    }
+    
+    var defaultName: String {
+        switch self {
+        case .photo:
+            "image"
+        case .pdf:
+            "pdf"
+        case .csv:
+            "csv"
+        case .spreadsheet:
+            "xlsx"
+        }
+    }
+    
+    static func getByExtension(_ ext: String) -> FileType {
+        if ext == "jpg" {
+            return .photo
+        } else if ext == "pdf" {
+            return .pdf
+        } else if ext == "csv" {
+            return .csv
+        } else if ext == "xlsx" {
+            return .spreadsheet
+        }
+        return .photo
+    }
 }
 
 
-
-
 //MARK: Core Data Stuff
-
-
 enum IdType {
     case int(Int)
     case string(String)

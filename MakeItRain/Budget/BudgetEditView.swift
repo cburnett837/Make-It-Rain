@@ -6,12 +6,13 @@
 //
 
 import SwiftUI
+import Charts
 
 struct BudgetEditView: View {
     @AppStorage("transactionSortMode") var transactionSortMode: TransactionSortMode = .title
-    @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
+    @AppStorage("categorySortMode") var categorySortMode: SortMode = .title
     @Local(\.useWholeNumbers) var useWholeNumbers
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) var dismiss
     @Bindable var budget: CBBudget
@@ -44,6 +45,12 @@ struct BudgetEditView: View {
         var day: Int
         var total: Double
     }
+    
+    var totalExpenses: Double {
+        transactions
+            .map { ($0.payMethod ?? CBPaymentMethod()).isCreditOrLoan ? $0.amount : $0.amount * -1 }
+            .reduce(0.0, +)
+    }
 
     
 //    var transactions: Array<CBTransaction> {
@@ -56,7 +63,7 @@ struct BudgetEditView: View {
 //                && !trans.hasPrivateMethodInCurrentOrDeepCopy
 //            }
 //        }
-//        .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
+//        .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
 //    }
 
     var body: some View {
@@ -66,76 +73,61 @@ struct BudgetEditView: View {
                 Section("Budget for \(budgetHeader)") {
                     titleRow
                 }
+                
+                Section("Details") {
+                    theChart
+                }
+                                
                 transactionList
             }
-            .searchable(text: $searchText, prompt: Text("Search Transactions"))
+            .searchable(text: $searchText, prompt: Text("Search"))
             .navigationTitle(budget.category?.title ?? "N/A")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) { closeButton }
+                ToolbarItem(placement: AppState.shared.isIphone ? .topBarTrailing : .topBarLeading) { closeButton }
             }
         }
-        .transactionEditSheetAndLogic(
-            calModel: calModel,
-            transEditID: $transEditID,
-            editTrans: $editTrans,
-            selectedDay: $transDay
-        )
-        
-        //        StandardContainer {
-        //            LabeledRow("Name", labelWidth) {
-        //                Text(budget.category?.title ?? "")
-        //            }
-        //
-        //            LabeledRow("Budget", labelWidth) {
-        //                StandardTextField("Monthly Amount", text: $budget.amountString, focusedField: $focusedField, focusValue: 0)
-        //                    #if os(iOS)
-        //                    .keyboardType(.decimalPad)
-        //                    #endif
-        //                    //.focused($focusedField, equals: .amount)
-        //            }
-        //
-        //
-        //            StandardDivider()
-        //            ForEach(transactions) { trans in
-        //                VStack(spacing: 0) {
-        //                    LineItemView(trans: trans, day: .init(date: Date()), isOnCalendarView: false)
-        //                    Divider()
-        //                }
-        //            }
-        //        } header: {
-        //            SheetHeader(title: title, close: { dismiss() })
-        //        }
-        //        .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
+        .transactionEditSheetAndLogic(transEditID: $transEditID, selectedDay: $transDay)
         .task {
             budget.deepCopy(.create)
             /// Just for formatting.
             budget.amountString = budget.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
             prepareData()
         }
-        //        .alert("Delete \(budget.category?.title)?", isPresented: $showDeleteAlert, actions: {
-        //            Button("Yes", role: .destructive) {
-        //                Task {
-        //                    calModel.months.forEach { month in
-        //                        month.days.forEach { day in
-        //                            day.transactions.filter { $0.budget?.id == budget.id }.forEach { trans in
-        //                                trans.category = nil
-        //                            }
-        //                        }
-        //                    }
-        //                    dismiss()
-        //                    await catModel.delete(category)
-        //                }
-        //            }
-        //
-        //            Button("Cancel", role: .cancel) {
-        //                showDeleteAlert = false
-        //            }
-        //        }, message: {
-        //            Text("This will not delete any associated transactions.")
-        //        })
     
         #endif
+    }
+    
+    
+    var theChart: some View {
+        Chart {
+            BarMark(
+                x: .value("Amount", budget.amount),
+                y: .value("Key", "Budget \(budget.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+            )
+            .foregroundStyle(budget.category?.color ?? .gray)
+        
+            BarMark(
+                x: .value("Amount", totalExpenses),
+                y: .value("Key", "Expenses \(totalExpenses.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+            )
+            .foregroundStyle(.gray)
+        }
+        .chartLegend(.hidden)
+        .chartXAxis { xAxis() }
+    }
+    
+    @AxisContentBuilder
+    func xAxis() -> some AxisContent {
+        AxisMarks(values: .automatic) {
+            AxisGridLine()
+            if let value = $0.as(Int.self) {
+                AxisValueLabel {
+                    Text("$\(value)")
+                }
+            }
+            
+        }
     }
     
     
@@ -143,20 +135,16 @@ struct BudgetEditView: View {
         Button {
             dismiss()
         } label: {
-            Image(systemName: "checkmark")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+            Image(systemName: "xmark")
+                .schemeBasedForegroundStyle()
         }
     }
     
     
     var titleRow: some View {
         HStack(spacing: 0) {
-            Label {
-                Text("")
-            } icon: {
-                Image(systemName: "t.circle")
-                    .foregroundStyle(.gray)
-            }
+            Label("", systemImage: "t.circle")
+                .foregroundStyle(.gray)
             
             #if os(iOS)
             UITextFieldWrapper(placeholder: "Budget", text: $budget.amountString, toolbar: {
@@ -170,7 +158,7 @@ struct BudgetEditView: View {
             //.uiFont(UIFont.systemFont(ofSize: 24.0))
             //.uiTextColor(.secondaryLabel)
             #else
-            StandardTextField("Name", text: $group.title, focusedField: $focusedField, focusValue: 0)
+            StandardTextField("Name", text: $budget.amountString, focusedField: $focusedField, focusValue: 0)
                 .onSubmit { focusedField = 1 }
             #endif
         }
@@ -180,20 +168,18 @@ struct BudgetEditView: View {
     
     var transactionList: some View {
         ForEach(calModel.sMonth.days.filter { $0.date != nil }) { day in
-            let filteredTrans = getTransactions(for: day)
-            
-            let doesHaveTransactions = filteredTrans
+            let doesHaveTransactions = transactions
                 .filter { $0.dateComponents?.day == day.date?.day }
                 .count > 0
             
-//            let dailyTotal = transactions
-//                .filter { $0.dateComponents?.day == day.date?.day }
-//                .map { $0.payMethod?.accountType == .credit ? $0.amount * -1 : $0.amount }
-//                .reduce(0.0, +)
-//            
-//            let dailyCount = transactions
-//                .filter { $0.dateComponents?.day == day.date?.day }
-//                .count
+            let dailyTotal = transactions
+                .filter { $0.dateComponents?.day == day.date?.day }
+                .map { ($0.payMethod?.isCreditOrLoan ?? false) ? $0.amount * -1 : $0.amount }
+                .reduce(0.0, +)
+            
+            let dailyCount = transactions
+                .filter { $0.dateComponents?.day == day.date?.day }
+                .count
                    
             if doesHaveTransactions {
                 Section {
@@ -208,122 +194,137 @@ struct BudgetEditView: View {
                     if let date = day.date, date.isToday {
                         HStack {
                             Text("TODAY")
-                                .foregroundStyle(Color.fromName(colorTheme))
+                                .foregroundStyle(Color.theme)
                             VStack {
                                 Divider()
-                                    .overlay(Color.fromName(colorTheme))
+                                    .overlay(Color.theme)
                             }
                         }
                     } else {
                         Text(day.date?.string(to: .monthDayShortYear) ?? "")
                     }
                     
+                } footer: {
+                    if doesHaveTransactions {
+                        SectionFooter(day: day, dailyCount: dailyCount, dailyTotal: dailyTotal, cumTotals: cumTotals)
+                    }
                 }
-//                footer: {
-//                    if doesHaveTransactions {
-//                        SectionFooter(day: day, dailyCount: dailyCount, dailyTotal: dailyTotal, cumTotals: cumTotals)
+            }
+        }
+    }
+    
+  
+    func getTransactions(for day: CBDay) -> Array<CBTransaction> {
+        transactions
+            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+            .filter { $0.dateComponents?.day == day.date?.day }
+            .sorted(by: Helpers.transactionSorter())
+    }
+    
+//    func getTransactionsOG(for day: CBDay) -> Array<CBTransaction> {
+//        transactions
+//            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+//            .filter { $0.dateComponents?.day == day.date?.day }
+//            .filter { ($0.payMethod?.isPermitted ?? true) }
+//            .filter { !($0.payMethod?.isHidden ?? false) }
+//            .sorted {
+//                if transactionSortMode == .title {
+//                    return $0.title < $1.title
+//                    
+//                } else if transactionSortMode == .enteredDate {
+//                    return $0.enteredDate < $1.enteredDate
+//                    
+//                } else {
+//                    if categorySortMode == .title {
+//                        return ($0.category?.title ?? "").lowercased() < ($1.category?.title ?? "").lowercased()
+//                    } else {
+//                        return $0.category?.listOrder ?? 10000000000 < $1.category?.listOrder ?? 10000000000
 //                    }
 //                }
+//            }
+//    }
+    
+    
+    
+    func prepareData() {
+        if let cat = budget.category {
+            transactions = calModel.getTransactions(cats: [cat])
+                .filter { $0.dateComponents?.month == calModel.sMonth.actualNum }
+                .filter { $0.dateComponents?.year == calModel.sMonth.year }
+            
+            //        transactions = calModel.justTransactions
+            //            .filter { calModel.isInMultiSelectMode ? calModel.multiSelectTransactions.map({ $0.id }).contains($0.id) : true }
+            //            //.filter { $0.payMethod?.id == calModel.sPayMethod?.id }
+            ////            .filter { trans in
+            ////                if let sMethod = calModel.sPayMethod {
+            ////                    if sMethod.isUnifiedDebit {
+            ////                        let methods: Array<String> = payModel.paymentMethods
+            ////                            .filter { $0.isPermitted }
+            ////                            .filter { !$0.isHidden }
+            ////                            .filter { $0.isDebit }
+            ////                            .map { $0.id }
+            ////                        return methods.contains(trans.payMethod?.id ?? "")
+            ////
+            ////                    } else if sMethod.isUnifiedCredit {
+            ////                        let methods: Array<String> = payModel.paymentMethods
+            ////                            .filter { $0.isPermitted }
+            ////                            .filter { !$0.isHidden }
+            ////                            .filter { $0.isCredit }
+            ////                            .map { $0.id }
+            ////                        return methods.contains(trans.payMethod?.id ?? "")
+            ////
+            ////                    } else {
+            ////                        return trans.payMethod?.id == sMethod.id && (trans.payMethod?.isPermitted ?? true) && !(trans.payMethod?.isHidden ?? false)
+            ////                    }
+            ////                } else {
+            ////                    return false
+            ////                }
+            ////            }
+            //            .filter { $0.dateComponents?.month == calModel.sMonth.actualNum }
+            //            .filter { $0.dateComponents?.year == calModel.sMonth.year }
+            //            .filter {
+            //                $0.categoryIdsInCurrentAndDeepCopy.contains(budget.category?.id)
+            //                && $0.payMethod?.isPermitted ?? true
+            //                && !$0.hasHiddenMethodInCurrentOrDeepCopy
+            //                //&& !$0.hasPrivateMethodInCurrentOrDeepCopy
+            //            }
+            //            .sorted { $0.dateComponents?.day ?? 0 < $1.dateComponents?.day ?? 0 }
+            
+            
+            /// Get how much has been spend up until each day.
+            self.cumTotals.removeAll()
+            var total: Double = 0.0
+            
+            calModel.sMonth.days.forEach { day in
+                let trans = transactions.filter { $0.dateComponents?.day == day.date?.day }
+                if !trans.isEmpty {
+                    let dailySpend = calModel.getSpend(from: trans)
+                    let dailyIncome = calModel.getIncome(from: trans)
+                    
+                    total += (dailySpend + dailyIncome)
+                    self.cumTotals.append(CumTotal(day: day.date!.day, total: total))
+                }
             }
         }
     }
     
     
-//    struct SectionFooter: View {
-//        @Local(\.useWholeNumbers) var useWholeNumbers
-//        @Local(\.threshold) var threshold
-//
-//        var day: CBDay
-//        var dailyCount: Int
-//        var dailyTotal: Double
-//        var cumTotals: [CumTotal]
-//        
-//        private var eodColor: Color {
-//            if day.eodTotal > threshold {
-//                return .gray
-//            } else if day.eodTotal < 0 {
-//                return .red
-//            } else {
-//                return .orange
-//            }
-//        }
-//                
-//        var body: some View {
-//            HStack {
-//                Text("EOD: \(day.eodTotal.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
-//                    .foregroundStyle(eodColor)
-//                
-//                Spacer()
-//                if dailyCount > 1 {
-//                    Text(dailyTotal.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-//                }
-//            }
-//        }
-//    }
-    
-    
-    func getTransactions(for day: CBDay) -> Array<CBTransaction> {
-        transactions
-            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
-            .filter { $0.dateComponents?.day == day.date?.day }
-            .filter { ($0.payMethod?.isAllowedToBeViewedByThisUser ?? true) }
-            .filter { !($0.payMethod?.isHidden ?? false) }
-            .sorted {
-                if transactionSortMode == .title {
-                    return $0.title < $1.title
-                    
-                } else if transactionSortMode == .enteredDate {
-                    return $0.enteredDate < $1.enteredDate
-                    
-                } else {
-                    if categorySortMode == .title {
-                        return ($0.category?.title ?? "").lowercased() < ($1.category?.title ?? "").lowercased()
-                    } else {
-                        return $0.category?.listOrder ?? 10000000000 < $1.category?.listOrder ?? 10000000000
-                    }
+    struct SectionFooter: View {
+        @Local(\.useWholeNumbers) var useWholeNumbers
+        var day: CBDay
+        var dailyCount: Int
+        var dailyTotal: Double
+        var cumTotals: [CumTotal]
+                
+        var body: some View {
+            HStack {
+                Text("Cumulative Total: \((cumTotals.filter { $0.day == day.date!.day }.first?.total ?? 0.0).currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                
+                Spacer()
+                if dailyCount > 1 {
+                    Text(dailyTotal.currencyWithDecimals(useWholeNumbers ? 0 : 2))
                 }
             }
-    }
-    
-    
-    
-    func prepareData() {
-        transactions = calModel.justTransactions
-            .filter { calModel.isInMultiSelectMode ? calModel.multiSelectTransactions.map({ $0.id }).contains($0.id) : true }
-            //.filter { $0.payMethod?.id == calModel.sPayMethod?.id }
-//            .filter { trans in
-//                if let sMethod = calModel.sPayMethod {
-//                    if sMethod.isUnifiedDebit {
-//                        let methods: Array<String> = payModel.paymentMethods
-//                            .filter { $0.isAllowedToBeViewedByThisUser }
-//                            .filter { !$0.isHidden }
-//                            .filter { $0.isDebit }
-//                            .map { $0.id }
-//                        return methods.contains(trans.payMethod?.id ?? "")
-//
-//                    } else if sMethod.isUnifiedCredit {
-//                        let methods: Array<String> = payModel.paymentMethods
-//                            .filter { $0.isAllowedToBeViewedByThisUser }
-//                            .filter { !$0.isHidden }
-//                            .filter { $0.isCredit }
-//                            .map { $0.id }
-//                        return methods.contains(trans.payMethod?.id ?? "")
-//
-//                    } else {
-//                        return trans.payMethod?.id == sMethod.id && (trans.payMethod?.isAllowedToBeViewedByThisUser ?? true) && !(trans.payMethod?.isHidden ?? false)
-//                    }
-//                } else {
-//                    return false
-//                }
-//            }
-            .filter { $0.dateComponents?.month == calModel.sMonth.actualNum }
-            .filter { $0.dateComponents?.year == calModel.sMonth.year }
-            .filter {
-                $0.categoryIdsInCurrentAndDeepCopy.contains(budget.category?.id)
-                && $0.payMethod?.isAllowedToBeViewedByThisUser ?? true
-                && !$0.hasHiddenMethodInCurrentOrDeepCopy
-                //&& !$0.hasPrivateMethodInCurrentOrDeepCopy
-            }
-            .sorted { $0.dateComponents?.day ?? 0 < $1.dateComponents?.day ?? 0 }
+        }
     }
 }

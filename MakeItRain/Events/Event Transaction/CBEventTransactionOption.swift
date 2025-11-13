@@ -34,11 +34,11 @@ class CBEventTransactionOption: Codable, Identifiable, Hashable, Equatable, CanE
     
     var costRange: Int?
     var locations: Array<CBLocation>
-    var pictures: Array<CBPicture>?
+    var files: Array<CBFile>?
     
     var action: EventTransactionOptionAction
         
-    enum CodingKeys: CodingKey { case id, uuid, transaction_id, title, amount, url, notes, address, active, entered_by, updated_by, entered_date, updated_date, user_id, account_id, device_uuid, action, pictures, locations, cost_range }
+    enum CodingKeys: CodingKey { case id, uuid, transaction_id, title, amount, url, notes, address, active, entered_by, updated_by, entered_date, updated_date, user_id, account_id, device_uuid, action, files, locations, cost_range }
     
     init(transactionID: String) {
         let uuid = UUID().uuidString
@@ -90,7 +90,7 @@ class CBEventTransactionOption: Codable, Identifiable, Hashable, Equatable, CanE
         try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
         try container.encode(action.serverKey, forKey: .action)
         
-        try container.encode(pictures, forKey: .pictures)
+        try container.encode(files, forKey: .files)
         try container.encode(locations, forKey: .locations)
         try container.encode(costRange, forKey: .cost_range)
     }
@@ -120,7 +120,7 @@ class CBEventTransactionOption: Codable, Identifiable, Hashable, Equatable, CanE
         url = try container.decode(String.self, forKey: .url)
         notes = try container.decode(String.self, forKey: .notes)
         address = try container.decode(String?.self, forKey: .address)
-        self.pictures = try container.decode(Array<CBPicture>?.self, forKey: .pictures)
+        self.files = try container.decode(Array<CBFile>?.self, forKey: .files)
         self.locations = try container.decode(Array<CBLocation>.self, forKey: .locations)
         self.costRange = try container.decode(Int?.self, forKey: .cost_range)
         
@@ -167,7 +167,7 @@ class CBEventTransactionOption: Codable, Identifiable, Hashable, Equatable, CanE
             copy.updatedBy = self.updatedBy
             copy.enteredDate = self.enteredDate
             copy.updatedDate = self.updatedDate
-            copy.pictures = self.pictures
+            copy.files = self.files
             copy.locations = self.locations.compactMap ({ $0.deepCopy(.create); return $0.deepCopy })
             copy.costRange = self.costRange
             copy.active = self.active
@@ -187,7 +187,7 @@ class CBEventTransactionOption: Codable, Identifiable, Hashable, Equatable, CanE
                 self.updatedBy = deepCopy.updatedBy
                 self.enteredDate = deepCopy.enteredDate
                 self.updatedDate = deepCopy.updatedDate
-                self.pictures = deepCopy.pictures
+                self.files = deepCopy.files
                 self.locations = deepCopy.locations
                 self.costRange = deepCopy.costRange
                 self.active = deepCopy.active
@@ -214,7 +214,7 @@ class CBEventTransactionOption: Codable, Identifiable, Hashable, Equatable, CanE
         && lhs.updatedBy == rhs.updatedBy
         && lhs.enteredDate == rhs.enteredDate
         && lhs.updatedDate == rhs.updatedDate
-        && lhs.pictures == rhs.pictures
+        && lhs.files == rhs.files
         && lhs.locations == rhs.locations
         && lhs.costRange == rhs.costRange
         && lhs.active == rhs.active
@@ -252,7 +252,7 @@ class CBEventTransactionOption: Codable, Identifiable, Hashable, Equatable, CanE
         self.action = option.action
         
         self.locations = option.locations
-        self.pictures = option.pictures
+        self.files = option.files
         self.costRange = option.costRange
     }
     
@@ -263,7 +263,7 @@ class CBEventTransactionOption: Codable, Identifiable, Hashable, Equatable, CanE
             && self.amountString == deepCopy.amountString
             && self.url == deepCopy.url
             && self.notes == deepCopy.notes
-            && self.pictures == deepCopy.pictures
+            && self.files == deepCopy.files
             && self.locations == deepCopy.locations
             && self.costRange == deepCopy.costRange
             && self.address == deepCopy.address {
@@ -288,8 +288,8 @@ class CBEventTransactionOption: Codable, Identifiable, Hashable, Equatable, CanE
                 if self.locations != deepCopy.locations {
                     print("- locations changed: \(deepCopy.locations) → \(self.locations)")
                 }
-                if self.pictures != deepCopy.pictures {
-                    print("- pictures changed: \(String(describing: deepCopy.pictures)) → \(String(describing: self.pictures))")
+                if self.files != deepCopy.files {
+                    print("- files changed: \(String(describing: deepCopy.files)) → \(String(describing: self.files))")
                 }
                 if self.costRange != deepCopy.costRange {
                     print("- costRange changed: \(String(describing: deepCopy.costRange)) → \(String(describing: self.costRange))")
@@ -331,5 +331,9 @@ class CBEventTransactionOption: Codable, Identifiable, Hashable, Equatable, CanE
         } else {
             print("CANT FIND LOCATION")
         }
+    }
+    
+    func setTitle(_ text: String) {
+        self.title = text
     }
 }

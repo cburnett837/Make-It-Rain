@@ -11,26 +11,15 @@ import LocalAuthentication
 import TipKit
 #if os(iOS)
 import UIKit
+import AppIntents
 #endif
 
 enum ViewThatTriggeredChange {
-    case calendar
+    case calendar, paymentMethodListOrders
 }
 
 
-@Observable
-class DataChangeTriggers {
-    static let shared: DataChangeTriggers = DataChangeTriggers()
-    
-    var calendarDidChange = false
-    
-    func viewDidChange(_ view: ViewThatTriggeredChange, source: String = #function) {
-        switch view {
-        case .calendar:
-            self.calendarDidChange.toggle()
-        }
-    }
-}
+
 
 
 @main
@@ -44,7 +33,7 @@ struct MakeItRainApp: App {
     #endif
     
     @Environment(\.colorScheme) var colorScheme
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @AppStorage("appScreenWidth") var screenWidth: Double = 0
     @AppStorage("appScreenHeight") var screenHeight: Double = 0
     @AppStorage("useBiometrics") var useBiometrics = false
@@ -65,12 +54,14 @@ struct MakeItRainApp: App {
     @State private var eventModel: EventModel
     @State private var plaidModel: PlaidModel
     
-    @State private var photoModel = PhotoModel.shared
+    @State private var photoModel = FileModel.shared
     @State private var locationManager = LocationManager.shared
     @State private var dataChangeTriggers = DataChangeTriggers.shared
     @State private var mapModel = MapModel()
     
     @State private var calProps = CalendarProps()
+    
+    @State private var showCamera = false
     
     //@State private var isUnlocked = false
     
@@ -120,7 +111,7 @@ struct MakeItRainApp: App {
     var body: some Scene {
         WindowGroup {
             /// Allow for universal sheets. Such as Payment Method sheet when first downloading the app, universal alerts, etc.
-            RootViewWrapper {
+            RootViewWrapper(showCamera: $showCamera) {
                 CalendarSheetLayerWrapper(monthNavigationNamespace: monthNavigationNamespace) {
                     @Bindable var appState = AppState.shared
                     Group {
@@ -166,8 +157,35 @@ struct MakeItRainApp: App {
                     #endif
                 }
             }
+//            .photoPickerAndCameraSheet(
+//                fileUploadCompletedDelegate: calModel,
+//                parentType: .transaction,
+//                allowMultiSelection: false,
+//                showPhotosPicker: .constant(false),
+//                showCamera: $showCamera
+//            )
             .onOpenURL(perform: { url in
                 print(url.absoluteString)
+                
+                guard let urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+                        fatalError("Could not create URLComponents")
+                    }
+                
+                if let queryItems = urlComponents.queryItems {
+                        for item in queryItems {
+                            print("Key: \(item.name), Value: \(item.value ?? "nil")")
+                            
+                            if item.name == "action" {
+                                if item.value == "take_photo" {
+                                    print("should open camera")
+                                    calModel.isUploadingSmartTransactionFile = true
+                                    showCamera = true
+                                }
+                            }
+                        }
+                    }
+                
+                
             })
             #if os(macOS)
             .toolbar(.visible, for: .windowToolbar)
@@ -224,7 +242,7 @@ struct MakeItRainApp: App {
 //        .auxilaryWindow()
         
         Window("Pending Plaid Transactions", id: "pendingPlaidTransactions") {
-            PlaidTransactionOverlay(bottomPanelContent: .constant(.plaidTransactions), bottomPanelHeight: .constant(0), scrollContentMargins: .constant(0))
+            PlaidTransactionOverlay(showInspector: .constant(true), navPath: .constant(.init()))
                 .frame(minWidth: 300, minHeight: 200)
                 .environment(calModel)
                 .environment(payModel)
@@ -236,7 +254,7 @@ struct MakeItRainApp: App {
         .auxilaryWindow()
         
         Window("Category Analysis", id: "analysisSheet") {
-            AnalysisSheet(showAnalysisSheet: .constant(true))
+            CategoryInsightsSheet(showAnalysisSheet: .constant(true))
                 .frame(minWidth: 300, minHeight: 500)
                 .environment(funcModel)
                 .environment(calModel)
@@ -253,24 +271,19 @@ struct MakeItRainApp: App {
         .auxilaryWindow()
                         
         Window("Multi-Select", id: "multiSelectSheet") {
-            MultiSelectTransactionOptionsSheet(
-                bottomPanelContent: .constant(.multiSelectOptions),
-                bottomPanelHeight: .constant(0),
-                scrollContentMargins: .constant(0),
-                showAnalysisSheet: .constant(false)
-            )
-            .frame(minHeight: 500)
-            .frame(width: 250)
-            .environment(funcModel)
-            .environment(calModel)
-            .environment(payModel)
-            .environment(catModel)
-            .environment(keyModel)
-            .environment(repModel)
-            .environment(eventModel)
-            .environment(plaidModel)
-            .environment(calProps)
-            .environment(dataChangeTriggers)
+            MultiSelectTransactionOptionsSheet(showInspector: .constant(true))
+                .frame(minHeight: 500)
+                .frame(width: 250)
+                .environment(funcModel)
+                .environment(calModel)
+                .environment(payModel)
+                .environment(catModel)
+                .environment(keyModel)
+                .environment(repModel)
+                .environment(eventModel)
+                .environment(plaidModel)
+                .environment(calProps)
+                .environment(dataChangeTriggers)
 //            .onDisappear {
 //                calModel.isInMultiSelectMode = false
 //            }
@@ -404,7 +417,7 @@ struct MakeItRainApp: App {
     
     private var rootView: some View {
         RootView(monthNavigationNamespace: monthNavigationNamespace)
-            .tint(Color.fromName(colorTheme))
+            .tint(Color.theme)
             .frame(idealWidth: screenWidth, idealHeight: screenHeight)
             .onPreferenceChange(SizePreferenceKey.self) { value in
                 screenWidth = value.width
@@ -467,3 +480,4 @@ struct MakeItRainApp: App {
         }
     }
 }
+

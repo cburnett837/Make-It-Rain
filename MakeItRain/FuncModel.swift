@@ -436,7 +436,7 @@ class FuncModel {
             group.addTask {
                 print("fetching plaid transactions");
                 let fetchModel = PlaidServerModel(rowNumber: 1)
-                await self.plaidModel.fetchPlaidTransactionsFromServer(fetchModel)
+                await self.plaidModel.fetchPlaidTransactionsFromServer(fetchModel, accumulate: false)
             }
         
             group.addTask {
@@ -534,13 +534,17 @@ class FuncModel {
             /// Grab Tags.
             group.addTask { await self.calModel.fetchTags() }
             
-            /// Grab Payment Methods (only if not logging in. If logging in, they are fetched before the viewing month is fetched)
+            /// Grab Payment Methods (only if not logging in. If logging in, they are fetched before the viewing month is fetched)/.
             if !AppState.shared.isLoggingInForFirstTime {
                 group.addTask {
                     await self.payModel.fetchPaymentMethods(calModel: self.calModel)
                     await self.prepareStartingAmounts(for: self.calModel.sMonth)
                 }
             }
+            /// Grab Transaction Title Suggestions.
+            group.addTask { await self.calModel.fetchSuggestedTitles() }
+            /// Grab Logos.
+            group.addTask { await self.fetchLogos() }
             /// Grab Categories.
             group.addTask { await self.catModel.fetchCategories() }
             /// Grab Category Groups.
@@ -585,8 +589,13 @@ class FuncModel {
                 }
             }
             
-            /// Grab Payment Methods.
-            group.addTask { await self.payModel.fetchPaymentMethods(calModel: self.calModel) }
+            /// Grab Payment Methods and their logos.
+            group.addTask {
+                await self.payModel.fetchPaymentMethods(calModel: self.calModel)
+                await self.fetchLogos()
+            }
+            /// Grab Transaction Title Suggestions.
+            group.addTask { await self.calModel.fetchSuggestedTitles() }
             /// Grab Categories.
             group.addTask { await self.catModel.fetchCategories() }
             /// Grab Category Groups.
@@ -666,11 +675,8 @@ class FuncModel {
             let mainObjects: [PersistentPaymentMethod] = objectIDs.compactMap {
                 mainContext.object(with: $0) as? PersistentPaymentMethod
             }
-                                                                    
-            let sortedMeths = mainObjects
-                .sorted { ($0.title ?? "").lowercased() < ($1.title ?? "").lowercased() }
-
-            for meth in sortedMeths {
+            
+            mainObjects.forEach { meth in
                 if setDefaultPayMethod && meth.isViewingDefault {
                     calModel.sPayMethod = CBPaymentMethod(entity: meth)
                 }
@@ -679,6 +685,30 @@ class FuncModel {
                     payModel.paymentMethods.append(CBPaymentMethod(entity: meth))
                 }
             }
+            
+            /// Sort the payment methods in place.
+            payModel.paymentMethods.sort(by: Helpers.paymentMethodSorter())
+            
+            /// Prepopulate the payment method sections to avoid flash on first viewing.
+            payModel.sections = payModel.getApplicablePayMethods(
+                type: .all,
+                calModel: calModel,
+                plaidModel: plaidModel,
+                searchText: .constant("")
+            )
+                                                                    
+//            let sortedMeths = mainObjects
+//                .sorted { ($0.title ?? "").lowercased() < ($1.title ?? "").lowercased() }
+//
+//            for meth in sortedMeths {
+//                if setDefaultPayMethod && meth.isViewingDefault {
+//                    calModel.sPayMethod = CBPaymentMethod(entity: meth)
+//                }
+//                
+//                if let id = meth.id, !payModel.paymentMethods.contains(where: { $0.id == id }) {
+//                    payModel.paymentMethods.append(CBPaymentMethod(entity: meth))
+//                }
+//            }
         }
     }
         
@@ -704,11 +734,14 @@ class FuncModel {
                 mainContext.object(with: $0) as? PersistentCategory
             }
             
-            mainObjects.forEach { cat in
+            mainObjects
+                .forEach { cat in
                 if let id = cat.id, !catModel.categories.contains(where: { $0.id == id }) {
                     catModel.categories.append(CBCategory(entity: cat))
                 }
             }
+            
+            catModel.categories.sort(by: Helpers.categorySorter())
         }
     }
     
@@ -873,9 +906,12 @@ class FuncModel {
                     || model.openRecords != nil
                     || model.plaidBanks != nil
                     || model.plaidAccounts != nil
-                    || model.plaidTransactions != nil
+                    || model.plaidTransactionsWithCount != nil
                     || model.plaidBalances != nil
+                    || model.logos != nil
                     {
+                        
+                        #warning("This all needs to be fixed in regards to coredata. Right now, each update of the cache or delete ferom the cache uses its own context, and saves after each operation. If I used a single background context, when deleting a payment method via the long poll, the save operation will fail. It is recommended to perform all operations, and then call save at the end. But this will require some work to implement. 11/6/25")
                         //try? await Task.sleep(nanoseconds: UInt64(5 * Double(NSEC_PER_SEC)))
                         
                         if let transactions = model.transactions { self.handleLongPollTransactions(transactions) }
@@ -904,8 +940,10 @@ class FuncModel {
                         
                         if let plaidBanks = model.plaidBanks { await self.handleLongPollPlaidBanks(plaidBanks) }
                         if let plaidAccounts = model.plaidAccounts { await self.handleLongPollPlaidAccounts(plaidAccounts) }
-                        if let plaidTransactions = model.plaidTransactions { self.handleLongPollPlaidTransactions(plaidTransactions) }
+                        if let plaidTransactionsWithCount = model.plaidTransactionsWithCount { self.handleLongPollPlaidTransactions(plaidTransactionsWithCount) }
                         if let plaidBalances = model.plaidBalances { self.handleLongPollPlaidBalances(plaidBalances) }
+                        
+                        if let logos = model.logos { self.handleLongPollLogos(logos) }
                     }
                 } else {
                     //print("GOT UNNNNSUccessful long poll model with return time \(String(describing: model?.returnTime))")
@@ -960,28 +998,30 @@ class FuncModel {
             let montObj = calModel.months.filter{ $0.num == month }.first!
             let _ = calModel.calculateTotal(for: montObj)
         }
+        
+        DataChangeTriggers.shared.viewDidChange(.calendar)
     }
     
     
-    @MainActor private func handleLongPollFitTransactions(_ transactions: Array<CBFitTransaction>) {
-        print("-- \(#function)")
-        for trans in transactions {
-            if calModel.doesExist(trans) {
-                if trans.isAcknowledged {
-                    calModel.delete(trans)
-                    continue
-                } else {
-                    if let index = calModel.getIndex(for: trans) {
-                        calModel.fitTrans[index].setFromAnotherInstance(trans: trans)
-                    }
-                }
-            } else {
-                if !trans.isAcknowledged {
-                    calModel.upsert(trans)
-                }
-            }
-        }
-    }
+//    @MainActor private func handleLongPollFitTransactions(_ transactions: Array<CBFitTransaction>) {
+//        print("-- \(#function)")
+//        for trans in transactions {
+//            if calModel.doesExist(trans) {
+//                if trans.isAcknowledged {
+//                    calModel.delete(trans)
+//                    continue
+//                } else {
+//                    if let index = calModel.getIndex(for: trans) {
+//                        calModel.fitTrans[index].setFromAnotherInstance(trans: trans)
+//                    }
+//                }
+//            } else {
+//                if !trans.isAcknowledged {
+//                    calModel.upsert(trans)
+//                }
+//            }
+//        }
+//    }
     
     
     @MainActor private func handleLongPollStartingAmounts(_ startingAmounts: Array<CBStartingAmount>) {
@@ -1031,7 +1071,7 @@ class FuncModel {
         for transaction in repeatingTransactions {
             if repModel.doesExist(transaction) {
                 if !transaction.active {
-                    await repModel.delete(transaction, andSubmit: false)
+                    repModel.delete(transaction, andSubmit: false)
                 } else {
                     if let index = repModel.getIndex(for: transaction) {
                         repModel.repTransactions[index].setFromAnotherInstance(repTransaction: transaction)
@@ -1040,7 +1080,7 @@ class FuncModel {
                 }
             } else {
                 if transaction.active {
-                    repModel.upsert(transaction)
+                    withAnimation { repModel.upsert(transaction) }
                 }
             }
         }
@@ -1049,10 +1089,16 @@ class FuncModel {
     
     @MainActor private func handleLongPollPaymentMethods(_ payMethods: Array<CBPaymentMethod>) async {
         print("-- \(#function)")
+        
+        //let ogListOrders = payModel.paymentMethods.map { $0.listOrder ?? 0 }.sorted()
+        //var newListOrders: [Int] = []
+        
+        let context = DataManager.shared.createContext()
         for payMethod in payMethods {
+            //newListOrders.append(payMethod.listOrder ?? 0)
             if payModel.doesExist(payMethod) {
                 if !payMethod.active {
-                    await payModel.delete(payMethod, andSubmit: false, calModel: calModel, eventModel: eventModel)
+                    payModel.delete(payMethod, andSubmit: false, calModel: calModel)
                     continue
                 } else {
                     if let index = payModel.getIndex(for: payMethod) {
@@ -1062,13 +1108,12 @@ class FuncModel {
                 }
             } else {
                 if payMethod.active {
-                    payModel.upsert(payMethod)
+                    withAnimation { payModel.upsert(payMethod) }
                 }
             }
-            if payMethod.isAllowedToBeViewedByThisUser {
+            if payMethod.isPermitted {
                 let _ = await payModel.updateCache(for: payMethod)
             } else {
-                let context = DataManager.shared.createContext()
                 DataManager.shared.delete(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)))
             }
             //print("SaveResult: \(saveResult)")
@@ -1091,6 +1136,10 @@ class FuncModel {
         
         self.prepareStartingAmounts(for: calModel.sMonth)
         
+//        if newListOrders != ogListOrders {
+//            DataChangeTriggers.shared.viewDidChange(.paymentMethodListOrders)
+//        }
+        
     }
     
     
@@ -1099,7 +1148,7 @@ class FuncModel {
         for category in categories {
             if catModel.doesExist(category) {
                 if !category.active {
-                    await catModel.delete(category, andSubmit: false, calModel: calModel, keyModel: keyModel, eventModel: eventModel)
+                    catModel.delete(category, andSubmit: false, calModel: calModel, keyModel: keyModel)
                     continue
                 } else {
                     if let index = catModel.getIndex(for: category) {
@@ -1109,7 +1158,7 @@ class FuncModel {
                 }
             } else {
                 if category.active {
-                    catModel.upsert(category)
+                    withAnimation { catModel.upsert(category) }
                 }
             }
             let _ = await catModel.updateCache(for: category)
@@ -1119,14 +1168,10 @@ class FuncModel {
             repModel.repTransactions.filter { $0.category?.id == category.id }.forEach { $0.category = category }
         }
         
-        let categorySortMode = CategorySortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
+        //let categorySortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
                            
         withAnimation {
-            catModel.categories.sort {
-                categorySortMode == .title
-                ? ($0.title).lowercased() < ($1.title).lowercased()
-                : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
-            }
+            catModel.categories.sort(by: Helpers.categorySorter())
         }
     }
     
@@ -1136,7 +1181,7 @@ class FuncModel {
         for group in groups {
             if catModel.doesExist(group) {
                 if !group.active {
-                    await catModel.delete(group, andSubmit: false)
+                    catModel.delete(group, andSubmit: false)
                     continue
                 } else {
                     if let index = catModel.getIndex(for: group) {
@@ -1146,7 +1191,7 @@ class FuncModel {
                 }
             } else {
                 if group.active {
-                    catModel.upsert(group)
+                    withAnimation { catModel.upsert(group) }
                 }
             }
         }
@@ -1158,7 +1203,7 @@ class FuncModel {
         for keyword in keywords {
             if keyModel.doesExist(keyword) {
                 if !keyword.active {
-                    await keyModel.delete(keyword, andSubmit: false)
+                    keyModel.delete(keyword, andSubmit: false)
                     continue
                 } else {
                     if let index = keyModel.getIndex(for: keyword){
@@ -1168,7 +1213,7 @@ class FuncModel {
                 }
             } else {
                 if keyword.active {
-                    keyModel.upsert(keyword)
+                    withAnimation { keyModel.upsert(keyword) }
                 }
             }
             let _ = await keyModel.updateCache(for: keyword)
@@ -1195,6 +1240,37 @@ class FuncModel {
                 }
             }
         }
+    }
+    
+    
+    @MainActor private func handleLongPollLogos(_ logos: Array<CBLogo>) {
+        print("-- \(#function)")
+        let context = DataManager.shared.createContext()
+        
+        for logo in logos {
+            guard
+                let baseString = logo.baseString,
+                let logoData = Data(base64Encoded: baseString),
+                let perLogo = DataManager.shared.getOne(context: context, type: PersistentLogo.self, predicate: .byId(.string(logo.id)), createIfNotFound: false)
+            else {
+                continue
+            }
+                        
+            perLogo.photoData = logoData
+            perLogo.serverUpdatedDate = logo.updatedDate
+            perLogo.localUpdatedDate = logo.updatedDate
+            
+            if logo.relatedRecordType.enumID == .paymentMethod {
+                let meth = payModel.getPaymentMethod(by: logo.relatedID)
+                meth.logo = logoData
+                
+                calModel.justTransactions
+                    .filter { $0.payMethod?.id == meth.id }
+                    .forEach { $0.payMethod?.logo = meth.logo }
+            }        
+        }
+        
+        let _ = DataManager.shared.save(context: context)
     }
     
     
@@ -1616,26 +1692,29 @@ class FuncModel {
     }
     
         
-    @MainActor private func handleLongPollPlaidTransactions(_ transactions: Array<CBPlaidTransaction>) {
+    @MainActor private func handleLongPollPlaidTransactions(_ transactionsWithCount: CBPlaidTransactionListWithCount) {
         print("-- \(#function)")
-        for trans in transactions {
-            if plaidModel.doesExist(trans) {
-                if !trans.active {
-                    plaidModel.delete(trans)
-                    continue
-                } else {
-                    if trans.isAcknowledged {
+        plaidModel.totalTransCount = transactionsWithCount.count
+        if let safeTrans = transactionsWithCount.trans {
+            for trans in safeTrans {
+                if plaidModel.doesExist(trans) {
+                    if !trans.active {
                         plaidModel.delete(trans)
                         continue
                     } else {
-                        if let index = plaidModel.getIndex(for: trans) {
-                            plaidModel.trans[index].setFromAnotherInstance(trans: trans)
+                        if trans.isAcknowledged {
+                            plaidModel.delete(trans)
+                            continue
+                        } else {
+                            if let index = plaidModel.getIndex(for: trans) {
+                                plaidModel.trans[index].setFromAnotherInstance(trans: trans)
+                            }
                         }
                     }
-                }
-            } else {
-                if !trans.isAcknowledged {
-                    plaidModel.upsert(trans)
+                } else {
+                    if !trans.isAcknowledged {
+                        plaidModel.upsert(trans)
+                    }
                 }
             }
         }
@@ -1666,7 +1745,7 @@ class FuncModel {
     // MARK: - Misc
     @MainActor func prepareStartingAmounts(for month: CBMonth) {
         print("-- \(#function)")
-        for payMethod in payModel.paymentMethods {
+        for payMethod in payModel.paymentMethods.filter({ !$0.isHidden || !$0.isPrivate }) {
             //print("preparing starting amounts for \(payMethod.title) - \(month.actualNum) - \(month.year)")
             //calModel.prepareStartingAmount(for: payMethod)
             
@@ -1699,7 +1778,7 @@ class FuncModel {
     @MainActor func getPlaidDebitSums() -> Double {
         let debitIDs = payModel.paymentMethods
             .filter { $0.isDebit }
-            .filter { $0.isAllowedToBeViewedByThisUser }
+            .filter { $0.isPermitted }
             .filter { !$0.isHidden }
             .map { $0.id }
         
@@ -1713,7 +1792,7 @@ class FuncModel {
     @MainActor func getPlaidCreditSums() -> Double {
         let creditIDs = payModel.paymentMethods
             .filter { $0.isCredit }
-            .filter { $0.isAllowedToBeViewedByThisUser }
+            .filter { $0.isPermitted }
             .filter { !$0.isHidden }
             .map { $0.id }
         
@@ -1729,7 +1808,7 @@ class FuncModel {
         .filter({ $0.payMethodID == calModel.sPayMethod?.id })
         .filter ({ bal in
             if let meth = payModel.paymentMethods.filter({ $0.id == bal.payMethodID }).first {
-                return meth.isAllowedToBeViewedByThisUser
+                return meth.isPermitted
             } else {
                 return false
             }
@@ -1742,6 +1821,139 @@ class FuncModel {
             }
         })
         .first
+    }
+    
+    
+//    @MainActor
+//    func updateLogo(_ logoModel: UpdateLogoModel) async {
+//        print("-- \(#function)")
+//        //LoadingManager.shared.startDelayedSpinner()
+//        LogManager.log()
+//      
+//        /// Networking
+//        let model = RequestModel(requestType: "update_logo", model: logoModel)
+//        
+//        typealias ResultResponse = Result<ResultCompleteModel?, AppError>
+//        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+//                    
+//        switch await result {
+//        case .success(let model):
+//            LogManager.networkingSuccessful()
+//
+//        case .failure(let error):
+//            LogManager.error(error.localizedDescription)
+//            AppState.shared.showAlert("There was a problem trying to fetch analytics.")
+//            //showSaveAlert = true
+//            #warning("Undo behavior")
+//        }
+//        //LoadingManager.shared.stopDelayedSpinner()
+//    }
+    
+    
+    @MainActor
+    func fetchLogos(file: String = #file, line: Int = #line, function: String = #function) async {
+        NSLog("\(file):\(line) : \(function)")
+        LogManager.log()
+        let start = CFAbsoluteTimeGetCurrent()
+        
+        var logos: Array<CBLogo> = []
+        let context = DataManager.shared.createContext()
+        if let perLogos = DataManager.shared.getMany(context: context, type: PersistentLogo.self) {
+            for each in perLogos {
+                if each.id == nil || each.relatedID == nil {
+                    continue
+                }
+                logos.append(CBLogo(entity: each))
+                
+            }
+        }
+        
+        let submitModel = LogoMaybeShouldUpdateModel(logos: logos)
+        
+        
+        /// Do networking.
+        let model = RequestModel(requestType: "fetch_logos", model: submitModel)
+        typealias ResultResponse = Result<Array<CBLogo>?, AppError>
+        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+        
+        switch await result {
+        case .success(let model):
+            
+            /// For testing bad network connection.
+            //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
+
+            LogManager.networkingSuccessful()
+            if let model {
+                if !model.isEmpty {
+                    let context = DataManager.shared.createContext()
+                    for logo in model {
+                        print("Logo \(logo.id) changed")
+                        /// Make sure the logo is legit data
+                        guard
+                            let baseString = logo.baseString,
+                            let logoData = Data(base64Encoded: baseString)
+                        else {
+                            continue
+                        }
+                        
+                        /// Find the persistent logo, create if not found
+                        let pred1 = NSPredicate(format: "relatedID == %@", logo.relatedID)
+                        let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: logo.relatedRecordType.id))
+                        let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
+                        
+                        if let perLogo = DataManager.shared.getOne(
+                            context: context,
+                            type: PersistentLogo.self,
+                            predicate: .compound(comp),
+                            createIfNotFound: true
+                        ) {
+                            /// Update the persistent record
+                            perLogo.photoData = logoData
+                            perLogo.id = logo.id
+                            perLogo.relatedID = logo.relatedID
+                            perLogo.relatedTypeID = Int64(logo.relatedRecordType.id)
+                            //perLogo.serverEnteredDate = logo.enteredDate
+                            perLogo.localUpdatedDate = logo.updatedDate
+                            perLogo.serverUpdatedDate = logo.updatedDate
+                            
+                            /// If the server logo is for a payment method
+                            if logo.relatedRecordType.enumID == .paymentMethod {
+                                /// Find the method and update it.
+                                let meth = payModel.getPaymentMethod(by: logo.relatedID)
+                                meth.logo = logoData
+                                
+                                /// Find all the transactions using the method and update their logo
+                                calModel.justTransactions
+                                    .filter { $0.payMethod?.id == meth.id }
+                                    .forEach { $0.payMethod?.logo = logoData }
+                                
+                                repModel.repTransactions
+                                    .filter { $0.payMethod?.id == meth.id || $0.payMethodPayTo?.id == meth.id}
+                                    .forEach { $0.payMethod?.logo = logoData }
+                            }
+                        }
+                    }
+                    
+                    let _ = DataManager.shared.save(context: context)
+                    
+                } else {
+                    print("looks like no logos have changed")
+                }
+            }
+            
+            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
+            print("⏰It took \(currentElapsed) seconds to fetch payment method logos")
+            
+        case .failure (let error):
+            switch error {
+            case .taskCancelled:
+                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
+                print("repModel fetchFrom Server Task Cancelled")
+            default:
+                LogManager.error(error.localizedDescription)
+                AppState.shared.showAlert("There was a problem trying to fetch payment method logos.")
+            }
+        }
     }
     
         
@@ -1861,6 +2073,8 @@ class FuncModel {
             let _ = DataManager.shared.deleteAll(context: context, for: PersistentPaymentMethod.self)
             let _ = DataManager.shared.deleteAll(context: context, for: PersistentCategory.self)
             let _ = DataManager.shared.deleteAll(context: context, for: PersistentKeyword.self)
+            let _ = DataManager.shared.deleteAll(context: context, for: PersistentToast.self)
+            let _ = DataManager.shared.deleteAll(context: context, for: PersistentLogo.self)
             
             // Save once after all deletions
             let _ = DataManager.shared.save(context: context)

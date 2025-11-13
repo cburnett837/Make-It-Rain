@@ -9,7 +9,7 @@ import SwiftUI
 
 #if os(iOS)
 struct CalendarNavGridPhone: View {
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @Environment(\.colorScheme) var colorScheme
     @Environment(CalendarModel.self) var calModel
     @Environment(PayMethodModel.self) var payModel

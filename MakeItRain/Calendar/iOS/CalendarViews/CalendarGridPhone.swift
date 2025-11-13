@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-
+#if os(iOS)
 struct CalendarGridPhone: View {
     @Environment(CalendarModel.self) private var calModel
     @Environment(CalendarProps.self) private var calProps
@@ -26,6 +26,8 @@ struct CalendarGridPhone: View {
         }
     }
     
+    @State private var initialGeoHeight: CGFloat = 0
+    
     var body: some View {
         @Bindable var calModel = calModel
         @Bindable var calProps = calProps
@@ -40,7 +42,8 @@ struct CalendarGridPhone: View {
                         ForEach($calModel.sMonth.days) { $day in
                             DayViewPhone(day: $day)
                                 .overlay(dividingLine, alignment: .bottom)
-                                .frame(minHeight: geo.size.height / divideBy, alignment: .center)
+                                /// Use the initial geo height so the day view doesn't shrink too much when opening the bottom panel.
+                                .frame(minHeight: initialGeoHeight / divideBy, alignment: .center)
                                 .id(day.id)
                         }
                     }
@@ -53,21 +56,10 @@ struct CalendarGridPhone: View {
                 .onAppear { scrollToTodayOnAppearOfScrollView(scrollProxy) }
                 /// Focus on the overviewDay when selecting, or changing.
                 .onChange(of: calProps.overviewDay) { scrollToOverViewDay(scrollProxy, $0, $1) }
-                
-                .onChange(of: calProps.bottomPanelContent) { oldValue, newValue in
-                    if oldValue == .overviewDay && newValue != nil {
-                        calProps.overviewDay = nil
-                        let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
-                        calProps.selectedDay = targetDay
-                    }
-                    
-                    if newValue == nil {
-                        if calModel.isInMultiSelectMode {
-                            calProps.bottomPanelContent = .multiSelectOptions
-                        }
-                    }
-                }
+                .onChange(of: calProps.bottomPanelContent) { handleBottomPanelContentChange($0, $1) }
             }
+            /// Set the initial geo height so the day views don't shrink too much when opening the bottom panel. (Since the geometry reader will get small and cause the minHeight of the day view to become less)
+            .task { initialGeoHeight = geo.size.height }
         }
     }
     
@@ -79,38 +71,71 @@ struct CalendarGridPhone: View {
     }
     
     
+    func handleBottomPanelContentChange(_ oldValue: BottomPanelContent?, _ newValue: BottomPanelContent?) {
+        if oldValue == .overviewDay && newValue != nil {
+            calProps.overviewDay = nil
+            let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
+            calProps.selectedDay = targetDay
+        }
+        
+        if newValue == nil {
+            if calModel.isInMultiSelectMode {
+                calProps.bottomPanelContent = .multiSelectOptions
+            }
+        }
+    }
+    
+    
     func scrollToTodayOnAppearOfScrollView(_ proxy: ScrollViewProxy) {
         if enumID.monthNum == AppState.shared.todayMonth {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                withAnimation {
-                    proxy.scrollTo(AppState.shared.todayDay, anchor: .top)
+//                withAnimation {
+//                    proxy.scrollTo(AppState.shared.todayDay, anchor: .top)
+//                }
+                
+                if let today = calModel.sMonth.days.first(where: { $0.id == AppState.shared.todayDay }) {
+                    withAnimation {
+                        proxy.scrollTo(today.id, anchor: .top)
+                    }
+                } else {
+                    print("⚠️ todayDay not found in current scrollable days.")
                 }
             }
         }
     }
     
     
+//    func scrollToOverViewDayOLD(_ proxy: ScrollViewProxy, _ oldValue: CBDay?, _ newValue: CBDay?) {
+//        print("-- \(#function)")
+//        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+//            if let day = newValue {
+//                print("\(#function) -- new overView day is set")
+//                /// Block this from running since .onChange(of: calculatedScrollContentMargins) will also run when opening the day for the first time.
+//                if oldValue != nil {
+//                    print("\(#function) -- adjusting day to \(day.id)")
+//                    withAnimation { proxy.scrollTo(day.id, anchor: .bottom) }
+//                } else {
+//                    print("\(#function) -- ignoring because oldValue is nil")
+//                }
+//                
+//            } else if let oldViewDay = oldValue {
+//                print("\(#function) -- old overView say is set - adjusting day to \(oldViewDay.id)")
+//                withAnimation { proxy.scrollTo(oldViewDay.id, anchor: .bottom) }
+//            } else {
+//                print("\(#function) -- Can't find overview day")
+//            }
+//        }
+//    }
+    
+    
     func scrollToOverViewDay(_ proxy: ScrollViewProxy, _ oldValue: CBDay?, _ newValue: CBDay?) {
-        print("-- \(#function)")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
             if let day = newValue {
-                print("\(#function) -- new overView day is set")
-                /// Block this from running since .onChange(of: calculatedScrollContentMargins) will also run when opening the day for the first time.
-                if oldValue != nil {
-                    print("\(#function) -- adjusting day to \(day.id)")
-                    withAnimation {
-                        proxy.scrollTo(day.id, anchor: .bottom)
-                    }
-                } else {
-                    print("\(#function) -- ignoring because oldValue is nil")
+                withAnimation(.bouncy) {
+                    proxy.scrollTo(day.id, anchor: .bottom)
                 }
-                
-            } else if let oldViewDay = oldValue {
-                print("\(#function) -- old overView say is set - adjusting day to \(oldViewDay.id)")
-                withAnimation { proxy.scrollTo(oldViewDay.id, anchor: .bottom) }
-            } else {
-                print("\(#function) -- Can't find overview day")
             }
         }
     }
 }
+#endif

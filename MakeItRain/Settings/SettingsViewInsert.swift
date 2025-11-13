@@ -14,11 +14,12 @@ struct SettingsViewInsert: View {
     @AppStorage("showPaymentMethodIndicator") var showPaymentMethodIndicator = false
     @Local(\.incomeColor) var incomeColor
     @Local(\.useWholeNumbers) var useWholeNumbers
+    @Local(\.useBusinessLogos) var useBusinessLogos
     @AppStorage("tightenUpEodTotals") var tightenUpEodTotals = true
     @AppStorage("phoneLineItemDisplayItem") var phoneLineItemDisplayItem: PhoneLineItemDisplayItem = .both
     @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
     @AppStorage("creditEodView") var creditEodView: CreditEodView = .remainingBalance
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     
     @Local(\.threshold) var threshold
     @State private var thresholdString: String = "500.00"
@@ -26,16 +27,12 @@ struct SettingsViewInsert: View {
     //@AppStorage("macCategoryDisplayMode") var macCategoryDisplayMode: MacCategoryDisplayMode = .emoji
     
     @AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode: UpdatedByOtherUserDisplayMode = .full
-    @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
+    @AppStorage("categorySortMode") var categorySortMode: SortMode = .title
     @AppStorage("transactionSortMode") var transactionSortMode: TransactionSortMode = .title
     
     @AppStorage("showHashTagsOnLineItems") var showHashTagsOnLineItems: Bool = true
     @Environment(CategoryModel.self) var catModel
     @Environment(CalendarModel.self) var calModel
-    
-    @State private var showDemoSheet = false
-    @State private var demoButtonText = "Show Sheet Demo"
-
     
     @State private var demoDay = CBDay(date: Date())
     
@@ -57,6 +54,7 @@ struct SettingsViewInsert: View {
                 useWholeNumbersToggle
                 tightenUpEodTotalsToggle
                 showShowHashTagToggle
+                useBusinessLogosToggle
                 incomeColorPicker
             }
             
@@ -88,17 +86,7 @@ struct SettingsViewInsert: View {
             
             updatedByOtherPerson
                     
-            sortingOptions
-            
-            Button(demoButtonText) {
-                showDemoSheet = true
-            }
-            .sheet(isPresented: $showDemoSheet, onDismiss: {
-                demoButtonText = "Dismissed"
-            }) {
-                Text("hey")
-            }
-            
+            sortingOptions            
             
             Section {
                 VStack(alignment: .leading) {
@@ -109,7 +97,8 @@ struct SettingsViewInsert: View {
                         })
                         .uiClearButtonMode(.whileEditing)
                         .uiTag(1)
-                        .uiKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
+                        //.uiKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
+                        .uiKeyboardType(.custom(.numpad))
                         /// Format the amount field
 
                         #else
@@ -168,7 +157,7 @@ struct SettingsViewInsert: View {
                 }
             }
         }
-        .tint(Color.fromName(colorTheme))
+        .tint(Color.theme)
         
         .task {
             let trans1 = CBTransaction()
@@ -247,6 +236,18 @@ struct SettingsViewInsert: View {
         }
     }
     
+    var useBusinessLogosToggle: some View {
+        Toggle(isOn: $useBusinessLogos) {
+            VStack(alignment: .leading) {
+                Text("Use Business Logos")
+                Text("Choose to use logos from banks / businesses or colored dots.")
+                    .foregroundStyle(.gray)
+                    .font(.footnote)
+                
+            }
+        }
+    }
+    
     
     // MARK: - Line Item Indicator Picker
     var lineItemIndicatorPicker: some View {
@@ -279,7 +280,7 @@ struct SettingsViewInsert: View {
                 }
                 
             } header: {
-                Text("Category / Payment Method Indicator")
+                Text("Category / Account Indicator")
             } footer: {
                 VStack(alignment: .leading) {
                     lineItemIndicatorPickerAddendum
@@ -345,7 +346,7 @@ struct SettingsViewInsert: View {
                 }
             }
         } header: {
-            Text("Edits from others")
+            Text("Edits From Others")
         } footer: {
             Text("Choose how to indicate that transactions have been edited by someone else.")
         }
@@ -378,7 +379,7 @@ struct SettingsViewInsert: View {
         } label: {
             HStack {
                 Text("Income color")
-                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+                    .schemeBasedForegroundStyle()
                 Spacer()
                 HStack(spacing: 4) {
                     Text(incomeColor.capitalized)
@@ -480,7 +481,7 @@ struct SettingsViewInsert: View {
             if transactionSortMode == .category {
                 SettingsMenuPickerContainer(title: "Sort categories by…", selectedTitle: categorySortMode.prettyValue) {
                     Picker("", selection: $categorySortMode) {
-                        ForEach(CategorySortMode.allCases, id: \.self) { opt in
+                        ForEach(SortMode.allCases, id: \.self) { opt in
                             Text(opt.prettyValue)
                                 .tag(opt)
                         }
@@ -512,7 +513,7 @@ struct SettingsViewInsert: View {
 #if os(iOS)
 struct DemoDay: View {
     @Environment(\.colorScheme) var colorScheme
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
     @Local(\.useWholeNumbers) var useWholeNumbers
     @AppStorage("tightenUpEodTotals") var tightenUpEodTotals = true

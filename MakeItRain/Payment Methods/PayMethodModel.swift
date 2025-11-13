@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 @MainActor
 @Observable
@@ -17,6 +18,9 @@ class PayMethodModel {
     var paymentMethods: Array<CBPaymentMethod> = []
     //var refreshTask: Task<Void, Error>?
     var fuckYouSwiftuiTableRefreshID: UUID = UUID()
+    
+    
+    var sections: Array<PaySection> = []
     
     func doesExist(_ payMethod: CBPaymentMethod) -> Bool {
         return !paymentMethods.filter { $0.id == payMethod.id }.isEmpty
@@ -37,29 +41,42 @@ class PayMethodModel {
     }
     
     func savePaymentMethod(id: String, calModel: CalendarModel) {
-        print("-- \(#function)")
         let payMethod = getPaymentMethod(by: id)
+        payMethod.viewingYear = calModel.sYear
+        
+        if payMethod.action == .delete {
+            payMethod.updatedBy = AppState.shared.user!
+            payMethod.updatedDate = Date()
+            delete(payMethod, andSubmit: true, calModel: calModel)
+            return
+        }
+        
         if payMethod.title.isEmpty {
-            if payMethod.action != .add && payMethod.title.isEmpty {
+            /// User blanked out the title of an existing payment method.
+            if payMethod.action == .edit {
                 payMethod.title = payMethod.deepCopy?.title ?? ""
                 AppState.shared.showAlert("Removing a title is not allowed. If you want to delete \(payMethod.title), please use the delete button instead.")
             } else {
-                paymentMethods.removeAll { $0.id == id }
+                /// Remove the dud that is in `.add` mode since it's being upserted into the list on creation.
+                withAnimation { paymentMethods.removeAll { $0.id == id } }
             }
             return
         }
                                                 
         if payMethod.hasChanges() {
-            print("Account has changes")
             payMethod.updatedBy = AppState.shared.user!
             payMethod.updatedDate = Date()
+            
+            if payMethod.action == .add {
+                payMethod.listOrder = paymentMethods.count + 1
+            }
             
             /// Update transactions.
             calModel.justTransactions
                 .filter { $0.payMethod?.id == payMethod.id }
                 .forEach { $0.payMethod?.setFromAnotherInstance(payMethod: payMethod) }
             
-            /// Update Starting amounts.
+            /// Update starting amounts.
             calModel.months
                 .flatMap { $0.startingAmounts }
                 .filter { $0.payMethod.id == payMethod.id }
@@ -71,6 +88,7 @@ class PayMethodModel {
             print("No Changes")
         }
     }
+    
     
     func updateCache(for payMethod: CBPaymentMethod) async -> Result<Bool, CoreDataError> {
         
@@ -88,12 +106,14 @@ class PayMethodModel {
         let loanDuration = Int64(payMethod.loanDuration ?? 0)
         let isHidden = payMethod.isHidden
         let isPrivate = payMethod.isPrivate
+        let logo = payMethod.logo
         //let action = "edit"
         //let isPending = false
         let enteredByID = Int64(payMethod.enteredBy.id)
         let updatedByID = Int64(payMethod.updatedBy.id)
         let enteredDate = payMethod.enteredDate
         let updatedDate = payMethod.updatedDate
+        let listOrder = Int64(payMethod.listOrder ?? 0)
         
         
         let context = DataManager.shared.createContext()
@@ -122,11 +142,30 @@ class PayMethodModel {
                 entity.isPrivate = isPrivate
                 entity.action = "edit"
                 entity.isPending = false
-                
+//                entity.logo?.photoData = logo
+//                entity.logo?.localUpdatedDate = Date()
                 entity.enteredByID = enteredByID
                 entity.updatedByID = updatedByID
                 entity.enteredDate = enteredDate
                 entity.updatedDate = updatedDate
+                
+                entity.listOrder = listOrder
+                
+                
+                let pred1 = NSPredicate(format: "relatedID == %@", id)
+                let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id))
+                let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
+                
+                if let perLogo = DataManager.shared.getOne(
+                    context: context,
+                    type: PersistentLogo.self,
+                    predicate: .compound(comp),
+                    createIfNotFound: true
+                ) {
+                    perLogo.photoData = logo
+                    perLogo.localUpdatedDate = Date()
+                }
+                
                 
                 return DataManager.shared.save(context: context)
             } else {
@@ -177,12 +216,14 @@ class PayMethodModel {
                         let loanDuration = Int64(payMethod.loanDuration ?? 0)
                         let isHidden = payMethod.isHidden
                         let isPrivate = payMethod.isPrivate
+                        //let logo = payMethod.logo
                         //let action = "edit"
                         //let isPending = false
                         let enteredByID = Int64(payMethod.enteredBy.id)
                         let updatedByID = Int64(payMethod.updatedBy.id)
                         let enteredDate = payMethod.enteredDate
                         let updatedDate = payMethod.updatedDate
+                        let listOrder = Int64(payMethod.listOrder ?? 0)
                         
                         
                         
@@ -227,11 +268,14 @@ class PayMethodModel {
                                 entity.isPrivate = isPrivate
                                 entity.action = "edit"
                                 entity.isPending = false
-                                
+                                //entity.logo?.photoData = logo
+//                                entity.logo?.localUpdatedDate = Date()
                                 entity.enteredByID = enteredByID
                                 entity.updatedByID = updatedByID
                                 entity.enteredDate = enteredDate
                                 entity.updatedDate = updatedDate
+                                
+                                entity.listOrder = listOrder
                                 
                                 let _ = DataManager.shared.save(context: context)
                             }
@@ -295,12 +339,15 @@ class PayMethodModel {
         let loanDuration = Int64(payMethod.loanDuration ?? 0)
         let isHidden = payMethod.isHidden
         let isPrivate = payMethod.isPrivate
+        let logo = payMethod.logo
         let action = payMethod.action
         //let isPending = false
         let enteredByID = Int64(payMethod.enteredBy.id)
         let updatedByID = Int64(payMethod.updatedBy.id)
         let enteredDate = payMethod.enteredDate
         let updatedDate = payMethod.updatedDate
+        
+        let listOrder = Int64(payMethod.listOrder ?? 0)
         
                 
         let context = DataManager.shared.createContext()
@@ -328,10 +375,31 @@ class PayMethodModel {
                 entity.isPrivate = isPrivate
                 entity.action = action.rawValue
                 entity.isPending = true
+                //entity.logo?.photoData = logo
+                //entity.logo?.localUpdatedDate = Date()
                 entity.enteredByID = enteredByID
                 entity.updatedByID = updatedByID
                 entity.enteredDate = enteredDate
                 entity.updatedDate = updatedDate
+                entity.listOrder = listOrder
+                
+                let pred1 = NSPredicate(format: "relatedID == %@", id)
+                let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id))
+                let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
+                
+                if let perLogo = DataManager.shared.getOne(
+                    context: context,
+                    type: PersistentLogo.self,
+                    predicate: .compound(comp),
+                    createIfNotFound: true
+                ) {
+                    perLogo.id = UUID().uuidString
+                    perLogo.relatedID = id
+                    perLogo.relatedTypeID = Int64(XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id)
+                    perLogo.photoData = logo
+                    perLogo.localUpdatedDate = Date()
+                }
+                
                 
                 let _ = DataManager.shared.save(context: context)
             }
@@ -340,7 +408,7 @@ class PayMethodModel {
         let model = RequestModel(requestType: payMethod.action.serverKey, model: payMethod)
             
         /// Used to test the snapshot data race
-        //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
+        //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
         
         typealias ResultResponse = Result<ReturnIdModel?, AppError>
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
@@ -350,6 +418,10 @@ class PayMethodModel {
             LogManager.networkingSuccessful()
                         
             let modelID = model?.id ?? String(0)
+            let updatedDate = model?.updatedDate ?? Date()
+            let action = payMethod.action
+            
+            //print("The server updated date is \(model?.updatedDate)")
             
             if payMethod.action != .delete {
                 await context.perform {
@@ -365,13 +437,33 @@ class PayMethodModel {
                             entity.action = "edit"
                         }
                         entity.isPending = false
+                        
+                        /// Update the logo with the updated date from the record.
+                        let pred1 = NSPredicate(format: "relatedID == %@", action == .add ? modelID : id)
+                        let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id))
+                        let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
+                        
+                        if let perLogo = DataManager.shared.getOne(
+                            context: context,
+                            type: PersistentLogo.self,
+                            predicate: .compound(comp),
+                            createIfNotFound: true
+                        ) {
+                            perLogo.relatedID = modelID
+                            perLogo.photoData = logo
+                            perLogo.localUpdatedDate = updatedDate
+                            perLogo.serverUpdatedDate = updatedDate
+                        }
+                        
+                        
+                        
                         let _ = DataManager.shared.save(context: context)
                     }
                 }
                 
                 /// Get the new ID from the server after adding a new activity.
-                if payMethod.action == .add {
-                    payMethod.id = model?.id ?? String(0)
+                if action == .add {
+                    payMethod.id = modelID
                     payMethod.uuid = nil
                     payMethod.action = .edit
                 }
@@ -414,15 +506,9 @@ class PayMethodModel {
     }
     
     
-    func delete(_ payMethod: CBPaymentMethod, andSubmit: Bool, calModel: CalendarModel, eventModel: EventModel) async {
-        print("-- \(#function)")
-        print(payMethod.id)
-        print(paymentMethods.map {$0.id})
-        
-        let context = DataManager.shared.createContext()
-        
+    func delete(_ payMethod: CBPaymentMethod, andSubmit: Bool, calModel: CalendarModel) {
         payMethod.action = .delete
-        paymentMethods.removeAll { $0.id == payMethod.id }
+        withAnimation { paymentMethods.removeAll { $0.id == payMethod.id } }
         
         calModel.months.forEach { month in
             month.days.forEach { day in
@@ -430,13 +516,12 @@ class PayMethodModel {
             }
         }
         
-        eventModel.events.forEach { event in
-            event.transactions.removeAll(where: { $0.payMethod?.id == payMethod.id })
-        }
-        
         if andSubmit {
-            let _ = await submit(payMethod)
+            Task { @MainActor in
+                let _ = await submit(payMethod)
+            }
         } else {
+            let context = DataManager.shared.createContext()
             DataManager.shared.delete(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)))
         }
     }
@@ -588,10 +673,8 @@ class PayMethodModel {
     @MainActor
     func fetchAnalytics(_ analModel: AnalysisRequestModel) async -> Array<CBPaymentMethod>? {
         print("-- \(#function)")
-        //LoadingManager.shared.startDelayedSpinner()
         LogManager.log()
       
-        /// Networking
         let model = RequestModel(requestType: "fetch_analytics_for_payment_method", model: analModel)
         
         typealias ResultResponse = Result<Array<CBPaymentMethod>?, AppError>
@@ -606,13 +689,8 @@ class PayMethodModel {
             LogManager.error(error.localizedDescription)
             AppState.shared.showAlert("There was a problem trying to fetch analytics.")
             return nil
-            //showSaveAlert = true
-            #warning("Undo behavior")
         }
-        //LoadingManager.shared.stopDelayedSpinner()
     }
-    
-    
     
     
     
@@ -638,6 +716,192 @@ class PayMethodModel {
             && !paymentMethods.filter({ !$0.isUnified }).isEmpty {
                 AppState.shared.methsExist = true
             }
+        }
+    }
+    
+    
+    @MainActor
+    func setListOrders(sections: Array<PaySection>, calModel: CalendarModel) async -> Array<ListOrderUpdate> {
+        var updates: Array<ListOrderUpdate> = []
+        var index = 0
+        
+        for section in sections {
+            for payMethod in section.payMethods {
+                print("New list order \(payMethod.title) - \(index)")
+                                
+                payMethod.listOrder = index
+                updates.append(ListOrderUpdate(id: payMethod.id, listorder: index))
+                index += 1
+                
+                calModel.months.forEach { month in
+                    month.days.forEach { day in
+                        day.transactions
+                            .filter { $0.payMethod?.id == payMethod.id }
+                            .forEach { $0.payMethod?.listOrder = payMethod.listOrder }
+                    }
+                }
+            }
+        }
+        
+        
+        await persistListOrders(updates: updates)
+        return updates
+    }
+    
+    
+    func persistListOrders(updates: [ListOrderUpdate]) async {
+        let context = DataManager.shared.createContext()
+        await context.perform {
+            for update in updates {
+                if let entity = DataManager.shared.getOne(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(update.id)), createIfNotFound: false) {
+                    entity.listOrder = Int64(update.listorder)
+                }
+            }
+
+            let _ = DataManager.shared.save(context: context)
+        }
+    }
+    
+    
+    func getApplicablePayMethods(type: ApplicablePaymentMethods, calModel: CalendarModel, plaidModel: PlaidModel, searchText: Binding<String>, includeHidden: Bool = false) -> Array<PaySection> {
+        switch type {
+        case .all:
+            return [
+                //PaySection(kind: .combined, payMethods: payModel.paymentMethods.filter { $0.accountType == .unifiedCredit || $0.accountType == .unifiedChecking }),
+                PaySection(
+                    kind: .debit,
+                    payMethods: self.paymentMethods
+                        .filter { $0.accountType == .checking || $0.accountType == .unifiedChecking }
+                        .filter { $0.isPermitted }
+                        .filter { includeHidden ? true : !$0.isHidden }
+                        .filter { searchText.wrappedValue.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText.wrappedValue) }
+                        .sorted(by: Helpers.paymentMethodSorter())
+                ),
+                PaySection(
+                    kind: .credit,
+                    payMethods: self.paymentMethods
+                        .filter { $0.accountType == .credit || $0.accountType == .loan || $0.accountType == .unifiedCredit }
+                        .filter { $0.isPermitted }
+                        .filter { includeHidden ? true : !$0.isHidden }
+                        .filter { searchText.wrappedValue.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText.wrappedValue) }
+                        .sorted(by: Helpers.paymentMethodSorter())
+                ),
+                PaySection(
+                    kind: .other,
+                    payMethods: self.paymentMethods
+                        .filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking, .loan].contains($0.accountType) }
+                        .filter { $0.isPermitted }
+                        .filter { includeHidden ? true : !$0.isHidden }
+                        .filter { searchText.wrappedValue.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText.wrappedValue) }
+                        .sorted(by: Helpers.paymentMethodSorter())
+                )
+            ]
+            
+        case .allExceptUnified:
+            return [
+                PaySection(
+                    kind: .debit,
+                    payMethods: self.paymentMethods
+                        .filter { $0.accountType == .checking }
+                        .filter { $0.isPermitted }
+                        .filter { includeHidden ? true : !$0.isHidden }
+                        .filter { searchText.wrappedValue.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText.wrappedValue) }
+                        .sorted(by: Helpers.paymentMethodSorter())
+                ),
+                PaySection(
+                    kind: .credit,
+                    payMethods: self.paymentMethods
+                        .filter { $0.accountType == .credit || $0.accountType == .loan }
+                        .filter { $0.isPermitted }
+                        .filter { includeHidden ? true : !$0.isHidden }
+                        .filter { searchText.wrappedValue.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText.wrappedValue) }
+                        .sorted(by: Helpers.paymentMethodSorter())
+                ),
+                PaySection(
+                    kind: .other,
+                    payMethods: self.paymentMethods
+                        .filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking, .loan].contains($0.accountType) }
+                        .filter { $0.isPermitted }
+                        .filter { includeHidden ? true : !$0.isHidden }
+                        .filter { searchText.wrappedValue.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText.wrappedValue) }
+                        .sorted(by: Helpers.paymentMethodSorter())
+                )
+            ]
+            
+        case .basedOnSelected:
+            if calModel.sPayMethod?.accountType == .unifiedChecking {
+                return [
+                    PaySection(
+                        kind: .debit,
+                        payMethods: self.paymentMethods
+                            .filter { $0.accountType == .checking }
+                            .filter { $0.isPermitted }
+                            .filter { includeHidden ? true : !$0.isHidden }
+                            .filter { searchText.wrappedValue.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText.wrappedValue) }
+                            .sorted(by: Helpers.paymentMethodSorter())
+                    )
+                ]
+                
+            } else if calModel.sPayMethod?.accountType == .unifiedCredit {
+                return [
+                    PaySection(
+                        kind: .credit,
+                        payMethods: self.paymentMethods
+                            .filter { $0.accountType == .credit || $0.accountType == .loan }
+                            .filter { $0.isPermitted }
+                            .filter { includeHidden ? true : !$0.isHidden }
+                            .filter { searchText.wrappedValue.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText.wrappedValue) }
+                            .sorted(by: Helpers.paymentMethodSorter())
+                    )
+                ]
+                
+            } else {
+                return [
+                    PaySection(
+                        kind: .other,
+                        payMethods: self.paymentMethods
+                            .filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking, .loan].contains($0.accountType) }
+                            .filter { $0.isPermitted }
+                            .filter { includeHidden ? true : !$0.isHidden }
+                            .filter { searchText.wrappedValue.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText.wrappedValue) }
+                            .sorted(by: Helpers.paymentMethodSorter())
+                    )
+                ]
+            }
+            
+        case .remainingAvailbleForPlaid:
+            let taken: Array<String> = plaidModel.banks.flatMap ({ $0.accounts.compactMap({ $0.paymentMethodID }) })
+            print(taken)
+            //.map({ $0.paymentMethodID != nil })
+            return [
+                PaySection(
+                    kind: .debit,
+                    payMethods: self.paymentMethods
+                        .filter { $0.accountType == .checking && !taken.contains($0.id) }
+                        .filter { $0.isPermitted }
+                        .filter { includeHidden ? true : !$0.isHidden }
+                        .filter { searchText.wrappedValue.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText.wrappedValue) }
+                        .sorted(by: Helpers.paymentMethodSorter())
+                ),
+                PaySection(
+                    kind: .credit,
+                    payMethods: self.paymentMethods
+                        .filter { ($0.accountType == .credit || $0.accountType == .loan) && !taken.contains($0.id) }
+                        .filter { $0.isPermitted }
+                        .filter { includeHidden ? true : !$0.isHidden }
+                        .filter { searchText.wrappedValue.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText.wrappedValue) }
+                        .sorted(by: Helpers.paymentMethodSorter())
+                ),
+                PaySection(
+                    kind: .other,
+                    payMethods: self.paymentMethods
+                        .filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking, .loan].contains($0.accountType) && !taken.contains($0.id) }
+                        .filter { $0.isPermitted }
+                        .filter { includeHidden ? true : !$0.isHidden }
+                        .filter { searchText.wrappedValue.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText.wrappedValue) }
+                        .sorted(by: Helpers.paymentMethodSorter())
+                )
+            ]
         }
     }
 }

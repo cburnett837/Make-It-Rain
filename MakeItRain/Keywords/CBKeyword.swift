@@ -46,7 +46,7 @@ class CBKeyword: Codable, Identifiable {
         self.uuid = uuid
         self.keyword = ""
         self.triggerType = .contains
-        self.category = CBCategory()
+        self.category = nil
         self.active = true
         self.action = .add
         self.enteredBy = AppState.shared.user!

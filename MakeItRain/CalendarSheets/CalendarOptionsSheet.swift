@@ -278,7 +278,7 @@ struct CalendarOptionsSheet: View {
             dismiss()
         } label: {
             Image(systemName: "xmark")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+                .schemeBasedForegroundStyle()
         }
     }
 }

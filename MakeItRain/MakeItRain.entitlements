@@ -9,6 +9,7 @@
 	<key>com.apple.developer.associated-domains</key>
 	<array>
 		<string>applinks:codyburnett.com</string>
+		<string>makeitrain</string>
 	</array>
 	<key>com.apple.developer.carplay-messaging</key>
 	<true/>

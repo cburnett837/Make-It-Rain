@@ -58,11 +58,14 @@ struct Helpers {
     static func formatCurrency(focusValue: Int, oldFocus: Int?, newFocus: Int?, amountString: String?, amount: Double?) -> String? {
         let useWholeNumbers = LocalStorage.shared.useWholeNumbers
         
+        //let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
+        
         if newFocus == focusValue {
             if amount == 0.0 {
                 return ""
             } else {
-                return amountString
+                //return amountString
+                return amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
             }
         } else {
             if oldFocus == focusValue && !(amountString ?? "").isEmpty {
@@ -72,7 +75,8 @@ struct Helpers {
                     return amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
                 }
             } else {
-                return amountString
+                //return amountString
+                return amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
             }
         }
     }
@@ -136,7 +140,7 @@ struct Helpers {
             
             fileURL = path.appendingPathComponent("\(fileName).csv")
             
-            // append string data to file
+            /// append string data to file
             try stringData.write(to: fileURL, atomically: true , encoding: .utf8)
             
         } catch {
@@ -156,6 +160,65 @@ struct Helpers {
         return ((end - start) / start) * 100
     }
     
+    
+    static func categorySorter() -> (CBCategory, CBCategory) -> Bool {
+        let sortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
+        return {
+            switch sortMode {
+            case .title:
+                return $0.title.lowercased() < $1.title.lowercased()
+            case .listOrder:
+                return $0.listOrder ?? 0 < $1.listOrder ?? 0
+            }
+        }
+    }
+    
+    static func budgetSorter() -> (CBBudget, CBBudget) -> Bool {
+        let sortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
+        return {
+            switch sortMode {
+            case .title:
+                return ($0.category?.title ?? "").lowercased() < ($1.category?.title ?? "").lowercased()
+            case .listOrder:
+                return $0.category?.listOrder ?? 0 < $1.category?.listOrder ?? 0
+            }
+        }
+    }
+    
+    static func paymentMethodSorter() -> (CBPaymentMethod, CBPaymentMethod) -> Bool {
+        let sortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "paymentMethodSortMode") ?? "")
+        return {
+            switch sortMode {
+            case .title:
+                return $0.title.lowercased() < $1.title.lowercased()
+            case .listOrder:
+                return $0.listOrder ?? 0 < $1.listOrder ?? 0
+            }
+        }
+    }
+    
+    static func transactionSorter() -> (CBTransaction, CBTransaction) -> Bool {
+        let sortMode = TransactionSortMode.fromString(UserDefaults.standard.string(forKey: "transactionSortMode") ?? "")
+        let categorySortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
+        
+        return {
+            if sortMode == .title {
+                return $0.title < $1.title
+                
+            } else if sortMode == .enteredDate {
+                return $0.enteredDate < $1.enteredDate
+                
+            } else {                
+                switch categorySortMode {
+                case .title:
+                    return ($0.category?.title ?? "").lowercased() < ($1.category?.title ?? "").lowercased()
+                case .listOrder:
+                    return $0.category?.listOrder ?? 0 < $1.category?.listOrder ?? 0
+                }
+            }
+        }
+        
+    }
 }
 
 func ??<T>(lhs: Binding<Optional<T>>, rhs: T) -> Binding<T> {

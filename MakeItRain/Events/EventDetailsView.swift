@@ -9,7 +9,7 @@ import SwiftUI
 
 struct EventDetailsView: View {
     @Local(\.useWholeNumbers) var useWholeNumbers
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
        
     @Environment(\.dismiss) var dismiss
     @Environment(EventModel.self) private var eventModel
@@ -72,7 +72,8 @@ struct EventDetailsView: View {
                         Helpers.plusMinus($event.amountString ?? "")
                     })
             })
-            .uiKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
+            //.uiKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
+            .uiKeyboardType(.custom(.numpad))
             .uiTag(1)
             .uiTextAlignment(.right)
             .uiClearButtonMode(.whileEditing)

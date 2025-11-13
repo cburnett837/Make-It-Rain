@@ -15,7 +15,7 @@ struct EventView: View {
     }
     
     @Local(\.useWholeNumbers) var useWholeNumbers
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
 
     @Environment(\.scenePhase) var scenePhase
     @Environment(\.dismiss) var dismiss
@@ -310,7 +310,7 @@ struct EventView: View {
                 if let newValue {
                     editTrans = event.getTransaction(by: newValue)
                 } else {
-                    setPhotoModelId()
+                    setFileModelId()
                     transNewItem = nil
                     
                     let trans = event.getTransaction(by: oldValue!)
@@ -393,9 +393,9 @@ struct EventView: View {
     
     var eventPhotos: some View {
         StandardContainer {
-            StandardPhotoSection(
-                pictures: $event.pictures,
-                photoUploadCompletedDelegate: eventModel,
+            StandardFileSection(
+                files: $event.files,
+                fileUploadCompletedDelegate: eventModel,
                 parentType: .event,
                 displayStyle: .grid,
                 showInScrollView: false,
@@ -613,7 +613,7 @@ struct EventView: View {
                                 Text(user.name)
                                     .bold()
                                     .font(.caption2)
-                                    .foregroundStyle(Color.fromName(colorTheme))
+                                    .foregroundStyle(Color.theme)
                             }
                         }
                     }
@@ -707,7 +707,7 @@ struct EventView: View {
     
     struct TransLineView: View {
         @Local(\.useWholeNumbers) var useWholeNumbers
-        @Local(\.colorTheme) var colorTheme
+        //@Local(\.colorTheme) var colorTheme
         @Environment(EventModel.self) private var eventModel
         
         @Bindable var trans: CBEventTransaction
@@ -763,7 +763,7 @@ struct EventView: View {
                         #if os(iOS)
                         .fill(Color(uiColor: .secondarySystemGroupedBackground))
                         #endif
-                        .strokeBorder(Color.fromName(colorTheme), lineWidth: 2)
+                        .strokeBorder(Color.theme, lineWidth: 2)
                         .clipShape(Rectangle())
                 )
             }
@@ -784,7 +784,7 @@ struct EventView: View {
         
     struct TransViewingCapsule: View {
         @Local(\.useWholeNumbers) var useWholeNumbers
-        @Local(\.colorTheme) var colorTheme
+        //@Local(\.colorTheme) var colorTheme
         
         @Environment(EventModel.self) private var eventModel
         var trans: CBEventTransaction
@@ -798,7 +798,7 @@ struct EventView: View {
             }
             .padding(2)
             .padding(.horizontal, 4)
-            .background(Color.fromName(colorTheme), in: Capsule())
+            .background(Color.theme, in: Capsule())
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         
@@ -867,7 +867,7 @@ struct EventView: View {
             }
         }
                 
-        setPhotoModelId()
+        setFileModelId()
         
         let recordType = XrefModel.getItem(from: .openRecords, byEnumID: .event)
         let mode = CBOpenOrClosedRecord(recordID: event.id, recordType: recordType, openOrClosed: .open)
@@ -875,8 +875,8 @@ struct EventView: View {
     }
         
     
-    func setPhotoModelId() {
-        PhotoModel.shared.pictureParent = PictureParent(id: event.id, type: XrefModel.getItem(from: .photoTypes, byEnumID: .event))
+    func setFileModelId() {
+        FileModel.shared.fileParent = FileParent(id: event.id, type: XrefModel.getItem(from: .fileTypes, byEnumID: .event))
     }
     
     

@@ -77,14 +77,14 @@ struct StartingAmountSheet: View {
     var cashMethods: [CBPaymentMethod] {
         return payModel.paymentMethods
             .filter { $0.accountType == .cash || $0.accountType == .checking }
-            .filter { $0.isAllowedToBeViewedByThisUser }
+            .filter { $0.isPermitted }
             .filter { !$0.isHidden }
     }
     
     var creditMethods: [CBPaymentMethod] {
         payModel.paymentMethods
             .filter { $0.accountType == .credit }
-            .filter { $0.isAllowedToBeViewedByThisUser }
+            .filter { $0.isPermitted }
             .filter { !$0.isHidden }
     }
     
@@ -95,7 +95,7 @@ struct StartingAmountSheet: View {
             && $0.accountType != .credit
             && !$0.isUnified
         }
-        .filter { $0.isAllowedToBeViewedByThisUser }
+        .filter { $0.isPermitted }
         .filter { !$0.isHidden }
     }
     
@@ -138,7 +138,8 @@ struct StartingAmountSheet: View {
                                 Helpers.plusMinus($startingAmount.amountString)
                             })
                     })
-                    .uiKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
+                    .uiKeyboardType(.custom(.numpad))
+                    //.uiKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
                     .uiTag(focusID)
                     .uiTextAlignment(layoutDirection == .leftToRight ? .right : .left)
                     .uiClearButtonMode(.whileEditing)

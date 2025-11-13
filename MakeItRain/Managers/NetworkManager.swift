@@ -130,7 +130,7 @@ class NetworkManager {
     
     
     func singleRequest<T: Encodable, U: Decodable>(requestModel: RequestModel<T>, ticker: Int = 3, sessionID: String = "", retainTime: Bool = true) async -> Result<U?, AppError> {
-        
+        print("-- \(#function)")
         request?.setValue(AppState.shared.apiKey, forHTTPHeaderField: "Api-Key")
         
 //        do {
@@ -379,7 +379,7 @@ class NetworkManager {
     }
     
     
-    func downloadPicture(requestModel: RequestModel<PhotoRequestModel>, ticker: Int = 3, sessionID: String = "", retainTime: Bool = true) async -> Result<Data?, AppError> {
+    func downloadFile(requestModel: RequestModel<FileRequestModel>, ticker: Int = 3, sessionID: String = "", retainTime: Bool = true) async -> Result<Data?, AppError> {
         request?.setValue(AppState.shared.apiKey, forHTTPHeaderField: "Api-Key")
                 
         var sesh: String = ""
@@ -456,18 +456,19 @@ class NetworkManager {
             } else {
                 try? await Task.sleep(for: .milliseconds(1000))
                 LogManager.error("retrying request", session: sesh)
-                return await downloadPicture(requestModel: requestModel, ticker: ticker - 1, sessionID: sesh)
+                return await downloadFile(requestModel: requestModel, ticker: ticker - 1, sessionID: sesh)
             }
         }
     }
+        
     
-    
-    
-    func uploadPicture<U: Decodable>(
+    func uploadFile<U: Decodable>(
         application: String,
-        pictureParent: PictureParent?,
+        fileParent: FileParent?,
         uuid: String,
-        imageData: Data,
+        fileData: Data,
+        fileName: String,
+        fileType: FileType, // e.g. "photo", "pdf", "csv", "text"
         isSmartTransaction: Bool = false,
         smartTransactionDate: Date? = nil,
         ticker: Int = 3
@@ -482,9 +483,10 @@ class NetworkManager {
             
             let metadata: [String: String] = [
                 "application": application,
-                "type": "photo",
-                "record_id": pictureParent?.id ?? "",
-                "related_type_id": String(pictureParent?.type.id ?? 0),
+                "type": fileType.rawValue,
+                "extension": fileType.ext,
+                "record_id": fileParent?.id ?? "",
+                "related_type_id": String(fileParent?.type.id ?? 0),
                 "uuid": uuid,
                 "user_id": String(AppState.shared.user?.id ?? 0),
                 "account_id": String(AppState.shared.user?.accountID ?? 0),
@@ -503,7 +505,7 @@ class NetworkManager {
             let new = "\r\n"
             
             request?.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-            request?.setValue("yes", forHTTPHeaderField: "This-Is-A-Photo")
+            request?.setValue("yes", forHTTPHeaderField: "This-Is-A-File")
                                                                                     
             body.append("--\(boundary)\(new)".data(using: .utf8)!)
             body.append("Content-Disposition: form-data; name=\"json\"\(new)".data(using: .utf8)!)
@@ -512,9 +514,9 @@ class NetworkManager {
             body.append("\(new)".data(using: .utf8)!)
             
             body.append("--\(boundary)\(new)".data(using: .utf8)!)
-            body.append("Content-Disposition: form-data; name=\"image\"; filename=\"hey\"\(new)".data(using: .utf8)!)
-            body.append("Content-Type: image/jpeg\(new)\(new)".data(using: .utf8)!)
-            body.append(imageData)
+            body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(fileName)\"\(new)".data(using: .utf8)!)
+            body.append("Content-Type: \(fileType.mimeType)\(new)\(new)".data(using: .utf8)!)
+            body.append(fileData)
             body.append("\(new)".data(using: .utf8)!)
                         
             body.append("--\(boundary)--\(new)".data(using: .utf8)!)
@@ -542,11 +544,13 @@ class NetworkManager {
                 return .failure(.connectionError)
             } else {
                 try? await Task.sleep(for: .milliseconds(1000))
-                return await uploadPicture(
+                return await uploadFile(
                     application: application,
-                    pictureParent: pictureParent,
+                    fileParent: fileParent,
                     uuid: uuid,
-                    imageData: imageData,
+                    fileData: fileData,
+                    fileName: fileName,
+                    fileType: fileType,
                     ticker: ticker - 1
                 )
             }

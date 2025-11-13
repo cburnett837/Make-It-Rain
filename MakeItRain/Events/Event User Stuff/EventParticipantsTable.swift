@@ -33,7 +33,7 @@ struct EventParticipantsTable: View {
                 .sorted { $0.name.lowercased() < $1.name.lowercased() }
         } else {
             return AppState.shared.accountUsers
-                .filter { $0.name.localizedStandardContains(searchText) }
+                .filter { $0.name.localizedCaseInsensitiveContains(searchText) }
                 .sorted { $0.name.lowercased() < $1.name.lowercased() }
         }
     }
@@ -50,7 +50,7 @@ struct EventParticipantsTable: View {
                 .filter { $0.user.accountID != AppState.shared.user!.accountID }
                 .filter { $0.status?.enumID == .accepted }
                 .map { $0.user }
-                .filter { $0.name.localizedStandardContains(searchText) }
+                .filter { $0.name.localizedCaseInsensitiveContains(searchText) }
                 .sorted { $0.name.lowercased() < $1.name.lowercased() }
         }
     }
@@ -67,7 +67,7 @@ struct EventParticipantsTable: View {
                 .filter { $0.user.accountID != AppState.shared.user!.accountID }
                 .filter { $0.status?.enumID == .pending }
                 .map { $0.user }
-                .filter { $0.name.localizedStandardContains(searchText) }
+                .filter { $0.name.localizedCaseInsensitiveContains(searchText) }
                 .sorted { $0.name.lowercased() < $1.name.lowercased() }
         }
     }

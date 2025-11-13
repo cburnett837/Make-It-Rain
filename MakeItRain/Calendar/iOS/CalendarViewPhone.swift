@@ -20,7 +20,7 @@ struct CalendarViewPhone: View {
     @AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
     @AppStorage("phoneLineItemDisplayItem") var phoneLineItemDisplayItem: PhoneLineItemDisplayItem = .both
     
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @Local(\.useWholeNumbers) var useWholeNumbers
     @Local(\.threshold) var threshold
             
@@ -43,22 +43,26 @@ struct CalendarViewPhone: View {
     @FocusState private var focusedField: Int?
     //@State private var calProps = CalendarProps()
     @State private var lastBalanceUpdateTimer: Timer?
-  
+    
+    /// Used to navigate to additional pages in the bottom panel. (Plaid transactions reject all before date)
+    @State private var navPath = NavigationPath()
+    //@State private var showSearchBar = true      
+    
     var body: some View {
         @Bindable var calProps = calProps
         //let _ = Self._printChanges()
         @Bindable var navManager = NavigationManager.shared
         @Bindable var calModel = calModel
-        @Bindable var photoModel = PhotoModel.shared
+        @Bindable var photoModel = FileModel.shared
         
-        NavigationStack {
+        NavigationStack(path: $navPath) {
             Group {
                 if calModel.sMonth.enumID == enumID {
-                    VStack(spacing: 0) {
-                        calendarView
-                        bottomPanelViews
+                    if AppState.shared.isIphone {
+                        calChunkIphone
+                    } else {
+                        calChunkIpad
                     }
-                    //.background(calendarBackground)
                 } else {
                     ProgressView()
                         .transition(.opacity)
@@ -66,75 +70,79 @@ struct CalendarViewPhone: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-            .searchable(text: $calModel.searchText, prompt: Text("Search"))
+//            .if(calProps.bottomPanelContent == nil) {
+//                $0
+//                .searchable(text: $calModel.searchText, prompt: "Transactions & Tags")
+//                .searchPresentationToolbarBehavior(.avoidHidingContent)
+//            }
+            .searchable(text: $calModel.searchText, prompt: "Transactions & Tags")
             .searchPresentationToolbarBehavior(.avoidHidingContent)
-            .toolbar {
-                DefaultToolbarItem(kind: .search, placement: .bottomBar)
-                ToolbarSpacer(.flexible, placement: .bottomBar)
-                ToolbarItem(placement: .bottomBar) {
-                    NewTransactionMenuButton(
-                        transEditID: $calProps.transEditID,
-                        showTransferSheet: $calProps.showTransferSheet,
-                        showPhotosPicker: $calProps.showPhotosPicker,
-                        showCamera: $calProps.showCamera
-                    )
-                    //.matchedTransitionSource(id: "myButton", in: newTransactionMenuButtonNamespace)
-                }
-            }
             .ignoresSafeArea(.keyboard, edges: .bottom)
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(true)
             .toolbar { CalendarToolbar() }
             /// Using this instead of a task because the iPad doesn't reload `CalendarView`. It just changes the data source.
             .onChange(of: enumID, initial: true, onChangeOfMonthEnumID)
+//            .onChange(of: calProps.bottomPanelContent) { oldValue, newValue in
+//                if newValue != nil && oldValue == nil {
+//                    print("should hide search bar")
+//                    showSearchBar = false
+//                } else {
+//                    showSearchBar = true
+//                }
+//            }
             
             .onShake {
                 /// Prevent shake to reset from happening when viewing the month via the analytic page.
                 if !calModel.categoryFilterWasSetByCategoryPage {
-                    resetMonthState()
+                    /// Prevent resetting when shaking to undo on a transaction.
+                    if calProps.transEditID == nil {
+                        resetMonthState()
+                    }
                 }
             }
-            
-            /// This exists in 2 place - purely for visual effect. See ``LineItemView``
-            /// This is needed (passing the ID instead of the trans) because you can close the popover without actually clicking the close button. So I need somewhere to do cleanup.
             .transactionEditSheetAndLogic(
-                calModel: calModel,
                 transEditID: $calProps.transEditID,
-                editTrans: $calProps.editTrans,
                 selectedDay: $calProps.selectedDay,
                 overviewDay: $calProps.overviewDay,
                 findTransactionWhere: $calProps.findTransactionWhere,
                 presentTip: true,
                 resetSelectedDayOnClose: true,
-                //newTransactionMenuButtonNamespace: newTransactionMenuButtonNamespace
+            )
+            .photoPickerAndCameraSheet(
+                fileUploadCompletedDelegate: calModel,
+                parentType: .transaction,
+                allowMultiSelection: false,
+                showPhotosPicker: $calProps.showPhotosPicker,
+                showCamera: $calProps.showCamera
             )
             .sheet(isPresented: $calProps.showTransferSheet) {
                 TransferSheet(date: calProps.selectedDay?.date ?? Date())
             }
-            /// Only allow 1 photo since this is happening only for smart transactions.
-            .photosPicker(isPresented: $calProps.showPhotosPicker, selection: $photoModel.imagesFromLibrary, maxSelectionCount: 1, matching: .images, photoLibrary: .shared())
-            /// Upload the picture from the selectedt photos when the photo picker sheet closes.
-            .onChange(of: calProps.showPhotosPicker) { oldValue, newValue in
-                if !newValue {
-                    if PhotoModel.shared.imagesFromLibrary.isEmpty {
-                        calModel.cleanUpPhotoVariables()
-                    } else {
-                        PhotoModel.shared.uploadPicturesFromLibrary(delegate: calModel, photoType: XrefModel.getItem(from: .photoTypes, byEnumID: .transaction))
-                    }
-                }
-            }
-            #if os(iOS)
-            .fullScreenCover(isPresented: $calProps.showCamera) {
-                AccessCameraView(selectedImage: $photoModel.imageFromCamera)
-                    .background(.black)
-            }
-            /// Upload the picture from the camera when the camera sheet closes.
-            .onChange(of: calProps.showCamera) { oldValue, newValue in
-                if !newValue {
-                    PhotoModel.shared.uploadPictureFromCamera(delegate: calModel, photoType: XrefModel.getItem(from: .photoTypes, byEnumID: .transaction))
-                }
-            }
-            #endif
+//            /// Only allow 1 photo since this is happening only for smart transactions.
+//            .photosPicker(isPresented: $calProps.showPhotosPicker, selection: $photoModel.imagesFromLibrary, maxSelectionCount: 1, matching: .images, photoLibrary: .shared())
+//            /// Upload the picture from the selectedt photos when the photo picker sheet closes.
+//            .onChange(of: calProps.showPhotosPicker) { oldValue, newValue in
+//                if !newValue {
+//                    if FileModel.shared.imagesFromLibrary.isEmpty {
+//                        calModel.cleanUpPhotoVariables()
+//                    } else {
+//                        FileModel.shared.uploadPicturesFromLibrary(delegate: calModel, fileType: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction))
+//                    }
+//                }
+//            }
+//            #if os(iOS)
+//            .fullScreenCover(isPresented: $calProps.showCamera) {
+//                AccessCameraView(selectedImage: $photoModel.imageFromCamera)
+//                    .background(.black)
+//            }
+//            /// Upload the picture from the camera when the camera sheet closes.
+//            .onChange(of: calProps.showCamera) { oldValue, newValue in
+//                if !newValue {
+//                    FileModel.shared.uploadPictureFromCamera(delegate: calModel, fileType: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction))
+//                }
+//            }
+//            #endif
             
             /// Keep the current date indicator up to date.
             .onReceive(AppState.shared.currentDateTimer) { input in
@@ -169,16 +177,39 @@ struct CalendarViewPhone: View {
 //            .inspector(isPresented: $calProps.showAnalysisInspector) {
 //                //Text("hey")
 //                TransactionListView(showTransactionListSheet: $calProps.showTransactionListSheet)
-//                //AnalysisSheet(showAnalysisSheet: $calProps.showAnalysisSheet)
+//                //CategoryInsightsSheetshowAnalysisSheet: $calProps.showAnalysisSheet)
 //            }
             
         }
         //.environment(calProps)
-        .disableZoomeInteractiveDismiss()
+        .disableZoomInteractiveDismiss()
     }
     
     
     // MARK: - Calendar Views
+    
+    
+    var calChunkIpad: some View {
+        calendarView
+    }
+    
+    var calChunkIphone: some View {
+        /// Use the GeoReader to adjust the calendar view size so the bottom panel properly transitions all the way to the bottom of the screen.
+        /// Without it, the calendar/bottom panel would get clipped by the safe area, leading to the bottom panel's slide transition "poofing" at the end of it's transition.
+        GeometryReader { geo in
+            VStack(spacing: 0) {
+                calendarView
+                    .padding(.bottom, calProps.bottomPanelContent == nil ? geo.safeAreaInsets.bottom : 0)
+                bottomPanelViews
+                    .transition(.move(edge: .bottom))
+                    .padding(.bottom, geo.safeAreaInsets.bottom)
+            }
+            .frame(height: geo.frame(in: .global).height + geo.safeAreaInsets.bottom)
+        }
+    }
+    
+    
+    
     var calendarView: some View {
         Group {
             VStack(spacing: 0) {
@@ -237,10 +268,10 @@ struct CalendarViewPhone: View {
             BottomPanelContainerView() {
                 switch content {
                 case .overviewDay:
-                    DayOverviewView(day: $calProps.overviewDay)
+                    DayOverviewView(day: $calProps.overviewDay, showInspector: .constant(false))
                     
                 case .plaidTransactions:
-                    PlaidTransactionOverlay(showInspector: .constant(false)) /// Inspector is only used on iPad. Bottom panel is only used on iPhone/
+                    PlaidTransactionOverlay(showInspector: .constant(false), navPath: $navPath) /// Inspector is only used on iPad. Bottom panel is only used on iPhone/
                     
                 case .smartTransactionsWithIssues:
                     SmartTransactionsWithIssuesOverlay(showInspector: .constant(false))
@@ -255,7 +286,7 @@ struct CalendarViewPhone: View {
                     EmptyView()
                 }
             }
-            .frame(height: 250)
+            .frame(height: 260)
         }
     }
     

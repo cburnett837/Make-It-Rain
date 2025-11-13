@@ -9,18 +9,39 @@ import SwiftUI
 import Charts
 
 struct ProfitLossChartWidget: View {
+    @Bindable var vm: PayMethodViewModel
+    @Bindable var payMethod: CBPaymentMethod
+        
+    var body: some View {
+        NavigationLink {
+            ProfitLossChartDetails(vm: vm, payMethod: payMethod)
+        } label: {
+            ProfitLossChart(
+                vm: vm,
+                payMethod: payMethod,
+                rawSelectedDate: .constant(nil),
+                selectedDate: nil,
+                allowSelection: false,
+                animateImmediately: false
+            )
+        }
+        #if os(iOS)
+        .navigationLinkIndicatorVisibility(.hidden)
+        #endif
+    }
+}
+
+
+
+struct ProfitLossChartDetails: View {
     @Local(\.useWholeNumbers) var useWholeNumbers
     @AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false
-
     @Environment(\.colorScheme) var colorScheme
-
+    
     @Bindable var vm: PayMethodViewModel
     @Bindable var payMethod: CBPaymentMethod
     
-    @State private var showChartSheet = false
-    
     @State private var rawSelectedDate: Date?
-    @State private var persistedDate: Date?
     var selectedDate: Date? {
         if let raw = rawSelectedDate {
             let breakdowns = vm.payMethods.first?.breakdowns
@@ -33,83 +54,47 @@ struct ProfitLossChartWidget: View {
             return nil
         }
     }
-        
+    
     var body: some View {
-        Section {
-            
-            NavigationLink {
-                detailsSheet
-                    .onDisappear {
-                        rawSelectedDate = nil
-                        persistedDate = nil
-                    }
-            } label: {
-                ProfitLossChart(vm: vm, payMethod: payMethod, rawSelectedDate: $rawSelectedDate, persistedDate: persistedDate, allowSelection: false, showChartSheet: $showChartSheet)
+        StandardContainerWithToolbar(.list) {
+            Section("Details \(selectedDate == nil ? "" : vm.overViewTitle(for: selectedDate))") {
+                selectedDataView
             }
-            .navigationLinkIndicatorVisibility(.hidden)
-            
-//            ProfitLossChart(vm: vm, payMethod: payMethod, rawSelectedDate: $rawSelectedDate, persistedDate: persistedDate, allowSelection: false, showChartSheet: $showChartSheet)
-//                .sheet(isPresented: $showChartSheet, onDismiss: {
-//                    rawSelectedDate = nil
-//                    persistedDate = nil
-//                }) {
-//                    detailsSheet
-//                }
-        } header: {
-            Text("Profit/Loss")
-        }
-        .onChange(of: selectedDate) { oldValue, newValue in
-            if newValue != nil {
-                self.persistedDate = newValue
+                            
+            PaymentMethodChartDetailsSectionContainer(vm: vm, payMethod: payMethod) {
+                ProfitLossChart(
+                    vm: vm,
+                    payMethod: payMethod,
+                    rawSelectedDate: $rawSelectedDate,
+                    selectedDate: selectedDate,
+                    allowSelection: true,
+                    animateImmediately: true
+                )
+            }
+                                            
+            Section {
+                ChartOptionsSheet(vm: vm, payMethod: payMethod)
             }
         }
-    }
-    
-    
-    var detailsSheet: some View {
-        //NavigationStack {
-            StandardContainerWithToolbar(.list) {
-                Section("Details \(persistedDate == nil ? "" : vm.overViewTitle(for: persistedDate))") {
-                    selectedDataView
-                }
-                                
-                PaymentMethodChartDetailsSectionContainer(vm: vm, payMethod: payMethod) {
-                    ProfitLossChart(vm: vm, payMethod: payMethod, rawSelectedDate: $rawSelectedDate, persistedDate: persistedDate, allowSelection: true, showChartSheet: $showChartSheet)
-                }
-                                                
-                Section {
-                    ChartOptionsSheet(vm: vm, payMethod: payMethod)
-                }
-            }
-            .navigationTitle("Profit/Loss")
-            .navigationSubtitle(payMethod.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) { PaymentMethodChartStyleMenu(vm: vm) }
-                //ToolbarItem(placement: .topBarTrailing) { closeButton }
-            }
-        //}
-    }
-    
-    
-    var closeButton: some View {
-        Button {
-            showChartSheet = false
-        } label: {
-            Image(systemName: "xmark")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        .navigationTitle("Net Worth")
+        .navigationSubtitle(payMethod.title)
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) { PaymentMethodChartStyleMenu(vm: vm) }
         }
+        #endif
     }
+    
     
     
     @ViewBuilder
     var selectedDataView: some View {
-        if let persistedDate = persistedDate {
+        if let selectedDate = selectedDate {
             ChartSelectedDataContainer(
                 vm: vm,
                 payMethod: payMethod,
-                columnCount: (payMethod.isCreditOrLoan || payMethod.isUnifiedCredit) ? 5 : 4,
-                showOverviewDataPerMethodOnUnifiedChart: showOverviewDataPerMethodOnUnifiedChart
+                columnCount: (payMethod.isCreditOrLoan || payMethod.isUnifiedCredit) ? 5 : 4
             ) {
                 Text("Account")
                 Text("Begin")
@@ -117,7 +102,7 @@ struct ProfitLossChartWidget: View {
                 Text("PL $")
                 Text("PL %")
             } rows: {
-                ForEach(vm.breakdownPerMethod(on: persistedDate)) { breakdown in
+                ForEach(vm.breakdownPerMethod(on: selectedDate)) { breakdown in
                     GridRow(alignment: .top) {
                         HStack(spacing: 5) {
                             CircleDot(color: breakdown.color, width: 5)
@@ -135,7 +120,7 @@ struct ProfitLossChartWidget: View {
                     }
                 }
             } summary: {
-                let breakdown = vm.breakdownForMethod(method: vm.mainPayMethod, on: persistedDate)
+                let breakdown = vm.breakdownForMethod(method: vm.mainPayMethod, on: selectedDate)
                 Text(breakdown.startingAmounts.currencyWithDecimals(useWholeNumbers ? 0 : 2))
                 Text(breakdown.monthEnd.currencyWithDecimals(useWholeNumbers ? 0 : 2))
                 Text(breakdown.profitLoss.currencyWithDecimals(useWholeNumbers ? 0 : 2))
@@ -151,8 +136,8 @@ struct ProfitLossChartWidget: View {
 }
 
 
+
 struct ProfitLossChart: View {
-    @Local(\.colorTheme) var colorTheme
     @Local(\.useWholeNumbers) var useWholeNumbers
     @Local(\.threshold) var threshold
     
@@ -163,9 +148,10 @@ struct ProfitLossChart: View {
     @Bindable var vm: PayMethodViewModel
     @Bindable var payMethod: CBPaymentMethod
     @Binding var rawSelectedDate: Date?
-    var persistedDate: Date?
+    
+    var selectedDate: Date?
     var allowSelection: Bool
-    @Binding var showChartSheet: Bool
+    var animateImmediately: Bool
     
     var body: some View {
         VStack(spacing: 0) {
@@ -180,60 +166,60 @@ struct ProfitLossChart: View {
                 }
             }
                                                     
-            Chart {
-                /// WARNING! This cannot be a computed property.
-                let positionForNewColor: Double? = vm.getGradientPosition(for: style == .amount ? .amount : .percentage, flipAt: 0)
-                
-                if let persistedDate {
-                    vm.selectionRectangle(for: persistedDate, color: Color.fromName(colorTheme))
-                }
-                     
-                if metrics == .summary {
-                    ForEach(vm.relevantBreakdowns()) {
-                        profitLossLine(meth: payMethod, breakdown: $0, positionForNewColor: positionForNewColor)
-                    }
-                } else {
-                    ForEach(vm.payMethods) { meth in
-                        ForEach(vm.relevantBreakdowns(for: meth)) {
-                            profitLossLine(meth: meth, breakdown: $0, positionForNewColor: positionForNewColor)
-                        }
-                    }
-                }
+            chart(showLines: true)
+                //.animatedLineChart(beginAnimation: animateImmediately ? true : !vm.isLoadingHistory) { chart(showLines: $0) }
+        }
+        .sensoryFeedback(.selection, trigger: selectedDate) { $0 != nil && $1 != nil }
+    }
+    
+    @ViewBuilder func chart(showLines: Bool) -> some View {
+        Chart {
+            /// WARNING! This cannot be a computed property.
+            let positionForNewColor: Double? = vm.getGradientPosition(for: style == .amount ? .amount : .percentage, flipAt: 0)
+            
+            if let selectedDate {
+                vm.selectionRectangle(for: selectedDate, color: Color.secondary)
             }
-            .frame(minHeight: 150)
-            .chartYAxis { vm.yAxis(symbol: style == .amount ? "$" : "%") }
-            .chartXAxis { vm.xAxis() }
-            .if(allowSelection) {
-                $0
-                .chartXScale(domain: vm.chartXScale)
-                .chartXSelection(value: $rawSelectedDate)
+        
+            if metrics == .summary {
+                ForEach(vm.relevantBreakdowns()) {
+                    profitLossLine(meth: payMethod, breakdown: $0, positionForNewColor: positionForNewColor, showLines: showLines)
+                }
+            } else {
+                ForEach(vm.payMethods) { meth in
+                    ForEach(vm.relevantBreakdowns(for: meth)) {
+                        profitLossLine(meth: meth, breakdown: $0, positionForNewColor: positionForNewColor, showLines: showLines)
+                    }
+                }
             }
         }
-        .sensoryFeedback(.selection, trigger: persistedDate) { $0 != nil && $1 != nil }
-//        .if(!allowSelection) {
-//            $0.onTapGesture {
-//                showChartSheet = true
-//            }
-//        }
+        .frame(minHeight: 150)
+        .chartYAxis { vm.yAxis(color: showLines ? .gray : .clear, symbol: style == .amount ? "$" : "%") }
+        .chartXAxis { vm.xAxis(color: showLines ? .gray : .clear) }
+        .if(allowSelection) {
+            $0
+            .chartXScale(domain: vm.chartXScale)
+            .chartXSelection(value: $rawSelectedDate)
+        }
     }
     
     @ChartContentBuilder
-    func profitLossLine(meth: CBPaymentMethod, breakdown: PayMethodMonthlyBreakdown, positionForNewColor: Double?) -> some ChartContent {
+    func profitLossLine(meth: CBPaymentMethod, breakdown: PayMethodMonthlyBreakdown, positionForNewColor: Double?, showLines: Bool) -> some ChartContent {
         let isGreaterThanZero = (style == .amount ? breakdown.profitLoss : breakdown.profitLossPercentage) >= 0
         
         if payMethod.isUnified {
             if metrics == .summary {
-                summaryLine(meth: meth, breakdown: breakdown, positionForNewColor: positionForNewColor, isGreaterThanZero: isGreaterThanZero)
+                summaryLine(meth: meth, breakdown: breakdown, positionForNewColor: positionForNewColor, isGreaterThanZero: isGreaterThanZero, showLines: showLines)
             } else {
-                individualLine(meth: meth, breakdown: breakdown, positionForNewColor: positionForNewColor, isGreaterThanZero: isGreaterThanZero)
+                individualLine(meth: meth, breakdown: breakdown, positionForNewColor: positionForNewColor, isGreaterThanZero: isGreaterThanZero, showLines: showLines)
             }
         } else {
-            summaryLine(meth: meth, breakdown: breakdown, positionForNewColor: positionForNewColor, isGreaterThanZero: isGreaterThanZero)
+            summaryLine(meth: meth, breakdown: breakdown, positionForNewColor: positionForNewColor, isGreaterThanZero: isGreaterThanZero, showLines: showLines)
         }
     }
     
     @ChartContentBuilder
-    func summaryLine(meth: CBPaymentMethod, breakdown: PayMethodMonthlyBreakdown, positionForNewColor: Double?, isGreaterThanZero: Bool) -> some ChartContent {
+    func summaryLine(meth: CBPaymentMethod, breakdown: PayMethodMonthlyBreakdown, positionForNewColor: Double?, isGreaterThanZero: Bool, showLines: Bool) -> some ChartContent {
         LineMark(
             x: .value("Date", breakdown.date, unit: .month),
             y: .value("Amount5", style == .amount ? breakdown.profitLoss : breakdown.profitLossPercentage),
@@ -260,13 +246,15 @@ struct ProfitLossChart: View {
         .interpolationMethod(.catmullRom)
         .symbol {
             Circle()
-            .fill(isGreaterThanZero ? .green : .red)
+                .fill(isGreaterThanZero ? .green : .red)
                 .frame(width: 6, height: 6)
+                .opacity(showLines ? 1 : 0)
         }
+        .opacity(showLines ? 1 : 0)
     }
     
     @ChartContentBuilder
-    func individualLine(meth: CBPaymentMethod, breakdown: PayMethodMonthlyBreakdown, positionForNewColor: Double?, isGreaterThanZero: Bool) -> some ChartContent {
+    func individualLine(meth: CBPaymentMethod, breakdown: PayMethodMonthlyBreakdown, positionForNewColor: Double?, isGreaterThanZero: Bool, showLines: Bool) -> some ChartContent {
         LineMark(
             x: .value("Date", breakdown.date, unit: .month),
             y: .value("Amount5", style == .amount ? breakdown.profitLoss : breakdown.profitLossPercentage),
@@ -274,6 +262,7 @@ struct ProfitLossChart: View {
         )
         .foregroundStyle(meth.color)
         .interpolationMethod(.catmullRom)
+        .opacity(showLines ? 1 : 0)
     }
 }
 
@@ -302,7 +291,11 @@ fileprivate struct ChartOptionsSheet: View {
     var profitLossStyleMenu: some View {
         Menu(style.prettyValue) {
             ForEach(DisplayStyle.allCases) { opt in
-                Button(opt.prettyValue) { style = opt }
+                Button(opt.prettyValue) {
+                    withAnimation {
+                        style = opt
+                    }
+                }
             }
         }
     }

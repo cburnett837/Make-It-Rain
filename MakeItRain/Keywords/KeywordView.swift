@@ -10,10 +10,10 @@ import SwiftUI
 struct KeywordView: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
-    @Bindable var keyword: CBKeyword
-    @Bindable var keyModel: KeywordModel
-    @Bindable var catModel: CategoryModel
+    @Environment(CategoryModel.self) private var catModel
+    @Environment(KeywordModel.self) private var keyModel
     
+    @Bindable var keyword: CBKeyword
     /// This is only here to blank out the selection hilight on the iPhone list
     @Binding var editID: String?
     
@@ -24,54 +24,12 @@ struct KeywordView: View {
     var title: String { keyword.action == .add ? "New Rule" : "Edit Rule" }
             
     var isValidToSave: Bool {
-        (keyword.action == .add && !keyword.keyword.isEmpty)
-        || (keyword.hasChanges() && !keyword.keyword.isEmpty)
-    }
-    
-    var deleteButton: some View {
-        Button {
-            showDeleteAlert = true
-        } label: {
-            Image(systemName: "trash")
-        }
-        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
-        .tint(.none)
-        .confirmationDialog("Delete \"\(keyword.keyword)\"?", isPresented: $showDeleteAlert, actions: {
-            Button("Yes", role: .destructive) {
-                Task {
-                    dismiss()
-                    await keyModel.delete(keyword, andSubmit: true)
-                }
-            }
-            
-            //Button("No", role: .cancel) { showDeleteAlert = false }
-        }, message: {
-            #if os(iOS)
-            Text("Delete \"\(keyword.keyword)\"?")
-            #endif
-        })
-    }
-    
-    var closeButton: some View {
-        Button {
-            editID = nil; dismiss()
-        } label: {
-            Image(systemName: isValidToSave ? "checkmark" : "xmark")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        if keyword.action == .add {
+            return !keyword.keyword.isEmpty && keyword.category != nil && !(keyword.category?.isNil ?? false)
+        } else {
+            return (keyword.hasChanges() && !keyword.keyword.isEmpty)
         }
     }
-    
-//    var header: some View {
-//        Group {
-//            SheetHeader(
-//                title: title,
-//                close: { editID = nil; dismiss() },
-//                view3: { deleteButton }
-//            )
-//            .padding()
-//        }
-//    }
-    
     
     var body: some View {
         NavigationStack {
@@ -86,14 +44,7 @@ struct KeywordView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { deleteButton }
                 ToolbarItem(placement: .topBarTrailing) {
-                    if isValidToSave {
-                        closeButton
-                            #if os(iOS)
-                            .buttonStyle(.glassProminent)
-                            #endif
-                    } else {
-                        closeButton
-                    }
+                    AnimatedCloseButton(isValidToSave: isValidToSave, closeButton: closeButton)                    
                 }
                 
                 ToolbarItem(placement: .bottomBar) {
@@ -223,6 +174,7 @@ struct KeywordView: View {
         }
     }
     
+    
     var categorySection: some View {
         Section {
             HStack {
@@ -234,6 +186,46 @@ struct KeywordView: View {
             }
         } header: {
             Text("give it a category of…")
+        }
+    }
+    
+    
+    var deleteButton: some View {
+        Button {
+            showDeleteAlert = true
+        } label: {
+            Image(systemName: "trash")
+        }
+        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
+        .tint(.none)
+        .confirmationDialog("Delete \"\(keyword.keyword)\"?", isPresented: $showDeleteAlert, actions: {
+            Button("Yes", role: .destructive) {
+                //Task {
+                    keyword.action = .delete
+                    dismiss()
+                    //await keyModel.delete(keyword, andSubmit: true)
+                //}
+            }
+            
+            Button("No", role: .close) { showDeleteAlert = false }
+        }, message: {
+            #if os(iOS)
+            Text("Delete \"\(keyword.keyword)\"?")
+            #endif
+        })
+    }
+    
+    var closeButton: some View {
+        Button {
+            if keyword.action == .add && !keyword.keyword.isEmpty && (keyword.category == nil || keyword.category?.isNil ?? false) {
+                AppState.shared.showAlert("Please select a category")
+                return
+            }
+            editID = nil
+            dismiss()
+        } label: {
+            Image(systemName: isValidToSave ? "checkmark" : "xmark")
+                .schemeBasedForegroundStyle()
         }
     }
     

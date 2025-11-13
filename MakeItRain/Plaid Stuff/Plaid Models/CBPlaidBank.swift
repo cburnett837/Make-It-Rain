@@ -27,6 +27,7 @@ class CBPlaidBank: Codable, Identifiable, Equatable, Hashable {
     var lastTimeICheckedPlaidSyncedDate: Date?
     var plaidID: String?
     var requiresUpdate: Bool = false
+    var logo: String?
     
     var numberOfAccounts: Int {
         accounts.count
@@ -55,7 +56,7 @@ class CBPlaidBank: Codable, Identifiable, Equatable, Hashable {
     }
     
         
-    enum CodingKeys: CodingKey { case id, title, active, user_id, account_id, device_uuid, entered_by, updated_by, entered_date, updated_date, accounts, plaid_id, requires_update, last_updated_by_plaid_date, last_time_plaid_synced_with_institution_date, last_time_i_checked_plaid_synced_date }
+    enum CodingKeys: CodingKey { case id, title, active, user_id, account_id, device_uuid, entered_by, updated_by, entered_date, updated_date, accounts, plaid_id, requires_update, last_updated_by_plaid_date, last_time_plaid_synced_with_institution_date, last_time_i_checked_plaid_synced_date, logo }
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -125,6 +126,8 @@ class CBPlaidBank: Codable, Identifiable, Equatable, Hashable {
         if let lastTimeICheckedPlaidSyncedDate {
             self.lastTimeICheckedPlaidSyncedDate = lastTimeICheckedPlaidSyncedDate.toDateObj(from: .serverDateTime)!
         }
+        
+        logo = try container.decode(String?.self, forKey: .logo)
     }
         
     
@@ -180,6 +183,7 @@ class CBPlaidBank: Codable, Identifiable, Equatable, Hashable {
         self.lastUpdateByPlaidDate = bank.lastUpdateByPlaidDate
         self.lastTimePlaidSyncedWithInstitutionDate = bank.lastTimePlaidSyncedWithInstitutionDate
         self.lastTimeICheckedPlaidSyncedDate = bank.lastTimeICheckedPlaidSyncedDate
+        self.logo = bank.logo
         
         var activeIds: Array<String> = []
         

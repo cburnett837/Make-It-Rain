@@ -7,12 +7,20 @@
 
 import SwiftUI
 
+//struct PaymentMethodSectionData: Identifiable {
+//    let id = UUID()
+//    var title: String
+//    var items: [CBPaymentMethod] // Optional: if sections also contain reorderable items
+//}
+
 struct PayMethodsTable: View {
     @Environment(\.dismiss) var dismiss
-    
+    @Local(\.useBusinessLogos) var useBusinessLogos
     @Local(\.useWholeNumbers) var useWholeNumbers
     //#if os(macOS)
     @AppStorage("paymentMethodTableColumnOrder") private var columnCustomization: TableColumnCustomization<CBPaymentMethod>
+    @AppStorage("paymentMethodSortMode") var paymentMethodSortMode: SortMode = .title
+
     //#endif
     
     @Environment(FuncModel.self) var funcModel
@@ -30,34 +38,62 @@ struct PayMethodsTable: View {
     @State private var defaultEditingMethod: CBPaymentMethod?
     @State private var showDefaultViewingSheet = false
     @State private var showDefaultEditingSheet = false
+    
+    var listOrders: [Int] {
+        payModel.paymentMethods.map { $0.listOrder ?? 0 }.sorted { $0 > $1 }
+    }
         
-    var filteredPayMethods: [CBPaymentMethod] {
-        payModel.paymentMethods
-            .filter { !$0.isUnified }
-            .filter { $0.isAllowedToBeViewedByThisUser }
-            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedStandardContains(searchText) }
-            //.sorted { $0.title.lowercased() < $1.title.lowercased() }
-    }
+//    var filteredPayMethods: [CBPaymentMethod] {
+//        payModel.paymentMethods
+//            .filter { !$0.isUnified }
+//            .filter { $0.isPermitted }
+//            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedCaseInsensitiveContains(searchText) }
+//            //.sorted { $0.title.lowercased() < $1.title.lowercased() }
+//    }
+//    
+//    var debitMethods: [CBPaymentMethod] {
+//        payModel.paymentMethods
+//            .filter { $0.isPermitted }
+//            .filter { $0.accountType == .checking || $0.accountType == .unifiedChecking }
+//            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+//    }
+//    
+//    var creditMethods: [CBPaymentMethod] {
+//        payModel.paymentMethods
+//            .filter { $0.isPermitted }
+//            .filter { $0.accountType == .credit || $0.accountType == .unifiedCredit || $0.accountType == .loan }
+//            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+//    }
+//    
+//    var otherMethods: [CBPaymentMethod] {
+//        payModel.paymentMethods
+//            .filter { $0.isPermitted }
+//            .filter { $0.accountType != .checking && $0.accountType != .credit && $0.accountType != .loan && !$0.isUnified }
+//            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+//    }
+//    var sections: Array<SectionData> {
+//        return [
+//            SectionData(title: "Debit", items: debitMethods),
+//            SectionData(title: "Credit", items: creditMethods),
+//            SectionData(title: "Other", items: otherMethods)
+//        ]
+//    }
     
-    var debitMethods: [CBPaymentMethod] {
-        payModel.paymentMethods
-            .filter { $0.isAllowedToBeViewedByThisUser }
-            .filter { $0.accountType == .checking || $0.accountType == .unifiedChecking }
-            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
-    }
     
-    var creditMethods: [CBPaymentMethod] {
-        payModel.paymentMethods
-            .filter { $0.isAllowedToBeViewedByThisUser }
-            .filter { $0.accountType == .credit || $0.accountType == .unifiedCredit || $0.accountType == .loan }
-            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
-    }
+    /// Keep the sections in the model so they don't flash every time you go to the account table on the iPad.
+    //@State private var sections: Array<PaySection> = []
     
-    var otherMethods: [CBPaymentMethod] {
-        payModel.paymentMethods
-            .filter { $0.isAllowedToBeViewedByThisUser }
-            .filter { $0.accountType != .checking && $0.accountType != .credit && !$0.isUnified }
-            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
+    var somethingChanged: Int {
+        var hasher = Hasher()
+        /// Update when the user searches.
+        hasher.combine(searchText)
+        /// Update the sheet if viewing and something changes on another device.
+        hasher.combine(payModel.paymentMethods.filter { !$0.isHidden && !$0.isPrivate}.count)
+        /// Update when a new payment method gets added or deleted.
+        hasher.combine(payModel.paymentMethods.count)
+        /// Update when the list order changes via long poll.
+        hasher.combine(payModel.paymentMethods.map { $0.listOrder ?? 0 }.sorted { $0 > $1 })
+        return hasher.finalize()
     }
     
     var body: some View {
@@ -68,10 +104,10 @@ struct PayMethodsTable: View {
                 #if os(macOS)
                 macTable
                 #else
-                if AppState.shared.isIphone {
-                    phoneList
+                if payModel.sections.flatMap({ $0.payMethods }).isEmpty {
+                    ContentUnavailableView("No accounts found", systemImage: "exclamationmark.magnifyingglass")
                 } else {
-                    macTable
+                    phoneList
                 }
                 #endif
             } else {
@@ -83,14 +119,19 @@ struct PayMethodsTable: View {
         //.navigationBarTitleDisplayMode(.inline)
         #endif
         
+        #if os(macOS)
         /// There seems to be a bug in SwiftUI `Table` that prevents the view from refreshing when adding a new payment method, and then trying to edit it.
         /// When I add a new payment method, and then update `model.paymentMethods` with the new ID from the server, the table still contains an ID of 0 on the newly created payment method.
         /// Setting this id forces the view to refresh and update the relevant payment method with the new ID.
         .id(payModel.fuckYouSwiftuiTableRefreshID)
+        #endif
         .navigationBarBackButtonHidden(true)
         .task {
             defaultViewingMethod = payModel.paymentMethods.filter { $0.isViewingDefault }.first
             defaultEditingMethod = payModel.paymentMethods.filter { $0.isEditingDefault }.first
+            /// NOTE: Sorting must be done here and not in the computed property. If done in the computed property, when reording, they get all messed up.
+            payModel.paymentMethods.sort(by: Helpers.paymentMethodSorter())
+            populateSections()
         }
         .toolbar {
             #if os(macOS)
@@ -111,6 +152,8 @@ struct PayMethodsTable: View {
                 #if os(macOS)
                 .frame(minWidth: 500, minHeight: 700)
                 .presentationSizing(.fitted)
+                #else
+                .presentationSizing(.page)
                 #endif
         }
         .onChange(of: paymentMethodEditID) { oldValue, newValue in
@@ -122,6 +165,7 @@ struct PayMethodsTable: View {
                 payModel.determineIfUserIsRequiredToAddPaymentMethod()
             }
         }
+        .onChange(of: somethingChanged) { populateSections() }
         .sheet(isPresented: $showDefaultViewingSheet, onDismiss: setDefaultViewingMethod) {
             PayMethodSheet(payMethod: $defaultViewingMethod, whichPaymentMethods: .all, showStartingAmountOption: false)
                 #if os(macOS)
@@ -157,13 +201,9 @@ struct PayMethodsTable: View {
                     .toolbarBorder()
                     .disabled(!AppState.shared.methsExist)
                 
-                defaultPayMethodMenu
+                moreMenu
                     .toolbarBorder()
                     .disabled(!AppState.shared.methsExist)
-                
-                
-                
-                
             }
         }
         ToolbarItem(placement: .principal) {
@@ -231,7 +271,7 @@ struct PayMethodsTable: View {
                             let text = meth.notificationOffset == 0 ? "On day of" : (meth.notificationOffset == 1 ? "The day before" : "2 days before")
                             Text(text)
                         } icon: {
-                            Image(systemName: "bell")
+                            Image(systemName: "alarm")
                         }
                     }
                 } else {
@@ -285,25 +325,31 @@ struct PayMethodsTable: View {
 //            }
             
             
-            Section("Debit") {
-                ForEach(debitMethods) { meth in
-                    TableRow(meth)
+            ForEach(payModel.sections) { section in
+                Section(section.kind.rawValue) {
+                    ForEach(section.payMethods) { meth in
+                        TableRow(meth)
+                    }
                 }
             }
             
-            Section("Credit") {
-                ForEach(creditMethods) { meth in
-                    TableRow(meth)
-                }
-            }
-            
-            Section("Other") {
-                ForEach(otherMethods) { meth in
-                    TableRow(meth)
-                }
-            }
-            
-            
+//            Section("Debit") {
+//                ForEach(debitMethods) { meth in
+//                    TableRow(meth)
+//                }
+//            }
+//            
+//            Section("Credit") {
+//                ForEach(creditMethods) { meth in
+//                    TableRow(meth)
+//                }
+//            }
+//            
+//            Section("Other") {
+//                ForEach(otherMethods) { meth in
+//                    TableRow(meth)
+//                }
+//            }
         }
         .clipped()
 
@@ -313,46 +359,72 @@ struct PayMethodsTable: View {
     #if os(iOS)
     @ToolbarContentBuilder
     func phoneToolbar() -> some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            defaultPayMethodMenu
-        }
-                
+        @Bindable var payModel = payModel
+        ToolbarItem(placement: .topBarLeading) { PayMethodSortMenu(sections: $payModel.sections) }
+        ToolbarSpacer(.fixed, placement: .topBarLeading)
+        ToolbarItem(placement: .topBarLeading) { moreMenu }
+        
         ToolbarItem(placement: .topBarTrailing) { ToolbarLongPollButton() }
         ToolbarItem(placement: .topBarTrailing) { ToolbarRefreshButton().disabled(!AppState.shared.methsExist) }
         ToolbarSpacer(.fixed, placement: .topBarTrailing)
-        ToolbarItem(placement: .topBarTrailing) {
-            Button {
-                paymentMethodEditID = UUID().uuidString
-            } label: {
-                Image(systemName: "plus")
-            }
-            .tint(.none)
-        }
+        ToolbarItem(placement: .topBarTrailing) { newAccountButton }
     }
     
     
     
     
+    @ViewBuilder
     var phoneList: some View {
+        @Bindable var payModel = payModel
+        
         List(selection: $paymentMethodEditID) {
-            
-            Section("Debit") {
-                ForEach(debitMethods) { meth in
-                    line(for: meth)
+            ForEach($payModel.sections) { $section in
+                Section(section.kind.rawValue) {
+                    ForEach(section.payMethods) { meth in
+                        line(for: meth)
+                    }
+                    .if(paymentMethodSortMode == .listOrder) {
+                        $0.onMove { indices, newOffset in
+                            // Move within this section only
+                            section.payMethods.move(fromOffsets: indices, toOffset: newOffset)
+                            Task {
+                                let listOrderUpdates = await payModel.setListOrders(sections: payModel.sections, calModel: calModel)
+                                let _ = await funcModel.submitListOrders(items: listOrderUpdates, for: .paymentMethods)
+                            }
+                        }
+                    }
                 }
             }
             
-            Section("Credit") {
-                ForEach(creditMethods) { meth in
-                    line(for: meth)
-                }
-            }
+                
             
-            Section("Other") {
-                ForEach(otherMethods) { meth in
-                    line(for: meth)
-                }
-            }
+            
+//            Section("Debit") {
+//                ForEach(debitMethods) { meth in
+//                    line(for: meth)
+//                }
+//                .if(paymentMethodSortMode == .listOrder) {
+//                    $0.onMove(perform: move)
+//                }
+//            }
+//            
+//            Section("Credit") {
+//                ForEach(creditMethods) { meth in
+//                    line(for: meth)
+//                }
+//                .if(paymentMethodSortMode == .listOrder) {
+//                    $0.onMove(perform: move)
+//                }
+//            }
+//            
+//            Section("Other") {
+//                ForEach(otherMethods) { meth in
+//                    line(for: meth)
+//                }
+//                .if(paymentMethodSortMode == .listOrder) {
+//                    $0.onMove(perform: move)
+//                }
+//            }
             
             
 //            Section("Combined Payment Methods") {
@@ -407,114 +479,120 @@ struct PayMethodsTable: View {
 //            }
         }
         .listStyle(.plain)
+        .navigationDestination(for: CBPaymentMethod.self) { meth in
+            PayMethodOverView(payMethod: meth, editID: $paymentMethodEditID)
+        }
     }
     
     
     @ViewBuilder func line(for meth: CBPaymentMethod) -> some View {
         if meth.isUnified {
-            HStack(spacing: 4) {
-                Circle()
-                    .fill(AngularGradient(gradient: Gradient(colors: [.red, .yellow, .green, .blue, .purple, .red]), center: .center))
-                    .frame(width: 12, height: 12)
-                                                
-                    Text(meth.title)
-                    Spacer()
-                    Text(XrefModel.getItem(from: .accountTypes, byID: meth.accountType.rawValue).description)
-                        .foregroundStyle(.gray)
-                        .font(.caption)
+            Label {
+                VStack(alignment: .leading) {
+                    HStack {
+                        Text(meth.title)
+                        Spacer()
+                        
+                        if meth.isDebit {
+                            Text("\(funcModel.getPlaidDebitSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                                //.foregroundStyle(.gray)
+                                //.font(.caption)
+                        } else {
+                            Text("\(funcModel.getPlaidCreditSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                                //.foregroundStyle(.gray)
+                                //.font(.caption)
+                        }
+                    }
+                    
+                    HStack {
+                        Text(XrefModel.getItem(from: .accountTypes, byID: meth.accountType.rawValue).description)
+                            .foregroundStyle(.gray)
+                            .font(.caption)
+                        
+                        Spacer()
+                    }
+                    
+                }
+            } icon: {
+                BusinessLogo(parent: meth, fallBackType: .gradient)
             }
         } else {
-            HStack(alignment: .circleAndTitle, spacing: 4) {
-                Circle()
-                    .fill(meth.color)
-                    .frame(width: 12, height: 12)
-                    .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-                
-//                if meth.isViewingDefault {
-//                    Image(systemName: "checkmark.circle.fill")
-//                        .foregroundStyle(.green)
-//                        .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-//                }
-//                
+            Label {
                 VStack(alignment: .leading) {
                     HStack {
                         Text(meth.title)
                         if meth.isPrivate { Image(systemName: "person.slash") }
                         if meth.isHidden { Image(systemName: "eye.slash") }
+                        if meth.notifyOnDueDate { Image(systemName: "alarm") }
                                                 
                         Spacer()
+                        
+                        if let balance = plaidModel.balances.filter({ $0.payMethodID == meth.id }).first {
+                            Text(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                                //.foregroundStyle(.gray)
+                                //.font(.caption)
+                        }
+                    }
+                    
+                    
+                    HStack {
+                        
                         Text(XrefModel.getItem(from: .accountTypes, byID: meth.accountType.rawValue).description)
                             .foregroundStyle(.gray)
                             .font(.caption)
-                    }
-                    .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-                    
-                    if let balance = plaidModel.balances.filter({ $0.payMethodID == meth.id }).first {
-                        HStack {
-                            //Text("Balance as of \(balance.lastTimeICheckedPlaidSyncedDate?.string(to: .monthDayYearHrMinAmPm) ?? "N/A"):")
-                            Text("Balance as of \(balance.enteredDate?.string(to: .monthDayYearHrMinAmPm) ?? "N/A"):")
-                            Spacer()
-                            Text(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                        Spacer()
+                        
+                        if let balance = plaidModel.balances.filter({ $0.payMethodID == meth.id }).first {
+                            Text(Date().timeSince(balance.enteredDate))
+                                .foregroundStyle(.gray)
+                                .font(.caption)
                         }
-                        .foregroundStyle(.gray)
-                        .font(.caption)
-                    }
-                    
-                    
-//                    if meth.accountType == .checking || meth.accountType == .credit {
-//                        HStack {
-//                            Text("Last 4:")
-//                            Spacer()
-//                            if meth.last4 == nil {
-//                                Text("N/A")
-//                            } else {
-//                                Text("xxxxx\(meth.last4 ?? "-")")
-//                            }
-//                        }
-//                        .foregroundStyle(.gray)
-//                        .font(.caption)
-//                    }
-                    
-//                    if meth.accountType == .credit {
-//                        HStack {
-//                            Text("Limit:")
-//                            Spacer()
-//                            if meth.accountType == .credit {
-//                                Text(meth.limit?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-")
-//                            }
-//                        }
-//                        .foregroundStyle(.gray)
-//                        .font(.caption)
-//                    
-//                    
-//                        HStack {
-//                            Text("Due Date:")
-//                            Spacer()
-//                            VStack(alignment: .trailing) {
-//                                Text("The \(meth.dueDate?.withOrdinal() ?? "N/A")")
-//                            }
-//                        }
-//                        .foregroundStyle(.gray)
-//                        .font(.caption)
-//                    }
-                    
-                    
-                    if meth.notifyOnDueDate {
-                        HStack {
-                            Text("Reminder:")
-                            Spacer()
-                            let text = meth.notificationOffset == 0 ? "On day of" : (meth.notificationOffset == 1 ? "The day before" : "2 days before")
-                            Text(text)
-                        }
-                        .foregroundStyle(.gray)
-                        .font(.caption)
                     }
                 }
+            } icon: {
+                BusinessLogo(parent: meth, fallBackType: .color)
             }
+            
+//            HStack(spacing: 8) {
+//                BusinessLogo(parent: meth, fallBackType: .color)
+//                VStack(alignment: .leading) {
+//                    HStack {
+//                        Text(meth.title)
+//                        if meth.isPrivate { Image(systemName: "person.slash") }
+//                        if meth.isHidden { Image(systemName: "eye.slash") }
+//                        if meth.notifyOnDueDate { Image(systemName: "alarm") }
+//                                                
+//                        Spacer()
+//                        Text(XrefModel.getItem(from: .accountTypes, byID: meth.accountType.rawValue).description)
+//                            .foregroundStyle(.gray)
+//                            .font(.caption)
+//                    }
+//                    
+//                    if let balance = plaidModel.balances.filter({ $0.payMethodID == meth.id }).first {
+//                        Text("\(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)) (\(Date().timeSince(balance.enteredDate)))")
+//                            .foregroundStyle(.gray)
+//                            .font(.caption)
+//                    }
+//                }
+//            }
         }
     }
     
-    
+   
+    var newAccountButton: some View {
+        Button {
+            paymentMethodEditID = UUID().uuidString
+        } label: {
+            Image(systemName: "plus")
+        }
+        .tint(.none)
+    }
+   
+    var useBusinessLogosToggle: some View {
+        Toggle(isOn: $useBusinessLogos) {
+            Text("Use Business Logos")
+        }
+    }
     
     
     
@@ -523,14 +601,18 @@ struct PayMethodsTable: View {
     #endif
     
     
-    var defaultPayMethodMenu: some View {
+    var moreMenu: some View {
         Menu {
-            Section("Default for viewing") {
+            Section("Default Viewing Account") {
                 showDefaultForViewingSheetButton
             }
             
-            Section("Default for editing") {
+            Section("Default Editing Account") {
                 showDefaultForEditingSheetButton
+            }
+            
+            Section("Appearance") {
+                useBusinessLogosToggle
             }
             
 //            Section("View") {
@@ -599,6 +681,50 @@ struct PayMethodsTable: View {
     }
     
     
+    func populateSections() {
+        let newSections = payModel.getApplicablePayMethods(
+            type: .all,
+            calModel: calModel,
+            plaidModel: plaidModel,
+            searchText: $searchText,
+            includeHidden: true
+        )
+        
+        /// Use this to allow the animations to work when adding or removing a payment method.
+        for newSection in newSections {
+            if let index = payModel.sections.firstIndex(where: { $0.kind == newSection.kind }) {
+                
+                let oldSection = payModel.sections[index]
+                
+                for meth in newSection.payMethods {
+                    if oldSection.doesExist(meth) {
+                        if let index = oldSection.getIndex(for: meth) {
+                            oldSection.payMethods[index].setFromAnotherInstance(payMethod: meth)
+                        }
+                    } else {
+                        withAnimation {
+                            oldSection.upsert(meth)
+                        }
+                    }
+                }
+                                                        
+                for meth in oldSection.payMethods {
+                    if !newSection.doesExist(meth) {
+                        withAnimation {
+                            oldSection.payMethods.removeAll { $0.id == meth.id }
+                        }
+                    }
+                }
+                
+                withAnimation {
+                    oldSection.payMethods.sort(by: Helpers.paymentMethodSorter())
+                }
+            }
+        }
+    
+    }
+    
+    
     func setDefaultViewingMethod() {
         //print("-- \(#function)")
         if let defaultViewingMethod = defaultViewingMethod {
@@ -630,6 +756,29 @@ struct PayMethodsTable: View {
             print("not set")
         }
     }
+    
+//    func move(from source: IndexSet, to destination: Int) {
+//        payModel.paymentMethods.move(fromOffsets: source, toOffset: destination)
+//
+//        
+////        /// Create an index map of non-nil items.
+////        let filteredIndices = payModel.paymentMethods.enumerated()
+////            .map { $0.offset }
+////
+////        /// Convert filtered indices to original indices.
+////        guard let sourceInFiltered = source.first, sourceInFiltered < filteredIndices.count, destination <= filteredIndices.count else { return }
+////
+////        let ogSourceIndex = filteredIndices[sourceInFiltered]
+////        let ogDestIndex = destination == filteredIndices.count ? payModel.paymentMethods.count : filteredIndices[destination]
+////
+////        /// Mutate the original array.
+////        payModel.paymentMethods.move(fromOffsets: IndexSet(integer: ogSourceIndex), toOffset: ogDestIndex)
+//                
+//         Task {
+//             let listOrderUpdates = await payModel.setListOrders(calModel: calModel)
+//             let _ = await funcModel.submitListOrders(items: listOrderUpdates, for: .paymentMethods)
+//         }
+//    }
 }
 
 

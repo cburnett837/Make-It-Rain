@@ -30,7 +30,7 @@ struct RepeatingTransactionsTable: View {
     
     var filteredTransactions: [CBRepeatingTransaction] {
         repModel.repTransactions
-            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedStandardContains(searchText) }
+            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedCaseInsensitiveContains(searchText) }
     }
         
     var body: some View {
@@ -41,13 +41,17 @@ struct RepeatingTransactionsTable: View {
                 #if os(macOS)
                 macTable
                 #else
-                phoneList
+                if filteredTransactions.isEmpty {
+                    ContentUnavailableView("No transactions found", systemImage: "exclamationmark.magnifyingglass")
+                } else {
+                    phoneList
+                }
                 #endif
             } else {
                 ContentUnavailableView("No Reoccuring Transactions", systemImage: "repeat", description: Text("Click the plus button above to add a new repeating transaction."))
             }
         }
-        //.loadingSpinner(id: .repeatingTransactions, text: "Loading Reoccuring Transactions…")
+        //.calendarLoadingSpinner(id: .repeatingTransactions, text: "Loading Reoccuring Transactions…")
         #if os(iOS)
         .navigationTitle("Reoccuring Transactions")
         //.navigationBarTitleDisplayMode(.inline)
@@ -177,38 +181,61 @@ struct RepeatingTransactionsTable: View {
         List(filteredTransactions, selection: $repTransactionEditID) { repTrans in
             HStack(alignment: .circleAndTitle, spacing: 4) {
                 
-                Circle()
-                    .fill(repTrans.category?.color ?? .clear)
-                    .frame(width: 12, height: 12)
+                StandardCategorySymbol(cat: repTrans.category, labelWidth: labelWidth)
                     .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                
+                
+//                Circle()
+//                    .fill(repTrans.category?.color ?? .clear)
+//                    .frame(width: 12, height: 12)
+//                    .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
                 
                 VStack(alignment: .leading) {
                     HStack {
                         Text(repTrans.title)
                         Spacer()
                         Text(repTrans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                            .foregroundStyle(.gray)
-                            .font(.caption)
+                            //.foregroundStyle(.gray)
+                            //.font(.caption)
                     }
                     .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-                                       
-                    
-                    
+                    //.alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                           
                     HStack {
-                        Text("Account")
-                        Spacer()
                         Text(repTrans.payMethod?.title ?? "N/A")
-                    }
-                    .foregroundStyle(.gray)
-                    .font(.caption)
-                    
-                    HStack {
-                        Text("Category:")
+                            .foregroundStyle(.gray)
+                            .font(.caption)
+                        
                         Spacer()
-                        Text(repTrans.category?.title ?? "N/A")
+                        
+                        Group {
+                            if repTrans.when.filter({ $0.whenType == .month }).allSatisfy({ $0.active }) {
+                                Text("Monthly")
+                                    
+                            } else if repTrans.when.filter({ $0.whenType == .month && $0.active }).count == 1 {
+                                Text("Annually")
+                            }
+                        }
+                        .foregroundStyle(.gray)
+                        .font(.caption)
                     }
-                    .foregroundStyle(.gray)
-                    .font(.caption)
+                    
+                    
+//                    HStack {
+//                        Text("Account")
+//                        Spacer()
+//                        Text(repTrans.payMethod?.title ?? "N/A")
+//                    }
+//                    .foregroundStyle(.gray)
+//                    .font(.caption)
+                    
+//                    HStack {
+//                        Text("Category:")
+//                        Spacer()
+//                        Text(repTrans.category?.title ?? "N/A")
+//                    }
+//                    .foregroundStyle(.gray)
+//                    .font(.caption)
                 }
             }            
         }

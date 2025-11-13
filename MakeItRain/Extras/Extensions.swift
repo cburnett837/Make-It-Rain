@@ -208,6 +208,7 @@ extension View {
             .accessibilityIdentifier("UniversalToastContent")
     }
     
+    #if os(macOS)
     func toolbarKeyboard(padding: Double = 6, alignment: TextAlignment = .leading) -> some View {
         modifier(ToolbarKeyboard(padding: padding, alignment: alignment))
     }
@@ -215,6 +216,7 @@ extension View {
     func toolbarBorder() -> some View {
         modifier(ToolbarBorder())
     }
+    #endif
     
     func chevronMenuOverlay() -> some View {
         modifier(ChevronMenuOverlay())
@@ -244,18 +246,18 @@ extension View {
         modifier(ViewHeightObserver())
     }
     
-    func loadingSpinner(id: NavDestination, text: String) -> some View {
-        modifier(LoadingSpinner(id: id, text: text))
+    func calendarLoadingSpinner(id: NavDestination, text: String) -> some View {
+        modifier(CalendarLoadingSpinner(id: id, text: text))
     }
     
-    func loadingSpinner(id: NavDestination) -> some View {
-        modifier(LoadingSpinner(id: id))
+    func calendarLoadingSpinner(id: NavDestination) -> some View {
+        modifier(CalendarLoadingSpinner(id: id))
     }
     
     #if os(iOS)
-    func bottomPanelAndScrollViewHeightAdjuster(bottomPanelHeight: Binding<CGFloat>, scrollContentMargins: Binding<CGFloat>) -> some View {
-        modifier(SheetHeightAdjuster(bottomPanelHeight: bottomPanelHeight, scrollContentMargins: scrollContentMargins))
-    }
+//    func bottomPanelAndScrollViewHeightAdjuster(bottomPanelHeight: Binding<CGFloat>, scrollContentMargins: Binding<CGFloat>) -> some View {
+//        modifier(SheetHeightAdjuster(bottomPanelHeight: bottomPanelHeight, scrollContentMargins: scrollContentMargins))
+//    }
    
     func getRect() -> CGRect {
         return UIScreen.main.bounds
@@ -278,35 +280,50 @@ extension View {
     
     #endif
     
-    func widgetShape(height: CGFloat? = nil) -> some View {
-        modifier(WidgetFolderMods(height: height))
+//    func widgetShape(height: CGFloat? = nil) -> some View {
+//        modifier(WidgetFolderMods(height: height))
+//    }                    
+    
+    func schemeBasedForegroundStyle() -> some View {
+        modifier(SchemeBasedForegroundStyle())
     }
     
-    
-    func transactionEditSheetAndLogic(
-        calModel: CalendarModel,
-        transEditID: Binding<String?>,
-        editTrans: Binding<CBTransaction?>,
-        selectedDay: Binding<CBDay?>,
-        overviewDay: Binding<CBDay?> = .constant(nil),
-        findTransactionWhere: Binding<WhereToLookForTransaction> = .constant(.normalList),
-        presentTip: Bool = false,
-        resetSelectedDayOnClose: Bool = false,
-        //newTransactionMenuButtonNamespace: Namespace.ID = NamespaceContainer.defaultNamespace
-    ) -> some View {
-        modifier(TransactionEditSheetAndLogic(
-            calModel: calModel,
-            transEditID: transEditID,
-            editTrans: editTrans,
-            selectedDay: selectedDay,
-            overviewDay: overviewDay,
-            findTransactionWhere: findTransactionWhere,
-            presentTip: presentTip,
-            resetSelectedDayOnClose: resetSelectedDayOnClose,
-            //newTransactionMenuButtonNamespace: newTransactionMenuButtonNamespace
-        ))
+    func schemeBasedTint() -> some View {
+        modifier(SchemeBasedTint())
     }
+    
+    func animatedLineChart<ChartContent: View>(beginAnimation: Bool, _ chart: @escaping (_ showLines: Bool) -> ChartContent) -> some View {
+        modifier(AnimatedLineChart(beginAnimation: beginAnimation, chart: chart))
+    }    
 }
+//
+//struct CurrencyTextModifier: ViewModifier {
+//    @Local(\.useWholeNumbers) var useWholeNumbers
+//
+//    func body(content: Content) -> some View {
+//        // Try to extract the text and convert it to Double
+//        if let text = Mirror(reflecting: content).descendant("storage", "anyTextStorage", "verbatim") as? String, let value = Double(text) {
+//            let formatted = formatCurrency(value)
+//            Text(formatted)
+//        } else {
+//            content
+//        }
+//    }
+//
+//    private func formatCurrency(_ value: Double) -> String {
+//        let formatter = NumberFormatter()
+//        formatter.numberStyle = .currency
+//        formatter.currencyCode = "USD"
+//        formatter.maximumFractionDigits = useWholeNumbers ? 0 : 2
+//        return formatter.string(from: NSNumber(value: value)) ?? ""
+//    }
+//}
+//
+//extension View where Self == Text {
+//    func currency() -> some View {
+//        self.modifier(CurrencyTextModifier())
+//    }
+//}
 
 
 
@@ -609,6 +626,11 @@ extension Color {
         }
     }
     
+    static var theme: Color {
+        @Local(\.colorTheme) var colorTheme
+        return AppState.shared.colorMenuOptions.first(where: { $0.description == colorTheme })!
+    }
+    
     
     
     
@@ -854,7 +876,7 @@ extension Array where Element: FloatingPoint {
 
 #if os(iOS)
 extension View {
-    func disableZoomeInteractiveDismiss() -> some View {
+    func disableZoomInteractiveDismiss() -> some View {
         self
             .background(RemoveZoomDismissGestures())
     }

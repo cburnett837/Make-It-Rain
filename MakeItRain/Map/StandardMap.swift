@@ -110,6 +110,13 @@ struct SearchSuggestions: View {
             withAnimation {
                 if let location = location {
                     mapModel.searchResults = [location]
+                    
+                    //mapModel.selectedMapItem = mapModel.selection?.value
+                    
+//                    let cbLocation = CBLocation(relatedID: parentID, locationType: parentType, title: location.title, mapItem: location.mapItem)
+//                    
+//                    mapModel.selection = MapSelection(cbLocation)
+                    
                 }
                 //mapModel.searchResults.removeAll()
                 mapModel.showSearchSuggestions = false
@@ -124,7 +131,7 @@ struct SearchSuggestions: View {
 
 
 struct StandardMapView: View {
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
     @Environment(MapModel.self) private var mapModel
@@ -176,10 +183,19 @@ struct StandardMapView: View {
                     searchResults
                     favoriteLocations
                     
-                    if let route = mapModel.route {
-                        MapPolyline(route)
-                            .stroke(.blue, lineWidth: 5)
+                    /// Show a marker if a user selects a specific location from the search results. /*, or touch and holds.*/
+                    if let mapSelection = mapModel.selection, let mapItem = mapSelection.value?.mapItem {
+                        if parent.locations.filter({ $0.active && $0.mapItem?.identifier == mapItem.identifier }).isEmpty {
+                            Marker(item: mapItem)
+                                .tag(mapSelection)
+                        }
+                        
                     }
+                    
+//                    if let route = mapModel.route {
+//                        MapPolyline(route)
+//                            .stroke(.blue, lineWidth: 5)
+//                    }
                 }
                 /// Toggle between map, traffic, satellite.
                 .mapStyle(mapStyle.option)
@@ -193,6 +209,7 @@ struct StandardMapView: View {
                     if let coordinate = proxy.convert(position, from: .global) {
                         Task {
                             if let location = await mapModel.addLocationViaTouchAndHold(coordinate: coordinate, parentID: parentID, parentType: parentType) {
+                                /// /*Don't upsert because the map marker for when you select a result from the search results will get confused and you will end up with 2 markers.*/
                                 parent.upsert(location)
                             }
                         }
@@ -236,7 +253,7 @@ struct StandardMapView: View {
                         MapBottomPanel(parent: parent, locations: $locations)
                     }
                 }
-                .presentationDetents([.height(120), .height(200), .medium])
+                .presentationDetents([.height(140), .height(200), .medium])
                 .presentationBackgroundInteraction(.enabled)
             }
             /// Update visible region on camera change.
@@ -265,6 +282,11 @@ struct StandardMapView: View {
     
     @ToolbarContentBuilder
     func mapToolbar() -> some ToolbarContent {
+        if AppState.shared.isIpad {
+            ToolbarItem(placement: .topBarLeading) { closeButton }
+            ToolbarSpacer(.fixed, placement: .topBarLeading)
+        }
+        
         ToolbarItem(placement: .topBarLeading) { mapStyleButton }
         ToolbarItem(placement: .topBarLeading) { currentLocationButton }
                     
@@ -273,7 +295,10 @@ struct StandardMapView: View {
             ToolbarItem(placement: .topBarTrailing) { ClearMapSearchButton() }
             ToolbarSpacer(.fixed, placement: .topBarTrailing)
         }
-        ToolbarItem(placement: .topBarTrailing) { closeButton }
+        if AppState.shared.isIphone {
+            ToolbarItem(placement: .topBarTrailing) { closeButton }
+        }
+        
     }
     
     
@@ -285,9 +310,16 @@ struct StandardMapView: View {
             }
         } label: {
             Image(systemName: "xmark")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+                .schemeBasedForegroundStyle()
         }
     }
+    
+//    @MapContentBuilder
+//    var selectedLocation: some MapContent {
+//        if let mapSelection = mapModel.selection, let mapItem = mapSelection.value?.mapItem {
+//            Marker(item: mapItem)
+//        }
+//    }
     
     
     var searchResults: some MapContent {
@@ -307,16 +339,33 @@ struct StandardMapView: View {
         }
     }
 
-    
     var currentLocationButton: some View {
         Button {
-            withAnimation { mapModel.position = .userLocation(fallback: .automatic) }
+            if LocationManager.shared.authIsAllowed == false && LocationManager.shared.manager.authorizationStatus == .denied {
+                let openSettingsButton = AlertConfig.AlertButton(
+                    closeOnFunction: true,
+                    config: .init(text: "Open Settings", function: {
+                        let settingsAppURL = URL(string: UIApplication.openSettingsURLString)!
+                        UIApplication.shared.open(settingsAppURL, options: [:], completionHandler: nil)
+                    })
+                )
+                let alertConfig = AlertConfig(
+                    title: "Location Serviced Disabled",
+                    subtitle: "Please enable Location Services by going to Settings -> Privacy & Security",
+                    symbol: .init(name: "location.slash.fill", color: .orange), primaryButton: openSettingsButton
+                )
+                AppState.shared.showAlert(config: alertConfig)
+            } else {
+                withAnimation { mapModel.position = .userLocation(fallback: .automatic) }
+            }
+            
         } label: {
             Image(systemName: mapModel.position.positionedByUser ? "location" : "location.fill")
                 .contentTransition(.symbolEffect(.replace))
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(.primary)
         }
+        
     }
     
     
@@ -442,42 +491,59 @@ struct MapBottomPanel: View {
     @Binding var locations: [CBLocation]
 
     @State private var showSteps = false
+    
+    private struct TransitOption: Identifiable {
+        let id = UUID()
+        let mode: String
+        let text: String
+        let symbol: String
+    }
+
+    private let transitOptions: [TransitOption] = [
+        TransitOption(mode: MKLaunchOptionsDirectionsModeDriving, text: "Driving", symbol: "car.fill"),
+        TransitOption(mode: MKLaunchOptionsDirectionsModeWalking, text: "Walking", symbol: "figure.walk"),
+        TransitOption(mode: MKLaunchOptionsDirectionsModeTransit, text: "Transit", symbol: "tram.fill"),
+        TransitOption(mode: MKLaunchOptionsDirectionsModeCycling, text: "Cycling", symbol: "bicycle")
+    ]
 
     var body: some View {
         NavigationStack {
             if let selection = mapModel.selectedMapItem {
                 VStack {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 8) {
                         directionsMenu
                         ShowItemDetailsButton()
                         saveOrDeleteButton
                     }
                     .scenePadding()
-                    
-                    //Spacer()
                 }
                 .buttonStyle(.borderedProminent)
                 .navigationTitle(selection.title)
+                #if os(iOS)
                 .navigationSubtitle(selection.mapItem?.address?.shortAddress ?? "Address unavailable")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar { bottomPanelToolbar(selection: selection) }
+                #else
+                .navigationSubtitle(selection.mapItem?.placemark.title ?? "Address unavailable")
+                #endif
             } else {
                 Text("No Selection")
             }
         }
         /// Show direction steps
-        .sheet(isPresented: $showSteps) { stepByStepDirectionsList }
+        .sheet(isPresented: $showSteps) { StepByStepDirectionsView() }
     }
     
     @ToolbarContentBuilder
     func bottomPanelToolbar(selection: CBLocation) -> some ToolbarContent {
         //ToolbarItem(placement: .topBarLeading) { directionsMenu }
+        #if os(iOS)
         ToolbarItem(placement: .topBarLeading) {
             Button {
                 selection.mapItem?.openInMaps(launchOptions: [:])
             } label: {
                 Image(systemName: "map")
-                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+                    .schemeBasedForegroundStyle()
             }
         }
         //ToolbarItem(placement: .topBarTrailing) { saveOrDeleteButton }
@@ -492,35 +558,21 @@ struct MapBottomPanel: View {
                 }
             } label: {
                 Image(systemName: "xmark")
-                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+                    .schemeBasedForegroundStyle()
             }
             .keyboardShortcut(.return, modifiers: [.command]) /// Just because I am used to it from the original app.
         }
-    }
-    
-    
-    @ViewBuilder
-    var stepByStepDirectionsList: some View {
-        if let route = mapModel.route {
-            List(route.steps, id: \.self) { step in
-                VStack(alignment: .leading) {
-                    Text(step.instructions)
-                    Text("\(mapModel.distance(meters: step.distance))")
-                        .foregroundStyle(.gray)
-                        .font(.caption)
-                }
+        #else
+        ToolbarItem(placement: .navigation) {
+            Button {
+                selection.mapItem?.openInMaps(launchOptions: [:])
+            } label: {
+                Image(systemName: "map")
+                    .schemeBasedForegroundStyle()
             }
-        } else {
-           Text("Route is unavailable")
-       }
+        }
+        #endif
     }
-    
-    
-//    var calculatingTravelTimeView: some View {
-//        Text(mapModel.isCalculatingRoute ? "Calculating Travel Time…" : "\(mapModel.travelTime ?? "N/A")")
-//            //.foregroundStyle(.gray)
-//            //.font(.caption)
-//    }
     
     
     var saveOrDeleteButton: some View {
@@ -531,10 +583,16 @@ struct MapBottomPanel: View {
                 if isSaved {
                     parent.deleteLocation(id: mapModel.selectedMapItem!.id)
                     //mapModel.panelContent = nil
-                    mapModel.route = nil
+                    //mapModel.route = nil
                 } else {
                     mapModel.searchResults.removeAll { $0.mapItem?.identifier == selection.mapItem?.identifier }
                     parent.upsert(selection)
+                    
+                    if parent.title.isEmpty {
+                        parent.setTitle(selection.title)
+                        //parent.title = selection.title
+                    }
+                    
                     withAnimation {
                         mapModel.selection = MapSelection(selection)
                     }
@@ -543,12 +601,11 @@ struct MapBottomPanel: View {
                 }
             }
         } label: {
-            Label {
-                Text(isSaved ? "Remove" : "Save")
-            } icon: {
-                Image(systemName: isSaved ? "trash" : "heart")
-            }
-            .frame(maxWidth: .infinity)
+            Image(systemName: isSaved ? "trash" : "heart")
+            //Label(isSaved ? "Remove" : "Save", systemImage: isSaved ? "trash" : "heart")
+                .contentTransition(.symbolEffect(.replace))
+                .padding(.vertical, 4)
+                .frame(maxWidth: .infinity)
         }
         .tint(isSaved ? .red : .orange)
     }
@@ -557,9 +614,7 @@ struct MapBottomPanel: View {
     var directionsMenu: some View {
         Menu {
             Section {
-                directionsCarButton
-                directionsWalkingButton
-                directionsTransitButton
+                ForEach(transitOptions) { transitOption($0) }
             }
             Section {
                 directionsByStepButton
@@ -570,59 +625,24 @@ struct MapBottomPanel: View {
                     .frame(maxWidth: .infinity)
                     .tint(.none)
             } else {
-                Label {
-                    Text(mapModel.travelTime ?? "N/A")
-                } icon: {
-                    Image(systemName: "car.fill")
-                        .foregroundStyle(colorScheme == .dark ? .white : .black)
-                }
-                .frame(maxWidth: .infinity)
+                Label(mapModel.travelTime ?? "N/A", systemImage: "car.fill")
+                    .schemeBasedForegroundStyle()
+                    .padding(.vertical, 4)
+                    .frame(maxWidth: .infinity)
             }
         }
     }
     
     
-    var directionsCarButton: some View {
+    private func transitOption(_ opt: TransitOption) -> some View {
         Button {
             Task {
-                let _ = await mapModel.selectedMapItem!.mapItem?.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey : MKLaunchOptionsDirectionsModeDriving], from: UIApplication.shared.connectedScenes.first)
+                #if os(iOS)
+                let _ = await mapModel.selectedMapItem!.mapItem?.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey : opt.mode], from: UIApplication.shared.connectedScenes.first)
+                #endif
             }
         } label: {
-            Label {
-                Text("Driving")
-            } icon: {
-                Image(systemName: "car.fill")
-            }
-        }
-    }
-    
-    
-    var directionsWalkingButton: some View {
-        Button {
-            Task {
-                let _ = await mapModel.selectedMapItem!.mapItem?.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey : MKLaunchOptionsDirectionsModeWalking], from: UIApplication.shared.connectedScenes.first)
-            }
-        } label: {
-            Label {
-                Text("Walking")
-            } icon: {
-                Image(systemName: "figure.walk")
-            }
-        }
-    }
-    
-    
-    var directionsTransitButton: some View {
-        Button {
-            Task {
-                let _ = await mapModel.selectedMapItem!.mapItem?.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey : MKLaunchOptionsDirectionsModeTransit], from: UIApplication.shared.connectedScenes.first)
-            }
-        } label: {
-            Label {
-                Text("Transit")
-            } icon: {
-                Image(systemName: "tram.fill")
-            }
+            Label(opt.text, systemImage: opt.symbol)
         }
     }
     
@@ -631,16 +651,11 @@ struct MapBottomPanel: View {
         Button {
             showSteps = true
         } label: {
-            Label {
-                Text("Steps")
-            } icon: {
-                Image(systemName: "list.bullet")
-            }
+            Label("Steps", systemImage: "list.bullet")
         }
     }
     
-    
-    
+        
     struct ShowItemDetailsButton: View {
         @Environment(MapModel.self) private var mapModel
         @State private var showDetails = false
@@ -651,13 +666,54 @@ struct MapBottomPanel: View {
                 showDetails = true
             } label: {
                 Text("Details")
+                    .padding(.vertical, 4)
                     .frame(maxWidth: .infinity)
             }
             .mapItemDetailSheet(isPresented: $showDetails, item: mapModel.selectedMapItem?.mapItem, displaysMap: true)
         }
     }
-
     
+    
+    struct StepByStepDirectionsView: View {
+        @Environment(\.dismiss) var dismiss
+        @Environment(\.colorScheme) var colorScheme
+        @Environment(MapModel.self) private var mapModel
+        
+        var body: some View {
+            NavigationStack {
+                VStack {
+                    if let route = mapModel.route {
+                        /// Cut off the first step since it shows a blank.
+                        List(route.steps.suffix(route.steps.count - 1), id: \.self) { step in
+                            VStack(alignment: .leading) {
+                                Text(step.instructions)
+                                Text("\(mapModel.distance(meters: step.distance))")
+                                    .foregroundStyle(.gray)
+                                    .font(.caption)
+                            }
+                        }
+                    } else {
+                       Text("Route is unavailable")
+                    }
+                }
+                .navigationTitle("Directions")
+                #if os(iOS)
+                .navigationSubtitle(mapModel.selectedMapItem?.mapItem?.name ?? "Unknown Location")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar { ToolbarItem(placement: .topBarTrailing) { closeButton } }
+                #endif
+            }
+        }
+        
+        var closeButton: some View {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .schemeBasedForegroundStyle()
+            }
+        }
+    }
 }
 
 
@@ -744,7 +800,7 @@ struct ClearMapSearchButton: View {
 //
 //
 //struct StandardMapViewOG: View {
-//    @Local(\.colorTheme) var colorTheme
+//    //@Local(\.colorTheme) var colorTheme
 //
 //    @Environment(\.dismiss) var dismiss
 //    @Environment(MapModel.self) private var mapModel

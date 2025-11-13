@@ -21,6 +21,10 @@ class CBDay: Identifiable, Hashable, Equatable {
         }        
     }
     
+    var isPlaceholder: Bool {
+        date == nil
+    }
+    
     var weekday: String {
         AppState.shared.dateFormatter.weekdaySymbols[Calendar.current.component(.weekday, from: self.date!) - 1]
     }

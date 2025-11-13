@@ -24,13 +24,17 @@ struct RootViewWrapper<Content: View>: View {
     @Environment(PlaidModel.self) private var plaidModel
     //@Environment(MapModel.self) private var mapModel
     
+    @Binding var showCamera: Bool
+
+    
     var content: Content
         
     #if os(iOS)
     @State private var window: UIWindow?
     #endif
     
-    init(@ViewBuilder content: @escaping () -> Content) {
+    init(showCamera: Binding<Bool>, @ViewBuilder content: @escaping () -> Content) {
+        self._showCamera = showCamera
         self.content = content()
     }
                         
@@ -71,7 +75,7 @@ struct RootViewWrapper<Content: View>: View {
     private func createOverlayWindow() {
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene, window == nil {
             let rootVC = UIHostingController(rootView:
-                AlertAndToastLayerView()
+                AlertAndToastLayerView(showCamera: $showCamera)
                     .environment(funcModel)
                     .environment(calModel)
                     .environment(payModel)

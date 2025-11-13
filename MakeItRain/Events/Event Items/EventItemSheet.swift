@@ -25,7 +25,7 @@ struct EventItemSheet: View {
             return event.items
                 .sorted { $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000 }
         } else {
-            return event.items.filter { $0.title.localizedStandardContains(searchText) }
+            return event.items.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
                 .sorted { $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000 }
         }
     }

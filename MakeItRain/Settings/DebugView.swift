@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import PDFKit
 
 struct DebugView: View {
     @AppStorage("debugPrint") var debugPrint = false
@@ -14,13 +15,25 @@ struct DebugView: View {
     @Environment(FuncModel.self) var funcModel
     
     @State private var plaidCosts: Array<PlaidForceRefreshCost> = []
+    @State private var showBasicAlert = false
+    @State private var text = ""
+    @FocusState private var focusedField: Int?
     
     var body: some View {
         List {
+            #if os(iOS)
+            customNumPad
+            #endif
+            
             Section {
                 dumpCoreDataButton
                 printAllBudgetsButton
+                documentTester
+                logoNavLink
             }
+            
+            
+            alertSection
             
             Section("Xcode") {
                 consolePrintToggle
@@ -43,6 +56,82 @@ struct DebugView: View {
         }
     }
     
+    @State private var showFileImporter = false
+    @State private var selectedFileURL: URL?
+
+    @ViewBuilder
+    var documentTester: some View {
+        @Bindable var photoModel = FileModel.shared
+        Button("Select Document") {
+                showFileImporter = true
+            }
+            .fileImporter(
+                isPresented: $showFileImporter,
+                allowedContentTypes: [.pdf, .plainText, .commaSeparatedText], // Specify the allowed document types
+                allowsMultipleSelection: false // Set to true for multiple selection
+            ) { result in
+                switch result {
+                case .success(let urls):
+                    // Handle the selected URL(s)
+                    if let url = urls.first {
+                        selectedFileURL = url
+                        
+                        //PDFKitView(url: pdfURL)
+                        
+                        Task {
+                            if let safeUrl = selectedFileURL, let fileData = try? Data(contentsOf: safeUrl) {
+                                typealias ResultResponse = Result<ResultCompleteModel?, AppError>
+                                
+                                
+                                let result: ResultResponse = await NetworkManager().uploadFile(
+                                    application: "budget_app",
+                                    fileParent: .init(id: "13372", type: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction)),
+                                    uuid: UUID().uuidString,
+                                    fileData: fileData,
+                                    fileName: "file",
+                                    fileType: .pdf
+                                )
+                                
+                                print(result)
+                                
+                                
+//                                if let _ = await photoModel.uploadPicture(
+//                                    imageData: fileData,
+//                                    fileParent: .init(id: "13372", type: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction)), //--> will be nil when uploading a smart receipt.
+//                                    uuid: UUID().uuidString,
+//                                    isSmartTransaction: false,
+//                                    smartTransactionDate: nil,
+//                                    responseType: ResultResponse.self
+//                                ) {
+//                                    print("wooo")
+//                                }
+                            }
+                        }
+                        
+                        
+                        // Process the document, e.g., read its content
+                        // Remember to handle security-scoped resources if needed
+                        // url.startAccessingSecurityScopedResource()
+                        // defer { url.stopAccessingSecurityScopedResource() }
+                    }
+                case .failure(let error):
+                    // Handle any errors during file selection
+                    print("Error selecting file: \(error.localizedDescription)")
+                }
+            }
+    }
+    
+    
+    var logoNavLink: some View {
+        NavigationLink("Logos") {
+            LogoList()
+        }
+    }
+    
+    
+    
+    
+    
     
     var dumpCoreDataButton: some View {
         Button("Clear Core Data") {
@@ -50,13 +139,84 @@ struct DebugView: View {
             context.perform {
                 /// Remove all from cache.
                 let _ = DataManager.shared.deleteAll(context: context, for: PersistentPaymentMethod.self)
-                //print(saveResult1)
                 let _ = DataManager.shared.deleteAll(context: context, for: PersistentCategory.self)
-                //print(saveResult2)
                 let _ = DataManager.shared.deleteAll(context: context, for: PersistentKeyword.self)
-                //print(saveResult3)
+                let _ = DataManager.shared.deleteAll(context: context, for: PersistentToast.self)
+                let _ = DataManager.shared.deleteAll(context: context, for: PersistentLogo.self)
                 
                 let _ = DataManager.shared.save(context: context)
+            }
+        }
+    }
+    
+    
+    var customNumPad: some View {
+        Section {
+            UITextFieldWrapper(placeholder: "Demo", text: $text, toolbar: {
+                KeyboardToolbarView(
+                    focusedField: $focusedField,
+                    accessoryImage3: "plus.forwardslash.minus",
+                    accessoryFunc3: {
+                        Helpers.plusMinus($text)
+                    })
+            })
+            .uiKeyboardType(.custom(.numpad))
+            .focused($focusedField, equals: 0)
+        }
+    }
+    
+    
+    var alertSection: some View {
+        Section("Alert & Toast") {
+            Button("Show basic alert") {
+                showBasicAlert = true
+            }
+            .alert("Basic Alert", isPresented: $showBasicAlert) {
+                Button("Action1") {}
+                Button("Action2") {}
+                Button("Action3") {}
+                Button("cancel", role: .cancel) {}
+                Button("destructive", role: .destructive) {}
+                #if os(iOS)
+                Button("close", role: .close) {}
+                Button("confirm", role: .confirm) {}
+                #endif
+            }
+            
+            Button("Show basic custom alert") {
+                AppState.shared.showAlert("This is a basic demo alert")
+            }
+            
+            Button("Show advanced custom alert 1") {
+                let alertConfig = AlertConfig(
+                    title: "Alert Title",
+                    symbol: .init(name: "ipad.and.iphone.slash", color: .red),
+                    primaryButton:
+                        AlertConfig.AlertButton(config: .init(text: "Primary", role: .primary, function: {
+                            print("Advanced demo alert presented")
+                        }))
+                )
+                AppState.shared.showAlert(config: alertConfig)
+                
+            }
+            
+            
+            Button("Show advanced custom alert 2") {
+                let alertConfig = AlertConfig(
+                    title: "Alert Title",
+                    subtitle: "Alert subtitle",
+                    symbol: .init(name: "ipad.and.iphone.slash", color: .red),
+                    primaryButton:
+                        AlertConfig.AlertButton(config: .init(text: "Primary", role: .primary, function: {
+                            print("Advanced demo alert presented")
+                        }))
+                )
+                AppState.shared.showAlert(config: alertConfig)
+                
+            }
+            
+            Button("Show toast") {
+                AppState.shared.showToast(title: "Toast title", subtitle: "Toast subtitle", body: "Toast body", symbol: "exclamationmark.triangle", symbolColor: .orange)
             }
         }
     }
@@ -197,3 +357,46 @@ struct DebugView: View {
     }
     
 }
+
+
+fileprivate struct LogoList: View {
+    @State private var logos: Array<PersistentLogo> = []
+    
+    var body: some View {
+        List(logos) { logo in
+            HStack {
+                Label {
+                    VStack(alignment: .leading) {
+                        Text("LogoID: \(logo.id ?? "N/A")")
+                        Text("RelatedID: \(String(describing: logo.relatedID))")
+                        Text("RelatedTypeID: \(String(describing: logo.relatedTypeID))")
+                        Text("ServerUpdated: \(String(describing: logo.serverUpdatedDate?.string(to: .serverDateTime)))")
+                        Text("LocalUpdated: \(String(describing: logo.localUpdatedDate?.string(to: .serverDateTime)))")
+                    }
+                    .font(.caption2)
+                } icon: {
+                    if let data = logo.photoData, let image = UIImage(data: data) {
+                        Image(uiImage: image)
+                            .resizable()
+                            .frame(width: 30, height: 30, alignment: .center)
+                            .clipShape(Circle())
+                    } else {
+                        Image(systemName: "circle.fill")
+                    }
+                }
+            }
+        }
+        .task {
+            print("fetching logos")
+            let context = DataManager.shared.container.viewContext
+            //let context = DataManager.shared.sharedContext
+            if let logos = DataManager.shared.getMany(context: context, type: PersistentLogo.self) {
+                self.logos = logos
+            }
+        }
+        .navigationTitle("Stored Logos")
+    }
+    
+}
+
+

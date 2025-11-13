@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct LineItemView: View {
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @Local(\.incomeColor) var incomeColor
     @AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
     @Local(\.useWholeNumbers) var useWholeNumbers
@@ -116,9 +116,9 @@ struct LineItemView: View {
         .confirmationDialog("Delete \"\(trans.title)\"?", isPresented: $showDeleteAlert) {
             Button("Yes", role: .destructive) {
                 trans.action = .delete
-                calModel.saveTransaction(id: trans.id, day: day)            
+                calModel.saveTransaction(id: trans.id/*, day: day*/)
             }
-            Button("No", role: .cancel) { showDeleteAlert = false }
+            Button("No", role: .close) { showDeleteAlert = false }
         } message: {
             #if os(iOS)
             Text("Delete \"\(trans.title)\"?")
@@ -132,7 +132,7 @@ struct LineItemView: View {
         /// This `.popover(item: $transEditID) & .onChange(of: transEditID)` are used for editing existing transactions. They also exist in ``LineItemViewMac``, which are used to add new transactions.
         .popover(item: $transEditID, arrowEdge: .trailing) { id in
             TransactionEditView(trans: trans, transEditID: $transEditID, day: day, isTemp: false)
-                .frame(minWidth: 320)
+                .frame(minWidth: 320, minHeight: 320)                
         }
         #else
         .sheet(item: $transEditID, onDismiss: transactionSheetDismissed) { id in
@@ -156,10 +156,10 @@ struct LineItemView: View {
                 if trans.action == .delete {
                     transDeleteID = oldValue!
                 } else {
-                    calModel.saveTransaction(id: oldValue!, day: day)
+                    calModel.saveTransaction(id: oldValue!/*, day: day*/)
                 }
                 #else
-                calModel.saveTransaction(id: oldValue!, day: day)
+                calModel.saveTransaction(id: oldValue!/*, day: day*/)
                 #endif
             }
         }
@@ -245,7 +245,7 @@ struct LineItemView: View {
                     TagLayout(alignment: .leading, spacing: 5) {
                         ForEach(trans.tags) { tag in
                             Text("#\(tag.tag)")
-                                //.foregroundStyle(Color.fromName(colorTheme))
+                                //.foregroundStyle(Color.theme)
                                 .foregroundStyle(.gray)
                                 .bold()
                                 .font(.caption)
@@ -262,7 +262,7 @@ struct LineItemView: View {
         Group {
             if trans.notifyOnDueDate {
                 HStack(spacing: 2) {
-                    Image(systemName: "bell")
+                    Image(systemName: "alarm")
                     let text = trans.notificationOffset == 0 ? "On day of" : (trans.notificationOffset == 1 ? "The day before" : "2 days before")
                     Text(text)
                         .lineLimit(1)
@@ -324,7 +324,7 @@ struct LineItemView: View {
     func transactionSheetDismissed() {
         /// Only run this if deleteting to preserve animation behavior.
         if let transDeleteID = transDeleteID {
-            calModel.saveTransaction(id: transDeleteID, day: day)
+            calModel.saveTransaction(id: transDeleteID/*, day: day*/)
         } else {
             /// Just some cleanup to make sure it stays blank
             if transDeleteID != nil {

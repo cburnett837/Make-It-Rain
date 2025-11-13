@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 @MainActor
 @Observable
@@ -38,24 +39,34 @@ class RepeatingTransactionModel {
     
     func saveTransaction(id: String) {
         let repTransaction = getRepeatingTransaction(by: id)
-        Task {
-            if repTransaction.title.isEmpty || repTransaction.payMethod == nil {
-                if repTransaction.action != .add && repTransaction.title.isEmpty {
-                    repTransaction.title = repTransaction.deepCopy?.title ?? ""
-                    AppState.shared.showAlert("Removing a title is not allowed. If you want to delete \(repTransaction.title), please use the delete button instead.")
-                } else {
-                    repTransactions.removeAll { $0.id == id }
-                }
-                return
-            }
-            
-            if repTransaction.hasChanges() {
-                print("HAS CHANGES")
-                repTransaction.updatedBy = AppState.shared.user!
-                repTransaction.updatedDate = Date()
+                
+        if repTransaction.action == .delete {
+            repTransaction.updatedBy = AppState.shared.user!
+            repTransaction.updatedDate = Date()
+            delete(repTransaction, andSubmit: true)
+            return
+        }
+        
+        /// User blanked out the title of an existing transaction.
+        if repTransaction.action == .edit && repTransaction.title.isEmpty {
+            repTransaction.title = repTransaction.deepCopy?.title ?? ""
+            AppState.shared.showAlert("Removing a title is not allowed. If you want to delete \(repTransaction.title), please use the delete button instead.")
+            return
+        }
+        
+        /// User is entering a new transaction but forgot the payment method.
+        /// Remove the dud that is in `.add` mode since it's being upserted into the list on creation.
+        if repTransaction.payMethod == nil {
+            AppState.shared.showAlert(title: "Not Saved", subtitle: "An account is required.")
+            withAnimation { repTransactions.removeAll { $0.id == id } }
+            return
+        }
+        
+        if repTransaction.hasChanges() {
+            repTransaction.updatedBy = AppState.shared.user!
+            repTransaction.updatedDate = Date()
+            Task {
                 await submit(repTransaction)
-            } else {
-                print("DOES NOT HAVE CHANGES")
             }
         }
     }
@@ -169,14 +180,15 @@ class RepeatingTransactionModel {
     }
     
     
-    func delete(_ repTransaction: CBRepeatingTransaction, andSubmit: Bool) async {
+    func delete(_ repTransaction: CBRepeatingTransaction, andSubmit: Bool) {
         repTransaction.action = .delete
-        repTransactions.removeAll { $0.id == repTransaction.id }
+        withAnimation { repTransactions.removeAll { $0.id == repTransaction.id } }
         
         if andSubmit {
-            await submit(repTransaction)
-        }
-    
+            Task { @MainActor in
+                let _ = await submit(repTransaction)
+            }
+        }    
     }
     
     

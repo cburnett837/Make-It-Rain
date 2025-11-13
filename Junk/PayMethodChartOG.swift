@@ -191,7 +191,7 @@
 //            return first
 //                .breakdowns
 //                .filter { chartVisibleYearCount == .yearToDate ? $0.year == AppState.shared.todayYear : true }
-//                .filter { searchText.isEmpty ? true : $0.date.string(to: .monthNameYear).localizedStandardContains(searchText) }
+//                .filter { searchText.isEmpty ? true : $0.date.string(to: .monthNameYear).localizedCaseInsensitiveContains(searchText) }
 //                .sorted(by: { $0.date > $1.date })
 //        } else {
 //            return []
@@ -609,7 +609,7 @@
 //                    )
 //                    .opacity(breakdown.minEod < threshold ? 0.6 : 1)
 //                    //.foregroundStyle(breakdown.minEod < threshold ? .orange : .green)
-//                    .foregroundStyle(Color.fromName(colorTheme))
+//                    .foregroundStyle(Color.theme)
 //                }
 //            }
 //        }
@@ -674,7 +674,7 @@
 //                            y: .value("Amount5", breakdown.profitLoss),
 //                            series: .value("", "Amount5\(payMethod.id)")
 //                        )
-//                        .foregroundStyle(Color.fromName(colorTheme))
+//                        .foregroundStyle(Color.theme)
 //                        .interpolationMethod(.catmullRom)
 //                    } else {
 //                        let percentage = Helpers.netWorthPercentageChange(start: breakdown.startingAmounts, end: breakdown.monthEnd)
@@ -974,7 +974,7 @@
 //
 //fileprivate struct IncomeOptionToggle: View {
 //    @ChartOption(\.incomeType) var incomeType
-//    @Local(\.colorTheme) var colorTheme
+//    //@Local(\.colorTheme) var colorTheme
 //    @State private var showDescription = false
 //    
 //    var description: LocalizedStringKey
@@ -1068,7 +1068,7 @@
 //
 //
 //fileprivate struct OptionToggle: View {
-//    @Local(\.colorTheme) var colorTheme
+//    //@Local(\.colorTheme) var colorTheme
 //    @State private var showDescription = false
 //    
 //    var description: String
@@ -1082,7 +1082,7 @@
 //                    Text(config.title)
 //                } icon: {
 //                    Image(systemName: showDescription ? "xmark.circle" : "info.circle")
-//                        //.foregroundStyle(Color.fromName(colorTheme))
+//                        //.foregroundStyle(Color.theme)
 //                }
 //                .onTapGesture { withAnimation { showDescription.toggle() } }
 //                .contentTransition(.symbolEffect(.replace.magic(fallback: .replace)))

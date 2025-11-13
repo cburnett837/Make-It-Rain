@@ -49,8 +49,13 @@ class CBLocation: Codable, Identifiable, Equatable, Hashable {
         //print(mapItem?.identifier?.rawValue)
         
         self.identifier = mapItem?.identifier?.rawValue
+        #if os(iOS)
         self.lat = mapItem?.location.coordinate.latitude ?? 0
         self.lon = mapItem?.location.coordinate.longitude ?? 0
+        #else
+        self.lat = mapItem?.placemark.coordinate.latitude ?? 0
+        self.lon = mapItem?.placemark.coordinate.longitude ?? 0
+        #endif
         self.active = true
         self.action = .add
         self.enteredBy = AppState.shared.user!

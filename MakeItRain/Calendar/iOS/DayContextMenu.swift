@@ -8,157 +8,106 @@
 import SwiftUI
 
 struct DayContextMenu: View {
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @Environment(CalendarProps.self) private var calProps
     @Environment(CalendarModel.self) private var calModel
         
     @Bindable var day: CBDay
     @Binding var selectedDay: CBDay?
-    //@Binding var transEditID: String?
-    //@Binding var showTransferSheet: Bool
-    //@Binding var showCamera: Bool
-    //@Binding var showPhotosPicker: Bool
-    //@Binding var overviewDay: CBDay?
-    //@Binding var bottomPanelContent: BottomPanelContent?
     
-    init(
-        day: CBDay,
-        selectedDay: Binding<CBDay?>,
-        //transEditID: Binding<String?>,
-        //showTransferSheet: Binding<Bool>,
-        //showCamera: Binding<Bool>,
-        //showPhotosPicker: Binding<Bool>,
-        //overviewDay: Binding<CBDay?> = Binding.constant(nil),
-        //bottomPanelContent: Binding<BottomPanelContent?> = Binding.constant(nil)
-    ) {
+    init(day: CBDay, selectedDay: Binding<CBDay?>) {
         self.day = day
         self._selectedDay = selectedDay
-        //self._transEditID = transEditID
-        //self._showTransferSheet = showTransferSheet
-        //self._showCamera = showCamera
-        //self._showPhotosPicker = showPhotosPicker
-        //self._overviewDay = overviewDay
-        //self._bottomPanelContent = bottomPanelContent
     }
     
     var body: some View {
+        /// Sections for the more menu in the dayoverview. Doesn't affect the context menu on the day in the calendar.
         Section {
-            Button {
-                selectedDay = day
-                calProps.transEditID = UUID().uuidString
-            } label: {
-                Label {
-                    Text("New Transaction")
-                } icon: {
-                    Image(systemName: "plus.square.fill")
-                }
-            }
-            
-            Button {
-                selectedDay = day
-                calProps.showTransferSheet = true
-            } label: {
-                Label {
-                    Text("New Transfer / Payment")
-                } icon: {
-                    Image(systemName: "arrowshape.turn.up.forward.fill")
-                }
-            }
-        }        
-        
-    
-        Section {
-            Button {
-                //let newID = UUID().uuidString
-                //let trans = CBTransaction(uuid: newID)
-                //trans.date = day.date!
-                //calModel.pendingSmartTransaction = trans
-                //calModel.pictureTransactionID = newID
-                
-                calModel.smartTransactionDate = day.date!
-                calModel.isUploadingSmartTransactionPicture = true
-                
-                calProps.showCamera = true
-            } label: {
-                Label {
-                    Text("Capture Receipt")
-                } icon: {
-                    Image(systemName: "camera.fill")
-                }
-            }
-            
-            Button {
-                //let newID = UUID().uuidString
-                //let trans = CBTransaction(uuid: newID)
-                //trans.date = day.date!
-                calModel.smartTransactionDate = day.date!
-                calModel.isUploadingSmartTransactionPicture = true
-                //calModel.pendingSmartTransaction = trans
-                //calModel.pictureTransactionID = newID
-                calProps.showPhotosPicker = true
-            } label: {
-                Label {
-                    Text("Select Receipt")
-                } icon: {
-                    Image(systemName: "photo.badge.plus")
-                }
-            }
+            newTransButton
+            newTransferButton
         }
+        
+        Section {
+            captureReceiptButton
+            selectReceiptButton
+        }
+        
         
         if let _ = calModel.getCopyOfTransaction() {
-            Section {
-                Button {
-                    withAnimation {
-                        if let trans = calModel.getCopyOfTransaction() {
-                            trans.date = day.date!
-                                                            
-                            if !calModel.isUnifiedPayMethod {
-                                trans.payMethod = calModel.sPayMethod!
-                            }
-                            
-                            day.upsert(trans)
-                            calModel.dragTarget = nil
-                            calModel.saveTransaction(id: trans.id, day: day)
-                            
-                            calModel.transactionToCopy = nil
-                        }
-                    }
-                } label: {
-                    Text("Paste Transaction")
-                }
-            }
+            pasteTransactionButton
         }
         
+        overviewButton
+    }
+    
+    
+    var newTransButton: some View {
+        Button {
+            selectedDay = day
+            calProps.transEditID = UUID().uuidString
+        } label: {
+            Label("New Transaction", systemImage: "plus")
+        }
+    }
+    
+    var newTransferButton: some View {
+        Button {
+            selectedDay = day
+            calProps.showTransferSheet = true
+        } label: {
+            Label("New Transfer / Payment", systemImage: "arrowshape.turn.up.forward")
+        }
+    }
+    
+    
+    var captureReceiptButton: some View {
+        Button {
+            calModel.smartTransactionDate = day.date!
+            calModel.isUploadingSmartTransactionFile = true
+            calProps.showCamera = true
+        } label: {
+            Label("Capture Receipt", systemImage: "camera")
+        }
+    }
+    
+    var selectReceiptButton: some View {
+        Button {
+            calModel.smartTransactionDate = day.date!
+            calModel.isUploadingSmartTransactionFile = true
+            calProps.showPhotosPicker = true
+        } label: {
+            Label("Select Receipt", systemImage: "photo.badge.plus")
+        }
+    }
+    
+    var pasteTransactionButton: some View {
+        Button {
+            calModel.pasteTransaction(to: day)
+        } label: {
+            Label("Paste Transaction", systemImage: "document.on.clipboard")
+        }
+    }
+    
+    var overviewButton: some View {
         Button {
             withAnimation {
                 calProps.overviewDay = day
                 /// Set `selectedDay` to the same day as the overview day that way any transactions or transfers initiated via the bottom panel will have the date of the bottom panel.
-                /// (Since `TransactionEditView` and `TransferSheet` use `selectedDate` as their default date.)
+                /// (Since ``TransactionEditView`` and ``TransferSheet`` use `selectedDate` as their default date.)
                 selectedDay = day
                 
-                calProps.bottomPanelContent = .overviewDay
+                #if os(iOS)
+                if AppState.shared.isIphone {
+                    calProps.bottomPanelContent = .overviewDay
+                } else {
+                    /// Inspector is in ``RootViewPad``.
+                    calProps.inspectorContent = .overviewDay
+                    calProps.showInspector = true
+                }
+                #endif
             }
         } label: {
-            Text("Overview")
+            Label("Overview", systemImage: "eye.fill")
         }
-                                                
-//        Button {
-//            if let transactionToPaste = calModel.getCopyOfTransaction() {
-//                transactionToPaste.date = day.date!
-//                                                
-//                if !calModel.isUnifiedPayMethod {
-//                    transactionToPaste.payMethod = calModel.sPayMethod!
-//                }
-//                
-//                day.upsert(transactionToPaste)
-//                calModel.saveTransaction(id: transactionToPaste.id, day: day)
-//            }
-//        } label: {
-//            Label {
-//                Text("Paste")
-//            } icon: {
-//                Image(systemName: "doc.on.clipboard")
-//            }
-//        }
     }
 }

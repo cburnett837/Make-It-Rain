@@ -9,16 +9,39 @@ import SwiftUI
 import Charts
 
 struct IncomeExpenseChartWidget: View {
+    @Bindable var vm: PayMethodViewModel
+    @Bindable var payMethod: CBPaymentMethod
+                
+    var body: some View {
+        NavigationLink {
+            IncomeAndExpenseChartDetails(vm: vm, payMethod: payMethod)
+        } label: {
+            IncomeExpenseChart(
+                vm: vm,
+                payMethod: payMethod,
+                rawSelectedDate: .constant(nil),
+                selectedDate: nil,
+                allowSelection: false,
+                animateImmediately: false
+            )
+        }
+        #if os(iOS)
+        .navigationLinkIndicatorVisibility(.hidden)
+        #endif
+    }
+}
+
+
+
+struct IncomeAndExpenseChartDetails: View {
     @Local(\.useWholeNumbers) var useWholeNumbers
     @AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false
     @Environment(\.colorScheme) var colorScheme
     
     @Bindable var vm: PayMethodViewModel
     @Bindable var payMethod: CBPaymentMethod
-    @State private var showChartSheet = false
     
     @State private var rawSelectedDate: Date?
-    @State private var persistedDate: Date?
     var selectedDate: Date? {
         if let raw = rawSelectedDate {
             let breakdowns = vm.payMethods.first?.breakdowns
@@ -32,78 +55,42 @@ struct IncomeExpenseChartWidget: View {
         }
     }
     
-    @State private var navPath = NavigationPath()
-                
     var body: some View {
-        Section {
-            NavigationLink {
-                detailsSheet
-                    .onDisappear {
-                        rawSelectedDate = nil
-                        persistedDate = nil
-                    }
-            } label: {
-                IncomeExpenseChart(vm: vm, payMethod: payMethod, rawSelectedDate: $rawSelectedDate, persistedDate: persistedDate, allowSelection: false, showChartSheet: $showChartSheet)
+        StandardContainerWithToolbar(.list) {
+            Section("Details \(selectedDate == nil ? "" : vm.overViewTitle(for: selectedDate))") {
+                selectedDataView
             }
-            .navigationLinkIndicatorVisibility(.hidden)
-
+                            
+            PaymentMethodChartDetailsSectionContainer(vm: vm, payMethod: payMethod) {
+                IncomeExpenseChart(
+                    vm: vm,
+                    payMethod: payMethod,
+                    rawSelectedDate: $rawSelectedDate,
+                    selectedDate: selectedDate,
+                    allowSelection: true,
+                    animateImmediately: true
+                )
+            }
             
-//            IncomeExpenseChart(vm: vm, payMethod: payMethod, rawSelectedDate: $rawSelectedDate, persistedDate: persistedDate, allowSelection: false, showChartSheet: $showChartSheet)
-//                .sheet(isPresented: $showChartSheet, onDismiss: {
-//                    rawSelectedDate = nil
-//                    persistedDate = nil
-//                }) {
-//                    detailsSheet
-//                }
-        } header: {
-            Text("All Expenses/Income")
-        }
-        .onChange(of: selectedDate) { oldValue, newValue in
-            if newValue != nil {
-                self.persistedDate = newValue
+            Section {
+                ChartOptionsSheet(vm: vm, payMethod: payMethod)
             }
         }
+        .navigationTitle("Transactions")
+        .navigationSubtitle(payMethod.title)
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) { PaymentMethodChartStyleMenu(vm: vm) }
+        }
+        #endif
     }
     
     
-    var detailsSheet: some View {
-        //NavigationStack {
-            StandardContainerWithToolbar(.list) {
-                Section("Details \(persistedDate == nil ? "" : vm.overViewTitle(for: persistedDate))") {
-                    selectedDataView
-                }
-                                
-                PaymentMethodChartDetailsSectionContainer(vm: vm, payMethod: payMethod) {
-                    IncomeExpenseChart(vm: vm, payMethod: payMethod, rawSelectedDate: $rawSelectedDate, persistedDate: persistedDate, allowSelection: true, showChartSheet: $showChartSheet)
-                }
-                
-                Section {
-                    ChartOptionsSheet(vm: vm, payMethod: payMethod)
-                }
-            }
-            .navigationTitle("All Expenses/Income")
-            .navigationSubtitle(payMethod.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) { PaymentMethodChartStyleMenu(vm: vm) }
-                //ToolbarItem(placement: .topBarTrailing) { closeButton }
-            }
-        //}
-    }
-    
-    
-    var closeButton: some View {
-        Button {
-            showChartSheet = false
-        } label: {
-            Image(systemName: "xmark")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
-        }
-    }
     
     @ViewBuilder
     var selectedDataView: some View {
-        if let persistedDate = persistedDate {
+        if let selectedDate = selectedDate {
             
             var startingText: String {
                 vm.viewByQuarter ? (payMethod.isCredit ? "Starting (avg)" : "Starting (sum)") : "Starting"
@@ -112,8 +99,7 @@ struct IncomeExpenseChartWidget: View {
             ChartSelectedDataContainer(
                 vm: vm,
                 payMethod: payMethod,
-                columnCount: (payMethod.isCreditOrLoan || payMethod.isUnifiedCredit) ? 5 : 4,
-                showOverviewDataPerMethodOnUnifiedChart: showOverviewDataPerMethodOnUnifiedChart
+                columnCount: (payMethod.isCreditOrLoan || payMethod.isUnifiedCredit) ? 5 : 4
             ) {
                 Text("Account")
                 Text("Income")
@@ -123,7 +109,7 @@ struct IncomeExpenseChartWidget: View {
                     Text("Payments")
                 }
             } rows: {
-                ForEach(vm.breakdownPerMethod(on: persistedDate)) { breakdown in
+                ForEach(vm.breakdownPerMethod(on: selectedDate)) { breakdown in
                     GridRow {
                         HStack(spacing: 5) {
                             CircleDot(color: breakdown.color, width: 5)
@@ -142,7 +128,7 @@ struct IncomeExpenseChartWidget: View {
                     .foregroundStyle(.secondary)
                 }
             } summary: {
-                let breakdown = vm.breakdownForMethod(method: vm.mainPayMethod, on: persistedDate)
+                let breakdown = vm.breakdownForMethod(method: vm.mainPayMethod, on: selectedDate)
                 Text(vm.getIncomeText(for: breakdown).currencyWithDecimals(useWholeNumbers ? 0 : 2))
                 Text(breakdown.expenses.currencyWithDecimals(useWholeNumbers ? 0 : 2))
                 Text(breakdown.startingAmounts.currencyWithDecimals(useWholeNumbers ? 0 : 2))
@@ -156,13 +142,14 @@ struct IncomeExpenseChartWidget: View {
                 .foregroundStyle(.gray)
         }
     }
+    
 }
 
 
 struct IncomeExpenseChart: View {
     @Environment(\.dismiss) var dismiss
     @Local(\.incomeColor) var incomeColor
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @Local(\.useWholeNumbers) var useWholeNumbers
     //@Local(\.showOverviewDataPerMethodOnUnifiedChart) var showOverviewDataPerMethodOnUnifiedChart
     @AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false
@@ -171,19 +158,15 @@ struct IncomeExpenseChart: View {
     @AppStorage(LocalKeys.Charts.IncomeExpense.showStartingAmount) var showStartingAmount: Bool = true
     @AppStorage(LocalKeys.Charts.IncomeExpense.showPayments) var showPayments: Bool = true
     
-    //@Local(\.incomeAndExpenseChartShowExpenses) var showExpenses
-    //@Local(\.incomeAndExpenseChartShowIncome) var showIncome
-    //@Local(\.incomeAndExpenseChartShowStartingAmount) var showStartingAmount
-    //@Local(\.incomeAndExpenseChartShowPayments) var showPayments
-    
     @Bindable var vm: PayMethodViewModel
     @Bindable var payMethod: CBPaymentMethod
+    @Binding var rawSelectedDate: Date?
+    
+    var selectedDate: Date?
+    var allowSelection: Bool
+    var animateImmediately: Bool
     
     @State private var legendItems: [(id: UUID, title: String, color: Color)] = []
-    @Binding var rawSelectedDate: Date?
-    var persistedDate: Date?
-    var allowSelection: Bool
-    @Binding var showChartSheet: Bool
     
     var body: some View {
         VStack(spacing: 0) {
@@ -191,39 +174,42 @@ struct IncomeExpenseChart: View {
                 ChartLegendView(items: legendItems)
             }
             
-            Chart {
-                if let persistedDate {
-                    vm.selectionRectangle(for: persistedDate, color: Color.fromName(colorTheme))
-                }
-                
-                ForEach(vm.relevantBreakdowns()) {
-                    if showIncome { incomeLine($0) }
-                    if showExpenses { expensesLine($0) }
-                    if showStartingAmount { startingAmountLine($0) }
-                    if payMethod.isCredit && showPayments { paymentLine($0) }
-                }
+            chart(showLines: true)
+                //.animatedLineChart(beginAnimation: animateImmediately ? true : !vm.isLoadingHistory) { chart(showLines: $0) }
+            
+        }
+        .sensoryFeedback(.selection, trigger: selectedDate) { $0 != nil && $1 != nil }
+        .onChange(of: vm.incomeType, initial: true, configureLegend)
+    }
+    
+    
+    @ViewBuilder func chart(showLines: Bool) -> some View {
+        Chart {
+            if let selectedDate {
+                vm.selectionRectangle(for: selectedDate, color: Color.secondary)
             }
-            //.frame(minHeight: allowSelection ? 250 : 150)
-            .frame(minHeight: 150)
-            .chartYAxis { vm.yAxis() }
-            .chartXAxis { vm.xAxis() }
-            .if(allowSelection) {
-                $0
-                .chartXScale(domain: vm.chartXScale)
-                .chartXSelection(value: $rawSelectedDate)
+            
+            ForEach(vm.relevantBreakdowns()) {
+                if showIncome { incomeLine($0, showLines: showLines) }
+                if showExpenses { expensesLine($0, showLines: showLines) }
+                if showStartingAmount { startingAmountLine($0, showLines: showLines) }
+                if payMethod.isCredit && showPayments { paymentLine($0, showLines: showLines) }
             }
         }
-        .sensoryFeedback(.selection, trigger: persistedDate) { $0 != nil && $1 != nil }
-        .onChange(of: vm.incomeType, initial: true, configureLegend)
-//        .if(!allowSelection) {
-//            $0.onTapGesture {
-//                showChartSheet = true
-//            }
-//        }
+        //.frame(minHeight: allowSelection ? 250 : 150)
+        .frame(minHeight: 150)
+        .chartYAxis { vm.yAxis() }
+        .chartXAxis { vm.xAxis() }
+        .if(allowSelection) {
+            $0
+            .chartXScale(domain: vm.chartXScale)
+            .chartXSelection(value: $rawSelectedDate)
+        }
     }
+    
             
     @ChartContentBuilder
-    func incomeLine(_ breakdown: PayMethodMonthlyBreakdown) -> some ChartContent {
+    func incomeLine(_ breakdown: PayMethodMonthlyBreakdown, showLines: Bool) -> some ChartContent {
         LineMark(
             x: .value("Date", breakdown.date, unit: .month),
             y: .value("Amount1", vm.getIncomeText(for: breakdown)),
@@ -231,10 +217,11 @@ struct IncomeExpenseChart: View {
         )
         .foregroundStyle(.blue.gradient)
         .interpolationMethod(.catmullRom)
+        .opacity(showLines ? 1 : 0)
     }
         
     @ChartContentBuilder
-    func expensesLine(_ breakdown: PayMethodMonthlyBreakdown) -> some ChartContent {
+    func expensesLine(_ breakdown: PayMethodMonthlyBreakdown, showLines: Bool) -> some ChartContent {
         LineMark(
             x: .value("Date", breakdown.date, unit: .month),
             y: .value("Amount2", breakdown.expenses),
@@ -242,10 +229,11 @@ struct IncomeExpenseChart: View {
         )
         .foregroundStyle(.red.gradient)
         .interpolationMethod(.catmullRom)
+        .opacity(showLines ? 1 : 0)
     }
     
     @ChartContentBuilder
-    func startingAmountLine(_ breakdown: PayMethodMonthlyBreakdown) -> some ChartContent {
+    func startingAmountLine(_ breakdown: PayMethodMonthlyBreakdown, showLines: Bool) -> some ChartContent {
         LineMark(
             x: .value("Date", breakdown.date, unit: .month),
             y: .value("Amount4", breakdown.startingAmounts),
@@ -254,10 +242,11 @@ struct IncomeExpenseChart: View {
         .foregroundStyle(.orange.gradient)
         .interpolationMethod(.catmullRom)
         .lineStyle(StrokeStyle(lineWidth: 2, dash: [5, 3]))
+        .opacity(showLines ? 1 : 0)
     }
     
     @ChartContentBuilder
-    func paymentLine(_ breakdown: PayMethodMonthlyBreakdown) -> some ChartContent {
+    func paymentLine(_ breakdown: PayMethodMonthlyBreakdown, showLines: Bool) -> some ChartContent {
         LineMark(
             x: .value("Date", breakdown.date, unit: .month),
             y: .value("Amount3", breakdown.payments),
@@ -266,6 +255,7 @@ struct IncomeExpenseChart: View {
         .foregroundStyle(.green.gradient)
         .interpolationMethod(.catmullRom)
         .lineStyle(StrokeStyle(lineWidth: 2, dash: [5, 3]))
+        .opacity(showLines ? 1 : 0)
     }
   
     func configureLegend() {
@@ -285,7 +275,7 @@ struct IncomeExpenseChart: View {
 
 
 fileprivate struct ChartOptionsSheet: View {
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
 
     @AppStorage(LocalKeys.Charts.IncomeExpense.showExpenses) var showExpenses: Bool = true
     @AppStorage(LocalKeys.Charts.IncomeExpense.showIncome) var showIncome: Bool = true
@@ -302,11 +292,11 @@ fileprivate struct ChartOptionsSheet: View {
     
     var body: some View {
         //VStack(spacing: 20) {
-            ChartOptionToggle(description: expenseDescription, title: Text("Show Expenses"), color: .red, show: $showExpenses)
-            ChartOptionToggle(description: startingAmountDescription, title: Text("Show Month Begin"), color: .orange, show: $showStartingAmount)
+            ChartOptionToggle(description: expenseDescription, title: Text("Expenses"), color: .red, show: $showExpenses)
+            ChartOptionToggle(description: startingAmountDescription, title: Text("Month Begin"), color: .orange, show: $showStartingAmount)
             
             if payMethod.isCredit {
-                ChartOptionToggle(description: paymentDescription, title: Text("Show Payments"), color: .green, show: $showPayments)
+                ChartOptionToggle(description: paymentDescription, title: Text("Payments"), color: .green, show: $showPayments)
             }
             
             ChartOptionToggle(description: incomeDescription, title: ChartIncomeOptionMenu(vm: vm), color: .blue, show: $showIncome)

@@ -65,7 +65,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
     var changedDate: Date
     
     var locations: Array<CBLocation>
-    var pictures: Array<CBPicture>?
+    var files: Array<CBFile>?
     var options: Array<CBEventTransactionOption>?
     
     var trackingNumber: String
@@ -143,7 +143,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
     
     
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, paid_by, entered_date, updated_date, pictures, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, action, status_id, item, changed_date, event_id, options, locations, is_idea, option_id, is_private }
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, paid_by, entered_date, updated_date, files, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, action, status_id, item, changed_date, event_id, options, locations, is_idea, option_id, is_private }
     
     
     func encode(to encoder: Encoder) throws {
@@ -173,7 +173,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
         try container.encode(enteredDate.string(to: .serverDateTime), forKey: .entered_date)
         try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date)
         try container.encode(changedDate.string(to: .serverDateTime), forKey: .changed_date)
-        try container.encode(pictures, forKey: .pictures)
+        try container.encode(files, forKey: .files)
         try container.encode(locations, forKey: .locations)
         try container.encode(action.serverKey, forKey: .action)
                 
@@ -213,7 +213,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
         self.options = try container.decode(Array<CBEventTransactionOption>?.self, forKey: .options)
         self.notes = try container.decode(String?.self, forKey: .notes) ?? ""
         
-        self.pictures = try container.decode(Array<CBPicture>?.self, forKey: .pictures)
+        self.files = try container.decode(Array<CBFile>?.self, forKey: .files)
         self.locations = try container.decode(Array<CBLocation>.self, forKey: .locations)
         
         self.trackingNumber = try container.decode(String?.self, forKey: .tracking_number) ?? ""
@@ -247,7 +247,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
         updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
         paidBy = try container.decode(CBUser?.self, forKey: .paid_by)
         
-        //pictures = try container.decode(Array<CBPicture>?.self, forKey: .pictures)
+        //files = try container.decode(Array<CBPicture>?.self, forKey: .files)
         
 
         
@@ -347,7 +347,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
             && self.options == deepCopy.options
             && self.notes == deepCopy.notes
             && self.factorInCalculations == deepCopy.factorInCalculations
-            && self.pictures == deepCopy.pictures
+            && self.files == deepCopy.files
             && self.locations == deepCopy.locations
             //&& self.color == deepCopy.color
             && self.trackingNumber == deepCopy.trackingNumber
@@ -417,7 +417,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
             copy.url = self.url
             copy.active = self.active
             copy.status = self.status
-            copy.pictures = self.pictures
+            copy.files = self.files
             copy.isIdea = self.isIdea
             copy.isPrivate = self.isPrivate
             copy.optionID = self.optionID
@@ -449,7 +449,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
                 self.url = deepCopy.url
                 self.active = deepCopy.active
                 self.status = deepCopy.status
-                self.pictures = deepCopy.pictures
+                self.files = deepCopy.files
                 self.isIdea = deepCopy.isIdea
                 self.isPrivate = deepCopy.isPrivate
                 self.optionID = deepCopy.optionID
@@ -504,7 +504,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
         self.enteredBy = transaction.enteredBy
         self.updatedBy = transaction.updatedBy
         self.paidBy = transaction.paidBy
-        self.pictures = transaction.pictures
+        self.files = transaction.files
         self.factorInCalculations = transaction.factorInCalculations
         self.trackingNumber = transaction.trackingNumber
         self.orderNumber = transaction.orderNumber
@@ -526,7 +526,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
         self.locations = option.locations
         self.updatedDate = option.updatedDate
         self.updatedBy = option.updatedBy
-        self.pictures = option.pictures
+        self.files = option.files
         self.url = option.url
         self.optionID = option.id
     }
@@ -567,7 +567,7 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
         && lhs.notes == rhs.notes
         && lhs.factorInCalculations == rhs.factorInCalculations
         //&& lhs.color == rhs.color
-        && lhs.pictures == rhs.pictures
+        && lhs.files == rhs.files
         && lhs.date == rhs.date
         && lhs.enteredDate == rhs.enteredDate
         && lhs.updatedDate == rhs.updatedDate
@@ -691,6 +691,9 @@ class CBEventTransaction: Codable, Identifiable, Hashable, Equatable, Transferab
         }
     }
     
+    func setTitle(_ text: String) {
+        self.title = text
+    }
     
     
     

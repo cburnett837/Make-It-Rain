@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct MultiSelectTransactionOptionsSheet: View {
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @Environment(\.colorScheme) private var colorScheme
     #if os(macOS)
     @Environment(\.dismiss) private var dismiss
@@ -23,11 +23,14 @@ struct MultiSelectTransactionOptionsSheet: View {
 //    @Binding var showAnalysisSheet: Bool
     
     @State private var shouldSave = false
+    @State private var showCategorySheet = false
+    @State private var selectedCategory: CBCategory?
         
     @Binding var showInspector: Bool
     
     
     var body: some View {
+        #if os(iOS)
         if AppState.shared.isIphone {
             StandardContainer(.bottomPanel) {
                 contentGrid
@@ -49,40 +52,52 @@ struct MultiSelectTransactionOptionsSheet: View {
                 #endif
             }
         }
-        /// Need this in case the user clicks the red close button.
-        #if os(macOS)
-        .onDisappear {
-            withAnimation {
-                calModel.isInMultiSelectMode = false
-                calModel.sCategoriesForAnalysis.removeAll()
-                
-                if shouldSave {
-                    Task {
-                        await calModel.editMultiple(trans: calModel.multiSelectTransactions)
+        #else
+        sheetHeader
+            /// Need this in case the user clicks the red close button.        
+            .onDisappear {
+                withAnimation {
+                    calModel.isInMultiSelectMode = false
+                    calModel.sCategoriesForAnalysis.removeAll()
+                    
+                    if shouldSave {
+                        Task {
+                            await calModel.editMultiple(trans: calModel.multiSelectTransactions)
+                            calModel.multiSelectTransactions.removeAll()
+                        }
+                    } else {
                         calModel.multiSelectTransactions.removeAll()
                     }
-                } else {
-                    calModel.multiSelectTransactions.removeAll()
                 }
             }
-        }
         #endif
     }
     
     
     @ViewBuilder
     var contentList: some View {
-        summarizeButton
-        MultiTitleColorMenu(transactions: calModel.multiSelectTransactions, shouldSave: $shouldSave) { Text("Change Title Color") }
-        factorInCalculationsButton
+        Section {
+            summarizeButton
+            deleteButton
+        }
+        
+        Section {
+            MultiTitleColorMenu(transactions: calModel.multiSelectTransactions, shouldSave: $shouldSave) { Text("Change title color") }
+            changeCategoryButton
+            factorInCalculationsButton
+            excludeFromCalculationsButton
+        }
     }
     
     
     var contentGrid: some View {
         TagLayout {
             summarizeButton
-            MultiTitleColorMenu(transactions: calModel.multiSelectTransactions, shouldSave: $shouldSave) { Text("Change Title Color") }
+            deleteButton
+            MultiTitleColorMenu(transactions: calModel.multiSelectTransactions, shouldSave: $shouldSave) { Text("Change title color") }
+            changeCategoryButton
             factorInCalculationsButton
+            excludeFromCalculationsButton
         }
         .buttonStyle(.borderedProminent)
         .padding(.top, 6)
@@ -108,7 +123,7 @@ struct MultiSelectTransactionOptionsSheet: View {
             closeSheet()
         } label: {
             Image(systemName: "xmark")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+                .schemeBasedForegroundStyle()
         }
     }
     
@@ -142,7 +157,7 @@ struct MultiSelectTransactionOptionsSheet: View {
         Button {
             withAnimation {
                 for trans in calModel.multiSelectTransactions {
-                    trans.factorInCalculations.toggle()
+                    trans.factorInCalculations = true
                 }
             }
             shouldSave = true
@@ -151,13 +166,62 @@ struct MultiSelectTransactionOptionsSheet: View {
                 let _ = calModel.calculateTotal(for: calModel.sMonth)
             }            
         } label: {
-            let isTrue = calModel.multiSelectTransactions.map { $0.factorInCalculations }.allSatisfy { $0 }
-            Label {
-                Text(isTrue ? "Exclude from Calculations" : "Include in Calculations")
-            } icon: {
-                Image(systemName: isTrue ? "eye.slash.fill" : "eye.fill")
-            }
+            Text("Include in calculations")
         }
+    }
+    
+    var excludeFromCalculationsButton: some View {
+        Button {
+            withAnimation {
+                for trans in calModel.multiSelectTransactions {
+                    trans.factorInCalculations = false
+                }
+            }
+            shouldSave = true
+            
+            Task {
+                let _ = calModel.calculateTotal(for: calModel.sMonth)
+            }
+        } label: {
+            Text("Exclude from calculations")
+        }
+    }
+    
+    
+    var changeCategoryButton: some View {
+        Button {
+            showCategorySheet = true
+        } label: {
+            Text("Change category")
+        }
+        .sheet(isPresented: $showCategorySheet, onDismiss: {
+            withAnimation {
+                for trans in calModel.multiSelectTransactions {
+                    trans.category = selectedCategory
+                }
+                selectedCategory = nil
+            }
+            shouldSave = true
+        }) {
+            CategorySheet(category: $selectedCategory)
+        }
+    }
+    
+    var deleteButton: some View {
+        Button {
+            withAnimation {
+                for trans in calModel.multiSelectTransactions {
+                    trans.action = .delete
+                    trans.intendedServerAction = .delete
+                    trans.active = false
+                }
+                selectedCategory = nil
+            }
+            shouldSave = true
+        } label: {
+            Text("Delete")
+        }
+        .tint(.red)
     }
     
     

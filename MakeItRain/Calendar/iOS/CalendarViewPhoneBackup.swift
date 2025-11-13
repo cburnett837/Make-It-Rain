@@ -16,7 +16,7 @@
 //    @Environment(\.colorScheme) var colorScheme
 //    @Environment(\.dismiss) var dismiss
 //    
-//    @Local(\.colorTheme) var colorTheme
+//    //@Local(\.colorTheme) var colorTheme
 //    @Local(\.useWholeNumbers) var useWholeNumbers
 //    @Local(\.threshold) var threshold
 //    
@@ -118,7 +118,7 @@
 //        //let _ = Self._printChanges()
 //        @Bindable var navManager = NavigationManager.shared
 //        @Bindable var calModel = calModel
-//        @Bindable var photoModel = PhotoModel.shared
+//        @Bindable var photoModel = FileModel.shared
 //        
 //        NavigationStack {
 //            Group {
@@ -275,7 +275,7 @@
 //            .if(!AppState.shared.isIpad) {
 //                $0
 //                .sheet(isPresented: $showAnalysisSheet) {
-//                    AnalysisSheet(showAnalysisSheet: $showAnalysisSheet)
+//                    CategoryInsightsSheetshowAnalysisSheet: $showAnalysisSheet)
 //                }
 //                .sheet(isPresented: $showTransactionListSheet) {
 //                    TransactionListView(showTransactionListSheet: $showTransactionListSheet)
@@ -316,10 +316,10 @@
 //            .photosPicker(isPresented: $showPhotosPicker, selection: $photoModel.imagesFromLibrary, maxSelectionCount: 1, matching: .images, photoLibrary: .shared())
 //            .onChange(of: showPhotosPicker) { oldValue, newValue in
 //                if !newValue {
-//                    if PhotoModel.shared.imagesFromLibrary.isEmpty {
+//                    if FileModel.shared.imagesFromLibrary.isEmpty {
 //                        calModel.cleanUpPhotoVariables()
 //                    } else {
-//                        PhotoModel.shared.uploadPicturesFromLibrary(delegate: calModel, photoType: XrefModel.getItem(from: .photoTypes, byEnumID: .transaction))
+//                        FileModel.shared.uploadPicturesFromLibrary(delegate: calModel, fileType: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction))
 //                    }
 //                }
 //            }
@@ -330,7 +330,7 @@
 //            }
 //            .onChange(of: showCamera) { oldValue, newValue in
 //                if !newValue {
-//                    PhotoModel.shared.uploadPictureFromCamera(delegate: calModel, photoType: XrefModel.getItem(from: .photoTypes, byEnumID: .transaction))
+//                    FileModel.shared.uploadPictureFromCamera(delegate: calModel, fileType: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction))
 //                }
 //            }
 //            #endif
@@ -349,7 +349,7 @@
 //                #endif
 //            }
 //        }
-//        .disableZoomeInteractiveDismiss()
+//        .disableZoomInteractiveDismiss()
 //        .overlay {
 //            if (!AppState.shared.isIpad) {
 //                searchBarOverlay
@@ -787,7 +787,7 @@
 //            } label: {
 //                Image(systemName: "creditcard")
 //                    .allowsHitTesting(false)
-//                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+//                    .schemeBasedForegroundStyle()
 //            } primaryAction: {
 //                showPayMethodSheet = true
 //            }
@@ -797,7 +797,7 @@
 ////            } label: {
 ////                Image(systemName: "creditcard")
 ////                    .allowsHitTesting(false)
-////                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+////                    .schemeBasedForegroundStyle()
 ////            }
 //        }
 //        .matchedTransitionSource(id: "myButton", in: paymentMethodMenuButtonNamespace)
@@ -881,7 +881,7 @@
 //        } label: {
 //            Image(systemName: "ellipsis")
 //                //.foregroundStyle(Color.accentColor)
-//                .foregroundStyle(colorScheme == .dark ? .white : .black)
+//                .schemeBasedForegroundStyle()
 //                .if(AppState.shared.isIpad) {
 //                    $0
 //                        .font(.title2)
@@ -937,7 +937,7 @@
 //                    }
 //                } label: {
 //                    Image(systemName: "brain")
-//                        .foregroundStyle(Color.fromName(colorTheme) == .orange ? .red : .orange)
+//                        .foregroundStyle(Color.theme == .orange ? .red : .orange)
 //                }
 //            }
 //        }
@@ -955,7 +955,7 @@
 ////                        }
 ////                    } label: {
 ////                        Image(systemName: "clock.badge.exclamationmark")
-////                            .foregroundStyle(Color.fromName(colorTheme) == .orange ? .red : .orange)
+////                            .foregroundStyle(Color.theme == .orange ? .red : .orange)
 ////                            .contentShape(Rectangle())
 ////                    }
 ////                }
@@ -975,7 +975,7 @@
 ////                        }
 ////                    } label: {
 ////                        Image(systemName: "clock.badge.exclamationmark")
-////                            .foregroundStyle(Color.fromName(colorTheme) == .orange ? .red : .orange)
+////                            .foregroundStyle(Color.theme == .orange ? .red : .orange)
 ////                            .contentShape(Rectangle())
 ////                    }
 ////                }
@@ -983,7 +983,7 @@
 ////        }
 //        
 //        let plaidListIsEmpty = plaidModel.trans.filter({ !$0.isAcknowledged }).isEmpty
-//        var color: Color { plaidListIsEmpty ? Color.secondary : Color.fromName(colorTheme) == .orange ? .red : .orange }
+//        var color: Color { plaidListIsEmpty ? Color.secondary : Color.theme == .orange ? .red : .orange }
 //        
 //        if !plaidListIsEmpty {
 //            Button {
@@ -1201,7 +1201,7 @@
 ////            }
 //        } label: {
 //            Image(systemName: "magnifyingglass")
-//                .tint(calModel.searchText.isEmpty ? Color.fromName(colorTheme) : Color.fromName(colorTheme) == .orange ? .red : .orange)
+//                .tint(calModel.searchText.isEmpty ? Color.theme : Color.theme == .orange ? .red : .orange)
 //                .scaleEffect(!calModel.searchText.isEmpty ? 1.2 : 1)
 //                .animation(!calModel.searchText.isEmpty ? .easeInOut(duration: 1).repeatForever(autoreverses: true) : .default, value: calModel.searchText.isEmpty)
 //                .contentShape(Rectangle())
@@ -1244,7 +1244,7 @@
 ////            //let newID = UUID().uuidString
 ////            //calModel.pendingSmartTransaction = CBTransaction(uuid: newID)
 ////            //calModel.pictureTransactionID = newID
-////            calModel.isUploadingSmartTransactionPicture = true
+////            calModel.isUploadingSmartTransactionFile = true
 ////            showCamera = true
 ////            TouchAndHoldPlusButtonTip.didSelectSmartReceiptOrTransferOption = true
 ////            touchAndHoldPlusButtonTip.invalidate(reason: .actionPerformed)
@@ -1263,7 +1263,7 @@
 ////            //let newID = UUID().uuidString
 ////            //calModel.pendingSmartTransaction = CBTransaction(uuid: newID)
 ////            //calModel.pictureTransactionID = newID
-////            calModel.isUploadingSmartTransactionPicture = true
+////            calModel.isUploadingSmartTransactionFile = true
 ////            showPhotosPicker = true
 ////            TouchAndHoldPlusButtonTip.didSelectSmartReceiptOrTransferOption = true
 ////            touchAndHoldPlusButtonTip.invalidate(reason: .actionPerformed)
@@ -1352,7 +1352,7 @@
 //            Text(monthText)
 //                .font(.largeTitle)
 //                .bold()
-//                .foregroundStyle(colorScheme == .dark ? .white : .black)
+//                .schemeBasedForegroundStyle()
 //                .lineLimit(1)
 //            
 //            Spacer()
@@ -1400,7 +1400,7 @@
 //                                if meth.isDebit {
 //                                    let debitIDs = payModel.paymentMethods
 //                                        .filter { $0.isDebit }
-//                                        .filter { $0.isAllowedToBeViewedByThisUser }
+//                                        .filter { $0.isPermitted }
 //                                        .filter { !$0.isHidden }
 //                                        .map { $0.id }
 //                                    let sum = plaidModel.balances.filter { debitIDs.contains($0.payMethodID) }.map { $0.amount }.reduce(0.0, +)
@@ -1412,7 +1412,7 @@
 //                                } else {
 //                                    let creditIDs = payModel.paymentMethods
 //                                        .filter { $0.isCredit }
-//                                        .filter { $0.isAllowedToBeViewedByThisUser }
+//                                        .filter { $0.isPermitted }
 //                                        .filter { !$0.isHidden }
 //                                        .map { $0.id }
 //                                    
@@ -1436,7 +1436,7 @@
 //                                .filter({ $0.payMethodID == calModel.sPayMethod?.id })
 //                                .filter ({ bal in
 //                                    if let meth = payModel.paymentMethods.filter({ $0.id == bal.payMethodID }).first {
-//                                        return meth.isAllowedToBeViewedByThisUser
+//                                        return meth.isPermitted
 //                                    } else {
 //                                        return false
 //                                    }
@@ -1472,7 +1472,7 @@
 ////                Text("Balance")
 ////                    .font(.largeTitle)
 ////                    .bold()
-////                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+////                    .schemeBasedForegroundStyle()
 ////                    .lineLimit(1)
 ////
 ////                Text("\(balance.amountString) as of \(balance.lastTimeICheckedPlaidSyncedDate?.string(to: .monthDayYearHrMinAmPm) ?? "N/A")")
@@ -1637,7 +1637,7 @@
 //                    .frame(maxWidth: getRect().width / 3)
 //                    
 //                case .categoryAnalysis:
-//                    AnalysisSheet(showAnalysisSheet: $showAnalysisSheet)
+//                    CategoryInsightsSheetshowAnalysisSheet: $showAnalysisSheet)
 //                        .frame(maxWidth: getRect().width / 3)
 //                    
 //                        /// This is here since AnalysisSheet is in a sheet on iPhone and is triggered by a boolean
@@ -1728,7 +1728,7 @@
 ////            }
 ////            /// Keep the model clean, and show alert for a photo that may be taking a long time to upload.
 ////            //calModel.pictureTransactionID = nil
-////            PhotoModel.shared.pictureParent = nil
+////            FileModel.shared.fileParent = nil
 ////
 ////            /// Force this to `.normalList` since smart transactions will change the variable to look in the temp list.
 ////            findTransactionWhere = .normalList

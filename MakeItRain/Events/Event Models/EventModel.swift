@@ -16,7 +16,11 @@ import UIKit
 
 @MainActor
 @Observable
-class EventModel: PhotoUploadCompletedDelegate {
+class EventModel: FileUploadCompletedDelegate {
+    func alertUploadingSmartReceiptIfApplicable() {}
+    var message = ""
+    var id = UUID()
+
     //static let shared = EventModel()
     var isThinking = false
     
@@ -971,94 +975,94 @@ class EventModel: PhotoUploadCompletedDelegate {
     
     
     // MARK: - Photo Stuff
-    func addPlaceholderPicture(recordID: String, uuid: String, photoType: XrefItem) {
-        let picture = CBPicture(relatedID: recordID, uuid: uuid, photoType: photoType.enumID)
+    func addPlaceholderFile(recordID: String, uuid: String, parentType: XrefItem, fileType: FileType) {
+        let picture = CBFile(relatedID: recordID, uuid: uuid, parentType: parentType.enumID, fileType: fileType)
         picture.isPlaceholder = true
         
-        if photoType.enumID == .eventTransaction {
+        if parentType.enumID == .eventTransaction {
             if let index = justTransactions.firstIndex(where: { $0.id == recordID }) {
                 let trans = justTransactions[index]
                 
-                if let _ = trans.pictures {
-                    trans.pictures!.append(picture)
+                if let _ = trans.files {
+                    trans.files!.append(picture)
                 } else {
-                    trans.pictures = [picture]
+                    trans.files = [picture]
                 }
                 
             }
         }
         
-        if photoType.enumID == .event {
+        if parentType.enumID == .event {
             if let index = events.firstIndex(where: { $0.id == recordID }) {
                 let event = events[index]
                 
-                if let _ = event.pictures {
-                    event.pictures!.append(picture)
+                if let _ = event.files {
+                    event.files!.append(picture)
                 } else {
-                    event.pictures = [picture]
+                    event.files = [picture]
                 }
             }
         }
     }
     
-    func markPlaceholderPictureAsReadyForDownload(recordID: String, uuid: String, photoType: XrefItem) {
-        if photoType.enumID == .eventTransaction {
+    func markPlaceholderFileAsReadyForDownload(recordID: String, uuid: String, parentType: XrefItem, fileType: FileType) {
+        if parentType.enumID == .eventTransaction {
             if let trans = justTransactions.filter({ $0.id == recordID }).first {
-                let index = trans.pictures?.firstIndex(where: { $0.uuid == uuid })
+                let index = trans.files?.firstIndex(where: { $0.uuid == uuid })
                 if let index {
-                    trans.pictures?[index].isPlaceholder = false
+                    trans.files?[index].isPlaceholder = false
                 }
             }
         }
         
-        if photoType.enumID == .event {
+        if parentType.enumID == .event {
             if let event = events.filter({ $0.id == recordID }).first {
-                let index = event.pictures?.firstIndex(where: { $0.uuid == uuid })
+                let index = event.files?.firstIndex(where: { $0.uuid == uuid })
                 if let index {
-                    event.pictures?[index].isPlaceholder = false
+                    event.files?[index].isPlaceholder = false
                 }
             }
         }
     }
     
-    func markPictureAsFailedToUpload(recordID: String, uuid: String, photoType: XrefItem) {
-        if photoType.enumID == .eventTransaction {
+    func markFileAsFailedToUpload(recordID: String, uuid: String, parentType: XrefItem, fileType: FileType) {
+        if parentType.enumID == .eventTransaction {
             if let trans = justTransactions.filter({ $0.id == recordID }).first {
-                let index = trans.pictures?.firstIndex(where: { $0.uuid == uuid })
+                let index = trans.files?.firstIndex(where: { $0.uuid == uuid })
                 if let index {
-                    trans.pictures?[index].active = false
+                    trans.files?[index].active = false
                 }
             }
         }
         
-        if photoType.enumID == .event {
+        if parentType.enumID == .event {
             if let event = events.filter({ $0.id == recordID }).first {
-                let index = event.pictures?.firstIndex(where: { $0.uuid == uuid })
+                let index = event.files?.firstIndex(where: { $0.uuid == uuid })
                 if let index {
-                    event.pictures?[index].active = false
+                    event.files?[index].active = false
                 }
             }
         }
     }
     
-    func displayCompleteAlert(recordID: String, photoType: XrefItem) {
+    func displayCompleteAlert(recordID: String, parentType: XrefItem, fileType: FileType) {
         
     }
     
-    func delete(picture: CBPicture, photoType: XrefItem) async {
-        if await PhotoModel.shared.delete(picture) {
-            if photoType.enumID == .eventTransaction {
-                if let trans = justTransactions.filter({ $0.id == picture.relatedID }).first {
-                    if let _ = trans.pictures?.firstIndex(where: { $0.id == picture.id }) {
-                        trans.pictures?.removeAll { $0.id == picture.id || $0.uuid == picture.uuid }
+    func delete(file: CBFile, parentType: XrefItem, fileType: FileType) async {
+        if await FileModel.shared.delete(file) {
+            if parentType.enumID == .eventTransaction {
+                if let trans = justTransactions.filter({ $0.id == file.relatedID }).first {
+                    if let _ = trans.files?.firstIndex(where: { $0.id == file.id }) {
+                        trans.files?.removeAll { $0.id == file.id || $0.uuid == file.uuid }
                     }
                 }
             }
             
-            if photoType.enumID == .event {
-                if let event = events.filter({ $0.id == picture.relatedID }).first {
-                    if let _ = event.pictures?.firstIndex(where: { $0.id == picture.id }) {
-                        event.pictures?.removeAll { $0.id == picture.id || $0.uuid == picture.uuid }
+            if parentType.enumID == .event {
+                if let event = events.filter({ $0.id == file.relatedID }).first {
+                    if let _ = event.files?.firstIndex(where: { $0.id == file.id }) {
+                        event.files?.removeAll { $0.id == file.id || $0.uuid == file.uuid }
                     }
                 }
             }

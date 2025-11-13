@@ -92,8 +92,8 @@ fileprivate let photoHeight: CGFloat = 200
 struct EventTransactionView: View {
     @Observable
     class ViewModel {
-        var hoverPic: CBPicture?
-        var deletePic: CBPicture?
+        var hoverPic: CBFile?
+        var deletePic: CBFile?
         var isDeletingPic = false
         var showDeletePicAlert = false
     }
@@ -102,7 +102,7 @@ struct EventTransactionView: View {
     @State private var vm = ViewModel()
     
     @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @Local(\.useWholeNumbers) var useWholeNumbers
     
     @State private var mapModel = MapModel()
@@ -394,9 +394,9 @@ struct EventTransactionView: View {
             StandardDivider()
             
             if trans.isNotIdea {
-                StandardPhotoSection(
-                    pictures: $trans.pictures,
-                    photoUploadCompletedDelegate: eventModel,
+                StandardFileSection(
+                    files: $trans.files,
+                    fileUploadCompletedDelegate: eventModel,
                     parentType: .eventTransaction,
                     showCamera: $showCamera,
                     showPhotosPicker: $showPhotosPicker
@@ -530,7 +530,8 @@ struct EventTransactionView: View {
                     })
                     .cbClearButtonMode(.whileEditing)
                     .cbFocused(_focusedField, equals: 1)
-                    .cbKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
+                    .cbKeyboardType(.custom(.numpad))
+                    //.cbKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
                     #else
                     StandardTextField("Amount", text: $trans.amountString, focusedField: $focusedField, focusValue: 1)
                     #endif
@@ -544,7 +545,7 @@ struct EventTransactionView: View {
                 )
                 .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
                 
-                (Text("Transaction Type: ") + Text(transTypeLingo).bold(true).foregroundStyle(Color.fromName(colorTheme)))
+                (Text("Transaction Type: ") + Text(transTypeLingo).bold(true).foregroundStyle(Color.theme))
                     .foregroundStyle(.gray)
                     .font(.caption)
                     .multilineTextAlignment(.leading)
@@ -635,7 +636,7 @@ struct EventTransactionView: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(Color(.tertiarySystemFill))
-            .foregroundStyle(Color.fromName(colorTheme))
+            .foregroundStyle(Color.theme)
             .if((trans.options?.filter { $0.active }.count == 0) || trans.options == nil) {
                 $0.alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
             }
@@ -706,7 +707,7 @@ struct EventTransactionView: View {
         }
         .buttonStyle(.borderedProminent)
         .tint(Color(.tertiarySystemFill))
-        .foregroundStyle(Color.fromName(colorTheme))
+        .foregroundStyle(Color.theme)
     }
     
     
@@ -754,7 +755,7 @@ struct EventTransactionView: View {
                                 Text(user.name)
                                     .bold()
                                     .font(.caption2)
-                                    .foregroundStyle(Color.fromName(colorTheme))
+                                    .foregroundStyle(Color.theme)
                             }
                         }
                     }
@@ -797,7 +798,7 @@ struct EventTransactionView: View {
     
     struct ItemLineView: View {
         @Local(\.useWholeNumbers) var useWholeNumbers
-        @Local(\.colorTheme) var colorTheme
+        //@Local(\.colorTheme) var colorTheme
         @Environment(\.dismiss) private var dismiss
         @Environment(EventModel.self) private var eventModel
         @Environment(MapModel.self) private var mapModel
@@ -869,7 +870,7 @@ struct EventTransactionView: View {
                         #if os(iOS)
                         .fill(Color(uiColor: .secondarySystemGroupedBackground))
                         #endif
-                        .strokeBorder(Color.fromName(colorTheme), lineWidth: 2)
+                        .strokeBorder(Color.theme, lineWidth: 2)
                         .clipShape(Rectangle())
                 )
             }
@@ -887,7 +888,7 @@ struct EventTransactionView: View {
     
     struct ItemViewingCapsule: View {
         @Local(\.useWholeNumbers) var useWholeNumbers
-        @Local(\.colorTheme) var colorTheme
+        //@Local(\.colorTheme) var colorTheme
         
         @Environment(EventModel.self) private var eventModel
         var option: CBEventTransactionOption
@@ -901,7 +902,7 @@ struct EventTransactionView: View {
             }
             .padding(2)
             .padding(.horizontal, 4)
-            .background(Color.fromName(colorTheme), in: Capsule())
+            .background(Color.theme, in: Capsule())
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         
@@ -971,7 +972,7 @@ struct EventTransactionView: View {
         /// Copy it so we can compare for smart saving.
         trans.deepCopy(.create)
         
-        PhotoModel.shared.pictureParent = PictureParent(id: trans.id, type: XrefModel.getItem(from: .photoTypes, byEnumID: .eventTransaction))
+        FileModel.shared.fileParent = FileParent(id: trans.id, type: XrefModel.getItem(from: .fileTypes, byEnumID: .eventTransaction))
         
         if trans.action != .add {
             let recordType = XrefModel.getItem(from: .openRecords, byEnumID: .eventTransaction)
@@ -988,7 +989,7 @@ struct EventTransactionView: View {
 //
 //struct EventTransactionViewOG: View {
 //    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
-//    @Local(\.colorTheme) var colorTheme
+//    //@Local(\.colorTheme) var colorTheme
 //    @Local(\.useWholeNumbers) var useWholeNumbers
 //    
 //    @Environment(EventModel.self) private var eventModel
@@ -1077,7 +1078,7 @@ struct EventTransactionView: View {
 //            } footer: {
 //                HStack {
 //                    Spacer()
-//                    (Text("Transaction Type: ") + Text(transTypeLingo).bold(true).foregroundStyle(Color.fromName(colorTheme)))
+//                    (Text("Transaction Type: ") + Text(transTypeLingo).bold(true).foregroundStyle(Color.theme))
 //                        .foregroundStyle(.gray)
 //                        .font(.caption)
 //                        .disabled(trans.amountString.isEmpty)
@@ -1160,7 +1161,7 @@ struct EventTransactionView: View {
 //            /// Copy it so we can compare for smart saving.
 //            trans.deepCopy(.create)
 //            
-//            PhotoModel.shared.pictureParent = PictureParent(id: trans.id, type: XrefModel.getItem(from: .photoTypes, byEnumID: .eventTransaction))
+//            FileModel.shared.fileParent = PictureParent(id: trans.id, type: XrefModel.getItem(from: .fileTypes, byEnumID: .eventTransaction))
 //            
 //            if trans.action != .add {
 //                let recordType = XrefModel.getItem(from: .openRecords, byEnumID: .eventTransaction)
@@ -1567,7 +1568,7 @@ struct EventTransactionView: View {
 //                                Text(user.name)
 //                                    .bold()
 //                                    .font(.caption2)
-//                                    .foregroundStyle(Color.fromName(colorTheme))
+//                                    .foregroundStyle(Color.theme)
 //                            }
 //                        }
 //                    }
@@ -1608,7 +1609,7 @@ struct EventTransactionView: View {
 //    
 //    struct ItemLineView: View {
 //        @Local(\.useWholeNumbers) var useWholeNumbers
-//        @Local(\.colorTheme) var colorTheme
+//        //@Local(\.colorTheme) var colorTheme
 //        @Environment(EventModel.self) private var eventModel
 //        
 //        @Bindable var item: CBEventTransactionOption
@@ -1639,7 +1640,7 @@ struct EventTransactionView: View {
 //                        #if os(iOS)
 //                        .fill(Color(uiColor: .secondarySystemGroupedBackground))
 //                        #endif
-//                        .strokeBorder(Color.fromName(colorTheme), lineWidth: 2)
+//                        .strokeBorder(Color.theme, lineWidth: 2)
 //                        .clipShape(Rectangle())
 //                )
 //            }
@@ -1657,7 +1658,7 @@ struct EventTransactionView: View {
 //    
 //    struct ItemViewingCapsule: View {
 //        @Local(\.useWholeNumbers) var useWholeNumbers
-//        @Local(\.colorTheme) var colorTheme
+//        //@Local(\.colorTheme) var colorTheme
 //        
 //        @Environment(EventModel.self) private var eventModel
 //        var item: CBEventTransactionOption
@@ -1671,7 +1672,7 @@ struct EventTransactionView: View {
 //            }
 //            .padding(2)
 //            .padding(.horizontal, 4)
-//            .background(Color.fromName(colorTheme), in: Capsule())
+//            .background(Color.theme, in: Capsule())
 //            .frame(maxWidth: .infinity, alignment: .leading)
 //        }
 //        

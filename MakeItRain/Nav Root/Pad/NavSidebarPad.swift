@@ -26,7 +26,7 @@ struct MaxNavWidthPreferenceKey: PreferenceKey {
 #if os(iOS)
 struct NavSidebarPad: View {
     @Environment(\.colorScheme) var colorScheme    
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
 
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) var calModel
@@ -48,54 +48,58 @@ struct NavSidebarPad: View {
         
         VStack(spacing: 0) {
             ScrollView {
-                CalendarNavGridHeader(monthNavigationNamespace: monthNavigationNamespace)
-                
-                if AppState.shared.methsExist {
-                    iPadGrid
+                Group {
+                    CalendarNavGridHeader(monthNavigationNamespace: monthNavigationNamespace)
+                    
+                    if AppState.shared.methsExist {
+                        iPadGrid
+                    }
                 }
+                .padding(.horizontal, 15)
                 
-                Spacer()
-                    .frame(height: 20)
+                
+                //sectionSpacer
                 
                 VStack(spacing: 0) {
-                    if AppState.shared.methsExist {
-                        NavLinkPad(destination: .categories, title: "Categories", image: "books.vertical", linkWidth: linkWidth, linkHeight: linkHeight)
-                            .listRowSeparator(.hidden)
+                    Section {
+                        if AppState.shared.methsExist {
+                            NavLinkPad(destination: .categories, linkWidth: linkWidth, linkHeight: linkHeight)
+                        }
+                        
+                        NavLinkPad(destination: .paymentMethods, linkWidth: linkWidth, linkHeight: linkHeight)
                     }
                     
-                    NavLinkPad(destination: .paymentMethods, title: "Accounts", image: "creditcard", linkWidth: linkWidth, linkHeight: linkHeight)
-                        .listRowSeparator(.hidden)
+                    //sectionSpacer
                     
                     if AppState.shared.methsExist {
-                        Section("") {
-                            NavLinkPad(destination: .events, title: "Events", image: "beach.umbrella", linkWidth: linkWidth, linkHeight: linkHeight)
-                                .listRowSeparator(.hidden)
-                            
-                            NavLinkPad(destination: .repeatingTransactions, title: "Reoccuring Transactions", image: "repeat", linkWidth: linkWidth, linkHeight: linkHeight)
-                                .listRowSeparator(.hidden)
-                            
-                            NavLinkPad(destination: .keywords, title: "Rules", image: "textformat.abc.dottedunderline", linkWidth: linkWidth, linkHeight: linkHeight)
-                                .listRowSeparator(.hidden)
+                        Section {
+                            NavLinkPad(destination: .repeatingTransactions, linkWidth: linkWidth, linkHeight: linkHeight)
+                            NavLinkPad(destination: .keywords, linkWidth: linkWidth, linkHeight: linkHeight)
                         }
+                        
+                        //sectionSpacer
                                                 
-                        Section("") {
-                            NavLinkPad(destination: .plaid, title: "Plaid", image: "building.columns", linkWidth: linkWidth, linkHeight: linkHeight)
-                                .listRowSeparator(.hidden)
+                        Section {
+                            NavLinkPad(destination: .plaid, linkWidth: linkWidth, linkHeight: linkHeight)
                         }
+                        
+                        //sectionSpacer
                                                                         
-                        Section("") {
+                        Section {
+                            NavLinkPad(destination: .toasts, linkWidth: linkWidth, linkHeight: linkHeight)
+                            
                             if AppState.shared.user?.id == 1 {
-                                NavLinkPad(destination: .debug, title: "Debug", image: "ladybug", linkWidth: linkWidth, linkHeight: linkHeight)
-                                    .listRowSeparator(.hidden)
+                                NavLinkPad(destination: .debug, linkWidth: linkWidth, linkHeight: linkHeight)
                                     .badge(funcModel.loadTimes.count)
                             }
                             
-                            NavLinkPad(destination: .settings, title: "Settings", image: "gear", linkWidth: linkWidth, linkHeight: linkHeight)
+                            NavLinkPad(destination: .settings, linkWidth: linkWidth, linkHeight: linkHeight)
                         }
                     }
                 }
             }
-            .contentMargins(.horizontal, 15, for: .scrollContent)
+            .scrollIndicators(.hidden)
+            //.contentMargins(.horizontal, 15, for: .scrollContent)
         }
         .frame(maxWidth: .infinity)
         .onPreferenceChange(MaxNavWidthPreferenceKey.self) { linkWidth = max(linkWidth, $0) }
@@ -103,6 +107,10 @@ struct NavSidebarPad: View {
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .background(colorScheme == .dark ? Color.darkGray : Color(UIColor.systemGray6))
+    }
+    
+    var sectionSpacer: some View {
+        Spacer().frame(height: 20)
     }
         
     

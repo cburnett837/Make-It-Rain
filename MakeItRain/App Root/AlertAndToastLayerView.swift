@@ -8,8 +8,9 @@
 import SwiftUI
 
 struct AlertAndToastLayerView: View {
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @Environment(CalendarModel.self) private var calModel
+    @Binding var showCamera: Bool
         
     var body: some View {
         @Bindable var appState = AppState.shared
@@ -67,19 +68,27 @@ struct AlertAndToastLayerView: View {
             .overlay {
                 if let config = AppState.shared.alertConfig {
                     Rectangle()
+                        .fill(Color.black)
+//                    Color.black
                         #if os(iOS)
                         .glassEffect(in: .rect())
                         #endif
                         //.fill(.ultraThickMaterial)
                         //.fill(Color.darkGray3)
-                        .opacity(0.8)
+                        .opacity(0.3)
                         .ignoresSafeArea()
                         .overlay { CustomAlert(config: config) }
                         .opacity(appState.showCustomAlert ? 1 : 0)
                         .accessibilityIdentifier("UniversalAlertContent")
-                                            
                 }
             }
+            .photoPickerAndCameraSheet(
+                fileUploadCompletedDelegate: calModel,
+                parentType: .transaction,
+                allowMultiSelection: false,
+                showPhotosPicker: .constant(false),
+                showCamera: $showCamera
+            )
             /// Toasts.
             .toast()
     }

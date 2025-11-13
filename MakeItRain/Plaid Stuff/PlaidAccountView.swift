@@ -29,6 +29,9 @@ struct PlaidAccountView: View {
     
     @State private var showPayMethodSheet = false
 
+    var isValidToSave: Bool {
+        account.hasChanges() && !account.title.isEmpty
+    }
     
     var body: some View {
         NavigationStack {
@@ -80,7 +83,9 @@ struct PlaidAccountView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { deleteButton }
-                ToolbarItem(placement: .topBarTrailing) { closeButton }
+                ToolbarItem(placement: .topBarTrailing) {
+                    AnimatedCloseButton(isValidToSave: isValidToSave, closeButton: closeButton)
+                }
             }
         }
         .task { await prepareView() }
@@ -94,7 +99,7 @@ struct PlaidAccountView: View {
             
             resultingPayMethod = nil
         } content: {
-            PayMethodSheet(payMethod: $resultingPayMethod, whichPaymentMethods: .remainingAvailbleForPlaid)
+            PayMethodSheet(payMethod: $resultingPayMethod, whichPaymentMethods: .remainingAvailbleForPlaid, showNoneOption: true)
         }
     }
     
@@ -147,10 +152,10 @@ struct PlaidAccountView: View {
         Button {
             editID = nil; dismiss()
         } label: {
-            Image(systemName: "xmark")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+            Image(systemName: isValidToSave ? "checkmark" : "xmark")
+                .schemeBasedForegroundStyle()
         }
-        .buttonStyle(.glassProminent)
+        //.buttonStyle(.glassProminent)
     }
     
     
@@ -164,7 +169,7 @@ struct PlaidAccountView: View {
         .tint(.none)
         .confirmationDialog("Delete \"\(account.title)\"?", isPresented: $showDeleteAlert, actions: {
             Button("Yes", role: .destructive, action: deleteAccount)
-//            Button("No", role: .cancel) { showDeleteAlert = false }
+            Button("No", role: .close) { showDeleteAlert = false }
         }, message: {
             #if os(iOS)
             Text("Delete \"\(account.title)\"?\nThis will also delete all associated transactions.")
@@ -177,14 +182,6 @@ struct PlaidAccountView: View {
     // MARK: - Functions
     func prepareView() async {
         account.deepCopy(.create)
-        //focusedField = 0
-        
-//        if let accounts = await plaidModel.fetchAccounts(for: bank) {
-//            self.accounts = accounts
-//        }
-        
-        //await viewModel.fetchHistory(for: payMethod, payModel: payModel, setChartAsNew: true)
-        
     }
     
     

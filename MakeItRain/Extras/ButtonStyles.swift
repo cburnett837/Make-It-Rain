@@ -87,20 +87,17 @@ struct SheetHeaderButtonStyle: ButtonStyle {
     
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            //.buttonStyle(.plain)
-            //.symbolRenderingMode(.hierarchical)
-            //.foregroundStyle(.gray)
-            //.foregroundStyle(.gray)
-            //.imageScale(.small)
+            #if os(macOS)
+            .buttonStyle(.plain)
+            .foregroundStyle(.gray)
+            .imageScale(.small)
             .frame(minWidth: 30, minHeight: 30)
-            //.foregroundStyle(.gray)
-            //#if os(macOS)
-            //.background(configuration.isPressed ? Color(.darkGray) : buttonColor)
-            //#else
-            //.background(configuration.isPressed ? colorScheme == .light ? Color(.systemGray3) : Color(.darkGray) : buttonColor)
-            //#endif
-            //.clipShape(Circle())
-                                                
+            .foregroundStyle(.gray)
+            .background(configuration.isPressed ? Color(.darkGray) : buttonColor)
+            .clipShape(Circle())
+            #else
+            .frame(minWidth: 30, minHeight: 30)
+            #endif
             .onHover { buttonColor = $0 ? Color(.systemFill) : Color(.tertiarySystemFill) }
             //.scaleEffect(configuration.isPressed ? 1.2 : 1)
             //.animation(.easeOut(duration: 0.2), value: configuration.isPressed)
@@ -122,3 +119,4 @@ struct AlertButtonStyle: ButtonStyle {
             //.animation(.easeOut(duration: 0.2), value: configuration.isPressed)
     }
 }
+

@@ -6,6 +6,13 @@
 //
 
 import Foundation
+import SwiftUI
+
+protocol CanHandleLogo: AnyObject {
+    var logo: Data? {get set}
+    var id: String {get set}
+    var color: Color {get set}
+}
 
 protocol CanEditTitleWithLocation: AnyObject, CanHandleLocationsDelegate {
     var title: String {get set}
@@ -18,7 +25,6 @@ extension CanEditTitleWithLocation {
     var factorInCalculations: Bool { get { return true } set {} }
 }
 
-
 protocol CanEditAmount: AnyObject {
     var amount: Double {get}
     var amountString: String {get set}
@@ -27,32 +33,31 @@ protocol CanEditAmount: AnyObject {
     var amountTypeLingo: String {get}
 }
 
-
-
 protocol CanHandleLocationsDelegate {
+    var title: String {get set}
+    func setTitle(_ text: String)
     var locations: Array<CBLocation> {get set}
     func upsert(_ location: CBLocation)
     func deleteLocation(id: String)
 }
 
-
-@MainActor protocol PhotoUploadCompletedDelegate {
-    func addPlaceholderPicture(recordID: String, uuid: String, photoType: XrefItem)
-    func markPlaceholderPictureAsReadyForDownload(recordID: String, uuid: String, photoType: XrefItem)
-    func markPictureAsFailedToUpload(recordID: String, uuid: String, photoType: XrefItem)
-    func displayCompleteAlert(recordID: String, photoType: XrefItem)
+@MainActor protocol FileUploadCompletedDelegate {
+    func addPlaceholderFile(recordID: String, uuid: String, parentType: XrefItem, fileType: FileType)
+    func markPlaceholderFileAsReadyForDownload(recordID: String, uuid: String, parentType: XrefItem, fileType: FileType)
+    func markFileAsFailedToUpload(recordID: String, uuid: String, parentType: XrefItem, fileType: FileType)
+    func displayCompleteAlert(recordID: String, parentType: XrefItem, fileType: FileType)
     func cleanUpPhotoVariables()
-    func delete(picture: CBPicture, photoType: XrefItem) async
+    func delete(file: CBFile, parentType: XrefItem, fileType: FileType) async
     
     /// These are all optional.
     var smartTransactionDate: Date? {get set}
-    var isUploadingSmartTransactionPicture: Bool {get set}
+    var isUploadingSmartTransactionFile: Bool {get set}
     func alertUploadingSmartReceiptIfApplicable()
 }
 /// To make the protocol variables optional.
-extension PhotoUploadCompletedDelegate {
+extension FileUploadCompletedDelegate {
     var smartTransactionDate: Date? { get { return nil } set {} }
-    var isUploadingSmartTransactionPicture: Bool { get { return false } set {} }
+    var isUploadingSmartTransactionFile: Bool { get { return false } set {} }
     func alertUploadingSmartReceiptIfApplicable() {}
     func cleanUpPhotoVariables() {}
 }

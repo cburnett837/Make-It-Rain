@@ -8,11 +8,11 @@
 import SwiftUI
 
 struct CategoryGroupView: View {
-    @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
+    @AppStorage("categorySortMode") var categorySortMode: SortMode = .title
     @Environment(\.layoutDirection) private var layoutDirection: LayoutDirection
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
 
     @Environment(CategoryModel.self) private var catModel
     
@@ -36,20 +36,12 @@ struct CategoryGroupView: View {
         if searchText.isEmpty {
             return group.categories
                 .filter { $0.active && categoryIds.contains($0.id) }
-                .sorted {
-                    categorySortMode == .title
-                    ? $0.title.lowercased() < $1.title.lowercased()
-                    : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
-                }
+                .sorted(by: Helpers.categorySorter())
         } else {
             return group.categories
                 .filter { $0.active && categoryIds.contains($0.id) }
-                .filter { $0.title.localizedStandardContains(searchText) }
-                .sorted {
-                    categorySortMode == .title
-                    ? $0.title.lowercased() < $1.title.lowercased()
-                    : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
-                }
+                .filter { $0.title.localizedCaseInsensitiveContains(searchText) }
+                .sorted(by: Helpers.categorySorter())
         }
     }
     
@@ -57,20 +49,12 @@ struct CategoryGroupView: View {
         if searchText.isEmpty {
             return catModel.categories
                 .filter { !categoryIds.contains($0.id) }
-                .sorted {
-                    categorySortMode == .title
-                    ? $0.title.lowercased() < $1.title.lowercased()
-                    : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
-                }
+                .sorted(by: Helpers.categorySorter())
         } else {
             return catModel.categories
                 .filter { !categoryIds.contains($0.id) }
-                .filter { $0.title.localizedStandardContains(searchText) }
-                .sorted {
-                    categorySortMode == .title
-                    ? $0.title.lowercased() < $1.title.lowercased()
-                    : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
-                }
+                .filter { $0.title.localizedCaseInsensitiveContains(searchText) }
+                .sorted(by: Helpers.categorySorter())                
         }
     }
     
@@ -94,8 +78,7 @@ struct CategoryGroupView: View {
                         }
                     }
                 }
-                
-                
+                                
                 Section("Available Categories") {
                     ForEach(filteredAvailableCategories) { cat in
                         MultiCategoryPickerLineItem(cat: cat, categories: $group.categories, labelWidth: labelWidth, selectFunction: { doit(cat) })
@@ -104,20 +87,24 @@ struct CategoryGroupView: View {
             }
             .searchable(text: $searchText, prompt: Text("Search"))
             .navigationTitle(title)
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
-                //ToolbarItem(placement: .topBarLeading) { deleteButton }
+                #if os(iOS)
+                ToolbarItem(placement: .topBarLeading) { deleteButton }                
                 ToolbarItem(placement: .topBarTrailing) {
                     if isValidToSave {
                         closeButton
                             #if os(iOS)
-                            .tint(Color.fromName(colorTheme))
+                            .tint(Color.theme)
                             .buttonStyle(.glassProminent)
                             #endif
                     } else {
                         closeButton
                     }
                 }
+                #endif
             }
         }
         
@@ -156,7 +143,7 @@ struct CategoryGroupView: View {
 //            showDeleteAlert = true
 //        } label: {
 //            Image(systemName: "trash")
-//                .foregroundStyle(colorScheme == .dark ? .white : .black)
+//                .schemeBasedForegroundStyle()
 //        }
 //        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
 //    }
@@ -167,8 +154,37 @@ struct CategoryGroupView: View {
             editID = nil; dismiss()
         } label: {
             Image(systemName: isValidToSave ? "checkmark" : "xmark")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+                .schemeBasedForegroundStyle()
         }
+    }
+    
+    
+    var deleteButton: some View {
+        Button {
+            showDeleteAlert = true
+        } label: {
+            Image(systemName: "trash")
+        }
+        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
+        .tint(.none)
+        .confirmationDialog("Delete \"\(group.title)\"?", isPresented: $showDeleteAlert, actions: {
+            Button("Delete", role: .destructive) { deleteGroup() }
+            //Button("No", role: .close) { showDeleteAlert = false }
+        }, message: {
+            #if os(iOS)
+            Text("Delete \"\(group.title)\"?\nThis will not delete any associated transactions.")
+            #else
+            Text("This will not delete any associated transactions.")
+            #endif
+        })
+    }
+    
+    func deleteGroup() {
+        //Task {
+            group.action = .delete
+            dismiss()
+            //await catModel.delete(category, andSubmit: true, calModel: calModel, keyModel: keyModel, eventModel: eventModel)
+        //}
     }
     
     

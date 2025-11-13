@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct SmartTransactionsWithIssuesOverlay: View {
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @Environment(\.colorScheme) private var colorScheme
     #if os(macOS)
     @Environment(\.dismiss) private var dismiss
@@ -27,7 +27,7 @@ struct SmartTransactionsWithIssuesOverlay: View {
     
     var body: some View {
         //let _ = Self._printChanges()
-                
+        #if os(iOS)
         if AppState.shared.isIphone {
             StandardContainer(.bottomPanel) {
                 content
@@ -39,7 +39,7 @@ struct SmartTransactionsWithIssuesOverlay: View {
                 StandardContainerWithToolbar(.list) {
                     content
                 }
-                .navigationTitle("Pending Smart Transactions")
+                .navigationTitle("Pending Receipts")
                 #if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -48,84 +48,105 @@ struct SmartTransactionsWithIssuesOverlay: View {
                 #endif
             }
         }
+        #else
+        sheetHeader
+        #endif
     }
     
     
     var content: some View {
         Group {
             if calModel.tempTransactions.filter({ $0.isSmartTransaction ?? false }).isEmpty {
-                ContentUnavailableView("No Smart Transactions With Issues", systemImage: "bag.fill.badge.questionmark")
+                ContentUnavailableView("No Receipts With Issues", systemImage: "bag.fill.badge.questionmark")
             } else {
                 VStack(spacing: 0) {
                     ForEach(calModel.tempTransactions.filter {$0.isSmartTransaction ?? false}) { trans in
-                        VStack(spacing: 0) {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 0) {
-                                    
-                                    Text(trans.title)
-                                    
-                                    Group {
-                                        if trans.smartTransactionIssue?.enumID == .missingPaymentMethod {
-                                            Text("Missing Payment Method")
-                                                .foregroundStyle(.red)
-                                            
-                                        } else if trans.smartTransactionIssue?.enumID == .missingDate {
-                                            Text("Missing Date")
-                                                .foregroundStyle(.red)
-                                            
-                                        } else if trans.smartTransactionIssue?.enumID == .missingPaymentMethodAndDate {
-                                            Text("Missing Payment Method and Date")
-                                                .foregroundStyle(.red)
-                                            
-                                        } else if trans.smartTransactionIssue?.enumID == .funkyDate {
-                                            Text("Date Seems Weird")
-                                                .foregroundStyle(.orange)
-                                        }
-                                    }
-                                    .font(.footnote)
-                                    
-                                    
-                                    HStack(spacing: 0) {
-                                        CircleDot(color: trans.payMethod?.color, width: 10)
-                                        Text(trans.amountString)
-                                            .foregroundStyle(.gray)
-                                            .font(.footnote)
-                                    }
-                                                                                
-                                    Text(trans.date?.string(to: .monthDayShortYear) ?? "N/A")
-                                        .foregroundStyle(.gray)
-                                        .font(.caption2)
-                                }
-                                
-                                Spacer()
-                                Button("Fix & Save") {
-                                    trans.smartTransactionIsAcknowledged = true
-                                    calProps.findTransactionWhere = .smartList
-                                    calProps.transEditID = trans.id
-                                }
-                                .buttonStyle(.borderedProminent)
-                                .tint(Color.fromName(colorTheme))
-                                
-                                Button("Discard") {
-                                    Task {
-                                        await calModel.denySmartTransaction(trans)
-                                    }
-                                }
-                                .buttonStyle(.borderedProminent)
-                                .tint(.gray)
-                            }
-                            
-                            if AppState.shared.isIphone {
-                                Divider()
-                                    .padding(.vertical, 2)
-                            }
-                        }
-                        .listRowInsets(EdgeInsets())
-                        .padding(.horizontal, 8)
+                        lineItem(trans)                        
                     }
                 }
             }
         }
+    }
+    
+    @ViewBuilder func lineItem(_ trans: CBTransaction) -> some View {
+        VStack(spacing: 0) {
+            HStack {
+                BusinessLogo(parent: trans.payMethod, fallBackType: .color)
+                
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(trans.title)
+                    
+                    Text(trans.amountString)
+                        .foregroundStyle(.gray)
+                        .font(.footnote)
+                                                                
+                    Text(trans.prettyDate ?? "N/A")
+                        .foregroundStyle(.gray)
+                        .font(.footnote)
+                    
+                    issueText(for: trans)
+                }
+                
+                Spacer()
+                
+                fixButton(for: trans)
+                discardButton(for: trans)
+            }
+            .padding(.horizontal, 8)
+            
+            #if os(iOS)
+            if AppState.shared.isIphone {
+                Divider()
+                    .padding(.vertical, 2)
+            }
+            #endif
+        }
+        .listRowInsets(EdgeInsets())
+    }
+    
+    
+    @ViewBuilder func fixButton(for trans: CBTransaction) -> some View {
+        Button("Fix") {
+            //trans.smartTransactionIsAcknowledged = true
+            calProps.findTransactionWhere = .smartList
+            calProps.transEditID = trans.id
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(Color.theme)
+    }
+    
+    
+    @ViewBuilder func discardButton(for trans: CBTransaction) -> some View {
+        Button("Discard") {
+            Task {
+                await calModel.denySmartTransaction(trans)
+            }
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(.gray)
+    }
+    
+    
+    @ViewBuilder func issueText(for trans: CBTransaction) -> some View {
+        Group {
+            if trans.smartTransactionIssue?.enumID == .missingPaymentMethod {
+                Text("Missing account…")
+                    .foregroundStyle(.red)
+                
+            } else if trans.smartTransactionIssue?.enumID == .missingDate {
+                Text("Missing date…")
+                    .foregroundStyle(.red)
+                
+            } else if trans.smartTransactionIssue?.enumID == .missingPaymentMethodAndDate {
+                Text("Missing account & date…")
+                    .foregroundStyle(.red)
+                
+            } else if trans.smartTransactionIssue?.enumID == .funkyDate {
+                Text("Date seems strange…")
+                    .foregroundStyle(.orange)
+            }
+        }
+        .font(.footnote)
     }
     
     var closeButton: some View {
@@ -141,7 +162,7 @@ struct SmartTransactionsWithIssuesOverlay: View {
             #endif
         } label: {
             Image(systemName: "xmark")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+                .schemeBasedForegroundStyle()
         }
     }
     
@@ -150,7 +171,7 @@ struct SmartTransactionsWithIssuesOverlay: View {
     var sheetHeader: some View {
         @Bindable var calProps = calProps
         SheetHeader(
-            title: "Pending Smart Transactions",
+            title: "Pending Receipts",
             close: {
                 #if os(iOS)
                 withAnimation {

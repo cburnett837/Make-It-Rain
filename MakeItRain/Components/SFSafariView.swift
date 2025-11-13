@@ -23,9 +23,9 @@ struct SFSafariView: UIViewControllerRepresentable {
 }
 
 
-struct WebView: UIViewRepresentable {
-
-    let requestModel: RequestModel<PhotoRequestModel>
+struct WebViewRep: UIViewRepresentable {
+    let backgroundColor: Color?
+    let requestModel: RequestModel<FileRequestModel>
     
     func makeUIView(context: Context) -> WKWebView {
         let jsonData = try? JSONEncoder().encode(requestModel)
@@ -36,6 +36,7 @@ struct WebView: UIViewRepresentable {
         
         let webView = WKWebView()
         webView.isOpaque = false
+        webView.backgroundColor = UIColor(backgroundColor ?? .primary)
         webView.load(request!)
         
         return webView

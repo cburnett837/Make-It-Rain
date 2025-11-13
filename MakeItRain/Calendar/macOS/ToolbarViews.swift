@@ -530,7 +530,7 @@ struct CalendarToolbarTrailing: View {
 //        }
         
 //        .sheet(isPresented: $showAnalysisSheet) {
-//            AnalysisSheet(showAnalysisSheet: $showAnalysisSheet)
+//            CategoryInsightsSheetshowAnalysisSheet: $showAnalysisSheet)
 //                .frame(minWidth: 300, minHeight: 500)
 //                .presentationSizing(.fitted)
 //        }

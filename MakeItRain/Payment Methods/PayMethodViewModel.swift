@@ -839,12 +839,15 @@ class PayMethodViewModel {
     // MARK: - View Helpers
     
     @AxisContentBuilder
-    func xAxis() -> some AxisContent {
+    func xAxis(color: Color = .gray) -> some AxisContent {
         AxisMarks(position: .bottom, values: .automatic) { _ in
             AxisTick()
+                .foregroundStyle(color)
             AxisGridLine()
+                .foregroundStyle(color)
             //AxisValueLabel(centered: self.visibleYearCount == .yearToDate)
             AxisValueLabel()
+                .foregroundStyle(color)
         }
         
         
@@ -857,9 +860,11 @@ class PayMethodViewModel {
     }
     
     @AxisContentBuilder
-    func yAxis(symbol: String = "$") -> some AxisContent {
+    func yAxis(color: Color = .gray, symbol: String = "$") -> some AxisContent {
         AxisMarks(values: .automatic(desiredCount: 6)) {
             AxisGridLine()
+                .foregroundStyle(color)
+            
             let value = $0.as(Int.self)!
             AxisValueLabel {
                 if symbol == "$" {
@@ -868,6 +873,7 @@ class PayMethodViewModel {
                     Text("\(value)\(symbol)")
                 }
             }
+            .foregroundStyle(color)
         }
     }
     

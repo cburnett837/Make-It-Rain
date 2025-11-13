@@ -14,7 +14,6 @@ struct LineItemMiniView: View {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @Environment(\.colorScheme) var colorScheme
     
-    //@Local(\.colorTheme) var colorTheme
     @Local(\.incomeColor) var incomeColor
     //@AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
     @Local(\.useWholeNumbers) var useWholeNumbers
@@ -94,8 +93,7 @@ struct LineItemMiniView: View {
             .onTapGesture {
                 /// Prevent a transaction from being opened while another one is trying to save.
                 if calModel.editLock { return }
-                
-                
+                                
                 if calModel.isInMultiSelectMode {
                     if calModel.multiSelectTransactions.map({ $0.id }).contains(trans.id) {
                         calModel.multiSelectTransactions.removeAll(where: {$0.id == trans.id})
@@ -106,8 +104,6 @@ struct LineItemMiniView: View {
                     calModel.hilightTrans = trans
                     transEditID = trans.id
                 }
-                
-                
             }
         }
         
@@ -116,13 +112,13 @@ struct LineItemMiniView: View {
                 trans.action = .delete
                 calModel.saveTransaction(id: trans.id)
             }
-            Button("No", role: .cancel) { showDeleteAlert = false }
+            Button("No", role: .close) { showDeleteAlert = false }
         } message: {
             Text("Delete \"\(trans.title)\"?")
         }
-//        .contextMenu {
-//            TransactionContextMenu(trans: trans, transEditID: $transEditID, showDeleteAlert: $showDeleteAlert)
-//        }
+        .contextMenu {
+            TransactionContextMenu(trans: trans, transEditID: $transEditID, showDeleteAlert: $showDeleteAlert)
+        }
         
         .fixedSize(horizontal: false, vertical: true)
         
@@ -141,10 +137,10 @@ struct LineItemMiniView: View {
                         .font(.caption)
                         //.minimumScaleFactor(0.8)
                         .lineLimit(1)
-                        .foregroundStyle(trans.color == .white || trans.color == .black ? .primary : trans.color)
+                        .foregroundStyle(trans.action == .add ? .gray : titleColor)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .overlay { ExcludeFromTotalsLine(trans: trans) }
-                        .italic(wasUpdatedByAnotherUser)
+                        .italic(wasUpdatedByAnotherUser || trans.action == .add)
                         .bold(wasUpdatedByAnotherUser)
                                         
                 } else if phoneLineItemDisplayItem == .total {
@@ -171,14 +167,19 @@ struct LineItemMiniView: View {
                     stackedTitleAndTotal
                 }
                 
-                if trans.notifyOnDueDate {
-                    Image(systemName: "bell")
-                        .foregroundStyle(.primary)
-                        //.font(.caption2)
-                        .font(.system(size: 10))
+                if phoneLineItemDisplayItem != .both && trans.notifyOnDueDate {
+                    notificationIndicator
                 }
             }
         }
+    }
+    
+    
+    var notificationIndicator: some View {
+        Image(systemName: "alarm")
+            .foregroundStyle(.primary)
+            //.font(.caption2)
+            .font(.system(size: 10))
     }
     
     
@@ -215,20 +216,23 @@ struct LineItemMiniView: View {
     var stackedTitleAndTotal: some View {
         Group {
             VStack(alignment: .leading, spacing: 0) {
-                Text(trans.title)
-                    .font(.caption2)
-                    //.minimumScaleFactor(0.8)
-                    .lineLimit(1)
-                    //.alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-                    .foregroundStyle(titleColor)
-                    //.frame(maxWidth: .infinity, alignment: .leading)
-                    //.frame(maxHeight: .infinity, alignment: .bottom)
-                    .overlay { ExcludeFromTotalsLine(trans: trans) }
-                
+                HStack {
+                    Text(trans.action == .add ? "(New)" : trans.title)
+                        .font(.caption2)
+                        .lineLimit(1)
+                        .foregroundStyle(trans.action == .add ? .gray : titleColor)
+                        .italic(trans.action == .add)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    if trans.notifyOnDueDate {
+                        notificationIndicator
+                    }
+                }
+                .overlay { ExcludeFromTotalsLine(trans: trans) }
+                                
                 totalText
                     .font(.system(size: 10))
                     .overlay { ExcludeFromTotalsLine(trans: trans) }
-                    //.frame(maxHeight: .infinity, alignment: .bottom)
             }
             .italic(wasUpdatedByAnotherUser)
             .bold(wasUpdatedByAnotherUser)

@@ -42,7 +42,7 @@ struct PaymentMethodChartStyleMenu: View {
             }
         } label: {
             Image(systemName: "line.3.horizontal.decrease")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+                .schemeBasedForegroundStyle()
         }
     }
 }

@@ -9,11 +9,12 @@
 import SwiftUI
 import Charts
 
-struct ChartSelectedDataContainer<Headers: View, Rows: View, Summary: View>: View {    
+struct ChartSelectedDataContainer<Headers: View, Rows: View, Summary: View>: View {
+    @AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false
+
     @Bindable var vm: PayMethodViewModel
     @Bindable var payMethod: CBPaymentMethod
     var columnCount: Int
-    var showOverviewDataPerMethodOnUnifiedChart: Bool
     
     @ViewBuilder var headers: Headers
     @ViewBuilder var rows: Rows

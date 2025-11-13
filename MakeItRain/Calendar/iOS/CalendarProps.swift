@@ -29,6 +29,7 @@ class CalendarProps {
     var showSideBar = false
     
     /// For iPhone
+    var showDashboardSheet = false
     var showBudgetSheet = false
     var showAnalysisSheet = false
     var showTransactionListSheet = false

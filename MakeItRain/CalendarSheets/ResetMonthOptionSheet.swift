@@ -144,7 +144,7 @@ struct ResetMonthOptionSheet: View {
                             .contentTransition(.symbolEffect(.replace))
                             .foregroundStyle(Color.accentColor)
                         Text("Transactions")
-                            .foregroundStyle(colorScheme == .dark ? .white : .black)
+                            .schemeBasedForegroundStyle()
                         Spacer()
                     }
                 }
@@ -157,7 +157,7 @@ struct ResetMonthOptionSheet: View {
                             .contentTransition(.symbolEffect(.replace))
                             .foregroundStyle(Color.accentColor)
                         Text("Starting Amount")
-                            .foregroundStyle(colorScheme == .dark ? .white : .black)
+                            .schemeBasedForegroundStyle()
                         Spacer()
                         
                     }
@@ -180,7 +180,7 @@ struct ResetMonthOptionSheet: View {
                         .contentTransition(.symbolEffect(.replace))
                         .foregroundStyle(Color.accentColor)
                     Text("Budget")
-                        .foregroundStyle(colorScheme == .dark ? .white : .black)
+                        .schemeBasedForegroundStyle()
                     Spacer()
                 }
             }
@@ -201,7 +201,7 @@ struct ResetMonthOptionSheet: View {
                         .contentTransition(.symbolEffect(.replace))
                         .foregroundStyle(Color.accentColor)
                     Text("Populated Status")
-                        .foregroundStyle(colorScheme == .dark ? .white : .black)
+                        .schemeBasedForegroundStyle()
                     Spacer()
                 }
             }
@@ -214,6 +214,7 @@ struct ResetMonthOptionSheet: View {
             showResetMonthAlert = true
         } label: {
             Text("Reset")
+                .schemeBasedForegroundStyle()
         }
         #if os(macOS)
         .foregroundStyle(.red)
@@ -231,7 +232,7 @@ struct ResetMonthOptionSheet: View {
             dismiss()
         } label: {
             Image(systemName: "xmark")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+                .schemeBasedForegroundStyle()
         }
     }
 }

@@ -26,7 +26,7 @@ struct PlaidTable: View {
     var filteredBanks: [CBPlaidBank] {
         plaidModel.banks
             .filter { $0.active }
-            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedStandardContains(searchText) }
+            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedCaseInsensitiveContains(searchText) }
     }
     
     var body: some View {
@@ -36,7 +36,11 @@ struct PlaidTable: View {
                 #if os(macOS)
                 macTable
                 #else
-                phoneList
+                if filteredBanks.isEmpty {
+                    ContentUnavailableView("No banks found", systemImage: "exclamationmark.magnifyingglass")
+                } else {
+                    phoneList
+                }
                 #endif
             } else {
                 ContentUnavailableView("No Plaid Banks", systemImage: "building.columns", description: Text("Click the plus button above to add a bank."))
@@ -108,16 +112,18 @@ struct PlaidTable: View {
     
     var phoneList: some View {
         List(filteredBanks, selection: $bankEditID) { bank in
-            HStack(alignment: .circleAndTitle) {
-                if bank.hasIssues {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                        .alignmentGuide(.circleAndTitle) { $0[VerticalAlignment.center] }
+            HStack {
+                if let logoBase = bank.logo, let data = Data(base64Encoded: logoBase), let image = UIImage(data: data) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .frame(width: 30, height: 30, alignment: .center)
+                        .clipShape(Circle())
+                        //.alignmentGuide(.circleAndTitle) { $0[VerticalAlignment.center] }
                 }
                 
                 VStack(alignment: .leading) {
                     Text(bank.title)
-                        .alignmentGuide(.circleAndTitle) { $0[VerticalAlignment.center] }
+                        //.alignmentGuide(.circleAndTitle) { $0[VerticalAlignment.center] }
                                         
                     Text("Accounts: \(bank.numberOfAccounts)")
                         .foregroundStyle(.secondary)
@@ -130,6 +136,13 @@ struct PlaidTable: View {
                     Text("Last Cody Sync: \(bank.lastTimeICheckedPlaidSyncedDate?.string(to: .monthDayHrMinAmPm) ?? "N/A")")
                         .foregroundStyle(.secondary)
                         .font(.caption)
+                }
+                
+                if bank.hasIssues {
+                    Spacer()
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .alignmentGuide(.circleAndTitle) { $0[VerticalAlignment.center] }
                 }
             }
         }
@@ -144,7 +157,7 @@ struct PlaidTable: View {
             showInfoSheet = true
         } label: {
             Image(systemName: "info")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+                .schemeBasedForegroundStyle()
         }
     }
     

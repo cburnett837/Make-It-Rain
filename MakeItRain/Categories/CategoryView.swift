@@ -11,7 +11,7 @@ import Charts
 
 struct CategoryView: View {
     @Local(\.useWholeNumbers) var useWholeNumbers
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
 
     @AppStorage("monthlyAnalyticChartVisibleYearCount") var chartVisibleYearCount: CategoryAnalyticChartRange = .year1
     @AppStorage("selectedCategoryTab") var selectedTab: DetailsOrInsights = .details
@@ -23,12 +23,15 @@ struct CategoryView: View {
     @Environment(\.openWindow) private var openWindow
     @Environment(\.dismissWindow) private var dismissWindow
     #endif
+    @Environment(CalendarModel.self) private var calModel
+    @Environment(CategoryModel.self) private var catModel
+    @Environment(KeywordModel.self) private var keyModel
     @Environment(EventModel.self) private var eventModel
     
     @Bindable var category: CBCategory
-    @Bindable var catModel: CategoryModel
-    @Bindable var calModel: CalendarModel
-    @Bindable var keyModel: KeywordModel
+//    @Bindable var catModel: CategoryModel
+//    @Bindable var calModel: CalendarModel
+//    @Bindable var keyModel: KeywordModel
     /// This is only here to blank out the selection hilight on the iPhone list
     @Binding var editID: String?
     
@@ -53,12 +56,15 @@ struct CategoryView: View {
     @Namespace private var namespace
         
     var displayData: Array<AnalyticData> {
-        if chartVisibleYearCount == .yearToDate {
+//        if chartVisibleYearCount == .yearToDate {
+//            return data
+//                .filter { $0.year == Calendar.current.component(.year, from: .now) }
+//        } else {
+            let currentYear = Calendar.current.component(.year, from: .now)
+            let years = (0..<chartVisibleYearCount.rawValue).map { currentYear - $0 }
             return data
-                .filter { $0.year == Calendar.current.dateComponents([.year], from: .now).year! }
-        } else {
-            return data
-        }
+                .filter { years.contains($0.year) }
+//        }
     }
     
     var headerLingo: String {
@@ -86,6 +92,7 @@ struct CategoryView: View {
     
     
     var body: some View {
+        //let _ = Self._printChanges()
         Group {
         #if os(iOS)
             NavigationStack {
@@ -100,13 +107,16 @@ struct CategoryView: View {
                         .labelsHidden()
                         .pickerStyle(.segmented)
                         .scenePadding(.horizontal)
+                        //.background(Color(.systemBackground))
                     }
                     
                     switch selectedTab {
                     case .details: categoryPagePhone
                     case .insights: chartPage
+                    case .edit: EmptyView()
                     }
                 }
+                .background(Color(.systemBackground))
                 .navigationTitle(title)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -131,15 +141,7 @@ struct CategoryView: View {
                     }
                     
                     ToolbarItem(placement: .topBarTrailing) {
-                        if isValidToSave {
-                            closeButton
-                                #if os(iOS)
-                                .tint(category.color == .primary ? Color.fromName(colorTheme) : category.color)
-                                .buttonStyle(.glassProminent)
-                                #endif
-                        } else {
-                            closeButton
-                        }
+                        AnimatedCloseButton(isValidToSave: isValidToSave, color: category.color, closeButton: closeButton)
                     }
                     
                     ToolbarItem(placement: .bottomBar) {
@@ -363,7 +365,8 @@ struct CategoryView: View {
             .uiStartCursorAtEnd(true)
             .uiTextAlignment(.left)
             //.uiReturnKeyType(.next)
-            .uiKeyboardType(.decimalPad)
+            //.uiKeyboardType(.decimalPad)
+            .uiKeyboardType(.custom(.numpad))
             //.uiTextColor(.secondaryLabel)
         }
         .focused($focusedField, equals: 1)
@@ -433,19 +436,19 @@ struct CategoryView: View {
         
     }
     
-    // MARK: - Is Hidden
+    
     var isHiddenRow: some View {
         #if os(iOS)
         Toggle(isOn: $category.isHidden.animation()) {
             Label {
                 Text("Mark as Hidden")
-                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+                    .schemeBasedForegroundStyle()
             } icon: {
                 Image(systemName: "eye.slash")
                     .foregroundStyle(.gray)
             }
         }
-        .tint(category.color == .primary ? Color.fromName(colorTheme) : category.color)
+        .tint(category.color == .primary ? Color.theme : category.color)
         
         #else
         LabeledRow("Hidden", labelWidth) {
@@ -498,14 +501,14 @@ struct CategoryView: View {
             HStack {
                 Label {
                     Text("Symbol")
-                        .foregroundStyle(colorScheme == .dark ? .white : .black)
+                        .schemeBasedForegroundStyle()
                 } icon: {
                     Image(systemName: "tree")
                         .foregroundStyle(.gray)
                 }
                 
                 //Text("Symbol")
-                    //.foregroundStyle(colorScheme == .dark ? .white : .black)
+                    //.schemeBasedForegroundStyle()
                 Spacer()
                 Image(systemName: category.emoji ?? "questionmark.circle.fill")
                     .font(.system(size: 24))
@@ -522,7 +525,7 @@ struct CategoryView: View {
 //        } label: {
 //            HStack {
 //                Text("Symbol")
-//                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+//                    .schemeBasedForegroundStyle()
 //                Spacer()
 //                Image(systemName: category.emoji ?? "questionmark.circle.fill")
 //                    .font(.system(size: 24))
@@ -553,7 +556,7 @@ struct CategoryView: View {
             closeSheet()
         } label: {
             Image(systemName: isValidToSave ? "checkmark" : "xmark")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+                .schemeBasedForegroundStyle()
         }
     }
     
@@ -621,35 +624,54 @@ struct CategoryView: View {
     }
     
     
+    @ViewBuilder
     var rawDataList: some View {
+        var displayRange: ClosedRange<Int> {
+            let years = data.map { $0.year }
+            return min((years.min() ?? 0), fetchYearStart)...max((years.max() ?? 0), fetchYearEnd)
+        }
+        
         Section {
             NavigationLink {
                 List {
-                    ForEach(displayData.sorted(by: { $0.date > $1.date })) { data in
-                        RawDataLineItem(category: category, data: data)
-//                        .onScrollVisibilityChange {
-//                            if $0 && data.id == displayData.sorted(by: { $0.date > $1.date }).last?.id {
-//                                fetchMoreHistory()
-//                            }
-//                        }
+                    /// Don't use `displayData` here since when viewing YTD, it will ommit the rest of the data and will look like it's missing.
+                    ForEach(Array(displayRange.reversed()), id: \.self) { year in
+                        let data = data.filter {$0.year == year}.sorted(by: { $0.date > $1.date })
+                        
+                        Section(String(year)) {
+                            if data.isEmpty {
+                                Text("No Transactions")
+                                    .foregroundStyle(.gray)
+                            } else {
+                                ForEach(data) { data in
+                                    RawDataLineItem(category: category, data: data)
+                                }
+                            }
+                        }
                     }
                     
-                    Button("Fetch \(String(fetchYearStart - 10)) - \(String(fetchYearEnd - 10))", action: fetchMoreHistory)
-                        .tint(category.color)
+                    Section {
+                        Button("Fetch \(String(fetchYearStart - 10)) - \(String(fetchYearEnd - 10))", action: fetchMoreHistory)
+                            .tint(category.color)
+                    }
+                    
+                    
                     
                 }
                 .navigationTitle("\(category.title) Data")
                 .navigationSubtitle("\(String(fetchYearStart)) - \(String(AppState.shared.todayYear))")
+                #if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
                         refreshButton
                     }
                 }
+                #endif
             } label: {
                 Text("Show All")
             }
-            .tint(Color.fromName(colorTheme))
+            .tint(Color.theme)
             .onChange(of: calModel.showMonth) {
                 if !$1 && $0 {
                     Task { await fetchHistory(setChartAsNew: false) }
@@ -689,7 +711,7 @@ struct CategoryView: View {
                 }
             }
             .tint(.none)
-            .foregroundStyle(colorScheme == .dark ? .white : .black)
+            .schemeBasedForegroundStyle()
             .background(backgroundColor)
             .onHover { backgroundColor = $0 ? .gray.opacity(0.2) : .clear }
         }
@@ -764,10 +786,11 @@ struct CategoryView: View {
     
     
     func deleteCategory() {
-        Task {
+        //Task {
+            category.action = .delete
             dismiss()
-            await catModel.delete(category, andSubmit: true, calModel: calModel, keyModel: keyModel, eventModel: eventModel)
-        }
+            //await catModel.delete(category, andSubmit: true, calModel: calModel, keyModel: keyModel, eventModel: eventModel)
+        //}
     }
     
     
@@ -793,6 +816,7 @@ struct CategoryView: View {
             withAnimation {
                 //var localData: Array<AnalyticData> = []
                 for each in data {
+                    print(each.date)
                     if let index = self.data.firstIndex(where: { $0.month == each.month && $0.year == each.year }) {
                         self.data[index].budgetString = each.budgetString
                         self.data[index].expensesString = each.expensesString
@@ -824,12 +848,12 @@ struct CategoryView: View {
                 let maxDate = data.last?.date ?? Date()
                 let idealDate = Calendar.current.date(byAdding: .day, value: -(365 * visibleYearCount), to: maxDate)!
                                 
-                if chartVisibleYearCount == .yearToDate {
-                    let components = Calendar.current.dateComponents([.year], from: .now)
-                    chartScrolledToDate = Calendar.current.date(from: components)!
-                } else {
+//                if chartVisibleYearCount == .yearToDate {
+//                    let components = Calendar.current.dateComponents([.year], from: .now)
+//                    chartScrolledToDate = Calendar.current.date(from: components)!
+//                } else {
                     chartScrolledToDate = minDate < idealDate ? idealDate : minDate
-                }
+//                }
             
                 isLoadingHistory = false
             }

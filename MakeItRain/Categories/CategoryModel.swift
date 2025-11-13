@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 @MainActor
 @Observable
@@ -36,8 +37,7 @@ class CategoryModel {
     func getIndex(for category: CBCategory) -> Int? {
         return categories.firstIndex(where: { $0.id == category.id })
     }
-    
-    
+        
     func doesExist(_ group: CBCategoryGroup) -> Bool {
         return !categoryGroups.filter { $0.id == group.id }.isEmpty
     }
@@ -60,34 +60,37 @@ class CategoryModel {
     
     func saveCategory(id: String, calModel: CalendarModel, keyModel: KeywordModel) {
         let category = getCategory(by: id)
-        Task {
-            if category.title.isEmpty {
-                if category.action != .add && category.title.isEmpty {
-                    category.title = category.deepCopy?.title ?? ""
-                    AppState.shared.showAlert("Removing a title is not allowed. If you want to delete \(category.title), please use the delete button instead.")
-                } else {
-                    categories.removeAll { $0.id == id }
-                }
-                return
+        
+        if category.action == .delete {
+            category.updatedBy = AppState.shared.user!
+            category.updatedDate = Date()
+            delete(category, andSubmit: true, calModel: calModel, keyModel: keyModel)
+            return
+        }
+        
+        /// User blanked out the title of an existing category.
+        if category.title.isEmpty {
+            if category.action == .edit {
+                category.title = category.deepCopy?.title ?? ""
+                AppState.shared.showAlert("Removing a title is not allowed. If you want to delete \(category.title), please use the delete button instead.")
+            } else {
+                /// Remove the dud that is in `.add` mode since it's being upserted into the list on creation.
+                withAnimation { categories.removeAll { $0.id == id } }
             }
-                                                    
-            if category.hasChanges() {
+            return
+        }
+                                                
+        if category.hasChanges() {
+            Task {
                 category.updatedBy = AppState.shared.user!
                 category.updatedDate = Date()
-                                
+                
                 /// Do this to allow new items to be sorted. Something weird happens and it tried to move the second to last item if you don't sort when adding
                 if category.action == .add {
-                    category.listOrder = categories.filter { !$0.isNil }.count - 1
-                    
-                    let categorySortMode = CategorySortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
-                    
-                    categories.sort {
-                        categorySortMode == .title
-                        ? ($0.title).lowercased() < ($1.title).lowercased()
-                        : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
-                    }
+                    category.listOrder = categories.filter { !$0.isNil }.count
+                    categories.sort(by: Helpers.categorySorter())
                 }
-                                                                                
+                
                 let wasSuccessful = await submit(category)
                 if wasSuccessful {
                     var budgetsToServer: Array<CBBudget> = []
@@ -98,8 +101,8 @@ class CategoryModel {
                     for keyword in keyModel.keywords.filter({ $0.category?.id == category.id }) {
                         keyword.category?.setFromAnotherInstance(category: category)
                     }
-                                                            
-                    await updatePersistentKeywords(category: category)
+                    
+                    await _updatePersistentKeywords(category: category)
                     
                     calModel.months.forEach { month in
                         /// Update the local transactions with the new category info.
@@ -108,14 +111,14 @@ class CategoryModel {
                                 transaction.category = category
                             }
                         }
-                                                
+                        
                         if let index = month.budgets.firstIndex(where: { $0.category?.id == category.id }) {
                             /// Update the months budget with the new category info (if applicable).
                             month.budgets[index].category = category
                             
                         } else if !month.budgets.isEmpty {
                             /// If a budget has already been created for the month, add the new category (if applicable).
-                                                        
+                            
                             let budget = CBBudget()
                             budget.month = month.actualNum
                             budget.year = month.year
@@ -130,12 +133,14 @@ class CategoryModel {
                     if !budgetsToServer.isEmpty {
                         let _ = await submitNewBudgets(budgets: budgetsToServer, calModel: calModel)
                     }
+                    
                 }
             }
         }
         
+        
         /// Updated for concurrency rules.
-        func updatePersistentKeywords(category: CBCategory) async {
+        func _updatePersistentKeywords(category: CBCategory) async {
             let categoryID = category.id
             // Copy only the simple data you need
             let keywordInfos = await MainActor.run {
@@ -169,20 +174,30 @@ class CategoryModel {
     
     func saveCategoryGroup(id: String) {
         let group = getCategoryGroup(by: id)
-        Task {
-            if group.title.isEmpty {
-                if group.action != .add && group.title.isEmpty {
-                    group.title = group.deepCopy?.title ?? ""
-                    AppState.shared.showAlert("Removing a title is not allowed. If you want to delete \(group.title), please use the delete button instead.")
-                } else {
-                    categoryGroups.removeAll { $0.id == id }
-                }
-                return
+        
+        if group.action == .delete {
+            group.updatedBy = AppState.shared.user!
+            group.updatedDate = Date()
+            delete(group, andSubmit: true)
+            return
+        }
+                
+        if group.title.isEmpty {
+            /// User blanked out the title of an existing transaction.
+            if group.action == .edit {
+                group.title = group.deepCopy?.title ?? ""
+                AppState.shared.showAlert("Removing a title is not allowed. If you want to delete \(group.title), please use the delete button instead.")
+            } else {
+                /// Remove the dud that is in `.add` mode since it's being upserted into the list on creation.
+                withAnimation { categoryGroups.removeAll { $0.id == id } }
             }
-                                                    
-            if group.hasChanges() {
-                group.updatedBy = AppState.shared.user!
-                group.updatedDate = Date()
+            return
+        }
+                                                
+        if group.hasChanges() {
+            group.updatedBy = AppState.shared.user!
+            group.updatedDate = Date()
+            Task {
                 let _ = await submit(group)
             }
         }
@@ -661,7 +676,7 @@ class CategoryModel {
     @MainActor
     func setListOrders(calModel: CalendarModel) async -> Array<ListOrderUpdate> {
         var updates: Array<ListOrderUpdate> = []
-        var index = 0
+        var index = 1
         
         for category in self.categories.filter({ !$0.isNil }) {
             print("New list order \(category.title) - \(index)")
@@ -682,7 +697,7 @@ class CategoryModel {
                 }
             }
         }
-        //await persistListOrders(updates: updates)
+        await persistListOrders(updates: updates)
         return updates
     }
     
@@ -760,32 +775,38 @@ class CategoryModel {
     
     
     
-    func delete(_ category: CBCategory, andSubmit: Bool, calModel: CalendarModel, keyModel: KeywordModel, eventModel: EventModel) async {
-        let context = DataManager.shared.createContext()
+    func delete(_ category: CBCategory, andSubmit: Bool, calModel: CalendarModel, keyModel: KeywordModel) {
         category.action = .delete
         category.deepCopy?.action = .delete
-        categories.removeAll { $0.id == category.id }        
-        
-        calModel.justTransactions.filter { $0.category?.id == category.id }.forEach { $0.category = nil }        
-        calModel.months.forEach { $0.budgets.removeAll(where: { $0.category?.id == category.id }) }
-        keyModel.keywords.removeAll(where: { $0.category?.id == category.id })
-        eventModel.events.forEach {$0.transactions.removeAll(where: { $0.category?.id == category.id })}
+        withAnimation {
+            categories.removeAll { $0.id == category.id }
+            keyModel.keywords.removeAll { $0.category?.id == category.id }
+            
+            calModel.justTransactions.filter { $0.category?.id == category.id }.forEach { $0.category = nil }
+            calModel.months.forEach { $0.budgets.removeAll { $0.category?.id == category.id } }
+            //eventModel.events.forEach { $0.transactions.removeAll { $0.category?.id == category.id } }
+        }
         
         if andSubmit {
-            let _ = await submit(category)
+            Task { @MainActor in
+                let _ = await submit(category)
+            }
         } else {
+            let context = DataManager.shared.createContext()
             DataManager.shared.delete(context: context, type: PersistentCategory.self, predicate: .byId(.string(category.id)))
         }
     }
     
     
-    func delete(_ group: CBCategoryGroup, andSubmit: Bool) async {
+    func delete(_ group: CBCategoryGroup, andSubmit: Bool) {
         group.action = .delete
         group.deepCopy?.action = .delete
-        categoryGroups.removeAll { $0.id == group.id }
+        withAnimation { categoryGroups.removeAll { $0.id == group.id } }
         
         if andSubmit {
-            let _ = await submit(group)
+            Task { @MainActor in
+                let _ = await submit(group)
+            }
         }
     }
     

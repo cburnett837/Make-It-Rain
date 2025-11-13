@@ -42,7 +42,7 @@ struct SettingsView: View {
     //@AppStorage("macCategoryDisplayMode") var macCategoryDisplayMode: MacCategoryDisplayMode = .emoji
     
     @AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode: UpdatedByOtherUserDisplayMode = .full
-    @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
+    @AppStorage("categorySortMode") var categorySortMode: SortMode = .title
     @AppStorage("transactionSortMode") var transactionSortMode: TransactionSortMode = .title
     
     @AppStorage("showHashTagsOnLineItems") var showHashTagsOnLineItems: Bool = true
@@ -85,11 +85,6 @@ struct SettingsView: View {
     
     var body: some View {
         VStack {
-//            #if os(iOS)
-//            SheetHeader(title: "Settings", close: { showSettings = false })
-//                .padding()
-//            #endif
-            
             Group {
                 #if os(macOS)
                 Form {
@@ -107,50 +102,94 @@ struct SettingsView: View {
 //                bioType = biometricType()
 //            }
         }
-        .tint(Color.fromName(colorTheme))
+        .tint(Color.theme)
         .alert("Reset All Settings?", isPresented: $showResetAllSettingsAlert) {
             Button("Reset", role: .destructive, action: resetAllSettings)
-            Button("No", role: .cancel) {
-                showResetAllSettingsAlert = false
-            }
+            Button("No", role: .close) { showResetAllSettingsAlert = false }
         }
         #if os(iOS)
         .navigationTitle("Settings")
         //.navigationBarTitleDisplayMode(.inline)
         #endif
         //.navigationBarBackButtonHidden(true)
-        .toolbar {
-            #if os(iOS)
-            phoneToolbar()
-            #endif
-        }
+//        .toolbar {
+//            #if os(iOS)
+//            phoneToolbar()
+//            #endif
+//        }
     }
     
-    #if os(iOS)
-    @ToolbarContentBuilder
-    func phoneToolbar() -> some ToolbarContent {
-        if !AppState.shared.isIpad {
-            ToolbarItem(placement: .topBarLeading) {
-//                Button {
-//                    dismiss()
-//                    //dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
-//                    //NavigationManager.shared.selection = nil
-//                } label: {
-//                    HStack(spacing: 4) {
-//                        Image(systemName: "chevron.left")
-//                        Text("Back")
-//                    }
-//                }
+//    #if os(iOS)
+//    @ToolbarContentBuilder
+//    func phoneToolbar() -> some ToolbarContent {
+//        if !AppState.shared.isIpad {
+//            ToolbarItem(placement: .topBarLeading) {
+////                Button {
+////                    dismiss()
+////                    //dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
+////                    //NavigationManager.shared.selection = nil
+////                } label: {
+////                    HStack(spacing: 4) {
+////                        Image(systemName: "chevron.left")
+////                        Text("Back")
+////                    }
+////                }
+//            }
+//        }
+//    }
+//    #endif
+    
+    
+    
+    @ViewBuilder
+    var locationErrorView: some View {
+        let globalAuthDeniedError = "Please enable Location Services by going to Settings -> Privacy & Security"
+        let authDeniedError = "Please authorize access to Location Services"
+        let authRestrictedError = "Can't access location. Do you have Parental Controls enabled?"
+        let unknownAuthStatus = "Please contact the developer about an unknown authorization status."
+        
+        if !LocationManager.shared.authIsAllowed {
+            switch LocationManager.shared.manager.authorizationStatus {
+            case .notDetermined:
+                ErrorView(errorMessage: globalAuthDeniedError)
+            case .restricted:
+                ErrorView(errorMessage: authRestrictedError)
+            case .denied:
+                ErrorView(errorMessage: authDeniedError)
+            case .authorizedAlways, .authorizedWhenInUse, .authorized:
+                EmptyView()
+            @unknown default:
+                ErrorView(errorMessage: unknownAuthStatus)
             }
         }
     }
-    #endif
     
+    struct ErrorView: View {
+        @State var errorMessage: String
+        
+        var body: some View {
+            Section {
+                HStack {
+                    Image(systemName: "exclamationmark.triangle")
+                        .resizable()
+                        .frame(width: 50, height: 50)
+                        .foregroundStyle(LinearGradient(gradient: Gradient(colors: [.orange, .red]), startPoint: .top, endPoint: .bottom))
+                    Text(errorMessage)
+                }
+            } footer: {
+                Text("Location services are used to find businsses near you when entering a transaction.")
+            }
+            
+        }
+    }
     
     
     var settingsContent: some View {
         Group {
-            Section("Your Details") {
+            
+            locationErrorView
+            
+            Section("My Details") {
                 HStack {
                     Label {
                         VStack(alignment: .leading) {
@@ -299,7 +338,7 @@ struct SettingsView: View {
                 HStack {
                     Label {
                         Text("Color")
-                            .foregroundStyle(colorScheme == .dark ? .white : .black)
+                            .schemeBasedForegroundStyle()
                     } icon: {
                         Image(systemName: "lightspectrum.horizontal")
                             .symbolRenderingMode(.multicolor)

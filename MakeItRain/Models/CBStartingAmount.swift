@@ -36,7 +36,7 @@ class CBStartingAmount: Codable, Identifiable, Hashable, Equatable {
         self.month = 0
         self.year = 0
         self.amountString = ""
-        self.payMethod = CBPaymentMethod.empty
+        self.payMethod = CBPaymentMethod()
         self.action = .add
         self.active = true
     }

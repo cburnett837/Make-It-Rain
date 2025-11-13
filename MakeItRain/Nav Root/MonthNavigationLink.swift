@@ -11,7 +11,7 @@ import SwiftUI
 struct MonthNavigationLink: View {
     @Environment(CalendarModel.self) var calModel
     
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     let sevenColumnGrid = Array(repeating: GridItem(.flexible(), spacing: 0, alignment: .top), count: 7)
     
     @State private var blinkView = false
@@ -35,12 +35,16 @@ struct MonthNavigationLink: View {
         .padding(.bottom, 10)
         .buttonStyle(.plain)
         .padding(4)
-        .if(AppState.shared.isIpad) {
-            $0.background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(blinkView ? Color.fromName(colorTheme) : NavigationManager.shared.selectedMonth == month.enumID ? Color(.tertiarySystemFill) : Color.clear)
+        /// Make sure all buttons are the same height, regardless of the amount of weekly rows in the month
+        .frame(maxHeight: .infinity, alignment: .top)
+//        .if(AppState.shared.isIpad) {
+//            $0
+                .background(
+                RoundedRectangle(cornerRadius: 15)
+                    .fill(blinkView ? Color.theme : NavigationManager.shared.selectedMonth == month.enumID ? Color(.tertiarySystemFill) : Color.clear)
             )
-        }
+        //}
+        
         .onTapGesture {
             print("SourceID: \(month.enumID)")
             navigateToMonth()
@@ -69,7 +73,7 @@ struct MonthNavigationLink: View {
         .font(.title3)
         .bold()
         .if(AppState.shared.todayMonth == month.actualNum && AppState.shared.todayYear == month.year) {
-            $0.foregroundStyle(Color.fromName(colorTheme))
+            $0.foregroundStyle(Color.theme)
         }
     }
     
@@ -90,7 +94,7 @@ struct MonthNavigationLink: View {
                             .if(AppState.shared.todayDay == (day.dateComponents?.day ?? 0) && AppState.shared.todayMonth == month.actualNum && AppState.shared.todayYear == month.year) {
                                 $0
                                 .bold()
-                                .foregroundStyle(Color.fromName(colorTheme))
+                                .foregroundStyle(Color.theme)
                             }
                     }
                 }
@@ -105,9 +109,11 @@ struct MonthNavigationLink: View {
         NavigationManager.shared.selectedMonth = month.enumID
         NavigationManager.shared.selection = nil
         
+        #if os(iOS)
         if AppState.shared.isIphone {
             calModel.showMonth = true
         }
+        #endif
     }
     
     

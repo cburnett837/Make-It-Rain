@@ -41,6 +41,7 @@ struct PayMethodSheetButton: View {
 
 struct PayMethodSheetButton2: View {
     @Environment(\.colorScheme) var colorScheme
+    @Environment(PlaidModel.self) private var plaidModel
     
     @State private var showPayMethodSheet = false
     @State private var payMethodMenuColor: Color = Color(.tertiarySystemFill)
@@ -60,15 +61,13 @@ struct PayMethodSheetButton2: View {
                 if let image = image {
                     Label {
                         Text(text)
-                            .foregroundStyle(colorScheme == .dark ? .white : .black)
+                            .schemeBasedForegroundStyle()
                     } icon: {
-                        Image(systemName: image)
-                            .foregroundStyle(payMethod == nil ? .gray : payMethod!.color)
-                            //.frame(width: symbolWidth)
+                        BusinessLogo(parent: payMethod, fallBackType: (payMethod ?? CBPaymentMethod()).isUnified ? .gradient : .color)
                     }
                 } else {
                     Text(text)
-                        .foregroundStyle(colorScheme == .dark ? .white : .black)
+                        .schemeBasedForegroundStyle()
                 }
                                 
                 Spacer()

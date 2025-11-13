@@ -171,7 +171,7 @@ struct DayViewMac: View {
 //                        let id = oldValue!.id
 //                        calModel.saveTransaction(id: id, day: day)
 ////                        calModel.pictureTransactionID = nil
-//                        PhotoModel.shared.pictureParent = nil
+//                        FileModel.shared.fileParent = nil
 //                    }
 //                }
 
@@ -248,7 +248,7 @@ struct DayViewMac: View {
                     }
                     
                     day.upsert(transactionToPaste)
-                    calModel.saveTransaction(id: transactionToPaste.id, day: day)
+                    calModel.saveTransaction(id: transactionToPaste.id/*, day: day*/)
                 } else {
                     print("nothing to paste")
                 }

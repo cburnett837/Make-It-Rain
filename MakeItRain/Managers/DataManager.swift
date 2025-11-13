@@ -11,6 +11,7 @@ import CoreData
 class DataManager {
     static let shared: DataManager = DataManager()
     let container = NSPersistentContainer(name: "PersistentModel")
+    let backgroundContext: NSManagedObjectContext
     
     private init() {
         //#warning("🟣 Purple warning: Performing I/O on the main thread can cause hangs.")
@@ -22,6 +23,16 @@ class DataManager {
         }
         
         container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        container.viewContext.automaticallyMergesChangesFromParent = true
+        
+        
+        let backgroundContext = container.newBackgroundContext()
+        backgroundContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        backgroundContext.automaticallyMergesChangesFromParent = true
+        // Set unused undoManager to nil for macOS (it is nil by default on iOS)
+        // to reduce resource requirements.
+        backgroundContext.undoManager = nil
+        self.backgroundContext = backgroundContext
         
         LogManager.log("Core Data initialized")
     }
@@ -29,17 +40,28 @@ class DataManager {
     //@MainActor
     func save(context: NSManagedObjectContext, file: String = #file, line: Int = #line, function: String = #function) -> Result<Bool, CoreDataError> {
         //NSLog("\(file):\(line) : \(function)")
-        print("-- \(#function) -- Called from: \(file):\(line) : \(function)")
+        //print("-- \(#function) -- Called from: \(file):\(line) : \(function)")
         //MainActor.assertIsolated()
         //print("\(#function) - Running on the main thread: \(Thread.isMainThread)")
         //return context.performAndWait {
             do {
                 try context.save()
-                print("CoreData save successful")
-                LogManager.log("CoreData save successful")
+                //print("CoreData save successful")
+                //LogManager.log("CoreData save successful")
                 return .success(true)
                 //continuation.resume(returning: .success(true))
             } catch {
+                
+                let nsError = error as NSError
+                print("❌ CoreData save failed: \(nsError), \(nsError.userInfo)")
+
+                if let detailedErrors = nsError.userInfo[NSDetailedErrorsKey] as? [NSError] {
+                    for err in detailedErrors {
+                        print("  ➤ Validation error on entity \(err.userInfo[NSValidationObjectErrorKey] ?? "?"): \(err.userInfo)")
+                    }
+                }
+                
+                
                 AppState.shared.showAlert("There was a problem saving the cache. Please try again. -- \(error.localizedDescription)")
                 LogManager.error("CoreData save failed - \(error.localizedDescription).")
                 print("CoreData save failed - \(error.localizedDescription).")
@@ -74,7 +96,14 @@ class DataManager {
     
     
     //@MainActor
-    func getMany<T: NSManagedObject>(context: NSManagedObjectContext, type entity: T.Type, predicate: Predicate? = nil, sort: Array<NSSortDescriptor>? = nil, limit: Int? = nil, offset: Int? = nil) -> Array<T>? {
+    func getMany<T: NSManagedObject>(
+        context: NSManagedObjectContext,
+        type entity: T.Type,
+        predicate: Predicate? = nil,
+        sort: Array<NSSortDescriptor>? = nil,
+        limit: Int? = nil,
+        offset: Int? = nil
+    ) -> Array<T>? {
         //MainActor.assertIsolated()
         do {
             let fetchRequest = T.fetchRequest()
@@ -93,7 +122,7 @@ class DataManager {
             if limit != nil { fetchRequest.fetchLimit = limit! }
             if offset != nil { fetchRequest.fetchOffset = offset! }
             let fetchResults = try context.performAndWait {
-                print("\(#function) - Running on the main thread: \(Thread.isMainThread)")
+                //print("\(#function) - Running on the main thread: \(Thread.isMainThread)")
                 return try context.fetch(fetchRequest)
             }
             return (fetchResults as? [T]) ?? []
@@ -304,6 +333,9 @@ class DataManager {
     
     /// Creates and configures a private queue context.
     func createContext() -> NSManagedObjectContext {
+        
+        //return self.backgroundContext
+        
         // Create a private queue context.
         /// - Tag: newBackgroundContext
         let taskContext = container.newBackgroundContext()

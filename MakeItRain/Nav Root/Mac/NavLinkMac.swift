@@ -11,7 +11,7 @@ struct NavLinkMac: View {
     @Environment(CalendarModel.self) var calModel
     
     
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @AppStorage("showIndividualLoadingSpinner") var showIndividualLoadingSpinner = false
     
     let destination: NavDestination
@@ -20,7 +20,7 @@ struct NavLinkMac: View {
             
     var iconColor: Color {
         //!AppState.shared.downloadedData.contains(destination) && showIndividualLoadingSpinner ? .gray : destination == NavigationManager.shared.selection ? .white : .blue
-        !AppState.shared.downloadedData.contains(destination) && showIndividualLoadingSpinner ? .gray : destination == NavigationManager.shared.selection ? .white : Color.fromName(colorTheme)
+        !AppState.shared.downloadedData.contains(destination) && showIndividualLoadingSpinner ? .gray : destination == NavigationManager.shared.selection ? .white : Color.theme
     }
     
     var body: some View {
@@ -32,7 +32,7 @@ struct NavLinkMac: View {
                     },
                     icon: {
                         Image(systemName: image)
-                            .tint([.search, .debug].contains(destination) ? Color.fromName(colorTheme) : iconColor)
+                            .tint([.search, .debug].contains(destination) ? Color.theme : iconColor)
                     }
                 )
             }

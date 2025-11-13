@@ -10,7 +10,7 @@ import Foundation
 enum RefType {
     case eventTransactionStatuses
     case relatedTransactionType
-    case photoTypes
+    case fileTypes
     case eventInviteStatus
     case smartTransactionIssues
     case openRecords
@@ -19,9 +19,10 @@ enum RefType {
     case categoryTypes
     case accountTypes
     case paymentMethodUserOptions
+    case logoTypes
 }
 
-enum XrefEnum {
+enum XrefEnum: String {
     case pending
     case claimed
     
@@ -58,11 +59,18 @@ enum XrefEnum {
     case k401
     case investment
     case loan
+    case crypto
+    case brokerage
     
     /// Payment Method Options
     case isHidden
     case defaultForEditing
     case defaultForViewing
+    
+    /// For logos
+    case repeatingTransaction
+    case paymentMethod
+    case plaidBank
 }
 
 struct XrefItem: Identifiable, Equatable, Hashable {
@@ -94,11 +102,11 @@ struct XrefModel {
         XrefItem(id: 4, refType: "related_transaction_type", description: "Event Transaction", enumID: .eventTransaction)
     ]
     
-    static let photoTypes: Array<XrefItem> = [
-        XrefItem(id: 5, refType: "photo_type", description: "Transaction", enumID: .transaction),
-        XrefItem(id: 6, refType: "photo_type", description: "Event Transaction", enumID: .eventTransaction),
-        XrefItem(id: 17, refType: "photo_type", description: "Event", enumID: .event),
-        XrefItem(id: 18, refType: "photo_type", description: "Event Transaction Option", enumID: .eventTransactionOption)
+    static let fileTypes: Array<XrefItem> = [
+        XrefItem(id: 5, refType: "file_type", description: "Transaction", enumID: .transaction),
+        XrefItem(id: 6, refType: "file_type", description: "Event Transaction", enumID: .eventTransaction),
+        XrefItem(id: 17, refType: "file_type", description: "Event", enumID: .event),
+        XrefItem(id: 18, refType: "file_type", description: "Event Transaction Option", enumID: .eventTransactionOption)
     ]
     
     static let eventInviteStatuses: Array<XrefItem> = [
@@ -150,13 +158,21 @@ struct XrefModel {
         XrefItem(id: 35, refType: "account_type", description: "Savings", enumID: .savings),
         XrefItem(id: 36, refType: "account_type", description: "401K", enumID: .k401),
         XrefItem(id: 37, refType: "account_type", description: "Investment", enumID: .investment),
-        XrefItem(id: 38, refType: "account_type", description: "Loan", enumID: .loan)
+        XrefItem(id: 38, refType: "account_type", description: "Loan", enumID: .loan),
+        XrefItem(id: 45, refType: "account_type", description: "Loan", enumID: .crypto),
+        XrefItem(id: 46, refType: "account_type", description: "Loan", enumID: .brokerage),
     ]
     
     static let paymentMethodUserOptions: Array<XrefItem> = [
         XrefItem(id: 39, refType: "payment_method_user_option", description: "Is Hidden", enumID: .isHidden),
         XrefItem(id: 40, refType: "payment_method_user_option", description: "Default For Editing", enumID: .defaultForEditing),
         XrefItem(id: 41, refType: "payment_method_user_option", description: "Default For Viewing", enumID: .defaultForViewing)
+    ]
+    
+    static let logoTypes: Array<XrefItem> = [
+        XrefItem(id: 42, refType: "logo_parent_type", description: "Payment Method", enumID: .paymentMethod),
+        XrefItem(id: 43, refType: "logo_parent_type", description: "Repeating Transaction", enumID: .repeatingTransaction),
+        XrefItem(id: 44, refType: "logo_parent_type", description: "Plaid Bank", enumID: .plaidBank),
     ]
     
     
@@ -168,8 +184,8 @@ struct XrefModel {
         case .relatedTransactionType:
             return relatedTransactionTypes
             
-        case .photoTypes:
-            return photoTypes
+        case .fileTypes:
+            return fileTypes
             
         case .eventInviteStatus:
             return eventInviteStatuses
@@ -194,6 +210,9 @@ struct XrefModel {
             
         case .paymentMethodUserOptions:
             return paymentMethodUserOptions
+            
+        case .logoTypes:
+            return logoTypes
         }
     }
     

@@ -7,17 +7,17 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "9FC90AE3-CF0F-4BFC-A46E-ECC5AE87CFEA"
-            shouldBeEnabled = "No"
+            uuid = "C9D3E154-23EC-40C7-94E7-9878E050BD7D"
+            shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "MakeItRain/CalendarSheets/CategoryAnalysisSheet.swift"
+            filePath = "MakeItRain/Payment Methods/Pay Method Charts/IncomeAndExpenseChart.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "764"
-            endingLineNumber = "764"
-            landmarkName = "prepareData()"
-            landmarkType = "7">
+            startingLineNumber = "59"
+            endingLineNumber = "59"
+            landmarkName = "body"
+            landmarkType = "24">
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

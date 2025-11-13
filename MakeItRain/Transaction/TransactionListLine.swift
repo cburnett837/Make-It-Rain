@@ -14,58 +14,53 @@ struct TransactionListLine: View {
     var withDate: Bool = false
     
     var body: some View {
-        VStack(spacing: 2) {
-            HStack {
-                Text(trans.title)
-                
-                Spacer()
-                
-                Group {
-                    if trans.payMethod?.accountType == .credit || trans.payMethod?.accountType == .loan {
-                        Text((trans.amount * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                    } else {
-                        Text(trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+        HStack {
+            BusinessLogo(parent: trans.payMethod, fallBackType: .color)
+            VStack(spacing: 2) {
+                HStack {
+                    Text(trans.title)
+                    
+                    Spacer()
+                    
+                    Group {
+                        if trans.payMethod?.accountType == .credit || trans.payMethod?.accountType == .loan {
+                            Text((trans.amount * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                        } else {
+                            Text(trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                        }
                     }
                 }
-            }
-                            
-            HStack {
-                HStack(spacing: 4) {
-                    Circle()
-                        .frame(width: 6, height: 6)
-                        .foregroundStyle(trans.category?.color ?? .primary)
-                    
-                    Text(trans.category?.title ?? "N/A")
-                        .foregroundStyle(.gray)
-                        .font(.caption)
-                }
-                
-                Spacer()
-                
-                HStack(spacing: 4) {
-                    Circle()
-                        .frame(width: 6, height: 6)
-                        .foregroundStyle(trans.payMethod?.color ?? .primary)
-                    
-                    Text(trans.payMethod?.title ?? "")
-                        .foregroundStyle(.gray)
-                        .font(.caption)
-                }
-            }
-            
-            if withDate {
-                HStack(spacing: 4) {
-                    Circle()
-                        .frame(width: 6, height: 6)
-                        .foregroundStyle(.primary)
-                                        
-                    Text(trans.prettyDate ?? "N/A")
-                        .foregroundStyle(.gray)
-                        .font(.caption)
+                .overlay { ExcludeFromTotalsLine(trans: trans) }
+                                
+                HStack {
+                    category
                     Spacer()
+                    if withDate { date }
                 }
+                .overlay { ExcludeFromTotalsLine(trans: trans) }
             }
+            .contentShape(Rectangle())
         }
-        .contentShape(Rectangle())
+        
+    }
+    
+    
+    var category: some View {
+        HStack(spacing: 4) {
+            Circle()
+                .frame(width: 6, height: 6)
+                .foregroundStyle(trans.category?.color ?? .primary)
+            
+            Text(trans.category?.title ?? "N/A")
+                .foregroundStyle(.gray)
+                .font(.caption)
+        }
+    }
+    
+    
+    var date: some View {
+        Text(trans.prettyDate ?? "N/A")
+            .foregroundStyle(.gray)
+            .font(.caption)
     }
 }

@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 @Observable
-class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
+class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo {
     var id: String
     var uuid: String?
     var title: String
@@ -29,13 +29,14 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
     var isViewingDefault = false
     var isEditingDefault = false
     var isHidden = false
-    var isPrivate = false
+    var isPrivate = true
     var active: Bool
     var action: PaymentMethodAction
     
     var notificationOffset: Int? = 0
     var notifyOnDueDate: Bool = false
     var last4: String?
+    var logo: Data?
     
     var interestRate: Double? {
         Double(interestRateString?.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "") ?? "0.0") ?? 0.0
@@ -47,26 +48,12 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
     }
     var loanDurationString: String?
     
-    var isAllowedToBeViewedByThisUser: Bool {
-        //return isPrivate ? AppState.shared.user!.id == enteredBy.id : true
-        if isPrivate {
-            //print("isAllowedToBeViewedByThisUser 1: \(AppState.shared.user!.id) -- \(enteredBy.id)")
-            return AppState.shared.user!.id == enteredBy.id
-        } else {
-            //print("isAllowedToBeViewedByThisUser 2: \(AppState.shared.user!.id) -- \(enteredBy.id)")
-            return true
-        }
-    }
-    
-    var isCreditOrLoan: Bool {
-        self.accountType == .credit || self.accountType == .loan
-    }
-    
-    
     var enteredBy: CBUser = AppState.shared.user!
     var updatedBy: CBUser = AppState.shared.user!
     var enteredDate: Date
     var updatedDate: Date
+    
+    var listOrder: Int?
     
     
     // MARK: - Analytic Variables
@@ -91,13 +78,38 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
     
     
     // MARK: - View Helper Variables
-    var isUnified: Bool { accountType == .unifiedChecking || accountType == .unifiedCredit }
-    var isCredit: Bool { accountType == .unifiedCredit || accountType == .credit || accountType == .loan }
-    var isDebit: Bool { accountType == .unifiedChecking || accountType == .checking || accountType == .cash }
-    var isUnifiedDebit: Bool { accountType == .unifiedChecking }
-    var isUnifiedCredit: Bool { accountType == .unifiedCredit }
+    var isPermitted: Bool {
+        isPrivate ? AppState.shared.user!.id == enteredBy.id : true
+    }
+    var isPermittedAndViewable: Bool {
+        isPermitted && !isHidden
+    }
+    
+    var isDebit: Bool {
+        [.unifiedChecking, .checking, .cash].contains(accountType)
+    }
+    var isCredit: Bool {
+        [.unifiedCredit, .credit, .loan].contains(accountType)
+    }
+    var isInvestment: Bool {
+        [.investment, .brokerage, .k401].contains(accountType)
+    }
+    
+    var isCreditOrLoan: Bool {
+        [.credit, .loan].contains(accountType)
+    }
+    var isUnifiedDebit: Bool {
+        accountType == .unifiedChecking
+    }
+    var isUnifiedCredit: Bool {
+        accountType == .unifiedCredit
+    }
+    var isUnified: Bool {
+        isUnifiedDebit || isUnifiedCredit
+    }
     
     
+    // MARK: - Init
     init() {
         let uuid = UUID().uuidString
         self.id = uuid
@@ -183,10 +195,30 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
         
         self.isHidden = entity.isHidden
         self.isPrivate = entity.isPrivate
+        //self.logo = entity.logo?.photoData
+        
+        self.listOrder = Int(entity.listOrder)
+        
+        let pred1 = NSPredicate(format: "relatedID == %@", id)
+        let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id))
+        let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
+        
+        let context = DataManager.shared.createContext()
+        if let perLogo = DataManager.shared.getOne(
+            context: context,
+            type: PersistentLogo.self,
+            predicate: .compound(comp),
+            createIfNotFound: false
+        ) {
+            self.logo = perLogo.photoData
+        }
     }
     
+    /// Send the current year to the server when updating a payment method for 1 use case:
+    /// If the method goes from private to public, update the starting amount records so the long poll will push them to other users on the account.
+    var viewingYear: Int?
     
-    enum CodingKeys: CodingKey { case id, uuid, title, due_date, limit, account_type_id, hex_code, is_viewing_default, is_editing_default, active, user_id, account_id, device_uuid, notification_offset, notify_on_due_date, last_4_digits, entered_by, updated_by, entered_date, updated_date, breakdowns, interest_rate, loan_duration, is_hidden, is_private }
+    enum CodingKeys: CodingKey { case id, uuid, title, due_date, limit, account_type_id, hex_code, is_viewing_default, is_editing_default, active, user_id, account_id, device_uuid, notification_offset, notify_on_due_date, last_4_digits, entered_by, updated_by, entered_date, updated_date, breakdowns, interest_rate, loan_duration, is_hidden, is_private, logo, list_order, viewing_year }
     
     
     func encode(to encoder: Encoder) throws {
@@ -210,12 +242,19 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
         try container.encode(notificationOffset, forKey: .notification_offset)
         try container.encode(notifyOnDueDate ? 1 : 0, forKey: .notify_on_due_date)
         try container.encode(last4, forKey: .last_4_digits)
+        try container.encode(logo, forKey: .logo)
         try container.encode(interestRate, forKey: .interest_rate)
         try container.encode(loanDuration, forKey: .loan_duration)
         try container.encode(enteredBy, forKey: .entered_by) // for the Transferable protocol
         try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
         try container.encode(enteredDate.string(to: .serverDateTime), forKey: .entered_date) // for the Transferable protocol
         try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date) // for the Transferable protocol
+        
+        try container.encode(listOrder, forKey: .list_order)
+        
+        /// Send the current year to the server when updating a payment method for 1 use case:
+        /// If the method goes from private to public, update the starting amount records so the long poll will push them to other users on the account.
+        try container.encode(viewingYear, forKey: .viewing_year)
     }
     
     
@@ -269,6 +308,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
         self.notifyOnDueDate = notifyOnDueDate == 1
         
         self.last4 = try container.decode(String?.self, forKey: .last_4_digits)
+        //self.logo = try container.decode(String?.self, forKey: .logo)
         
         //self.interestRate = try container.decode(Double?.self, forKey: .interest_rate)
         //self.loanDuration = try container.decode(Int?.self, forKey: .loan_duration)
@@ -299,9 +339,27 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
         } else {
             fatalError("Could not determine updatedDate date")
         }
-        
-        
+                
         self.breakdowns = try container.decodeIfPresent(Array<PayMethodMonthlyBreakdown>.self, forKey: .breakdowns) ?? []
+                        
+        let pred1 = NSPredicate(format: "relatedID == %@", self.id)
+        let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id))
+        let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
+        
+        /// Fetch the logo out of core data since the encoded strings can be heavy and I don't want to use Async Image for every logo.
+        let context = DataManager.shared.createContext()
+        if let logo = DataManager.shared.getOne(
+           context: context,
+           type: PersistentLogo.self,
+           predicate: .compound(comp),
+           createIfNotFound: false
+        ) {
+            self.logo = logo.photoData
+        }
+        
+        
+        
+        listOrder = try container.decode(Int?.self, forKey: .list_order)
     }
     
     
@@ -309,9 +367,9 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
         breakdowns.filter { Calendar.current.isDate(date, equalTo: $0.date, toGranularity: .month) }.first?.income
     }
     
-    static var empty: CBPaymentMethod {
-        CBPaymentMethod()
-    }
+//    static var empty: CBPaymentMethod {
+//        CBPaymentMethod()
+//    }
     
     
     func hasChanges() -> Bool {
@@ -327,7 +385,10 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
             && self.loanDuration == deepCopy.loanDuration
             && self.isHidden == deepCopy.isHidden
             && self.isPrivate == deepCopy.isPrivate
-            && self.color == deepCopy.color {
+            && self.color == deepCopy.color
+            && self.logo == deepCopy.logo
+            && self.listOrder == deepCopy.listOrder
+            {
                 return false
             }
         }
@@ -339,7 +400,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
     func deepCopy(_ mode: ShadowCopyAction) {
         switch mode {
         case .create:
-            let copy = CBPaymentMethod.empty
+            let copy = CBPaymentMethod()
             copy.id = self.id
             copy.uuid = self.uuid
             copy.title = self.title
@@ -357,6 +418,8 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
             copy.active = self.active
             copy.isHidden = self.isHidden
             copy.isPrivate = self.isPrivate
+            copy.logo = self.logo
+            copy.listOrder = self.listOrder
             //copy.action = self.action
             self.deepCopy = copy
         case .restore:
@@ -378,6 +441,8 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
                 self.active = deepCopy.active
                 self.isHidden = deepCopy.isHidden
                 self.isPrivate = deepCopy.isPrivate
+                self.logo = deepCopy.logo
+                self.listOrder = deepCopy.listOrder
                 //self.action = deepCopy.action
             }
         case .clear:
@@ -405,11 +470,13 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
         self.loanDurationString = payMethod.loanDurationString
         self.isHidden = payMethod.isHidden
         self.isPrivate = payMethod.isPrivate
+        self.logo = payMethod.logo
         
         self.enteredBy = payMethod.enteredBy
         self.updatedBy = payMethod.updatedBy
         self.enteredDate = payMethod.enteredDate
         self.updatedDate = payMethod.updatedDate
+        self.listOrder = payMethod.listOrder
     }
             
     
@@ -444,6 +511,8 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable {
         && lhs.loanDuration == rhs.loanDuration
         && lhs.isHidden == rhs.isHidden
         && lhs.isPrivate == rhs.isPrivate
+        && lhs.logo == rhs.logo
+        && lhs.listOrder == rhs.listOrder
         && lhs.active == rhs.active {
             return true
         }

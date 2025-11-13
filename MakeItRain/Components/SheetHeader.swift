@@ -17,6 +17,7 @@ struct SheetHeaderPlaceHolderButton: View {
 
 struct SheetHeader<Content: View, Content2: View, Content3: View>: View {
     let title: String
+    let subtitle: String?
     var close: (() -> Void)?
     var view1: () -> Content?
     var view2: () -> Content2?
@@ -24,12 +25,14 @@ struct SheetHeader<Content: View, Content2: View, Content3: View>: View {
     
     init(
         title: String,
+        subtitle: String? = nil,
         close: @escaping (() -> Void),
         @ViewBuilder view1: @escaping () -> Content? = { EmptyView() },
         @ViewBuilder view2: @escaping () -> Content2? = { EmptyView() },
         @ViewBuilder view3: @escaping () -> Content3? = { EmptyView() }
     ) {
         self.title = title
+        self.subtitle = subtitle
         self.close = close
         self.view1 = view1
         self.view2 = view2
@@ -59,12 +62,29 @@ struct SheetHeader<Content: View, Content2: View, Content3: View>: View {
                 slot(view1)
                 slot(view2)
             }
-                                                
-            Text(title)
+            
+            if let subtitle = subtitle {
+                VStack(spacing: 2) {
+                    Text(title)
+                        .font(.body)
+                        .bold()
+                        .lineLimit(1)
+                    Text(subtitle)
+                        .font(.caption2)
+                        .lineLimit(1)
+                        .foregroundStyle(.gray)
+                }
                 .frame(maxWidth: .infinity)
-                .font(.body)
-                .bold()
-                .lineLimit(1)
+                
+            } else {
+                Text(title)
+                    .frame(maxWidth: .infinity)
+                    .font(.body)
+                    .bold()
+                    .lineLimit(1)
+            }
+            
+            
             
             HStack {
                 slot(view3)

@@ -9,7 +9,7 @@ import SwiftUI
 
 struct EventsTable: View {
     @Environment(\.dismiss) var dismiss
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     #if os(macOS)
     @AppStorage("eventsTableColumnOrder") private var columnCustomization: TableColumnCustomization<CBEvent>
     #endif
@@ -36,7 +36,7 @@ struct EventsTable: View {
     
     var filteredEvents: [CBEvent] {
         eventModel.events
-            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedStandardContains(searchText) }
+            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedCaseInsensitiveContains(searchText) }
             //.sorted { $0.event.lowercased() < $1.event.lowercased() }
     }
     
@@ -56,7 +56,7 @@ struct EventsTable: View {
                 ContentUnavailableView("No Events", systemImage: "beach.umbrella", description: Text("Click the plus button above to add a event."))
             }
         }
-        //.loadingSpinner(id: .events, text: "Loading Events…")
+        //.calendarLoadingSpinner(id: .events, text: "Loading Events…")
         #if os(iOS)
         .navigationTitle("Events")
         //.navigationBarTitleDisplayMode(.inline)
@@ -91,7 +91,7 @@ struct EventsTable: View {
                     let alertConfig = AlertConfig(
                         title: "Create New Event",
                         subtitle: "Enter a title below to get started",
-                        symbol: .init(name: "beach.umbrella", color: Color.fromName(colorTheme)),
+                        symbol: .init(name: "beach.umbrella", color: Color.theme),
                         primaryButton:
                             AlertConfig.AlertButton(closeOnFunction: false, showSpinnerOnClick: true, config: .init(text: "Create", role: .primary, function: {
                                 Task {

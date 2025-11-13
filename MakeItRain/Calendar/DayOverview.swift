@@ -7,7 +7,7 @@
 
 import Foundation
 import SwiftUI
-
+#if os(iOS)
 struct DayOverviewView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
@@ -15,6 +15,8 @@ struct DayOverviewView: View {
     @Environment(EventModel.self) private var eventModel
     
     @Binding var day: CBDay?
+    @Binding var showInspector: Bool
+
     /// The transaction Sheet and the transfer sheet use the selected day - so keep it up to date with the day being displayed in the bottom panel
 //    @Binding var selectedDay: CBDay?
 //    @Binding var transEditID: String?
@@ -31,13 +33,24 @@ struct DayOverviewView: View {
     var body: some View {
         @Bindable var calProps = calProps
         if day != nil {
-            StandardContainer(AppState.shared.isIpad ? .sidebarScrolling : .bottomPanel) {
-                content
-            } header: {
-                if AppState.shared.isIpad {
-                    sidebarHeader
-                } else {
+            
+            if AppState.shared.isIphone {
+                StandardContainer(.bottomPanel) {
+                    content
+                } header: {
                     sheetHeader
+                }
+            } else {
+                NavigationStack {
+                    StandardContainerWithToolbar(.list) {
+                        content
+                    }
+                    .navigationTitle("\(day!.displayDate)")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) { moreButton }
+                        ToolbarItem(placement: .topBarTrailing) { closeButton }
+                    }
                 }
             }
         } else {
@@ -61,19 +74,23 @@ struct DayOverviewView: View {
                         Button("Add") {
                             calProps.transEditID = UUID().uuidString
                         }
+                        .buttonStyle(.glassProminent)
                         .frame(maxWidth: .infinity)
                         
                     } else {
-                        VStack(spacing: 0) {
+                        if AppState.shared.isIpad {
                             ForEach(filteredTrans) { trans in
-                                VStack(spacing: 0) {
-                                    LineItemView(trans: trans, day: day)
-                                    Divider()
+                                LineItemView(trans: trans, day: day)
+                            }
+                        } else {
+                            VStack(spacing: 0) {
+                                ForEach(filteredTrans) { trans in
+                                    VStack(spacing: 0) {
+                                        LineItemView(trans: trans, day: day)
+                                        Divider()
+                                    }
+                                    .listRowInsets(EdgeInsets())
                                 }
-                                .if(!AppState.shared.isIpad) {
-                                    $0.listRowInsets(EdgeInsets())
-                                }
-                                
                             }
                         }
                     }
@@ -139,21 +156,27 @@ struct DayOverviewView: View {
     }
     
     
-    var sidebarHeader: some View {
-        SidebarHeader(
-            title: day!.displayDate,
-            close: {
-                /// When closing, set the selected day back to today or the first of the month if not viewing the current month (which would be the default)
-                withAnimation {
-                    calProps.bottomPanelContent = nil
-                    self.day = nil
-                }
-                let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
-                calProps.selectedDay = targetDay
-            },
-            view1: { moreButton }
-        )
+    var closeButton: some View {
+        Button {
+            /// When closing, set the selected day back to today or the first of the month if not viewing the current month (which would be the default)
+            
+            self.day = nil
+            
+            if AppState.shared.isIphone {
+                calProps.bottomPanelContent = nil
+            } else {
+                showInspector = false
+            }
+
+            let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
+            calProps.selectedDay = targetDay
+            
+        } label: {
+            Image(systemName: "xmark")
+                .schemeBasedForegroundStyle()
+        }
     }
+    
     
     
     @ViewBuilder var moreButton: some View {
@@ -162,6 +185,7 @@ struct DayOverviewView: View {
             DayContextMenu(day: day!, selectedDay: $day)
         } label: {
             Image(systemName: AppState.shared.isIpad ? "ellipsis.circle" : "ellipsis")
+                .schemeBasedForegroundStyle()
                 .contentShape(Rectangle())
         }
     }
@@ -193,22 +217,27 @@ struct DayOverviewView: View {
     
     var copyAndPasteButton: some View {
         Button {
-            withAnimation {
-                if let trans = calModel.getCopyOfTransaction() {
-                    trans.date = day?.date!
-                                                    
-                    if !calModel.isUnifiedPayMethod {
-                        trans.payMethod = calModel.sPayMethod!
-                    }
-                    
-                    day?.upsert(trans)
-                    calModel.dragTarget = nil
-                    calModel.saveTransaction(id: trans.id, day: day)
-                }
+            if let day = day {
+                calModel.pasteTransaction(to: day)
             }
+            
+//            withAnimation {
+//                if let trans = calModel.getCopyOfTransaction() {
+//                    trans.date = day?.date!
+//                                                    
+//                    if !calModel.isUnifiedPayMethod {
+//                        trans.payMethod = calModel.sPayMethod!
+//                    }
+//                    
+//                    day?.upsert(trans)
+//                    calModel.dragTarget = nil
+//                    calModel.saveTransaction(id: trans.id, day: day)
+//                }
+//            }
         } label: {
             Text("Copy & Paste")
         }
     }
         
 }
+#endif

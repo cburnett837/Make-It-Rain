@@ -10,111 +10,159 @@ import SwiftUI
 struct MultiPayMethodSheet: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
-    
     @Environment(CalendarModel.self) private var calModel
-    
     @Environment(PayMethodModel.self) private var payModel
-        
+    @Environment(PlaidModel.self) private var plaidModel
+    @Local(\.useBusinessLogos) var useBusinessLogos
+
     @Binding var payMethods: Array<CBPaymentMethod>
     @FocusState private var focusedField: Int?
     @State private var searchText = ""
     
     @State private var sections: Array<PaySection> = []
-    var filteredSections: Array<PaySection> {
-        if searchText.isEmpty {
-            return sections
-        } else {
-            return sections
-                .filter { !$0.payMethods.filter { $0.title.localizedStandardContains(searchText) }.isEmpty }
-        }
-    }
+//    var filteredSections: Array<PaySection> {
+//        if searchText.isEmpty {
+//            return sections
+//        } else {
+//            return sections
+//                .filter { !$0.payMethods.filter { $0.title.localizedCaseInsensitiveContains(searchText) }.isEmpty }
+//        }
+//    }
     
     var body: some View {
         NavigationStack {
             StandardContainerWithToolbar(.list) {
                 content
             }
-            #if os(iOS)
+            .task { populateSections() }
             .searchable(text: $searchText, prompt: "Search")
             .navigationTitle("Accounts")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { selectButton }
+                DefaultToolbarItem(kind: .search, placement: .bottomBar)
+                
+                ToolbarSpacer(.flexible, placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar)
+                ToolbarItem(placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar) { PayMethodSortMenu(sections: $sections) }
+                
                 ToolbarItem(placement: .topBarTrailing) { closeButton }
             }
+            .onChange(of: searchText) { populateSections() }
+            /// Update the sheet if viewing and something changes on another device.
+            .onChange(of: payModel.paymentMethods.filter { !$0.isHidden && !$0.isPrivate }.count) {
+                populateSections()
+            }
             #endif
-        }
-        .task {
-            sections = [
-                PaySection(
-                    kind: .debit,
-                    payMethods: payModel
-                        .paymentMethods
-                        .filter { $0.accountType == .checking }
-                        .filter { $0.isAllowedToBeViewedByThisUser }
-                        .filter { !$0.isHidden }
-                ),
-                PaySection(
-                    kind: .credit,
-                    payMethods: payModel
-                        .paymentMethods
-                        .filter { $0.accountType == .credit || $0.accountType == .loan }
-                        .filter { $0.isAllowedToBeViewedByThisUser }
-                        .filter { !$0.isHidden }
-                ),
-                PaySection(
-                    kind: .other,
-                    payMethods: payModel
-                        .paymentMethods
-                        .filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking].contains($0.accountType) }
-                        .filter { $0.isAllowedToBeViewedByThisUser }
-                        .filter { !$0.isHidden }
-                )
-            ]
         }
     }
     
     
     @ViewBuilder
     var content: some View {
-        if filteredSections.isEmpty {
+        if sections.isEmpty {
             ContentUnavailableView("No accounts found", systemImage: "exclamationmark.magnifyingglass")
         } else {
-            ForEach(filteredSections) { section in
+            ForEach(sections) { section in
                 if !section.payMethods.isEmpty {
                     Section(section.kind.rawValue) {
-                        ForEach(searchText.isEmpty ? section.payMethods : section.payMethods.filter { $0.title.localizedStandardContains(searchText) }) { meth in
-                            HStack {
-                                Image(systemName: "circle.fill")
-                                    .if(meth.isUnified) {
-                                        $0.foregroundStyle(AngularGradient(gradient: Gradient(colors: [.red, .yellow, .green, .blue, .purple, .red]), center: .center))
-                                    }
-                                    .if(!meth.isUnified) {
-                                        $0.foregroundStyle(meth.isUnified ? (colorScheme == .dark ? .white : .black) : meth.color, .primary, .secondary)
-                                    }
-                                Text(meth.title)
-                                //.bold(meth.isUnified)
-                                Spacer()
-                                
-                                Image(systemName: "checkmark")
-                                    .opacity(payMethods.contains(meth) ? 1 : 0)
-                            }
-                            .contentShape(Rectangle())
-                            .onTapGesture { doIt(meth) }
+                        ForEach(section.payMethods) { meth in
+                            methLine(meth)
+                                .onTapGesture {
+                                    selectPaymentMethod(meth)
+                                }
                         }
                     }
                 }
             }
+            
+            
+//            ForEach(filteredSections) { section in
+//                if !section.payMethods.isEmpty {
+//                    Section(section.kind.rawValue) {
+//                        ForEach(searchText.isEmpty ? section.payMethods : section.payMethods.filter { $0.title.localizedCaseInsensitiveContains(searchText) }) { meth in
+//                            HStack {
+//                                Image(systemName: "circle.fill")
+//                                    .if(meth.isUnified) {
+//                                        $0.foregroundStyle(AngularGradient(gradient: Gradient(colors: [.red, .yellow, .green, .blue, .purple, .red]), center: .center))
+//                                    }
+//                                    .if(!meth.isUnified) {
+//                                        $0.foregroundStyle(meth.isUnified ? (colorScheme == .dark ? .white : .black) : meth.color, .primary, .secondary)
+//                                    }
+//                                Text(meth.title)
+//                                //.bold(meth.isUnified)
+//                                Spacer()
+//                                
+//                                Image(systemName: "checkmark")
+//                                    .opacity(payMethods.contains(meth) ? 1 : 0)
+//                            }
+//                            .contentShape(Rectangle())
+//                            .onTapGesture { selectPaymentMethod(meth) }
+//                        }
+//                    }
+//                }
+//            }
         }
     }
     
+    @ViewBuilder func methLine(_ meth: CBPaymentMethod) -> some View {
+        HStack {
+            Label {
+                VStack(alignment: .leading) {
+                    Text(meth.title)
+                }
+            } icon: {
+                //methColorCircle(meth)
+                BusinessLogo(parent: meth, fallBackType: .color)
+            }
+                                            
+            Spacer()
+            
+                                 
+            if payMethods.contains(meth) {
+                Image(systemName: "checkmark")
+            }
+        }
+        .contentShape(Rectangle())
+    }
+    
+    
+//    var selectButton: some View {
+//        Button {
+//            withAnimation {
+//                categories = categories.isEmpty ? catModel.categories : []
+//            }
+//        } label: {
+//            //Image(systemName: categories.isEmpty ? "checklist.checked" : "checklist.unchecked")
+//            Text(categories.isEmpty ? "Select All" : "Deselect All")
+//            //Image(systemName: categories.isEmpty ? "checkmark.rectangle.stack" : "checklist.checked")
+//                .schemeBasedForegroundStyle()
+//        }
+//    }
+    
+    var useBusinessLogosToggle: some View {
+        Toggle(isOn: $useBusinessLogos) {
+            Text("Use Business Logos")
+        }
+    }
+    var moreMenu: some View {
+        Menu {
+            useBusinessLogosToggle
+        } label: {
+            Image(systemName: "ellipsis")
+                .schemeBasedForegroundStyle()
+        }
+    }
     
     var selectButton: some View {
         Button {
-            payMethods = payMethods.isEmpty ? payModel.paymentMethods : []                        
+            withAnimation {
+                payMethods = payMethods.isEmpty ? payModel.paymentMethods : []
+            }
         } label: {
-            Image(systemName: payMethods.isEmpty ? "checklist.checked" : "checklist.unchecked")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+            Text(payMethods.isEmpty ? "Select All" : "Deselect All")
+            //Image(systemName: payMethods.isEmpty ? "checklist.checked" : "checklist.unchecked")
+                .schemeBasedForegroundStyle()
         }
     }
     
@@ -124,16 +172,25 @@ struct MultiPayMethodSheet: View {
             dismiss()
         } label: {
             Image(systemName: "xmark")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+                .schemeBasedForegroundStyle()
         }
     }
     
     
-    func doIt(_ payMethod: CBPaymentMethod) {
+    func selectPaymentMethod(_ payMethod: CBPaymentMethod) {
         if payMethods.contains(payMethod) {
             payMethods.removeAll(where: { $0.id == payMethod.id })
         } else {
             payMethods.append(payMethod)
         }
+    }
+    
+    func populateSections() {
+        sections = payModel.getApplicablePayMethods(
+            type: .allExceptUnified,
+            calModel: calModel,
+            plaidModel: plaidModel,
+            searchText: $searchText
+        )
     }
 }

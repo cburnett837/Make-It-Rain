@@ -10,7 +10,7 @@ import SwiftUI
 import Charts
 
 struct ChartIncomeOptionMenu: View {
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @Bindable var vm: PayMethodViewModel
     
     /// Need this to prevent the button from animating.

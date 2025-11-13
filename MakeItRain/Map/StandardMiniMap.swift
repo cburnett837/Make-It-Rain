@@ -22,15 +22,22 @@ struct StandardMiniMapContainerWithStatePosition: View {
     var openBigMapOnTap: Bool = true
     
     var body: some View {
-        StandardMiniMap(locations: $locations, parent: parent, parentID: parentID, parentType: parentType, addCurrentLocation: addCurrentLocation, openBigMapOnTap: openBigMapOnTap)
-            .onChange(of: mapModel.position) { self.position = $1 }
-            .environment(mapModel)
-            /// Example:
-            ///`EventTransactionOptionView` will own the map model, and control the minimap and full map inside.
-            /// Since this minimap can be created in a loop, it has to have it's own model and state. So when the locations change, change the position of this isolated minimap.
-            .onChange(of: locations) {
-                focusOnFirst(locations: locations)
-            }
+        StandardMiniMap(
+            locations: $locations,
+            parent: parent,
+            parentID: parentID,
+            parentType: parentType,
+            addCurrentLocation: addCurrentLocation,
+            openBigMapOnTap: openBigMapOnTap
+        )
+        .onChange(of: mapModel.position) { self.position = $1 }
+        .environment(mapModel)
+        /// Example:
+        ///`EventTransactionOptionView` will own the map model, and control the minimap and full map inside.
+        /// Since this minimap can be created in a loop, it has to have it's own model and state. So when the locations change, change the position of this isolated minimap.
+        .onChange(of: locations) {
+            focusOnFirst(locations: locations)
+        }
     }
     
     func focusOnFirst(locations: [CBLocation]) {
@@ -102,7 +109,6 @@ struct StandardMiniMap: View {
                     }
                 }
             } else {
-                print("setting camera to current location")
                 /// Set the camera to the first location in the list when opening the map.
                 focusOnFirst(locations: locations)
             }
@@ -137,6 +143,7 @@ struct StandardMiniMap: View {
     }
     
     func focusOnFirst(locations: [CBLocation]) {
+        //print("setting camera to first location in array")
         let filteredLocations = locations.filter { $0.active }
         
         if let lat = filteredLocations.first?.lat, let lon = filteredLocations.first?.lon {

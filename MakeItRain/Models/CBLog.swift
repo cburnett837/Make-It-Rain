@@ -33,7 +33,7 @@ enum LogField: String {
         /// Transaction Changes
         if value == .title { return "Title" }
         else if value == .amount { return "Amount" }
-        else if value == .payMethod { return "Pay Method" }
+        else if value == .payMethod { return "Account" }
         else if value == .category { return "Category" }
         else if value == .notes { return "Notes" }
         else if value == .factorInCalculations { return "Factor In Calculations" }

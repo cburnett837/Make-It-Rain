@@ -200,11 +200,29 @@ class AppState {
     ) {
         withAnimation(.bouncy) {
             //DispatchQueue.main.async {
+            Helpers.buzzPhone(.success)
             self.toast = Toast(header: title, title: subtitle, message: body, symbol: symbol, symbolColor: symbolColor, autoDismiss: autoDismiss, action: action)
             //}
-            
         }
-    }        
+        
+        let context = DataManager.shared.container.viewContext
+        let id = UUID().uuidString
+        if let perToast = DataManager.shared.getOne(context: context, type: PersistentToast.self, predicate: .byId(.string(id)), createIfNotFound: true) {
+            perToast.id = id
+            perToast.title = title
+            perToast.subtitle = subtitle ?? ""
+            perToast.body = body ?? ""
+            perToast.symbol = symbol
+            perToast.hexCode = symbolColor?.toHex() ?? ""
+            perToast.enteredDate = Date()
+            print(perToast)
+            let saveResult = DataManager.shared.save(context: context)
+            print(saveResult)
+        } else {
+            print("no per toast")
+        }
+        
+    }
     
         
     // MARK: - Current Date Stuff
@@ -302,6 +320,15 @@ class AppState {
             self.showCustomAlert = true
         //}
     }
+    
+    func showAlert(title: String, subtitle: String) {
+        //withAnimation(.snappy(duration: 0.2)) {
+            let config = AlertConfig(title: title, subtitle: subtitle)
+            self.alertConfig = config
+            self.showCustomAlert = true
+        //}
+    }
+    
     
     var showCustomAlert: Bool = false
     var alertConfig: AlertConfig?

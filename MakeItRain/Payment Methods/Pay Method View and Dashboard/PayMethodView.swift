@@ -10,6 +10,175 @@ import Charts
 //import LinkKit
 
 
+struct PayMethodOverView: View {
+    @Local(\.incomeColor) var incomeColor
+    @Local(\.useWholeNumbers) var useWholeNumbers
+    @AppStorage("selectedPaymentMethodTab") var selectedTab: DetailsOrInsights = .details
+    @AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false
+
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    @Environment(CalendarModel.self) private var calModel
+    @Environment(EventModel.self) private var eventModel
+    @Environment(PayMethodModel.self) private var payModel
+    @Environment(PlaidModel.self) private var plaidModel
+
+    
+    @State private var viewModel = PayMethodViewModel()
+    
+    @Bindable var payMethod: CBPaymentMethod
+    
+    /// This is only here to blank out the selection hilight on the iPhone list
+    @Binding var editID: String?
+        
+    @State private var showDeleteAlert = false
+    @State private var labelWidth: CGFloat = 20.0
+    @State private var showColorPicker = false
+    @State private var showLogoSearchPage = false
+    
+    @FocusState private var focusedField: Int?
+    
+    @State private var accountTypeMenuColor: Color = Color(.tertiarySystemFill)
+    
+    @Namespace private var namespace
+    
+    var pickerAnimation: Animation? {
+        payMethod.accountType == .credit || payMethod.accountType == .loan ? nil : .default
+    }
+    
+
+    @State private var scrollOffset: CGFloat = 0
+    @State private var backgroundOffset: CGFloat = 0.0
+    @State private var blur: CGFloat = 0
+    @State private var scale: CGFloat = 1
+    
+    
+    var body: some View {
+        Text("Hello, world!")
+    }
+    
+    
+    
+    var detailPage: some View {
+        ZStack(alignment: .top) {
+            VStack {
+                fakeCard
+                //pagePicker
+            }
+            .blur(radius: blur)
+            .scaleEffect(scale)
+            
+            transList
+                .contentMargins(.top, 300, for: .scrollContent)
+                .onScrollGeometryChange(for: CGFloat.self) {
+                    return $0.contentOffset.y + $0.contentInsets.top
+                } action: { _, newOffset in
+                    backgroundOffset = -newOffset
+                    blur = min(newOffset / 16, 8)
+                    let collapseDistance: CGFloat = 200   // ← tune this
+                    let raw = 1 - (newOffset / collapseDistance)
+                    scale = max(min(raw, 1), 0)
+                }
+        }
+    }
+    
+    @ViewBuilder
+    var transList: some View {
+        
+        let theMonth = calModel.months.filter { $0.actualNum == AppState.shared.todayMonth && $0.year == AppState.shared.todayYear }.first!
+        let transactions = calModel.getTransactions(months: [theMonth], meth: payMethod)
+ 
+        ScrollView {
+            pagePicker
+            ForEach(transactions) { trans in
+                GroupBox {
+                    TransactionListLine(trans: trans, withDate: true)
+                }
+                .frame(maxWidth: .infinity)
+                .cornerRadius(25)
+            }
+            .scenePadding(.horizontal)
+        }
+        .frame(maxWidth: .infinity)
+    }
+    
+    
+    var fakeCard: some View {
+        Group {
+            VStack {
+                HStack {
+                    Text(payMethod.title)
+                        .font(.largeTitle)
+                    Spacer()
+                    BigBusinessLogo(parent: payMethod, fallBackType: payMethod.isUnified ? .gradient : .color)
+                        .blur(radius: blur)
+                }
+                
+                HStack {
+                    Text("**** **** **** \(payMethod.last4 ?? "****")")
+                        .font(.title)
+                    Spacer()
+                }
+                                                
+                Spacer()
+                
+                HStack {
+                    VStack(alignment: .leading) {
+                        if let balance = plaidModel.balances.filter({ $0.payMethodID == payMethod.id }).first {
+                            Text(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                                .bold()
+                        }
+                        
+//                        if let balance = plaidModel.balances.filter({ $0.payMethodID == payMethod.id }).first {
+//                            Text(Date().timeSince(balance.enteredDate))
+//                                .foregroundStyle(.gray)
+//                                .font(.subheadline)
+//                        }
+                    }
+                                                                                
+                    if payMethod.isPrivate { Image(systemName: "person.slash") }
+                    if payMethod.isHidden { Image(systemName: "eye.slash") }
+                    if payMethod.notifyOnDueDate { Image(systemName: "alarm") }
+                    
+                    Spacer()
+                    
+                    
+                    Text(payMethod.accountType.prettyValue)
+                    //Text(payMethod.last4 ?? "****")
+                }
+            }
+            .padding(20)
+            
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 250)
+        .background(RoundedRectangle(cornerRadius: 20).fill(payMethod.color.gradient))
+        .shadow(radius: 10)
+        .scenePadding(.horizontal)
+        //.padding(.horizontal, 20)
+        //.padding(.bottom, 30)
+        //editPagePhone
+    }
+    
+    
+    
+    var pagePicker: some View {
+        Picker("",selection: $selectedTab.animation(pickerAnimation)) {
+            Text("Details")
+                .tag(DetailsOrInsights.details)
+            Text("Edit")
+                .tag(DetailsOrInsights.edit)
+            Text("Insights")
+                .tag(DetailsOrInsights.insights)
+        }
+        .labelsHidden()
+        .pickerStyle(.segmented)
+        .scenePadding(.horizontal)
+    }
+    
+}
+
+
 struct PayMethodView: View {
     enum Offset: Int {
         case dayBack0 = 0
@@ -34,6 +203,8 @@ struct PayMethodView: View {
     @Environment(CalendarModel.self) private var calModel
     @Environment(EventModel.self) private var eventModel
     @Environment(PayMethodModel.self) private var payModel
+    @Environment(PlaidModel.self) private var plaidModel
+
     
     @State private var viewModel = PayMethodViewModel()
     
@@ -45,6 +216,7 @@ struct PayMethodView: View {
     @State private var showDeleteAlert = false
     @State private var labelWidth: CGFloat = 20.0
     @State private var showColorPicker = false
+    @State private var showLogoSearchPage = false
     
     @FocusState private var focusedField: Int?
     
@@ -91,26 +263,24 @@ struct PayMethodView: View {
                         chartPage
                     } else {
                         VStack {
-                            //if (payMethod.accountType == .credit || payMethod.accountType == .loan) {
-                                Picker("",selection: $selectedTab.animation(pickerAnimation)) {
-                                    Text("Details")
-                                        .tag(DetailsOrInsights.details)
-                                    Text("Insights")
-                                        .tag(DetailsOrInsights.insights)
-                                }
-                                .labelsHidden()
-                                .pickerStyle(.segmented)
-                                .scenePadding(.horizontal)
-//                            }
-                                                                                    
+                            if selectedTab == .insights ||  selectedTab == .edit {
+                                pagePicker
+                            }
+                            
                             if selectedTab == .details {
-                                editPagePhone
+                                detailPage
+                            } else if selectedTab == .edit {
+                                StandardContainerWithToolbar(.list) {
+                                    editPagePhone
+                                }
+                                
                             } else {
                                 chartPage
                             }
                         }
                     }
                 }
+                .background(Color(.systemBackground)) // force matching
                 .navigationTitle(title)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -156,14 +326,7 @@ struct PayMethodView: View {
                     }
                     
                     ToolbarItem(placement: .topBarTrailing) {
-                        if isValidToSave {
-                            closeButton
-                                #if os(iOS)
-                                .buttonStyle(.glassProminent)
-                                #endif
-                        } else {
-                            closeButton
-                        }
+                        AnimatedCloseButton(isValidToSave: isValidToSave, closeButton: closeButton)
                     }
                     
                     ToolbarItem(placement: .bottomBar) {
@@ -195,9 +358,280 @@ struct PayMethodView: View {
     }
     
     
+    @State private var scrollOffset: CGFloat = 0
+    @State private var backgroundOffset: CGFloat = 0.0
+
+    
+    @State private var blur: CGFloat = 0
+    @State private var scale: CGFloat = 1
+    
+    
+    var detailPage: some View {
+        ZStack(alignment: .top) {
+            VStack {
+                fakeCard
+                //pagePicker
+            }
+            .blur(radius: blur)
+            .scaleEffect(scale)
+            
+            transList
+                .contentMargins(.top, 300, for: .scrollContent)
+                .onScrollGeometryChange(for: CGFloat.self) {
+                    return $0.contentOffset.y + $0.contentInsets.top
+                } action: { _, newOffset in
+                    backgroundOffset = -newOffset
+                    blur = min(newOffset / 16, 8)
+                    let collapseDistance: CGFloat = 200   // ← tune this
+                    let raw = 1 - (newOffset / collapseDistance)
+                    scale = max(min(raw, 1), 0)
+                }
+        }
+    }
+    
+    @ViewBuilder
+    var transList: some View {
+        
+        let theMonth = calModel.months.filter { $0.actualNum == AppState.shared.todayMonth && $0.year == AppState.shared.todayYear }.first!
+        let transactions = calModel.getTransactions(months: [theMonth], meth: payMethod)
+ 
+        ScrollView {
+            pagePicker
+            ForEach(transactions) { trans in
+                GroupBox {
+                    TransactionListLine(trans: trans, withDate: true)
+                }
+                .frame(maxWidth: .infinity)
+                .cornerRadius(25)
+            }
+            .scenePadding(.horizontal)
+        }
+        .frame(maxWidth: .infinity)
+    }
+    
+    
+    var overViewSection: some View {
+        ScrollView {
+            VStack {
+                HStack {
+                    Text(payMethod.title)
+                    if let balance = plaidModel.balances.filter({ $0.payMethodID == payMethod.id }).first {
+                        Divider()
+                        Text(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                    }
+                }
+                .font(.largeTitle)
+                .bold()
+                
+                if let balance = plaidModel.balances.filter({ $0.payMethodID == payMethod.id }).first {
+                    Text(Date().timeSince(balance.enteredDate))
+                        .foregroundStyle(.gray)
+                        .font(.subheadline)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 20)
+            //.padding(.bottom, 30)
+            //editPagePhone
+            
+            Divider()
+                .padding(.vertical, 10)
+            
+            VStack {
+                Picker("",selection: $selectedTab.animation(pickerAnimation)) {
+                    Text("Details")
+                        .tag(DetailsOrInsights.details)
+                    Text("Insights")
+                        .tag(DetailsOrInsights.insights)
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+            }
+            .padding(.horizontal, 20)
+            
+            GroupBox {
+                IncomeExpenseChartWidget(vm: viewModel, payMethod: payMethod)
+            } label: {
+                Text("Transactions")
+            }
+            .cornerRadius(25)
+            .padding(.horizontal, 20)
+                    
+            if !payMethod.isCredit {
+                GroupBox {
+                    ProfitLossChartWidget(vm: viewModel, payMethod: payMethod)
+                } label: {
+                    Text("Net Worth")
+                }
+                .cornerRadius(25)
+                .padding(.horizontal, 20)
+            }
+            
+            GroupBox {
+                MinMaxEodChartWidget(vm: viewModel, payMethod: payMethod)
+            } label: {
+                Text("Min/Max EOD Amounts")
+            }
+            .cornerRadius(25)
+            .padding(.horizontal, 20)
+            
+            /// NOTE: This is slightly different because it has it's own view model.
+            if payMethod.isUnified {
+                MetricByPaymentMethodChartWidget(vm: viewModel, payMethod: payMethod)
+                    .padding(.horizontal, 20)
+            }
+            
+        }
+    }
+    
+    var fakeCard: some View {
+        Group {
+            VStack {
+                HStack {
+                    Text(payMethod.title)
+                        .font(.largeTitle)
+                    Spacer()
+                    BigBusinessLogo(parent: payMethod, fallBackType: payMethod.isUnified ? .gradient : .color)
+                        .blur(radius: blur)
+                }
+                
+                HStack {
+                    Text("**** **** **** \(payMethod.last4 ?? "****")")
+                        .font(.title)
+                    Spacer()
+                }
+                                                
+                Spacer()
+                
+                HStack {
+                    VStack(alignment: .leading) {
+                        if let balance = plaidModel.balances.filter({ $0.payMethodID == payMethod.id }).first {
+                            Text(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                                .bold()
+                        }
+                        
+//                        if let balance = plaidModel.balances.filter({ $0.payMethodID == payMethod.id }).first {
+//                            Text(Date().timeSince(balance.enteredDate))
+//                                .foregroundStyle(.gray)
+//                                .font(.subheadline)
+//                        }
+                    }
+                                                                                
+                    if payMethod.isPrivate { Image(systemName: "person.slash") }
+                    if payMethod.isHidden { Image(systemName: "eye.slash") }
+                    if payMethod.notifyOnDueDate { Image(systemName: "alarm") }
+                    
+                    Spacer()
+                    
+                    
+                    Text(payMethod.accountType.prettyValue)
+                    //Text(payMethod.last4 ?? "****")
+                }
+            }
+            .padding(20)
+            
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 250)
+        .background(RoundedRectangle(cornerRadius: 20).fill(payMethod.color.gradient))
+        .shadow(radius: 10)
+        .scenePadding(.horizontal)
+        //.padding(.horizontal, 20)
+        //.padding(.bottom, 30)
+        //editPagePhone
+    }
+    
+    
+    
+    var pagePicker: some View {
+        Picker("",selection: $selectedTab.animation(pickerAnimation)) {
+            Text("Details")
+                .tag(DetailsOrInsights.details)
+            Text("Edit")
+                .tag(DetailsOrInsights.edit)
+            Text("Insights")
+                .tag(DetailsOrInsights.insights)
+        }
+        .labelsHidden()
+        .pickerStyle(.segmented)
+        .scenePadding(.horizontal)
+    }
+    
+    
     // MARK: - Edit Page
+    @ViewBuilder
     var editPagePhone: some View {
+        //List {
+        Section("Title") {
+            titleRow
+        }
+            
+        Section {
+            typeRowPhone
+            colorRow
+            logoRow
+            if payMethod.accountType == .checking || payMethod.accountType == .credit {
+                last4Row
+            }
+        } header: {
+            Text("Details")
+        } footer: {
+            if payMethod.accountType == .checking || payMethod.accountType == .credit {
+                Text("If you wish to use the smart receipt feature offered by ChatGPT, enter the last 4 digits of your card information. If not, you can leave this field blank.")
+                    .validate(payMethod.last4 ?? "", rules: .regex(.onlyNumbers, "Only numbers are allowed"))
+            }
+        }
+        
+        if payMethod.accountType == .credit || payMethod.accountType == .loan {
+            Section("Credit Details") {
+                dueDateRow
+                limitRow
+                interestRateRow
+                if payMethod.accountType == .loan {
+                    loanDurationRow
+                }
+            }
+        }
+        
+        if (payMethod.accountType == .credit || payMethod.accountType == .loan) && payMethod.dueDate != nil && payMethod.notifyOnDueDate {
+            Section {
+                reminderRow
+            } footer: {
+                Text("Alerts will be sent out at 9:00 AM")
+            }
+        }
+                                
+        if !payMethod.isUnified {
+            Section {
+                isPrivateRow
+            } footer: {
+                Text("Transactions, Search Results, Etc. belonging to this account will only be visible to you.")
+            }
+            
+            Section {
+                isHiddenRow
+            } footer: {
+                Text("Hide this account from **my** menus. (This will not delete any data).")
+            }
+        }
+//
+//            Section {
+//                colorRow
+//            }
+        
+//        Section {
+//            deleteButton
+//        }
+    }
+    
+    
+    
+    var editPagePhoneOG: some View {
         StandardContainerWithToolbar(.list) {
+            
+            
+            //BigBusinessLogo(parent: payMethod, fallBackType: payMethod.isUnified ? .gradient : .color)
+            
             Section("Title") {
                 titleRow
             }
@@ -205,6 +639,7 @@ struct PayMethodView: View {
             Section {
                 typeRowPhone
                 colorRow
+                logoRow
                 if payMethod.accountType == .checking || payMethod.accountType == .credit {
                     last4Row
                 }
@@ -260,7 +695,7 @@ struct PayMethodView: View {
                     Text("Hide this account from **my** menus. (This will not delete any data).")
                 }
             }
-//            
+//
 //            Section {
 //                colorRow
 //            }
@@ -378,7 +813,7 @@ struct PayMethodView: View {
                     HStack {
                         //Text(payMethod.accountType.rawValue.capitalized)
                         Text(XrefModel.getItem(from: .accountTypes, byID: payMethod.accountType.rawValue).description)
-                            .foregroundStyle(colorScheme == .dark ? .white : .black)
+                            .schemeBasedForegroundStyle()
                         Spacer()
                     }
                 }
@@ -390,6 +825,7 @@ struct PayMethodView: View {
             }
         }
     }
+    
     
     var typeRowPhone: some View {
         Picker(selection: $payMethod.accountType) {
@@ -407,6 +843,8 @@ struct PayMethodView: View {
                 Text("Savings").tag(AccountType.savings)
                 Text("401K").tag(AccountType.k401)
                 Text("Investment").tag(AccountType.investment)
+                Text("Crypto").tag(AccountType.crypto)
+                Text("Brokerage").tag(AccountType.brokerage)
             }
         } label: {
             Label {
@@ -441,7 +879,8 @@ struct PayMethodView: View {
             .uiStartCursorAtEnd(true)
             .uiTextAlignment(.right)
             .uiMaxLength(4)
-            .uiKeyboardType(.numberPad)
+            //.uiKeyboardType(.numberPad)
+            .uiKeyboardType(.system(.numberPad))
             .uiTextColor(.secondaryLabel)
         }
         .focused($focusedField, equals: 1)
@@ -480,7 +919,8 @@ struct PayMethodView: View {
                 .uiStartCursorAtEnd(true)
                 .uiTextAlignment(.right)
                 .uiMaxLength(2)
-                .uiKeyboardType(.decimalPad)
+                //.uiKeyboardType(.decimalPad)
+                .uiKeyboardType(.custom(.numpad))
                 .uiTextColor(.secondaryLabel)
             }
             .focused($focusedField, equals: 2)
@@ -527,7 +967,8 @@ struct PayMethodView: View {
                 .uiClearButtonMode(.whileEditing)
                 .uiStartCursorAtEnd(true)
                 .uiTextAlignment(.right)
-                .uiKeyboardType(.decimalPad)
+                //.uiKeyboardType(.decimalPad)
+                .uiKeyboardType(.custom(.numpad))
                 .uiTextColor(.secondaryLabel)
                 .focused($focusedField, equals: 3)
             }
@@ -573,7 +1014,8 @@ struct PayMethodView: View {
             .uiClearButtonMode(.whileEditing)
             .uiStartCursorAtEnd(true)
             .uiTextAlignment(.right)
-            .uiKeyboardType(.decimalPad)
+            //.uiKeyboardType(.decimalPad)
+            .uiKeyboardType(.custom(.numpad))
             .uiTextColor(.secondaryLabel)
             .focused($focusedField, equals: 4)
         }
@@ -596,7 +1038,7 @@ struct PayMethodView: View {
         #if os(iOS)
         HStack {
             Label {
-                HStack(spacing: 2) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text("Loan Duration")
                     Text("(months)")
                         .font(.caption)
@@ -615,7 +1057,8 @@ struct PayMethodView: View {
             .uiClearButtonMode(.whileEditing)
             .uiStartCursorAtEnd(true)
             .uiTextAlignment(.right)
-            .uiKeyboardType(.numberPad)
+            //.uiKeyboardType(.numberPad)
+            .uiKeyboardType(.system(.numberPad))
             .uiTextColor(.secondaryLabel)
             .focused($focusedField, equals: 5)
             .validate(payMethod.loanDurationString ?? "", rules: .regex(.onlyDecimals, "Only numbers are allowed"))
@@ -639,7 +1082,7 @@ struct PayMethodView: View {
         Toggle(isOn: $payMethod.isPrivate.animation()) {
             Label {
                 Text("Mark as Private")
-                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+                    .schemeBasedForegroundStyle()
             } icon: {
                 Image(systemName: "person.slash")
                     .foregroundStyle(.gray)
@@ -666,7 +1109,7 @@ struct PayMethodView: View {
         Toggle(isOn: $payMethod.isHidden.animation()) {
             Label {
                 Text("Mark as Hidden")
-                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+                    .schemeBasedForegroundStyle()
             } icon: {
                 Image(systemName: "eye.slash")
                     .foregroundStyle(.gray)
@@ -690,24 +1133,8 @@ struct PayMethodView: View {
     // MARK: - Reminder
     var reminderRow: some View {
         #if os(iOS)
-        HStack {
-            Picker(selection: $payMethod.notificationOffset) {
-                Text("2 days before")
-                    .tag(2)
-                Text("1 day before")
-                    .tag(1)
-                Text("Day of")
-                    .tag(0)
-            } label: {
-                Label {
-                    Text("Reminder")
-                        .foregroundStyle(colorScheme == .dark ? .white : .black)
-                } icon: {
-                    Image(systemName: "alarm")
-                        .foregroundStyle(.gray)
-                }
-            }
-        }
+        
+        ReminderPicker(notificationOffset: $payMethod.notificationOffset)
         
         #else
         LabeledRow("Reminder", labelWidth) {
@@ -740,7 +1167,7 @@ struct PayMethodView: View {
             HStack {
                 Label {
                     Text("Color")
-                        .foregroundStyle(colorScheme == .dark ? .white : .black)
+                        .schemeBasedForegroundStyle()
                 } icon: {
                     Image(systemName: "lightspectrum.horizontal")
                         .foregroundStyle(.gray)
@@ -748,7 +1175,7 @@ struct PayMethodView: View {
                 Spacer()
                 //StandardColorPicker(color: $payMethod.color)
                 Image(systemName: "circle.fill")
-                    .font(.system(size: 24))
+                    .font(.system(size: 30))
                     .foregroundStyle(payMethod.color.gradient)
             }
         }
@@ -767,6 +1194,60 @@ struct PayMethodView: View {
             }
         }
         #endif
+    }
+    
+    
+    // MARK: - Logo
+   @ViewBuilder var logoRow: some View {
+        #if os(iOS)
+        Group {
+            if payMethod.logo == nil {
+                Button {
+                    showLogoSearchPage = true
+                } label: {
+                    logoLabel
+                }
+            } else {
+                Menu {
+                    Button("Clear Logo") { payMethod.logo = nil }
+                    Button("Change Logo") { showLogoSearchPage = true }
+                } label: {
+                    logoLabel
+                }
+            }
+        }
+        .sheet(isPresented: $showLogoSearchPage) {
+            LogoSearchPage(parent: payMethod, parentType: .paymentMethod)
+        }
+        
+        #else
+        LabeledRow("Color", labelWidth) {
+            HStack {
+                ColorPicker("", selection: $payMethod.color, supportsOpacity: false)
+                    .labelsHidden()
+                Capsule()
+                    .fill(payMethod.color)
+                    .onTapGesture {
+                        AppState.shared.showToast(title: "Color Picker", subtitle: "Click the circle to the left to change the color.", body: nil, symbol: "theatermask.and.paintbrush", symbolColor: payMethod.color)
+                    }
+            }
+        }
+        #endif
+    }
+    
+    var logoLabel: some View {
+        HStack {
+            Label {
+                Text("Logo")
+                    .schemeBasedForegroundStyle()
+            } icon: {
+                Image(systemName: "circle.hexagongrid")
+                    .foregroundStyle(.gray)
+            }
+            Spacer()
+            //StandardColorPicker(color: $payMethod.color)
+            BusinessLogo(parent: payMethod, fallBackType: payMethod.isUnified ? .gradient : .color)
+        }
     }
     
         
@@ -820,13 +1301,15 @@ struct PayMethodView: View {
         Button {
             showDeleteAlert = true
         } label: {
+            //Text("Delete Account")
+                //.foregroundStyle(.red)
             Image(systemName: "trash")
         }
         .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
         .tint(.none)
         .confirmationDialog("Delete \"\(payMethod.title)\"?", isPresented: $showDeleteAlert, actions: {
             Button("Yes", role: .destructive, action: deletePaymentMethod)
-            //Button("No", role: .cancel) { showDeleteAlert = false }
+            Button("No", role: .close) { showDeleteAlert = false }
         }, message: {
             #if os(iOS)
             Text("Delete \"\(payMethod.title)\"?\nThis will also delete all associated transactions and event transactions.")
@@ -858,7 +1341,7 @@ struct PayMethodView: View {
             }
         } label: {
             Image(systemName: "arrow.triangle.2.circlepath")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+                .schemeBasedForegroundStyle()
         }
         .symbolEffect(.rotate, options: SymbolEffectOptions.repeat(.continuous).speed(3), isActive: viewModel.isLoadingHistory)
     }
@@ -891,7 +1374,7 @@ struct PayMethodView: View {
 //            }
 //        } label: {
 //            Image(systemName: "line.3.horizontal.decrease")
-//                .foregroundStyle(colorScheme == .dark ? .white : .black)
+//                .schemeBasedForegroundStyle()
 //        }
 //    }
         
@@ -900,7 +1383,7 @@ struct PayMethodView: View {
             editID = nil; dismiss()
         } label: {
             Image(systemName: isValidToSave ? "checkmark" : "xmark")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+                .schemeBasedForegroundStyle()
         }
     }
     
@@ -956,8 +1439,7 @@ struct PayMethodView: View {
     
     
     // MARK: - Functions
-    func prepareView() async {
-        
+    func prepareView() async {        
         if payMethod.isUnified {
             selectedTab = .insights
         }
@@ -979,14 +1461,17 @@ struct PayMethodView: View {
         
         if payMethod.action != .add {
             await viewModel.fetchHistory(for: payMethod, payModel: payModel, setChartAsNew: true)
+        } else {
+            viewModel.isLoadingHistory = false
         }
     }
     
     
     func deletePaymentMethod() {
-        Task {
+        //Task {
+            payMethod.action = .delete
             dismiss()
-            await payModel.delete(payMethod, andSubmit: true, calModel: calModel, eventModel: eventModel)
-        }
+            //await payModel.delete(payMethod, andSubmit: true, calModel: calModel, eventModel: eventModel)
+        //}
     }
 }

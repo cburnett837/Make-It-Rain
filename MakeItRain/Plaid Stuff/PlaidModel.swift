@@ -26,7 +26,7 @@ class PlaidModel {
         banks.filter { $0.hasIssues }
     }
     
-    
+    var totalTransCount = 0
     var banks: Array<CBPlaidBank> = []
     var trans: Array<CBPlaidTransaction> = []
     var balances: Array<CBPlaidBalance> = []
@@ -54,23 +54,32 @@ class PlaidModel {
     }
     
     func saveBank(id: String) {
-        if let bank = getBank(by: id) {
+        guard let bank = getBank(by: id) else { return }
+            
+        if bank.action == .delete {
+            bank.updatedBy = AppState.shared.user!
+            bank.updatedDate = Date()
+            delete(bank, andSubmit: true)
+            return
+        }
+        
+        if bank.title.isEmpty {
+            /// User blanked out the title of an existing transaction.
+            if bank.action == .edit {
+                bank.title = bank.deepCopy?.title ?? ""
+                AppState.shared.showAlert("Removing a title is not allowed. If you want to delete \(bank.title), please use the delete button instead.")
+            } else {
+                /// Remove the dud that is in `.add` mode since it's being upserted into the list on creation.
+                withAnimation { banks.removeAll { $0.id == id } }
+            }
+            return
+        }
+                            
+        if bank.hasChanges() {
+            bank.updatedBy = AppState.shared.user!
+            bank.updatedDate = Date()
             Task {
-                if bank.title.isEmpty {
-                    if (bank.action == .edit || bank.action == .delete) && bank.title.isEmpty {
-                        bank.title = bank.deepCopy?.title ?? ""
-                        AppState.shared.showAlert("Removing a title is not allowed. If you want to delete \(bank.title), please use the delete button instead.")
-                    } else {
-                        banks.removeAll { $0.id == id }
-                    }
-                    return
-                }
-                                    
-                if bank.hasChanges() {
-                    bank.updatedBy = AppState.shared.user!
-                    bank.updatedDate = Date()
-                    let _ = await submit(bank)
-                }
+                let _ = await submit(bank)
             }
         }
     }
@@ -133,12 +142,16 @@ class PlaidModel {
         //print(keyword.action)
                     
         switch await result {
-        case .success:
+        case .success(let model):
             LogManager.networkingSuccessful()
             
             isThinking = false
             if bank.action == .delete {
-                bank.active = false
+                if model?.uuid == "problem_removing_bank_from_plaid_api" {
+                    AppState.shared.showAlert("There was a problem communicating with the plaid API.")
+                } else {
+                    bank.active = false
+                }
             } else {
                 bank.action = .edit
             }
@@ -150,7 +163,7 @@ class PlaidModel {
             
         case .failure(let error):
             LogManager.error(error.localizedDescription)
-            AppState.shared.showAlert("There was a problem syncing the keyword. Will try again at a later time.")
+            AppState.shared.showAlert("There was a problem syncing the bank. Will try again at a later time.")
 //            keyword.deepCopy(.restore)
 //
 //            switch keyword.action {
@@ -169,16 +182,23 @@ class PlaidModel {
     }
     
     
-    func delete(_ bank: CBPlaidBank, andSubmit: Bool) async {
+    func delete(_ bank: CBPlaidBank, andSubmit: Bool) {
         bank.action = .delete
-        banks.removeAll { $0.id == bank.id }
+//        /// Remove the banks from the plaid model
+//        banks.removeAll { $0.id == bank.id }
                 
         bank.accounts.forEach { act in
-            trans.removeAll(where: { $0.internalAccountID == act.id })
+            act.active = false
+            /// Remove all the plaid transactions associated with account from the bank.
+            trans.removeAll { $0.internalAccountID == act.id }
+            /// Remove the balance associated with the account.
+            balances.removeAll { $0.payMethodID == act.paymentMethodID }
         }
         
         if andSubmit {
-            let _ = await submit(bank)
+            Task { @MainActor in
+                let _ = await submit(bank)
+            }
         }
     }
     
@@ -233,13 +253,18 @@ class PlaidModel {
     }
     
     
-    func delete(_ bank: CBPlaidAccount, andSubmit: Bool) async {
-        bank.action = .delete
-        banks.removeAll { $0.id == bank.id }
-        if andSubmit {
-            let _ = await submit(bank)
-        }
-    }
+//    func delete(_ account: CBPlaidAccount, andSubmit: Bool) {
+//        account.action = .delete
+//        if let bank = banks.filter({ $0.id == account.bankID }).first {
+//            withAnimation { bank.accounts.removeAll { $0.id == account.id } }
+//            
+//            if andSubmit {
+//                Task { @MainActor in
+//                    let _ = await submit(account)
+//                }
+//            }
+//        }
+//    }
     
     
     
@@ -248,6 +273,8 @@ class PlaidModel {
     @MainActor
     func getTransactions() async -> String? {
         let plaidModel = PlaidServerModel()
+        
+        //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
         
         let model = RequestModel(requestType: "plaid_get_transactions", model: plaidModel)
         
@@ -312,47 +339,66 @@ class PlaidModel {
     
     
     @MainActor
-    func fetchPlaidTransactionsFromServer(_ plaidModel: PlaidServerModel) async {
+    func fetchPlaidTransactionsFromServer(_ plaidModel: PlaidServerModel, accumulate: Bool) async {
         //print("-- \(#function)")
         LogManager.log()
         
         let start = CFAbsoluteTimeGetCurrent()
         
-        //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
+        //try? await Task.sleep(nanoseconds: UInt64(5 * Double(NSEC_PER_SEC)))
         //print("DONE FETCHING")
                             
         //let month = months.filter { $0.num == monthNum }.first!
         let model = RequestModel(requestType: "fetch_plaid_transactions", model: plaidModel)
-        typealias ResultResponse = Result<Array<CBPlaidTransaction>?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+        typealias ResultResponse = Result<CBPlaidTransactionListWithCount?, AppError>
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
         
         switch await result {
         case .success(let model):
-            if let model {
-                if !model.isEmpty {
+            if let model, let trans = model.trans {
+                if !trans.isEmpty {
+                    
+                    totalTransCount = model.count
+                    
                     var activeIds: Array<Int> = []
                     
-                    for each in model {
+                    for each in trans {
+                        //print(each.title)
                         activeIds.append(each.id)
-                        let index = trans.firstIndex(where: { $0.id == each.id })
+                        let index = self.trans.firstIndex(where: { $0.id == each.id })
                         if let index {
                             /// If the trans is already in the list, update it from the server.
-                            trans[index].setFromAnotherInstance(trans: each)
+                            self.trans[index].setFromAnotherInstance(trans: each)
                         } else {
-                            /// Add the trans  to the list (like when the trans was added from plaid).
-                            trans.append(each)
+                            withAnimation {
+                                /// Add the trans  to the list (like when the trans was added from plaid).
+                                self.trans.append(each)
+                            }
+                            
                         }
                     }
                     
-                    /// Delete from model.
-                    for tran in self.trans {
-                        if !activeIds.contains(tran.id) {
-                            trans.removeAll { $0.id == tran.id }
+                    if !accumulate {
+                        /// Delete from model.
+                        for tran in self.trans {
+                            if !activeIds.contains(tran.id) {
+                                withAnimation {
+                                    self.trans.removeAll { $0.id == tran.id }
+                                }
+                            }
                         }
                     }
+                    
                 } else {
-                   trans.removeAll()
-               }
+                    print("model.trans is empty")
+                    if !accumulate {
+                        withAnimation {
+                            self.trans.removeAll()
+                        }
+                    }
+                }
+            } else {
+                print("Model was nil or model.trans was nil")
             }
             
             let currentElapsed = CFAbsoluteTimeGetCurrent() - start
@@ -561,6 +607,8 @@ class PlaidModel {
             let currentElapsed = CFAbsoluteTimeGetCurrent() - start
             print("⏰It took \(currentElapsed) seconds to force sync plaid transactions for bankID \(bank.id).")
             
+            AppState.shared.showAlert(title: "\(bank.title) Sync Initiated", subtitle: "You will be notified when new transactions are available")
+            
         case .failure (let error):
             switch error {
             case .taskCancelled:
@@ -569,6 +617,42 @@ class PlaidModel {
             default:
                 LogManager.error(error.localizedDescription)
                 AppState.shared.showAlert("There was a problem trying to force sync plaid transactions for bankID \(bank.id).")
+            }
+        }
+    }
+    
+    
+    
+    @MainActor
+    func fetchAllAvailableTransactionHistory(for bank: CBPlaidBank) async {
+        //print("-- \(#function)")
+        LogManager.log()
+        
+        let start = CFAbsoluteTimeGetCurrent()
+        
+        //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
+        //print("DONE FETCHING")
+        
+        let plaidModel = PlaidServerModel(bank: bank)
+                            
+        //let month = months.filter { $0.num == monthNum }.first!
+        let model = RequestModel(requestType: "plaid_fetch_all_available_transaction_history_for_bank", model: plaidModel)
+        typealias ResultResponse = Result<ResultCompleteModel?, AppError>
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        
+        switch await result {
+        case .success(let model):
+            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
+            print("⏰It took \(currentElapsed) seconds to fetch all available plaid transaction history for bankID \(bank.id).")
+            
+        case .failure (let error):
+            switch error {
+            case .taskCancelled:
+                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
+                print("calModel forceSyncBalance Server Task Cancelled")
+            default:
+                LogManager.error(error.localizedDescription)
+                AppState.shared.showAlert("There was a problem trying to fetch all available plaid transaction history for bankID \(bank.id).")
             }
         }
     }

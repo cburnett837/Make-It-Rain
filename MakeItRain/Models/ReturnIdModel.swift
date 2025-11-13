@@ -13,8 +13,9 @@ class ReturnIdModel: Decodable {
     let uuid: String?
     let type: String?
     let relatedID: String?
+    let updatedDate: Date?
     
-    enum CodingKeys: CodingKey { case uuid, id, type, related_id }
+    enum CodingKeys: CodingKey { case uuid, id, type, related_id, updated_date }
     
     init() {
         let uuid = UUID().uuidString
@@ -22,6 +23,7 @@ class ReturnIdModel: Decodable {
         self.id = uuid
         self.type = nil
         self.relatedID = nil
+        self.updatedDate = nil
     }
     
     required init(from decoder: Decoder) throws {
@@ -30,5 +32,12 @@ class ReturnIdModel: Decodable {
         id = try container.decode(String.self, forKey: .id)
         type = try container.decodeIfPresent(String.self, forKey: .type)
         relatedID = try container.decodeIfPresent(String.self, forKey: .related_id)
+        
+        let updatedDate = try container.decodeIfPresent(String.self, forKey: .updated_date)
+        if let updatedDate {
+            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
+        } else {
+            self.updatedDate = nil
+        }
     }
 }

@@ -9,7 +9,7 @@ import SwiftUI
 
 struct EventCategoryView: View {
     @Local(\.useWholeNumbers) var useWholeNumbers
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
    
     #if os(macOS)
     @Environment(\.openWindow) private var openWindow

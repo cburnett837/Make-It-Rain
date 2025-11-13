@@ -8,7 +8,7 @@
 import SwiftUI
 
 enum CalendarInspectorContent {
-    case budgetTable, analysisSheet, transactionList, plaidTransactions, multiSelectOptions, smartTransactionsWithIssues
+    case dashboard, analysisSheet, transactionList, plaidTransactions, multiSelectOptions, smartTransactionsWithIssues, budgets, overviewDay
 }
 
 #if os(iOS)
@@ -27,6 +27,12 @@ struct RootViewPad: View {
     //@FocusState private var searchFocus: Int?
     let monthNavigationNamespace: Namespace.ID
         
+    /// Used to navigate to additional pages in the bottom panel. (Plaid transactions reject all before date)
+    @State private var navPath = NavigationPath()
+    @State private var categoryAnalysisModel = CategoryInsightsModel()
+
+
+    
     //@State private var columnVisibility = NavigationSplitViewVisibility.doubleColumn
         
     var body: some View {
@@ -39,74 +45,16 @@ struct RootViewPad: View {
             if let selectedMonth = navManager.selectedMonth, calModel.isShowingFullScreenCoverOnIpad == false {
                 CalendarViewPhone(enumID: selectedMonth)
                     .if(AppState.shared.methsExist) {
-                        $0.loadingSpinner(id: selectedMonth, text: "Loading…")
+                        $0.calendarLoadingSpinner(id: selectedMonth, text: "Loading…")
                     }
                 
-            } else if let selection = navManager.selection {
-                switch selection {
-                case .repeatingTransactions:
-                    RepeatingTransactionsTable()
-                    
-                case .paymentMethods:
-                    PayMethodsTable()
-                    
-                case .categories:
-                    CategoriesTable()
-                    
-                case .keywords:
-                    KeywordsTable()
-                    
-                case .search:
-                    AdvancedSearchView()
-                    
-                case .analytics:
-                    Text("analytics")
-                    
-                case .events:
-                    EventsTable()
-                    
-                case .settings:
-                    SettingsView(showSettings: .constant(true))
-                    
-                case .debug:
-                    DebugView()
-                    
-                case .plaid:
-                    PlaidTable()
-                    
-                default:
-                    EmptyView()
-                }
+            } else if let dest = navManager.selection {
+                NavDestination.view(for: dest)                
             }
         }
         .inspector(isPresented: $calProps.showInspector) {
             if let content = calProps.inspectorContent {
-                Group {
-                    switch content {
-                    case .budgetTable:
-                        CalendarDashboard()
-                        
-                    case .analysisSheet:
-                        AnalysisSheet(showAnalysisSheet: $calProps.showInspector)
-                            .onDisappear { calModel.isInMultiSelectMode = false }
-                        
-                    case .transactionList:
-                        TransactionListView(showTransactionListSheet: $calProps.showInspector)
-                        
-                    case .plaidTransactions:
-                        PlaidTransactionOverlay(showInspector: $calProps.showInspector)
-                        
-                    case .multiSelectOptions:
-                        MultiSelectTransactionOptionsSheet(showInspector: $calProps.showInspector)
-                        
-                    case .smartTransactionsWithIssues:
-                        SmartTransactionsWithIssuesOverlay(showInspector: $calProps.showInspector)
-                    }
-                }
-                .inspectorColumnWidth(min: 300, ideal: 450, max: 600)
-                .presentationBackground(.thinMaterial)
-                /// Clear multi select mode since you can navigate to the analytic inspector via the multi select inspector.
-                
+                inspectorContent(content)
             } else {
                 /// Have a fallback view with options in case the inspector gets left open.
                 /// Inspector state is retained by the SwiftUI framework.
@@ -121,14 +69,57 @@ struct RootViewPad: View {
     }
     
     
+    @ViewBuilder func inspectorContent(_ content: CalendarInspectorContent) -> some View {
+        @Bindable var calProps = calProps
+        Group {
+            switch content {
+            case .dashboard:
+                CalendarDashboard()
+                
+            case .analysisSheet:
+                CategoryInsightsSheet(showAnalysisSheet: $calProps.showInspector, model: categoryAnalysisModel)
+                    .onDisappear { calModel.isInMultiSelectMode = false }
+                
+            case .transactionList:
+                TransactionListView(showTransactionListSheet: $calProps.showInspector)
+                
+            case .plaidTransactions:
+                PlaidTransactionOverlay(showInspector: $calProps.showInspector, navPath: $navPath)
+                
+            case .multiSelectOptions:
+                MultiSelectTransactionOptionsSheet(showInspector: $calProps.showInspector)
+                
+            case .smartTransactionsWithIssues:
+                SmartTransactionsWithIssuesOverlay(showInspector: $calProps.showInspector)
+                
+            case .budgets:
+                BudgetTable()
+                
+            case .overviewDay:
+                DayOverviewView(day: $calProps.overviewDay, showInspector: $calProps.showInspector)
+            }
+        }
+        //.toolbarRole(.navigationStack)
+        .inspectorColumnWidth(min: 300, ideal: 450, max: 600)
+        .presentationBackground(.thinMaterial)
+    }
+    
+    
     var noInspectorContentView: some View {
         NavigationStack {
             StandardContainerWithToolbar(.list) {
-                Button("Insights") { calProps.inspectorContent = .analysisSheet }
-                Button("Transactions") { calProps.inspectorContent = .transactionList }
-                Button("Multi-select") {
-                    calModel.isInMultiSelectMode.toggle()
-                    calProps.inspectorContent = .multiSelectOptions
+                Button { calProps.inspectorContent = .dashboard } label: { Label("Dashboard", systemImage: "rectangle.grid.1x3.fill") }
+                Button { calProps.inspectorContent = .analysisSheet } label: { Label("Insights", systemImage: "chart.bar.doc.horizontal") }
+                Button { calProps.inspectorContent = .budgets } label: { Label("Budgets", systemImage: "chart.pie") }
+                Button { calProps.inspectorContent = .transactionList } label: { Label("All Transactions", systemImage: "list.bullet") }
+                                
+                Section {
+                    Button {
+                        calModel.isInMultiSelectMode = true
+                        calProps.inspectorContent = .multiSelectOptions
+                    } label: {
+                        Label("Multi-Select", systemImage: "rectangle.and.hand.point.up.left.filled")
+                    }
                 }
             }
             .navigationTitle("Inspector")
@@ -140,7 +131,7 @@ struct RootViewPad: View {
                         calProps.showInspector = false
                     } label: {
                         Image(systemName: "checkmark")
-                            .foregroundStyle(colorScheme == .dark ? .white : .black)
+                            .schemeBasedForegroundStyle()
                     }
                 }
             }

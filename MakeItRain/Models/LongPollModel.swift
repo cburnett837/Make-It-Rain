@@ -35,10 +35,12 @@ class LongPollModel: Decodable {
     
     let plaidBanks: Array<CBPlaidBank>?
     let plaidAccounts: Array<CBPlaidAccount>?
-    let plaidTransactions: Array<CBPlaidTransaction>?
+    let plaidTransactionsWithCount: CBPlaidTransactionListWithCount?
     let plaidBalances: Array<CBPlaidBalance>?
     
-    enum CodingKeys: CodingKey { case return_time, transactions, starting_amounts, repeating_transactions, pay_methods, categories, category_groups, keywords, budgets, events, event_transactions, event_transaction_options, event_categories, event_items, event_participants, invitations, fit_transactions, open_records, plaid_banks, plaid_accounts, plaid_transactions, plaid_balances }
+    let logos: Array<CBLogo>?
+    
+    enum CodingKeys: CodingKey { case return_time, transactions, starting_amounts, repeating_transactions, pay_methods, categories, category_groups, keywords, budgets, events, event_transactions, event_transaction_options, event_categories, event_items, event_participants, invitations, fit_transactions, open_records, plaid_banks, plaid_accounts, plaid_transactions, plaid_balances, logos }
     
     init () {
         self.returnTime = nil
@@ -64,8 +66,10 @@ class LongPollModel: Decodable {
         
         self.plaidBanks = nil
         self.plaidAccounts = nil
-        self.plaidTransactions = nil
+        self.plaidTransactionsWithCount = nil
         self.plaidBalances = nil
+        
+        self.logos = nil
     }
     
     
@@ -95,8 +99,10 @@ class LongPollModel: Decodable {
         
         self.plaidBanks = try container.decodeIfPresent(Array<CBPlaidBank>.self, forKey: .plaid_banks)
         self.plaidAccounts = try container.decodeIfPresent(Array<CBPlaidAccount>.self, forKey: .plaid_accounts)
-        self.plaidTransactions = try container.decodeIfPresent(Array<CBPlaidTransaction>.self, forKey: .plaid_transactions)
+        self.plaidTransactionsWithCount = try container.decodeIfPresent(CBPlaidTransactionListWithCount.self, forKey: .plaid_transactions)
         self.plaidBalances = try container.decodeIfPresent(Array<CBPlaidBalance>.self, forKey: .plaid_balances)
+        
+        self.logos = try container.decodeIfPresent(Array<CBLogo>.self, forKey: .logos)
     }
 }
 

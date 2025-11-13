@@ -10,7 +10,7 @@ import SwiftUI
 #if os(iOS)
 struct CalendarNavGridHeader: View {
     @Environment(\.colorScheme) var colorScheme
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @Environment(CalendarModel.self) var calModel
     @Environment(EventModel.self) var eventModel
     @Environment(PlaidModel.self) var plaidModel
@@ -51,7 +51,7 @@ struct CalendarNavGridHeader: View {
                             ForEach(years, id: \.self) {
                                 Text(String($0))
                                     .tag($0)
-                                //.foregroundStyle($0 == AppState.shared.todayYear ? Color.fromName(colorTheme) : .primary)
+                                //.foregroundStyle($0 == AppState.shared.todayYear ? Color.theme : .primary)
                             }
                         }
                     }
@@ -63,7 +63,7 @@ struct CalendarNavGridHeader: View {
                         ForEach(years, id: \.self) {
                             Text(String($0))
                                 .tag($0)
-                                //.foregroundStyle($0 == AppState.shared.todayYear ? Color.fromName(colorTheme) : .primary)
+                                //.foregroundStyle($0 == AppState.shared.todayYear ? Color.theme : .primary)
                         }
                     }
                     .pickerStyle(.menu)
@@ -73,7 +73,7 @@ struct CalendarNavGridHeader: View {
                     Text("Make It Rain")
                         .font(.largeTitle)
                         .bold()
-                        .foregroundStyle(colorScheme == .dark ? .white : .black)
+                        .schemeBasedForegroundStyle()
                         .lineLimit(1)
                     
                     HStack(spacing: 2) {
@@ -83,7 +83,7 @@ struct CalendarNavGridHeader: View {
                     .font(.title)
                     .bold()
                     .if(AppState.shared.todayYear == calModel.sYear) {
-                        $0.foregroundStyle(Color.fromName(colorTheme))
+                        $0.foregroundStyle(Color.theme)
                     }
                     .font(.callout)
                     .foregroundStyle(.gray)
@@ -110,7 +110,7 @@ struct CalendarNavGridHeader: View {
                         AppState.shared.showAlert("One or more banks are currently having issues. Please review in the plaid section.")
                     } label: {
                         Image(systemName: "creditcard.trianglebadge.exclamationmark")
-                            .foregroundStyle(Color.fromName(colorTheme) == .orange ? .red : .orange)
+                            .foregroundStyle(Color.theme == .orange ? .red : .orange)
                     }
                     .tint(.none)
                 }

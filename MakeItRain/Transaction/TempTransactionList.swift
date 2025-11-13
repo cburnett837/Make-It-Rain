@@ -246,7 +246,7 @@ struct TempTransactionList: View {
                 //entity.tags = trans.tags
                 entity.enteredDate = trans.enteredDate
                 entity.updatedDate = trans.updatedDate
-                //entity.pictures = trans.pictures
+                //entity.files = trans.files
                 entity.factorInCalculations = trans.factorInCalculations
                 entity.notificationOffset = Int64(trans.notificationOffset ?? 0)
                 entity.notifyOnDueDate = trans.notifyOnDueDate

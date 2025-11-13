@@ -45,7 +45,7 @@ struct CalendarMonthLabel: View {
 //    var debitSum: Double {
 //        let debitIDs = payModel.paymentMethods
 //            .filter { $0.isDebit }
-//            .filter { $0.isAllowedToBeViewedByThisUser }
+//            .filter { $0.isPermitted }
 //            .filter { !$0.isHidden }
 //            .map { $0.id }
 //        
@@ -56,7 +56,7 @@ struct CalendarMonthLabel: View {
 //    var creditSum: Double {
 //        let creditIDs = payModel.paymentMethods
 //            .filter { $0.isCredit }
-//            .filter { $0.isAllowedToBeViewedByThisUser }
+//            .filter { $0.isPermitted }
 //            .filter { !$0.isHidden }
 //            .map { $0.id }
 //        
@@ -69,7 +69,7 @@ struct CalendarMonthLabel: View {
 //        .filter({ $0.payMethodID == calModel.sPayMethod?.id })
 //        .filter ({ bal in
 //            if let meth = payModel.paymentMethods.filter({ $0.id == bal.payMethodID }).first {
-//                return meth.isAllowedToBeViewedByThisUser
+//                return meth.isPermitted
 //            } else {
 //                return false
 //            }
@@ -91,14 +91,14 @@ struct CalendarMonthLabel: View {
             Text(monthText)
                 .font(.largeTitle)
                 .bold()
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+                .schemeBasedForegroundStyle()
                 .lineLimit(1)
             
             Spacer()
             HStack(spacing: 0) {
                 VStack(alignment: .trailing, spacing: 0) {
                     HStack(spacing: 2) {
-                        Text("\(calModel.sPayMethod?.title ?? "")")
+                        Text("\(calModel.sPayMethod?.title ?? "All Transactions")")
                             .padding(.leading, -2)
                     }
                     .font(.callout)

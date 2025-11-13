@@ -12,7 +12,7 @@ import UIKit
 #endif
 
 struct CalendarSheetLayerView: View {
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @Environment(CalendarModel.self) private var calModel
     
     let monthNavigationNamespace: Namespace.ID
@@ -30,7 +30,9 @@ struct CalendarSheetLayerView: View {
             .fill(Color.clear)
             .ignoresSafeArea(.all)
             #if os(iOS)
-            .fullScreenCover(isPresented: $calModel.showMonth) { calendarSheet }
+            .fullScreenCover(isPresented: $calModel.showMonth, onDismiss: {
+                print("Cal sheet onDismiss")
+            }) { calendarSheet }
             #endif
     }
     
@@ -40,10 +42,10 @@ struct CalendarSheetLayerView: View {
             if let selectedMonth = NavigationManager.shared.selectedMonth {
                 if NavDestination.justMonths.contains(selectedMonth) {
                     CalendarViewPhone(enumID: selectedMonth)
-                        .tint(Color.fromName(colorTheme))
+                        .tint(Color.theme)
                         .navigationTransition(.zoom(sourceID: selectedMonth, in: monthNavigationNamespace))
                         .if(AppState.shared.methsExist) {
-                            $0.loadingSpinner(id: selectedMonth, text: "Loading…")
+                            $0.calendarLoadingSpinner(id: selectedMonth, text: "Loading…")
                         }
                 }
             }

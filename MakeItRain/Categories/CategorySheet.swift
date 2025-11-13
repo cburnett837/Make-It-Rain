@@ -12,7 +12,7 @@ struct CategorySheet: View {
     @Environment(\.colorScheme) private var colorScheme
 
     @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
-    @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
+    @AppStorage("categorySortMode") var categorySortMode: SortMode = .title
     
     @Environment(CalendarModel.self) private var calModel
     
@@ -43,30 +43,15 @@ struct CategorySheet: View {
     @State private var searchText = ""
     
     var filteredCategories: Array<CBCategory> {
-        if searchText.isEmpty {
-            return catModel.categories
-                .filter { !$0.isHidden }
-                .filter { !$0.isNil }
-                .sorted {
-                    categorySortMode == .title
-                    ? $0.title.lowercased() < $1.title.lowercased()
-                    : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
-                }
-        } else {
-            return catModel.categories
-                .filter { $0.title.localizedStandardContains(searchText) }
-                .filter { !$0.isHidden }
-                .filter { !$0.isNil }
-                .sorted {
-                    categorySortMode == .title
-                    ? $0.title.lowercased() < $1.title.lowercased()
-                    : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
-                }
-        }
+        catModel.categories
+            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+            .filter { !$0.isHidden }
+            .filter { !$0.isNil }
+            .sorted(by: Helpers.categorySorter())
     }
     
     
-    var body: some View {
+    var body: some View {        
         NavigationStack {
             StandardContainerWithToolbar(.list) {
                 if filteredCategories.isEmpty {
@@ -82,7 +67,11 @@ struct CategorySheet: View {
             .navigationTitle("Select Category")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { sortMenu }
+                DefaultToolbarItem(kind: .search, placement: .bottomBar)
+                
+                ToolbarSpacer(.flexible, placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar)
+                ToolbarItem(placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar) { CategorySortMenu() }
+                
                 ToolbarItem(placement: .topBarTrailing) { closeButton }
             }
             #endif
@@ -105,7 +94,7 @@ struct CategorySheet: View {
         .sheet(item: $editCategory, onDismiss: {
             categoryEditID = nil
         }, content: { cat in
-            CategoryView(category: cat, catModel: catModel, calModel: calModel, keyModel: keyModel, editID: $categoryEditID)
+            CategoryView(category: cat, editID: $categoryEditID)
             //#if os(iOS)
             //.presentationDetents([.medium, .large])
             //#endif
@@ -141,47 +130,65 @@ struct CategorySheet: View {
     
     
     var yourCategoriesSection: some View {
-        Section("Your Categories") {
+        Section("My Categories") {
             ForEach(filteredCategories) { cat in
-                HStack {
-                    if lineItemIndicator == .dot {
-                        HStack { /// This can be a button or whatever you want
-                            Image(systemName: "circle.fill")
-                                .foregroundStyle(cat.color.gradient, .primary, .secondary)
-                            Text(cat.title)
-                            Spacer()
-                            if category?.id == cat.id {
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                    } else {
-                        if let emoji = cat.emoji {
-                            HStack {
-                                Image(systemName: emoji)
-                                    .foregroundStyle(cat.color.gradient)
-                                    .frame(minWidth: labelWidth, alignment: .center)
-                                    .maxViewWidthObserver()
-                                Text(cat.title)
-                                //Text("\(emoji) \(cat.title)")
-                                Spacer()
-                                if category?.id == cat.id {
-                                    Image(systemName: "checkmark")
-                                }
-                            }
-                        } else {
-                            HStack {
-                                Text(cat.title)
-                                Spacer()
-                                if category?.id == cat.id {
-                                    Image(systemName: "checkmark")
-                                }
-                            }
-                        }
-                    }
-                    Spacer()
-                }
-                .contentShape(Rectangle())
+                StandardCategoryLabel(
+                    cat: cat,
+                    labelWidth: labelWidth,
+                    showCheckmarkCondition: category?.id == cat.id
+                )
                 .onTapGesture { doIt(cat) }
+                
+//                HStack {
+//                    
+//                    Image(systemName: lineItemIndicator == .dot ? "circle.fill" : (cat.emoji ?? "circle.fill"))
+//                        .foregroundStyle(cat.color.gradient)
+//                        .frame(minWidth: labelWidth, alignment: .center)
+//                        .maxViewWidthObserver()
+//                    Text(cat.title)
+//                    Spacer()
+//                    Image(systemName: "checkmark")
+//                        .opacity(category?.id == cat.id ? 1 : 0)
+//                    
+//                    
+////                    if lineItemIndicator == .dot {
+////                        HStack { /// This can be a button or whatever you want
+////                            Image(systemName: "circle.fill")
+////                                .foregroundStyle(cat.color.gradient, .primary, .secondary)
+////                            Text(cat.title)
+////                            Spacer()
+////                            if category?.id == cat.id {
+////                                Image(systemName: "checkmark")
+////                            }
+////                        }
+////                    } else {
+////                        if let emoji = cat.emoji {
+////                            HStack {
+////                                Image(systemName: emoji)
+////                                    .foregroundStyle(cat.color.gradient)
+////                                    .frame(minWidth: labelWidth, alignment: .center)
+////                                    .maxViewWidthObserver()
+////                                Text(cat.title)
+////                                //Text("\(emoji) \(cat.title)")
+////                                Spacer()
+////                                if category?.id == cat.id {
+////                                    Image(systemName: "checkmark")
+////                                }
+////                            }
+////                        } else {
+////                            HStack {
+////                                Text(cat.title)
+////                                Spacer()
+////                                if category?.id == cat.id {
+////                                    Image(systemName: "checkmark")
+////                                }
+////                            }
+////                        }
+////                    }
+////                    Spacer()
+//                }
+//                .contentShape(Rectangle())
+//                .onTapGesture { doIt(cat) }
             }
             
             Button("New Category") {
@@ -191,36 +198,38 @@ struct CategorySheet: View {
     }
     
     
-    var sortMenu: some View {
-        Menu {
-            Button {
-                withAnimation {
-                    categorySortMode = .title
-                }
-            } label: {
-                Label {
-                    Text("Title")
-                } icon: {
-                    Image(systemName: categorySortMode == .title ? "checkmark" : "textformat.abc")
-                }
-            }
-            
-            Button {
-                withAnimation {
-                    categorySortMode = .listOrder
-                }
-            } label: {
-                Label {
-                    Text("Custom")
-                } icon: {
-                    Image(systemName: categorySortMode == .listOrder ? "checkmark" : "list.bullet")
-                }
-            }
-        } label: {
-            Image(systemName: "arrow.up.arrow.down")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
-        }
-    }
+//    var sortMenu: some View {
+//        Menu {
+//            Button {
+//                categorySortMode = .title
+////                withAnimation {
+////                    catModel.categories.sort(by: Helpers.categorySorter())
+////                }
+//            } label: {
+//                Label {
+//                    Text("Title")
+//                } icon: {
+//                    Image(systemName: categorySortMode == .title ? "checkmark" : "textformat.abc")
+//                }
+//            }
+//            
+//            Button {
+//                categorySortMode = .listOrder
+////                withAnimation {
+////                    catModel.categories.sort(by: Helpers.categorySorter())
+////                }
+//            } label: {
+//                Label {
+//                    Text("Custom")
+//                } icon: {
+//                    Image(systemName: categorySortMode == .listOrder ? "checkmark" : "list.bullet")
+//                }
+//            }
+//        } label: {
+//            Image(systemName: "arrow.up.arrow.down")
+//                .schemeBasedForegroundStyle()
+//        }
+//    }
         
     
     var closeButton: some View {
@@ -228,7 +237,7 @@ struct CategorySheet: View {
             dismiss()
         } label: {
             Image(systemName: "xmark")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+                .schemeBasedForegroundStyle()
         }
     }
     

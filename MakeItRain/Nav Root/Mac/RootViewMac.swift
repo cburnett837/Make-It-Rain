@@ -8,7 +8,7 @@
 import SwiftUI
 #if os(macOS)
 struct RootViewMac: View {
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
 
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) var calModel
@@ -142,7 +142,7 @@ struct RootViewMac: View {
         }
         //.toolbarBackground(Color.darkGray2)
         //.background(Color.darkGray2)
-        .tint(Color.fromName(colorTheme))
+        .tint(Color.theme)
         .toast()
     }
 }

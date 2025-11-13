@@ -40,6 +40,10 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
     var budgets: Array<CBBudget> = []
     var hasBeenPopulated = false
     
+    var legitDays: Array<CBDay> {
+        days.filter { !$0.isPlaceholder }
+    }
+    
 //    @MainActor var eods: Array<EndOfDayAmounts> {
 //        var returns: Array<EndOfDayAmounts> = []
 //        
@@ -77,9 +81,9 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
         self.days.flatMap { $0.transactions }
     }
     
-    var transactionCount: Int {
-        justTransactions.count
-    }
+//    var transactionCount: Int {
+//        justTransactions.count
+//    }
     
     var transactionTotals: Double {
         justTransactions.map {$0.amount}.reduce(0.0, +)
@@ -315,5 +319,5 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
     
     func delete(_ budget: CBBudget) {
         budgets.removeAll(where: { $0.id == budget.id })
-    }
+    }        
 }

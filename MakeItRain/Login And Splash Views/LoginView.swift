@@ -9,10 +9,10 @@ import SwiftUI
 
 @MainActor
 struct LoginView: View {
-    enum Field: Hashable {
-        case email
-        case password
-    }
+//    enum Field: Hashable {
+//        case email
+//        case password
+//    }
     
     enum AlertType {
         case email, password, invalid, server
@@ -27,7 +27,7 @@ struct LoginView: View {
     @State private var showFailedLoginAlert = false
     @State private var showServerErrorAlert = false
     
-    @FocusState private var focusedField: Field?
+    @FocusState private var focusedField: Int?
     @State private var attemptingLogin = false
     
     @State private var wish = false
@@ -56,15 +56,32 @@ struct LoginView: View {
                 Spacer()
                 
                 VStack(spacing: 0) {
-                    TextField("Email", text: $email)
-                        .textFieldStyle(.plain)
-                        #if os(iOS)
-                        .keyboardType(.emailAddress)
-                        .textInputAutocapitalization(.never)
-                        #endif
-                        .textContentType(.emailAddress)
-                        .focused($focusedField, equals: .email)
-                        .frame(width: 250)
+                    UITextFieldWrapper(placeholder: "Email", text: $email, toolbar: {
+                        KeyboardToolbarView(focusedField: $focusedField)
+                    })
+                    .uiTag(0)
+                    .uiClearButtonMode(.whileEditing)
+                    .uiStartCursorAtEnd(true)
+                    .uiTextAlignment(.left)
+                    .uiKeyboardType(.system(.emailAddress))
+                    .uiAutoCapitalizationType(.none)
+                    //.uiKeyboardType(.system(.numberPad))
+                    //.uiTextColor(.secondaryLabel)
+                    .focused($focusedField, equals: 0)
+                    .frame(width: 250)
+                    
+                    
+                    
+                    
+//                    TextField("Email", text: $email)
+//                        .textFieldStyle(.plain)
+//                        #if os(iOS)
+//                        .keyboardType(.emailAddress)
+//                        .textInputAutocapitalization(.never)
+//                        #endif
+//                        .textContentType(.emailAddress)
+//                        .focused($focusedField, equals: .email)
+//                        .frame(width: 250)
 //                        .onChange(of: email) { oldValue, newValue in
 //                            email = email.lowercased()
 //                        }
@@ -76,16 +93,36 @@ struct LoginView: View {
                 Spacer().frame(height: 16)
                 
                 VStack(spacing: 0) {
-                    SecureField("Password", text: $password)
-                        .textFieldStyle(.plain)
-                        .textContentType(.password)
-                        .focused($focusedField, equals: .password)
-                        .frame(width: 250)
-                        .onSubmit {
-                            focusedField = nil
-                            attemptingLogin = true
-                            Task { await attemptLogin() }
-                        }
+                    UITextFieldWrapper(placeholder: "Password", text: $password, onSubmit: {
+                        focusedField = nil
+                        attemptingLogin = true
+                        Task { await attemptLogin() }
+                    }, toolbar: {
+                        KeyboardToolbarView(focusedField: $focusedField)
+                    })
+                    .uiTag(1)
+                    .uiClearButtonMode(.whileEditing)
+                    .uiStartCursorAtEnd(true)
+                    .uiTextAlignment(.left)
+                    .uiKeyboardType(.system(.default))
+                    .uiAutoCapitalizationType(.none)
+                    .uiIsSecure(true)
+                    //.uiKeyboardType(.system(.numberPad))
+                    //.uiTextColor(.secondaryLabel)
+                    .focused($focusedField, equals: 1)
+                    .frame(width: 250)
+                    
+                    
+//                    SecureField("Password", text: $password)
+//                        .textFieldStyle(.plain)
+//                        .textContentType(.password)
+//                        .focused($focusedField, equals: 1)
+//                        .frame(width: 250)
+//                        .onSubmit {
+//                            focusedField = nil
+//                            attemptingLogin = true
+//                            Task { await attemptLogin() }
+//                        }
                     
                     Divider()
                         .frame(width: 250)
@@ -112,37 +149,37 @@ struct LoginView: View {
                 Spacer()
             }
         }        
-        .toolbar {
-            ToolbarItem(placement: .keyboard) {
-                HStack(spacing: 2) {
-                    Button {
-                        focusedField = .email
-                    } label: {
-                        Image(systemName: "chevron.up")
-                            //.foregroundStyle(.green)
-                            .foregroundStyle(focusedField == .email ? .gray : .green)
-                    }
-                    .disabled(focusedField == .email)
-                    
-                    Button {
-                        focusedField = .password
-                    } label: {
-                        Image(systemName: "chevron.down")
-                            //.foregroundStyle(.green)
-                            .foregroundStyle(focusedField == .password ? .gray : .green)
-                    }
-                    .disabled(focusedField == .password)
-                    
-                    Spacer()
-                    Button {
-                        focusedField = nil
-                    } label: {
-                        Image(systemName: "keyboard.chevron.compact.down")
-                            .foregroundStyle(.gray)
-                    }
-                }
-            }
-        }
+//        .toolbar {
+//            ToolbarItem(placement: .keyboard) {
+//                HStack(spacing: 2) {
+//                    Button {
+//                        focusedField = 0
+//                    } label: {
+//                        Image(systemName: "chevron.up")
+//                            //.foregroundStyle(.green)
+//                            .foregroundStyle(focusedField == 0 ? .gray : .green)
+//                    }
+//                    .disabled(focusedField == 0)
+//                    
+//                    Button {
+//                        focusedField = 1
+//                    } label: {
+//                        Image(systemName: "chevron.down")
+//                            //.foregroundStyle(.green)
+//                            .foregroundStyle(focusedField == 1 ? .gray : .green)
+//                    }
+//                    .disabled(focusedField == 1)
+//                    
+//                    Spacer()
+//                    Button {
+//                        focusedField = nil
+//                    } label: {
+//                        Image(systemName: "keyboard.chevron.compact.down")
+//                            .foregroundStyle(.gray)
+//                    }
+//                }
+//            }
+//        }
         .alert("Email cannot be blank", isPresented: $showMissingEmailAlert, actions: { Button("OK") { } })
         .alert("Password cannot be blank", isPresented: $showMissingPasswordAlert, actions: { Button("OK") { } })
         .alert("The entered credentials were incorrect", isPresented: $showFailedLoginAlert, actions: { Button("OK") { } })
@@ -187,10 +224,10 @@ struct LoginView: View {
     func attemptLogin() async {
         guard !email.isEmpty, !password.isEmpty else {
             if email.isEmpty {
-                focusedField = .email
+                focusedField = 0
                 showAlert(.email)
             } else if password.isEmpty {
-                focusedField = .password
+                focusedField = 1
                 showAlert(.password)
             }
             return

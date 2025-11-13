@@ -6,7 +6,8 @@
 //
 
 import Foundation
-import GRDB
+//import GRDB
+import SwiftUI
 
 @MainActor
 @Observable
@@ -37,25 +38,41 @@ class KeywordModel {
         return keywords.firstIndex(where: { $0.id == keyword.id })
     }
     
-    func saveKeyword(id: String) {
+    func saveKeyword(id: String, file: String = #file, line: Int = #line, function: String = #function) {
+        print("-- \(#function) -- Called from: \(file):\(line) : \(function)")
+
         let keyword = getKeyword(by: id)
-        Task {            
-            if keyword.keyword.isEmpty {
-                if keyword.action != .add && keyword.keyword.isEmpty {
-                    keyword.keyword = keyword.deepCopy?.keyword ?? ""
-                    AppState.shared.showAlert("Removing a title is not allowed. If you want to delete \(keyword.keyword), please use the delete button instead.")
-                } else {
-                    keywords.removeAll { $0.id == id }
-                }
-                return
-            }
-                                
-            if keyword.hasChanges() {
-                keyword.updatedBy = AppState.shared.user!
-                keyword.updatedDate = Date()
+        
+        if keyword.action == .delete {
+            keyword.updatedBy = AppState.shared.user!
+            keyword.updatedDate = Date()
+            delete(keyword, andSubmit: true)
+            return
+        }
+        
+        /// User blanked out the title of an existing keyword.
+        if keyword.action == .edit && keyword.keyword.isEmpty {
+            keyword.keyword = keyword.deepCopy?.keyword ?? ""
+            AppState.shared.showAlert("Removing a title is not allowed. If you want to delete \(keyword.keyword), please use the delete button instead.")
+            return
+        }
+        
+        /// User is entering a new keyword but forgot the payment method.
+        /// Remove the dud that is in `.add` mode since it's being upserted into the list on creation.
+        if (keyword.category == nil || keyword.category?.isNil ?? false) && !keyword.keyword.isEmpty {
+            AppState.shared.showAlert(title: "A category is required", subtitle: "\(keyword.keyword) was not saved.")
+            withAnimation { keywords.removeAll { $0.id == id } }
+            return
+        }
+                            
+        if keyword.hasChanges() {
+            keyword.updatedBy = AppState.shared.user!
+            keyword.updatedDate = Date()
+            Task {
                 let _ = await submit(keyword)
             }
         }
+
     }
     
     func updateCache(for keyword: CBKeyword) async -> Result<Bool, CoreDataError> {
@@ -274,8 +291,6 @@ class KeywordModel {
                         let categoryHexCode = keyword.category?.color.toHex()
                         let categoryEmoji = keyword.category?.emoji
                         
-                        
-                        
                         let index = keywords.firstIndex(where: { $0.id == keyword.id })
                         if let index {
                             /// If the payment method is already in the list, update it from the server.
@@ -354,7 +369,8 @@ class KeywordModel {
     
     
     @MainActor
-    func submit(_ keyword: CBKeyword) async -> Bool {
+    func submit(_ keyword: CBKeyword, file: String = #file, line: Int = #line, function: String = #function) async -> Bool {
+        print("-- \(#function) -- Called from: \(file):\(line) : \(function)")
         isThinking = true
         //LoadingManager.shared.startDelayedSpinner()
         LogManager.log()
@@ -538,14 +554,19 @@ class KeywordModel {
 //    }
 //    
     
-    func delete(_ keyword: CBKeyword, andSubmit: Bool) async {
-        let context = DataManager.shared.createContext()
+    /// - Parameters:
+    ///    - keyword: The keyword to be deleted.
+    ///    - andSubmit: Via a user action = true. Via longpoll = false.
+    func delete(_ keyword: CBKeyword, andSubmit: Bool) {
         keyword.action = .delete
-        keywords.removeAll { $0.id == keyword.id }
+        withAnimation { keywords.removeAll { $0.id == keyword.id }}
         
         if andSubmit {
-            let _ = await submit(keyword)
+            Task { @MainActor in
+                let _ = await submit(keyword)
+            }
         } else {
+            let context = DataManager.shared.createContext()
             DataManager.shared.delete(context: context, type: PersistentKeyword.self, predicate: .byId(.string(keyword.id)))
         }
     }

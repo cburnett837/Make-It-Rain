@@ -51,7 +51,7 @@
 //            return sections
 //        } else {
 //            return sections
-//                .filter { !$0.payMethods.filter { $0.title.localizedStandardContains(searchText) }.isEmpty }
+//                .filter { !$0.payMethods.filter { $0.title.localizedCaseInsensitiveContains(searchText) }.isEmpty }
 //        }
 //    }
 //    
@@ -76,7 +76,7 @@
 //        ForEach(filteredSections) { section in
 //            if !section.payMethods.isEmpty {
 //                Section(section.kind.rawValue) {
-//                    ForEach(searchText.isEmpty ? section.payMethods : section.payMethods.filter { $0.title.localizedStandardContains(searchText) }) { meth in
+//                    ForEach(searchText.isEmpty ? section.payMethods : section.payMethods.filter { $0.title.localizedCaseInsensitiveContains(searchText) }) { meth in
 //                        HStack {
 //                            Image(systemName: "circle.fill")
 //                                .if(meth.isUnified) {

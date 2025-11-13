@@ -17,6 +17,7 @@ class CBTag: Codable, Identifiable {
     var active: Bool
     var action: TagAction
     var isNew = false
+    var isHidden: Bool = false
     
     init() {
         let uuid = UUID().uuidString
@@ -38,7 +39,7 @@ class CBTag: Codable, Identifiable {
         self.isNew = true
     }
     
-    enum CodingKeys: CodingKey { case id, uuid, tag, active, user_id, account_id, device_uuid, is_new }
+    enum CodingKeys: CodingKey { case id, uuid, tag, active, user_id, account_id, device_uuid, is_new, is_hidden }
     
     
     func encode(to encoder: Encoder) throws {
@@ -48,6 +49,7 @@ class CBTag: Codable, Identifiable {
         try container.encode(tag, forKey: .tag)
         try container.encode(active ? 1 : 0, forKey: .active)
         try container.encode(isNew ? 1 : 0, forKey: .is_new)
+        try container.encode(isHidden ? 1 : 0, forKey: .is_hidden)
         try container.encode(AppState.shared.user?.id, forKey: .user_id)
         try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
         try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
@@ -68,6 +70,9 @@ class CBTag: Codable, Identifiable {
         let isActive = try container.decode(Int?.self, forKey: .active)
         self.active = isActive == 1 ? true : false
         self.isNew = false
+        
+        let isHidden = try container.decode(Int?.self, forKey: .is_hidden)
+        self.isHidden = isHidden == 1 ? true : false
         
         action = .edit
     }
@@ -95,12 +100,14 @@ class CBTag: Codable, Identifiable {
             let copy = CBTag.empty
             copy.id = self.id
             copy.tag = self.tag
+            copy.isHidden = self.isHidden
             copy.active = self.active
             self.deepCopy = copy
         case .restore:
             if let deepCopy = self.deepCopy {
                 self.id = deepCopy.id
                 self.tag = deepCopy.tag
+                self.isHidden = deepCopy.isHidden
                 self.active = deepCopy.active
                 //self.action = deepCopy.action
             }
@@ -113,6 +120,7 @@ class CBTag: Codable, Identifiable {
     func setFromAnotherInstance(tag: CBTag) {
         self.tag = tag.tag
         self.active = tag.active
+        self.isHidden = tag.isHidden
     }
     
     
@@ -124,6 +132,7 @@ extension CBTag: Equatable, Hashable {
     static func == (lhs: CBTag, rhs: CBTag) -> Bool {
         if lhs.id == rhs.id
         && lhs.tag == rhs.tag
+        && lhs.isHidden == rhs.isHidden
         && lhs.active == rhs.active {
             return true
         }

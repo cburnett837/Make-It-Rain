@@ -11,7 +11,7 @@ import SwiftUI
 struct EventCategorySheet: View {
     @Environment(\.dismiss) var dismiss
     @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
-    @AppStorage("categorySortMode") var categorySortMode: CategorySortMode = .title
+    @AppStorage("categorySortMode") var categorySortMode: SortMode = .title
     
     @Environment(EventModel.self) private var eventModel
         
@@ -29,7 +29,7 @@ struct EventCategorySheet: View {
             return event.categories
                 .sorted { $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000 }
         } else {
-            return event.categories.filter { $0.title.localizedStandardContains(searchText) }
+            return event.categories.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
                 .sorted { $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000 }
         }
     }

@@ -11,7 +11,7 @@
 //
 //struct CategoryViewOG: View {
 //    @Local(\.useWholeNumbers) var useWholeNumbers
-//    @Local(\.colorTheme) var colorTheme
+//    //@Local(\.colorTheme) var colorTheme
 //    @AppStorage("chartVisibleYearCount") var chartVisibleYearCount: CategoryAnalyticChartRange = .year1
 //    @AppStorage("selectedCategoryTab") var selectedCategoryTab: String = "details"
 //    @AppStorage("showAverageOnCategoryChart") var showAverageOnCategoryChart: Bool = true

@@ -10,6 +10,29 @@ import SwiftUI
 import Charts
 
 struct MinMaxEodChartWidget: View {
+    @Bindable var vm: PayMethodViewModel
+    @Bindable var payMethod: CBPaymentMethod
+        
+    var body: some View {
+        NavigationLink {
+            MinMaxEodChartDetails(vm: vm, payMethod: payMethod)
+        } label: {
+            MinMaxEodChart(
+                vm: vm,
+                payMethod: payMethod,
+                rawSelectedDate: .constant(nil),
+                selectedDate: nil,
+                allowSelection: false
+            )
+        }
+        #if os(iOS)
+        .navigationLinkIndicatorVisibility(.hidden)
+        #endif
+    }
+}
+
+
+struct MinMaxEodChartDetails: View {
     @Local(\.useWholeNumbers) var useWholeNumbers
     @Local(\.threshold) var threshold
 
@@ -18,10 +41,8 @@ struct MinMaxEodChartWidget: View {
     
     @Bindable var vm: PayMethodViewModel
     @Bindable var payMethod: CBPaymentMethod
-    @State private var showChartSheet = false
     
     @State private var rawSelectedDate: Date?
-    @State private var persistedDate: Date?
     var selectedDate: Date? {
         if let raw = rawSelectedDate {
             let breakdowns = vm.payMethods.first?.breakdowns
@@ -36,82 +57,46 @@ struct MinMaxEodChartWidget: View {
     }
     
     var body: some View {
-        Section {
-            
-            NavigationLink {
-                detailsSheet
-                    .onDisappear {
-                        rawSelectedDate = nil
-                        persistedDate = nil
-                    }
-            } label: {
-                MinMaxEodChart(vm: vm, payMethod: payMethod, rawSelectedDate: $rawSelectedDate, persistedDate: persistedDate, allowSelection: false, showChartSheet: $showChartSheet)
+        StandardContainerWithToolbar(.list) {
+            Section("Details \(selectedDate == nil ? "" : vm.overViewTitle(for: selectedDate))") {
+                selectedDataView
             }
-            .navigationLinkIndicatorVisibility(.hidden)
-            
-            
-//            MinMaxEodChart(vm: vm, payMethod: payMethod, rawSelectedDate: $rawSelectedDate, persistedDate: persistedDate, allowSelection: false, showChartSheet: $showChartSheet)
-//                .sheet(isPresented: $showChartSheet, onDismiss: {
-//                    rawSelectedDate = nil
-//                    persistedDate = nil
-//                }) {
-//                    detailsSheet
-//                }
-        } header: {
-            Text("Min/Max EOD Amounts")
-        }
-        .onChange(of: selectedDate) { oldValue, newValue in
-            if newValue != nil {
-                self.persistedDate = newValue
+                            
+            PaymentMethodChartDetailsSectionContainer(vm: vm, payMethod: payMethod) {
+                MinMaxEodChart(
+                    vm: vm,
+                    payMethod: payMethod,
+                    rawSelectedDate: $rawSelectedDate,
+                    selectedDate: selectedDate,
+                    allowSelection: true
+                )
             }
         }
+        .navigationTitle("Min/Max EOD Amounts")
+        .navigationSubtitle(payMethod.title)
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) { PaymentMethodChartStyleMenu(vm: vm) }
+        }
+        #endif
     }
     
     
-    var detailsSheet: some View {
-        //NavigationStack {
-            StandardContainerWithToolbar(.list) {
-                Section("Details \(persistedDate == nil ? "" : vm.overViewTitle(for: persistedDate))") {
-                    selectedDataView
-                }
-                                
-                PaymentMethodChartDetailsSectionContainer(vm: vm, payMethod: payMethod) {
-                    MinMaxEodChart(vm: vm, payMethod: payMethod, rawSelectedDate: $rawSelectedDate, persistedDate: persistedDate, allowSelection: true, showChartSheet: $showChartSheet)
-                }
-            }
-            .navigationTitle("Min/Max EOD Amounts")
-            .navigationSubtitle(payMethod.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) { PaymentMethodChartStyleMenu(vm: vm) }
-                //ToolbarItem(placement: .topBarTrailing) { closeButton }
-            }
-        //}
-    }
-    
-    var closeButton: some View {
-        Button {
-            showChartSheet = false
-        } label: {
-            Image(systemName: "xmark")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
-        }
-    }
     
     @ViewBuilder
     var selectedDataView: some View {
-        if let persistedDate = persistedDate {
+        if let selectedDate = selectedDate {
             ChartSelectedDataContainer(
                 vm: vm,
                 payMethod: payMethod,
-                columnCount: (payMethod.isCreditOrLoan || payMethod.isUnifiedCredit) ? 5 : 4,
-                showOverviewDataPerMethodOnUnifiedChart: showOverviewDataPerMethodOnUnifiedChart
+                columnCount: (payMethod.isCreditOrLoan || payMethod.isUnifiedCredit) ? 5 : 4
             ) {
                 Text("Account")
                 Text("Min EOD")
                 Text("Max EOD")
             } rows: {
-                ForEach(vm.breakdownPerMethod(on: persistedDate)) { info in
+                ForEach(vm.breakdownPerMethod(on: selectedDate)) { info in
                     GridRow(alignment: .top) {
                         HStack(spacing: 5) {
                             CircleDot(color: info.color, width: 5)
@@ -126,7 +111,7 @@ struct MinMaxEodChartWidget: View {
                     }
                 }
             } summary: {
-                let breakdown = vm.breakdownForMethod(method: vm.mainPayMethod, on: persistedDate)
+                let breakdown = vm.breakdownForMethod(method: vm.mainPayMethod, on: selectedDate)
                 Text(breakdown.minEod.currencyWithDecimals(useWholeNumbers ? 0 : 2))
                     .foregroundStyle(breakdown.minEod < threshold ? .orange : .secondary)
                 
@@ -142,20 +127,16 @@ struct MinMaxEodChartWidget: View {
 
 
 struct MinMaxEodChart: View {
-    @Local(\.colorTheme) var colorTheme
     @Local(\.threshold) var threshold
     @Local(\.useWholeNumbers) var useWholeNumbers
-    //@ChartOption(\.showOverviewDataPerMethodOnUnifiedChart) var showOverviewDataPerMethodOnUnifiedChart
     @AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false
-
 
     @Bindable var vm: PayMethodViewModel
     @Bindable var payMethod: CBPaymentMethod
-    
     @Binding var rawSelectedDate: Date?
-    var persistedDate: Date?
+    
+    var selectedDate: Date?
     var allowSelection: Bool
-    @Binding var showChartSheet: Bool
         
     var body: some View {
         VStack(spacing: 0) {
@@ -165,8 +146,8 @@ struct MinMaxEodChart: View {
             ])
             
             Chart {
-                if let persistedDate {
-                    vm.selectionRectangle(for: persistedDate, color: .clear)
+                if let selectedDate {
+                    vm.selectionRectangle(for: selectedDate, color: .clear)
                 }
                 
                 ForEach(vm.relevantBreakdowns()) {
@@ -182,12 +163,7 @@ struct MinMaxEodChart: View {
                 .chartXSelection(value: $rawSelectedDate)
             }
         }
-        .sensoryFeedback(.selection, trigger: persistedDate) { $0 != nil && $1 != nil }
-//        .if(!allowSelection) {
-//            $0.onTapGesture {
-//                showChartSheet = true
-//            }
-//        }
+        .sensoryFeedback(.selection, trigger: selectedDate) { $0 != nil && $1 != nil }
     }
     
     @ChartContentBuilder
@@ -206,8 +182,8 @@ struct MinMaxEodChart: View {
         )
         
         var opacity: Double {
-            if let persistedDate {
-                breakdown.date == persistedDate ? 1 : 0.3
+            if let selectedDate {
+                breakdown.date == selectedDate ? 1 : 0.3
             } else {
                 1
             }

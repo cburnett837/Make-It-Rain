@@ -14,7 +14,7 @@ fileprivate struct SymbolSection: Identifiable {
 }
 
 struct SymbolPicker: View {
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
     
@@ -170,7 +170,7 @@ struct SymbolPicker: View {
             return sections
         } else {
             return sections
-                .filter { !$0.symbols.filter { $0.localizedStandardContains(searchText) }.isEmpty }
+                .filter { !$0.symbols.filter { $0.localizedCaseInsensitiveContains(searchText) }.isEmpty }
         }
     }
     
@@ -218,7 +218,7 @@ struct SymbolPicker: View {
     fileprivate func getSymbols(for section: SymbolSection) -> Array<String> {
         let filtered = searchText.isEmpty
         ? section.symbols.sorted { $0 < $1 }
-        : section.symbols.filter { $0.localizedStandardContains(searchText) }.sorted { $0 < $1 }
+        : section.symbols.filter { $0.localizedCaseInsensitiveContains(searchText) }.sorted { $0 < $1 }
         return filtered
     }
     
@@ -228,7 +228,7 @@ struct SymbolPicker: View {
         Group {
             if (selected ?? "") == sym {
                 RoundedRectangle(cornerRadius: 15)
-                    .fill(color == .primary ? Color.fromName(colorTheme) : Color(.systemFill))
+                    .fill(color == .primary ? Color.theme : Color(.systemFill))
                     .overlay(image(sym))
             } else {
                 image(sym)
@@ -255,7 +255,7 @@ struct SymbolPicker: View {
             dismiss()
         } label: {
             Image(systemName: "xmark")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+                .schemeBasedForegroundStyle()
         }
     }
 }

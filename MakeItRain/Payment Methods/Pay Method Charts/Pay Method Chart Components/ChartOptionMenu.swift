@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ChartOptionMenu<Content: View>: View {
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @Environment(\.colorScheme) var colorScheme
     @State private var showDescription = false
     
@@ -23,7 +23,7 @@ struct ChartOptionMenu<Content: View>: View {
                     Text(title)
                 } icon: {
                     Image(systemName: showDescription ? "xmark.circle" : "info.circle")
-                        .foregroundStyle(colorScheme == .dark ? .white : .black)
+                        .schemeBasedForegroundStyle()
                 }
                 .onTapGesture { withAnimation { showDescription.toggle() } }
                 .contentTransition(.symbolEffect(.replace.magic(fallback: .replace)))

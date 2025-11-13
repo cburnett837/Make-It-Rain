@@ -36,17 +36,55 @@ class MetricByPaymentMethodChartModel: NSObject {
 
 
 struct MetricByPaymentMethodChartWidget: View {
+    @Bindable var vm: PayMethodViewModel
+    @Bindable var payMethod: CBPaymentMethod
+    @State private var model = MetricByPaymentMethodChartModel()
+    
+    
+    var body: some View {
+        if AppState.shared.isIphone {
+            Section { content } header: { title }
+        } else {
+            GroupBox { content } label: { title }
+                .cornerRadius(25)
+        }
+    }
+    
+    var title: some View {
+        Text("\(model.metric.prettyValue) By Payment Method")
+    }
+    
+        
+    var content: some View {
+        NavigationLink {
+            MetricByPaymentMethodChartDetails(vm: vm, payMethod: payMethod)
+        } label: {
+            MetricByPaymentMethodChart(
+                vm: vm,
+                model: model,
+                payMethod: payMethod,
+                rawSelectedDate: .constant(nil),
+                selectedDate: nil,
+                allowSelection: false,
+            )
+        }
+        #if os(iOS)
+        .navigationLinkIndicatorVisibility(.hidden)
+        #endif
+    }
+}
+
+
+struct MetricByPaymentMethodChartDetails: View {
     @Local(\.useWholeNumbers) var useWholeNumbers
     @AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false
     @Environment(\.colorScheme) var colorScheme
 
     @Bindable var vm: PayMethodViewModel
     @Bindable var payMethod: CBPaymentMethod
-    @State private var showChartSheet = false
     @State private var model = MetricByPaymentMethodChartModel()
     
     @State private var rawSelectedDate: Date?
-    @State private var persistedDate: Date?
     var selectedDate: Date? {
         if let raw = rawSelectedDate {
             let breakdowns = vm.payMethods.first?.breakdowns
@@ -61,83 +99,49 @@ struct MetricByPaymentMethodChartWidget: View {
     }
     
     var body: some View {
-        Section {
-            
-            NavigationLink {
-                detailsSheet
-                    .onDisappear {
-                        rawSelectedDate = nil
-                        persistedDate = nil
-                    }
-            } label: {
-                MetricByPaymentMethodChart(vm: vm, model: model, payMethod: payMethod, rawSelectedDate: $rawSelectedDate, persistedDate: persistedDate, allowSelection: false, showChartSheet: $showChartSheet)
+        StandardContainerWithToolbar(.list) {
+            Section("Details \(selectedDate == nil ? "" : vm.overViewTitle(for: selectedDate))") {
+                selectedDataView
             }
-            .navigationLinkIndicatorVisibility(.hidden)
+                            
+            PaymentMethodChartDetailsSectionContainer(vm: vm, payMethod: payMethod) {
+                MetricByPaymentMethodChart(
+                    vm: vm,
+                    model: model,
+                    payMethod: payMethod,
+                    rawSelectedDate: $rawSelectedDate,
+                    selectedDate: selectedDate,
+                    allowSelection: true
+                )
+            }
             
-//            MetricByPaymentMethodChart(vm: vm, model: model, payMethod: payMethod, rawSelectedDate: $rawSelectedDate, persistedDate: persistedDate, allowSelection: false, showChartSheet: $showChartSheet)
-//                .sheet(isPresented: $showChartSheet, onDismiss: {
-//                    rawSelectedDate = nil
-//                    persistedDate = nil
-//                }) {
-//                    detailsSheet
-//                }
-        } header: {
-            Text("\(model.metric.prettyValue) By Payment Method")
-        }
-        .onChange(of: selectedDate) { oldValue, newValue in
-            if newValue != nil {
-                self.persistedDate = newValue
+            Section {
+                ChartOptionsSheet(vm: vm, model: model)
             }
         }
+        .navigationTitle("\(model.metric.prettyValue) By Payment Method")
+        .navigationSubtitle(payMethod.title)
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) { PaymentMethodChartStyleMenu(vm: vm) }
+        }
+        #endif
     }
     
-    var detailsSheet: some View {
-        //NavigationStack {
-            StandardContainerWithToolbar(.list) {
-                Section("Details \(persistedDate == nil ? "" : vm.overViewTitle(for: persistedDate))") {
-                    selectedDataView
-                }
-                                
-                PaymentMethodChartDetailsSectionContainer(vm: vm, payMethod: payMethod) {
-                    MetricByPaymentMethodChart(vm: vm, model: model, payMethod: payMethod, rawSelectedDate: $rawSelectedDate, persistedDate: persistedDate, allowSelection: true, showChartSheet: $showChartSheet)
-                }
-                
-                Section {
-                    ChartOptionsSheet(vm: vm, model: model)
-                }
-            }
-            .navigationTitle("\(model.metric.prettyValue) By Payment Method")
-            .navigationSubtitle(payMethod.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) { PaymentMethodChartStyleMenu(vm: vm) }
-                //ToolbarItem(placement: .topBarTrailing) { closeButton }
-            }
-        //}
-    }
-    
-    var closeButton: some View {
-        Button {
-            showChartSheet = false
-        } label: {
-            Image(systemName: "xmark")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
-        }
-    }
     
     @ViewBuilder
     var selectedDataView: some View {
-        if let persistedDate = persistedDate {
+        if let selectedDate = selectedDate {
             ChartSelectedDataContainer(
                 vm: vm,
                 payMethod: payMethod,
-                columnCount: (payMethod.isCreditOrLoan || payMethod.isUnifiedCredit) ? 5 : 4,
-                showOverviewDataPerMethodOnUnifiedChart: showOverviewDataPerMethodOnUnifiedChart
+                columnCount: (payMethod.isCreditOrLoan || payMethod.isUnifiedCredit) ? 5 : 4
             ) {
                 Text("Account")
                 Text(model.metric.prettyValue)
             } rows: {
-                ForEach(vm.breakdownPerMethod(on: persistedDate)) { info in
+                ForEach(vm.breakdownPerMethod(on: selectedDate)) { info in
                     GridRow(alignment: .top) {
                         HStack(spacing: 5) {
                             CircleDot(color: info.color, width: 5)
@@ -159,8 +163,17 @@ struct MetricByPaymentMethodChartWidget: View {
                     .foregroundStyle(.secondary)
                 }
             } summary: {
-                let breakdown = vm.breakdownForMethod(method: vm.mainPayMethod, on: persistedDate)
-                Text(breakdown.expenses.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                let breakdown = vm.breakdownForMethod(method: vm.mainPayMethod, on: selectedDate)
+                switch model.metric {
+                case .expenses:
+                    Text(breakdown.expenses.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                case .income:
+                    Text(breakdown.income.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                case .startingAmounts:
+                    Text(breakdown.startingAmounts.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                case .payments:
+                    Text(breakdown.payments.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                }
             }
         } else {
             Text("Drag across the chart to see details")
@@ -169,20 +182,19 @@ struct MetricByPaymentMethodChartWidget: View {
     }
 }
 
+
+
 struct MetricByPaymentMethodChart: View {
     @Local(\.useWholeNumbers) var useWholeNumbers
-    @Local(\.colorTheme) var colorTheme
-    //@ChartOption(\.showOverviewDataPerMethodOnUnifiedChart) var showOverviewDataPerMethodOnUnifiedChart
     @AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false
-
 
     @Bindable var vm: PayMethodViewModel
     @Bindable var model: MetricByPaymentMethodChartModel
     @Bindable var payMethod: CBPaymentMethod
     @Binding var rawSelectedDate: Date?
-    var persistedDate: Date?
+    
+    var selectedDate: Date?
     var allowSelection: Bool
-    @Binding var showChartSheet: Bool
     
     
     var body: some View {
@@ -190,8 +202,8 @@ struct MetricByPaymentMethodChart: View {
             ChartLegendView(items: vm.payMethods.map { (id: UUID(), title: $0.title, color: $0.color) })
             
             Chart {
-                if let persistedDate {
-                    vm.selectionRectangle(for: persistedDate, color: Color.fromName(colorTheme))
+                if let selectedDate {
+                    vm.selectionRectangle(for: selectedDate, color: Color.secondary)
                 }
                 
                 ForEach(vm.payMethods) { meth in
@@ -218,12 +230,7 @@ struct MetricByPaymentMethodChart: View {
                 .chartXSelection(value: $rawSelectedDate)
             }
         }
-        .sensoryFeedback(.selection, trigger: persistedDate) { $0 != nil && $1 != nil }
-//        .if(!allowSelection) {
-//            $0.onTapGesture {
-//                showChartSheet = true
-//            }
-//        }
+        .sensoryFeedback(.selection, trigger: selectedDate) { $0 != nil && $1 != nil }
     }
     
     @ChartContentBuilder
@@ -287,7 +294,7 @@ fileprivate struct ChartOptionsSheet: View {
 
 
 fileprivate struct MetricByPaymentMethodChartMenu: View {
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @Bindable var vm: PayMethodViewModel
     @Bindable var model: MetricByPaymentMethodChartModel
     

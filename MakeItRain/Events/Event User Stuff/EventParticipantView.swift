@@ -9,7 +9,7 @@ import SwiftUI
 
 struct EventParticipantView: View {
     @Local(\.useWholeNumbers) var useWholeNumbers
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
    
     #if os(macOS)
     @Environment(\.openWindow) private var openWindow
@@ -45,7 +45,8 @@ struct EventParticipantView: View {
                 })
                 .cbClearButtonMode(.whileEditing)
                 .cbFocused(_focusedField, equals: 0)
-                .cbKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
+                //.cbKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
+                .cbKeyboardType(.custom(.numpad))
                 #else
                 StandardTextField("Group Amount", text: $part.groupAmountString ?? "", focusedField: $focusedField, focusValue: 0)
                 #endif
@@ -65,7 +66,8 @@ struct EventParticipantView: View {
                 })
                 .cbClearButtonMode(.whileEditing)
                 .cbFocused(_focusedField, equals: 1)
-                .cbKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
+                //.cbKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
+                .cbKeyboardType(.custom(.numpad))
                 #else
                 StandardTextField("Personal Amount", text: $part.personalAmountString ?? "", focusedField: $focusedField, focusValue: 1)
                 #endif

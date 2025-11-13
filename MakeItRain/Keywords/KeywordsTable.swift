@@ -26,7 +26,7 @@ struct KeywordsTable: View {
     
     var filteredKeywords: [CBKeyword] {
         keyModel.keywords
-            .filter { searchText.isEmpty ? !$0.keyword.isEmpty : $0.keyword.localizedStandardContains(searchText) }
+            .filter { searchText.isEmpty ? !$0.keyword.isEmpty : $0.keyword.localizedCaseInsensitiveContains(searchText) }
             //.sorted { $0.keyword.lowercased() < $1.keyword.lowercased() }
     }
     
@@ -38,7 +38,13 @@ struct KeywordsTable: View {
                 #if os(macOS)
                 macTable
                 #else
-                phoneList
+                
+                if filteredKeywords.isEmpty {
+                    ContentUnavailableView("No rules found", systemImage: "exclamationmark.magnifyingglass")
+                } else {
+                    phoneList
+                }
+                
                 #endif
             } else {
                 ContentUnavailableView("No Keywords", systemImage: "textformat.abc.dottedunderline", description: Text("Click the plus button above to add a keyword."))
@@ -61,25 +67,24 @@ struct KeywordsTable: View {
             #endif
         }
         .searchable(text: $searchText)
-        .sheet(item: $editKeyword, onDismiss: { keywordEditID = nil }) { key in
-            KeywordView(keyword: key, keyModel: keyModel, catModel: catModel, editID: $keywordEditID)
-//                #if os(iOS)
-//                .presentationSizing(.page)
-//                #else
+        .sheet(item: $editKeyword, onDismiss: {
+            keywordEditID = nil
+        }) { key in
+            KeywordView(keyword: key, editID: $keywordEditID)
                 #if os(macOS)
                 .frame(minWidth: 500, minHeight: 700)
                 .presentationSizing(.fitted)
                 #endif                
         }
-        .onChange(of: sortOrder) { _, sortOrder in
-            keyModel.keywords.sort(using: sortOrder)
-        }
-        .onChange(of: keywordEditID) { oldValue, newValue in
-            if let newValue {
-                editKeyword = keyModel.getKeyword(by: newValue)
+        .onChange(of: keywordEditID) {
+            if $1 != nil {
+                editKeyword = keyModel.getKeyword(by: $1!)
             } else {
-                keyModel.saveKeyword(id: oldValue!)                
+                keyModel.saveKeyword(id: $0!)
             }
+        }
+        .onChange(of: sortOrder) {
+            keyModel.keywords.sort(using: $1)
         }
     }
     

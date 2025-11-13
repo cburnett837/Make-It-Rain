@@ -12,7 +12,7 @@ import Algorithms
 struct CalendarViewMac: View {
     @AppStorage("calendarSplitViewPercentage") var calendarSplitViewPercentage = 0.0
     @AppStorage("viewMode") var viewMode = CalendarViewMode.scrollable
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @AppStorage("alignWeekdayNamesLeft") var alignWeekdayNamesLeft = true
     
     @Environment(CalendarModel.self) private var calModel
@@ -123,8 +123,8 @@ struct CalendarViewMac: View {
     //            Text("Tag")
     //                .tag(CalendarSearchWhat.tags)
     //        }
-            .tint(Color.fromName(colorTheme))
-            .loadingSpinner(id: enumID, text: "Loading \(enumID.displayName)…")
+            .tint(Color.theme)
+            .calendarLoadingSpinner(id: enumID, text: "Loading \(enumID.displayName)…")
             /// This is here in case you want to cancel the dragging transaction - this will unhilight the last hilighted day.
             .dropDestination(for: CBTransaction.self) { droppedTrans, location in
                 calModel.dragTarget = nil
@@ -169,9 +169,9 @@ struct CalendarViewMac: View {
                     selectedDay = targetDay
                     
                     let id = oldValue!.id
-                    calModel.saveTransaction(id: id, day: transSelectedDay!)
+                    calModel.saveTransaction(id: id/*, day: transSelectedDay!*/)
 //                        calModel.pictureTransactionID = nil
-                    PhotoModel.shared.pictureParent = nil
+                    FileModel.shared.fileParent = nil
                 }
             }
         

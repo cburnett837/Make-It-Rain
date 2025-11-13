@@ -21,7 +21,7 @@ class PopulateOptions {
 }
 
 struct PopulateMonthOptionsSheet: View {
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
@@ -72,7 +72,7 @@ struct PopulateMonthOptionsSheet: View {
                             .contentTransition(.symbolEffect(.replace))
                             .foregroundStyle(Color.accentColor)
                         Text(meth.title)
-                            .foregroundStyle(colorScheme == .dark ? .white : .black)
+                            .schemeBasedForegroundStyle()
                         Spacer()
                     }
                 }
@@ -94,7 +94,7 @@ struct PopulateMonthOptionsSheet: View {
                         .contentTransition(.symbolEffect(.replace))
                         .foregroundStyle(Color.accentColor)
                     Text("Yes")
-                        .foregroundStyle(colorScheme == .dark ? .white : .black)
+                        .schemeBasedForegroundStyle()
                     Spacer()
                 }
             }
@@ -108,12 +108,13 @@ struct PopulateMonthOptionsSheet: View {
             calModel.populate(options: model, repTransactions: repModel.repTransactions, categories: catModel.categories)
         } label: {
             Text("Populate")
+                .schemeBasedForegroundStyle()
         }
         #if os(macOS)
-        .foregroundStyle(Color.fromName(colorTheme))
+        .foregroundStyle(Color.theme)
         .buttonStyle(.codyStandardWithHover)
         #else
-        .tint(Color.fromName(colorTheme))
+        .tint(Color.theme)
         .buttonStyle(.glassProminent)
         #endif
     
@@ -124,7 +125,7 @@ struct PopulateMonthOptionsSheet: View {
             dismiss()
         } label: {
             Image(systemName: "xmark")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+                .schemeBasedForegroundStyle()
         }
     }
 }

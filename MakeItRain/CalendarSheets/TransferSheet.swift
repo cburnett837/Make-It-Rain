@@ -9,10 +9,10 @@ import SwiftUI
 
 struct TransferSheet: View {
     private enum TransferType {
-        case cashAdvance, deposit, payment, transfer
+        case cashAdvance, deposit, payment, transfer, savings
     }
     
-    @Local(\.colorTheme) var colorTheme
+    //@Local(\.colorTheme) var colorTheme
     @Local(\.useWholeNumbers) var useWholeNumbers
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
@@ -33,6 +33,8 @@ struct TransferSheet: View {
             return .deposit
         } else if transfer.to?.accountType == .credit || transfer.to?.accountType == .loan {
             return .payment
+        } else if transfer.to?.accountType == .savings {
+            return .savings
         } else {
             return .transfer
         }
@@ -49,6 +51,8 @@ struct TransferSheet: View {
             "New Payment"
         case .transfer:
             "New Transfer"
+        case .savings:
+            "New Savings"
         }
     }
     
@@ -63,6 +67,8 @@ struct TransferSheet: View {
             "Payment"
         case .transfer:
             "Transfer"
+        case .savings:
+            "Savings"
         }
     }
     
@@ -86,7 +92,6 @@ struct TransferSheet: View {
                                 #endif
                         } else {
                             closeButton
-                                
                         }
                     }
                 }
@@ -95,9 +100,8 @@ struct TransferSheet: View {
             #endif
         }
         .onChange(of: transferType) {
-            if $1 == .payment {
-                transfer.category = catModel.categories.first { $0.isPayment }
-            }
+            if $1 == .payment { transfer.category = catModel.categories.first { $0.isPayment } }
+            if $1 == .savings { transfer.category = catModel.categories.first { $0.isSavings } }
         }
     }
     
@@ -127,7 +131,7 @@ struct TransferSheet: View {
                     })
                     .cbClearButtonMode(.whileEditing)
                     .cbFocused(_focusedField, equals: 1)
-                    .cbKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
+                    .cbKeyboardType(.custom(.numpad))
                     #else
                     StandardTextField("Amount", text: $transfer.amountString, focusedField: $focusedField, focusValue: 1)
                     #endif
@@ -218,7 +222,8 @@ struct TransferSheet: View {
                 .uiClearButtonMode(.whileEditing)
                 .uiStartCursorAtEnd(true)
                 .uiTextAlignment(.right)
-                .uiKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
+                .uiKeyboardType(.custom(.numpad))
+                //.uiKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
                 .uiTextColor(.secondaryLabel)
                 .uiTextAlignment(.right)
                 #else
@@ -242,7 +247,7 @@ struct TransferSheet: View {
         Button(action: validateForm) {
             Text("Create \(transferLingo)")
         }
-        .foregroundStyle(Color.fromName(colorTheme))
+        .foregroundStyle(Color.theme)
         .disabled(transfer.from == nil || transfer.to == nil || transfer.amount == 0.0)
     }
     
@@ -253,10 +258,10 @@ struct TransferSheet: View {
         }
         .padding(.bottom, 6)
         #if os(macOS)
-        .foregroundStyle(Color.fromName(colorTheme))
+        .foregroundStyle(Color.theme)
         .buttonStyle(.codyStandardWithHover)
         #else
-        .tint(Color.fromName(colorTheme))
+        .tint(Color.theme)
         .buttonStyle(.borderedProminent)
         #endif
         .disabled(transfer.from == nil || transfer.to == nil || transfer.amount == 0.0)
@@ -265,10 +270,15 @@ struct TransferSheet: View {
     
     var closeButton: some View {
         Button {
-            dismiss()
+            if isValidToSave {
+                validateForm()
+            } else {
+                dismiss()
+            }
+            
         } label: {
             Image(systemName: isValidToSave ? "checkmark" : "xmark")
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+                .schemeBasedForegroundStyle()
         }
     }
 
