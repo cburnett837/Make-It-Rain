@@ -8,15 +8,12 @@
 import SwiftUI
 
 struct StandardCategoryLabel: View {
-    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
-    
     var cat: CBCategory
     var labelWidth: CGFloat
     var showCheckmarkCondition: Bool
 
     var body: some View {
         HStack {
-            
             StandardCategorySymbol(cat: cat, labelWidth: labelWidth)
             
 //            Image(systemName: lineItemIndicator == .dot ? "circle.fill" : (cat.emoji ?? "circle.fill"))
@@ -24,6 +21,13 @@ struct StandardCategoryLabel: View {
 //                .frame(minWidth: labelWidth, alignment: .center)
 //                .maxViewWidthObserver()
             Text(cat.title)
+                //.foregroundStyle(cat.isHidden ? .gray : .primary)
+            
+            if cat.isHidden {
+                Image(systemName: "eye.slash")
+                    //.foregroundStyle(.gray)
+            }
+            
             Spacer()
             Image(systemName: "checkmark")
                 .opacity(showCheckmarkCondition ? 1 : 0)
@@ -35,14 +39,14 @@ struct StandardCategoryLabel: View {
 
 
 struct StandardCategorySymbol: View {
-    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
+    @Local(\.categoryIndicatorAsSymbol) var categoryIndicatorAsSymbol
     
     var cat: CBCategory?
     var labelWidth: CGFloat
 
     var body: some View {
         if let cat = cat {
-            Image(systemName: lineItemIndicator == .dot ? "circle.fill" : (cat.emoji ?? "circle.fill"))
+            Image(systemName: categoryIndicatorAsSymbol ? (cat.emoji ?? "circle.fill") : "circle.fill")
                 .foregroundStyle(cat.color.gradient)
                 .frame(minWidth: labelWidth, alignment: .center)
                 .maxViewWidthObserver()

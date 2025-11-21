@@ -9,7 +9,7 @@ import SwiftUI
 import MapKit
 
 struct EventTransactionOptionView: View {
-    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
+    @Local(\.lineItemIndicator) var lineItemIndicator
     //@Local(\.colorTheme) var colorTheme
     @Local(\.useWholeNumbers) var useWholeNumbers
     

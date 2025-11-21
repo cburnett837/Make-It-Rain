@@ -17,6 +17,7 @@ struct PlaidTransactionOverlay: View {
     @Environment(CalendarModel.self) private var calModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(PayMethodModel.self) private var payModel
+    @Environment(KeywordModel.self) private var keyModel
     @Environment(PlaidModel.self) private var plaidModel
     
     //@Binding var bottomPanelContent: BottomPanelContent?
@@ -349,6 +350,7 @@ struct PlaidTransactionOverlay: View {
 
         @Environment(CalendarModel.self) private var calModel
         @Environment(CategoryModel.self) private var catModel
+        @Environment(KeywordModel.self) private var keyModel
         @Environment(PlaidModel.self) private var plaidModel
         
         @State private var showExpandedTitle = false
@@ -460,15 +462,84 @@ struct PlaidTransactionOverlay: View {
         
         var acceptButton: some View {
             Button("Accept") {
-                let buttonConfig = AlertConfig.ButtonConfig(text: "Yes", role: .primary) { accept() }
-                let config = AlertConfig(
-                    title: "Accept \(trans.title)?",
-                    subtitle: trans.prettyDate ?? "N/A",
-                    symbol: .init(name: "checkmark.circle.badge.questionmark", color: .green),
-                    primaryButton: AlertConfig.AlertButton(config: buttonConfig)
-                )
                 
-                AppState.shared.showAlert(config: config)
+                /// See if there is a rename rule and let the user know it will be renamed.
+                var willRenameTo: String? = nil
+                if let key = keyModel.keywords.filter({ $0.keyword.uppercased() == trans.title.uppercased() }).first {
+                    if let renameTo = key.renameTo {
+                        let upKey = key.keyword.uppercased()
+                                                                
+                        switch key.triggerType {
+                        case .equals:
+                            if trans.title.uppercased() == upKey { willRenameTo = renameTo }
+                        case .contains:
+                            if trans.title.uppercased().contains(upKey) { willRenameTo = renameTo }
+                        }
+                    }
+                }
+                
+                var config: AlertConfig?
+                
+                let buttonConfig = AlertConfig.ButtonConfig(text: "Yes", role: .primary) { accept() }
+                
+                if willRenameTo == nil {
+                    config = AlertConfig(
+                        title: "Accept \(trans.title)?",
+                        subtitle: (trans.prettyDate ?? "N/A"),
+                        symbol: .init(name: "checkmark.circle.badge.questionmark", color: .green),
+                        primaryButton: AlertConfig.AlertButton(config: buttonConfig)
+                    )
+                } else {
+                    
+                    let subtitleView = VStack {
+                        HStack(spacing: 0) {
+                            Text("(Will be renamed to ")
+                                .foregroundStyle(.gray)
+                            
+                            AiAnimatedAliveLabel(willRenameTo!, withGlow: true)
+                            
+                            Text(")")
+                                .foregroundStyle(.gray)
+                            
+//                            AiAnimatedAliveSymbol(symbol: "brain")
+//                            Text(willRenameTo!)
+//                                /// Standard alert subtitle modifiers
+//                                .font(.callout)
+//                                .multilineTextAlignment(.center)
+//                                .lineLimit(5)
+//                                .foregroundStyle(.gray)
+                        }
+                        
+                        Text("\(trans.prettyDate ?? "N/A")")
+                            /// Standard alert subtitle modifiers
+                            .font(.callout)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(5)
+                            .foregroundStyle(.gray)
+                    }
+                    
+                    config = AlertConfig(
+                        title: "Accept \(trans.title)?",
+                        subtitleView: AnyView(subtitleView),
+                        symbol: .init(name: "checkmark.circle.badge.questionmark", color: .green),
+                        primaryButton: AlertConfig.AlertButton(config: buttonConfig)
+                    )
+                }
+                
+                //let subtitle = willRenameTo == nil ? (trans.prettyDate ?? "N/A") : "(It will be renamed to \"\(willRenameTo!)\")\n\(trans.prettyDate ?? "N/A")"
+                
+                
+//                let buttonConfig = AlertConfig.ButtonConfig(text: "Yes", role: .primary) { accept() }
+//                let config = AlertConfig(
+//                    title: "Accept \(trans.title)?",
+//                    subtitle: subtitle,
+//                    symbol: .init(name: "checkmark.circle.badge.questionmark", color: .green),
+//                    primaryButton: AlertConfig.AlertButton(config: buttonConfig)
+//                )
+                if let config {
+                    AppState.shared.showAlert(config: config)
+                }
+                
             }
             .buttonStyle(.borderedProminent)
             .tint(Color.theme)
@@ -480,7 +551,7 @@ struct PlaidTransactionOverlay: View {
                 let config = AlertConfig(
                     title: "Reject \(trans.title)?",
                     subtitle: trans.prettyDate ?? "N/A",
-                    symbol: .init(name: "checkmark.circle.badge.questionmark", color: .orange),
+                    symbol: .init(name: "questionmark.circle", color: .orange),
                     primaryButton: AlertConfig.AlertButton(config: buttonConfig)
                 )
                 
@@ -501,7 +572,7 @@ struct PlaidTransactionOverlay: View {
             
             if trans.payMethod?.isCredit ?? false {
                 if trans.amountString.contains("-") {
-                    trans.amountString = trans.amountString.replacingOccurrences(of: "-", with: "")
+                    trans.amountString = trans.amountString.replacing("-", with: "")
                 } else {
                     trans.amountString = "-\(trans.amountString)"
                 }
@@ -513,6 +584,20 @@ struct PlaidTransactionOverlay: View {
             
             let realTrans = CBTransaction(plaidTrans: trans)
             
+            /// See if there is a rename rule and rename the transaction.
+            if let key = keyModel.keywords.filter({ $0.keyword.uppercased() == trans.title.uppercased() }).first {
+                if let renameTo = key.renameTo {
+                    let upKey = key.keyword.uppercased()
+                                                            
+                    switch key.triggerType {
+                    case .equals:
+                        if trans.title.uppercased() == upKey { realTrans.title = renameTo }
+                    case .contains:
+                        if trans.title.uppercased().contains(upKey) { realTrans.title = renameTo }
+                    }
+                }
+            }
+            
             if let targetMonth = calModel.months.filter({ $0.actualNum == realTrans.date?.month && $0.year == realTrans.date?.year }).first {
                 if let targetDay = targetMonth.days.filter({ $0.dateComponents?.day == realTrans.date?.day }).first {
                     targetDay.upsert(realTrans)
@@ -520,7 +605,10 @@ struct PlaidTransactionOverlay: View {
             }
             
             calModel.tempTransactions.append(realTrans)
-            calModel.saveTransaction(id: realTrans.id, location: .tempList)
+            Task {
+                await calModel.saveTransaction(id: realTrans.id, location: .tempList)
+            }
+            
         }
         
         

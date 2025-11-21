@@ -17,7 +17,7 @@ class CBPlaidTransaction: Codable, Identifiable {
     var internalAccountID: String?
     var title: String
     var amount: Double {
-        Double(amountString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
+        Double(amountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
     }
     var amountString: String
     var date: Date?

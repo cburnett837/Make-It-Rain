@@ -10,12 +10,12 @@ import SwiftUI
 struct LineItemView: View {
     //@Local(\.colorTheme) var colorTheme
     @Local(\.incomeColor) var incomeColor
-    @AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
+    @Local(\.updatedByOtherUserDisplayMode) var updatedByOtherUserDisplayMode
     @Local(\.useWholeNumbers) var useWholeNumbers
-    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
+    @Local(\.lineItemIndicator) var lineItemIndicator
     //@AppStorage("macCategoryDisplayMode") var macCategoryDisplayMode: MacCategoryDisplayMode = .emoji
-    @AppStorage("showHashTagsOnLineItems") var showHashTagsOnLineItems: Bool = true
-    @AppStorage("showPaymentMethodIndicator") var showPaymentMethodIndicator = false
+    @Local(\.showHashTagsOnLineItems) var showHashTagsOnLineItems
+    @Local(\.showPaymentMethodIndicator) var showPaymentMethodIndicator
     //@AppStorage("showCategoryIndicator") var showCategoryIndicator = true
     //@AppStorage("showAccountOnUnifiedView") var showAccountOnUnifiedView = false
     
@@ -76,7 +76,7 @@ struct LineItemView: View {
             } else {
                 Color.clear
             }
-        } else if calModel.hilightTrans == trans || transEditID == trans.id {
+        } else if /*calModel.hilightTrans == trans || */transEditID == trans.id {
             Color(.secondarySystemFill)
         } else {
             Color.clear
@@ -116,7 +116,9 @@ struct LineItemView: View {
         .confirmationDialog("Delete \"\(trans.title)\"?", isPresented: $showDeleteAlert) {
             Button("Yes", role: .destructive) {
                 trans.action = .delete
-                calModel.saveTransaction(id: trans.id/*, day: day*/)
+                Task {
+                    await calModel.saveTransaction(id: trans.id/*, day: day*/)
+                }
             }
             Button("No", role: .close) { showDeleteAlert = false }
         } message: {
@@ -156,7 +158,9 @@ struct LineItemView: View {
                 if trans.action == .delete {
                     transDeleteID = oldValue!
                 } else {
-                    calModel.saveTransaction(id: oldValue!/*, day: day*/)
+                    Task {
+                        await calModel.saveTransaction(id: oldValue!/*, day: day*/)
+                    }
                 }
                 #else
                 calModel.saveTransaction(id: oldValue!/*, day: day*/)
@@ -164,13 +168,13 @@ struct LineItemView: View {
             }
         }
         
-        .task {
-            /// `calModel.hilightTrans` should always be nil during a task. The only time it shouldn't should be is when a transaction was moved to a new day via a different device.
-            /// If that's the case, reopen the transaction that would have been closed due to the view being destroyed and moved to a new day.
-            if calModel.hilightTrans?.id == trans.id {
-                transEditID = trans.id
-            }
-        }
+//        .task {
+//            /// `calModel.hilightTrans` should always be nil during a task. The only time it shouldn't should be is when a transaction was moved to a new day via a different device.
+//            /// If that's the case, reopen the transaction that would have been closed due to the view being destroyed and moved to a new day.
+//            if calModel.hilightTrans?.id == trans.id {
+//                transEditID = trans.id
+//            }
+//        }
     }
     
     
@@ -315,7 +319,7 @@ struct LineItemView: View {
                 calModel.multiSelectTransactions.append(trans)
             }
         } else {
-            calModel.hilightTrans = trans
+            //calModel.hilightTrans = trans
             transEditID = trans.id
         }
     }
@@ -324,7 +328,9 @@ struct LineItemView: View {
     func transactionSheetDismissed() {
         /// Only run this if deleteting to preserve animation behavior.
         if let transDeleteID = transDeleteID {
-            calModel.saveTransaction(id: transDeleteID/*, day: day*/)
+            Task {
+                await calModel.saveTransaction(id: transDeleteID/*, day: day*/)
+            }
         } else {
             /// Just some cleanup to make sure it stays blank
             if transDeleteID != nil {

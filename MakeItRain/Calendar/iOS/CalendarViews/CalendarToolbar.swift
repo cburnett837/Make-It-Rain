@@ -73,17 +73,19 @@ struct CalendarToolbar: ToolbarContent {
                 }
             }
             
-            if AppState.shared.isIpad {
+            //if AppState.shared.isIpad {
                 ToolbarSpacer(.fixed, placement: .topBarTrailing)
-            }
-            
-            ToolbarItem(placement: .topBarTrailing) {
-                GlassEffectContainer {
-                    payMethodButtonAndMenu
-                        .glassEffectID("paymentMethodButton", in: plaidButtonNamespace)
+                
+                ToolbarItem(placement: .topBarTrailing) {
+                    GlassEffectContainer {
+                        payMethodButtonAndMenu
+                            .glassEffectID("paymentMethodButton", in: plaidButtonNamespace)
+                    }
                 }
-            }
-            .matchedTransitionSource(id: "paymentMethodButton", in: paymentMethodMenuButtonNamespace)
+                .matchedTransitionSource(id: "paymentMethodButton", in: paymentMethodMenuButtonNamespace)
+            //}
+            
+            
             
             ToolbarSpacer(.fixed, placement: .topBarTrailing)
         }
@@ -156,6 +158,14 @@ struct CalendarToolbar: ToolbarContent {
         
         if AppState.shared.isIphone {
             Group {
+                
+//                ToolbarItem(placement: .bottomBar) {
+//                    payMethodButtonAndMenu
+//                }
+//                .matchedTransitionSource(id: "paymentMethodButton", in: paymentMethodMenuButtonNamespace)
+                
+//                ToolbarSpacer(.flexible, placement: .bottomBar)
+                
                 DefaultToolbarItem(kind: .search, placement: .bottomBar)
                 ToolbarSpacer(.flexible, placement: .bottomBar)
                 ToolbarItem(placement: .bottomBar) {
@@ -197,6 +207,7 @@ struct CalendarToolbar: ToolbarContent {
             .glassEffectID("refresh", in: refreshButtonNamespace)
     }
     
+    
     var resetCategoriesButton: some View {
         Button {
             withAnimation {
@@ -207,6 +218,7 @@ struct CalendarToolbar: ToolbarContent {
                 .schemeBasedForegroundStyle()
         }
     }
+    
     
     @ViewBuilder
     var smartTransactionWithIssuesButton: some View {
@@ -352,7 +364,7 @@ struct CalendarToolbar: ToolbarContent {
             startingAmountSheetDismissed()
         } content: {
             PayMethodSheet(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all, showStartingAmountOption: true, showNoneOption: true)
-                .navigationTransition(.zoom(sourceID: "paymentMethodButton", in: paymentMethodMenuButtonNamespace))
+                //.navigationTransition(.zoom(sourceID: "paymentMethodButton", in: paymentMethodMenuButtonNamespace))
         }
         .sheet(isPresented: $calProps.showCategorySheet) {
             MultiCategorySheet(categories: $calModel.sCategories)

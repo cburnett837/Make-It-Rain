@@ -60,7 +60,7 @@ struct PayMethodRequiredView: View {
         .sheet(item: $editPaymentMethod, onDismiss: {
             paymentMethodEditID = nil
         }, content: { meth in
-            PayMethodView(payMethod: meth, editID: $paymentMethodEditID)
+            PayMethodEditView(payMethod: meth, editID: $paymentMethodEditID)
         })
         .onChange(of: paymentMethodEditID) { oldValue, newValue in
             if let newValue {

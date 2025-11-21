@@ -43,6 +43,7 @@
 		FD09FF6C2D9D88E800795C28 /* EventPaymentMethodSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD09FF6B2D9D88E800795C28 /* EventPaymentMethodSheet.swift */; };
 		FD0DB2B12DD4DD6D00475334 /* PayMethodViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0DB2B02DD4DD6D00475334 /* PayMethodViewModel.swift */; };
 		FD0DB2B52DD62F7500475334 /* PayMethodChartModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0DB2B42DD62F7500475334 /* PayMethodChartModels.swift */; };
+		FD1AD7692ECB87F1006A807E /* PayMethodOverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD1AD7682ECB87F1006A807E /* PayMethodOverView.swift */; };
 		FD25FF392E96E1590079E001 /* ReconciliationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD25FF382E96E1590079E001 /* ReconciliationSheet.swift */; };
 		FD25FF3B2E974F240079E001 /* ChartDateRangeHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD25FF3A2E974F240079E001 /* ChartDateRangeHeader.swift */; };
 		FD25FF3D2E97523E0079E001 /* PaymentMethodChartStyleMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD25FF3C2E97523E0079E001 /* PaymentMethodChartStyleMenu.swift */; };
@@ -137,7 +138,7 @@
 		FDAECC5B2DCE366700C6EDA5 /* WidgetLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDAECC5A2DCE366700C6EDA5 /* WidgetLabel.swift */; };
 		FDAECC5D2DCE399E00C6EDA5 /* ExportCsvButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDAECC5C2DCE399E00C6EDA5 /* ExportCsvButton.swift */; };
 		FDAECC5F2DCE8CFC00C6EDA5 /* PayMethodChartOG.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDAECC5E2DCE8CFC00C6EDA5 /* PayMethodChartOG.swift */; };
-		FDAECC612DCF00BB00C6EDA5 /* PayMethodView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDAECC602DCF00BB00C6EDA5 /* PayMethodView.swift */; };
+		FDAECC612DCF00BB00C6EDA5 /* PayMethodEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDAECC602DCF00BB00C6EDA5 /* PayMethodEditView.swift */; };
 		FDB066D12D4D40C40060568B /* UIDatePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDB066D02D4D40C40060568B /* UIDatePicker.swift */; };
 		FDB1ACFE2D779A29001CB2F6 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = FDB1ACFD2D779A29001CB2F6 /* Algorithms */; };
 		FDBA69CE2DEE2973007FB0CB /* ProfitLossChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBA69CD2DEE2973007FB0CB /* ProfitLossChart.swift */; };
@@ -392,6 +393,7 @@
 		FD09FF6B2D9D88E800795C28 /* EventPaymentMethodSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventPaymentMethodSheet.swift; sourceTree = "<group>"; };
 		FD0DB2B02DD4DD6D00475334 /* PayMethodViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PayMethodViewModel.swift; sourceTree = "<group>"; };
 		FD0DB2B42DD62F7500475334 /* PayMethodChartModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PayMethodChartModels.swift; sourceTree = "<group>"; };
+		FD1AD7682ECB87F1006A807E /* PayMethodOverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PayMethodOverView.swift; sourceTree = "<group>"; };
 		FD25FF382E96E1590079E001 /* ReconciliationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReconciliationSheet.swift; sourceTree = "<group>"; };
 		FD25FF3A2E974F240079E001 /* ChartDateRangeHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartDateRangeHeader.swift; sourceTree = "<group>"; };
 		FD25FF3C2E97523E0079E001 /* PaymentMethodChartStyleMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentMethodChartStyleMenu.swift; sourceTree = "<group>"; };
@@ -487,7 +489,7 @@
 		FDAECC5A2DCE366700C6EDA5 /* WidgetLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetLabel.swift; sourceTree = "<group>"; };
 		FDAECC5C2DCE399E00C6EDA5 /* ExportCsvButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportCsvButton.swift; sourceTree = "<group>"; };
 		FDAECC5E2DCE8CFC00C6EDA5 /* PayMethodChartOG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PayMethodChartOG.swift; sourceTree = "<group>"; };
-		FDAECC602DCF00BB00C6EDA5 /* PayMethodView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PayMethodView.swift; sourceTree = "<group>"; };
+		FDAECC602DCF00BB00C6EDA5 /* PayMethodEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PayMethodEditView.swift; sourceTree = "<group>"; };
 		FDB066D02D4D40C40060568B /* UIDatePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIDatePicker.swift; sourceTree = "<group>"; };
 		FDBA69CD2DEE2973007FB0CB /* ProfitLossChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfitLossChart.swift; sourceTree = "<group>"; };
 		FDBA69CF2DEE29A6007FB0CB /* MinMaxEodChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinMaxEodChart.swift; sourceTree = "<group>"; };
@@ -776,7 +778,8 @@
 		FD0DB2B62DD62FE900475334 /* Pay Method View and Dashboard */ = {
 			isa = PBXGroup;
 			children = (
-				FDAECC602DCF00BB00C6EDA5 /* PayMethodView.swift */,
+				FD1AD7682ECB87F1006A807E /* PayMethodOverView.swift */,
+				FDAECC602DCF00BB00C6EDA5 /* PayMethodEditView.swift */,
 				FD49F8862DD77C8000A563C8 /* PayMethodDashboard.swift */,
 				FD46D3E72EC632610039D4D4 /* PayMethodViewOG.swift */,
 			);
@@ -1614,7 +1617,7 @@
 				FDC26E2A2D3E86D500B0A97C /* SFSafariView.swift in Sources */,
 				FDC26E972D3E9B2F00B0A97C /* EventsTable.swift in Sources */,
 				FD7F77322E901F8B0087F229 /* CalendarToolbar.swift in Sources */,
-				FDAECC612DCF00BB00C6EDA5 /* PayMethodView.swift in Sources */,
+				FDAECC612DCF00BB00C6EDA5 /* PayMethodEditView.swift in Sources */,
 				FDC26E2C2D3E86D500B0A97C /* ToolbarRefreshButton.swift in Sources */,
 				FD9D52FB2DAECE1D008CD1BA /* StandardTitleTextField.swift in Sources */,
 				FDECFAC82EBF1201004DC491 /* AiAnimatedSwishSymbol.swift in Sources */,
@@ -1698,6 +1701,7 @@
 				FDC26E492D3E86D500B0A97C /* Helpers.swift in Sources */,
 				FD76DA472EA40994002E30DA /* StandardCategoryLabel.swift in Sources */,
 				FDC26E4A2D3E86D500B0A97C /* MultiPayMethodSheet.swift in Sources */,
+				FD1AD7692ECB87F1006A807E /* PayMethodOverView.swift in Sources */,
 				FDC26EA72D40139100B0A97C /* EventTransactionView.swift in Sources */,
 				FDFBC4502DDE346C006DE685 /* PlaidLinkView.swift in Sources */,
 				FDC26E4B2D3E86D500B0A97C /* RepeatingTransactionsTable.swift in Sources */,

@@ -49,17 +49,17 @@ class CategoryAnalysisResponseModel: Decodable, Identifiable {
     
     var expensesString: String
     var expenses: Double {
-        Double(expensesString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
+        Double(expensesString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
     }
     
     var incomeString: String
     var income: Double {
-        Double(incomeString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
+        Double(incomeString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
     }
     
     var budgetString: String
     var budget: Double {
-        Double(budgetString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
+        Double(budgetString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
     }
     
     

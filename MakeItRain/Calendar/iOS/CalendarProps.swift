@@ -11,10 +11,16 @@ import SwiftUI
 @Observable
 class CalendarProps {
     var selectedDay: CBDay?
+    var overviewDay: CBDay?
+    
     var transEditID: String?
     var editTrans: CBTransaction?
     
-    var overviewDay: CBDay?
+    
+    var selectedDayID: CBDay.ID?
+    var overviewDayID: CBDay.ID?
+    var defaultDay: CBDay?
+    
     //var scrollHeight: CGFloat = 0
     //var bottomPanelHeight: CGFloat = 300
     //var scrollContentMargins: CGFloat = 300

@@ -18,86 +18,81 @@ struct SplashScreen: View {
     
     var body: some View {
         ZStack {
+            rainingDollars
             
-//            SpriteView(scene: DollarScene.scene, options: [.allowsTransparency])
-//                .ignoresSafeArea()
-//                .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
-            
-            EmitterView()
-                .scaleEffect(1, anchor: .top)
-                .ignoresSafeArea()
-                #if os(macOS)
-                .rotationEffect(Angle(degrees: 180))
-                #endif
-                //.blur(radius: 1)
-//            
-            VStack {
-                Spacer()
-                
-                Text("Make it Rain")
-                    .scaleEffect(logoScale)
-                    //.transition(.asymmetric(insertion: .scale, removal: .opacity)) // top
-                    .font(.largeTitle)
-                    .foregroundStyle(.primary)
-                    .textRenderer(TitleTextRenderer(progress: titleProgress))
-                    
-                Spacer()
-                            
-                
-                
-                
-                //Text(hang)
-                
-//                Button("Hang") {
-//                    hang = UUID().uuidString
-//                }
-//                .buttonStyle(.borderedProminent)
-            }
-//            .task {
-//                withAnimation(.easeIn(duration: 2)) {
-//                    logoScale = 1
-//                }
-//            }
+            makeItRainLogo
+                .frame(maxHeight: .infinity, alignment: .center)
         }
         .overlay {
             if showSlowLoadingButton {
-                VStack {
-                    Spacer()
-                    Text("Connecting is taking longer than expected…")
-                    Button("Offline Mode") {
-                        AuthState.shared.loginTask?.cancel()
-                        withAnimation {
-                            AuthState.shared.isLoggedIn = false
-                            AppState.shared.hasBadConnection = true
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.green)
-                }
+                offlineButton
             }
         }        
         .task {
-            withAnimation(.smooth(duration: 2.5, extraBounce: 0)) {
-                titleProgress = 1
-            } completion: {
-                withAnimation(.easeOut(duration: 1)) {
-                    AppState.shared.splashTextAnimationIsFinished = true
-                }
-            }
+            startLogoAnimation()
         }
         .onReceive(timer) { _ in
-            withAnimation {
-                if AuthState.shared.isThinking {
-                    showSlowLoadingButton = true
-                }
-            }
-            
-            self.timer.upstream.connect().cancel()
+            showOfflineButton()
         }
         .onDisappear {
             timer.upstream.connect().cancel()
             showSlowLoadingButton = false
         }
+    }
+    
+    var rainingDollars: some View {
+        EmitterView()
+            .scaleEffect(1, anchor: .top)
+            .ignoresSafeArea()
+            #if os(macOS)
+            .rotationEffect(Angle(degrees: 180))
+            #endif
+    }
+    
+    var makeItRainLogo: some View {
+        Text("Make it Rain")
+            .scaleEffect(logoScale)
+            .font(.largeTitle)
+            .foregroundStyle(.primary)
+            .textRenderer(TitleTextRenderer(progress: titleProgress))
+    }
+    
+    var offlineButton: some View {
+        VStack {
+            Spacer()
+            Text("Connecting is taking longer than expected…")
+            Button("Offline Mode") {
+                AuthState.shared.loginTask?.cancel()
+                withAnimation {
+                    AuthState.shared.isLoggedIn = false
+                    AppState.shared.hasBadConnection = true
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.green)
+        }
+    }
+    
+    
+    func startLogoAnimation() {
+        withAnimation(.smooth(duration: 2.5, extraBounce: 0)) {
+            titleProgress = 1
+        } completion: {
+            withAnimation(.easeOut(duration: 1)) {
+                AppState.shared.splashTextAnimationIsFinished = true
+            }
+        }
+    }
+    
+    
+    func showOfflineButton() {
+        withAnimation {
+            if AuthState.shared.isThinking {
+                showSlowLoadingButton = true
+            }
+        }
+        
+        self.timer.upstream.connect().cancel()
     }
     
 }

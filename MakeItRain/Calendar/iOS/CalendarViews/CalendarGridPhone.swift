@@ -8,6 +8,12 @@
 import SwiftUI
 #if os(iOS)
 struct CalendarGridPhone: View {
+    @Local(\.tightenUpEodTotals) var tightenUpEodTotals
+    @Local(\.lineItemIndicator) var lineItemIndicator
+    @Local(\.phoneLineItemDisplayItem) var phoneLineItemDisplayItem
+    @Local(\.incomeColor) var incomeColor
+    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     @Environment(CalendarModel.self) private var calModel
     @Environment(CalendarProps.self) private var calProps
     
@@ -28,30 +34,40 @@ struct CalendarGridPhone: View {
     
     @State private var initialGeoHeight: CGFloat = 0
     
+    #warning("REGARDING HITCH: All I did here was change binding to day to a regular bindable")
     var body: some View {
+        let _ = Self._printChanges()
         @Bindable var calModel = calModel
         @Bindable var calProps = calProps
         
         /// Use geometry reader instead of a preference key to avoid the fakeNavHeader from being pushed up when the dayOverView sheet gets dragged to the top.
-        return GeometryReader { geo in
+        GeometryReader { geo in
             /// DO NOT USE the new scrollView apis.
-            /// The new .scrollPosition($scrollPosition) causes big lagging issues when scrolling. --->I think it's because it has to constantly report its position.
+            /// The new .scrollPosition($scrollPosition) causes big lagging issues when scrolling. ---> I think it's because it has to constantly report its position.
             ScrollViewReader { scrollProxy in
                 ScrollView {
                     LazyVGrid(columns: sevenColumnGrid, spacing: 0) {
-                        ForEach($calModel.sMonth.days) { $day in
-                            DayViewPhone(day: $day)
-                                .overlay(dividingLine, alignment: .bottom)
-                                /// Use the initial geo height so the day view doesn't shrink too much when opening the bottom panel.
-                                .frame(minHeight: initialGeoHeight / divideBy, alignment: .center)
-                                .id(day.id)
+                        #warning("day as $binding (not bindable) causes hitches with sheets.")
+                        ForEach(calModel.sMonth.days) { day in
+                            DayViewPhone(
+                                day: day,
+                                tightenUpEodTotals: tightenUpEodTotals,
+                                lineItemIndicator: lineItemIndicator,
+                                phoneLineItemDisplayItem: phoneLineItemDisplayItem,
+                                incomeColor: incomeColor,
+                                useWholeNumbers: useWholeNumbers
+                            )
+                            .overlay(dividingLine, alignment: .bottom)
+                            /// Use the initial geo height so the day view doesn't shrink too much when opening the bottom panel.
+                            .frame(minHeight: initialGeoHeight / divideBy, alignment: .center)
+                            .id(day.id)
                         }
                     }
                 }
                 //.contentMargins(.bottom, calculatedScrollContentMargins, for: .scrollContent)
                 .frame(height: geo.size.height)
                 .scrollIndicators(.hidden)
-                .onScrollPhaseChange { if $1 == .interacting { withAnimation { calModel.hilightTrans = nil } } }
+                //.onScrollPhaseChange { if $1 == .interacting { withAnimation { calModel.hilightTrans = nil } } }
                 /// Scroll to today when the view loads (if applicable)
                 .onAppear { scrollToTodayOnAppearOfScrollView(scrollProxy) }
                 /// Focus on the overviewDay when selecting, or changing.

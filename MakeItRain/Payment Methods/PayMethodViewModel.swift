@@ -177,6 +177,31 @@ class PayMethodViewModel {
     }
     
     
+    var displayYearsView: some View {
+        HStack(spacing: 5) {
+            let lower = visibleDateRangeForHeader.lowerBound.year
+            let upper = visibleDateRangeForHeader.upperBound.year
+            
+            var ytdText: String {
+                if chartCropingStyle == .endAtCurrentMonth {
+                    if upper == lower && lower == AppState.shared.todayYear
+                    || upper != lower && upper == AppState.shared.todayYear {
+                        return " (YTD)"
+                    }
+                }
+                return ""
+            }
+            
+            if upper != lower {
+                Text(String(lower))
+                Text("-")
+            }
+                                                
+            Text("\(String(upper))\(ytdText)")
+        }
+    }
+    
+    
 //    var visibleChartAreaDomain: Int {
 //        
 //        let firstDayOfTheYear = Calendar.current.date(from: DateComponents(year: chartLeadingDate.year, month: 1, day: 1))!
@@ -411,10 +436,6 @@ class PayMethodViewModel {
                 //let profitLossMinAmount = breakdowns.map { $0.profitLoss }.min() ?? 0
                 //let profitLossMaxAmount = breakdowns.map { $0.profitLoss }.max() ?? 0
                 
-                
-                
-                
-                
                 let percentages = summarizedBreakdowns.map {$0.profitLossPercentage}
                 let profitLossMinPercentage = percentages.min() ?? 0
                 let profitLossMaxPercentage = percentages.max() ?? 0
@@ -520,10 +541,6 @@ class PayMethodViewModel {
             
             
             if setChartAsNew {
-                
-                
-                
-                
                 self.payMethods = thePayMethods
                 
                 /// Sort the data so it plays nice with the chart.

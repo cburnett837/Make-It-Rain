@@ -10,13 +10,13 @@ import SwiftUI
 
 protocol CanHandleLogo: AnyObject {
     var logo: Data? {get set}
-    var id: String {get set}
+    var id: String {get}
     var color: Color {get set}
 }
 
 protocol CanEditTitleWithLocation: AnyObject, CanHandleLocationsDelegate {
     var title: String {get set}
-    var id: String {get set}
+    var id: String {get}
     var locations: Array<CBLocation> {get set}
     var factorInCalculations: Bool {get set}
 }
@@ -28,7 +28,7 @@ extension CanEditTitleWithLocation {
 protocol CanEditAmount: AnyObject {
     var amount: Double {get}
     var amountString: String {get set}
-    var id: String {get set}
+    var id: String {get}
     
     var amountTypeLingo: String {get}
 }

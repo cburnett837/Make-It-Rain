@@ -9,15 +9,9 @@ import SwiftUI
 
 #if os(iOS)
 struct DayViewPhone: View {
-    @Local(\.incomeColor) var incomeColor
-
-    @AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
-    @AppStorage("tightenUpEodTotals") var tightenUpEodTotals = true
-    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
-    @AppStorage("phoneLineItemDisplayItem") var phoneLineItemDisplayItem: PhoneLineItemDisplayItem = .both
-    
-    //@Local(\.colorTheme) var colorTheme
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    //@Local(\.incomeColor) var incomeColor
+    @Local(\.updatedByOtherUserDisplayMode) var updatedByOtherUserDisplayMode
+    //@Local(\.useWholeNumbers) var useWholeNumbers
     @Local(\.threshold) var threshold
     
     @Environment(\.colorScheme) var colorScheme
@@ -50,7 +44,7 @@ struct DayViewPhone: View {
     }
     
     //@Binding var transEditID: String?
-    @Binding var day: CBDay
+    @Bindable var day: CBDay
     //@Binding var selectedDay: CBDay?
     //@Binding var showTransferSheet: Bool
     ////@Binding var putBackToBottomPanelViewOnRotate: Bool
@@ -58,6 +52,12 @@ struct DayViewPhone: View {
     //@Binding var showCamera: Bool
     //@Binding var overviewDay: CBDay?
     //@Binding var bottomPanelContent: BottomPanelContent?
+    
+    var tightenUpEodTotals: Bool
+    var lineItemIndicator: LineItemIndicator
+    var phoneLineItemDisplayItem: PhoneLineItemDisplayItem
+    var incomeColor: String
+    var useWholeNumbers: Bool
     
     @State private var showDropActions = false
     @State private var showDailyActions = false
@@ -90,6 +90,7 @@ struct DayViewPhone: View {
     
    
     var body: some View {
+        let _ = Self._printChanges()
         if day.date == nil {
             placeholderDayView
         } else {
@@ -104,14 +105,15 @@ struct DayViewPhone: View {
                 .frame(maxWidth: .infinity)
         }
         .contentShape(Rectangle())
-        .onTapGesture {
-            withAnimation { calModel.hilightTrans = nil }
-        }
+//        .onTapGesture {
+//            withAnimation { calModel.hilightTrans = nil }
+//        }
         .dropDestination(for: CBTransaction.self) { droppedTrans, location in
             calModel.dragTarget = nil
             return true
         }
     }
+    
     
     @ViewBuilder
     var realDayView: some View {
@@ -155,6 +157,7 @@ struct DayViewPhone: View {
         }
     }
     
+    
     var moveButton: some View {
         Button("Move") {
 //            withAnimation {
@@ -181,6 +184,7 @@ struct DayViewPhone: View {
             /// New logic to attempt to handle the "$0" issue. 10-16-25.
             withAnimation {
                 if let transId = calModel.transactionIdToCopy {
+                    #warning("serverID Change")
                     if let trans = calModel.justTransactions.filter({ $0.id == transId }).first {
                         let oMonth = trans.dateComponents?.month!
                         let oDay = trans.dateComponents?.day!
@@ -204,7 +208,16 @@ struct DayViewPhone: View {
                         day.upsert(trans)
                         calModel.dragTarget = nil
                         calModel.transactionIdToCopy = nil
-                        calModel.saveTransaction(id: transId)
+                        
+                        //DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                            trans.status = .editing
+                        //}
+                        
+                        Task {
+                            await calModel.saveTransaction(id: transId)
+                        }
+                    } else {
+                        print("Could not find the transaction ID \(transId)")
                     }
                 }
             }
@@ -250,31 +263,57 @@ struct DayViewPhone: View {
             .frame(maxWidth: .infinity, alignment: AppState.shared.isIpad ? .leading : .center)
     }
     
-    
+#warning("REGARDING HITCH: All I did here was pull the appstorage properties from the line item to this view, and reworked the shouldLimitTo5")
     @ViewBuilder
     var dailyTransactionList: some View {
         @Bindable var calProps = calProps
         VStack(alignment: .leading, spacing: 2) {
+            #warning("shouldLimitTo5 causes hitches with sheets")
             if shouldLimitTo5 {
                 ForEach(filteredTrans.prefix(5)) { trans in
-                    LineItemMiniView(transEditID: $calProps.transEditID, trans: trans, day: day)
+                    lineItem(trans)
                 }
                 
                 showMoreTransButton
                                 
                 if showMoreTrans {
                     ForEach(filteredTrans.suffix(filteredTrans.count - 5)) { trans in
-                        LineItemMiniView(transEditID: $calProps.transEditID, trans: trans, day: day)
+                        lineItem(trans)
                     }
                 }
             } else {
                 ForEach(filteredTrans) { trans in
-                    LineItemMiniView(transEditID: $calProps.transEditID, trans: trans, day: day)
+                    lineItem(trans)
+                    
                 }
             }
+  
+//            ForEach(filteredTrans) { trans in
+//                LineItemMiniView(
+//                    trans: trans,
+//                    day: day,
+//                    tightenUpEodTotals: tightenUpEodTotals,
+//                    lineItemIndicator: lineItemIndicator,
+//                    phoneLineItemDisplayItem: phoneLineItemDisplayItem
+//                )
+//                //LineItemMiniViewTest()
+//            }
             
             Spacer()
         }
+    }
+    
+    
+    @ViewBuilder func lineItem(_ trans: CBTransaction) -> some View {
+        LineItemMiniView(
+            trans: trans,
+            day: day,
+            tightenUpEodTotals: tightenUpEodTotals,
+            lineItemIndicator: lineItemIndicator,
+            phoneLineItemDisplayItem: phoneLineItemDisplayItem,
+            incomeColor: incomeColor,
+            useWholeNumbers: useWholeNumbers
+        )
     }
     
     
@@ -356,18 +395,19 @@ struct DayViewPhone: View {
     var eodText: some View {
         Group {
             if useWholeNumbers && tightenUpEodTotals {
-                Text("\(String(format: "%.00f", day.eodTotal).replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: ""))")
+                Text("\(String(format: "%.00f", day.eodTotal).replacing("$", with: "").replacing(",", with: ""))")
                 
             } else if useWholeNumbers {
                 Text(day.eodTotal.currencyWithDecimals(0))
                 
             } else if !useWholeNumbers && tightenUpEodTotals {
-                Text(day.eodTotal.currencyWithDecimals(2).replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: ""))
+                Text(day.eodTotal.currencyWithDecimals(2).replacing("$", with: "").replacing(",", with: ""))
                 
             } else {
                 Text(day.eodTotal.currencyWithDecimals(2))
             }
         }
+        .contentTransition(.numericText())
         .padding(.leading, AppState.shared.isIpad ? 8 : 0)
         .font(.caption2)
         .foregroundColor(eodColor)
@@ -396,6 +436,9 @@ struct DayViewPhone: View {
                 return true
             }
                                     
+            
+            print("Transaction id to copy: \(trans.id) - \(trans.uuid) - \(trans.serverID)")
+            
             calModel.transactionToCopy = trans
             calModel.transactionIdToCopy = trans.id
             showDropActions = true

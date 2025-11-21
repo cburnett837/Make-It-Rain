@@ -9,7 +9,8 @@ import SwiftUI
 
 struct AdvancedSearchView: View {
     @Environment(\.dismiss) var dismiss
-    
+    @AppStorage("advancedSearchFilterIsExpanded") private var storedFilterIsExpanded: Bool = true
+    @State private var filterIsExpanded: Bool = true
     //@Local(\.colorTheme) var colorTheme
     @Local(\.useWholeNumbers) var useWholeNumbers
     
@@ -24,7 +25,6 @@ struct AdvancedSearchView: View {
     @State private var showMonthSheet = false
     @State private var showYearSheet = false
     
-    @State private var showMissingCriteriaAlert = false
     @State private var isSearching = false
     @State private var sortOrder: SortOrder = .forward
     @State private var transEditID: String?
@@ -32,6 +32,9 @@ struct AdvancedSearchView: View {
     @State private var transDay: CBDay? = CBDay(date: Date())
     
     @State private var fuckYouSwiftuiTableRefreshID: UUID = UUID()
+    
+    @Namespace var namespace
+
     
     @FocusState private var focusedField: Int?
     
@@ -100,6 +103,22 @@ struct AdvancedSearchView: View {
             return "\(String(years[0])), \(String(years[1])), \(years.count - 2)+"
         }
     }
+    
+    var filterCount: Int {
+        return (
+            searchModel.categories.count
+            + searchModel.payMethods.count
+            + searchModel.months.count
+            + searchModel.years.count
+            + (searchModel.amountType == .all ? 0 : 1)
+            + (searchModel.includeExcluded ? 0 : 1)
+        )
+    }
+    
+    
+//    var searchPrompt: String {
+//        focusedField == 0 ? "Search Terms (Separate by comma)" : "Search"
+//    }
         
     var body: some View {
         Group {
@@ -114,20 +133,18 @@ struct AdvancedSearchView: View {
         //.navigationBarTitleDisplayMode(.inline)
         #endif
         .id(fuckYouSwiftuiTableRefreshID)
-        .navigationBarBackButtonHidden(true)
-        .task {
-            //focusedField = 0
-        }
-        //.searchable(text: $searchTerm, prompt: "Search Terms (Separate by comma)")
-        .searchPresentationToolbarBehavior(.avoidHidingContent)
-        .onSubmit(of: .search) {
-            let terms = searchTerm
-                .split(separator: ",")                // split by comma
-                .map { $0.trimmingCharacters(in: .whitespaces) } // trim spaces
-            searchModel.searchTerms.append(contentsOf: terms)
-            searchTerm = ""
-            search()
-        }
+        .onShake { resetForm() }
+//        .searchable(text: $searchTerm, prompt: searchPrompt)
+//        .searchFocused($focusedField, equals: 0)
+//        .searchPresentationToolbarBehavior(.avoidHidingContent)
+//        .onSubmit(of: .search) {
+//            let terms = searchTerm
+//                .split(separator: ",")                // split by comma
+//                .map { $0.trimmingCharacters(in: .whitespaces) } // trim spaces
+//            searchModel.searchTerms.append(contentsOf: terms)
+//            searchTerm = ""
+//            search()
+//        }
         .toolbar {
             #if os(macOS)
             macToolbar()
@@ -135,42 +152,20 @@ struct AdvancedSearchView: View {
             phoneToolbar()
             #endif
         }
-                
-//        .onChange(of: transEditID, { oldValue, newValue in
-//            print(".onChange(of: transEditID)")
-//            /// When `newValue` is false, save to the server. We have to use this because `.popover(isPresented:)` has no onDismiss option.
-//            if oldValue != nil && newValue == nil {
-//                calModel.saveTransaction(id: oldValue!, day: transDay!, location: .searchResultList, eventModel: eventModel)
-//            } else {
-//                editTrans = calModel.getTransaction(by: transEditID!, from: .searchResultList)
-//            }
-//        })
-//        .sheet(item: $editTrans) { trans in
-//            TransactionEditView(trans: trans, transEditID: $transEditID, day: transDay!, isTemp: false, transLocation: .searchResultList)
-//                .onDisappear { transEditID = nil }
-//        }
-//        
-//        .sensoryFeedback(.selection, trigger: transEditID) { $1 != nil }
-        
         .transactionEditSheetAndLogic(
             transEditID: $transEditID,
             selectedDay: $transDay,
             findTransactionWhere: .constant(.searchResultList)
         )
-        
-        
-        
-        
-        
         .sheet(isPresented: $showPayMethodSheet) {
-            MultiPayMethodSheet(payMethods: $searchModel.payMethods)
+            MultiPayMethodSheet(payMethods: $searchModel.payMethods, includeHidden: true)
             #if os(macOS)
                 .frame(minWidth: 300, minHeight: 500)
                 .presentationSizing(.fitted)
             #endif
         }
         .sheet(isPresented: $showCategorySheet) {
-            MultiCategorySheet(categories: $searchModel.categories)
+            MultiCategorySheet(categories: $searchModel.categories, includeHidden: true)
             #if os(macOS)
                 .frame(minWidth: 300, minHeight: 500)
                 .presentationSizing(.fitted)
@@ -189,11 +184,6 @@ struct AdvancedSearchView: View {
                 .frame(minWidth: 300, minHeight: 500)
                 .presentationSizing(.fitted)
             #endif
-        }
-        .alert("No Criteria", isPresented: $showMissingCriteriaAlert) {
-            Button("Oops") {
-                
-            }
         }
     }
     
@@ -315,151 +305,38 @@ struct AdvancedSearchView: View {
     #if os(iOS)
     @ToolbarContentBuilder
     func phoneToolbar() -> some ToolbarContent {
-//        if !AppState.shared.isIpad {
-//            ToolbarItem(placement: .topBarLeading) {
-////                Button {
-////                    dismiss() //NavigationManager.shared.selection = nil // NavigationManager.shared.navPath.removeLast()
-////                } label: {
-////                    HStack(spacing: 4) {
-////                        Image(systemName: "chevron.left")
-////                        Text("Back")
-////                    }
-////                }
-//                
-//                Button {
-//                    withAnimation {
-//                        if sortOrder == .forward {
-//                            calModel.searchedTransactions.sort { $0.date ?? Date() < $1.date ?? Date() }
-//                            sortOrder = .reverse
-//                        } else {
-//                            calModel.searchedTransactions.sort { $0.date ?? Date() > $1.date ?? Date() }
-//                            sortOrder = .forward
-//                        }
-//                    }
-//                } label: {
-//                    Image(systemName: "arrow.up.arrow.down")
-//
-//                }
-//                
-//                
-//            }
-//        }
-        
-        if !calModel.searchedTransactions.isEmpty {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                Button("Clear") {
-                    withAnimation {
-                        calModel.searchedTransactions.removeAll()
-                    }
-                }
-                .schemeBasedForegroundStyle()
-            }
-        }
-        ToolbarSpacer(.fixed, placement: .topBarTrailing)
-        
-        if searchModel.isValid() {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                Button("Reset") {
-                    withAnimation {
-                        calModel.searchedTransactions.removeAll()
-                        searchModel.categories.removeAll()
-                        searchModel.payMethods.removeAll()
-                        searchModel.months.removeAll()
-                        searchModel.years.removeAll()
-                        searchModel.searchTerms.removeAll()
-                        searchModel.newSearchTerm = ""
-                    }
-                }
-                .schemeBasedForegroundStyle()
-            }
-        }
+        ToolbarItemGroup(placement: .topBarTrailing) { resetSearchFormButton }
+    }
+    
+    
+    var resetSearchFormButton: some View {
+        Button("Reset", action: resetForm)
+            .schemeBasedForegroundStyle()
     }
     
     
     var phoneList: some View {
         List {
             Section {
-                Group {
-                    #if os(iOS)
-                    UITextFieldWrapper(placeholder: "Search Term(s)", text: $searchModel.newSearchTerm, onSubmit: {
-                        search()
-                    }, toolbar: {
-                        KeyboardToolbarView(
-                            focusedField: $focusedField,
-                            accessoryImage1: "magnifyingglass",
-                            accessoryFunc1: { search() },
-                            accessoryImage2: "plus",
-                            accessoryFunc2: {
-                                if !searchModel.newSearchTerm.isEmpty {
-                                    addOrFind(searchTerm: searchModel.newSearchTerm)
-                                    searchModel.newSearchTerm = ""
-                                }
-                            }
-                        )
-                    })
-                    .uiTag(0)
-                    //.uiTextAlignment(layoutDirection == .leftToRight ? .right : .left)
-                    .uiClearButtonMode(.whileEditing)
-                    .uiReturnKeyType(.search)
-                    //.uiStartCursorAtEnd(false)
-                    #else
-                    TextField("Search Term(s)", text: $newSearchTerm)
-                        .submitLabel(.search)
-                        .textFieldStyle(.plain)
-                        .onSubmit {
-                            search()
-                        }
-                    #endif
+                HStack {
+                    searchTextField
+                    addSearchTermButton
                 }
-                .focused($focusedField, equals: 0)
                 
                 if !searchModel.searchTerms.isEmpty {
-                    TagLayout(alignment: .leading, spacing: 10) {
-                        ForEach(searchModel.searchTerms) { term in
-                            Button {
-                                withAnimation {
-                                    searchModel.searchTerms.removeAll(where: { $0 == term })
-                                }
-                            } label: {
-                                Text(term)
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .tint(.gray)
-                            .focusable(false)
-                        }
-                    }
+                    searchTermCluster
                 }
                 
                 Button("Search", action: search)
                     .disabled(!searchModel.isValid())
-            }
-            Section {
-                FilterLine(title: "Categories", value: categoryFilterTitle, showSheet: $showCategorySheet)
-                FilterLine(title: "Accounts", value: payMethodFilterTitle, showSheet: $showPayMethodSheet)
-                FilterLine(title: "Months", value: monthFilterTitle, showSheet: $showMonthSheet)
-                FilterLine(title: "Years", value: yearFilterTitle, showSheet: $showYearSheet)
-                
-            } header: {
-                HStack {
-                    Text("Filter")
-                    Spacer()
-                    
-                }
+            } footer: {
+                Text("Search by transaction titles, or tags. Prepend a tag with #. Touch the plus to add multiple search terms.")
             }
             
+            filterSections
+            
             if !calModel.searchedTransactions.isEmpty {
-                let sum = calModel.searchedTransactions
-                    .map({ ($0.payMethod?.accountType == .credit || $0.payMethod?.accountType == .loan) ? $0.amount * -1 : $0.amount })
-                    .reduce(0.0, +)
-                
-                Section("Transaction Summary") {
-                    HStack {
-                        Text("Total:")
-                        Spacer()
-                        Text(sum.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                    }
-                    
-                }
+                transactionSummaryLine
             }
                         
             Section {
@@ -478,59 +355,255 @@ struct AdvancedSearchView: View {
                 }
                 .opacity(isSearching ? 0 : 1)
                 .overlay {
-                    Text("Searching…")
-                        .opacity(isSearching ? 1 : 0)
+                    ProgressView {
+                        Text("Searching…")
+                    }
+                    .opacity(isSearching ? 1 : 0)
                 }
             } header: {
-                HStack {
-                    Text("Transactions")
-                    Spacer()
-                    
-                    Button {
-                        withAnimation {
-                            if sortOrder == .forward {
-                                calModel.searchedTransactions.sort { $0.date ?? Date() < $1.date ?? Date() }
-                                sortOrder = .reverse
-                            } else {
-                                calModel.searchedTransactions.sort { $0.date ?? Date() > $1.date ?? Date() }
-                                sortOrder = .forward
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "arrow.up.arrow.down")
-                            .font(.caption)
-                    }
-                    
-                }
+                transactionSectionHeader
             }
         }
     }
     
+    
+    var searchTextField: some View {
+        Group {
+            #if os(iOS)
+            UITextFieldWrapper(placeholder: "Search Term(s)", text: $searchModel.newSearchTerm, onSubmit: {
+                search()
+            }, toolbar: {
+                KeyboardToolbarView(
+                    focusedField: $focusedField,
+                    accessoryImage1: "plus",
+                    accessoryFunc1: { addSearchTerm() },
+                    accessoryImage2: "number",
+                    accessoryFunc2: { prependHashtag() }
+                )
+            })
+            .uiTag(1)
+            //.uiTextAlignment(layoutDirection == .leftToRight ? .right : .left)
+            .uiClearButtonMode(.whileEditing)
+            .uiReturnKeyType(.search)
+            //.uiStartCursorAtEnd(false)
+            #else
+            TextField("Search Term(s)", text: $newSearchTerm)
+                .submitLabel(.search)
+                .textFieldStyle(.plain)
+                .onSubmit {
+                    search()
+                }
+            #endif
+        }
+        .focused($focusedField, equals: 1)
+    }
     #endif
     
     
-    func search() {
+    var addSearchTermButton: some View {
+        Button {
+            addSearchTerm()
+        } label: {
+            Image(systemName: "plus")
+        }
+        .buttonStyle(.borderedProminent)
+        .disabled(searchModel.newSearchTerm.isEmpty)
+    }
+    
+    
+    var searchTermCluster: some View {
+        TagLayout(alignment: .leading, spacing: 10) {
+            ForEach(searchModel.searchTerms) { term in
+                Button {
+                    withAnimation {
+                        searchModel.searchTerms.removeAll { $0 == term }
+                        calModel.searchedTransactions.removeAll { $0.title.localizedCaseInsensitiveContains(term) }
+                    }
+                } label: {
+                    HStack {
+                        Text(term)
+                        Image(systemName: "trash")
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.gray)
+                .focusable(false)
+            }
+        }
+    }
+            
+    
+    var filterSections: some View {
+        Section {
+            if filterIsExpanded {
+                FilterLine(title: "Categories", value: categoryFilterTitle, showSheet: $showCategorySheet)
+                FilterLine(title: "Accounts", value: payMethodFilterTitle, showSheet: $showPayMethodSheet)
+                FilterLine(title: "Months", value: monthFilterTitle, showSheet: $showMonthSheet)
+                FilterLine(title: "Years", value: yearFilterTitle, showSheet: $showYearSheet)
+                amountTypePicker
+                excludedToggle
+            } else {
+                Text(filterCount == 0 ? "No filters applied" : "\(filterCount) filter\(filterCount == 1 ? "" : "s") applied")
+                    .foregroundStyle(filterCount == 0 ? .gray : .primary)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        withAnimation { filterIsExpanded.toggle() }
+                    }
+            }
+        } header: {
+            filterSectionHeader
+        }
+    }
+    
+    
+    var filterSectionHeader: some View {
+        HStack {
+            HStack {
+                Text("Filter")
+                Image(systemName: "chevron.right")
+                    .rotationEffect(.degrees(filterIsExpanded ? 90 : 0))
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                withAnimation { filterIsExpanded.toggle() }
+            }
+            Spacer()
+        }
+        .onAppear { filterIsExpanded = storedFilterIsExpanded }
+        .onChange(of: filterIsExpanded) { storedFilterIsExpanded = $1 }
+    }
+    
+    
+    @ViewBuilder
+    var transactionSummaryLine: some View {
+        let sum = calModel.searchedTransactions
+            .map({ ($0.payMethod?.accountType == .credit || $0.payMethod?.accountType == .loan) ? $0.amount * -1 : $0.amount })
+            .reduce(0.0, +)
+        
+        Section("Transaction Summary") {
+            HStack {
+                Text("Total:")
+                Spacer()
+                Text(sum.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+            }
+        }
+    }
+    
+    
+    var transactionSectionHeader: some View {
+        HStack {
+            Text("Transactions")
+            Spacer()
+            clearResultsButton
+            sortButton
+        }
+    }
+    
+    
+    var sortButton: some View {
+        Button {
+            withAnimation {
+                if sortOrder == .forward {
+                    calModel.searchedTransactions.sort { $0.date ?? Date() < $1.date ?? Date() }
+                    sortOrder = .reverse
+                } else {
+                    calModel.searchedTransactions.sort { $0.date ?? Date() > $1.date ?? Date() }
+                    sortOrder = .forward
+                }
+            }
+        } label: {
+            Image(systemName: "arrow.up")
+                .rotationEffect(.degrees(sortOrder == .forward ? 0 : 180))
+        }
+        .buttonStyle(.glassProminent)
+    }
+    
+    
+    var clearResultsButton: some View {
+        Button("Clear") {
+            withAnimation {
+                calModel.searchedTransactions.removeAll()
+            }
+        }
+        .schemeBasedForegroundStyle()
+        .opacity(isSearching ? 0 : 1)
+        .overlay { ProgressView().opacity(isSearching ? 1 : 0) }
+        .buttonStyle(.glassProminent)
+        .disabled(calModel.searchedTransactions.isEmpty)
+    }
+    
+    
+    
+    var amountTypePicker: some View {
+        Picker(selection: $searchModel.amountType) {
+            ForEach(AmountType.allCases) {
+                Text($0.prettyValue)
+                    .tag($0)
+            }
+        } label: {
+            Text("Amount Type")
+        }
+    }
+    
+    var excludedToggle: some View {
+        Toggle(isOn: $searchModel.includeExcluded) {
+            Text("Excluded Transactions")
+        }
+    }
+    
+    
+    
+    func prependHashtag() {
+        //if !searchModel.newSearchTerm.isEmpty {
+            searchModel.newSearchTerm = "#" + searchModel.newSearchTerm
+        //}
+    }
+    
+    
+    func addSearchTerm() {
         if !searchModel.newSearchTerm.isEmpty {
             addOrFind(searchTerm: searchModel.newSearchTerm)
             searchModel.newSearchTerm = ""
         }
+    }
+    
+    
+    func search() {
+        addSearchTerm()
         focusedField = nil
         
         if searchModel.isValid() {
             Task {
+                searchModel.newSearchTerm = ""
                 calModel.searchedTransactions.removeAll()
                 isSearching = true
-                await calModel.advancedSearch(model: searchModel)
+                await calModel.advancedSearch(model: searchModel, sortOrder: sortOrder)
                 isSearching = false
             }
         } else {
-            showMissingCriteriaAlert = true
+            let config = AlertConfig(title: "No Search Criteria", subtitle: "Please enter a search term or select some filters.", symbol: .init(name: "exclamationmark.magnifyingglass", color: .orange))
+            
+            AppState.shared.showAlert(config: config)
         }
     }
     
+    
     func addOrFind(searchTerm: String) {
-        let exists = !searchModel.searchTerms.filter { $0 == searchTerm }.isEmpty
-        if !exists { searchModel.searchTerms.append(searchTerm) }
+        let cleanTerm = searchTerm.lowercased().trimmingCharacters(in: .whitespaces)
+        let exists = !searchModel.searchTerms.filter { $0 == cleanTerm }.isEmpty
+        if !exists { searchModel.searchTerms.append(cleanTerm) }
+    }
+    
+    func resetForm() {
+        withAnimation {
+            calModel.searchedTransactions.removeAll()
+            searchModel.categories.removeAll()
+            searchModel.payMethods.removeAll()
+            searchModel.months.removeAll()
+            searchModel.years.removeAll()
+            searchModel.searchTerms.removeAll()
+            searchModel.newSearchTerm = ""
+        }
     }
 }
 
@@ -546,7 +619,7 @@ fileprivate struct FilterLine: View {
     var body: some View {
         HStack {
             Text(title)
-                .foregroundStyle(.primary)
+                .schemeBasedForegroundStyle()
             Spacer()
                             
             Button {
@@ -554,7 +627,9 @@ fileprivate struct FilterLine: View {
             } label: {
                 HStack(spacing: 4) {
                     Text(value)
+                        .schemeBasedForegroundStyle()
                     Image(systemName: "chevron.right")
+                        .foregroundStyle(.gray)
                 }
             }
         }

@@ -162,21 +162,39 @@ struct Helpers {
     
     
     static func categorySorter() -> (CBCategory, CBCategory) -> Bool {
-        let sortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
         return {
-            switch sortMode {
+            switch LocalStorage.shared.categorySortMode {
             case .title:
                 return $0.title.lowercased() < $1.title.lowercased()
             case .listOrder:
                 return $0.listOrder ?? 0 < $1.listOrder ?? 0
             }
         }
+        
+        //return { $0.title.lowercased() < $1.title.lowercased() }
+        
+        
+//        if let sortModeString: String = LocalStorage.shared.get(\.categorySortMode) {
+//            let sortMode = SortMode.fromString(sortModeString)
+//            return {
+//                switch sortMode {
+//                case .title:
+//                    return $0.title.lowercased() < $1.title.lowercased()
+//                case .listOrder:
+//                    return $0.listOrder ?? 0 < $1.listOrder ?? 0
+//                }
+//            }
+//        }
+//        
+//        return { $0.title.lowercased() < $1.title.lowercased() }
+        
+        
     }
     
     static func budgetSorter() -> (CBBudget, CBBudget) -> Bool {
-        let sortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
+        //let sortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
         return {
-            switch sortMode {
+            switch LocalStorage.shared.categorySortMode {
             case .title:
                 return ($0.category?.title ?? "").lowercased() < ($1.category?.title ?? "").lowercased()
             case .listOrder:
@@ -186,9 +204,9 @@ struct Helpers {
     }
     
     static func paymentMethodSorter() -> (CBPaymentMethod, CBPaymentMethod) -> Bool {
-        let sortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "paymentMethodSortMode") ?? "")
+        //let sortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "paymentMethodSortMode") ?? "")
         return {
-            switch sortMode {
+            switch LocalStorage.shared.paymentMethodSortMode {
             case .title:
                 return $0.title.lowercased() < $1.title.lowercased()
             case .listOrder:
@@ -198,18 +216,18 @@ struct Helpers {
     }
     
     static func transactionSorter() -> (CBTransaction, CBTransaction) -> Bool {
-        let sortMode = TransactionSortMode.fromString(UserDefaults.standard.string(forKey: "transactionSortMode") ?? "")
-        let categorySortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
+        //let sortMode = TransactionSortMode.fromString(UserDefaults.standard.string(forKey: "transactionSortMode") ?? "")
+        //let categorySortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
         
         return {
-            if sortMode == .title {
+            if LocalStorage.shared.transactionSortMode == .title {
                 return $0.title < $1.title
                 
-            } else if sortMode == .enteredDate {
+            } else if LocalStorage.shared.transactionSortMode == .enteredDate {
                 return $0.enteredDate < $1.enteredDate
                 
             } else {                
-                switch categorySortMode {
+                switch LocalStorage.shared.categorySortMode {
                 case .title:
                     return ($0.category?.title ?? "").lowercased() < ($1.category?.title ?? "").lowercased()
                 case .listOrder:

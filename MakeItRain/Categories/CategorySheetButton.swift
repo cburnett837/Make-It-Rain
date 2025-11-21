@@ -7,7 +7,8 @@
 
 import SwiftUI
 
-struct CategorySheetButton: View {
+#if os(macOS)
+struct CategorySheetButtonMac: View {
     @State private var showCategorySheet = false
     @State private var categoryMenuColor: Color = Color(.tertiarySystemFill)
     @Binding var category: CBCategory?
@@ -47,20 +48,21 @@ struct CategorySheetButton: View {
         .onHover { categoryMenuColor = $0 ? Color(.systemFill) : Color(.tertiarySystemFill) }
         .sheet(isPresented: $showCategorySheet) {
             CategorySheet(category: $category)
-            #if os(macOS)
                 .frame(minWidth: 300, minHeight: 500)
                 .presentationSizing(.fitted)
-            #endif
         }
     }
 }
+#endif
 
 
-
-struct CategorySheetButton2: View {
+#if os(iOS)
+struct CategorySheetButtonWithNoSymbol: View {
     @State private var showCategorySheet = false
     @State private var categoryMenuColor: Color = Color(.tertiarySystemFill)
     @Binding var category: CBCategory?
+    
+    var alignment: Alignment = .trailing
     
     var title: String {
         if let category {
@@ -73,21 +75,19 @@ struct CategorySheetButton2: View {
         Button {
             showCategorySheet = true
         } label: {
-            HStack {
-                Spacer()
-                HStack(spacing: 4) {
-                    Text(title)
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                }
-                .tint(.none)
-                #if os(iOS)
-                .foregroundStyle(Color(.secondaryLabel))
-                #else
-                .foregroundStyle(.secondary)
-                #endif
+            HStack(spacing: 4) {
+                Text(title)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption)
+                    .fontWeight(.semibold)
             }
+            .frame(maxWidth: .infinity, alignment: alignment)
+            .tint(.none)
+            #if os(iOS)
+            .foregroundStyle(alignment == .trailing ? Color(.secondaryLabel) : .primary)
+            #else
+            .foregroundStyle(alignment == .trailing ? .secondary : .primary)
+            #endif
         }
         .contentShape(Rectangle())
         .focusable(false)
@@ -104,7 +104,9 @@ struct CategorySheetButton2: View {
 
 
 
-struct CategorySheetButton3: View {
+struct CategorySheetButtonPhone: View {
+    @Local(\.categoryIndicatorAsSymbol) var categoryIndicatorAsSymbol
+
     @State private var showCategorySheet = false
     @State private var categoryMenuColor: Color = Color(.tertiarySystemFill)
     @Binding var category: CBCategory?
@@ -114,25 +116,41 @@ struct CategorySheetButton3: View {
             Label {
                 Text("Category")
             } icon: {
-                if let cat = category {
-                    if cat.isNil {
-                        Image(systemName: "questionmark.circle")
-                            .foregroundStyle(.gray)
-                    } else {
-                        Image(systemName: cat.emoji ?? "questionmark.circle")
-                            .foregroundStyle(cat.color)
-                    }
-                } else {
-                    Image(systemName: category?.emoji ?? "questionmark.circle")
-                        .foregroundStyle(category?.color ?? .gray)
-                }
+                icon
             }
             
             Spacer()
-            CategorySheetButton2(category: $category)
+            CategorySheetButtonWithNoSymbol(category: $category)
         }
     }
+    
+    @ViewBuilder
+    var icon: some View {
+        if let cat = category {
+            if cat.isNil {
+                questionMark
+            } else {
+                categorySymbol(for: cat)
+            }
+        } else {
+            noCategorySymbol
+        }
+    }
+    
+    var questionMark: some View {
+        Image(systemName: "questionmark.circle")
+            .foregroundStyle(.gray)
+    }
+    
+    @ViewBuilder func categorySymbol(for cat: CBCategory) -> some View {
+        Image(systemName: categoryIndicatorAsSymbol ? (cat.emoji ?? "circle.fill") : "circle.fill")
+            .foregroundStyle(cat.color)
+    }
+    
+    var noCategorySymbol: some View {
+        Image(systemName: "circle.fill")
+            .foregroundStyle(.gray)
+    }
+    
 }
-
-
-
+#endif

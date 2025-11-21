@@ -58,7 +58,7 @@ class CalendarModel: FileUploadCompletedDelegate {
     var transactionToCopy: CBTransaction?
     var transactionIdToCopy: String?
     var dragTarget: CBDay?
-    var hilightTrans: CBTransaction?
+    //var hilightTrans: CBTransaction?
     
     var isInMultiSelectMode = false
     var multiSelectTransactions: Array<CBTransaction> = []
@@ -268,7 +268,7 @@ class CalendarModel: FileUploadCompletedDelegate {
     
     
     @MainActor
-    func advancedSearch(model: AdvancedSearchModel) async {
+    func advancedSearch(model: AdvancedSearchModel, sortOrder: SortOrder) async {
         print("-- \(#function)")
         LogManager.log()
         
@@ -280,7 +280,11 @@ class CalendarModel: FileUploadCompletedDelegate {
         case .success(let model):
             LogManager.networkingSuccessful()
             if let model {
-                searchedTransactions = model.sorted { $0.date ?? Date() > $1.date ?? Date() }
+                if sortOrder == .forward {
+                    searchedTransactions = model.sorted { $0.date ?? Date() > $1.date ?? Date() }
+                } else {
+                    searchedTransactions = model.sorted { $0.date ?? Date() < $1.date ?? Date() }
+                }
             }
             
         case .failure (let error):
@@ -300,8 +304,11 @@ class CalendarModel: FileUploadCompletedDelegate {
     // MARK: - Transaction Stuff
     
     func filteredTrans(day: CBDay) -> Array<CBTransaction> {
-        let transactionSortMode = TransactionSortMode.fromString(UserDefaults.standard.string(forKey: "transactionSortMode") ?? "")
-        let categorySortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
+        //let transactionSortMode = TransactionSortMode.fromString(UserDefaults.standard.string(forKey: "transactionSortMode") ?? "")
+        //let categorySortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
+        
+        let transactionSortMode = LocalStorage.shared.transactionSortMode
+        let categorySortMode = LocalStorage.shared.categorySortMode
         
         /// This will look at both the transaction, and its deepCopy.
         /// The reason being - in case we change a transction category or payment method from what is currently being viewed. This will allow the transaction sheet to remain on screen until we close it, at which point the save function will clear the deepCopy.
@@ -327,7 +334,7 @@ class CalendarModel: FileUploadCompletedDelegate {
                         
                         
 //                        if searchText.first == "#" {
-//                            let actualSearch = searchText.replacingOccurrences(of: "#", with: "")
+//                            let actualSearch = searchText.replacing("#", with: "")
 //                            return
 //                                !trans.tags.filter { $0.tag.localizedCaseInsensitiveContains(actualSearch) }.isEmpty
 //                                && sCategories.map{ $0.id }.contains { trans.categoryIdsInCurrentAndDeepCopy.contains($0) }
@@ -349,7 +356,7 @@ class CalendarModel: FileUploadCompletedDelegate {
                     } else {
                         return (trans.title.localizedCaseInsensitiveContains(searchText) || !trans.tags.filter { $0.tag.localizedCaseInsensitiveContains(searchText) }.isEmpty)
 //                        if searchText.first == "#" {
-//                            let actualSearch = searchText.replacingOccurrences(of: "#", with: "")
+//                            let actualSearch = searchText.replacing("#", with: "")
 //                            return !trans.tags.filter { $0.tag.localizedCaseInsensitiveContains(actualSearch) }.isEmpty
 //                        } else {
 //                            return trans.title.localizedCaseInsensitiveContains(searchText)
@@ -525,7 +532,8 @@ class CalendarModel: FileUploadCompletedDelegate {
             months.forEach { month in
                 month.days.forEach { day in
                     day.transactions.forEach { trans in
-                        if trans.id == id {
+#warning("serverID Change")
+                        if trans.serverID == id {
                             /// Ignore the currently viewed transaction if coming back to the app from another app (ie if bouncing back and forth between this app and a banking app)
                             if id == transEditID {
                                 if refreshTechnique == .viaSceneChange || refreshTechnique == .viaTempListSceneChange {
@@ -653,8 +661,14 @@ class CalendarModel: FileUploadCompletedDelegate {
             case .searchResultList:     searchedTransactions
             //case .eventList:            eventTransactions
         }
+        #warning("ServerID")
         
-        return theList.first(where: { $0.id == id }) ?? CBTransaction(uuid: id)
+        if let trans = theList.first(where: { ($0.id == id || $0.serverID == id) }) {
+            //print("found existing transaction via \(id)")
+            return trans
+        }
+        //print("did not find existing transaction via \(id). Creating new one")
+        return CBTransaction(uuid: id)
     }
     
     
@@ -695,6 +709,12 @@ class CalendarModel: FileUploadCompletedDelegate {
         /// Check for blank title or missing payment method
         if trans.title.isEmpty || trans.payMethod == nil /*&& day.date == nil*/ {
             print("-- \(#function) -- Title or payment method missing 1")
+            if trans.title.isEmpty {
+                print("Title is empty")
+            }
+            if trans.payMethod == nil {
+                print("payMethod is nil")
+            }
             /// If a transaction is already existing, and you wipe out the title, put the title back and alert the user.
             if trans.intendedServerAction == .edit && trans.title.isEmpty {
                 trans.title = trans.deepCopy?.title ?? ""
@@ -716,7 +736,8 @@ class CalendarModel: FileUploadCompletedDelegate {
             
             if !trans.title.isEmpty && trans.payMethod == nil {
                 Task {
-                    try? await Task.sleep(nanoseconds: UInt64(0.5 * Double(NSEC_PER_SEC)))
+                    try await Task.sleep(for: .seconds(0.5))
+                    //try? await Task.sleep(nanoseconds: UInt64(0.5 * Double(NSEC_PER_SEC)))
                     AppState.shared.showToast(title: "Failed To Save", subtitle: "Account was missing", body: "", symbol: "exclamationmark.triangle", symbolColor: .orange)
                 }
             }
@@ -727,7 +748,8 @@ class CalendarModel: FileUploadCompletedDelegate {
         if trans.date == nil && (trans.isSmartTransaction ?? false) {
             print("-- \(#function) -- Trans date is nil and isSmartTransaction")
             Task {
-                try? await Task.sleep(nanoseconds: UInt64(0.5 * Double(NSEC_PER_SEC)))
+                try await Task.sleep(for: .seconds(0.5))
+                //try? await Task.sleep(nanoseconds: UInt64(0.5 * Double(NSEC_PER_SEC)))
                 AppState.shared.showToast(title: "Failed To Save", subtitle: "Date was missing", body: "", symbol: "exclamationmark.triangle", symbolColor: .orange)
             }
             return false
@@ -750,192 +772,193 @@ class CalendarModel: FileUploadCompletedDelegate {
         return true
     }
   
-    
-    func saveTransactionFromEvent(eventTrans: CBEventTransaction, relatedID: String) {
-        print("-- \(#function) -- \(eventTrans.title) - \(eventTrans.id)")
-        
-        /// Create a placeholder(maybe) realTrans.
-        /// This will be replaced with an actual realTrans if it already exists in the current model.
-        var trans: CBTransaction = CBTransaction(eventTrans: eventTrans, relatedID: relatedID)
-        
-        /// Check if the realTrans exists in the current model.
-        let doesExist = doesTransactionExist(with: relatedID)
-        
-        /// If the realTrans exists in the current model.
-        if doesExist {
-            /// Replace the realTrans placeholder with the found trans.
-            trans = getTransaction(by: relatedID)
-            trans.action = eventTrans.actionForRealTransaction!
-            
-            /// Make the realTrans action the same as the eventTrans and do logic.
-            switch trans.action {
-            case .add:
-                print("ADD1")
-                /// This won't do anything else because if you're adding, the realTrans will not exist, so this entire code block won't run.
-                break
-                
-            case .edit:
-                print("EDIT1")
-                /// Create deepCopy so we can check for date changes.
-                trans.deepCopy(.create)
-                /// Update the realTrans with the properties from the eventTrans.
-                trans.setFromEventInstance(eventTrans: eventTrans)
-                /// Change the date if applicable.
-                if trans.dateChanged() {
-                    print("Date changed")
-                    changeDate(trans)
-                    
-                } else {
-                    print("date did not change")
-                }
-                
-            case .delete:
-                print("DELETE1")
-                /// Remove the realTrans from the day.
-                
-                if let targetMonth = months.filter({ $0.actualNum == trans.dateComponents?.month && $0.year == trans.dateComponents?.year }).first {
-                    /// Find the day of the eventTrans.
-                    if let targetDay = targetMonth.days.filter({ $0.dateComponents?.day == trans.date?.day }).first {
-                        targetDay.remove(trans)
-                        let _ = calculateTotal(for: sMonth)
-                        eventTrans.relatedTransactionID = nil
-                    }
-                }
-            }
-                                    
-        } else /*The realTrans does not exist locally.*/ {
-            /// Find the month of the eventTrans.
-            if let targetMonth = months.filter({ $0.actualNum == eventTrans.dateComponents?.month && $0.year == eventTrans.dateComponents?.year }).first {
-                /// Find the day of the eventTrans.
-                if let targetDay = targetMonth.days.filter({ $0.dateComponents?.day == eventTrans.date?.day }).first {
-                    
-                    switch trans.action {
-                    case .add:
-                        print("ADD2")
-                        /// Add the placeholder trans to the target day.
-                        targetDay.upsert(trans)
-                        
-                    case .edit:
-                        print("EDIT2")
-                        /// Create deepCopy so we can check for date changes.
-                        trans.deepCopy(.create)
-                        
-                        /// Update the realTrans with the properties from the eventTrans.
-                        trans.setFromEventInstance(eventTrans: eventTrans)
-                        
-                        /// When bringing a transaction from a different year into the current year.
-                        if !targetDay.isExisting(trans) {
-                            targetDay.upsert(trans)
-                        }
-                        
-                        /// Change the date if applicable.
-                        if trans.dateChanged() { changeDate(trans) }
-                        
-                    case .delete:
-                        print("DELETE2")
-                        /// Remove the realTrans from the day.
-                        targetDay.removeTransaction(by: relatedID)
-                        eventTrans.relatedTransactionID = nil
-                    }
-                
-                } else {
-                    print("cannot find target day")
-                }
-            } else {
-                print("cannot find target month")
-            }
-        }
-        
-        /// Run the networking code. I'm using this seperate task instance since `submit(_ trans: CBTransaction)` has a bunch of extra logic that I don't need.
-        Task {
-            //let _ = await submit(trans)
-            print("Trans ID \(trans.id) is headed to the server with an action key of \(trans.action)")
-                        
-            #if os(iOS)
-            var backgroundTaskID: UIBackgroundTaskIdentifier?
-            backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: "Update Transactions") {
-                UIApplication.shared.endBackgroundTask(backgroundTaskID!)
-                backgroundTaskID = .invalid
-            }
-            #endif
-
-            /// Starts the spinner after 2 seconds
-            startDelayedLoadingSpinnerTimer()
-            print("-- \(#function)")
-
-            isThinking = true
-
-            var isNew = false
-            /// If the trans is new, set the flag, but put it in edit mode so the coredata trans gets prooperly updated.
-            if trans.action == .add {
-                isNew = true
-                trans.action = .edit
-            }
-            
-            LogManager.log()
-            let model = RequestModel(requestType: isNew ? TransactionAction.add.serverKey : trans.action.serverKey, model: trans)
-                            
-            /// Do Networking.
-            typealias ResultResponse = Result<ParentChildIdModel?, AppError>
-            async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
-                        
-            switch await result {
-            case .success(let model):
-                LogManager.networkingSuccessful()
-                                
-                if isNew {
-                    trans.id = String(model?.parentID.id ?? "0")
-                    trans.uuid = nil
-                    trans.action = .edit
-                    
-                    eventTrans.relatedTransactionID = trans.id
-                }
-                                                
-                isThinking = false
-                
-                /// At this point, in the future the trans will always be in edit mode unless it was deleted.
-                trans.action = .edit
-                            
-                print("✅Transaction \(trans.id) - \(trans.title) from event successfully saved")
-                /// Cancel the loading spinner if it hasn't started, otherwise hide it,
-                stopDelayedLoadingSpinnerTimer()
-                
-                
-                /// End the background task.
-                #if os(iOS)
-                UIApplication.shared.endBackgroundTask(backgroundTaskID!)
-                backgroundTaskID = .invalid
-                #endif
-                
-                /// Return successful save result to the caller.
-                return true
-                
-            case .failure(let error):
-                print("Transaction failed to save")
-                LogManager.error(error.localizedDescription)
-                AppState.shared.showAlert("There was a problem trying to save the transaction. Will try again at a later time.")
-                //trans.deepCopy(.restore)
-
-                isThinking = false
-                trans.action = .edit
-                
-                /// Cancel the loading spinner if it hasn't started, otherwise hide it,
-                stopDelayedLoadingSpinnerTimer()
-                
-                /// End the background task.
-                #if os(iOS)
-                UIApplication.shared.endBackgroundTask(backgroundTaskID!)
-                backgroundTaskID = .invalid
-                #endif
-                
-                /// Return unsuccessful save result to the caller.
-                return false
-            }
-        }
-    }
-    
-    
-    func saveTransaction(id: String, /*day: CBDay? = nil,*/ location: WhereToLookForTransaction = .normalList, eventModel: EventModel? = nil) {
+//    
+//    func saveTransactionFromEvent(eventTrans: CBEventTransaction, relatedID: String) {
+//        print("-- \(#function) -- \(eventTrans.title) - \(eventTrans.id)")
+//        
+//        /// Create a placeholder(maybe) realTrans.
+//        /// This will be replaced with an actual realTrans if it already exists in the current model.
+//        var trans: CBTransaction = CBTransaction(eventTrans: eventTrans, relatedID: relatedID)
+//        
+//        /// Check if the realTrans exists in the current model.
+//        let doesExist = doesTransactionExist(with: relatedID)
+//        
+//        /// If the realTrans exists in the current model.
+//        if doesExist {
+//            /// Replace the realTrans placeholder with the found trans.
+//            trans = getTransaction(by: relatedID)
+//            trans.action = eventTrans.actionForRealTransaction!
+//            
+//            /// Make the realTrans action the same as the eventTrans and do logic.
+//            switch trans.action {
+//            case .add:
+//                print("ADD1")
+//                /// This won't do anything else because if you're adding, the realTrans will not exist, so this entire code block won't run.
+//                break
+//                
+//            case .edit:
+//                print("EDIT1")
+//                /// Create deepCopy so we can check for date changes.
+//                trans.deepCopy(.create)
+//                /// Update the realTrans with the properties from the eventTrans.
+//                trans.setFromEventInstance(eventTrans: eventTrans)
+//                /// Change the date if applicable.
+//                if trans.dateChanged() {
+//                    print("Date changed")
+//                    changeDate(trans)
+//                    
+//                } else {
+//                    print("date did not change")
+//                }
+//                
+//            case .delete:
+//                print("DELETE1")
+//                /// Remove the realTrans from the day.
+//                
+//                if let targetMonth = months.filter({ $0.actualNum == trans.dateComponents?.month && $0.year == trans.dateComponents?.year }).first {
+//                    /// Find the day of the eventTrans.
+//                    if let targetDay = targetMonth.days.filter({ $0.dateComponents?.day == trans.date?.day }).first {
+//                        targetDay.remove(trans)
+//                        let _ = calculateTotal(for: sMonth)
+//                        eventTrans.relatedTransactionID = nil
+//                    }
+//                }
+//            }
+//                                    
+//        } else /*The realTrans does not exist locally.*/ {
+//            /// Find the month of the eventTrans.
+//            if let targetMonth = months.filter({ $0.actualNum == eventTrans.dateComponents?.month && $0.year == eventTrans.dateComponents?.year }).first {
+//                /// Find the day of the eventTrans.
+//                if let targetDay = targetMonth.days.filter({ $0.dateComponents?.day == eventTrans.date?.day }).first {
+//                    
+//                    switch trans.action {
+//                    case .add:
+//                        print("ADD2")
+//                        /// Add the placeholder trans to the target day.
+//                        targetDay.upsert(trans)
+//                        
+//                    case .edit:
+//                        print("EDIT2")
+//                        /// Create deepCopy so we can check for date changes.
+//                        trans.deepCopy(.create)
+//                        
+//                        /// Update the realTrans with the properties from the eventTrans.
+//                        trans.setFromEventInstance(eventTrans: eventTrans)
+//                        
+//                        /// When bringing a transaction from a different year into the current year.
+//                        if !targetDay.isExisting(trans) {
+//                            targetDay.upsert(trans)
+//                        }
+//                        
+//                        /// Change the date if applicable.
+//                        if trans.dateChanged() { changeDate(trans) }
+//                        
+//                    case .delete:
+//                        print("DELETE2")
+//                        /// Remove the realTrans from the day.
+//                        targetDay.removeTransaction(by: relatedID)
+//                        eventTrans.relatedTransactionID = nil
+//                    }
+//                
+//                } else {
+//                    print("cannot find target day")
+//                }
+//            } else {
+//                print("cannot find target month")
+//            }
+//        }
+//        
+//        /// Run the networking code. I'm using this seperate task instance since `submit(_ trans: CBTransaction)` has a bunch of extra logic that I don't need.
+//        Task {
+//            //let _ = await submit(trans)
+//            print("Trans ID \(trans.id) is headed to the server with an action key of \(trans.action)")
+//                        
+//            #if os(iOS)
+//            var backgroundTaskID: UIBackgroundTaskIdentifier?
+//            backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: "Update Transactions") {
+//                UIApplication.shared.endBackgroundTask(backgroundTaskID!)
+//                backgroundTaskID = .invalid
+//            }
+//            #endif
+//
+//            /// Starts the spinner after 2 seconds
+//            startDelayedLoadingSpinnerTimer()
+//            print("-- \(#function)")
+//
+//            isThinking = true
+//
+//            var isNew = false
+//            /// If the trans is new, set the flag, but put it in edit mode so the coredata trans gets prooperly updated.
+//            if trans.action == .add {
+//                isNew = true
+//                trans.action = .edit
+//            }
+//            
+//            LogManager.log()
+//            let model = RequestModel(requestType: isNew ? TransactionAction.add.serverKey : trans.action.serverKey, model: trans)
+//                            
+//            /// Do Networking.
+//            typealias ResultResponse = Result<ParentChildIdModel?, AppError>
+//            async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+//                        
+//            switch await result {
+//            case .success(let model):
+//                LogManager.networkingSuccessful()
+//                                
+//                if isNew {
+//                    trans.id = String(model?.parentID.id ?? "0")
+//                    trans.uuid = nil
+//                    trans.action = .edit
+//                    
+//                    eventTrans.relatedTransactionID = trans.id
+//                }
+//                                                
+//                isThinking = false
+//                
+//                /// At this point, in the future the trans will always be in edit mode unless it was deleted.
+//                trans.action = .edit
+//                            
+//                print("✅Transaction \(trans.id) - \(trans.title) from event successfully saved")
+//                /// Cancel the loading spinner if it hasn't started, otherwise hide it,
+//                stopDelayedLoadingSpinnerTimer()
+//                
+//                
+//                /// End the background task.
+//                #if os(iOS)
+//                UIApplication.shared.endBackgroundTask(backgroundTaskID!)
+//                backgroundTaskID = .invalid
+//                #endif
+//                
+//                /// Return successful save result to the caller.
+//                return true
+//                
+//            case .failure(let error):
+//                print("Transaction failed to save")
+//                LogManager.error(error.localizedDescription)
+//                AppState.shared.showAlert("There was a problem trying to save the transaction. Will try again at a later time.")
+//                //trans.deepCopy(.restore)
+//
+//                isThinking = false
+//                trans.action = .edit
+//                
+//                /// Cancel the loading spinner if it hasn't started, otherwise hide it,
+//                stopDelayedLoadingSpinnerTimer()
+//                
+//                /// End the background task.
+//                #if os(iOS)
+//                UIApplication.shared.endBackgroundTask(backgroundTaskID!)
+//                backgroundTaskID = .invalid
+//                #endif
+//                
+//                /// Return unsuccessful save result to the caller.
+//                return false
+//            }
+//        }
+//    }
+//    
+    @discardableResult
+    @MainActor
+    func saveTransaction(id: String, /*day: CBDay? = nil,*/ location: WhereToLookForTransaction = .normalList, eventModel: EventModel? = nil) async -> Bool {
         self.transEditID = nil
         cleanTags()
         //hilightTrans = nil
@@ -988,6 +1011,9 @@ class CalendarModel: FileUploadCompletedDelegate {
         }
         
         if transactionIsValid(trans: trans/*, day: day*/) {
+            trans.status = .inFlight
+            
+            var saveResultToReturn: Bool = false
             print("✅ Trans is valid to save")
             /// Set the updated by user and date.
             trans.updatedBy = AppState.shared.user!
@@ -1011,14 +1037,16 @@ class CalendarModel: FileUploadCompletedDelegate {
                         
             if trans.action == .delete {
                 /// Check if the transaction has a related ID (like from a transfer or payment).
-                if trans.relatedTransactionID != nil && trans.relatedTransactionType == XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction) {
+                if trans.relatedTransactionID != nil
+                    && trans.relatedTransactionType == XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
+                {
                     let trans2 = getTransaction(by: trans.relatedTransactionID!, from: .normalList)
                     trans2.intendedServerAction = .delete
                                         
-                    self.delete(trans)
-                    self.delete(trans2)
+                    saveResultToReturn = await self.delete(trans)
+                    _ = await self.delete(trans2)
                 } else {
-                    self.delete(trans, eventModel: eventModel)
+                    saveResultToReturn = await self.delete(trans, eventModel: eventModel)
                 }
                 // Only a data change trigger is after this code.
                 
@@ -1035,6 +1063,7 @@ class CalendarModel: FileUploadCompletedDelegate {
                 && trans.relatedTransactionType == XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction) {
                                         
                     let trans2 = getTransaction(by: trans.relatedTransactionID!, from: .normalList)
+                    trans.status = .inFlight
                     trans2.deepCopy(.create)
                     trans2.updatedBy = AppState.shared.user!
                     trans2.updatedDate = Date()
@@ -1064,9 +1093,9 @@ class CalendarModel: FileUploadCompletedDelegate {
                     }
                     
                     /// Submit to the server.
-                    Task {
+                    //Task {
                         await withTaskGroup(of: Void.self) { group in
-                            group.addTask { let _ = await self.submit(trans) }
+                            group.addTask { saveResultToReturn = await self.submit(trans) }
                             group.addTask { let _ = await self.submit(trans2) }
                         }
                         
@@ -1079,18 +1108,18 @@ class CalendarModel: FileUploadCompletedDelegate {
 //                                NotificationManager.shared.sendNotification(title: toastLingo, subtitle: trans.title, body: trans.amountString)
 //                            }
 //                        }
-                    }
+                    //}
                 } else {
-                    Task { @MainActor in
+                    //Task { @MainActor in
                         trans.actionBeforeSave = trans.action
                         /// If we filter transactions by category or by payment method, and change it on the transaction, we need the line below to cause the transaction to disappear when closing it.
                         /// The transaction filter function that provides the views with the transactions looks for both the transaction and it's deep copy. When changing a category for example, the trans will remain due to the deep copy still having the old reference.
                         trans.deepCopy(.clear)
                         
-                        let _ = await submit(trans)
+                        saveResultToReturn = await submit(trans)
                         showToastsForTransactionSave(showSmartTransAlert: location == .smartList, trans: trans)
                         self.handleSavingOfEventTransaction(trans: trans, eventModel: eventModel)
-                    }
+                    //}
                 }
                 
                 
@@ -1103,11 +1132,191 @@ class CalendarModel: FileUploadCompletedDelegate {
             /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
             /// So we use the ``DataChangeTriggers`` class to send a notification to the view to tell it to recalculate.
             DataChangeTriggers.shared.viewDidChange(.calendar)
+            return saveResultToReturn
         } else {
+            trans.status = nil
             print("❌ Trans is not valid to save")
+            return false
         }
     }
     
+//    
+//    @discardableResult
+//    func saveTransactionOG(id: String, /*day: CBDay? = nil,*/ location: WhereToLookForTransaction = .normalList, eventModel: EventModel? = nil) -> Bool {
+//        self.transEditID = nil
+//        cleanTags()
+//        //hilightTrans = nil
+//                
+//        let trans = getTransaction(by: id, from: location)
+//        print("-- \(#function) id: \(id) - looking in \(location) - \(trans.title) - \(trans.id)")
+//        
+//        trans.intendedServerAction = trans.action
+//        /// Immediately flip the action to edit so 1. the transaction will show on the calendar, and 2. The transaction won't do all its "I'm a new transaction" logic if you open it before it completes its very first round trip from the server.
+//        if trans.action == .add {
+//            /// Animate adding the transaction to the day.
+//            withAnimation {
+//                trans.action = .edit
+//            }
+//        }
+//        
+//        if trans.isSmartTransaction ?? false {
+//            trans.smartTransactionIsAcknowledged = true
+//        }
+//        
+////        if location == .eventList {
+////
+////
+////            if let targetMonth = months.filter({ $0.actualNum == trans.dateComponents?.month && $0.year == trans.dateComponents?.year }).first {
+////                if let targetDay = targetMonth.days.filter({ $0.dateComponents?.day == trans.date?.day }).first {
+////                    let exists = !targetDay.transactions.filter { $0.id == trans.id }.isEmpty
+////                    if !exists && trans.action == .add {
+////                        targetDay.upsert(trans)
+////
+////                    } else if exists && trans.action == .delete {
+////                        targetDay.remove(trans)
+////                    }
+////                } else {
+////                   print("cant find target day \(trans.title)")
+////                }
+////            } else {
+////                print("cant find target month \(trans.title)")
+////            }
+////
+////
+////            eventTransactions.removeAll(where: { $0.id == id })
+////
+////        } else
+//                
+//        //print("smartTransactionIsAcknowledged result before handle \(trans.smartTransactionIsAcknowledged)")
+//        
+//        /// Go update the normal transaction list if changing that transaction via the smart list (temp list) or search result list.
+//        if location == .smartList || location == .searchResultList {
+//            self.handleTransactions([trans], refreshTechnique: nil)
+//        }
+//        
+//        if transactionIsValid(trans: trans/*, day: day*/) {
+//            print("✅ Trans is valid to save")
+//            /// Set the updated by user and date.
+//            trans.updatedBy = AppState.shared.user!
+//            trans.updatedDate = Date()
+//            
+//            /// Update the searched transactions if they are in the search list and you update them like normal.
+//            if let index = searchedTransactions.firstIndex(where: { $0.id == id }) {
+//                let otherTrans = searchedTransactions[index]
+//                otherTrans.setFromAnotherInstance(transaction: trans)
+//            }
+//            
+//            /// Update the temp transactions if they are in the search list and you update them like normal. (I don't think this would be very common though).
+//            if let index = tempTransactions.firstIndex(where: { $0.id == id }) {
+//                let otherTrans = tempTransactions[index]
+//                otherTrans.setFromAnotherInstance(transaction: trans)
+//            }
+//            
+//            
+//            /// Move the transaction if applicable.
+//            if trans.dateChanged() { changeDate(trans) }
+//                        
+//            if trans.action == .delete {
+//                /// Check if the transaction has a related ID (like from a transfer or payment).
+//                if trans.relatedTransactionID != nil && trans.relatedTransactionType == XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction) {
+//                    let trans2 = getTransaction(by: trans.relatedTransactionID!, from: .normalList)
+//                    trans2.intendedServerAction = .delete
+//                                        
+//                    self.delete(trans)
+//                    self.delete(trans2)
+//                } else {
+//                    self.delete(trans, eventModel: eventModel)
+//                }
+//                // Only a data change trigger is after this code.
+//                
+//            } else {
+//                /// Recalculate totals for each day.
+//                Task { let _ = calculateTotal(for: sMonth) }
+//                
+//                //let toastLingo = "Successfully \(trans.action == .add ? "Added" : "Updated")"
+//                
+//                /// Check if the transaction has a related ID (like from a transfer or payment).
+//                /// This will not handle event transactions!
+//                if trans.relatedTransactionID != nil
+//                && trans.intendedServerAction != .add
+//                && trans.relatedTransactionType == XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction) {
+//                                        
+//                    let trans2 = getTransaction(by: trans.relatedTransactionID!, from: .normalList)
+//                    trans2.deepCopy(.create)
+//                    trans2.updatedBy = AppState.shared.user!
+//                    trans2.updatedDate = Date()
+//                    trans2.intendedServerAction = trans.intendedServerAction
+//                    trans2.factorInCalculations = trans.factorInCalculations
+//                    //trans2.color = trans.color
+//                    
+//                    /// Update the linked date.
+//                    if trans.dateChanged() {
+//                        trans2.date = trans.date
+//                        changeDate(trans2)
+//                    }
+//                    
+//                    /// Update the dollar amounts accordingly.
+//                    let useWholeNumbers = LocalStorage.shared.useWholeNumbers
+//                    if trans.payMethod?.accountType != .credit && trans.payMethod?.accountType != .loan {
+//                        if trans2.payMethod?.accountType == .credit || trans2.payMethod?.accountType == .loan {
+//                            trans2.amountString = (trans.amount * 1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
+//                        } else {
+//                            trans2.amountString = (trans.amount * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
+//                        }
+//                        
+//                    } else if trans2.payMethod?.accountType == .credit || trans2.payMethod?.accountType == .loan {
+//                        trans2.amountString = (trans.amount * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
+//                    } else {
+//                        trans2.amountString = (trans.amount * 1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
+//                    }
+//                    
+//                    /// Submit to the server.
+//                    Task {
+//                        await withTaskGroup(of: Void.self) { group in
+//                            group.addTask { let _ = await self.submit(trans) }
+//                            group.addTask { let _ = await self.submit(trans2) }
+//                        }
+//                        
+////                        if sPayMethod?.accountType == .checking || sPayMethod?.accountType == .cash {
+////                            if trans.payMethod?.accountType != .checking && trans.payMethod?.accountType != .cash {
+////                                NotificationManager.shared.sendNotification(title: toastLingo, subtitle: trans.title, body: trans.amountString)
+////                            }
+////                        } else {
+////                            if trans.payMethod?.accountType == .checking && trans.payMethod?.accountType == .cash {
+////                                NotificationManager.shared.sendNotification(title: toastLingo, subtitle: trans.title, body: trans.amountString)
+////                            }
+////                        }
+//                    }
+//                } else {
+//                    Task { @MainActor in
+//                        trans.actionBeforeSave = trans.action
+//                        /// If we filter transactions by category or by payment method, and change it on the transaction, we need the line below to cause the transaction to disappear when closing it.
+//                        /// The transaction filter function that provides the views with the transactions looks for both the transaction and it's deep copy. When changing a category for example, the trans will remain due to the deep copy still having the old reference.
+//                        trans.deepCopy(.clear)
+//                        
+//                        let _ = await submit(trans)
+//                        showToastsForTransactionSave(showSmartTransAlert: location == .smartList, trans: trans)
+//                        self.handleSavingOfEventTransaction(trans: trans, eventModel: eventModel)
+//                    }
+//                }
+//                
+//                
+//                if location == .smartList {
+//                    tempTransactions.removeAll(where: {$0.id == trans.id})
+//                }
+//                
+//            }
+//            
+//            /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
+//            /// So we use the ``DataChangeTriggers`` class to send a notification to the view to tell it to recalculate.
+//            DataChangeTriggers.shared.viewDidChange(.calendar)
+//            return true
+//        } else {
+//            print("❌ Trans is not valid to save")
+//            return false
+//        }
+//    }
+//    
     
     private func handleSavingOfEventTransaction(trans: CBTransaction, eventModel: EventModel? = nil) {
         
@@ -1239,12 +1448,14 @@ class CalendarModel: FileUploadCompletedDelegate {
         let _ = await submit(trans)
     }
     
+    
     /// Only called via `saveTransaction(id: day:)` or `saveTemp(trans:)`.
     @MainActor
     private func submit(_ trans: CBTransaction) async -> Bool {
-        let context = DataManager.shared.createContext()
         print("-- \(#function)")
         print("Submitting Trans \(trans.id)")
+        
+        let context = DataManager.shared.createContext()
         /// Allow the transaction more time to save if the user enters the background.
         #if os(iOS)
         var backgroundTaskID: UIBackgroundTaskIdentifier?
@@ -1259,19 +1470,10 @@ class CalendarModel: FileUploadCompletedDelegate {
         LoadingManager.shared.startLongNetworkTimer()
         
         isThinking = true
-        
-//        var isNew = false
-//        /// If the trans is new, set the flag, but put it in edit mode so the coredata trans gets properly updated.
-//        if trans.action == .add {
-//            isNew = true
-//            trans.action = .edit
-//        }
-        
-        
+       
+        /// Add a temporary transaction to coredata (For when the app was already loaded, but you went back to it after entering an area of bad network connection).
+        /// This way, if you add a transaction in an area of bad connection, the transaction won't be lost when you try and save it.
         context.performAndWait {
-            
-            /// Add a temporary transaction to coredata (For when the app was already loaded, but you went back to it after entering an area of bad network connection)
-            /// This way, if you add a transaction in an area of bad connection, the trans won't be lost when you try and save it.
             if let entity = DataManager.shared.getOne(context: context, type: TempTransaction.self, predicate: .byId(.string(trans.id)), createIfNotFound: true)  {
                 entity.id = trans.id
                 entity.title = trans.title
@@ -1297,13 +1499,11 @@ class CalendarModel: FileUploadCompletedDelegate {
             }
         }
         
-        //self.tempTransactions.append(trans)
-        
         LogManager.log()
         let model = RequestModel(requestType: trans.intendedServerAction.serverKey, model: trans)
             
         /// Used to test the snapshot data race
-        //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
+        //try? await Task.sleep(for: .seconds(2))
         
         /// Do Networking.
         typealias ResultResponse = Result<ParentChildIdModel?, AppError>
@@ -1319,15 +1519,17 @@ class CalendarModel: FileUploadCompletedDelegate {
             if trans.isFromCoreData {
                 let actualTrans = justTransactions.first(where: { $0.id == trans.id })
                 if let actualTrans {
-                    actualTrans.id = String(model?.parentID.id ?? "0")
-                    actualTrans.uuid = nil
-                    //actualTrans.action = .edit
+                    #warning("serverID Change")
+                    actualTrans.serverID = String(model?.parentID.id ?? "0")
+                    #warning("put back if abaodon serverID")
+                    //actualTrans.uuid = nil
                     actualTrans.intendedServerAction = .edit
                 }
             } else {
-                trans.id = String(model?.parentID.id ?? "0")
-                trans.uuid = nil
-                //trans.action = .edit
+                #warning("serverID Change")
+                trans.serverID = String(model?.parentID.id ?? "0")
+                #warning("put back if abaodon serverID")
+                //trans.uuid = nil
                 trans.intendedServerAction = .edit
             }
                                                 
@@ -1347,16 +1549,23 @@ class CalendarModel: FileUploadCompletedDelegate {
             }
             
             isThinking = false
+            if trans.action == .delete {
+                //trans.status = nil
+                trans.status = .deleteSucceess
+            } else {
+                trans.status = .saveSuccess
+            }
+            performLineItemAnimations(for: trans)
+            
             
             /// At this point, in the future the trans will always be in edit mode unless it was deleted.
-            //trans.action = .edit
             trans.intendedServerAction = .edit
             
             /// Clear the logs since they will be refetched live when trying to view the transaction again. (Prevents dupes).
             trans.logs.removeAll()
                         
             print("✅Transaction successfully saved")
-            /// Cancel the loading spinner if it hasn't started, otherwise hide it,
+            /// Cancel the loading spinner if it hasn't started, otherwise hide it.
             stopDelayedLoadingSpinnerTimer()
             
             /// End the background task.
@@ -1366,7 +1575,7 @@ class CalendarModel: FileUploadCompletedDelegate {
             #endif
             
             if LoadingManager.shared.showLongNetworkTaskToast {
-                AppState.shared.showToast(title: "Transaction Successfully Saved", subtitle: "Maybe the network doesn't suck", body: nil, symbol: "checkmark", symbolColor: .green)
+                AppState.shared.showToast(title: "Transaction Successfully Saved", subtitle: "Network connection seems stable.", body: nil, symbol: "checkmark", symbolColor: .green)
             }
             
             LoadingManager.shared.stopLongNetworkTimer()
@@ -1384,6 +1593,8 @@ class CalendarModel: FileUploadCompletedDelegate {
 
             isThinking = false
             trans.action = .edit
+            trans.status = .saveFail
+            performLineItemAnimations(for: trans)
             
             /// Cancel the loading spinner if it hasn't started, otherwise hide it,
             stopDelayedLoadingSpinnerTimer()
@@ -1402,24 +1613,53 @@ class CalendarModel: FileUploadCompletedDelegate {
     
     
     /// Only called via `saveTransaction(id: day:)`.
-    private func delete(_ trans: CBTransaction, eventModel: EventModel? = nil) {
+    @discardableResult
+    private func delete(_ trans: CBTransaction, eventModel: EventModel? = nil) async -> Bool {
         print("-- \(#function)")
         trans.action = .delete
         trans.actionBeforeSave = trans.action
         trans.intendedServerAction = .delete
         withAnimation {
-            let day = sMonth.days.filter { $0.dateComponents?.day == trans.dateComponents?.day }.first
-            if let day {
-                day.remove(trans)
-                let _ = calculateTotal(for: sMonth)
-            }
-                        
-            tempTransactions.removeAll {$0.id == trans.id}
+//            if let targetMonth = months.filter({ $0.actualNum == trans.dateComponents?.month && $0.year == trans.dateComponents?.year }).first {
+//                if let day = targetMonth.days.filter({ $0.dateComponents?.day == trans.dateComponents?.day }).first {
+//                    day.remove(trans)
+//                    let _ = calculateTotal(for: sMonth)
+//                }
+//            }
+            
+            tempTransactions.removeAll { $0.id == trans.id }
         }
            
-        Task { @MainActor in
-            let _ = await submit(trans)
-            self.handleSavingOfEventTransaction(trans: trans, eventModel: eventModel)
+        //Task { @MainActor in
+        let saveResult = await submit(trans)
+        return saveResult
+            //self.handleSavingOfEventTransaction(trans: trans, eventModel: eventModel)
+        //}
+    }
+    
+    
+    func performLineItemAnimations(for trans: CBTransaction) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            /// This triggers drawOff (reverse of drawOn)
+            withAnimation(.easeOut(duration: 0.8)) {
+                trans.status = .dummy
+            }
+            
+            /// STEP 3 — Wait for drawOff to finish (~0.6s)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                withAnimation(.easeOut(duration: 0.6)) {
+                    trans.status = nil
+                    
+                    if trans.action == .delete {
+                        if let targetMonth = self.months.filter({ $0.actualNum == trans.dateComponents?.month && $0.year == trans.dateComponents?.year }).first {
+                            if let day = targetMonth.days.filter({ $0.dateComponents?.day == trans.dateComponents?.day }).first {
+                                day.remove(trans)
+                                let _ = self.calculateTotal(for: self.sMonth)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
     
@@ -1431,6 +1671,11 @@ class CalendarModel: FileUploadCompletedDelegate {
         /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
         /// So we use the ``DataChangeTriggers`` class to send a notification to the view to tell it to recalculate.
         DataChangeTriggers.shared.viewDidChange(.calendar)
+        
+        
+        for each in trans {
+            each.status = .inFlight
+        }
         
         
         //LoadingManager.shared.startDelayedSpinner()
@@ -1460,14 +1705,18 @@ class CalendarModel: FileUploadCompletedDelegate {
                                                                         
                         let index = transactions.firstIndex(where: { $0.id == idModel.uuid ?? "" })
                         if let index {
-                            transactions[index].id = String(idModel.id)
+                            #warning("serverID Change")
+                            transactions[index].serverID = String(idModel.id)
                             if let relatedID = idModel.relatedID {
                                 transactions[index].relatedTransactionID = String(relatedID)
                             }
                             
                             //transactions[index].id = String(model?.transactionID ?? "0")
-                            transactions[index].uuid = nil
+                            //transactions[index].uuid = nil
                             transactions[index].action = .edit
+                            transactions[index].intendedServerAction = .edit
+                            transactions[index].status = .saveSuccess
+                            performLineItemAnimations(for: transactions[index])
                             
 //                            if isTransfer {
 //                                transferTransactions.append(transactions[index])
@@ -1489,6 +1738,12 @@ class CalendarModel: FileUploadCompletedDelegate {
             #warning("Undo behavior")
             //let listActivity = activities.filter { $0.id == activity.id }.first ?? DailyActivity.emptyActivity
             //listActivity.deepCopy(.restore)
+            
+            for each in trans {
+                each.status = .saveFail
+                performLineItemAnimations(for: each)
+            }
+            
         }
         //LoadingManager.shared.stopDelayedSpinner()
         //self.refreshTask = nil
@@ -1496,10 +1751,22 @@ class CalendarModel: FileUploadCompletedDelegate {
     }
     
     
+    #warning("no animations yet")
     @MainActor
     func editMultiple(trans: Array<CBTransaction>) async {
         //LoadingManager.shared.startDelayedSpinner()
         LogManager.log()
+        
+        for each in trans {
+            /// Due to the way animations are handled when deleting from the multi-select sheet, ignore them.
+            if each.status != .deleteSucceess {
+                each.status = .inFlight
+            }
+            
+            each.updatedBy = AppState.shared.user!
+            each.updatedDate = Date()
+        }
+        
         
         let multiModel = MultiTransactionSubmissionModel(transactions: trans)
         let model = RequestModel(requestType: "alter_multiple_transactions", model: multiModel)
@@ -1514,22 +1781,31 @@ class CalendarModel: FileUploadCompletedDelegate {
                 for parent in model {
                     if let foundTrans = trans.filter({ $0.uuid == parent.parentID.uuid }).first {
                         if foundTrans.action == .add {
-                            foundTrans.id = String(parent.parentID.id)
-                            foundTrans.uuid = nil
+                            #warning("serverID Change")
+                            foundTrans.serverID = String(parent.parentID.id)
+                            //foundTrans.uuid = nil
                             foundTrans.action = .edit
+                            foundTrans.status = .saveSuccess
+                            
+                        } else if foundTrans.action == .edit {
+                            foundTrans.status = .saveSuccess
+                            
+                        } else if foundTrans.action == .delete {
+                            /// Don't set the .deleteSuccessful status since it was already set via the multi-select sheet in order to create the animation and let the user know they will be deleted.
+                            tempTransactions.removeAll {$0.id == foundTrans.id}
+                            //foundTrans.status = .deleteSucceess
+//                            withAnimation {
+//                                let day = sMonth.days.filter { $0.dateComponents?.day == foundTrans.dateComponents?.day }.first
+//                                if let day {
+//                                    day.remove(foundTrans)
+//                                    let _ = calculateTotal(for: sMonth)
+//                                }
+//                                            
+//                                tempTransactions.removeAll {$0.id == foundTrans.id}
+//                            }
                         }
                         
-                        if foundTrans.action == .delete {
-                            withAnimation {
-                                let day = sMonth.days.filter { $0.dateComponents?.day == foundTrans.dateComponents?.day }.first
-                                if let day {
-                                    day.remove(foundTrans)
-                                    let _ = calculateTotal(for: sMonth)
-                                }
-                                            
-                                tempTransactions.removeAll {$0.id == foundTrans.id}
-                            }
-                        }
+                        performLineItemAnimations(for: foundTrans)
                         
                     }
                 }
@@ -1540,6 +1816,11 @@ class CalendarModel: FileUploadCompletedDelegate {
             LogManager.error(error.localizedDescription)
             AppState.shared.showAlert("There was a problem trying to save the starting amount.")
             #warning("Undo behavior")
+            
+            for each in trans {
+                each.status = .saveFail
+                performLineItemAnimations(for: each)
+            }
         }
     }
     
@@ -1573,6 +1854,15 @@ class CalendarModel: FileUploadCompletedDelegate {
         //LoadingManager.shared.stopDelayedSpinner()
     }
     
+    
+    @MainActor
+    func transactionsUpdatesExistAfter(_ date: Date) -> Bool {
+        print("-- \(#function)")
+        let allDates = justTransactions.map(\.updatedDate)
+        guard let latest = allDates.max() else { return false }
+        print("\(latest) \(date) \(date < latest)")
+        return date < latest
+    }
     
     
     
@@ -1700,7 +1990,10 @@ class CalendarModel: FileUploadCompletedDelegate {
                 
                 day.upsert(trans)
                 self.dragTarget = nil
-                self.saveTransaction(id: trans.id/*, day: day*/)
+                Task {
+                    await self.saveTransaction(id: trans.id/*, day: day*/)
+                }
+                
                 self.transactionToCopy = nil
             }
         }
@@ -2220,7 +2513,7 @@ class CalendarModel: FileUploadCompletedDelegate {
     
     /// For Mac.
 //    func prepareStartingAmount() {
-//        /// Called via  ``setSelectedMonthFromNavigation(navID:prepareStartAmount:)`` which is called via `.onChange(of: navManager.selection)` in ``RootView``
+//        /// Called via  ``setSelectedMonthFromNavigation(navID:calculateStartingAndEod:)`` which is called via `.onChange(of: navManager.selection)` in ``RootView``
 //        /// Called via `self.sPayMethod.didSet{}`
 //        
 //        print("-- \(#function)")
@@ -2248,7 +2541,7 @@ class CalendarModel: FileUploadCompletedDelegate {
 //    }
 //    
 //    func prepareStartingAmount(for payMethod: CBPaymentMethod?) {
-//        /// Called via  ``setSelectedMonthFromNavigation(navID:prepareStartAmount:)`` which is called via `.onChange(of: navManager.selection)` in ``RootView``
+//        /// Called via  ``setSelectedMonthFromNavigation(navID:calculateStartingAndEod:)`` which is called via `.onChange(of: navManager.selection)` in ``RootView``
 //        /// Called via `self.sPayMethod.didSet{}`
 //        /// Called via  the button that activates the starting amount sheet in ``CalendarViewPhone``.
 //        
@@ -2540,7 +2833,8 @@ class CalendarModel: FileUploadCompletedDelegate {
     
     
     private func calculateUnifiedCredit(for month: CBMonth, and doWhat: DoWhatWhenCalculating) -> Double {
-        let creditEodView = CreditEodView.fromString(UserDefaults.standard.string(forKey: "creditEodView") ?? "")
+        //let creditEodView = CreditEodView.fromString(UserDefaults.standard.string(forKey: "creditEodView") ?? "")
+        let creditEodView = LocalStorage.shared.creditEodView
         
         var finalEodTotal: Double = 0.0
         let startingBalance = updateUnifiedStartingAmount(month: month, for: .unifiedCredit)
@@ -2592,7 +2886,8 @@ class CalendarModel: FileUploadCompletedDelegate {
     
     
     private func calculateCredit(for month: CBMonth, using paymentMethod: CBPaymentMethod?, and doWhat: DoWhatWhenCalculating) -> Double {
-        let creditEodView = CreditEodView.fromString(UserDefaults.standard.string(forKey: "creditEodView") ?? "")
+        //let creditEodView = CreditEodView.fromString(UserDefaults.standard.string(forKey: "creditEodView") ?? "")
+        let creditEodView = LocalStorage.shared.creditEodView
         
         var finalEodTotal: Double = 0.0
         let startingBalance = month.startingAmounts.filter { $0.payMethod.id == paymentMethod?.id }.filter { !$0.payMethod.isHidden }.first
@@ -2695,13 +2990,20 @@ class CalendarModel: FileUploadCompletedDelegate {
     
     
     
-    func setSelectedMonthFromNavigation(navID: NavDestination, prepareStartAmount: Bool) {
+    func setSelectedMonthFromNavigation(navID: NavDestination, calculateStartingAndEod: Bool) {
         //print("-- \(#function)")
         if let month = months.filter({ $0.enumID == navID }).first {
             sMonth = month
-            if prepareStartAmount {
-                //prepareStartingAmount(for: self.sPayMethod) /// Needed for the mac to show the unified starting amount
-                let _ = calculateTotal(for: sMonth) /// Call this to calculate the unified starting amounts
+                        
+            /// When a user performs navigation, this will run.
+            /// Likewise, when the ``FuncModel`` does the initial download, this will not run.
+            if calculateStartingAndEod {
+                /// Needed for the mac to show the unified starting amount
+                //prepareStartingAmount(for: self.sPayMethod)
+                
+                /// Get  starting amounts, and refresh all the EOD totals.
+                /// For example, If I go to another month, and fill out a starting amount, and don't run this, the EOD totals would be wrong when going back to the current month.
+                let _ = calculateTotal(for: sMonth)
             }
         } else {
             fatalError("Could not determine month")
@@ -2744,7 +3046,7 @@ class CalendarModel: FileUploadCompletedDelegate {
                             /// Transactions that have a day of month specifiied.
                             if when.whenType == .dayOfMonth {
                                 /// Find the day from the when record.
-                                if let targetDay = targetMonth.days.filter({ $0.dateComponents?.day == Int(when.when.replacingOccurrences(of: "day", with: "")) ?? 0 }).first {
+                                if let targetDay = targetMonth.days.filter({ $0.dateComponents?.day == Int(when.when.replacing("day", with: "")) ?? 0 }).first {
                                     /// Make sure transaction was not already added.
                                     let addedTrans = targetDay.transactions.filter { $0.repID == repID }.first
                                     if addedTrans == nil {
@@ -2788,7 +3090,7 @@ class CalendarModel: FileUploadCompletedDelegate {
                                             }
                                                                                         
                                             if fromTrans.isExpense && repTrans.repeatingTransactionType.enumID != XrefEnum.payment {
-                                                toTrans.amountString = toTrans.amountString.replacingOccurrences(of: "-", with: "")
+                                                toTrans.amountString = toTrans.amountString.replacing("-", with: "")
                                             }
                                             
                                             
@@ -2815,7 +3117,7 @@ class CalendarModel: FileUploadCompletedDelegate {
                                 } else {
                                     /// If the day can't be found above, the transaction exists on a day that this month doesn't have (like having a date of the 31st in February).
                                     /// Add to the last day of the month.
-                                    if Int(when.when.replacingOccurrences(of: "day", with: "")) ?? 0 > targetMonth.dayCount {
+                                    if Int(when.when.replacing("day", with: "")) ?? 0 > targetMonth.dayCount {
                                         if let targetDay = targetMonth.days.last {
                                             let newTrans = CBTransaction(
                                                 repTrans: repTrans,

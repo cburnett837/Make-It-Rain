@@ -10,8 +10,8 @@ import SwiftUI
 
 struct EventCategorySheet: View {
     @Environment(\.dismiss) var dismiss
-    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
-    @AppStorage("categorySortMode") var categorySortMode: SortMode = .title
+    @Local(\.lineItemIndicator) var lineItemIndicator
+    @Local(\.categorySortMode) var categorySortMode
     
     @Environment(EventModel.self) private var eventModel
         

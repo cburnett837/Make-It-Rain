@@ -27,7 +27,9 @@ struct TitleColorMenu<Content: View>: View {
                         trans.updatedDate = Date()
                         if saveOnChange {
                             //Task { await calModel.submit(trans) }
-                            calModel.saveTransaction(id: trans.id)
+                            Task {
+                                await calModel.saveTransaction(id: trans.id)
+                            }
                         }
                     }
                     
@@ -50,7 +52,9 @@ struct TitleColorMenu<Content: View>: View {
                             trans.updatedDate = Date()
                             if saveOnChange {
                                 //Task { await calModel.submit(trans) }
-                                calModel.saveTransaction(id: trans.id)
+                                Task {
+                                    await calModel.saveTransaction(id: trans.id)
+                                }
                             }
                         }
                     } label: {
@@ -92,7 +96,9 @@ struct TitleColorList: View {
                     trans.updatedBy = AppState.shared.user!
                     trans.updatedDate = Date()
                     if saveOnChange {
-                        calModel.saveTransaction(id: trans.id)
+                        Task {
+                            await calModel.saveTransaction(id: trans.id)
+                        }
                     }
                     navPath.removeLast()
                     
@@ -117,7 +123,9 @@ struct TitleColorList: View {
                         trans.updatedBy = AppState.shared.user!
                         trans.updatedDate = Date()
                         if saveOnChange {
-                            calModel.saveTransaction(id: trans.id)
+                            Task {
+                                await calModel.saveTransaction(id: trans.id)
+                            }
                         }
                         navPath.removeLast()
                     } label: {

@@ -31,8 +31,10 @@ struct CalendarSheetLayerView: View {
             .ignoresSafeArea(.all)
             #if os(iOS)
             .fullScreenCover(isPresented: $calModel.showMonth, onDismiss: {
-                print("Cal sheet onDismiss")
-            }) { calendarSheet }
+                //print("Cal sheet onDismiss")
+            }) {
+                calendarSheet
+            }
             #endif
     }
     

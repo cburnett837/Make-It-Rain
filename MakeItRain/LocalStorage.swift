@@ -47,8 +47,8 @@ class LocalKeys: NSObject {
 }
 
 
-// MARK: - NOTE! If you want to use properties in a model, and have them be saved, you must ready/write them via that model, otherwise views will not update.
-    // MARK: - For example, using `@ChartOption(\.chartCropingStyle) var chartCropingStyle` in a view, and writing to the variable with the same UserDefault key via the model will not trigger an update in the view using the property wrapper.
+// MARK: - NOTE! If you want to use properties in a model, and have them be saved, you must read/write them via that model, otherwise views will not update.
+    // MARK: - For example, using `@ChartOption(\.chartCropingStyle) var chartCropingStyle` in a view, and writing to the variable with the same UserDefault key via the view-model will not trigger an update in the view using the property wrapper.
 
 @Observable
 public class LocalStorage {
@@ -83,6 +83,103 @@ public class LocalStorage {
         get { get(\.useBusinessLogos, key: "useBusinessLogos", default: true) }
         set { set(\.useBusinessLogos, key: "useBusinessLogos", new: newValue) }
     }
+    
+    //@AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
+    public var lineItemIndicator: LineItemIndicator {
+        get { LineItemIndicator.fromString(get(\.lineItemIndicator.rawValue, key: "lineItemIndicator", default: LineItemIndicator.dot.rawValue)) }
+        set { set(\.lineItemIndicator.rawValue, key: "lineItemIndicator", new: newValue.rawValue) }
+    }
+    
+    //@AppStorage("phoneLineItemDisplayItem") var phoneLineItemDisplayItem: PhoneLineItemDisplayItem = .both
+    public var phoneLineItemDisplayItem: PhoneLineItemDisplayItem {
+        get { PhoneLineItemDisplayItem.fromString(get(\.phoneLineItemDisplayItem.rawValue, key: "phoneLineItemDisplayItem", default: PhoneLineItemDisplayItem.both.rawValue)) }
+        set { set(\.phoneLineItemDisplayItem.rawValue, key: "phoneLineItemDisplayItem", new: newValue.rawValue) }
+    }
+    
+    //@AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
+    public var updatedByOtherUserDisplayMode: UpdatedByOtherUserDisplayMode {
+        get { UpdatedByOtherUserDisplayMode.fromString(get(\.updatedByOtherUserDisplayMode.rawValue, key: "updatedByOtherUserDisplayMode", default: UpdatedByOtherUserDisplayMode.full.rawValue)) }
+        set { set(\.updatedByOtherUserDisplayMode.rawValue, key: "updatedByOtherUserDisplayMode", new: newValue.rawValue) }
+    }
+   
+    //@AppStorage("userColorScheme") var userColorScheme: UserPreferedColorScheme = .userSystem
+    public var userColorScheme: UserPreferedColorScheme {
+        get { UserPreferedColorScheme.fromString(get(\.userColorScheme.rawValue, key: "userColorScheme", default: UserPreferedColorScheme.userSystem.rawValue)) }
+        set { set(\.userColorScheme.rawValue, key: "userColorScheme", new: newValue.rawValue) }
+    }
+    
+    //@AppStorage("showIndividualLoadingSpinner") var showIndividualLoadingSpinner = false
+    public var showIndividualLoadingSpinner: Bool {
+        get { get(\.showIndividualLoadingSpinner, key: "showIndividualLoadingSpinner", default: false) }
+        set { set(\.showIndividualLoadingSpinner, key: "showIndividualLoadingSpinner", new: newValue) }
+    }
+    
+    //@AppStorage("categorySortMode") var categorySortMode: SortMode = .title
+    public var categorySortMode: SortMode {
+        get { SortMode.fromString(get(\.categorySortMode.rawValue, key: "categorySortMode", default: SortMode.title.rawValue)) }
+        set { set(\.categorySortMode.rawValue, key: "categorySortMode", new: newValue.rawValue) }
+    }
+    
+    //@AppStorage("paymentMethodSortMode") var paymentMethodSortMode: SortMode = .title
+    public var paymentMethodSortMode: SortMode {
+        get { SortMode.fromString(get(\.paymentMethodSortMode.rawValue, key: "paymentMethodSortMode", default: SortMode.title.rawValue)) }
+        set { set(\.paymentMethodSortMode.rawValue, key: "paymentMethodSortMode", new: newValue.rawValue) }
+    }
+    
+    //@AppStorage("transactionSortMode") var transactionSortMode: TransactionSortMode = .title
+    public var transactionSortMode: TransactionSortMode {
+        get { TransactionSortMode.fromString(get(\.transactionSortMode.rawValue, key: "transactionSortMode", default: TransactionSortMode.title.rawValue)) }
+        set { set(\.transactionSortMode.rawValue, key: "transactionSortMode", new: newValue.rawValue) }
+    }
+    
+    //@AppStorage("tightenUpEodTotals") var tightenUpEodTotals = true
+    public var tightenUpEodTotals: Bool {
+        get { get(\.tightenUpEodTotals, key: "tightenUpEodTotals", default: true) }
+        set { set(\.tightenUpEodTotals, key: "tightenUpEodTotals", new: newValue) }
+    }
+        
+    //@AppStorage("debugPrint") var debugPrint = false
+    public var debugPrint: Bool {
+        get { get(\.debugPrint, key: "debugPrint", default: false) }
+        set { set(\.debugPrint, key: "debugPrint", new: newValue) }
+    }
+    
+    //@AppStorage("startInFullScreen") var startInFullScreen = false
+    public var startInFullScreen: Bool {
+        get { get(\.startInFullScreen, key: "startInFullScreen", default: false) }
+        set { set(\.startInFullScreen, key: "startInFullScreen", new: newValue) }
+    }
+    
+    //@AppStorage("alignWeekdayNamesLeft") var alignWeekdayNamesLeft = true
+    public var alignWeekdayNamesLeft: Bool {
+        get { get(\.alignWeekdayNamesLeft, key: "alignWeekdayNamesLeft", default: true) }
+        set { set(\.alignWeekdayNamesLeft, key: "alignWeekdayNamesLeft", new: newValue) }
+    }
+        
+    //@AppStorage("showPaymentMethodIndicator") var showPaymentMethodIndicator = false
+    public var showPaymentMethodIndicator: Bool {
+        get { get(\.showPaymentMethodIndicator, key: "showPaymentMethodIndicator", default: false) }
+        set { set(\.showPaymentMethodIndicator, key: "showPaymentMethodIndicator", new: newValue) }
+    }
+    
+    //@AppStorage("showHashTagsOnLineItems") var showHashTagsOnLineItems: Bool = true
+    public var showHashTagsOnLineItems: Bool {
+        get { get(\.showHashTagsOnLineItems, key: "showHashTagsOnLineItems", default: true) }
+        set { set(\.showHashTagsOnLineItems, key: "showHashTagsOnLineItems", new: newValue) }
+    }
+    
+    //@AppStorage("categoryIndicatorAsSymbol") var categoryIndicatorAsSymbol: Bool = true
+    public var categoryIndicatorAsSymbol: Bool {
+        get { get(\.categoryIndicatorAsSymbol, key: "categoryIndicatorAsSymbol", default: true) }
+        set { set(\.categoryIndicatorAsSymbol, key: "categoryIndicatorAsSymbol", new: newValue) }
+    }
+    
+    //@AppStorage("creditEodView") var creditEodView: CreditEodView = .remainingBalance
+    public var creditEodView: CreditEodView {
+        get { CreditEodView.fromString(get(\.creditEodView.rawValue, key: "creditEodView", default: CreditEodView.remainingBalance.rawValue)) }
+        set { set(\.creditEodView.rawValue, key: "creditEodView", new: newValue.rawValue) }
+    }
+    
         
     
     // MARK: - Chart Variables
@@ -126,7 +223,7 @@ public class LocalStorage {
     
     
     // MARK: - Helper Functions
-    private func get<T: Decodable>(_ keyPath: KeyPath<LocalStorage, T>, key: String, default defaultValue: T) -> T {
+    func get<T: Decodable>(_ keyPath: KeyPath<LocalStorage, T>, key: String, default defaultValue: T) -> T {
         access(keyPath: keyPath)
         if let data = UserDefaults.standard.data(forKey: key) {
             return try! JSONDecoder().decode(T.self, from: data)
@@ -134,7 +231,7 @@ public class LocalStorage {
         return defaultValue
     }
     
-    private func set<T: Encodable>(_ keyPath: KeyPath<LocalStorage, T>, key: String, new: T) {
+    func set<T: Encodable>(_ keyPath: KeyPath<LocalStorage, T>, key: String, new: T) {
         withMutation(keyPath: keyPath) {
             let data = try? JSONEncoder().encode(new)
             UserDefaults.standard.set(data, forKey: key)

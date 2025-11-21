@@ -20,9 +20,9 @@
 //    @Local(\.useWholeNumbers) var useWholeNumbers
 //    @Local(\.threshold) var threshold
 //    
-//    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
-//    @AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
-//    @AppStorage("phoneLineItemDisplayItem") var phoneLineItemDisplayItem: PhoneLineItemDisplayItem = .both
+//    @Local(\.lineItemIndicator) var lineItemIndicator
+//    @Local(\.updatedByOtherUserDisplayMode) var updatedByOtherUserDisplayMode
+//    @Local(\.phoneLineItemDisplayItem) var phoneLineItemDisplayItem
 //            
 //    @Environment(FuncModel.self) var funcModel
 //    @Environment(CalendarModel.self) private var calModel
@@ -303,7 +303,7 @@
 //                MultiCategorySheet(categories: $calModel.sCategories)
 //            }
 //            .sheet(isPresented: $showTransferSheet) {
-//                TransferSheet(date: selectedDay?.date ?? Date())
+//                TransferSheet(defaultDate: selectedDay?.date ?? Date())
 //            }
 //            .sheet(isPresented: $showBudgetSheet) {
 //                CalendarDashboard()

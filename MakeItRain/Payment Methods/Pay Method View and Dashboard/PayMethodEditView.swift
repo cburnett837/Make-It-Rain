@@ -7,179 +7,30 @@
 
 import SwiftUI
 import Charts
-//import LinkKit
+import LocalAuthentication
 
-
-struct PayMethodOverView: View {
-    @Local(\.incomeColor) var incomeColor
-    @Local(\.useWholeNumbers) var useWholeNumbers
-    @AppStorage("selectedPaymentMethodTab") var selectedTab: DetailsOrInsights = .details
-    @AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false
-
-    @Environment(\.dismiss) var dismiss
-    @Environment(\.colorScheme) var colorScheme
-    @Environment(CalendarModel.self) private var calModel
-    @Environment(EventModel.self) private var eventModel
-    @Environment(PayMethodModel.self) private var payModel
-    @Environment(PlaidModel.self) private var plaidModel
-
-    
-    @State private var viewModel = PayMethodViewModel()
-    
-    @Bindable var payMethod: CBPaymentMethod
-    
-    /// This is only here to blank out the selection hilight on the iPhone list
-    @Binding var editID: String?
-        
-    @State private var showDeleteAlert = false
-    @State private var labelWidth: CGFloat = 20.0
-    @State private var showColorPicker = false
-    @State private var showLogoSearchPage = false
-    
-    @FocusState private var focusedField: Int?
-    
-    @State private var accountTypeMenuColor: Color = Color(.tertiarySystemFill)
-    
-    @Namespace private var namespace
-    
-    var pickerAnimation: Animation? {
-        payMethod.accountType == .credit || payMethod.accountType == .loan ? nil : .default
-    }
-    
-
-    @State private var scrollOffset: CGFloat = 0
-    @State private var backgroundOffset: CGFloat = 0.0
-    @State private var blur: CGFloat = 0
-    @State private var scale: CGFloat = 1
-    
-    
-    var body: some View {
-        Text("Hello, world!")
-    }
-    
-    
-    
-    var detailPage: some View {
-        ZStack(alignment: .top) {
-            VStack {
-                fakeCard
-                //pagePicker
-            }
-            .blur(radius: blur)
-            .scaleEffect(scale)
-            
-            transList
-                .contentMargins(.top, 300, for: .scrollContent)
-                .onScrollGeometryChange(for: CGFloat.self) {
-                    return $0.contentOffset.y + $0.contentInsets.top
-                } action: { _, newOffset in
-                    backgroundOffset = -newOffset
-                    blur = min(newOffset / 16, 8)
-                    let collapseDistance: CGFloat = 200   // ← tune this
-                    let raw = 1 - (newOffset / collapseDistance)
-                    scale = max(min(raw, 1), 0)
-                }
-        }
-    }
-    
-    @ViewBuilder
-    var transList: some View {
-        
-        let theMonth = calModel.months.filter { $0.actualNum == AppState.shared.todayMonth && $0.year == AppState.shared.todayYear }.first!
-        let transactions = calModel.getTransactions(months: [theMonth], meth: payMethod)
- 
-        ScrollView {
-            pagePicker
-            ForEach(transactions) { trans in
-                GroupBox {
-                    TransactionListLine(trans: trans, withDate: true)
-                }
-                .frame(maxWidth: .infinity)
-                .cornerRadius(25)
-            }
-            .scenePadding(.horizontal)
-        }
-        .frame(maxWidth: .infinity)
-    }
-    
-    
-    var fakeCard: some View {
-        Group {
-            VStack {
-                HStack {
-                    Text(payMethod.title)
-                        .font(.largeTitle)
-                    Spacer()
-                    BigBusinessLogo(parent: payMethod, fallBackType: payMethod.isUnified ? .gradient : .color)
-                        .blur(radius: blur)
-                }
-                
-                HStack {
-                    Text("**** **** **** \(payMethod.last4 ?? "****")")
-                        .font(.title)
-                    Spacer()
-                }
-                                                
-                Spacer()
-                
-                HStack {
-                    VStack(alignment: .leading) {
-                        if let balance = plaidModel.balances.filter({ $0.payMethodID == payMethod.id }).first {
-                            Text(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                                .bold()
-                        }
-                        
-//                        if let balance = plaidModel.balances.filter({ $0.payMethodID == payMethod.id }).first {
-//                            Text(Date().timeSince(balance.enteredDate))
-//                                .foregroundStyle(.gray)
-//                                .font(.subheadline)
-//                        }
-                    }
-                                                                                
-                    if payMethod.isPrivate { Image(systemName: "person.slash") }
-                    if payMethod.isHidden { Image(systemName: "eye.slash") }
-                    if payMethod.notifyOnDueDate { Image(systemName: "alarm") }
-                    
-                    Spacer()
-                    
-                    
-                    Text(payMethod.accountType.prettyValue)
-                    //Text(payMethod.last4 ?? "****")
-                }
-            }
-            .padding(20)
-            
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: 250)
-        .background(RoundedRectangle(cornerRadius: 20).fill(payMethod.color.gradient))
-        .shadow(radius: 10)
-        .scenePadding(.horizontal)
-        //.padding(.horizontal, 20)
-        //.padding(.bottom, 30)
-        //editPagePhone
-    }
-    
-    
-    
-    var pagePicker: some View {
-        Picker("",selection: $selectedTab.animation(pickerAnimation)) {
-            Text("Details")
-                .tag(DetailsOrInsights.details)
-            Text("Edit")
-                .tag(DetailsOrInsights.edit)
-            Text("Insights")
-                .tag(DetailsOrInsights.insights)
-        }
-        .labelsHidden()
-        .pickerStyle(.segmented)
-        .scenePadding(.horizontal)
-    }
-    
-}
-
-
-struct PayMethodView: View {
+//struct PayMethodCharts: View {
+//    @Bindable var payMethod: CBPaymentMethod
+//    @Bindable var viewModel: PayMethodViewModel
+//    
+//    var body: some View {
+//        if payMethod.action == .add {
+//            ContentUnavailableView("Insights are not available when adding a new account", systemImage: "square.stack.3d.up.slash.fill")
+//        } else {
+//            //VStack {
+//                PayMethodDashboard(vm: viewModel, payMethod: payMethod)
+//            //}
+//            .opacity(viewModel.isLoadingHistory ? 0 : 1)
+//            .overlay {
+//                ProgressView("Loading Insights…")
+//                    .tint(.none)
+//                    .opacity(viewModel.isLoadingHistory ? 1 : 0)
+//            }
+//            .focusable(false)
+//        }
+//    }
+//}
+struct PayMethodEditView: View {
     enum Offset: Int {
         case dayBack0 = 0
         case dayBack1 = 1
@@ -258,28 +109,22 @@ struct PayMethodView: View {
         Group {
             #if os(iOS)
             NavigationStack {
-                VStack {
-                    if payMethod.isUnified {
-                        chartPage
-                    } else {
-                        VStack {
-                            if selectedTab == .insights ||  selectedTab == .edit {
-                                pagePicker
-                            }
-                            
-                            if selectedTab == .details {
-                                detailPage
-                            } else if selectedTab == .edit {
-                                StandardContainerWithToolbar(.list) {
-                                    editPagePhone
-                                }
-                                
-                            } else {
-                                chartPage
-                            }
-                        }
-                    }
-                }
+                editPagePhone
+//                VStack {
+//                    if payMethod.isUnified {
+//                        chartPage
+//                    } else {
+//                        VStack {
+//                            pagePicker
+//                            
+//                            if selectedTab == .details {
+//                                editPagePhone
+//                            } else {
+//                                chartPage
+//                            }
+//                        }
+//                    }
+//                }
                 .background(Color(.systemBackground)) // force matching
                 .navigationTitle(title)
                 .navigationBarTitleDisplayMode(.inline)
@@ -357,198 +202,10 @@ struct PayMethodView: View {
         .task { await prepareView() }
     }
     
-    
-    @State private var scrollOffset: CGFloat = 0
-    @State private var backgroundOffset: CGFloat = 0.0
-
-    
-    @State private var blur: CGFloat = 0
-    @State private var scale: CGFloat = 1
-    
-    
-    var detailPage: some View {
-        ZStack(alignment: .top) {
-            VStack {
-                fakeCard
-                //pagePicker
-            }
-            .blur(radius: blur)
-            .scaleEffect(scale)
-            
-            transList
-                .contentMargins(.top, 300, for: .scrollContent)
-                .onScrollGeometryChange(for: CGFloat.self) {
-                    return $0.contentOffset.y + $0.contentInsets.top
-                } action: { _, newOffset in
-                    backgroundOffset = -newOffset
-                    blur = min(newOffset / 16, 8)
-                    let collapseDistance: CGFloat = 200   // ← tune this
-                    let raw = 1 - (newOffset / collapseDistance)
-                    scale = max(min(raw, 1), 0)
-                }
-        }
-    }
-    
-    @ViewBuilder
-    var transList: some View {
-        
-        let theMonth = calModel.months.filter { $0.actualNum == AppState.shared.todayMonth && $0.year == AppState.shared.todayYear }.first!
-        let transactions = calModel.getTransactions(months: [theMonth], meth: payMethod)
- 
-        ScrollView {
-            pagePicker
-            ForEach(transactions) { trans in
-                GroupBox {
-                    TransactionListLine(trans: trans, withDate: true)
-                }
-                .frame(maxWidth: .infinity)
-                .cornerRadius(25)
-            }
-            .scenePadding(.horizontal)
-        }
-        .frame(maxWidth: .infinity)
-    }
-    
-    
-    var overViewSection: some View {
-        ScrollView {
-            VStack {
-                HStack {
-                    Text(payMethod.title)
-                    if let balance = plaidModel.balances.filter({ $0.payMethodID == payMethod.id }).first {
-                        Divider()
-                        Text(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                    }
-                }
-                .font(.largeTitle)
-                .bold()
-                
-                if let balance = plaidModel.balances.filter({ $0.payMethodID == payMethod.id }).first {
-                    Text(Date().timeSince(balance.enteredDate))
-                        .foregroundStyle(.gray)
-                        .font(.subheadline)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, 20)
-            //.padding(.bottom, 30)
-            //editPagePhone
-            
-            Divider()
-                .padding(.vertical, 10)
-            
-            VStack {
-                Picker("",selection: $selectedTab.animation(pickerAnimation)) {
-                    Text("Details")
-                        .tag(DetailsOrInsights.details)
-                    Text("Insights")
-                        .tag(DetailsOrInsights.insights)
-                }
-                .labelsHidden()
-                .pickerStyle(.segmented)
-            }
-            .padding(.horizontal, 20)
-            
-            GroupBox {
-                IncomeExpenseChartWidget(vm: viewModel, payMethod: payMethod)
-            } label: {
-                Text("Transactions")
-            }
-            .cornerRadius(25)
-            .padding(.horizontal, 20)
-                    
-            if !payMethod.isCredit {
-                GroupBox {
-                    ProfitLossChartWidget(vm: viewModel, payMethod: payMethod)
-                } label: {
-                    Text("Net Worth")
-                }
-                .cornerRadius(25)
-                .padding(.horizontal, 20)
-            }
-            
-            GroupBox {
-                MinMaxEodChartWidget(vm: viewModel, payMethod: payMethod)
-            } label: {
-                Text("Min/Max EOD Amounts")
-            }
-            .cornerRadius(25)
-            .padding(.horizontal, 20)
-            
-            /// NOTE: This is slightly different because it has it's own view model.
-            if payMethod.isUnified {
-                MetricByPaymentMethodChartWidget(vm: viewModel, payMethod: payMethod)
-                    .padding(.horizontal, 20)
-            }
-            
-        }
-    }
-    
-    var fakeCard: some View {
-        Group {
-            VStack {
-                HStack {
-                    Text(payMethod.title)
-                        .font(.largeTitle)
-                    Spacer()
-                    BigBusinessLogo(parent: payMethod, fallBackType: payMethod.isUnified ? .gradient : .color)
-                        .blur(radius: blur)
-                }
-                
-                HStack {
-                    Text("**** **** **** \(payMethod.last4 ?? "****")")
-                        .font(.title)
-                    Spacer()
-                }
-                                                
-                Spacer()
-                
-                HStack {
-                    VStack(alignment: .leading) {
-                        if let balance = plaidModel.balances.filter({ $0.payMethodID == payMethod.id }).first {
-                            Text(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                                .bold()
-                        }
-                        
-//                        if let balance = plaidModel.balances.filter({ $0.payMethodID == payMethod.id }).first {
-//                            Text(Date().timeSince(balance.enteredDate))
-//                                .foregroundStyle(.gray)
-//                                .font(.subheadline)
-//                        }
-                    }
-                                                                                
-                    if payMethod.isPrivate { Image(systemName: "person.slash") }
-                    if payMethod.isHidden { Image(systemName: "eye.slash") }
-                    if payMethod.notifyOnDueDate { Image(systemName: "alarm") }
-                    
-                    Spacer()
-                    
-                    
-                    Text(payMethod.accountType.prettyValue)
-                    //Text(payMethod.last4 ?? "****")
-                }
-            }
-            .padding(20)
-            
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: 250)
-        .background(RoundedRectangle(cornerRadius: 20).fill(payMethod.color.gradient))
-        .shadow(radius: 10)
-        .scenePadding(.horizontal)
-        //.padding(.horizontal, 20)
-        //.padding(.bottom, 30)
-        //editPagePhone
-    }
-    
-    
-    
     var pagePicker: some View {
         Picker("",selection: $selectedTab.animation(pickerAnimation)) {
             Text("Details")
                 .tag(DetailsOrInsights.details)
-            Text("Edit")
-                .tag(DetailsOrInsights.edit)
             Text("Insights")
                 .tag(DetailsOrInsights.insights)
         }
@@ -561,7 +218,7 @@ struct PayMethodView: View {
     // MARK: - Edit Page
     @ViewBuilder
     var editPagePhone: some View {
-        //List {
+        List {
         Section("Title") {
             titleRow
         }
@@ -621,7 +278,7 @@ struct PayMethodView: View {
         
 //        Section {
 //            deleteButton
-//        }
+        }
     }
     
     
@@ -1279,7 +936,7 @@ struct PayMethodView: View {
             ContentUnavailableView("Insights are not available when adding a new account", systemImage: "square.stack.3d.up.slash.fill")
         } else {
             VStack {
-                PayMethodDashboard(vm: viewModel, editID: $editID, payMethod: payMethod)
+                PayMethodDashboard(vm: viewModel, payMethod: payMethod)
             }
             .opacity(viewModel.isLoadingHistory ? 0 : 1)
             .overlay {

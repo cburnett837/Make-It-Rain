@@ -16,6 +16,9 @@ struct MultiPayMethodSheet: View {
     @Local(\.useBusinessLogos) var useBusinessLogos
 
     @Binding var payMethods: Array<CBPaymentMethod>
+    
+    var includeHidden: Bool = false
+    
     @FocusState private var focusedField: Int?
     @State private var searchText = ""
     
@@ -44,7 +47,11 @@ struct MultiPayMethodSheet: View {
                 DefaultToolbarItem(kind: .search, placement: .bottomBar)
                 
                 ToolbarSpacer(.flexible, placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar)
-                ToolbarItem(placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar) { PayMethodSortMenu(sections: $sections) }
+                ToolbarItem(placement: AppState.shared.isIpad ? .topBarTrailing : .bottomBar) { PayMethodSortMenu(sections: $sections) }
+                
+                if AppState.shared.isIpad {
+                    ToolbarSpacer(.fixed, placement: .topBarTrailing)
+                }
                 
                 ToolbarItem(placement: .topBarTrailing) { closeButton }
             }
@@ -190,7 +197,8 @@ struct MultiPayMethodSheet: View {
             type: .allExceptUnified,
             calModel: calModel,
             plaidModel: plaidModel,
-            searchText: $searchText
+            searchText: $searchText,
+            includeHidden: includeHidden
         )
     }
 }

@@ -106,7 +106,7 @@ struct TagView: View {
                 
             }
             .onChange(of: newTag) { old, new in
-                newTag = new.replacingOccurrences(of: " ", with: "")
+                newTag = new.replacing(" ", with: "")
             }
             #endif
         }

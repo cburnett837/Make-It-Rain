@@ -108,8 +108,8 @@
 //    @Environment(\.dismiss) private var dismiss
 //    @Environment(\.appearsActive) var appearsActive
 //    #endif
-//    @AppStorage("transactionSortMode") var transactionSortMode: TransactionSortMode = .title
-//    @AppStorage("categorySortMode") var categorySortMode: SortMode = .title
+//    @Local(\.transactionSortMode) var transactionSortMode
+//    @Local(\.categorySortMode) var categorySortMode
 //    @Local(\.useWholeNumbers) var useWholeNumbers
 //    //@Local(\.colorTheme) var colorTheme
 //

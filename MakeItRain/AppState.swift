@@ -314,36 +314,36 @@ class AppState {
     
     
     func showAlert(_ text: String) {
-        //withAnimation(.snappy(duration: 0.2)) {
+        withAnimation(.snappy(duration: 0.2)) {
             let config = AlertConfig(title: text)
             self.alertConfig = config
             self.showCustomAlert = true
-        //}
+        }
     }
     
     func showAlert(title: String, subtitle: String) {
-        //withAnimation(.snappy(duration: 0.2)) {
+        withAnimation(.snappy(duration: 0.2)) {
             let config = AlertConfig(title: title, subtitle: subtitle)
             self.alertConfig = config
             self.showCustomAlert = true
-        //}
+        }
     }
     
     
     var showCustomAlert: Bool = false
     var alertConfig: AlertConfig?
     func showAlert(config: AlertConfig) {
-        //withAnimation(.snappy(duration: 0.2)) {
+        withAnimation(.snappy(duration: 0.2)) {
             self.alertConfig = config
             self.showCustomAlert = true
-        //}
+        }
     }
     
     func closeAlert() {
-        //withAnimation {
+        withAnimation(.snappy(duration: 0.2)) {
             self.alertConfig = nil
-            self.showCustomAlert = true
-        //}
+            self.showCustomAlert = false
+        }
     }
     
     

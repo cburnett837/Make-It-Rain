@@ -18,24 +18,17 @@ enum TitleSuggestionType: String {
     case location, history
 }
 
-struct TransactionEditView: View {
-    
-//    @Observable
-//    class ViewModel {
-//        var hoverPic: CBPicture?
-//        var deletePic: CBPicture?
-//        var isDeletingPic = false
-//        var showDeletePicAlert = false
-//    }
-    
-    //@Environment(\.dismiss) var dismiss <--- NO NICE THAT ONE WITH SHEETS IN A SHEET.
-    @Environment(\.colorScheme) var colorScheme
-    @Environment(\.dismiss) var dismiss
-    //@Local(\.colorTheme) var colorTheme
-    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
-    @AppStorage("transactionTitleSuggestionType") var transactionTitleSuggestionType: TitleSuggestionType = .location
-    @Local(\.useWholeNumbers) var useWholeNumbers
+enum TransNavDestination: Hashable {
+    case options, logs, titleColorMenu
+}
 
+struct TransactionEditView: View {
+    @Local(\.lineItemIndicator) var lineItemIndicator
+    @Local(\.useWholeNumbers) var useWholeNumbers
+    
+    @AppStorage("transactionTitleSuggestionType") var transactionTitleSuggestionType: TitleSuggestionType = .location
+
+    @Environment(\.dismiss) var dismiss // <--- NO NICE THAT ONE WITH SHEETS IN A SHEET. BEWARE!.
     #if os(macOS)
     @Environment(\.openURL) var openURL
     #endif
@@ -43,38 +36,26 @@ struct TransactionEditView: View {
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
-    //@Environment(MapModel.self) private var mapModel
-    
-    @State private var mapModel = MapModel()
-    //@Environment(TagModel.self) private var tagModel
-    
-    //@State private var vm = ViewModel()
-    
-    @State private var titleColorButtonHoverColor: Color = .gray
-    @State private var payMethodMenuColor: Color = Color(.tertiarySystemFill)
-    @State private var categoryMenuColor: Color = Color(.tertiarySystemFill)
-    //@State private var addPhotoButtonHoverColor: Color = .gray
-    //@State private var addPhotoButtonHoverColor2: Color = Color(.tertiarySystemFill)
-        
-    @FocusState private var focusedField: Int?
     
     @Bindable var trans: CBTransaction
     @Binding var transEditID: String?
     @Bindable var day: CBDay
+    
     var isTemp: Bool
     var transLocation: WhereToLookForTransaction = .normalList
     let symbolWidth: CGFloat = 26
         
-    //@State private var safariUrl: URL?
-    
-    //@State private var totalHeight = CGFloat.zero
+    @FocusState private var focusedField: Int?
+    @State private var mapModel = MapModel()
+    @State private var titleColorButtonHoverColor: Color = .gray
+    @State private var payMethodMenuColor: Color = Color(.tertiarySystemFill)
+    @State private var categoryMenuColor: Color = Color(.tertiarySystemFill)
     @State private var showLogSheet = false
     @State private var showTagSheet = false
     @State private var showPayMethodSheet = false
     @State private var showCategorySheet = false
     @State private var showPaymentMethodChangeAlert = false
     @State private var showDeleteAlert = false
-    
     @State private var blockUndoCommitOnLoad = true
     @State private var blockKeywordChangeWhenViewLoads = true
     @State private var blockSuggestionsFromPopulating = false
@@ -83,18 +64,13 @@ struct TransactionEditView: View {
     @State private var showPhotosPicker: Bool = false
     @State private var showTopTitles: Bool = false
     @State private var showSplitSheet = false
-    //@State private var showPhotosPicker = false
-    //@State private var showCamera = false
-    
     @State private var titleChangedTask: Task<Void, Error>?
     @State private var amountChangedTask: Task<Void, Error>?
-    //@State private var position: MapCameraPosition = .userLocation(followsHeading: true, fallback: .userLocation(fallback: .automatic))
     @State private var showUndoRedoAlert = false
     @State private var suggestedTitles: Array<CBSuggestedTitle> = []
     @State private var navPath = NavigationPath()
     @State private var isValidToSave = false
     @State private var hasAnimatedBrain = false
-    
     /// These are just to control the animations in the options sheet. The are here so we don't see the option sheet "set up its state" when the view appears.
     @State private var showBadgeBell = false
     @State private var showHiddenEye = false
@@ -114,11 +90,13 @@ struct TransactionEditView: View {
     
     var linkedLingo: String? {
         if trans.relatedTransactionID != nil {
-            if trans.relatedTransactionType == XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction) {
-                return "(This transaction is linked to another)"
-            } else {
-                return "(This transaction is linked to an event)"
-            }
+//            if trans.relatedTransactionType == XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction) {
+//                return "(This transaction is linked to another)"
+//            } else {
+//                return "(This transaction is linked to an event)"
+//            }
+//            
+            return "(Linked)"
         } else {
             return nil
         }
@@ -173,7 +151,7 @@ struct TransactionEditView: View {
                 return !suggestedTitles.isEmpty
             }
         }
-        return false
+        //return false
     }
     
     var disableInteractiveDismiss: Bool {
@@ -205,6 +183,7 @@ struct TransactionEditView: View {
 //        }
 //    }
     
+    
     var body: some View {
         //let _ = Self._printChanges()
         @Bindable var calModel = calModel
@@ -220,10 +199,12 @@ struct TransactionEditView: View {
                     content
                 }
                 .navigationTitle(title)
+                .if(trans.relatedTransactionID != nil) { $0.navigationSubtitle("(Linked)") }
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar { toolbar }
-                .navigationDestination(for: String.self) { string in
-                    if string == "more-menu" {
+                .navigationDestination(for: TransNavDestination.self) { dest in
+                    switch dest {
+                    case .options:
                         TransactionEditViewMoreOptions(
                             trans: trans,
                             showSplitSheet: $showSplitSheet,
@@ -232,7 +213,11 @@ struct TransactionEditView: View {
                             showBadgeBell: $showBadgeBell,
                             showHiddenEye: $showHiddenEye
                         )
-                    } else {
+                        
+                    case .logs:
+                        LogSheet(title: trans.title, itemID: trans.id, logType: .transaction)
+                        
+                    case .titleColorMenu:
                         TitleColorList(trans: trans, saveOnChange: false, navPath: $navPath)
                     }
                 }
@@ -256,18 +241,11 @@ struct TransactionEditView: View {
             prepareTransactionForEditing(isTemp: isTemp)
             ChangeTransactionTitleColorTip.didOpenTransaction.sendDonation()
         }
-        .alert("Please change the payment method by right-clicking on the line item from the main view.", isPresented: $showPaymentMethodChangeAlert) {
+        .alert("Please change the selected account by right-clicking on the line item from the main view.", isPresented: $showPaymentMethodChangeAlert) {
             Button("OK") {}
         }
         .sheet(isPresented: $showSplitSheet) {
             TransactionSplitSheet(trans: trans, showSplitSheet: $showSplitSheet)
-        }
-        .sheet(isPresented: $showLogSheet) {
-            LogSheet(title: trans.title, itemID: trans.id, logType: .transaction)
-                #if os(macOS)
-                .frame(minWidth: 300, minHeight: 500)
-                .presentationSizing(.fitted)
-                #endif
         }
         .environment(mapModel)
         /// Check what color the save button should be.
@@ -329,9 +307,7 @@ struct TransactionEditView: View {
         }
         
         ToolbarItem(placement: .bottomBar) {
-            Button {
-                withAnimation { showLogSheet = true }
-            } label: {
+            NavigationLink(value: TransNavDestination.logs) {
                 EnteredByAndUpdatedByView(enteredBy: trans.enteredBy, updatedBy: trans.updatedBy, enteredDate: trans.enteredDate, updatedDate: trans.updatedDate)
             }
         }
@@ -350,15 +326,16 @@ struct TransactionEditView: View {
         }
         
         Section {
-            PayMethodSheetButton2(
+            PayMethodSheetButtonPhone(
                 text: "Account",
-                image: trans.payMethod?.accountType == .checking ? "banknote.fill" : "creditcard.fill",
+                logoInfo: .init(
+                    include: true,
+                    fallBackType: .customImage(trans.payMethod?.fallbackImage)
+                ),
                 payMethod: $trans.payMethod,
-                trans: trans,
-                saveOnChange: false,
                 whichPaymentMethods: .allExceptUnified
             )
-            CategorySheetButton3(category: $trans.category)
+            CategorySheetButtonPhone(category: $trans.category)
         }
         
         ruleSuggestionButton
@@ -860,8 +837,8 @@ struct TransactionEditView: View {
                 #endif
             }
         }
-        .onChange(of: trans.date) {
-            if $0 != nil { /// Date is nil when creating a new transaction.
+        .onChange(of: trans.date) { old, new in
+            if old != nil { /// Date is nil when creating a new transaction.
                 focusedField = nil /// Clear any focused text field when changing the date.
                 UndodoManager.shared.processChange(trans: trans)
             }
@@ -1121,45 +1098,8 @@ struct TransactionEditView: View {
                         .contentShape(Rectangle())
                     }
                 }
-
-                            
-//                if isTemp {
-//                    Text("Tags are unavailable without internet connection.")
-//                        .italic(true)
-//                        .foregroundStyle(.gray)
-//                    Spacer()
-//                } else {
-//                    
-//                    Button {
-//                        showTagSheet = true
-//                    } label: {
-//                        Group {
-//                            if trans.tags.isEmpty {
-//                                HStack {
-//                                    Spacer()
-//                                    Text("Select Tags…")
-//                                    Image(systemName: "chevron.right")
-//                                }
-//                                .foregroundStyle(.gray)
-//                                .contentShape(Rectangle())
-//                            } else {
-//                                TagLayout(alignment: .leading, spacing: 5) {
-//                                    ForEach(trans.tags) { tag in
-//                                        Text("#\(tag.tag)")
-//                                            .foregroundStyle(Color.theme)
-//                                            .bold()
-//                                    }
-//                                }
-//                                .contentShape(Rectangle())
-//                            }
-//                        }
-//                    }
-//                    .buttonStyle(.plain)
-//                    
-//                }
             }
         }
-        
         .sheet(isPresented: $showTagSheet) {
             TagView(trans: trans)
             #if os(macOS)
@@ -1167,8 +1107,6 @@ struct TransactionEditView: View {
                 .presentationSizing(.fitted)
             #endif
         }
-        
-            
     }
     
   
@@ -1221,6 +1159,9 @@ struct TransactionEditView: View {
     
     var closeButton: some View {
         Button {
+            if !isValidToSave {
+                trans.status = nil
+            }
             validateBeforeClosing()
         } label: {
             Image(systemName: isValidToSave ? "checkmark" : "xmark")
@@ -1230,73 +1171,15 @@ struct TransactionEditView: View {
     
         
     var moreMenu: some View {
-        NavigationLink(value: "more-menu") {
+//        NavigationLink(value: "MOREMENU") {
+//            Image(systemName: "ellipsis")
+//                .schemeBasedForegroundStyle()
+//        }
+        
+        NavigationLink(value: TransNavDestination.options) {
             Image(systemName: "ellipsis")
                 .schemeBasedForegroundStyle()
         }
-//        NavigationLink {
-//            TransactionEditViewMoreOptions(trans: trans, showSplitSheet: $showSplitSheet, isTemp: isTemp, navPath: $navPath)
-//        } label: {
-//            Image(systemName: "ellipsis")
-//                .schemeBasedForegroundStyle()
-//        }
-
-//        Menu {
-//            Section {
-//                factorInCalculationsButton
-//                if !isTemp {
-//                    notificationButton
-//                }
-//            }
-//            
-//            if !isTemp {
-//                Section {
-//                    copyButton
-//                    splitButton
-//                }
-//            }
-//            
-//            Section("Title Suggestions") {
-//                Picker(selection: $transactionTitleSuggestionType) {
-//                    Label("History", systemImage: "clock")
-//                        .tag(TitleSuggestionType.history)
-//                    Label("Locations", systemImage: "map")
-//                        .tag(TitleSuggestionType.location)
-//                } label: {
-//                    Label("Title Suggestions", systemImage: "brain")
-//                }
-//                .pickerStyle(.navigationLink)
-//
-////                Menu("Title Suggestions") {
-////                    Button {
-////                        transactionTitleSuggestionType = .history
-////                    } label: {
-////                        Label("History", systemImage: "clock")
-////                    }
-////
-////                    Button {
-////                        transactionTitleSuggestionType = .history
-////                    } label: {
-////                        Label("Locations", systemImage: "map")
-////                    }
-////                }
-//            }
-//            
-//            Section {
-//                TitleColorMenu(transactions: [trans], saveOnChange: false) {
-//                    Label {
-//                        Text("Title Color")
-//                    } icon: {
-//                        Image(systemName: "paintbrush.fill")
-//                            .tint(trans.color)
-//                    }
-//                }
-//            }
-//        } label: {
-//            Image(systemName: "ellipsis")
-//                .schemeBasedForegroundStyle()
-//        }
-
     }
         
     
@@ -1324,11 +1207,21 @@ struct TransactionEditView: View {
     @ViewBuilder var ruleSuggestionButton: some View {
         if trans.category != nil && !(trans.category?.isNil ?? false) {
             let existingCount = calModel.justTransactions
-                .filter { $0.title.localizedCaseInsensitiveContains(trans.title) && $0.category?.id == trans.category!.id }
+                .filter {
+                    $0.title.localizedCaseInsensitiveContains(trans.title)
+                    && $0.category?.id == trans.category!.id
+                }
                 .count
+            
             let comboExists = existingCount >= 3 && !trans.wasAddedFromPopulate
             
-            let ruleDoesNotExist = keyModel.keywords.filter { $0.keyword.localizedCaseInsensitiveContains(trans.title) && $0.category?.id == trans.category!.id }.isEmpty
+            let ruleDoesNotExist = keyModel
+                .keywords
+                .filter {
+                    $0.keyword.localizedCaseInsensitiveContains(trans.title)
+                    && $0.category?.id == trans.category!.id
+                }
+                .isEmpty
             
             if comboExists && ruleDoesNotExist {
                 Section {
@@ -1425,261 +1318,6 @@ struct TransactionEditView: View {
     
     
     
-    // MARK: - Photo Views
-//    var photoSection: some View {
-//        Group {
-//            @Bindable var calModel = calModel
-//            @Bindable var photoModel = FileModel.shared
-//            
-//            HStack(alignment: .top) {
-//                Image(systemName: "photo.fill")
-//                    .foregroundColor(.gray)
-//                    .frame(width: symbolWidth)
-//                                
-//                
-//                if isTemp {
-//                    Text("Photos are unavailable without internet connection.")
-//                        .foregroundStyle(.gray)
-//                        .italic(true)
-//                    Spacer()
-//                } else {
-//                    
-//                    /// Check for active for 1 situation only - if a photo fails to upload, we deactivate it to hide the view.
-//                    if let files = trans.files?.filter({ $0.active }) {
-//                        ScrollView(.horizontal, showsIndicators: false) {
-//                            HStack(alignment: .top, spacing: 4) {
-//                                ForEach(files) { pic in
-//                                    VStack {
-//                                        ZStack {
-//                                            if pic.isPlaceholder {
-//                                                PicPlaceholder(text: "Uploading…")
-//                                            } else {
-//                                                PicImage(pic: pic)
-//                                            }
-//                                            
-//                                            #if os(macOS)
-//                                            if vm.hoverPic == pic {
-//                                                PicButtons(pic: pic, trans: trans)
-//                                            }
-//                                            #endif
-//                                        }
-//                                    }
-//                                    #if os(macOS)
-//                                    /// Open in safari browser
-//                                    .onTapGesture {
-//                                        openURL(URL(string: "https://\(Keys.baseURL):8676/files/budget_app.photo.\(pic.uuid).jpg")!)
-//                                    }
-//                                    /// Hover to show share button and delete button.
-//                                    .onContinuousHover { phase in
-//                                        switch phase {
-//                                        case .active:
-//                                            vm.hoverPic = pic
-//                                        case .ended:
-//                                            vm.hoverPic = nil
-//                                        }
-//                                    }
-//                                    #else
-//                                    
-//                                    /// Open inline safari-sheet
-//                                    .onTapGesture {
-//                                        safariUrl = URL(string: "https://\(Keys.baseURL):8676/files/budget_app.photo.\(pic.uuid).jpg")!
-//                                    }
-//                                    /// Long press to show delete (no share sheet option. Can share directly from safari sheet)
-//                                    .onLongPressGesture {
-//                                        //buzzPhone(.warning)
-//                                        vm.deletePic = pic
-//                                        vm.showDeletePicAlert = true
-//                                    }
-//                                    .sensoryFeedback(.warning, trigger: vm.showDeletePicAlert) { oldValue, newValue in
-//                                        !oldValue && newValue
-//                                    }
-//                                    #endif
-//                                }
-//                                photoPickerButton
-//                            }
-//                        }
-//                    } else {
-//                        photoPickerButton
-//                        Spacer()
-//                    }
-//                }
-//            }
-//            .photosPicker(isPresented: $showPhotosPicker, selection: $photoModel.imagesFromLibrary, matching: .images, photoLibrary: .shared())
-//            .onChange(of: showPhotosPicker) { oldValue, newValue in
-//                if !newValue {
-//                    if FileModel.shared.imagesFromLibrary.isEmpty {
-//                        calModel.cleanUpPhotoVariables()
-//                    } else {
-//                        FileModel.shared.uploadPicturesFromLibrary(delegate: calModel, fileType: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction))
-//                    }
-//                }
-//            }
-//            #if os(iOS)
-//            .fullScreenCover(isPresented: $showCamera) {
-//                AccessCameraView(selectedImage: $photoModel.imageFromCamera)
-//                    .background(.black)
-//            }
-//            .onChange(of: showCamera) { oldValue, newValue in
-//                if !newValue {
-//                    FileModel.shared.uploadPictureFromCamera(delegate: calModel, fileType: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction))
-//                }
-//            }
-//            #endif
-//        }
-//    }
-//    
-//    
-//    var photoPickerButton: some View {
-//        Group {
-//            @Bindable var calModel = calModel
-//            VStack(spacing: 6) {
-//                Button(action: {
-//                    showPhotosPicker = true
-//                }, label: {
-//                    RoundedRectangle(cornerRadius: 8)
-//                        .fill(addPhotoButtonHoverColor2)
-//                        #if os(iOS)
-//                        .frame(width: photoWidth, height: (photoHeight / 2) - 3)
-//                        #else
-//                        .frame(width: photoWidth, height: photoHeight)
-//                        #endif
-//                    
-//                        .overlay {
-//                            VStack {
-//                                Image(systemName: "photo.badge.plus")
-//                                    .font(.title)
-//                                Text("Library")
-//                            }
-//                            .foregroundStyle(.gray)
-//                        }
-//                })
-//                .buttonStyle(.plain)
-//                .onHover { isHovered in addPhotoButtonHoverColor2 = isHovered ? Color(.systemFill) : Color(.tertiarySystemFill) }
-//                .focusEffectDisabled(true)
-//                
-//                #if os(iOS)
-//                Button {
-//                    showCamera = true
-//                } label: {
-//                    RoundedRectangle(cornerRadius: 8)
-//                        .fill(addPhotoButtonHoverColor2)
-//                        .frame(width: photoWidth, height: (photoHeight / 2) - 3)
-//                        .overlay {
-//                            VStack {
-//                                Image(systemName: "camera")
-//                                    .font(.title)
-//                                Text("Camera")
-//                            }
-//                            .foregroundStyle(.gray)
-//                        }
-//                }
-//                .buttonStyle(.plain)
-//                .onHover { isHovered in addPhotoButtonHoverColor2 = isHovered ? Color(.systemFill) : Color(.tertiarySystemFill) }
-//                .focusEffectDisabled(true)
-//                #endif
-//                
-//            }
-//            
-//        }
-//    }
-//    
-//                        
-//    struct PicImage: View {
-//        @Environment(ViewModel.self) var vw
-//        var pic: CBPicture
-//        
-//        var body: some View {
-//            @Bindable var vw = vw
-//            AsyncImage(
-//                //url: URL(string: "http://www.codyburnett.com:8677/budget_app.photo.\(picture.path).jpg"),
-//                url: URL(string: "https://\(Keys.baseURL):8676/files/budget_app.photo.\(pic.uuid).jpg"),
-//                content: { image in
-//                    image
-//                        .resizable()
-//                        .frame(width: photoWidth, height: photoHeight)
-//                        .aspectRatio(contentMode: .fill)
-//                        .clipShape(.rect(cornerRadius: 12))
-//                        //.frame(maxWidth: 300, maxHeight: 300)
-//                },
-//                placeholder: {
-//                    PicPlaceholder(text: "Downloading…")
-//                }
-//            )
-//            .opacity(((vw.isDeletingPic && pic.id == vw.deletePic?.id) || vw.hoverPic == pic || pic.isPlaceholder) ? 0.2 : 1)
-//            .overlay(ProgressView().tint(.none).opacity(vw.isDeletingPic && pic.id == vw.deletePic?.id ? 1 : 0))
-//        }
-//    }
-//    
-//    
-//    struct PicPlaceholder: View {
-//        let text: String
-//        var body: some View {
-//            RoundedRectangle(cornerRadius: 8)
-//                .fill(Color.gray.opacity(0.1))
-//                .frame(width: photoWidth, height: photoHeight)
-//                .overlay {
-//                    VStack {
-//                        ProgressView()
-//                            .tint(.none)
-//                        Text(text)
-//                    }
-//                }
-//        }
-//    }
-//    
-//    #if os(macOS)
-//    struct PicButtons: View {
-//        @Environment(ViewModel.self) var vm
-//        var pic: CBPicture
-//        var trans: CBTransaction
-//        
-//        var body: some View {
-//            @Bindable var vm = vm
-//            
-//            VStack {
-//                HStack {
-////                    Link(destination: URL(string: "http://\(Keys.baseURL):8677/budget_app.photo.\(pic.uuid).jpg")!) {
-////                        Image(systemName: "arrow.down.left.and.arrow.up.right")
-////                            .frame(width: 30, height: 30)
-////                            .background(RoundedRectangle(cornerRadius: 4).fill(.ultraThickMaterial))
-////                    }
-//                                        
-//                    ShareLink(item: URL(string: "https://\(Keys.baseURL):8676/files/budget_app.photo.\(pic.uuid).jpg")! /*, subject: Text(trans.title), message: Text(trans.amountString)*/) {
-//                        Image(systemName: "square.and.arrow.up")
-//                            .frame(width: 30, height: 30)
-//                            .foregroundStyle(Color.accentColor)
-//                            .background(RoundedRectangle(cornerRadius: 4).fill(.ultraThickMaterial))
-//                    }
-//                    .buttonStyle(.plain)
-//                    
-//                    Button {
-//                        vm.deletePic = pic
-//                        vm.showDeletePicAlert = true
-//                    } label: {
-//                        Image(systemName: "trash")
-//                            .foregroundStyle(.red)
-//                            .frame(width: 30, height: 30)
-//                            .background(RoundedRectangle(cornerRadius: 4).fill(.ultraThickMaterial))
-//                    }
-//                    .buttonStyle(.plain)
-//                    
-//                    //Spacer()
-//                }
-//                .padding(.leading, 4)
-//                Spacer()
-//            }
-//            .padding(.top, 4)
-//            
-//            .opacity(vm.isDeletingPic && pic.id == vm.deletePic?.id ? 0 : 1)
-//            .disabled(vm.isDeletingPic && pic.id != vm.deletePic?.id)
-//        }
-//    }
-//    #endif
-    
-    
-    
-    
-    
     // MARK: - Functions
     func validateBeforeClosing() {
         if !trans.title.isEmpty && !trans.amountString.isEmpty && trans.payMethod == nil {
@@ -1691,7 +1329,7 @@ struct TransactionEditView: View {
             } else {
                 let config = AlertConfig(
                     title: "Missing Payment Method",
-                    subtitle: "Please add a payment method or delete this transaction.",
+                    subtitle: "Please assign an account or delete this transaction.",
                     symbol: .init(name: "creditcard.trianglebadge.exclamationmark.fill", color: .orange)
                 )
                 AppState.shared.showAlert(config: config)
@@ -1706,7 +1344,6 @@ struct TransactionEditView: View {
     
     
     func checkIfTransactionIsValidToSave() {
-        print("Checking validity")
         if trans.title.isEmpty {
             isValidToSave = false; return
         }
@@ -1717,73 +1354,62 @@ struct TransactionEditView: View {
             isValidToSave = false; return
         }
         if !trans.hasChanges(shouldLog: false) {
-            print("Transaction does not have changes")
+            //print("Transaction does not have changes")
             isValidToSave = false; return
         } else {
-            print("Transaction does! have changes")
+            //print("Transaction does! have changes")
             isValidToSave = true; return
         }
     }
     
         
     func prepareTransactionForEditing(isTemp: Bool) {
-        /// `WARNING!` Can't do this logic in `init()` due to redraws.
-
         /// Clear undo history.
         UndodoManager.shared.clearHistory()
         UndodoManager.shared.commitChange(trans: trans)
         
-        calModel.hilightTrans = nil
-        
-        /// Grab the transaction from the model or create a new one.
-        /// 2/12/25 now passed in to the view
-        //trans = calModel.getTransaction(by: transEditID!, from: isTemp ? .tempList : transLocation)
+        //calModel.hilightTrans = nil
             
         /// Determine the title button color.
         titleColorButtonHoverColor = trans.color == .primary ? .gray : trans.color
-        /// Set the transaction date to the date of the passed in day.
         
+        /// Set the transaction date to the date of the passed in day.
         if trans.date == nil && !(trans.isSmartTransaction ?? false) {
             trans.date = day.date!
         }
-        
-        /// Just for formatting.
-        trans.amountString = trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                
+        /// Format the dollar amount.
+        if trans.action != .add || trans.tempAction != .add {
+            trans.amountString = trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        }
                 
         /// Set a reference to the transactions ID so photos know where to go.
-        //calModel.pictureTransactionID = trans.id
         FileModel.shared.fileParent = FileParent(id: trans.id, type: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction))
 
         /// If the transaction is new.
         if trans.action == .add && !isTemp {
             trans.amountString = ""
             
-            trans.category = catModel.categories.filter { $0.isNil }.first!
+            /// Set the dummy nil category to the trans so it's not a real nil.
+            trans.category = catModel.getNil()
             
-            if calModel.isUnifiedPayMethod {
-                /// If the unified editing payment method is set, use it.
-                
-                if calModel.sPayMethod?.accountType == .unifiedChecking {
-                    if payModel.paymentMethods.filter({ $0.isEditingDefault }).first?.accountType == .checking {
-                        trans.payMethod = payModel.paymentMethods.filter { $0.isEditingDefault }.first
-                    }
-                }
-                
-                if calModel.sPayMethod?.accountType == .unifiedCredit {
-                    if payModel.paymentMethods.filter({ $0.isEditingDefault }).first?.accountType == .credit || payModel.paymentMethods.filter({ $0.isEditingDefault }).first?.accountType == .loan {
-                        trans.payMethod = payModel.paymentMethods.filter { $0.isEditingDefault }.first
-                    }
-                }
+            /// If the unified editing payment method is set, use it.
+            if calModel.sPayMethod?.accountType == .unifiedChecking && payModel.editingDefaultAccountType == .checking {
+                trans.payMethod = payModel.getEditingDefault()
+            
+            /// If the unified editing payment method is set, use it.
+            } else if calModel.sPayMethod?.accountType == .unifiedCredit && [.credit, .loan].contains(payModel.editingDefaultAccountType) {
+                trans.payMethod = payModel.getEditingDefault()
                 
             } else {
                 /// Add the selected viewing payment method to the transaction.
                 trans.payMethod = calModel.sPayMethod
             }
-            
+                        
             #if os(iOS)
             Task {
                 /// Wait a split second before adding to the day so we don't see it happen.
-                try? await Task.sleep(nanoseconds: UInt64(0.5 * Double(NSEC_PER_SEC)))
+                try await Task.sleep(for: .seconds(0.5))
                 /// Pre-add the transaction to the day so we can add photos to it before saving. Get's removed on cancel if title and payment method are blank.
                 day.upsert(trans)
             }
@@ -1794,12 +1420,16 @@ struct TransactionEditView: View {
             
             
         } else if trans.tempAction == .add && isTemp {
+            /// Set the dummy nil category to the trans so it's not a real nil.
+            trans.category = catModel.getNil()
+            
             calModel.tempTransactions.append(trans)
             trans.amountString = ""
-            trans.payMethod = nil
+            trans.payMethod = payModel.getEditingDefault()
             trans.action = .add
         }
         
+        /// Show the tracking / url fields if there is a value in them.
         if !trans.trackingNumber.isEmpty || !trans.orderNumber.isEmpty || !trans.url.isEmpty {
             showTrackingOrderAndUrlFields = true
         }
@@ -1813,8 +1443,9 @@ struct TransactionEditView: View {
         #else
         if (trans.action == .add && !isTemp) || (trans.tempAction == .add && isTemp) {
             Task {
-                /// Wait a split second before adding to the day so we don't see it happen.
-                try? await Task.sleep(nanoseconds: UInt64(0.5 * Double(NSEC_PER_SEC)))
+                /// Wait a split second so the view isn't clunky.
+                //try? await Task.sleep(nanoseconds: UInt64(0.5 * Double(NSEC_PER_SEC)))
+                try? await Task.sleep(for: .seconds(0.5))
                 focusedField = 0
             }
         }
@@ -1830,10 +1461,9 @@ struct TransactionEditView: View {
 //            trans.deepCopy?.date = nil
 //        }
         
-        
+        /// Protect the transaction from being updated via scene changes if it is open.
+        /// Ignore this transaction if it's open and you're coming back to the app from another app (ie if bouncing back and forth between this app and a banking app).
         calModel.transEditID = transEditID
-        
-        
         
         /// These are just to control the animations in the options sheet. The are here so we don't see the option sheet "set up its state" when the view appears.
         if !trans.factorInCalculations { showHiddenEye = true }
@@ -1855,10 +1485,7 @@ struct TransactionEditView: View {
             AppState.shared.showToast(title: "Rule Created", subtitle: trans.title, body: "\(trans.category!.title)", symbol: "ruler", symbolColor: .green)
         }
         
-        
-        Task {
-            await keyModel.submit(keyword)
-        }
+        Task { await keyModel.submit(keyword) }
     }
     
 //    func deletePicture() {

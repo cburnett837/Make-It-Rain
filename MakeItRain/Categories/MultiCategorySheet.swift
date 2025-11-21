@@ -11,8 +11,10 @@ struct MultiCategorySheet: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
     //@Local(\.colorTheme) var colorTheme
-    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
-    @AppStorage("categorySortMode") var categorySortMode: SortMode = .title
+    //@Local(\.lineItemIndicator) var lineItemIndicator
+    @Local(\.categorySortMode) var categorySortMode
+    //@Local(\.categoryIndicatorAsSymbol) var categoryIndicatorAsSymbol
+
     
     @Environment(CalendarModel.self) private var calModel
     
@@ -20,6 +22,7 @@ struct MultiCategorySheet: View {
     @Environment(KeywordModel.self) private var keyModel
     
     @Binding var categories: Array<CBCategory>
+    var includeHidden: Bool = false
     
     var showAnalyticSpecificOptions = false
                 
@@ -28,7 +31,7 @@ struct MultiCategorySheet: View {
     @State private var labelWidth: CGFloat = 20.0
     @State private var newGroupTitle = ""
     @State private var showDeleteAlert = false
-        
+    @State private var showInfo = false
     @State private var editGroup: CBCategoryGroup?
     @State private var groupEditID: CBCategoryGroup.ID?
     
@@ -37,6 +40,15 @@ struct MultiCategorySheet: View {
         catModel.categories
             .filter { !$0.isNil }
             .filter { !$0.isHidden }
+            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+            .sorted(by: Helpers.categorySorter())
+    }
+    
+    
+    var filteredHiddenCategories: Array<CBCategory> {
+        catModel.categories
+            .filter { !$0.isNil }
+            .filter { $0.isHidden }
             .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
             .sorted(by: Helpers.categorySorter())
     }
@@ -54,7 +66,8 @@ struct MultiCategorySheet: View {
         categories
             .filter { $0.active }
             .filter { !$0.isHidden }
-            .sorted { $0.id > $1.id }
+            .sorted(by: Helpers.categorySorter())
+            //.sorted { $0.id > $1.id }
             .compactMap(\.id)
     }
     
@@ -96,10 +109,6 @@ struct MultiCategorySheet: View {
                                 addNewGroupButton
                             }
                         }
-                        
-                        if searchText.isEmpty {
-                            noneSection
-                        }
                     }
                     
                     
@@ -113,6 +122,12 @@ struct MultiCategorySheet: View {
                             )
                         }
                     }
+                    
+                    hiddenCategoriesSections
+                    
+                    if searchText.isEmpty {
+                        noneSection
+                    }
                 }
             }
             .searchable(text: $searchText, prompt: Text("Search"))
@@ -124,8 +139,10 @@ struct MultiCategorySheet: View {
                 DefaultToolbarItem(kind: .search, placement: .bottomBar)
                                 
                 ToolbarSpacer(.flexible, placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar)
-                ToolbarItem(placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar) { CategorySortMenu() }
-                
+                ToolbarItem(placement: AppState.shared.isIpad ? .topBarTrailing : .bottomBar) { CategorySortMenu() }
+                if AppState.shared.isIpad {
+                    ToolbarSpacer(.fixed, placement: .topBarTrailing)
+                }
                                 
 //                ToolbarSpacer(.flexible, placement: .bottomBar)
 //                ToolbarItem(placement: .bottomBar) { CategorySortMenu() }
@@ -178,6 +195,50 @@ struct MultiCategorySheet: View {
     }
     
     
+    @AppStorage("hiddenCategoriesSectionIsExpanded") private var storedIsHiddenSectionExpanded: Bool = false
+    @State private var isHiddenSectionExpanded = false
+    
+    @ViewBuilder
+    var hiddenCategoriesSections: some View {
+        Section {
+            if isHiddenSectionExpanded {
+                ForEach(filteredHiddenCategories) { cat in
+                    MultiCategoryPickerLineItem(
+                        cat: cat,
+                        categories: $categories,
+                        labelWidth: labelWidth,
+                        selectFunction: { doit(cat) }
+                    )
+                }
+            } else {
+                Button("Show All") {
+                    withAnimation { isHiddenSectionExpanded.toggle() }
+                }
+            }
+        } header: {
+            hiddenSectionHeader
+        }
+    }
+    
+    var hiddenSectionHeader: some View {
+        HStack {
+            HStack {
+                Text("Hidden Categories")
+                Image(systemName: "chevron.right")
+                    .rotationEffect(.degrees(isHiddenSectionExpanded ? 90 : 0))
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                withAnimation { isHiddenSectionExpanded.toggle() }
+            }
+            Spacer()
+        }
+        .onAppear { isHiddenSectionExpanded = storedIsHiddenSectionExpanded }
+        .onChange(of: isHiddenSectionExpanded) { storedIsHiddenSectionExpanded = $1 }
+    }
+    
+    
+    @ViewBuilder
     var allExpenseCategoriesButton: some View {
         /// Sort order is reversed to account for the offset of the circles
         let categories = catModel.categories
@@ -186,8 +247,12 @@ struct MultiCategorySheet: View {
             .filter ({ !$0.isIncome })
             .sorted(by: Helpers.categorySorter())
         
-        return Button {
+        Button {
             withAnimation { self.categories = categories }
+            
+            print(self.categories.map {$0.id})
+            print(selectedCategoryIds)
+            
         } label: {
             HStack {
                 Group {
@@ -213,6 +278,7 @@ struct MultiCategorySheet: View {
     }
     
     
+    @ViewBuilder
     var allIncomeCategoriesButton: some View {
         /// Sort order is reversed to account for the offset of the circles
         let categories = catModel.categories
@@ -221,7 +287,7 @@ struct MultiCategorySheet: View {
             .filter { !$0.isHidden }
             .sorted(by: Helpers.categorySorter())
         
-        return Button {
+        Button {
             withAnimation { self.categories = categories }
         } label: {
             HStack {
@@ -248,29 +314,42 @@ struct MultiCategorySheet: View {
     }
     
     
+    @ViewBuilder
     var anythingWithAnAmountButton: some View {
         let categories = calModel.sMonth.justTransactions
             .filter ({ $0.active })
             .filter ({ $0.amount != 0 && $0.category != nil })
             .compactMap ({ $0.category })
             .filter ({ !$0.isIncome })
-            .sorted(by: {$0.id > $1.id})
+            .sorted(by: Helpers.categorySorter())
             .uniqued(on: \.id)
         
-        return Button {
+        Button {
             withAnimation { self.categories = categories }
         } label: {
             HStack {
                 Group {
-                    Image(systemName: "dollarsign.circle")
+                    Image(systemName: "dollarsign.circle.fill")
+                        //.foregroundStyle(.green)
                 }
                 .frame(minWidth: labelWidth, alignment: .center)
                 
-                Text("Any expense category that has transactions")
+                Text("Relevant Categories")
                 Spacer()
                 
                 if selectedCategoryIds == categories.compactMap(\.id) {
                     Image(systemName: "checkmark")
+                }
+                
+                Button {
+                    showInfo = true
+                } label: {
+                    Image(systemName: "info.circle")
+                        .foregroundStyle(Color.theme)
+                }
+                .popover(isPresented: $showInfo) {
+                    Text("Include all expense categories that have transactions.")
+                        .presentationCompactAdaptation(.popover)
                 }
             }
             .schemeBasedForegroundStyle()
@@ -513,7 +592,10 @@ struct MultiCategorySheet: View {
                     
                     Text(group.title)
                     Spacer()
-                    if selectedCategoryIds == group.categories.sorted(by: {$0.id > $1.id}).compactMap(\.id) {
+                    if selectedCategoryIds == group.categories
+                        //.sorted(by: {$0.id > $1.id})
+                        .sorted(by: Helpers.categorySorter())
+                        .compactMap(\.id) {
                         Image(systemName: "checkmark")
                     }
                 }
@@ -550,10 +632,6 @@ struct MultiCategorySheet: View {
 
 
 struct MultiCategoryPickerLineItem: View {
-    //@Environment(\.colorScheme) var colorScheme
-
-    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
-    
     var cat: CBCategory
     @Binding var categories: [CBCategory]
     var labelWidth: CGFloat
@@ -568,29 +646,6 @@ struct MultiCategoryPickerLineItem: View {
         .onTapGesture {
             withAnimation { selectFunction() }
         }
-        
-//        Button {
-//            withAnimation { selectFunction() }
-//        } label: {
-//            StandardCategoryLabel(cat: cat, labelWidth: labelWidth, showCheckmarkCondition: categories.filter{ $0.active }.contains(cat))
-//                //.schemeBasedForegroundStyle()
-//            
-////            HStack {
-////                Image(systemName: lineItemIndicator == .dot ? "circle.fill" : (cat.emoji ?? "circle.fill"))
-////                    .foregroundStyle(cat.color.gradient)
-////                    .frame(minWidth: labelWidth, alignment: .center)
-////                    .maxViewWidthObserver()
-////                Text(cat.title)
-////                Spacer()
-////                Image(systemName: "checkmark")
-////                    .opacity(categories.filter{ $0.active }.contains(cat) ? 1 : 0)
-////            }
-////            .schemeBasedForegroundStyle()
-////            .contentShape(Rectangle())
-//        }
-//        #if os(macOS)
-//        .buttonStyle(.plain)
-//        #endif
     }
 }
 

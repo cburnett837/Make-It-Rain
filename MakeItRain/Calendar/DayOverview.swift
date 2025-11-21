@@ -208,7 +208,9 @@ struct DayOverviewView: View {
                                                     
                     day?.transactions.append(trans)
                     calModel.dragTarget = nil
-                    calModel.saveTransaction(id: trans.id, eventModel: eventModel)
+                    Task {
+                        await calModel.saveTransaction(id: trans.id, eventModel: eventModel)
+                    }
                 }
             }
         }

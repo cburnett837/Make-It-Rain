@@ -20,7 +20,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     var dueDateString: String?
     
     var limit: Double? {
-        Double(limitString?.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "") ?? "0.0") ?? 0.0
+        Double(limitString?.replacing("$", with: "").replacing(",", with: "") ?? "0.0") ?? 0.0
     }
     var limitString: String?
         
@@ -38,13 +38,17 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     var last4: String?
     var logo: Data?
     
+    var fallbackImage: String {
+        accountType == .checking || accountType == .cash ? "banknote.fill" : "creditcard.fill"
+    }
+    
     var interestRate: Double? {
-        Double(interestRateString?.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "") ?? "0.0") ?? 0.0
+        Double(interestRateString?.replacing("$", with: "").replacing(",", with: "") ?? "0.0") ?? 0.0
     }
     var interestRateString: String?
     
     var loanDuration: Double? {
-        Double(loanDurationString?.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "") ?? "0.0") ?? 0.0
+        Double(loanDurationString?.replacing("$", with: "").replacing(",", with: "") ?? "0.0") ?? 0.0
     }
     var loanDurationString: String?
     
@@ -64,16 +68,16 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     var profitLossMinPercentage: Double = 0.0
     var profitLossMaxPercentage: Double = 0.0
     
-    var profitLossMinAmount: Double { Double(profitLossMinAmountString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0 }
+    var profitLossMinAmount: Double { Double(profitLossMinAmountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
     var profitLossMinAmountString: String = ""
     
-    var profitLossMaxAmount: Double { Double(profitLossMaxAmountString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0 }
+    var profitLossMaxAmount: Double { Double(profitLossMaxAmountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
     var profitLossMaxAmountString: String = ""
     
-    var minEod: Double { Double(minEodString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0 }
+    var minEod: Double { Double(minEodString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
     var minEodString: String = ""
     
-    var maxEod: Double { Double(maxEodString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0 }
+    var maxEod: Double { Double(maxEodString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
     var maxEodString: String = ""
     
     
@@ -495,11 +499,12 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     
 
     static func == (lhs: CBPaymentMethod, rhs: CBPaymentMethod) -> Bool {
+        //print("-- \(#function) for \(lhs.title) && \(rhs.title)")
         if lhs.id == rhs.id
         && lhs.uuid == rhs.uuid
         && lhs.title == rhs.title
         && lhs.dueDate == rhs.dueDate
-        && lhs.limit == rhs.limit
+        && lhs.limitString == rhs.limitString
         && lhs.accountType == rhs.accountType
         && lhs.color == rhs.color
         && lhs.isViewingDefault == rhs.isViewingDefault
@@ -513,7 +518,8 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         && lhs.isPrivate == rhs.isPrivate
         && lhs.logo == rhs.logo
         && lhs.listOrder == rhs.listOrder
-        && lhs.active == rhs.active {
+        && lhs.active == rhs.active
+        {
             return true
         }
         return false

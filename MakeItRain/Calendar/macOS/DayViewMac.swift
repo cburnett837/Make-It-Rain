@@ -10,7 +10,7 @@ import SwiftUI
 struct DayViewMac: View {
     @Local(\.useWholeNumbers) var useWholeNumbers
     @Local(\.threshold) var threshold
-    @AppStorage("alignWeekdayNamesLeft") var alignWeekdayNamesLeft = true
+    @Local(\.alignWeekdayNamesLeft) var alignWeekdayNamesLeft
     
     @Environment(CalendarModel.self) private var calModel
     
@@ -109,7 +109,7 @@ struct DayViewMac: View {
                 }
                 .onTapGesture {
                     /// Used for hilighting
-                    calModel.hilightTrans = nil
+                    //calModel.hilightTrans = nil
                     focusedField = nil
                     print("OnTapGesture \(#file)")
                 }
@@ -203,7 +203,9 @@ struct DayViewMac: View {
                             calModel.dragTarget = nil
                         }
                         
-                        calModel.saveTransaction(id: trans.id)
+                        Task {
+                            await calModel.saveTransaction(id: trans.id)
+                        }
                     }
                     
                     return true
@@ -213,15 +215,15 @@ struct DayViewMac: View {
                 }
                 
                 .sheet(isPresented: $showTransferSheet) {
-                    TransferSheet(date: day.date!)
+                    TransferSheet(defaultDate: day.date!)
                         #if os(iOS)
                         .presentationSizing(.page)
                         #else
                         .frame(minWidth: 500, minHeight: 700)
                         .presentationSizing(.fitted)
                         #endif
-                    //TransferSheet(day: $day)
-                    //TransferSheet(day: Binding(get: { }, set: { }))
+                    //TransferSheet(defaultDate: $day)
+                    //TransferSheet(defaultDate: Binding(get: { }, set: { }))
                 }
             }
         }
@@ -248,7 +250,10 @@ struct DayViewMac: View {
                     }
                     
                     day.upsert(transactionToPaste)
-                    calModel.saveTransaction(id: transactionToPaste.id/*, day: day*/)
+                    Task {
+                        await calModel.saveTransaction(id: transactionToPaste.id/*, day: day*/)
+                    }
+                    
                 } else {
                     print("nothing to paste")
                 }
@@ -284,7 +289,8 @@ struct DayViewMac: View {
     
     
     func createEodHelpDescription() -> String {
-        let creditEodView = CreditEodView.fromString(UserDefaults.standard.string(forKey: "creditEodView") ?? "")
+        //let creditEodView = CreditEodView.fromString(UserDefaults.standard.string(forKey: "creditEodView") ?? "")
+        let creditEodView = LocalStorage.shared.creditEodView
         
         if calModel.sPayMethod?.accountType == .credit || calModel.sPayMethod?.accountType == .loan {
             switch creditEodView {

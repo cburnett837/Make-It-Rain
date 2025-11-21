@@ -167,7 +167,7 @@ struct KeyboardToolbarView: View {
                 }
             }
             .padding(.horizontal)
-            .padding(.vertical, 15)
+            .padding(.vertical, 12)
             .if(!canUseLiquidGlass) {
                 $0.background(Color(.tertiarySystemBackground))
             }

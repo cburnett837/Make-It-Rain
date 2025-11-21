@@ -97,26 +97,67 @@ enum AccountType: Int {
             "Brokerage"
         }
     }
-    
 }
 
-enum LineItemIndicator: String, CaseIterable {
+enum ViewThatTriggeredChange {
+    case calendar, paymentMethodListOrders
+}
+
+public enum LineItemIndicator: String, CaseIterable {
     case dot, emoji, paymentMethod
     
-    var prettyValue: String {
+    var mobilePrettyValue: String {
+        switch self {
+        case .dot: return "Category"
+        case .emoji: return ""
+        case .paymentMethod: return "Account"
+        }
+    }
+    
+    var macPrettyValue: String {
         switch self {
         case .dot: return "Category Dot"
         case .emoji: return "Category Symbol"
         case .paymentMethod: return "Account"
         }
     }
+    
+    static var mobileCases: [Self] {
+        return [.dot, .paymentMethod]
+    }
+    
+    static var macCases: [Self] {
+        return [.dot, .emoji, .paymentMethod]
+    }
+    
+    static func fromString(_ string: String) -> Self {
+        switch string {
+        case "dot": return .dot
+        case "emoji": return .emoji
+        case "paymentMethod": return .paymentMethod
+        default: return .emoji
+        }
+    }
 }
+
+
+enum CategoryIndicator: String, CaseIterable {
+    case dot, emoji
+    
+    var prettyValue: String {
+        switch self {
+        case .dot: return "Dot"
+        case .emoji: return "Symbol"
+        }
+    }
+}
+
 
 //enum MacCategoryDisplayMode: String {
 //    case dot, emoji
 //}
 
-enum SortMode: String, CaseIterable {
+public enum SortMode: String, CaseIterable {
     case title, listOrder
     
     static func fromString(_ theString: String) -> Self {
@@ -137,7 +178,7 @@ enum SortMode: String, CaseIterable {
     }
 }
 
-enum TransactionSortMode: String, CaseIterable {
+public enum TransactionSortMode: String, CaseIterable {
     case title, category, enteredDate
     
     static func fromString(_ theString: String) -> Self {
@@ -183,7 +224,7 @@ enum TransactionListDisplayMode: String, CaseIterable {
 }
 
 
-enum PhoneLineItemDisplayItem: String, CaseIterable {
+public enum PhoneLineItemDisplayItem: String, CaseIterable {
     case title, total, category, both
     
     static func fromString(_ theString: String) -> Self {
@@ -203,14 +244,14 @@ enum PhoneLineItemDisplayItem: String, CaseIterable {
         case .total:
             "Total"
         case .category:
-            "Category"
+            "Colored Indicator"
         case .both:
-            "Category, Title, & Total"
+            "Title & Total"
         }
     }
 }
 
-enum CreditEodView: String, CaseIterable {
+public enum CreditEodView: String, CaseIterable {
     case availableCredit, remainingBalance
     
     static func fromString(_ theString: String) -> Self {
@@ -244,11 +285,7 @@ enum PhoneLineItemTotalPosition: String, CaseIterable {
     }
 }
 
-enum LineItemInteractionMode: String {
-    case open, preview
-}
-
-enum UpdatedByOtherUserDisplayMode: String, CaseIterable {
+public enum UpdatedByOtherUserDisplayMode: String, CaseIterable {
     case concise, full
     
     var prettyValue: String {
@@ -257,6 +294,14 @@ enum UpdatedByOtherUserDisplayMode: String, CaseIterable {
             "Bold & italic title"
         case .full:
             "Their Name"
+        }
+    }
+    
+    static func fromString(_ theString: String) -> Self {
+        switch theString {
+        case "concise": return .concise
+        case "full": return .full
+        default: return .concise
         }
     }
 }
@@ -289,8 +334,17 @@ enum RefreshTechnique: String {
     case viaInitial, viaButton, viaSceneChange, viaLongPoll, viaTempListButton, viaTempListSceneChange
 }
 
-enum UserPreferedColorScheme: String {
+public enum UserPreferedColorScheme: String {
     case userLight, userDark, userSystem
+    
+    static func fromString(_ theString: String) -> Self {
+        switch theString {
+        case "userLight": return .userLight
+        case "userDark": return .userDark
+        case "userSystem": return .userSystem
+        default: return .userSystem
+        }
+    }
 }
 
 enum ListOrderUpdateType: String {
@@ -327,7 +381,6 @@ enum PlaidLinkMode: String {
 enum DetailsOrInsights: String {
     case details = "details"
     case insights = "insights"
-    case edit = "edit"
 }
 
 #if os(iOS)

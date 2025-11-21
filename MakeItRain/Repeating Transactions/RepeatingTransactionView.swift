@@ -134,7 +134,7 @@ struct RepeatingTransactionView: View {
         }
     }
     
-    
+    #if os(macOS)
     var bodyMac: some View {
         StandardContainer {
             LabeledRow("Name", labelWidth) {
@@ -149,12 +149,12 @@ struct RepeatingTransactionView: View {
             StandardDivider()
                                     
             LabeledRow(paymentMethodTitle, labelWidth) {
-                PayMethodSheetButton(payMethod: $repTransaction.payMethod, whichPaymentMethods: .allExceptUnified)
+                PayMethodSheetButtonMac(payMethod: $repTransaction.payMethod, whichPaymentMethods: .allExceptUnified)
             }
                         
             if !isRegularTransaction {
                 LabeledRow(paymentMethod2Title, labelWidth) {
-                    PayMethodSheetButton(payMethod: $repTransaction.payMethodPayTo, whichPaymentMethods: .allExceptUnified)
+                    PayMethodSheetButtonMac(payMethod: $repTransaction.payMethodPayTo, whichPaymentMethods: .allExceptUnified)
                 }
             }
             
@@ -174,25 +174,25 @@ struct RepeatingTransactionView: View {
             StandardDivider()
                                     
             LabeledRow("Category", labelWidth) {
-                CategorySheetButton(category: $repTransaction.category)
+                CategorySheetButtonMac(category: $repTransaction.category)
             }
             
             StandardDivider()
                                 
             LabeledRow("Weekdays", labelWidth) {
-                WeekdayToggles(repTransaction: repTransaction)
+                weekdayToggles
             }
             
             StandardDivider()
             
             LabeledRow("Months", labelWidth) {
-                MonthToggles(repTransaction: repTransaction)
+                monthToggles
             }
             
             StandardDivider()
             
             LabeledRow("Days", labelWidth) {
-                DayToggles(repTransaction: repTransaction)
+                dayToggles
             }
             
             StandardDivider()
@@ -213,8 +213,10 @@ struct RepeatingTransactionView: View {
             SheetHeader(title: title, close: { editID = nil; dismiss() }, view3: { deleteButton })
         }
     }
+    #endif
     
     
+    #if os(iOS)
     var bodyPhone: some View {
         NavigationStack {
             StandardContainerWithToolbar(.list) {
@@ -240,7 +242,7 @@ struct RepeatingTransactionView: View {
                 }
                 
                 Section("Additional Details") {
-                    CategorySheetButton3(category: $repTransaction.category)
+                    CategorySheetButtonPhone(category: $repTransaction.category)
                     colorRow
                 }
                 
@@ -249,21 +251,21 @@ struct RepeatingTransactionView: View {
                         Text("On Specific Weekdays")
                             .foregroundStyle(.secondary)
                             .font(.subheadline)
-                        WeekdayToggles(repTransaction: repTransaction)
+                        weekdayToggles
                     }
                     
                     VStack(alignment: .leading) {
                         Text("During Specific Months")
                             .foregroundStyle(.secondary)
                             .font(.subheadline)
-                        MonthToggles(repTransaction: repTransaction)
+                        monthToggles
                     }
                     
                     VStack(alignment: .leading) {
                         Text("On Specific Days")
                             .foregroundStyle(.secondary)
                             .font(.subheadline)
-                        DayToggles(repTransaction: repTransaction)
+                        dayToggles
                     }
                     
                 } header: {
@@ -272,7 +274,6 @@ struct RepeatingTransactionView: View {
                     Text("Select a combo of weekdays, months, and days to repeat the transaction. For example, selecting **Sunday**, **January**, and **15** will create this transaction on every Sunday in January, **and** on January 15th.")
                 }
             }
-            #if os(iOS)
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -287,9 +288,9 @@ struct RepeatingTransactionView: View {
                 }
                 .sharedBackgroundVisibility(.hidden)
             }
-            #endif
         }
     }
+    #endif
     
     
     var closeButton: some View {
@@ -389,12 +390,28 @@ struct RepeatingTransactionView: View {
     
     
     var payFromRow: some View {
-        PayMethodSheetButton2(text: "Pay From", image: repTransaction.payMethod?.accountType == .checking ? "banknote.fill" : "creditcard.fill", payMethod: $repTransaction.payMethod, whichPaymentMethods: .allExceptUnified)
+        PayMethodSheetButtonPhone(
+            text: "Pay From",
+            logoInfo: .init(
+                include: true,
+                fallBackType: .customImage(repTransaction.payMethod?.fallbackImage)
+            ),
+            payMethod: $repTransaction.payMethod,
+            whichPaymentMethods: .allExceptUnified
+        )
     }
     
     
     var payToRow: some View {
-        PayMethodSheetButton2(text: "Pay To", image: repTransaction.payMethodPayTo?.accountType == .checking ? "banknote.fill" : "creditcard.fill", payMethod: $repTransaction.payMethodPayTo, whichPaymentMethods: .allExceptUnified)
+        PayMethodSheetButtonPhone(
+            text: "Pay To",
+            logoInfo: .init(
+                include: true,
+                fallBackType: .customImage(repTransaction.payMethod?.fallbackImage)
+            ),
+            payMethod: $repTransaction.payMethodPayTo,
+            whichPaymentMethods: .allExceptUnified
+        )
     }
     
     
@@ -492,132 +509,89 @@ struct RepeatingTransactionView: View {
     
     
     
-    struct WeekdayToggles: View {
-        //@Local(\.colorTheme) var colorTheme
-        @Environment(RepeatingTransactionModel.self) private var repModel
-        @Bindable var repTransaction: CBRepeatingTransaction
-        
-        var body: some View {
-            ScrollView(.horizontal, showsIndicators: true) {
-                HStack {
-                    let isAll = repTransaction.when.filter { $0.whenType == .weekday }.filter { $0.active }.count == 7
-                    Button {
-                        repTransaction.when.filter { $0.whenType == .weekday }.forEach { $0.active.toggle() }
-                    } label: {
-                        Text("All")
-                            .frame(width: 40, height: 40)
-                            .foregroundStyle(isAll ? Color.theme : Color.primary)
-                            .background(isAll ? Color.theme.opacity(0.2) : Color.clear)
-                            .clipShape(Circle())
-                            .font(.caption)
-                            .bold()
-                            .contentShape(Circle())
-                    }
-                    .buttonStyle(.borderless)
-                                        
-                    Divider()
-                    
-                    ForEach($repTransaction.when.filter { $0.whenType.wrappedValue == .weekday }) { $when in
-                        Button {
-                            when.active.toggle()
-                        } label: {
-                            Text(when.displayTitle)
-                                .frame(width: 40, height: 40)
-                                .foregroundStyle(when.active ? Color.theme : Color.primary)
-                                .background(when.active ? Color.theme.opacity(0.2) : Color.clear)
-                                .clipShape(Circle())
-                                .font(.caption)
-                                .bold()
-                                .contentShape(Circle())
-                        }
-                        .buttonStyle(.borderless)
-                    }
-                }
-            }
-            .scrollIndicators(.hidden)
-            //.contentMargins(.bottom, 10, for: .scrollContent)
-        }
-    }
-    
-    
-    struct MonthToggles: View {
-        //@Local(\.colorTheme) var colorTheme
-        @Environment(RepeatingTransactionModel.self) private var repModel
-        @Bindable var repTransaction: CBRepeatingTransaction
-        
-        var body: some View {
-            ScrollView(.horizontal, showsIndicators: true) {
-                HStack {
-                    let isAll = repTransaction.when.filter { $0.whenType == .month }.filter { $0.active }.count == 12
-                    Button {
-                        repTransaction.when.filter { $0.whenType == .month }.forEach { $0.active.toggle() }
-                    } label: {
-                        Text("All")
-                            .frame(width: 40, height: 40)
-                            .foregroundStyle(isAll ? Color.theme : Color.primary)
-                            .background(isAll ? Color.theme.opacity(0.2) : Color.clear)
-                            .clipShape(Circle())
-                            .font(.caption)
-                            .bold()
-                            .contentShape(Circle())
-                    }
-                    .buttonStyle(.borderless)
-                                        
-                    Divider()
-                                                            
-                    ForEach($repTransaction.when.filter { $0.whenType.wrappedValue == .month }) { $when in
-                        Button {
-                            when.active.toggle()
-                        } label: {
-                            Text(when.displayTitle)
-                                .frame(width: 40, height: 40)
-                                .foregroundStyle(when.active ? Color.theme : Color.primary)
-                                .background(when.active ? Color.theme.opacity(0.2) : Color.clear)
-                                .clipShape(Circle())
-                                .font(.caption)
-                                .bold()
-                                .contentShape(Circle())
-                        }
-                        .buttonStyle(.borderless)
-                    }
-                }
-            }
-            .scrollIndicators(.hidden)
-            //.contentMargins(.bottom, 10, for: .scrollContent)
-        }
-    }
-    
-    
-    struct DayToggles: View {
-        //@Local(\.colorTheme) var colorTheme
-        @Environment(RepeatingTransactionModel.self) private var repModel
-        @Bindable var repTransaction: CBRepeatingTransaction
-        
-        let sevenColumnGrid = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
-        
-        var body: some View {
+    var weekdayToggles: some View {
+        ScrollView(.horizontal, showsIndicators: true) {
             HStack {
-                LazyVGrid(columns: sevenColumnGrid, spacing: 0) {
-                    ForEach($repTransaction.when.filter { $0.whenType.wrappedValue == .dayOfMonth }) { $day in
-                        Button {
-                            day.active.toggle()
-                        } label: {
-                            VStack(alignment: .leading) {
-                                HStack {
-                                    Text(day.displayTitle)
-                                    Spacer()
-                                }
-                                Spacer().frame(height: 30)
-                            }
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .background(day.active ? Color.theme : .clear)
-                        .border(Color(.gray))
+                let isAll = repTransaction.when.filter { $0.whenType == .weekday }.filter { $0.active }.count == 7
+                Button {
+                    repTransaction.when.filter { $0.whenType == .weekday }.forEach { $0.active.toggle() }
+                } label: {
+                    optionLabel(title: "All", active: isAll)
+                }
+                .buttonStyle(.borderless)
+                                    
+                Divider()
+                
+                ForEach($repTransaction.when.filter { $0.whenType.wrappedValue == .weekday }) { $when in
+                    Button {
+                        when.active.toggle()
+                    } label: {
+                        optionLabel(title: when.displayTitle, active: when.active)
                     }
+                    .buttonStyle(.borderless)
                 }
             }
-            .frame(maxWidth: .infinity)
         }
+        .scrollIndicators(.hidden)
+    }
+    
+    
+    
+    
+    var monthToggles: some View {
+        ScrollView(.horizontal, showsIndicators: true) {
+            HStack {
+                let isAll = repTransaction.when.filter { $0.whenType == .month }.filter { $0.active }.count == 12
+                Button {
+                    repTransaction.when.filter { $0.whenType == .month }.forEach { $0.active.toggle() }
+                } label: {
+                    optionLabel(title: "All", active: isAll)
+                }
+                .buttonStyle(.borderless)
+                                    
+                Divider()
+                                                        
+                ForEach($repTransaction.when.filter { $0.whenType.wrappedValue == .month }) { $when in
+                    Button {
+                        when.active.toggle()
+                    } label: {
+                        optionLabel(title: when.displayTitle, active: when.active)
+                    }
+                    .buttonStyle(.borderless)
+                }
+            }
+        }
+        .scrollIndicators(.hidden)
+    }
+    
+    
+    @ViewBuilder
+    var dayToggles: some View {
+        let sevenColumnGrid = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
+        HStack {
+            LazyVGrid(columns: sevenColumnGrid, spacing: 4) {
+                ForEach($repTransaction.when.filter { $0.whenType.wrappedValue == .dayOfMonth }) { $when in
+                    Button {
+                        when.active.toggle()
+                    } label: {
+                        optionLabel(title: when.displayTitle, active: when.active)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        
+    }
+    
+    @ViewBuilder func optionLabel(title: String, active: Bool) -> some View {
+        Text(title)
+            .schemeBasedForegroundStyle()
+            .frame(width: 40, height: 40)
+            .background(active ? Color.theme : Color.gray.opacity(0.2))
+            .clipShape(Circle())
+            .font(.caption)
+            .bold()
+            .contentShape(Circle())
     }
 }

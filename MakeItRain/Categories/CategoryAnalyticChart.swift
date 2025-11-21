@@ -28,17 +28,17 @@ struct AnalyticData: Identifiable {
     
     var budgetString: String
     var budget: Double {
-        Double(budgetString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
+        Double(budgetString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
     }
     
     var expensesString: String
     var expenses: Double {
-        Double(expensesString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
+        Double(expensesString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
     }
     
     var incomeString: String
     var income: Double {
-        Double(incomeString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
+        Double(incomeString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
     }
     
     var incomeMinusExpenses: Double {
@@ -78,7 +78,7 @@ enum CategoryAnalyticChartRange: Int {
 
 enum CategoryAnalyticChartDisplayedMetric: String, CaseIterable, Identifiable {
     var id: CategoryAnalyticChartDisplayedMetric { return self }
-    case income, expenses, budget, incomeMinusExpenses, expensesMinusIncome
+    case income, expenses, budget, expensesMinusIncome
     
     var prettyValue: String {
         switch self {
@@ -88,8 +88,6 @@ enum CategoryAnalyticChartDisplayedMetric: String, CaseIterable, Identifiable {
             "Expenses"
         case .budget:
             "Budget"
-        case .incomeMinusExpenses:
-            "Income minus expenses"
         case .expensesMinusIncome:
             "Expenses minus income"
         }
@@ -100,7 +98,6 @@ enum CategoryAnalyticChartDisplayedMetric: String, CaseIterable, Identifiable {
         case "income": return .income
         case "expenses": return .expenses
         case "budget": return .budget
-        case "incomeMinusExpenses": return .incomeMinusExpenses
         case "expensesMinusIncome": return .expensesMinusIncome
         default: return .expenses
         }
@@ -185,7 +182,6 @@ struct CategoryAnalyticChart<Content: View>: View {
                 case .income: $0.income
                 case .expenses: $0.expenses
                 case .budget: $0.budget
-                case .incomeMinusExpenses: $0.incomeMinusExpenses
                 case .expensesMinusIncome: $0.expensesMinusIncome
                 }
             }
@@ -236,7 +232,6 @@ struct CategoryAnalyticChart<Content: View>: View {
                 case .income: $0.income
                 case .expenses: $0.expenses
                 case .budget: $0.budget
-                case .incomeMinusExpenses: $0.incomeMinusExpenses
                 case .expensesMinusIncome: $0.expensesMinusIncome
                 }
             }
@@ -416,7 +411,6 @@ struct CategoryAnalyticChart<Content: View>: View {
                     case .income: selectedMonth.income
                     case .expenses: selectedMonth.expenses
                     case .budget: selectedMonth.budget
-                    case .incomeMinusExpenses: selectedMonth.incomeMinusExpenses
                     case .expensesMinusIncome: selectedMonth.expensesMinusIncome
                     }
                     
@@ -533,7 +527,6 @@ struct CategoryAnalyticChart<Content: View>: View {
                 case .income: data.income
                 case .expenses: data.expenses
                 case .budget: data.budget
-                case .incomeMinusExpenses: data.incomeMinusExpenses
                 case .expensesMinusIncome: data.expensesMinusIncome
                 }
                 

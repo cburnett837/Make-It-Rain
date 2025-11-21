@@ -13,7 +13,7 @@ struct CalendarViewMac: View {
     @AppStorage("calendarSplitViewPercentage") var calendarSplitViewPercentage = 0.0
     @AppStorage("viewMode") var viewMode = CalendarViewMode.scrollable
     //@Local(\.colorTheme) var colorTheme
-    @AppStorage("alignWeekdayNamesLeft") var alignWeekdayNamesLeft = true
+    @Local(\.alignWeekdayNamesLeft) var alignWeekdayNamesLeft
     
     @Environment(CalendarModel.self) private var calModel
     @Environment(FuncModel.self) private var funcModel
@@ -70,7 +70,7 @@ struct CalendarViewMac: View {
                 /// Needed when selecting a month from a category analytic.
                 let viewingMonth = calModel.months.filter { $0.enumID == enumID }.first!
                 funcModel.prepareStartingAmounts(for: viewingMonth)
-                calModel.setSelectedMonthFromNavigation(navID: enumID, prepareStartAmount: true)
+                calModel.setSelectedMonthFromNavigation(navID: enumID, calculateStartingAndEod: true)
                 
                 let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
                 selectedDay = targetDay
@@ -135,7 +135,7 @@ struct CalendarViewMac: View {
             .contentShape(Rectangle())
             .onTapGesture {
                 /// Used for hilighting
-                calModel.hilightTrans = nil
+                //calModel.hilightTrans = nil
                 focusedField = nil
             }
             .onChange(of: transEditID) { oldValue, newValue in

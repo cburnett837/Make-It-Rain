@@ -12,7 +12,7 @@ struct NavLinkMac: View {
     
     
     //@Local(\.colorTheme) var colorTheme
-    @AppStorage("showIndividualLoadingSpinner") var showIndividualLoadingSpinner = false
+    @Local(\.showIndividualLoadingSpinner) var showIndividualLoadingSpinner
     
     let destination: NavDestination
     let title: String

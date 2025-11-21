@@ -8,6 +8,20 @@
 
 import SwiftUI
 
+enum AmountType: String, CaseIterable, Identifiable {
+    var id: AmountType { self }
+    case positive, negative, all
+    
+    var prettyValue: String {
+        switch self {
+        case .positive: return "Only income"
+        case .negative: return "Only expenses"
+        case .all: return "All"
+        }
+    }
+    
+}
+
 @Observable
 class AdvancedSearchModel: Encodable {
     var payMethods: Array<CBPaymentMethod> = []
@@ -16,9 +30,11 @@ class AdvancedSearchModel: Encodable {
     var years: Array<Int> = []
     var searchTerms: Array<String> = []
     var newSearchTerm: String = ""
+    var amountType: AmountType = .all
+    var includeExcluded: Bool = true
 
     
-    enum CodingKeys: CodingKey { case payment_methods, categories, months, years, search_terms, user_id, account_id, device_uuid }
+    enum CodingKeys: CodingKey { case payment_methods, categories, months, years, amount_type, include_excluded, search_terms, user_id, account_id, device_uuid }
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -26,6 +42,8 @@ class AdvancedSearchModel: Encodable {
         try container.encode(categories, forKey: .categories)
         try container.encode(months, forKey: .months)
         try container.encode(years, forKey: .years)
+        try container.encode(amountType.rawValue, forKey: .amount_type)
+        try container.encode(includeExcluded ? 1 : 0, forKey: .include_excluded)
         try container.encode(searchTerms, forKey: .search_terms)
         try container.encode(AppState.shared.user?.id, forKey: .user_id)
         try container.encode(AppState.shared.user?.accountID, forKey: .account_id)

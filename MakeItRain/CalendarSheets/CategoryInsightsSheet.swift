@@ -123,8 +123,8 @@ struct CategoryInsightsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.appearsActive) var appearsActive
     #endif
-    @AppStorage("transactionSortMode") var transactionSortMode: TransactionSortMode = .title
-    @AppStorage("categorySortMode") var categorySortMode: SortMode = .title
+    @Local(\.transactionSortMode) var transactionSortMode
+    @Local(\.categorySortMode) var categorySortMode
     @Local(\.useWholeNumbers) var useWholeNumbers
     //@Local(\.colorTheme) var colorTheme
 
@@ -240,7 +240,8 @@ struct CategoryInsightsSheet: View {
         .onChange(of: DataChangeTriggers.shared.calendarDidChange) {
             /// Put a slight delay so the app has time to switch all the transactions to the new month.
             Task {
-                try? await Task.sleep(nanoseconds: UInt64(0.3 * Double(NSEC_PER_SEC)))
+                try await Task.sleep(for: .seconds(0.3))
+                //try? await Task.sleep(nanoseconds: UInt64(0.3 * Double(NSEC_PER_SEC)))
                 prepareData()
             }
         }
@@ -629,7 +630,10 @@ struct CategoryInsightsSheet: View {
     var closeButton: some View {
         Button {
             #if os(iOS)
-            withAnimation { showAnalysisSheet = false }
+            withAnimation {
+                calModel.isInMultiSelectMode = false
+                showAnalysisSheet = false
+            }
             #else
             dismiss()
             #endif
@@ -655,17 +659,36 @@ struct CategoryInsightsSheet: View {
     
     // MARK: - Functions
     func prepareView() {
-        /// If there are no months set, add the current month
-        if model.monthsForAnalysis.isEmpty {
-            let nowMonth = calModel
-                .months
-                .filter { $0.actualNum == AppState.shared.todayMonth && $0.year == AppState.shared.todayYear }
-                .first
-            
-            if let nowMonth {
-                model.monthsForAnalysis.append(nowMonth)
+        if calModel.isInMultiSelectMode {
+            model.monthsForAnalysis.removeAll()
+            let monthYears = calModel.multiSelectTransactions.compactMap { ($0.dateComponents?.month, $0.dateComponents?.year) }
+            for month in monthYears {
+                if model.monthsForAnalysis.filter ({ $0.actualNum == month.0 && $0.year == month.1 }).isEmpty {
+                    if let targetMonth = calModel
+                        .months
+                        .filter ({ $0.actualNum == month.0 && $0.year == month.1 })
+                        .first {
+                            model.monthsForAnalysis.append(targetMonth)
+                        }
+                    
+                }
+            }
+        } else {
+            /// If there are no months set, add the current month
+            if model.monthsForAnalysis.isEmpty {
+                let nowMonth = calModel
+                    .months
+                    .filter { $0.actualNum == AppState.shared.todayMonth && $0.year == AppState.shared.todayYear }
+                    .first
+                
+                if let nowMonth {
+                    model.monthsForAnalysis.append(nowMonth)
+                }
             }
         }
+        
+        
+        
                                 
         if calModel.sCategoriesForAnalysis.isEmpty && showAnalysisSheet {
             showCategorySheet = true
@@ -912,8 +935,7 @@ struct CategoryInsightsSheet: View {
             target = selectedMonth
         } else {
             target = selectedMonthGroup.filter({ $0.month.num == data.month.num }).first
-        }
-        
+        }        
         
         if let target {
             withAnimation {
@@ -1178,8 +1200,8 @@ fileprivate struct MonthMiddleMan: View {
 
 
 fileprivate struct TransactionList: View {
-    @AppStorage("transactionSortMode") var transactionSortMode: TransactionSortMode = .title
-    @AppStorage("categorySortMode") var categorySortMode: SortMode = .title
+    @Local(\.transactionSortMode) var transactionSortMode
+    @Local(\.categorySortMode) var categorySortMode
     @AppStorage("transactionListDisplayMode") var transactionListDisplayMode: TransactionListDisplayMode = .condensed
     @AppStorage("transactionListDisplayModeShowEmptyDaysInFull") var transactionListDisplayModeShowEmptyDaysInFull: Bool = false
     @Local(\.useWholeNumbers) var useWholeNumbers

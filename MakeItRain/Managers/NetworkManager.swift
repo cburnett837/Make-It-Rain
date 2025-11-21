@@ -121,7 +121,8 @@ class NetworkManager {
                 LogManager.error("connection failure", session: sesh)
                 return .failure(.connectionError)
             } else {
-                try? await Task.sleep(for: .milliseconds(1000))
+                //try? await Task.sleep(for: .milliseconds(1000))
+                try? await Task.sleep(for: .seconds(1))
                 LogManager.error("retrying request", session: sesh)
                 return await arrayRequest(requestModel: requestModel, ticker: ticker - 1, sessionID: sesh)
             }
@@ -212,7 +213,8 @@ class NetworkManager {
                 LogManager.error("connection failure", session: sesh)
                 return .failure(.connectionError)
             } else {
-                try? await Task.sleep(for: .milliseconds(1000))
+                //try? await Task.sleep(for: .milliseconds(1000))
+                try? await Task.sleep(for: .seconds(1))
                 LogManager.error("retrying request", session: sesh)
                 return await singleRequest(requestModel: requestModel, ticker: ticker - 1, sessionID: sesh)
             }
@@ -371,7 +373,8 @@ class NetworkManager {
                 LogManager.error("connection failure", session: sesh)
                 return .failure(.connectionError)
             } else {
-                try? await Task.sleep(for: .milliseconds(5000))
+                //try? await Task.sleep(for: .milliseconds(5000))
+                try? await Task.sleep(for: .seconds(5))
                 LogManager.error("retrying request", session: sesh)
                 return await longPollServer(requestModel: requestModel, ticker: ticker - 1, sessionID: sesh)
             }
@@ -454,7 +457,8 @@ class NetworkManager {
                 LogManager.error("connection failure", session: sesh)
                 return .failure(.connectionError)
             } else {
-                try? await Task.sleep(for: .milliseconds(1000))
+                //try? await Task.sleep(for: .milliseconds(1000))
+                try? await Task.sleep(for: .seconds(1))
                 LogManager.error("retrying request", session: sesh)
                 return await downloadFile(requestModel: requestModel, ticker: ticker - 1, sessionID: sesh)
             }
@@ -543,7 +547,8 @@ class NetworkManager {
             if ticker == 0 {
                 return .failure(.connectionError)
             } else {
-                try? await Task.sleep(for: .milliseconds(1000))
+                //try? await Task.sleep(for: .milliseconds(1000))
+                try? await Task.sleep(for: .seconds(1))
                 return await uploadFile(
                     application: application,
                     fileParent: fileParent,

@@ -65,9 +65,9 @@ class CBDay: Identifiable, Hashable, Equatable {
     }
     
     // MARK: - Transaction Object Functions
-    
+#warning("serverID Change")
     func isExisting(_ transaction: CBTransaction) -> Bool {
-        return !transactions.filter { $0.id == transaction.id }.isEmpty
+        return !transactions.filter { $0.serverID == transaction.serverID }.isEmpty
     }
     
     func upsert(_ transaction: CBTransaction) {
@@ -75,31 +75,32 @@ class CBDay: Identifiable, Hashable, Equatable {
             transactions.append(transaction)
         }
     }
-    
+#warning("serverID Change")
     func remove(_ transaction: CBTransaction) {
-        transactions.removeAll(where: { $0.id == transaction.id })
+        transactions.removeAll(where: { $0.serverID == transaction.serverID })
     }
-    
+#warning("serverID Change")
     func getIndex(for transaction: CBTransaction) -> Int? {
-        return transactions.firstIndex(where: { $0.id == transaction.id })
+        return transactions.firstIndex(where: { $0.serverID == transaction.serverID })
     }
     
     
     // MARK: - Transaction ID Functions
+#warning("serverID Change")
     func isExisting(_ id: String) -> Bool {
-        return !transactions.filter { $0.id == id }.isEmpty
+        return !transactions.filter { $0.serverID == id }.isEmpty
     }
-    
+#warning("serverID Change")
     func removeTransaction(by id: String) {
-        transactions.removeAll(where: { $0.id == id })
+        transactions.removeAll(where: { $0.serverID == id })
     }
-    
+#warning("serverID Change")
     func getTransactionIndex(by id: String) -> Int? {
-        return transactions.firstIndex(where: { $0.id == id })
+        return transactions.firstIndex(where: { $0.serverID == id })
     }
     
-    
+#warning("serverID Change")
     func getTransaction(by id: String) -> CBTransaction {
-        return transactions.first(where: { $0.id == id }) ?? CBTransaction(uuid: id)
+        return transactions.first(where: { $0.serverID == id }) ?? CBTransaction(uuid: id)
     }
 }

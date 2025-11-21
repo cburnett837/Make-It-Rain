@@ -25,9 +25,7 @@ struct MaxNavWidthPreferenceKey: PreferenceKey {
 
 #if os(iOS)
 struct NavSidebarPad: View {
-    @Environment(\.colorScheme) var colorScheme    
-    //@Local(\.colorTheme) var colorTheme
-
+    @Environment(\.colorScheme) var colorScheme
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) var calModel
     @Environment(PayMethodModel.self) var payModel
@@ -41,15 +39,18 @@ struct NavSidebarPad: View {
     @State private var linkHeight: CGFloat = 20.0
     
     let monthNavigationNamespace: Namespace.ID
+    @State private var calendarNavPath = NavigationPath()
+
     
     var body: some View {
+        let _ = Self._printChanges()
         @Bindable var navManager = NavigationManager.shared
         @Bindable var calModel = calModel
         
         VStack(spacing: 0) {
             ScrollView {
                 Group {
-                    CalendarNavGridHeader(monthNavigationNamespace: monthNavigationNamespace)
+                    CalendarNavGridHeader(monthNavigationNamespace: monthNavigationNamespace, calendarNavPath: $calendarNavPath)
                     
                     if AppState.shared.methsExist {
                         iPadGrid

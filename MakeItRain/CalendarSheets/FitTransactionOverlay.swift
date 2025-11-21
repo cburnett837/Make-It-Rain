@@ -175,7 +175,7 @@
 //            
 //            if trans.payMethod?.id == "10" {
 //                if trans.amountString.contains("-") {
-//                    trans.amountString = trans.amountString.replacingOccurrences(of: "-", with: "")
+//                    trans.amountString = trans.amountString.replacing("-", with: "")
 //                } else {
 //                    trans.amountString = "-\(trans.amountString)"
 //                }

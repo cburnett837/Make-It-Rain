@@ -16,16 +16,12 @@ enum BottomPanelContent {
 
 #if os(iOS)
 struct CalendarViewPhone: View {
-    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
-    @AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
-    @AppStorage("phoneLineItemDisplayItem") var phoneLineItemDisplayItem: PhoneLineItemDisplayItem = .both
-    
-    //@Local(\.colorTheme) var colorTheme
+    @Local(\.updatedByOtherUserDisplayMode) var updatedByOtherUserDisplayMode
+    @Local(\.phoneLineItemDisplayItem) var phoneLineItemDisplayItem
+    @Local(\.lineItemIndicator) var lineItemIndicator
     @Local(\.useWholeNumbers) var useWholeNumbers
     @Local(\.threshold) var threshold
-            
-    //@Environment(\.colorScheme) var colorScheme
-    //@Environment(\.dismiss) var dismiss
+                
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarProps.self) var calProps
     @Environment(CalendarModel.self) private var calModel
@@ -37,45 +33,46 @@ struct CalendarViewPhone: View {
     
     #warning("NOTE BINDINGS ARE NOT ALLOWED TO BE PASSED TO THE CALENDAR VIEW")
     let enumID: NavDestination
-    let sevenColumnGrid = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
-    let days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     
-    @FocusState private var focusedField: Int?
-    //@State private var calProps = CalendarProps()
+    @FocusState private var searchFocused: Int?
     @State private var lastBalanceUpdateTimer: Timer?
-    
+    @State private var showDemoSheet = false
     /// Used to navigate to additional pages in the bottom panel. (Plaid transactions reject all before date)
     @State private var navPath = NavigationPath()
-    //@State private var showSearchBar = true      
+    //@State private var showSearchBar = true
+    
+    var searchPrompt: String {
+        searchFocused == 0 ? "Search by transaction name or #" : "Search"
+    }
     
     var body: some View {
+        let _ = Self._printChanges()
         @Bindable var calProps = calProps
-        //let _ = Self._printChanges()
         @Bindable var navManager = NavigationManager.shared
         @Bindable var calModel = calModel
         @Bindable var photoModel = FileModel.shared
         
         NavigationStack(path: $navPath) {
-            Group {
+            VStack {
                 if calModel.sMonth.enumID == enumID {
+//                    Button("Show it") {
+//                        showDemoSheet = true
+//                    }
                     if AppState.shared.isIphone {
                         calChunkIphone
                     } else {
                         calChunkIpad
                     }
-                } else {
-                    ProgressView()
-                        .transition(.opacity)
-                        .tint(.none)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
+//                else {
+//                    ProgressView()
+//                        .transition(.opacity)
+//                        .tint(.none)
+//                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+//                }
             }
-//            .if(calProps.bottomPanelContent == nil) {
-//                $0
-//                .searchable(text: $calModel.searchText, prompt: "Transactions & Tags")
-//                .searchPresentationToolbarBehavior(.avoidHidingContent)
-//            }
-            .searchable(text: $calModel.searchText, prompt: "Transactions & Tags")
+            .searchable(text: $calModel.searchText, prompt: searchPrompt)
+            .searchFocused($searchFocused, equals: 0)
             .searchPresentationToolbarBehavior(.avoidHidingContent)
             .ignoresSafeArea(.keyboard, edges: .bottom)
             .navigationBarTitleDisplayMode(.inline)
@@ -116,34 +113,10 @@ struct CalendarViewPhone: View {
                 showPhotosPicker: $calProps.showPhotosPicker,
                 showCamera: $calProps.showCamera
             )
+            .sheet(isPresented: $showDemoSheet) { Text("Hitch performance test sheet") }
             .sheet(isPresented: $calProps.showTransferSheet) {
-                TransferSheet(date: calProps.selectedDay?.date ?? Date())
+                TransferSheet(defaultDate: calProps.selectedDay?.date ?? Date())
             }
-//            /// Only allow 1 photo since this is happening only for smart transactions.
-//            .photosPicker(isPresented: $calProps.showPhotosPicker, selection: $photoModel.imagesFromLibrary, maxSelectionCount: 1, matching: .images, photoLibrary: .shared())
-//            /// Upload the picture from the selectedt photos when the photo picker sheet closes.
-//            .onChange(of: calProps.showPhotosPicker) { oldValue, newValue in
-//                if !newValue {
-//                    if FileModel.shared.imagesFromLibrary.isEmpty {
-//                        calModel.cleanUpPhotoVariables()
-//                    } else {
-//                        FileModel.shared.uploadPicturesFromLibrary(delegate: calModel, fileType: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction))
-//                    }
-//                }
-//            }
-//            #if os(iOS)
-//            .fullScreenCover(isPresented: $calProps.showCamera) {
-//                AccessCameraView(selectedImage: $photoModel.imageFromCamera)
-//                    .background(.black)
-//            }
-//            /// Upload the picture from the camera when the camera sheet closes.
-//            .onChange(of: calProps.showCamera) { oldValue, newValue in
-//                if !newValue {
-//                    FileModel.shared.uploadPictureFromCamera(delegate: calModel, fileType: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction))
-//                }
-//            }
-//            #endif
-            
             /// Keep the current date indicator up to date.
             .onReceive(AppState.shared.currentDateTimer) { input in
                 let isDayChange = AppState.shared.setNow()
@@ -170,16 +143,6 @@ struct CalendarViewPhone: View {
                 setCurrentBalanceTimer()
             }
             .onDisappear { lastBalanceUpdateTimer?.invalidate() }
-            /// END CURRENT BALANCE TIMER STUFF
-            
-            
-            
-//            .inspector(isPresented: $calProps.showAnalysisInspector) {
-//                //Text("hey")
-//                TransactionListView(showTransactionListSheet: $calProps.showTransactionListSheet)
-//                //CategoryInsightsSheetshowAnalysisSheet: $calProps.showAnalysisSheet)
-//            }
-            
         }
         //.environment(calProps)
         .disableZoomInteractiveDismiss()
@@ -225,17 +188,21 @@ struct CalendarViewPhone: View {
                     CalendarGridPhone(enumID: enumID)
                 }
                 .contentShape(Rectangle())
-                .onTapGesture {
-                    withAnimation {
-                        calModel.hilightTrans = nil
-                    }
-                }
+//                .onTapGesture {
+//                    withAnimation {
+//                        calModel.hilightTrans = nil
+//                    }
+//                }
             }
         }
     }
     
     
+    @ViewBuilder
     var weekdayNameGrid: some View {
+        let sevenColumnGrid = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
+        let days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        
         LazyVGrid(columns: sevenColumnGrid, spacing: 0) {
             ForEach(days, id: \.self) { name in
                 Text(name)
@@ -287,6 +254,7 @@ struct CalendarViewPhone: View {
                 }
             }
             .frame(height: 260)
+            //.toolbar(.hidden, for: .bottomBar)
         }
     }
     
@@ -321,12 +289,15 @@ struct CalendarViewPhone: View {
     func onChangeOfMonthEnumID() {
         print(".onChange(of: enumID, initial: true)")
         Task {
-            calModel.isInMultiSelectMode = false
-            let month = calModel.months.filter {$0.enumID == enumID}.first!
+            //calModel.isInMultiSelectMode = false
+            let month = calModel.months.filter { $0.enumID == enumID }.first!
             
             funcModel.prepareStartingAmounts(for: month)
-            calModel.setSelectedMonthFromNavigation(navID: enumID, prepareStartAmount: true)
+            calModel.setSelectedMonthFromNavigation(navID: enumID, calculateStartingAndEod: true)
             
+            /// Set the selected day so new transactions have a default date.
+            /// If in the current month, set to today.
+            /// If not, set to the first of the month.
             let targetDay = month.days.filter { $0.dateComponents?.day == (month.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
             calProps.selectedDay = targetDay
             

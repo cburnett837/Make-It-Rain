@@ -8,81 +8,108 @@
 import SwiftUI
 
 struct SettingsViewInsert: View {
-    @Environment(\.colorScheme) var colorScheme
-
-    
-    @AppStorage("showPaymentMethodIndicator") var showPaymentMethodIndicator = false
+    @Local(\.categoryIndicatorAsSymbol) var categoryIndicatorAsSymbol
+    @Local(\.categorySortMode) var categorySortMode
+    @Local(\.creditEodView) var creditEodView
     @Local(\.incomeColor) var incomeColor
+    @Local(\.lineItemIndicator) var lineItemIndicator
+    @Local(\.phoneLineItemDisplayItem) var phoneLineItemDisplayItem
+    @Local(\.showHashTagsOnLineItems) var showHashTagsOnLineItems
+    @Local(\.showPaymentMethodIndicator) var showPaymentMethodIndicator
+    @Local(\.threshold) var threshold
+    @Local(\.tightenUpEodTotals) var tightenUpEodTotals
+    @Local(\.transactionSortMode) var transactionSortMode
+    @Local(\.updatedByOtherUserDisplayMode) var updatedByOtherUserDisplayMode
     @Local(\.useWholeNumbers) var useWholeNumbers
     @Local(\.useBusinessLogos) var useBusinessLogos
-    @AppStorage("tightenUpEodTotals") var tightenUpEodTotals = true
-    @AppStorage("phoneLineItemDisplayItem") var phoneLineItemDisplayItem: PhoneLineItemDisplayItem = .both
-    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
-    @AppStorage("creditEodView") var creditEodView: CreditEodView = .remainingBalance
-    //@Local(\.colorTheme) var colorTheme
     
-    @Local(\.threshold) var threshold
-    @State private var thresholdString: String = "500.00"
-
-    //@AppStorage("macCategoryDisplayMode") var macCategoryDisplayMode: MacCategoryDisplayMode = .emoji
-    
-    @AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode: UpdatedByOtherUserDisplayMode = .full
-    @AppStorage("categorySortMode") var categorySortMode: SortMode = .title
-    @AppStorage("transactionSortMode") var transactionSortMode: TransactionSortMode = .title
-    
-    @AppStorage("showHashTagsOnLineItems") var showHashTagsOnLineItems: Bool = true
+    @Environment(\.colorScheme) var colorScheme
     @Environment(CategoryModel.self) var catModel
     @Environment(CalendarModel.self) var calModel
     
+    @State private var thresholdString: String = "500.00"
     @State private var demoDay = CBDay(date: Date())
-    
-    
     @State private var phoneLineItemDisplayItemWhenSettingsWasOpened: PhoneLineItemDisplayItem?
-    
     @FocusState private var focusedField: Int?
-    
-    
+        
     var withDividers: Bool = false
         
     var body: some View {
         Group {
             Section("Options") {
-                if phoneLineItemDisplayItem != .both {
-                    paymentMethodIndicatorToggle
-                }
-                
+//                if phoneLineItemDisplayItem != .both {
+//                    paymentMethodIndicatorToggle
+//                }
+//
                 useWholeNumbersToggle
                 tightenUpEodTotalsToggle
                 showShowHashTagToggle
+                useCategorySymbolsToggle
                 useBusinessLogosToggle
                 incomeColorPicker
             }
             
             creditEodPicker
             
-            #if os(iOS)
-            phoneLineItemDisplay
-            
-            Section("Demo Day View") {
-                HStack {
-                    DemoDay(dayNum: 8)
-                        .frame(maxWidth: .infinity)
-                    DemoDay(dayNum: 9)
-                        .frame(maxWidth: .infinity)
-                    DemoDay(dayNum: 10)
-                        .frame(maxWidth: .infinity)
-                    DemoDay(dayNum: 11)
-                        .frame(maxWidth: .infinity)
+            Section {
+                #if os(iOS)
+                SettingsMenuPickerContainer(title: "Display line item as…", selectedTitle: phoneLineItemDisplayItem.prettyValue) {
+                    Picker("", selection: $phoneLineItemDisplayItem.animation()) {
+                        ForEach(PhoneLineItemDisplayItem.allCases, id: \.self) { opt in
+                            Text(opt.prettyValue)
+                                .tag(opt)
+                        }
+                    }
                 }
+                #endif
+
+                //lineItemIndicatorPicker
+                #if os(iOS)
+                SettingsMenuPickerContainer(title: "Display indicator as…", selectedTitle: lineItemIndicator.mobilePrettyValue) {
+                    Picker("", selection: $lineItemIndicator) {
+                        ForEach(LineItemIndicator.mobileCases, id: \.self) { opt in
+                            Text(opt.mobilePrettyValue)
+                                .tag(opt)
+                        }
+                    }
+                }
+                #else
+                SettingsMenuPickerContainer(title: "Display indicator as…", selectedTitle: lineItemIndicator.macPrettyValue) {
+                    Picker("", selection: $lineItemIndicator) {
+                        ForEach(LineItemIndicator.macCases, id: \.self) { opt in
+                            Text(opt.macPrettyValue)
+                                .tag(opt)
+                        }
+                    }
+                }
+                #endif
+            } header: {
+                Text("Line Items")
+            } footer: {
+                Text("Choose how you want to display line items.")
             }
             
-            #endif
             
+//            #if os(iOS)
+//            Section("Demo Day View") {
+//                HStack {
+//                    DemoDay(dayNum: 8)
+//                        .frame(maxWidth: .infinity)
+//                    DemoDay(dayNum: 9)
+//                        .frame(maxWidth: .infinity)
+//                    DemoDay(dayNum: 10)
+//                        .frame(maxWidth: .infinity)
+//                    DemoDay(dayNum: 11)
+//                        .frame(maxWidth: .infinity)
+//                }
+//            }
+//            
+//            #endif
+//            
             #if os(macOS)
             paymentMethodIndicatorToggle
             #endif
-            
-            lineItemIndicatorPicker
+                        
             
             updatedByOtherPerson
                     
@@ -108,7 +135,7 @@ struct SettingsViewInsert: View {
                     }
                     .focused($focusedField, equals: 1)
                     .onChange(of: thresholdString) {
-                        threshold = Double($1.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
+                        threshold = Double($1.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
                         Helpers.liveFormatCurrency(oldValue: $0, newValue: $1, text: $thresholdString)
                     }
                     .onChange(of: focusedField) {
@@ -214,7 +241,7 @@ struct SettingsViewInsert: View {
     var showShowHashTagToggle: some View {
         Toggle(isOn: $showHashTagsOnLineItems) {
             VStack(alignment: .leading) {
-                Text("Show Tags")
+                Text("Show tags")
                 Text("Display tags belows the transaction title.")
                     .foregroundStyle(.gray)
                     .font(.footnote)
@@ -239,8 +266,8 @@ struct SettingsViewInsert: View {
     var useBusinessLogosToggle: some View {
         Toggle(isOn: $useBusinessLogos) {
             VStack(alignment: .leading) {
-                Text("Use Business Logos")
-                Text("Choose to use logos from banks / businesses or colored dots.")
+                Text("Use business logos")
+                Text("Choose to use logos from banks / businesses or colored dots for transactions & accounts.")
                     .foregroundStyle(.gray)
                     .font(.footnote)
                 
@@ -248,47 +275,58 @@ struct SettingsViewInsert: View {
         }
     }
     
-    
-    // MARK: - Line Item Indicator Picker
-    var lineItemIndicatorPicker: some View {
-        Group {
-            #if os(macOS)
-            LabeledContent {
-                Picker("", selection: $lineItemIndicator) {
-                    ForEach(LineItemIndicator.allCases, id: \.self) { opt in
-                        Text(opt.prettyValue)
-                            .tag(opt)
-                    }
-                }
-            } label: {
-                VStack(alignment: .leading) {
-                    Text("Display what next to line item")
-                    lineItemIndicatorPickerAddendum
-                        .foregroundStyle(.gray)
-                        .font(.footnote)
-                }
+    var useCategorySymbolsToggle: some View {
+        Toggle(isOn: $categoryIndicatorAsSymbol) {
+            VStack(alignment: .leading) {
+                Text("Show categories as symbols")
+                Text("Choose to use your assigned symbols or colored dots for category lists.")
+                    .foregroundStyle(.gray)
+                    .font(.footnote)
             }
-            #else
-            Section {
-                SettingsMenuPickerContainer(title: "Display as…", selectedTitle: lineItemIndicator.prettyValue) {
-                    Picker("", selection: $lineItemIndicator) {
-                        ForEach(LineItemIndicator.allCases, id: \.self) { opt in
-                            Text(opt.prettyValue)
-                                .tag(opt)
-                        }
-                    }
-                }
-                
-            } header: {
-                Text("Category / Account Indicator")
-            } footer: {
-                VStack(alignment: .leading) {
-                    lineItemIndicatorPickerAddendum
-                }
-            }
-            #endif
         }
     }
+    
+    
+    // MARK: - Line Item Indicator Picker
+//    var lineItemIndicatorPicker: some View {
+//        Group {
+//            #if os(macOS)
+//            LabeledContent {
+//                Picker("", selection: $lineItemIndicator) {
+//                    ForEach(LineItemIndicator.allCases, id: \.self) { opt in
+//                        Text(opt.prettyValue)
+//                            .tag(opt)
+//                    }
+//                }
+//            } label: {
+//                VStack(alignment: .leading) {
+//                    Text("Display what next to line item")
+//                    lineItemIndicatorPickerAddendum
+//                        .foregroundStyle(.gray)
+//                        .font(.footnote)
+//                }
+//            }
+//            #else
+//            Section {
+//                SettingsMenuPickerContainer(title: "Display as…", selectedTitle: lineItemIndicator.prettyValue) {
+//                    Picker("", selection: $lineItemIndicator) {
+//                        ForEach(LineItemIndicator.allCases, id: \.self) { opt in
+//                            Text(opt.prettyValue)
+//                                .tag(opt)
+//                        }
+//                    }
+//                }
+//                
+//            } header: {
+//                Text("Category / Account Indicator")
+//            } footer: {
+//                VStack(alignment: .leading) {
+//                    lineItemIndicatorPickerAddendum
+//                }
+//            }
+//            #endif
+//        }
+//    }
     
     
     var lineItemIndicatorPickerAddendum: some View {
@@ -446,10 +484,12 @@ struct SettingsViewInsert: View {
         } footer: {
             VStack(alignment: .leading) {
                 Group {
-                    let text1 = Text("If viewing the calendar as ")
-                    let text2 = Text("full").italic(true).bold(true)
-                    let text3 = Text(", choose what to display for the line items.")
-                    Text("\(text1)\(text2)\(text3)")
+//                    let text1 = Text("If viewing the calendar as ")
+//                    let text2 = Text("full").italic(true).bold(true)
+//                    let text3 = Text(", choose what to display for the line items.")
+//                    Text("\(text1)\(text2)\(text3)")
+                    
+                    Text("Choose how line items are displayed on the calendar.")
                     
 //                    Text("If viewing the calendar as ")
 //                    +
@@ -510,108 +550,110 @@ struct SettingsViewInsert: View {
 
 
 
-#if os(iOS)
-struct DemoDay: View {
-    @Environment(\.colorScheme) var colorScheme
-    //@Local(\.colorTheme) var colorTheme
-    @AppStorage("updatedByOtherUserDisplayMode") var updatedByOtherUserDisplayMode = UpdatedByOtherUserDisplayMode.full
-    @Local(\.useWholeNumbers) var useWholeNumbers
-    @AppStorage("tightenUpEodTotals") var tightenUpEodTotals = true
-    @AppStorage("threshold") var threshold = "500.0"
-    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
-    
-    
-    @AppStorage("phoneLineItemDisplayItem") var phoneLineItemDisplayItem: PhoneLineItemDisplayItem = .both
-    
-    let dayNum: Int
-    @State private var day = CBDay(date: Date())
-
-    
-    let columnGrid = Array(repeating: GridItem(.flexible(), spacing: 3), count: 2)
-   
-    var body: some View {
-        VStack(spacing: 5) {
-            dayNumber
-            dailyTransactionList
-            eodText
-        }
-        .padding(.vertical, 2)
-        .task {
-            let trans1 = CBTransaction()
-            let cat1 = CBCategory()
-            cat1.color = .red
-            trans1.title = "Apples"
-            trans1.amountString = "-$5.69"
-            trans1.category = cat1
-            
-            let trans2 = CBTransaction()
-            let cat2 = CBCategory()
-            cat2.color = .orange
-            trans2.title = "Bananas"
-            trans2.amountString = "-$10.80"
-            trans2.category = cat2
-            
-            let trans3 = CBTransaction()
-            let cat3 = CBCategory()
-            cat3.color = .green
-            trans3.title = "Income"
-            trans3.amountString = "$912.12"
-            trans3.category = cat3
-            
-            day.transactions = [
-                trans1, trans2, trans3
-            ]
-        }
-
-    }
-    
-   
-        
-    var dayNumber: some View {
-        Text("\(dayNum)")
-            .frame(maxWidth: .infinity)
-            .foregroundColor(.primary)
-            .contentShape(Rectangle())
-    }
-    
-    var dailyTransactionList: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            ForEach(day.transactions) { trans in
-                LineItemMiniView(
-                    transEditID: .constant(nil),
-                    trans: trans,
-                    day: day
-                    //putBackToBottomPanelViewOnRotate: .constant(false),
-                    //transHeight: .constant(40)
-                )
-                .padding(.vertical, 0)
-            }
-        }
-    }
-        
-    
-    var eodText: some View {
-        Group {
-            if useWholeNumbers && tightenUpEodTotals {
-                Text("\(String(format: "%.00f", day.eodTotal).replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: ""))")
-                
-            } else if useWholeNumbers {
-                Text(day.eodTotal.currencyWithDecimals(0))
-                
-            } else if !useWholeNumbers && tightenUpEodTotals {
-                Text(day.eodTotal.currencyWithDecimals(2).replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: ""))
-                
-            } else {
-                Text(day.eodTotal.currencyWithDecimals(2))
-            }
-        }
-        .font(.caption2)
-        .foregroundColor(.gray)
-        .frame(maxWidth: .infinity, alignment: .center) /// This causes each day to be the same size
-        .minimumScaleFactor(0.5)
-        .lineLimit(1)
-    }
-}
-
-
-#endif
+//#if os(iOS)
+//struct DemoDay: View {
+//    @Environment(\.colorScheme) var colorScheme
+//    //@Local(\.colorTheme) var colorTheme
+//    @Local(\.updatedByOtherUserDisplayMode) var updatedByOtherUserDisplayMode
+//    @Local(\.useWholeNumbers) var useWholeNumbers
+//    @Local(\.tightenUpEodTotals) var tightenUpEodTotals
+//    @AppStorage("threshold") var threshold = "500.0"
+//    @Local(\.lineItemIndicator) var lineItemIndicator
+//    
+//    
+//    @Local(\.phoneLineItemDisplayItem) var phoneLineItemDisplayItem
+//    
+//    let dayNum: Int
+//    @State private var day = CBDay(date: Date())
+//
+//    
+//    let columnGrid = Array(repeating: GridItem(.flexible(), spacing: 3), count: 2)
+//   
+//    var body: some View {
+//        VStack(spacing: 5) {
+//            dayNumber
+//            dailyTransactionList
+//            eodText
+//        }
+//        .padding(.vertical, 2)
+//        .task {
+//            let trans1 = CBTransaction()
+//            let cat1 = CBCategory()
+//            cat1.color = .red
+//            trans1.title = "Apples"
+//            trans1.amountString = "-$5.69"
+//            trans1.category = cat1
+//            
+//            let trans2 = CBTransaction()
+//            let cat2 = CBCategory()
+//            cat2.color = .orange
+//            trans2.title = "Bananas"
+//            trans2.amountString = "-$10.80"
+//            trans2.category = cat2
+//            
+//            let trans3 = CBTransaction()
+//            let cat3 = CBCategory()
+//            cat3.color = .green
+//            trans3.title = "Income"
+//            trans3.amountString = "$912.12"
+//            trans3.category = cat3
+//            
+//            day.transactions = [
+//                trans1, trans2, trans3
+//            ]
+//        }
+//
+//    }
+//    
+//   
+//        
+//    var dayNumber: some View {
+//        Text("\(dayNum)")
+//            .frame(maxWidth: .infinity)
+//            .foregroundColor(.primary)
+//            .contentShape(Rectangle())
+//    }
+//    
+//    var dailyTransactionList: some View {
+//        VStack(alignment: .leading, spacing: 2) {
+//            ForEach(day.transactions) { trans in
+//                LineItemMiniView(
+//                    trans: trans,
+//                    day: day,
+//                    tightenUpEodTotals: tightenUpEodTotals,
+//                    lineItemIndicator: lineItemIndicator,
+//                    phoneLineItemDisplayItem: phoneLineItemDisplayItem
+//                    //putBackToBottomPanelViewOnRotate: .constant(false),
+//                    //transHeight: .constant(40)
+//                )
+//                .padding(.vertical, 0)
+//            }
+//        }
+//    }
+//        
+//    
+//    var eodText: some View {
+//        Group {
+//            if useWholeNumbers && tightenUpEodTotals {
+//                Text("\(String(format: "%.00f", day.eodTotal).replacing("$", with: "").replacing(",", with: ""))")
+//                
+//            } else if useWholeNumbers {
+//                Text(day.eodTotal.currencyWithDecimals(0))
+//                
+//            } else if !useWholeNumbers && tightenUpEodTotals {
+//                Text(day.eodTotal.currencyWithDecimals(2).replacing("$", with: "").replacing(",", with: ""))
+//                
+//            } else {
+//                Text(day.eodTotal.currencyWithDecimals(2))
+//            }
+//        }
+//        .font(.caption2)
+//        .foregroundColor(.gray)
+//        .frame(maxWidth: .infinity, alignment: .center) /// This causes each day to be the same size
+//        .minimumScaleFactor(0.5)
+//        .lineLimit(1)
+//    }
+//}
+//
+//
+//#endif

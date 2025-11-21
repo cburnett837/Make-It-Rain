@@ -21,7 +21,7 @@ struct MonthNavigationLink: View {
     let monthNavigationNamespace: Namespace.ID
     
     var month: CBMonth {
-        calModel.months.filter {$0.enumID == enumID}.first!
+        calModel.months.filter { $0.enumID == enumID }.first!
     }
             
     var body: some View {

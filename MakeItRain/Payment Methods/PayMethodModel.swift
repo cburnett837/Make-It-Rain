@@ -40,7 +40,17 @@ class PayMethodModel {
         return paymentMethods.firstIndex(where: { $0.id == payMethod.id })
     }
     
-    func savePaymentMethod(id: String, calModel: CalendarModel) {
+    var editingDefaultAccountType: AccountType? {
+        paymentMethods.filter({ $0.isEditingDefault }).first?.accountType
+    }
+    
+    func getEditingDefault() -> CBPaymentMethod? {
+        paymentMethods.filter({ $0.isEditingDefault }).first
+    }
+    
+    
+    @discardableResult
+    func savePaymentMethod(id: String, calModel: CalendarModel) -> Bool {
         let payMethod = getPaymentMethod(by: id)
         payMethod.viewingYear = calModel.sYear
         
@@ -48,7 +58,7 @@ class PayMethodModel {
             payMethod.updatedBy = AppState.shared.user!
             payMethod.updatedDate = Date()
             delete(payMethod, andSubmit: true, calModel: calModel)
-            return
+            return true
         }
         
         if payMethod.title.isEmpty {
@@ -60,7 +70,7 @@ class PayMethodModel {
                 /// Remove the dud that is in `.add` mode since it's being upserted into the list on creation.
                 withAnimation { paymentMethods.removeAll { $0.id == id } }
             }
-            return
+            return false
         }
                                                 
         if payMethod.hasChanges() {
@@ -84,8 +94,10 @@ class PayMethodModel {
             Task {
                 await submit(payMethod)
             }
+            return true
         } else {
             print("No Changes")
+            return false
         }
     }
     
@@ -209,6 +221,7 @@ class PayMethodModel {
                         let accountType = Int64(payMethod.accountType.rawValue)
                         let hexCode = payMethod.color.toHex()
                         let isViewingDefault = payMethod.isViewingDefault
+                        let isEditingDefault = payMethod.isEditingDefault
                         let notificationOffset = Int64(payMethod.notificationOffset ?? 0)
                         let notifyOnDueDate = payMethod.notifyOnDueDate
                         let last4 = payMethod.last4
@@ -258,6 +271,7 @@ class PayMethodModel {
                                 entity.accountType = accountType
                                 entity.hexCode = hexCode
                                 //entity.hexCode = payMethod.color.description
+                                entity.isEditingDefault = isEditingDefault
                                 entity.isViewingDefault = isViewingDefault
                                 entity.notificationOffset = notificationOffset
                                 entity.notifyOnDueDate = notifyOnDueDate
@@ -610,6 +624,9 @@ class PayMethodModel {
         await context.perform {
             for method in methInfos {
                 if let entity = DataManager.shared.getOne(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(method.id)), createIfNotFound: true) {
+                    
+                    print("Setting cache result of defaultEdit for \(method.id) to \(method.isEditingDefault)")
+                    
                     entity.isEditingDefault = method.isEditingDefault
                 }
             }
@@ -764,6 +781,7 @@ class PayMethodModel {
     
     
     func getApplicablePayMethods(type: ApplicablePaymentMethods, calModel: CalendarModel, plaidModel: PlaidModel, searchText: Binding<String>, includeHidden: Bool = false) -> Array<PaySection> {
+        let sText = searchText.wrappedValue
         switch type {
         case .all:
             return [
@@ -771,28 +789,28 @@ class PayMethodModel {
                 PaySection(
                     kind: .debit,
                     payMethods: self.paymentMethods
-                        .filter { $0.accountType == .checking || $0.accountType == .unifiedChecking }
+                        .filter { $0.isDebit }
                         .filter { $0.isPermitted }
                         .filter { includeHidden ? true : !$0.isHidden }
-                        .filter { searchText.wrappedValue.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText.wrappedValue) }
+                        .filter { sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText) }
                         .sorted(by: Helpers.paymentMethodSorter())
                 ),
                 PaySection(
                     kind: .credit,
                     payMethods: self.paymentMethods
-                        .filter { $0.accountType == .credit || $0.accountType == .loan || $0.accountType == .unifiedCredit }
+                        .filter { $0.isCredit }
                         .filter { $0.isPermitted }
                         .filter { includeHidden ? true : !$0.isHidden }
-                        .filter { searchText.wrappedValue.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText.wrappedValue) }
+                        .filter { sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText) }
                         .sorted(by: Helpers.paymentMethodSorter())
                 ),
                 PaySection(
                     kind: .other,
                     payMethods: self.paymentMethods
-                        .filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking, .loan].contains($0.accountType) }
+                        .filter { !$0.isDebit && !$0.isCredit }
                         .filter { $0.isPermitted }
                         .filter { includeHidden ? true : !$0.isHidden }
-                        .filter { searchText.wrappedValue.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText.wrappedValue) }
+                        .filter { sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText) }
                         .sorted(by: Helpers.paymentMethodSorter())
                 )
             ]
@@ -802,28 +820,28 @@ class PayMethodModel {
                 PaySection(
                     kind: .debit,
                     payMethods: self.paymentMethods
-                        .filter { $0.accountType == .checking }
+                        .filter { [.checking, .cash].contains($0.accountType) }
                         .filter { $0.isPermitted }
                         .filter { includeHidden ? true : !$0.isHidden }
-                        .filter { searchText.wrappedValue.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText.wrappedValue) }
+                        .filter { sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText) }
                         .sorted(by: Helpers.paymentMethodSorter())
                 ),
                 PaySection(
                     kind: .credit,
                     payMethods: self.paymentMethods
-                        .filter { $0.accountType == .credit || $0.accountType == .loan }
+                        .filter { $0.isCreditOrLoan }
                         .filter { $0.isPermitted }
                         .filter { includeHidden ? true : !$0.isHidden }
-                        .filter { searchText.wrappedValue.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText.wrappedValue) }
+                        .filter { sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText) }
                         .sorted(by: Helpers.paymentMethodSorter())
                 ),
                 PaySection(
                     kind: .other,
                     payMethods: self.paymentMethods
-                        .filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking, .loan].contains($0.accountType) }
+                        .filter { !$0.isDebit && !$0.isCredit }
                         .filter { $0.isPermitted }
                         .filter { includeHidden ? true : !$0.isHidden }
-                        .filter { searchText.wrappedValue.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText.wrappedValue) }
+                        .filter { sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText) }
                         .sorted(by: Helpers.paymentMethodSorter())
                 )
             ]
@@ -834,10 +852,10 @@ class PayMethodModel {
                     PaySection(
                         kind: .debit,
                         payMethods: self.paymentMethods
-                            .filter { $0.accountType == .checking }
+                            .filter { $0.isDebit }
                             .filter { $0.isPermitted }
                             .filter { includeHidden ? true : !$0.isHidden }
-                            .filter { searchText.wrappedValue.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText.wrappedValue) }
+                            .filter { sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText) }
                             .sorted(by: Helpers.paymentMethodSorter())
                     )
                 ]
@@ -847,10 +865,10 @@ class PayMethodModel {
                     PaySection(
                         kind: .credit,
                         payMethods: self.paymentMethods
-                            .filter { $0.accountType == .credit || $0.accountType == .loan }
+                            .filter { $0.isCreditOrLoan }
                             .filter { $0.isPermitted }
                             .filter { includeHidden ? true : !$0.isHidden }
-                            .filter { searchText.wrappedValue.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText.wrappedValue) }
+                            .filter { sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText) }
                             .sorted(by: Helpers.paymentMethodSorter())
                     )
                 ]
@@ -860,10 +878,10 @@ class PayMethodModel {
                     PaySection(
                         kind: .other,
                         payMethods: self.paymentMethods
-                            .filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking, .loan].contains($0.accountType) }
+                            .filter { !$0.isDebit && !$0.isCredit }
                             .filter { $0.isPermitted }
                             .filter { includeHidden ? true : !$0.isHidden }
-                            .filter { searchText.wrappedValue.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText.wrappedValue) }
+                            .filter { sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText) }
                             .sorted(by: Helpers.paymentMethodSorter())
                     )
                 ]
@@ -877,10 +895,10 @@ class PayMethodModel {
                 PaySection(
                     kind: .debit,
                     payMethods: self.paymentMethods
+                        /// Intentionally exclude cash
                         .filter { $0.accountType == .checking && !taken.contains($0.id) }
                         .filter { $0.isPermitted }
-                        .filter { includeHidden ? true : !$0.isHidden }
-                        .filter { searchText.wrappedValue.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText.wrappedValue) }
+                        .filter { sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText) }
                         .sorted(by: Helpers.paymentMethodSorter())
                 ),
                 PaySection(
@@ -888,17 +906,15 @@ class PayMethodModel {
                     payMethods: self.paymentMethods
                         .filter { ($0.accountType == .credit || $0.accountType == .loan) && !taken.contains($0.id) }
                         .filter { $0.isPermitted }
-                        .filter { includeHidden ? true : !$0.isHidden }
-                        .filter { searchText.wrappedValue.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText.wrappedValue) }
+                        .filter { sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText) }
                         .sorted(by: Helpers.paymentMethodSorter())
                 ),
                 PaySection(
                     kind: .other,
                     payMethods: self.paymentMethods
-                        .filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking, .loan].contains($0.accountType) && !taken.contains($0.id) }
+                        .filter { !$0.isDebit && !$0.isCredit }
                         .filter { $0.isPermitted }
-                        .filter { includeHidden ? true : !$0.isHidden }
-                        .filter { searchText.wrappedValue.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText.wrappedValue) }
+                        .filter { sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText) }
                         .sorted(by: Helpers.paymentMethodSorter())
                 )
             ]

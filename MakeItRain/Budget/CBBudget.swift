@@ -20,13 +20,13 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
     }
     
     var amount: Double {
-        Double(amountString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
+        Double(amountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
     }
     var amountString: String
     
     /// Amount 2 is only for fetching the analytics in the category sheet.
     var amount2: Double {
-        Double(amountString2.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
+        Double(amountString2.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
     }
     var amountString2: String
     

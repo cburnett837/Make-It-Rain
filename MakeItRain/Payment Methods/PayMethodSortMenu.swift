@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct PayMethodSortMenu: View {
-    @AppStorage("paymentMethodSortMode") var paymentMethodSortMode: SortMode = .title
+    @Local(\.paymentMethodSortMode) var paymentMethodSortMode
     @Environment(PayMethodModel.self) private var payModel
 
     @Binding var sections: Array<PaySection>

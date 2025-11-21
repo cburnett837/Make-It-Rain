@@ -9,12 +9,12 @@ import SwiftUI
 import Algorithms
 
 struct CategoriesTable: View {
-    //@Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
     
     @Local(\.useWholeNumbers) var useWholeNumbers
-    @AppStorage("categorySortMode") var categorySortMode: SortMode = .title
-    
+    @Local(\.categorySortMode) var categorySortMode
+    @Local(\.categoryIndicatorAsSymbol) var categoryIndicatorAsSymbol
+
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
     
@@ -79,7 +79,7 @@ struct CategoriesTable: View {
         /// Setting this id forces the view to refresh and update the relevant category with the new ID.
         .id(catModel.fuckYouSwiftuiTableRefreshID)
         #endif
-        .navigationBarBackButtonHidden(true)
+        //.navigationBarBackButtonHidden(true)
         .task {
             /// NOTE: Sorting must be done here and not in the computed property. If done in the computed property, when reording, they get all messed up.
             //let categorySortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
@@ -235,20 +235,47 @@ struct CategoriesTable: View {
     #if os(iOS)
     @ToolbarContentBuilder
     func phoneToolbar() -> some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) { CategorySortMenu() }
-        ToolbarItem(placement: .topBarTrailing) { ToolbarLongPollButton() }
+        //ToolbarItem(placement: .topBarLeading) { CategorySortMenu() }
+        //ToolbarSpacer(.fixed, placement: .topBarLeading)
+        ToolbarItem(placement: .topBarLeading) { moreMenu }
+                
+        
+        ToolbarItem(placement: .topBarLeading) { ToolbarLongPollButton() }
+                
+        //ToolbarSpacer(.fixed, placement: .topBarTrailing)
         ToolbarItem(placement: .topBarTrailing) { ToolbarRefreshButton() }
-        ToolbarSpacer(.fixed, placement: .topBarTrailing)
-        ToolbarItem(placement: .topBarTrailing) {
-            Button {
-                categoryEditID = UUID().uuidString
-            } label: {
-                Image(systemName: "plus")
-            }
-            .tint(.none)
-        }
+        ToolbarItem(placement: .topBarTrailing) { newButton }
+        //ToolbarSpacer(.fixed, placement: .topBarTrailing)
+//        ToolbarItem(placement: .topBarTrailing) { moreMenu }
     }
     #endif
+    
+    
+    var newButton: some View {
+        Button {
+            categoryEditID = UUID().uuidString
+        } label: {
+            Image(systemName: "plus")
+        }
+        .tint(.none)
+    }
+    
+    var moreMenu: some View {
+        Menu {
+            CategorySortMenu(displayStyle: .inlineWithMenu)
+            
+            Section("Display Mode") {
+                Toggle(isOn: $categoryIndicatorAsSymbol) {
+                    Text("Use Symbols")
+                }
+            }
+            
+        } label: {
+            Image(systemName: "ellipsis")
+        }
+        .tint(.none)
+    }
+    
     
     var listForPhoneAndMacSort: some View {
         List(selection: $categoryEditID) {

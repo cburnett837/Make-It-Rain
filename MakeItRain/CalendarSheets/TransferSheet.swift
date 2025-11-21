@@ -8,20 +8,17 @@
 import SwiftUI
 
 struct TransferSheet: View {
-    private enum TransferType {
-        case cashAdvance, deposit, payment, transfer, savings
-    }
+    private enum TransferType { case cashAdvance, deposit, payment, transfer, savings }
     
-    //@Local(\.colorTheme) var colorTheme
     @Local(\.useWholeNumbers) var useWholeNumbers
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
     @Environment(CategoryModel.self) private var catModel
+        
+    var defaultDate: Date
     
-    
-    @State var date: Date
-    
+    @State private var date: Date = Date()
     @State private var labelWidth: CGFloat = 20.0
     @State private var transfer = CBTransfer()
     @FocusState private var focusedField: Int?
@@ -39,7 +36,6 @@ struct TransferSheet: View {
             return .transfer
         }
     }
-    
     
     var title: String {
         switch transferType {
@@ -85,19 +81,21 @@ struct TransferSheet: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        if isValidToSave {
-                            closeButton
-                                #if os(iOS)
-                                .buttonStyle(.glassProminent)
-                                #endif
-                        } else {
-                            closeButton
-                        }
+                        closeButton
+//                        if isValidToSave {
+//                            closeButton
+//                                .buttonStyle(.glassProminent)
+//                        } else {
+//                            closeButton
+//                        }
                     }
                 }
             #else
             bodyMac
             #endif
+        }
+        .task {
+            self.date = defaultDate
         }
         .onChange(of: transferType) {
             if $1 == .payment { transfer.category = catModel.categories.first { $0.isPayment } }
@@ -105,44 +103,34 @@ struct TransferSheet: View {
         }
     }
     
+    #if os(macOS)
     var bodyMac: some View {
         StandardContainer {
             LabeledRow("From", labelWidth) {
-                PayMethodSheetButton(payMethod: $transfer.from, whichPaymentMethods: .allExceptUnified)
+                PayMethodSheetButtonMac(payMethod: $transfer.from, whichPaymentMethods: .allExceptUnified)
             }
             
             LabeledRow("To", labelWidth) {
-                PayMethodSheetButton(payMethod: $transfer.to, whichPaymentMethods: .allExceptUnified)
+                PayMethodSheetButtonMac(payMethod: $transfer.to, whichPaymentMethods: .allExceptUnified)
             }
             
             StandardDivider()
             
             LabeledRow("Category", labelWidth) {
-                CategorySheetButton(category: $transfer.category)
+                CategorySheetButtonMac(category: $transfer.category)
             }
             
             StandardDivider()
             
             LabeledRow("Amount", labelWidth) {
-                Group {
-                    #if os(iOS)
-                    StandardUITextField("Amount", text: $transfer.amountString, toolbar: {
-                        KeyboardToolbarView(focusedField: $focusedField, removeNavButtons: true)
-                    })
-                    .cbClearButtonMode(.whileEditing)
-                    .cbFocused(_focusedField, equals: 1)
-                    .cbKeyboardType(.custom(.numpad))
-                    #else
-                    StandardTextField("Amount", text: $transfer.amountString, focusedField: $focusedField, focusValue: 1)
-                    #endif
-                }
-                .formatCurrencyLiveAndOnUnFocus(
-                    focusValue: 1,
-                    focusedField: focusedField,
-                    amountString: transfer.amountString,
-                    amountStringBinding: $transfer.amountString,
-                    amount: transfer.amount
-                )
+                StandardTextField("Amount", text: $transfer.amountString, focusedField: $focusedField, focusValue: 1)
+                    .formatCurrencyLiveAndOnUnFocus(
+                        focusValue: 1,
+                        focusedField: focusedField,
+                        amountString: transfer.amountString,
+                        amountStringBinding: $transfer.amountString,
+                        amount: transfer.amount
+                    )
             }
             
             StandardDivider()
@@ -162,70 +150,75 @@ struct TransferSheet: View {
 //            //print(day?.date)
 //        }
     }
+    #endif
     
     
+    #if os(iOS)
     var bodyPhone: some View {
         StandardContainerWithToolbar(.list) {
-            Section("Account Details") {
-                payFromRowPhone
-                payToRowPhone
-            }
-                        
-            Section {
-                categoryRowPhone
+            
+            Section("Amount") {
+                amountRowPhone
             }
             
             Section {
-                amountRowPhone
-                DatePicker("Date", selection: $date, displayedComponents: [.date])
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                dateRow
+            }
+            
+            Section {
+                PayMethodSheetButtonPhone(
+                    text: "From",
+                    logoInfo: .init(
+                        include: true,
+                        fallBackType: .customImage(transfer.from?.fallbackImage)
+                    ),
+                    payMethod: $transfer.from,
+                    whichPaymentMethods: .allExceptUnified
+                )
+                
+                PayMethodSheetButtonPhone(
+                    text: "To",
+                    logoInfo: .init(
+                        include: true,
+                        fallBackType: .customImage(transfer.to?.fallbackImage)
+                    ),
+                    payMethod: $transfer.to,
+                    whichPaymentMethods: .allExceptUnified
+                )
+                
+                CategorySheetButtonPhone(category: $transfer.category)
             }
                         
+               
             transferButtonPhone
         }
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
     }
-    
-    
-    
-    
-    var payFromRowPhone: some View {
-        PayMethodSheetButton2(text: "From", payMethod: $transfer.from, whichPaymentMethods: .allExceptUnified)
-    }
-    
-    
-    var payToRowPhone: some View {
-        PayMethodSheetButton2(text: "To", payMethod: $transfer.to, whichPaymentMethods: .allExceptUnified)
-    }
-    
-    
-    var categoryRowPhone: some View {
-        HStack {
-            Text("Category")
-            Spacer()
-            CategorySheetButton2(category: $transfer.category)
-        }
-    }
-    
+    #endif
+   
         
     var amountRowPhone: some View {
-        HStack {
-            Text("Amount")
-            Spacer()
+        HStack(spacing: 0) {
+            Label {
+                Text("")
+            } icon: {
+                Image(systemName: "dollarsign.circle")
+                    .foregroundStyle(.gray)
+            }
             
             Group {
                 #if os(iOS)
-                UITextFieldWrapper(placeholder: "Amount", text: $transfer.amountString, toolbar: {
+                UITextFieldWrapper(placeholder: "Transfer Amount", text: $transfer.amountString, toolbar: {
                     KeyboardToolbarView(focusedField: $focusedField, removeNavButtons: true)
                 })
                 .uiTag(1)
                 .uiClearButtonMode(.whileEditing)
                 .uiStartCursorAtEnd(true)
-                .uiTextAlignment(.right)
+                .uiTextAlignment(.left)
                 .uiKeyboardType(.custom(.numpad))
                 //.uiKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
-                .uiTextColor(.secondaryLabel)
-                .uiTextAlignment(.right)
+                //.uiTextColor(.secondaryLabel)
+                //.uiTextAlignment(.right)
                 #else
                 StandardTextField("Amount", text: $transfer.amountString, focusedField: $focusedField, focusValue: 1)
                 #endif
@@ -240,8 +233,28 @@ struct TransferSheet: View {
             )
         }
         .validate(transfer.amountString, rules: .regex(.positiveCurrency, "The entered amount must be positive currency"))
+        
     }
     
+    
+    var dateRow: some View {
+        HStack(spacing: 0) {
+            Label {
+                Text("Date")
+            } icon: {
+                Image(systemName: "calendar")
+                    .foregroundColor(.gray)
+            }
+            
+            Spacer()
+            
+            DatePicker("", selection: $date, displayedComponents: [.date])
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .labelsHidden()
+        }
+        .listRowInsets(EdgeInsets())
+        .padding(.horizontal, 16)
+    }
     
     var transferButtonPhone: some View {
         Button(action: validateForm) {
@@ -270,14 +283,16 @@ struct TransferSheet: View {
     
     var closeButton: some View {
         Button {
-            if isValidToSave {
-                validateForm()
-            } else {
-                dismiss()
-            }
+            dismiss()
+//            if isValidToSave {
+//                validateForm()
+//            } else {
+//                dismiss()
+//            }
             
         } label: {
-            Image(systemName: isValidToSave ? "checkmark" : "xmark")
+            //Image(systemName: isValidToSave ? "checkmark" : "xmark")
+            Image(systemName: "xmark")
                 .schemeBasedForegroundStyle()
         }
     }
@@ -373,9 +388,18 @@ struct TransferSheet: View {
                 }
             }
             
+            
+            fromTrans.status = .editing
+            toTrans.status = .editing
+            
+            
             let _ = calModel.calculateTotal(for: calModel.sMonth)
             
-            await calModel.addMultiple(trans: [fromTrans, toTrans], budgets: [], isTransfer: true)
+            await calModel.addMultiple(
+                trans: [fromTrans, toTrans],
+                budgets: [],
+                isTransfer: true
+            )
         }
     }
 }

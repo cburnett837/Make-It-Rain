@@ -36,6 +36,7 @@ struct RootViewPad: View {
     //@State private var columnVisibility = NavigationSplitViewVisibility.doubleColumn
         
     var body: some View {
+        let _ = Self._printChanges()
         @Bindable var navManager = NavigationManager.shared
         @Bindable var calProps = calProps
         
@@ -78,7 +79,7 @@ struct RootViewPad: View {
                 
             case .analysisSheet:
                 CategoryInsightsSheet(showAnalysisSheet: $calProps.showInspector, model: categoryAnalysisModel)
-                    .onDisappear { calModel.isInMultiSelectMode = false }
+                    //.onDisappear { calModel.isInMultiSelectMode = false }
                 
             case .transactionList:
                 TransactionListView(showTransactionListSheet: $calProps.showInspector)

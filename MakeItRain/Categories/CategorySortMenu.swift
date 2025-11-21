@@ -7,49 +7,72 @@
 
 import SwiftUI
 
+enum SortMenuDisplayStyle {
+    case inlineWithMenu, standalone
+}
+
 struct CategorySortMenu: View {
-    @AppStorage("categorySortMode") var categorySortMode: SortMode = .title
+    @Local(\.categorySortMode) var categorySortMode
     @Environment(CategoryModel.self) private var catModel
     @Environment(CalendarModel.self) private var calModel
+    var displayStyle: SortMenuDisplayStyle = .standalone
+    
+    @State private var isAlpha = false
+    @State private var isCustom = false
     
     var body: some View {
-        Menu {
-            Section("Choose Sort Order") {
-                titleButton
-                listOrderButton
+        Group {
+            switch displayStyle {
+            case .inlineWithMenu:
+                content
+            case .standalone:
+                theMenu
             }
+        }
+        .onAppear {
+            switch categorySortMode {
+            case .title:
+                isAlpha = true
+            case .listOrder:
+                isCustom = true
+            }
+        }
+        .onChange(of: isAlpha) {
+            if $1 {
+                isCustom = false
+                categorySortMode = .title
+                performSort()
+            }
+        }
+        .onChange(of: isCustom) {
+            if $1 {
+                isAlpha = false
+                categorySortMode = .listOrder
+                performSort()
+            }
+        }
+    }
+    
+    var theMenu: some View {
+        Menu {
+            content
         } label: {
             Image(systemName: "arrow.up.arrow.down")
                 .schemeBasedForegroundStyle()
         }
     }
     
-    var titleButton: some View {
-        Button {
-            categorySortMode = .title
-            performSort()
-        } label: {
-            Label {
-                Text("Alphabetically")
-            } icon: {
-                Image(systemName: categorySortMode == .title ? "checkmark" : "textformat.abc")
+    var content: some View {
+        Section("Choose Sort Order") {
+            Toggle(isOn: $isAlpha) {
+                Label("Alphabetically", systemImage: "textformat.abc")
+            }
+            Toggle(isOn: $isCustom) {
+                Label("Custom", systemImage: "list.bullet")
             }
         }
     }
-    
-    
-    var listOrderButton: some View {
-        Button {
-            categorySortMode = .listOrder
-            performSort()
-        } label: {
-            Label {
-                Text("Custom")
-            } icon: {
-                Image(systemName: categorySortMode == .listOrder ? "checkmark" : "list.bullet")
-            }
-        }
-    }
+   
     
     func performSort() {
         withAnimation {

@@ -166,6 +166,8 @@ import SwiftUI
 fileprivate let animationDelay: Double = 1
 fileprivate let animationDuration: Double = 5
 fileprivate let colors: Array<Color> = [.orange, .pink, .purple]
+//fileprivate let colors: Array<Color> = [.red, .yellow, .green, .blue, .purple]
+//fileprivate let colors: Array<Color> = [.purple, .blue, .green, .orange, .red]
 fileprivate var baseGradient = Gradient(colors: colors)
 fileprivate let gradient = LinearGradient(
     gradient: baseGradient,
@@ -187,16 +189,31 @@ fileprivate func animate(withGlow: Bool, hueShift: Binding<Double>, glowPulse: B
     }
 }
 
+enum AnimatedViewType {
+    case label, text
+}
+
 extension AiAnimatedAliveLabel where Content == Label<Text, Image> {
     init(_ text: String, systemImage: String, withGlow: Bool) {
         self.content = Label(text, systemImage: systemImage)
         self.withGlow = withGlow
+        self.viewType = .label
     }
 }
+
+extension AiAnimatedAliveLabel where Content == Text {
+    init(_ text: String, withGlow: Bool) {
+        self.content = Text(text)
+        self.withGlow = withGlow
+        self.viewType = .text
+    }
+}
+
 
 struct AiAnimatedAliveLabel<Content: View>: View {
     let content: Content
     var withGlow: Bool
+    var viewType: AnimatedViewType
     
     @State private var hueShift: Double = 0
     @State private var glowPulse: CGFloat = 0
@@ -213,7 +230,7 @@ struct AiAnimatedAliveLabel<Content: View>: View {
             }
         }
         /// Compensate the vertical padding from the labelLayer().
-        .offset(x: -4)
+        .offset(x: viewType == .label ? -4 : 0)
         .onAppear {
             animate(withGlow: withGlow, hueShift: $hueShift, glowPulse: $glowPulse)
         }
@@ -223,7 +240,7 @@ struct AiAnimatedAliveLabel<Content: View>: View {
         let label = content
             //.bold()
             /// Add padding so the symbol doesn't get cut off.
-            .padding(4)
+            .padding(viewType == .label ? 4 : 0)
         
         label
             .foregroundStyle(.clear)

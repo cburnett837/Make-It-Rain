@@ -25,7 +25,6 @@ struct PayMethodDashboard: View {
     let threeColumnGrid = Array(repeating: GridItem(.flexible(), spacing: 0, alignment: .topLeading), count: 3)
     
     @Bindable var vm: PayMethodViewModel
-    @Binding var editID: String?
     var payMethod: CBPaymentMethod
     
     @State private var flipZindex: Bool = false
@@ -58,7 +57,8 @@ struct PayMethodDashboard: View {
         }
     }
     
-    
+    @Namespace private var namespace
+
     @State private var showMenuDemo: Bool = false
     
     let iPadChartGrid = Array(repeating: GridItem(.flexible(), spacing: 30, alignment: .top), count: 2)
@@ -132,6 +132,20 @@ struct PayMethodDashboard: View {
                         }
                     }
                 }
+            }
+        }
+        .refreshable { refreshCharts() }
+        .navigationTitle("Insights")
+        .navigationSubtitle(payMethod.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                PaymentMethodChartStyleMenu(vm: vm)
+            }
+            
+            ToolbarItem(placement: .topBarTrailing) {
+                refreshButton
+                    .schemeBasedForegroundStyle()
             }
         }
         
@@ -352,17 +366,21 @@ struct PayMethodDashboard: View {
     
     var refreshButton: some View {
         Button {
-            payMethod.breakdowns.removeAll()
-            payMethod.breakdownsRegardlessOfPaymentMethod.removeAll()
-            Task {
-                vm.fetchYearStart = AppState.shared.todayYear - 10
-                vm.fetchYearEnd = AppState.shared.todayYear
-                vm.payMethods.removeAll()
-                vm.isLoadingHistory = true
-                await vm.fetchHistory(for: payMethod, payModel: payModel, setChartAsNew: true)
-            }
+            refreshCharts()
         } label: {
             Image(systemName: "arrow.triangle.2.circlepath")
+        }
+    }
+    
+    func refreshCharts() {
+        payMethod.breakdowns.removeAll()
+        payMethod.breakdownsRegardlessOfPaymentMethod.removeAll()
+        Task {
+            vm.fetchYearStart = AppState.shared.todayYear - 10
+            vm.fetchYearEnd = AppState.shared.todayYear
+            vm.payMethods.removeAll()
+            vm.isLoadingHistory = true
+            await vm.fetchHistory(for: payMethod, payModel: payModel, setChartAsNew: true)
         }
     }
         

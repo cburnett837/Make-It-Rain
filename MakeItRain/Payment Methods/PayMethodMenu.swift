@@ -120,7 +120,9 @@ struct PayMethodMenu<Content: View>: View {
                                 //trans!.updatedBy = AppState.shared.user!
                                 //let _ = calModel.calculateTotal(for: calModel.sMonth)
                                 //Task { await calModel.submit(trans!) }
-                                calModel.saveTransaction(id: trans!.id)
+                                Task {
+                                    await calModel.saveTransaction(id: trans!.id)
+                                }
                             }
                         } label: {
                             HStack {

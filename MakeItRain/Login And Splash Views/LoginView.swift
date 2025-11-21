@@ -9,11 +9,6 @@ import SwiftUI
 
 @MainActor
 struct LoginView: View {
-//    enum Field: Hashable {
-//        case email
-//        case password
-//    }
-    
     enum AlertType {
         case email, password, invalid, server
     }
@@ -22,196 +17,126 @@ struct LoginView: View {
     @Environment(CalendarModel.self) private var calModel
     @State private var email = ""
     @State private var password = ""
-    @State private var showMissingEmailAlert = false
-    @State private var showMissingPasswordAlert = false
-    @State private var showFailedLoginAlert = false
-    @State private var showServerErrorAlert = false
-    
     @FocusState private var focusedField: Int?
     @State private var attemptingLogin = false
     
-    @State private var wish = false
-    
     var body: some View {
         ZStack {
-            //#if os(iOS)
-            EmitterView()
-                .scaleEffect(!wish ? 1 : 0, anchor: .top)
-                .opacity(!wish ? 1 : 0)
-                .ignoresSafeArea()
-                #if os(macOS)
-                .rotationEffect(Angle(degrees: 180))                
-                #endif
-                //.blur(radius: 1)
-            //#endif
+            rainingDollars
+                        
+            blurredBackground
             
             VStack {
                 Spacer()
                 
-                Text("Make it Rain")
-                    .font(.largeTitle)
-                    .foregroundStyle(.primary)
-                    //.background(Color(.secondarySystemBackground).blur(radius: 20))
-                    
+                makeItRainLogo
                 Spacer()
                 
-                VStack(spacing: 0) {
-                    UITextFieldWrapper(placeholder: "Email", text: $email, toolbar: {
-                        KeyboardToolbarView(focusedField: $focusedField)
-                    })
-                    .uiTag(0)
-                    .uiClearButtonMode(.whileEditing)
-                    .uiStartCursorAtEnd(true)
-                    .uiTextAlignment(.left)
-                    .uiKeyboardType(.system(.emailAddress))
-                    .uiAutoCapitalizationType(.none)
-                    //.uiKeyboardType(.system(.numberPad))
-                    //.uiTextColor(.secondaryLabel)
-                    .focused($focusedField, equals: 0)
-                    .frame(width: 250)
-                    
-                    
-                    
-                    
-//                    TextField("Email", text: $email)
-//                        .textFieldStyle(.plain)
-//                        #if os(iOS)
-//                        .keyboardType(.emailAddress)
-//                        .textInputAutocapitalization(.never)
-//                        #endif
-//                        .textContentType(.emailAddress)
-//                        .focused($focusedField, equals: .email)
-//                        .frame(width: 250)
-//                        .onChange(of: email) { oldValue, newValue in
-//                            email = email.lowercased()
-//                        }
-                    Divider()
-                        .frame(width: 250)
-                }
-                //.background(Color(.secondarySystemBackground).blur(radius: 10))
-                                
+                emailField
                 Spacer().frame(height: 16)
                 
-                VStack(spacing: 0) {
-                    UITextFieldWrapper(placeholder: "Password", text: $password, onSubmit: {
-                        focusedField = nil
-                        attemptingLogin = true
-                        Task { await attemptLogin() }
-                    }, toolbar: {
-                        KeyboardToolbarView(focusedField: $focusedField)
-                    })
-                    .uiTag(1)
-                    .uiClearButtonMode(.whileEditing)
-                    .uiStartCursorAtEnd(true)
-                    .uiTextAlignment(.left)
-                    .uiKeyboardType(.system(.default))
-                    .uiAutoCapitalizationType(.none)
-                    .uiIsSecure(true)
-                    //.uiKeyboardType(.system(.numberPad))
-                    //.uiTextColor(.secondaryLabel)
-                    .focused($focusedField, equals: 1)
-                    .frame(width: 250)
-                    
-                    
-//                    SecureField("Password", text: $password)
-//                        .textFieldStyle(.plain)
-//                        .textContentType(.password)
-//                        .focused($focusedField, equals: 1)
-//                        .frame(width: 250)
-//                        .onSubmit {
-//                            focusedField = nil
-//                            attemptingLogin = true
-//                            Task { await attemptLogin() }
-//                        }
-                    
-                    Divider()
-                        .frame(width: 250)
-                }
-                
+                passwordField
                 Spacer().frame(height: 16)
                 
-                VStack {
-                    Button("Login") {
-                        focusedField = nil
-                        attemptingLogin = true
-                        Task { await attemptLogin() }
-                    }
-                    .opacity(attemptingLogin ? 0 : 1)
-                    .buttonStyle(.borderedProminent)
-                    .tint(.green)
-                    .keyboardShortcut(.return)                    
-                }
-                .overlay {
-                    ProgressView()
-                        .tint(.none)
-                        .opacity(attemptingLogin ? 1 : 0)
-                }
+                loginButton
                 Spacer()
             }
-        }        
-//        .toolbar {
-//            ToolbarItem(placement: .keyboard) {
-//                HStack(spacing: 2) {
-//                    Button {
-//                        focusedField = 0
-//                    } label: {
-//                        Image(systemName: "chevron.up")
-//                            //.foregroundStyle(.green)
-//                            .foregroundStyle(focusedField == 0 ? .gray : .green)
-//                    }
-//                    .disabled(focusedField == 0)
-//                    
-//                    Button {
-//                        focusedField = 1
-//                    } label: {
-//                        Image(systemName: "chevron.down")
-//                            //.foregroundStyle(.green)
-//                            .foregroundStyle(focusedField == 1 ? .gray : .green)
-//                    }
-//                    .disabled(focusedField == 1)
-//                    
-//                    Spacer()
-//                    Button {
-//                        focusedField = nil
-//                    } label: {
-//                        Image(systemName: "keyboard.chevron.compact.down")
-//                            .foregroundStyle(.gray)
-//                    }
-//                }
-//            }
-//        }
-        .alert("Email cannot be blank", isPresented: $showMissingEmailAlert, actions: { Button("OK") { } })
-        .alert("Password cannot be blank", isPresented: $showMissingPasswordAlert, actions: { Button("OK") { } })
-        .alert("The entered credentials were incorrect", isPresented: $showFailedLoginAlert, actions: { Button("OK") { } })
-        .alert("There was a problem connecting to server", isPresented: $showServerErrorAlert, actions: {
-            Button("OK") { }
-        }, message: {
-            Text("If this issue persists, please contact Cody.")
-        })
+        }
     }
+    
+    var rainingDollars: some View {
+        EmitterView()
+            .scaleEffect(1, anchor: .top)
+            .ignoresSafeArea()
+            #if os(macOS)
+            .rotationEffect(Angle(degrees: 180))
+            #endif
+    }
+    
+    var blurredBackground: some View {
+        Rectangle()
+            .fill(.ultraThinMaterial)
+            //.opacity(0.7)
+            .frame(maxWidth: .infinity)
+            .ignoresSafeArea(.all)
+    }
+    
+    var makeItRainLogo: some View {
+        Text("Make it Rain")
+            .font(.largeTitle)
+            .foregroundStyle(.primary)
+    }
+    
+    
+    var emailField: some View {
+        VStack(spacing: 0) {
+            UITextFieldWrapper(placeholder: "Email", text: $email, toolbar: {
+                KeyboardToolbarView(focusedField: $focusedField)
+            })
+            .uiTag(0)
+            .uiClearButtonMode(.whileEditing)
+            .uiStartCursorAtEnd(true)
+            .uiTextAlignment(.left)
+            .uiKeyboardType(.system(.emailAddress))
+            .uiAutoCapitalizationType(.none)
+            .focused($focusedField, equals: 0)
+            .frame(width: 250)
+                                                                        
+            Divider()
+                .frame(width: 250)
+        }
+    }
+    
+    
+    var passwordField: some View {
+        VStack(spacing: 0) {
+            UITextFieldWrapper(placeholder: "Password", text: $password, onSubmit: {
+                focusedField = nil
+                attemptingLogin = true
+                Task { await attemptLogin() }
+            }, toolbar: {
+                KeyboardToolbarView(focusedField: $focusedField)
+            })
+            .uiTag(1)
+            .uiClearButtonMode(.whileEditing)
+            .uiStartCursorAtEnd(true)
+            .uiTextAlignment(.left)
+            .uiKeyboardType(.system(.default))
+            .uiAutoCapitalizationType(.none)
+            .uiIsSecure(true)
+            .focused($focusedField, equals: 1)
+            .frame(width: 250)
+                                
+            Divider()
+                .frame(width: 250)
+        }
+    }
+    
+    
+    var loginButton: some View {
+        Button("Login") {
+            focusedField = nil
+            attemptingLogin = true
+            Task { await attemptLogin() }
+        }
+        .opacity(attemptingLogin ? 0 : 1)
+        .buttonStyle(.borderedProminent)
+        .tint(.green)
+        .keyboardShortcut(.return)
+        .overlay {
+            ProgressView()
+                .tint(.none)
+                .opacity(attemptingLogin ? 1 : 0)
+        }
+    }
+    
     
     func showAlert(_ type: AlertType) {
         AuthState.shared.isThinking = false
         attemptingLogin = false
         switch type {
         case .email:
-            
-            //let buttonConfig = AlertConfig.ButtonConfig(text: "Fuck", role: .cancel) { AppState.shared.closeAlert() }
-//            let config = AlertConfig(
-//                title: "Accept \(trans.title)?",
-//                subtitle: trans.prettyDate ?? "N/A",
-//                symbol: .init(name: "checkmark.circle.badge.questionmark", color: .green),
-//                primaryButton: AlertConfig.AlertButton(config: buttonConfig)
-//            )
-            
-            
-            AppState.shared.showAlert(
-                config: AlertConfig(
-                    title: "Email cannot be blank",
-                    symbol: .init(name: "envelope", color: .orange),
-                    //primaryButton: AlertConfig.AlertButton(config: buttonConfig)
-                )
-            )
+            AppState.shared.showAlert(config: AlertConfig(title: "Email cannot be blank", symbol: .init(name: "envelope", color: .orange)))
         case .password:
             AppState.shared.showAlert(config: AlertConfig(title: "Password cannot be blank", symbol: .init(name: "lock", color: .orange)))
         case .invalid:
@@ -220,6 +145,7 @@ struct LoginView: View {
             AppState.shared.showAlert(config: AlertConfig(title: "Server Error", subtitle: "There was a problem connecting to server", symbol: .init(name: "network.slash", color: .red)))
         }
     }
+    
     
     func attemptLogin() async {
         guard !email.isEmpty, !password.isEmpty else {
@@ -237,8 +163,7 @@ struct LoginView: View {
         /// Sets `AuthState.isLoggedIn`
         /// Sets `AppState.appShouldShowSplashScreen`
         await AuthState.shared.attemptLogin(using: .emailAndPassword, with: LoginModel(email: email, password: password))
-        
-        
+                
         switch AuthState.shared.error {
         case .incorrectCredentials, .accessRevoked: // calling .credentialsIncorrect because credentials can't be revoked at this stage. I mean they can, but this is a better alert.
             attemptingLogin = false

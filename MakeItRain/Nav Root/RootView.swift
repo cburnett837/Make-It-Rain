@@ -22,6 +22,7 @@ struct RootView: View {
     let monthNavigationNamespace: Namespace.ID
         
     var body: some View {
+        let _ = Self._printChanges()
         @Bindable var navManager = NavigationManager.shared
         @Bindable var funcModel = funcModel
         
@@ -95,7 +96,7 @@ struct RootView: View {
         /// Set ``sMonth`` in ``CalendarModel`` so the model is aware.
         
         calModel.sMonth = CBMonth(num: 100000)
-        calModel.hilightTrans = nil
+        //calModel.hilightTrans = nil
         
         if let selection = navManager.selection {
             if NavDestination.justMonths.contains(selection) {
@@ -103,7 +104,7 @@ struct RootView: View {
                     let targetMonth = calModel.months.filter { $0.enumID == selection }.first
                     if let targetMonth {
                         funcModel.prepareStartingAmounts(for: targetMonth)
-                        calModel.setSelectedMonthFromNavigation(navID: selection, prepareStartAmount: true)
+                        calModel.setSelectedMonthFromNavigation(navID: selection, calculateStartingAndEod: true)
                     } else {
                         fatalError("Incorrect month")
                     }
@@ -125,7 +126,7 @@ struct RootView: View {
     func clearMonthWhenNavSetToNil(_ old: NavDestination?, _ new: NavDestination?) {
         /// Clear out `calModel.sMonth` when `NavigationManager.selectedMonth` is set to nil, which will happen when closing the months fullScreenCover.
         
-        calModel.hilightTrans = nil
+        //calModel.hilightTrans = nil
         if new == nil {
             calModel.sMonth = CBMonth(num: 100000)
         }
@@ -293,7 +294,7 @@ struct RootView: View {
 //        .task {
 //            /// set the calendar model to use the current month (ignore starting amounts and calculations)
 ////            if let selectedMonth = navManager.selectedMonth {
-////                calViewModel.setSelectedMonthFromNavigation(navID: selectedMonth, prepareStartAmount: false)
+////                calViewModel.setSelectedMonthFromNavigation(navID: selectedMonth, calculateStartingAndEod: false)
 ////            }
 //            #if os(iOS)
 //            if AppState.shared.isIphone {
@@ -325,7 +326,7 @@ struct RootView: View {
 //                        let targetMonth = calModel.months.filter{ $0.enumID == selection }.first
 //                        if let targetMonth {
 //                            funcModel.prepareStartingAmounts(for: targetMonth)
-//                            calModel.setSelectedMonthFromNavigation(navID: selection, prepareStartAmount: true)
+//                            calModel.setSelectedMonthFromNavigation(navID: selection, calculateStartingAndEod: true)
 //                        } else {
 //                            fatalError("Incorrect month")
 //                        }

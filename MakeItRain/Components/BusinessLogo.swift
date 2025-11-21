@@ -10,6 +10,7 @@ import SwiftUI
 enum LogoFallBackType {
     case color
     case gradient
+    case customImage(String?)
 }
 
 struct BusinessLogo<T: CanHandleLogo & Observation.Observable>: View {
@@ -32,13 +33,22 @@ struct BusinessLogo<T: CanHandleLogo & Observation.Observable>: View {
         if useBusinessLogos {
             if let image = userSelectedLogo  {
                 logoImage(image)
+                
+            } else if case let .customImage(image) = fallBackType, let image = image {
+                Image(systemName: image)
+                    .foregroundStyle(parent == nil ? .gray : parent!.color)
+            
             } else if let parent = parent {
                 methColorCircle(parent)
+                
             } else {
-                fallbackImage
+                fallbackImage                
             }
         } else {
-            if let parent = parent {
+            if case let .customImage(image) = fallBackType, let image = image {
+                Image(systemName: image)
+                    .foregroundStyle(parent == nil ? .gray : parent!.color)
+            } else if let parent = parent {
                 methColorCircle(parent)
             } else {
                 fallbackImage
@@ -61,18 +71,36 @@ struct BusinessLogo<T: CanHandleLogo & Observation.Observable>: View {
     
     
     @ViewBuilder func methColorCircle(_ meth: CanHandleLogo) -> some View {
-        let rainbowGradient = Gradient(colors: [.red, .yellow, .green, .blue, .purple, .red])
+        //let rainbowGradient = Gradient(colors: [.red, .yellow, .green, .blue, .purple, .red])
                                        
         Image(systemName: "circle.fill")
             .font(Font.system(size: logoSize))
             .imageScale(.medium)
             .frame(width: logoSize, height: logoSize, alignment: .center)
-            .if(fallBackType == .gradient) {
-                $0.foregroundStyle(AngularGradient(gradient: rainbowGradient, center: .center))
-            }
-            .if(fallBackType == .color) {
-                $0.foregroundStyle(meth.color)
-            }
+            .foregroundStyle(backgroundColor(parent: parent))
+        
+//            .if(fallBackType == .gradient) {
+//                $0.foregroundStyle(AngularGradient(gradient: rainbowGradient, center: .center))
+//            }
+//            .if(fallBackType == .color) {
+//                $0.foregroundStyle(meth.color)
+//            }
+    }
+    
+    
+    //@ViewBuilder
+    func backgroundColor(parent: T?) -> some ShapeStyle {
+        switch fallBackType {
+        case .color:
+            return AnyShapeStyle(parent?.color ?? .clear)
+            
+        case .gradient:
+            let rainbowGradient = Gradient(colors: [.red, .yellow, .green, .blue, .purple, .red])
+            return AnyShapeStyle(AngularGradient(gradient: rainbowGradient, center: .center))
+            
+        case .customImage(let string):
+            return AnyShapeStyle(Color.gray)
+        }
     }
 }
 
@@ -133,11 +161,28 @@ struct BigBusinessLogo<T: CanHandleLogo & Observation.Observable>: View {
             .font(Font.system(size: logoSize))
             .imageScale(.medium)
             .frame(width: logoSize, height: logoSize, alignment: .center)
-            .if(fallBackType == .gradient) {
-                $0.foregroundStyle(AngularGradient(gradient: rainbowGradient, center: .center))
-            }
-            .if(fallBackType == .color) {
-                $0.foregroundStyle(meth.color)
-            }
+            .foregroundStyle(backgroundColor(parent: parent))
+//            .if(fallBackType == .gradient) {
+//                $0.foregroundStyle(AngularGradient(gradient: rainbowGradient, center: .center))
+//            }
+//            .if(fallBackType == .color) {
+//                $0.foregroundStyle(meth.color)
+//            }
+    }
+    
+    
+    //@ViewBuilder
+    func backgroundColor(parent: T?) -> some ShapeStyle {
+        switch fallBackType {
+        case .color:
+            return AnyShapeStyle(parent?.color ?? .clear)
+            
+        case .gradient:
+            let rainbowGradient = Gradient(colors: [.red, .yellow, .green, .blue, .purple, .red])
+            return AnyShapeStyle(AngularGradient(gradient: rainbowGradient, center: .center))
+            
+        case .customImage(let string):
+            return AnyShapeStyle(Color.gray)
+        }
     }
 }

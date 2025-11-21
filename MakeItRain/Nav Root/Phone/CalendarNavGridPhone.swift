@@ -20,12 +20,19 @@ struct CalendarNavGridPhone: View {
     
     let monthNavigationNamespace: Namespace.ID
     
+    @Binding var calendarNavPath: NavigationPath
+
+    
     @State private var hasDoneInitialScrollToThisMonth = false
     
     var body: some View {        
         VStack(spacing: 0) {
-            CalendarNavGridHeader(monthNavigationNamespace: monthNavigationNamespace)
-                .scenePadding(.horizontal)
+            CalendarNavGridHeader(
+                monthNavigationNamespace: monthNavigationNamespace,
+                calendarNavPath: $calendarNavPath
+            )
+            .scenePadding(.horizontal)
+            
             ScrollViewReader { scrollProxy in
                 ScrollView {
                     if AppState.shared.methsExist {
@@ -85,6 +92,7 @@ struct CalendarNavGridPhone: View {
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
     }
+    
     
     func scrollToThisMonthOnAppearOfScrollView(_ proxy: ScrollViewProxy) {
         if !hasDoneInitialScrollToThisMonth {

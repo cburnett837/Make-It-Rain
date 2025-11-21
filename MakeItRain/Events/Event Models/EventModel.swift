@@ -222,7 +222,7 @@ class EventModel: FileUploadCompletedDelegate {
                     }
                     
                     if let _ = eventTrans.actionForRealTransaction, let relatedID = relatedID {
-                        calModel.saveTransactionFromEvent(eventTrans: eventTrans, relatedID: relatedID)
+                        //calModel.saveTransactionFromEvent(eventTrans: eventTrans, relatedID: relatedID)
                     }
                 }
             }

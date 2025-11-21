@@ -123,7 +123,7 @@ struct EventParticipantsTable: View {
 
 
 fileprivate struct EventParticipantSheetLineItem: View {
-    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
+    @Local(\.lineItemIndicator) var lineItemIndicator
     @Environment(EventModel.self) private var eventModel
     
     var user: CBUser

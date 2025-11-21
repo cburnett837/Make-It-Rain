@@ -27,18 +27,19 @@ struct RootViewWrapper<Content: View>: View {
     @Binding var showCamera: Bool
 
     
-    var content: Content
+    @ViewBuilder var content: Content
         
     #if os(iOS)
     @State private var window: UIWindow?
     #endif
     
-    init(showCamera: Binding<Bool>, @ViewBuilder content: @escaping () -> Content) {
-        self._showCamera = showCamera
-        self.content = content()
-    }
+//    init(showCamera: Binding<Bool>, @ViewBuilder content: @escaping () -> Content) {
+//        self._showCamera = showCamera
+//        self.content = content()
+//    }
                         
     var body: some View {
+        let _ = Self._printChanges()
         @Bindable var appState = AppState.shared
         content
             #if os(iOS)

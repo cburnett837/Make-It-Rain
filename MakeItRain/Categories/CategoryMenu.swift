@@ -8,8 +8,8 @@
 import SwiftUI
 
 struct CategoryMenu<Content: View>: View {
-    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
-    @AppStorage("categorySortMode") var categorySortMode: SortMode = .title
+    @Local(\.lineItemIndicator) var lineItemIndicator
+    @Local(\.categorySortMode) var categorySortMode
 
     
     @Environment(CalendarModel.self) private var calModel
@@ -68,7 +68,9 @@ struct CategoryMenu<Content: View>: View {
                     if saveOnChange && trans != nil {
                         trans!.log(field: .category, old: trans!.category?.id, new: cat.id, groupID: UUID().uuidString)
                         category = cat
-                        calModel.saveTransaction(id: trans!.id)
+                        Task {
+                            await calModel.saveTransaction(id: trans!.id)
+                        }
                     } else {
                         category = cat
                     }

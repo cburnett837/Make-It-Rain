@@ -31,7 +31,8 @@ class FetchLogModel: Encodable {
 struct LogSheet: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
-    
+    @Environment(CalendarModel.self) private var calModel
+
     var title: String
     let itemID: String
     let logType: LogType
@@ -43,28 +44,28 @@ struct LogSheet: View {
     let columnGrid = Array(repeating: GridItem(.flexible(), spacing: 0), count: 3)
             
     var body: some View {
-        NavigationStack {            
-            StandardContainerWithToolbar(showNoLogs ? .scrolling : .list) {
-                if showNoLogs {
-                    Spacer()
-                    ContentUnavailableView("No Logs", systemImage: "square.stack.3d.up.slash.fill", description: Text("Logs will appear here when changes are made."))
-                    Spacer()
-                } else {
+        VStack {
+            if showNoLogs {
+                Spacer()
+                ContentUnavailableView("No Logs", systemImage: "square.stack.3d.up.slash.fill", description: Text("Logs will appear here when changes are made."))
+                Spacer()
+            } else {
+                StandardContainerWithToolbar(showNoLogs ? .scrolling : .list) {
                     content
                 }
             }
-            .navigationTitle("Change Logs")
-            .navigationSubtitle(title)
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) { refreshButton }
-                ToolbarItem(placement: .topBarTrailing) { closeButton }
-            }
-            #endif
-            .task {
-                await fetchLogs()
-            }
+        }
+        .navigationTitle("Change Logs")
+        .navigationSubtitle(title)
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) { refreshButton }
+            //ToolbarItem(placement: .topBarTrailing) { closeButton }
+        }
+        #endif
+        .task {
+            await fetchLogs()
         }
     }
     
@@ -72,14 +73,18 @@ struct LogSheet: View {
         ForEach(logGroups) { group in
             Section {
                 ForEach(group.logs) { log in
-                    LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
-                        Text(LogField.pretty(for: log.field) ?? "N/A")
-                        Text(log.old ?? "-")
-                        Text(log.new ?? "-")
-                        //Text(log.enteredBy.initials)
-                        //Text(log.enteredDate.string(to: .monthDayHrMinAmPm))
+                    Button {
+                        restoreLog(from: log)
+                    } label: {
+                        LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
+                            Text(LogField.pretty(for: log.field) ?? "N/A")
+                            Text(log.old ?? "-")
+                            Text(log.new ?? "-")
+                        }
+                        .font(.caption2)
                     }
-                    .font(.caption2)
+                    .buttonStyle(.plain)
+                    
                 }
             } header: {
                 VStack(alignment: .leading, spacing: 0) {
@@ -99,6 +104,56 @@ struct LogSheet: View {
         #if os(iOS)
         .listSectionSpacing(50)
         #endif
+    }
+    
+    func restoreLog(from log: CBLog) {
+        switch log.logType {
+        case .transaction:
+            
+            let trans = calModel.getTransaction(by: itemID)
+            
+            switch log.field {
+            case .title:
+                trans.title = log.old ?? ""
+            case .amount:
+                break
+            case .payMethod:
+                break
+            case .category:
+                break
+            case .notes:
+                break
+            case .factorInCalculations:
+                break
+            case .color:
+                break
+            case .tags:
+                break
+            case .notificationOffset:
+                break
+            case .notifyOnDueDate:
+                break
+            case .trackingNumber:
+                break
+            case .orderNumber:
+                break
+            case .url:
+                break
+            case .date:
+                break
+            }
+        case .paymentMethod:
+            break
+        case .category:
+            break
+        case .keyword:
+            break
+        case .repeatingTransaction:
+            break
+        }
+        
+        
+        
     }
     
     
@@ -124,15 +179,15 @@ struct LogSheet: View {
     
     
     
-    var closeButton: some View {
-        Button {
-            dismiss()
-        } label: {
-            Image(systemName: "xmark")
-                .schemeBasedForegroundStyle()
-        }
-        //.buttonStyle(.glassProminent)
-    }
+//    var closeButton: some View {
+//        Button {
+//            dismiss()
+//        } label: {
+//            Image(systemName: "xmark")
+//                .schemeBasedForegroundStyle()
+//        }
+//        //.buttonStyle(.glassProminent)
+//    }
     
     
     @MainActor

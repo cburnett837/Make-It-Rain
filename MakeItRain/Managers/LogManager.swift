@@ -25,7 +25,7 @@ struct LogManager {
         
         print(
             """
-            \(sesh)\(file?.replacingOccurrences(of: "MakeItRain/", with: "") ?? "NoFile") --- \(line ?? 0) --- \(function ?? "NoFunction")
+            \(sesh)\(file?.replacing("MakeItRain/", with: "") ?? "NoFile") --- \(line ?? 0) --- \(function ?? "NoFunction")
             🟢\(text ?? "NoMessage")            
             """
         )
@@ -34,7 +34,7 @@ struct LogManager {
             Self.logger.log(
                 level: .default,
                 """
-                \(sesh, privacy: .public)\(file?.replacingOccurrences(of: "MakeItRain/", with: "") ?? "NoFile", privacy: .public) --- \(line ?? 0, privacy: .public) --- \(function ?? "NoFunction", privacy: .public)
+                \(sesh, privacy: .public)\(file?.replacing("MakeItRain/", with: "") ?? "NoFile", privacy: .public) --- \(line ?? 0, privacy: .public) --- \(function ?? "NoFunction", privacy: .public)
                 🟢\(text, privacy: .public)
                 """
             )
@@ -42,7 +42,7 @@ struct LogManager {
             Self.logger.log(
                 level: .default,
                 """
-                \(sesh, privacy: .public)\(file?.replacingOccurrences(of: "MakeItRain/", with: "") ?? "NoFile", privacy: .public) --- \(line ?? 0, privacy: .public) --- \(function ?? "NoFunction", privacy: .public)
+                \(sesh, privacy: .public)\(file?.replacing("MakeItRain/", with: "") ?? "NoFile", privacy: .public) --- \(line ?? 0, privacy: .public) --- \(function ?? "NoFunction", privacy: .public)
                 """
             )
         }
@@ -55,7 +55,7 @@ struct LogManager {
         
         print(
             """
-            \(sesh)\(file?.replacingOccurrences(of: "MakeItRain/", with: "") ?? "NoFile") --- \(line ?? 0) --- \(function ?? "NoFunction")
+            \(sesh)\(file?.replacing("MakeItRain/", with: "") ?? "NoFile") --- \(line ?? 0) --- \(function ?? "NoFunction")
             🔴\(text ?? "NoMessage")
             
             """
@@ -67,7 +67,7 @@ struct LogManager {
             Self.logger.log(
                 level: .error,
                 """
-                \(sesh, privacy: .public)\(file?.replacingOccurrences(of: "MakeItRain/", with: "") ?? "NoFile", privacy: .public) --- \(line ?? 0, privacy: .public) --- \(function ?? "NoFunction", privacy: .public)
+                \(sesh, privacy: .public)\(file?.replacing("MakeItRain/", with: "") ?? "NoFile", privacy: .public) --- \(line ?? 0, privacy: .public) --- \(function ?? "NoFunction", privacy: .public)
                 🔴\(text, privacy: .public)                   
                 """
             )
@@ -75,7 +75,7 @@ struct LogManager {
             Self.logger.log(
                 level: .error,
                 """
-                \(sesh, privacy: .public)\(file?.replacingOccurrences(of: "MakeItRain/", with: "") ?? "NoFile", privacy: .public) --- \(line ?? 0, privacy: .public) --- \(function ?? "NoFunction", privacy: .public)
+                \(sesh, privacy: .public)\(file?.replacing("MakeItRain/", with: "") ?? "NoFile", privacy: .public) --- \(line ?? 0, privacy: .public) --- \(function ?? "NoFunction", privacy: .public)
                 """
             )
         }
@@ -90,7 +90,7 @@ struct LogManager {
         
         print(
             """
-            \(sesh)\(file?.replacingOccurrences(of: "MakeItRain/", with: "") ?? "NoFile") --- \(line ?? 0) --- \(function ?? "NoFunction")
+            \(sesh)\(file?.replacing("MakeItRain/", with: "") ?? "NoFile") --- \(line ?? 0) --- \(function ?? "NoFunction")
             🟢networking successful
             
             """
@@ -99,7 +99,7 @@ struct LogManager {
         Self.logger.log(
             level: .default,
             """
-            \(sesh, privacy: .public)\(file?.replacingOccurrences(of: "MakeItRain/", with: "") ?? "NoFile", privacy: .public) --- \(line ?? 0, privacy: .public) --- \(function ?? "NoFunction", privacy: .public)
+            \(sesh, privacy: .public)\(file?.replacing("MakeItRain/", with: "") ?? "NoFile", privacy: .public) --- \(line ?? 0, privacy: .public) --- \(function ?? "NoFunction", privacy: .public)
             🟢networking successful
             """
         )

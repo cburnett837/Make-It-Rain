@@ -243,7 +243,7 @@ class AuthState {
 //        
 //        // Helper
 //        func base64UrlDecode(_ value: String) -> Data? {
-//            var base64 = value.replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
+//            var base64 = value.replacing("-", with: "+").replacing("_", with: "/")
 //            while base64.count % 4 != 0 {
 //                base64.append("=")
 //            }

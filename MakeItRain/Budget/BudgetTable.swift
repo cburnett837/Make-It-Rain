@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct BudgetTable: View {
-    @AppStorage("categorySortMode") var categorySortMode: SortMode = .title
+    @Local(\.categorySortMode) var categorySortMode
     @Local(\.useWholeNumbers) var useWholeNumbers
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel

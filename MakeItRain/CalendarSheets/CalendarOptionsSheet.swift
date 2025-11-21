@@ -9,7 +9,7 @@ import SwiftUI
 
 #if os(iOS)
 struct CalendarOptionsSheet: View {
-    @AppStorage("tightenUpEodTotals") var tightenUpEodTotals = true
+    @Local(\.tightenUpEodTotals) var tightenUpEodTotals
     @Local(\.useWholeNumbers) var useWholeNumbers
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
@@ -55,7 +55,7 @@ struct CalendarOptionsSheet: View {
             }
             #if os(iOS)
             .navigationTitle("Monthly Options")
-            .navigationBarTitleDisplayMode(.inline)
+            //.navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) { closeButton }
             }
@@ -291,7 +291,7 @@ struct CalendarOptionsSheetOG: View {
     @Environment(\.dismiss) var dismiss
     
     @Local(\.useWholeNumbers) var useWholeNumbers
-    @AppStorage("tightenUpEodTotals") var tightenUpEodTotals = true
+    @Local(\.tightenUpEodTotals) var tightenUpEodTotals
 
     @Environment(FuncModel.self) var funcModel
     //@Environment(RootViewModelPhone.self) var vm

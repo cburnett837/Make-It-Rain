@@ -29,7 +29,7 @@ struct ChartDateRangeHeader: View {
         }
         .contentShape(Rectangle())
         
-        displayYears
+        vm.displayYearsView
         
         Button {
             vm.moveYears(forward: true)
@@ -37,31 +37,6 @@ struct ChartDateRangeHeader: View {
             Image(systemName: "chevron.right")
         }
         .contentShape(Rectangle())
-    }
-    
-    
-    var displayYears: some View {
-        HStack(spacing: 5) {
-            let lower = vm.visibleDateRangeForHeader.lowerBound.year
-            let upper = vm.visibleDateRangeForHeader.upperBound.year
-            
-            var ytdText: String {
-                if vm.chartCropingStyle == .endAtCurrentMonth {
-                    if upper == lower && lower == AppState.shared.todayYear
-                    || upper != lower && upper == AppState.shared.todayYear {
-                        return " (YTD)"
-                    }
-                }
-                return ""
-            }
-            
-            if upper != lower {
-                Text(String(lower))
-                Text("-")
-            }
-                                                
-            Text("\(String(upper))\(ytdText)")
-        }
     }
     
     var chartVisibleYearPicker: some View {

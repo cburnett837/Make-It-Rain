@@ -13,7 +13,7 @@ import TipKit
 import MapKit
 
 struct TransactionSplitSheet: View {
-    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
+    @Local(\.lineItemIndicator) var lineItemIndicator
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
@@ -150,6 +150,7 @@ struct TransactionSplitSheet: View {
         newTrans.title = trans.title
         newTrans.date = trans.date
         newTrans.payMethod = trans.payMethod
+        newTrans.files = trans.files
         withAnimation {
             additionalTrans.append(newTrans)
         }
@@ -237,7 +238,7 @@ struct TransactionSplitSheet: View {
                 TransactionAmountRow(amountTypeLingo: trans.amountTypeLingo, amountString: $trans.amountString) {
                     AmountRow(trans: trans)
                 }
-                CategorySheetButton3(category: $trans.category)
+                CategorySheetButtonPhone(category: $trans.category)
             } header: {
                 if let title = title {
                     Text(title)

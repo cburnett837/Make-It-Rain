@@ -101,7 +101,7 @@ struct EventTransactionView: View {
     //@State private var searchCompleter = LocationSearchCompleter()
     @State private var vm = ViewModel()
     
-    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
+    @Local(\.lineItemIndicator) var lineItemIndicator
     //@Local(\.colorTheme) var colorTheme
     @Local(\.useWholeNumbers) var useWholeNumbers
     
@@ -672,8 +672,8 @@ struct EventTransactionView: View {
                      
             VStack(alignment: .leading, spacing: 6) {
                 if trans.status.enumID == .claimed {
-                    PayMethodSheetButton(payMethod: $trans.payMethod, whichPaymentMethods: .allExceptUnified)
-                        .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                    //PayMethodSheetButtonMac(payMethod: $trans.payMethod, whichPaymentMethods: .allExceptUnified)
+                        //.alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
                 }
                 
                 claimButton
@@ -988,7 +988,7 @@ struct EventTransactionView: View {
 //
 //
 //struct EventTransactionViewOG: View {
-//    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
+//    @Local(\.lineItemIndicator) var lineItemIndicator
 //    //@Local(\.colorTheme) var colorTheme
 //    @Local(\.useWholeNumbers) var useWholeNumbers
 //    

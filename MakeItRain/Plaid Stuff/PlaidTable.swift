@@ -102,7 +102,7 @@ struct PlaidTable: View {
                 
         ToolbarItem(placement: .topBarTrailing) { ToolbarLongPollButton() }
         ToolbarItem(placement: .topBarTrailing) { ToolbarRefreshButton() }
-        ToolbarSpacer(.fixed, placement: .topBarTrailing)
+        //ToolbarSpacer(.fixed, placement: .topBarTrailing)
         ToolbarItem(placement: .topBarTrailing) {
             PlaidLinkView(plaidModel: plaidModel, linkMode: .newBank)
             .tint(.none)

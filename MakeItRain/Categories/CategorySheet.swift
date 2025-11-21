@@ -11,8 +11,8 @@ struct CategorySheet: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) private var colorScheme
 
-    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
-    @AppStorage("categorySortMode") var categorySortMode: SortMode = .title
+    //@Local(\.lineItemIndicator) var lineItemIndicator
+    @Local(\.categorySortMode) var categorySortMode
     
     @Environment(CalendarModel.self) private var calModel
     
@@ -24,21 +24,23 @@ struct CategorySheet: View {
     @State private var labelWidth: CGFloat = 20.0
     
     @Binding var category: CBCategory?
-    var trans: CBTransaction?
-    let saveOnChange: Bool
+    var trans: CBTransaction? = nil
+    var saveOnChange: Bool = false
+    //var includeHidden: Bool = false
+
         
-    init(category: Binding<CBCategory?>) {
-        self._category = category
-        self.trans = nil
-        self.saveOnChange = false
-    }
-    
-    init(category: Binding<CBCategory?>, trans: CBTransaction?, saveOnChange: Bool) {
-        self._category = category
-        self.trans = trans
-        self.saveOnChange = saveOnChange
-    }
-    
+//    init(category: Binding<CBCategory?>) {
+//        self._category = category
+//        self.trans = nil
+//        self.saveOnChange = false
+//    }
+//    
+//    init(category: Binding<CBCategory?>, trans: CBTransaction?, saveOnChange: Bool) {
+//        self._category = category
+//        self.trans = trans
+//        self.saveOnChange = saveOnChange
+//    }
+//    
     @FocusState private var focusedField: Int?
     @State private var searchText = ""
     
@@ -50,6 +52,13 @@ struct CategorySheet: View {
             .sorted(by: Helpers.categorySorter())
     }
     
+    var filteredHiddenCategories: Array<CBCategory> {
+        catModel.categories
+            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+            .filter { $0.isHidden }
+            .filter { !$0.isNil }
+            .sorted(by: Helpers.categorySorter())
+    }
     
     var body: some View {        
         NavigationStack {
@@ -57,8 +66,9 @@ struct CategorySheet: View {
                 if filteredCategories.isEmpty {
                     ContentUnavailableView("No categories found", systemImage: "exclamationmark.magnifyingglass")
                 } else {
-                    noneSection
                     yourCategoriesSection
+                    hiddenCategoriesSections
+                    noneSection
                 }
             }
             //.scrollEdgeEffectStyle(.hard, for: .all)
@@ -76,20 +86,6 @@ struct CategorySheet: View {
             }
             #endif
         }
-        
-//        
-//        StandardContainer(.list) {
-//            noneSection
-//            yourCategoriesSection
-//        } header: {
-//            SheetHeader(title: "Select Category", close: { dismiss() }, view1: { sortMenu })
-//        } subHeader: {
-//            SearchTextField(title: "Categories", searchText: $searchText, focusedField: $focusedField, focusState: _focusedField)
-//                .padding(.horizontal, -20)
-//                #if os(macOS)
-//                .focusable(false) /// prevent mac from auto focusing
-//                #endif
-//        }
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
         .sheet(item: $editCategory, onDismiss: {
             categoryEditID = nil
@@ -112,20 +108,19 @@ struct CategorySheet: View {
         }
     }
     
+    @ViewBuilder
     var noneSection: some View {
         let theNil = catModel.categories.filter { $0.isNil }.first!
-        return Section("None") {
-            HStack {
-                Text("None")
-                    .strikethrough(true)
-                Spacer()
-                if category?.id == theNil.id {
-                    Image(systemName: "checkmark")
-                }
+        HStack {
+            Text("None")
+                .strikethrough(true)
+            Spacer()
+            if category?.id == theNil.id {
+                Image(systemName: "checkmark")
             }
-            .contentShape(Rectangle())
-            .onTapGesture { doIt(theNil) }
         }
+        .contentShape(Rectangle())
+        .onTapGesture { doIt(theNil) }
     }
     
     
@@ -139,56 +134,6 @@ struct CategorySheet: View {
                 )
                 .onTapGesture { doIt(cat) }
                 
-//                HStack {
-//                    
-//                    Image(systemName: lineItemIndicator == .dot ? "circle.fill" : (cat.emoji ?? "circle.fill"))
-//                        .foregroundStyle(cat.color.gradient)
-//                        .frame(minWidth: labelWidth, alignment: .center)
-//                        .maxViewWidthObserver()
-//                    Text(cat.title)
-//                    Spacer()
-//                    Image(systemName: "checkmark")
-//                        .opacity(category?.id == cat.id ? 1 : 0)
-//                    
-//                    
-////                    if lineItemIndicator == .dot {
-////                        HStack { /// This can be a button or whatever you want
-////                            Image(systemName: "circle.fill")
-////                                .foregroundStyle(cat.color.gradient, .primary, .secondary)
-////                            Text(cat.title)
-////                            Spacer()
-////                            if category?.id == cat.id {
-////                                Image(systemName: "checkmark")
-////                            }
-////                        }
-////                    } else {
-////                        if let emoji = cat.emoji {
-////                            HStack {
-////                                Image(systemName: emoji)
-////                                    .foregroundStyle(cat.color.gradient)
-////                                    .frame(minWidth: labelWidth, alignment: .center)
-////                                    .maxViewWidthObserver()
-////                                Text(cat.title)
-////                                //Text("\(emoji) \(cat.title)")
-////                                Spacer()
-////                                if category?.id == cat.id {
-////                                    Image(systemName: "checkmark")
-////                                }
-////                            }
-////                        } else {
-////                            HStack {
-////                                Text(cat.title)
-////                                Spacer()
-////                                if category?.id == cat.id {
-////                                    Image(systemName: "checkmark")
-////                                }
-////                            }
-////                        }
-////                    }
-////                    Spacer()
-//                }
-//                .contentShape(Rectangle())
-//                .onTapGesture { doIt(cat) }
             }
             
             Button("New Category") {
@@ -197,41 +142,48 @@ struct CategorySheet: View {
         }
     }
     
+    @AppStorage("hiddenCategoriesSectionIsExpanded") private var storedIsHiddenSectionExpanded: Bool = false
+    @State private var isHiddenSectionExpanded = false
     
-//    var sortMenu: some View {
-//        Menu {
-//            Button {
-//                categorySortMode = .title
-////                withAnimation {
-////                    catModel.categories.sort(by: Helpers.categorySorter())
-////                }
-//            } label: {
-//                Label {
-//                    Text("Title")
-//                } icon: {
-//                    Image(systemName: categorySortMode == .title ? "checkmark" : "textformat.abc")
-//                }
-//            }
-//            
-//            Button {
-//                categorySortMode = .listOrder
-////                withAnimation {
-////                    catModel.categories.sort(by: Helpers.categorySorter())
-////                }
-//            } label: {
-//                Label {
-//                    Text("Custom")
-//                } icon: {
-//                    Image(systemName: categorySortMode == .listOrder ? "checkmark" : "list.bullet")
-//                }
-//            }
-//        } label: {
-//            Image(systemName: "arrow.up.arrow.down")
-//                .schemeBasedForegroundStyle()
-//        }
-//    }
-        
+    @ViewBuilder
+    var hiddenCategoriesSections: some View {
+        Section {
+            if isHiddenSectionExpanded {
+                ForEach(filteredHiddenCategories) { cat in
+                    StandardCategoryLabel(
+                        cat: cat,
+                        labelWidth: labelWidth,
+                        showCheckmarkCondition: category?.id == cat.id
+                    )
+                    .onTapGesture { doIt(cat) }
+                }
+            } else {
+                Button("Show All") {
+                    withAnimation { isHiddenSectionExpanded.toggle() }
+                }
+            }
+        } header: {
+            hiddenSectionHeader
+        }
+    }
     
+    var hiddenSectionHeader: some View {
+        HStack {
+            HStack {
+                Text("Hidden Categories")
+                Image(systemName: "chevron.right")
+                    .rotationEffect(.degrees(isHiddenSectionExpanded ? 90 : 0))
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                withAnimation { isHiddenSectionExpanded.toggle() }
+            }
+            Spacer()
+        }
+        .onAppear { isHiddenSectionExpanded = storedIsHiddenSectionExpanded }
+        .onChange(of: isHiddenSectionExpanded) { storedIsHiddenSectionExpanded = $1 }
+    }
+  
     var closeButton: some View {
         Button {
             dismiss()
@@ -247,7 +199,9 @@ struct CategorySheet: View {
         if saveOnChange && trans != nil {
             //trans!.updatedBy = AppState.shared.user!
             //Task { await calModel.submit(trans!) }
-            calModel.saveTransaction(id: trans!.id)
+            Task {
+                await calModel.saveTransaction(id: trans!.id)
+            }
         }
         dismiss()
     }

@@ -9,14 +9,10 @@
 import SwiftUI
 
 struct SettingsMenuPickerContainer<Content: View>: View {
-    @Environment(\.colorScheme) var colorScheme
-    //@Local(\.colorTheme) var colorTheme
-    
     var title: String
     var selectedTitle: String
     @ViewBuilder var picker: Content
-    
-    
+        
     var body: some View {
         HStack {
             Text(title)

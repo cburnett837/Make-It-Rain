@@ -9,8 +9,8 @@ import SwiftUI
 import Charts
 
 struct BudgetEditView: View {
-    @AppStorage("transactionSortMode") var transactionSortMode: TransactionSortMode = .title
-    @AppStorage("categorySortMode") var categorySortMode: SortMode = .title
+    @Local(\.transactionSortMode) var transactionSortMode
+    @Local(\.categorySortMode) var categorySortMode
     @Local(\.useWholeNumbers) var useWholeNumbers
     //@Local(\.colorTheme) var colorTheme
     @Environment(\.colorScheme) private var colorScheme

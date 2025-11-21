@@ -24,7 +24,9 @@ struct TransactionContextMenu: View {
                 trans.log(field: .factorInCalculations, old: trans.factorInCalculations ? "true" : "false", new: trans.factorInCalculations ? "false" : "true", groupID: UUID().uuidString)
                 
                 trans.factorInCalculations.toggle()
-                calModel.saveTransaction(id: trans.id)
+                Task {
+                    await calModel.saveTransaction(id: trans.id)
+                }                
             } label: {
                 Text(trans.factorInCalculations ? "❌ Exclude from totals" : "✅ Include in totals")
             }

@@ -57,6 +57,10 @@ class CategoryModel {
     }
     
     
+    func getNil() -> CBCategory? {
+        categories.filter { $0.isNil }.first
+    }
+    
     
     func saveCategory(id: String, calModel: CalendarModel, keyModel: KeywordModel) {
         let category = getCategory(by: id)
@@ -350,6 +354,7 @@ class CategoryModel {
                         let emoji = category.emoji ?? ""
                         let action = category.action
                         let typeID = Int64(category.type.id)
+                        let listOrder = category.listOrder
                         //let listOrder = Int64(category.listOrder ?? 0)
                         let isNil = category.isNil
                         let enteredByID = Int64(category.enteredBy.id)
@@ -377,6 +382,10 @@ class CategoryModel {
                                 entity.title = title
                                 entity.amount = amount
                                 entity.hexCode = hexCode
+                                if let listOrder {
+                                    entity.listOrder = Int64(listOrder)
+                                }
+                                
                                 //entity.hexCode = category.color.description
                                 entity.emoji = emoji
                                 entity.action = action.rawValue

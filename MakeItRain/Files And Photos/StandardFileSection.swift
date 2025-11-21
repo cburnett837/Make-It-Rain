@@ -509,9 +509,9 @@ struct StandardFileSection: View {
     
     struct CustomAsyncImage<Content: View, Placeholder: View>: View {
         #if os(iOS)
-        @State var uiImage: UIImage?
+        @State private var uiImage: UIImage?
         #else
-        @State var nsImage: NSImage?
+        @State private var nsImage: NSImage?
         #endif
 
         var file: CBFile

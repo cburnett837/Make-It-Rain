@@ -21,7 +21,12 @@ struct CustomAlert: View {
             
             VStack(spacing: 4) {
                 title
-                subtitle
+                if let subtitleView = config.subtitleView {
+                    subtitleView
+                } else {
+                    subtitle
+                }
+                
             }
             .padding(.bottom, 8)
             
@@ -232,6 +237,7 @@ struct CustomAlert: View {
 struct AlertConfig {
     var title: String
     var subtitle: String?
+    var subtitleView: AnyView?
     var symbol: SymbolConfig = .init(name: "exclamationmark.triangle.fill", color: .orange)
     var primaryButton: AlertButton?
     var secondaryButton: AlertButton?

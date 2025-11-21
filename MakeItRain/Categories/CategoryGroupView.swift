@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct CategoryGroupView: View {
-    @AppStorage("categorySortMode") var categorySortMode: SortMode = .title
+    @Local(\.categorySortMode) var categorySortMode
     @Environment(\.layoutDirection) private var layoutDirection: LayoutDirection
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme

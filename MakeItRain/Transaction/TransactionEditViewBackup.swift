@@ -27,7 +27,7 @@
 //    //@Environment(\.dismiss) var dismiss <--- NO NICE THAT ONE WITH SHEETS IN A SHEET.
 //    @Environment(\.colorScheme) var colorScheme
 //    //@Local(\.colorTheme) var colorTheme
-//    @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
+//    @Local(\.lineItemIndicator) var lineItemIndicator
 //    @Local(\.useWholeNumbers) var useWholeNumbers
 //
 //    #if os(macOS)
@@ -694,7 +694,7 @@
 //                .foregroundStyle(trans.payMethod == nil ? Color.gray.gradient : trans.payMethod!.color.gradient)
 //                .frame(width: symbolWidth)
 //            
-//            PayMethodSheetButton(payMethod: $trans.payMethod, trans: trans, saveOnChange: false, whichPaymentMethods: .allExceptUnified)
+//            PayMethodSheetButtonMac(payMethod: $trans.payMethod, trans: trans, saveOnChange: false, whichPaymentMethods: .allExceptUnified)
 //        }
 //    }
 //    
@@ -908,7 +908,7 @@
 //    
 //    
 //    struct TransactionSplitSheet: View {
-//        @AppStorage("lineItemIndicator") var lineItemIndicator: LineItemIndicator = .emoji
+//        @Local(\.lineItemIndicator) var lineItemIndicator
 //
 //        
 //        @Environment(\.dismiss) var dismiss

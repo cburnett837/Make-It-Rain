@@ -20,12 +20,15 @@ struct KeywordView: View {
     @FocusState private var focusedField: Int?
     @State private var showDeleteAlert = false
     @State private var showCategorySheet = false
+    @State private var showCategorySection = false
+    @State private var showRenameSection = false
+
         
     var title: String { keyword.action == .add ? "New Rule" : "Edit Rule" }
             
     var isValidToSave: Bool {
         if keyword.action == .add {
-            return !keyword.keyword.isEmpty && keyword.category != nil && !(keyword.category?.isNil ?? false)
+            return !keyword.keyword.isEmpty && (keyword.category != nil || keyword.renameTo != nil) && !(keyword.category?.isNil ?? false)
         } else {
             return (keyword.hasChanges() && !keyword.keyword.isEmpty)
         }
@@ -34,8 +37,9 @@ struct KeywordView: View {
     var body: some View {
         NavigationStack {
             StandardContainerWithToolbar(.list) {
-                titleSection
+                titleRow2
                 categorySection
+                renameSection
                 
             }
             .navigationTitle(title)
@@ -44,7 +48,7 @@ struct KeywordView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { deleteButton }
                 ToolbarItem(placement: .topBarTrailing) {
-                    AnimatedCloseButton(isValidToSave: isValidToSave, closeButton: closeButton)                    
+                    AnimatedCloseButton(isValidToSave: isValidToSave, closeButton: closeButton)
                 }
                 
                 ToolbarItem(placement: .bottomBar) {
@@ -59,6 +63,15 @@ struct KeywordView: View {
             keyword.deepCopy(.create)
             keyModel.upsert(keyword)
             //focusedField = 0
+            
+            if keyword.category != nil {
+                showCategorySection = true
+            }
+            
+            if keyword.renameTo != nil {
+                showRenameSection = true
+            }
+            
         }
         .sheet(isPresented: $showCategorySheet) {
             CategorySheet(category: $keyword.category)
@@ -108,45 +121,8 @@ struct KeywordView: View {
     }
     
     
-    var titleSection: some View {
-        Section {
-            criteriaRow
-            titleRow2
-        } header: {
-            Text("If the transaction title…")
-        }
-    }
-    
-    
-    var titleRow2: some View {
-        HStack {
-            Text("Keyword")
-            Spacer()
-            Group {
-                #if os(iOS)
-                UITextFieldWrapper(placeholder: "Keyword", text: $keyword.keyword, toolbar: {
-                    KeyboardToolbarView(focusedField: $focusedField)
-                })
-                .uiTag(0)
-                .uiClearButtonMode(.whileEditing)
-                .uiStartCursorAtEnd(true)
-                .uiTextAlignment(.left)
-                .uiTextAlignment(.right)
-                .uiTextColor(.secondaryLabel)
-                #else
-                StandardTextField("Keyword", text: $keyword.keyword, focusedField: $focusedField, focusValue: 0)
-                #endif
-            }
-            .focused($focusedField, equals: 0)
-        }
-        
-    }
-    
-    
     var criteriaRow: some View {
-        HStack {
-            Text("Criteria")
-            Spacer()
+        Section("If the transaction title…") {
             Menu {
                 Button {
                     keyword.triggerType = .equals
@@ -165,28 +141,140 @@ struct KeywordView: View {
     }
     
     
-    var categoryMenu: some View {
-        GroupBox {
-            HStack(spacing: 0) {
-                Text("give it a category of ")
-                CategorySheetButton(category: $keyword.category)
+    var titleRow2: some View {
+        Section {
+            Group {
+                #if os(iOS)
+                UITextFieldWrapper(placeholder: "Keyword", text: $keyword.keyword, toolbar: {
+                    KeyboardToolbarView(focusedField: $focusedField)
+                })
+                .uiTag(0)
+                .uiClearButtonMode(.whileEditing)
+                .uiStartCursorAtEnd(true)
+                .uiTextAlignment(.left)
+                //.uiTextColor(.secondaryLabel)
+                #else
+                StandardTextField("Keyword", text: $keyword.keyword, focusedField: $focusedField, focusValue: 0)
+                #endif
+            }
+            .focused($focusedField, equals: 0)
+        } header: {
+            titleSectionHeader
+        }
+    }
+    
+    
+    var titleSectionHeader: some View {
+        HStack(spacing: 0) {
+            Text("If the transaction title ")
+            Menu {
+                Button("is") { keyword.triggerType = .equals }
+                Button("contains") { keyword.triggerType = .contains }
+            } label: {
+                switch keyword.triggerType {
+                case .equals:
+                    Text("is")
+                case .contains:
+                    Text("contains")
+                }
+            }
+            Text("…")
+        }
+    }
+    
+    
+    @ViewBuilder
+    var categorySection: some View {
+        if showCategorySection {
+            Section {
+                HStack {
+                    CategorySheetButtonWithNoSymbol(category: $keyword.category, alignment: .leading)
+                    Spacer()
+                    removeCategoryConditionButton
+                }
+            } header: {
+                Text("give it a category of…")
+            }
+        } else {
+            Button("Add Category") {
+                withAnimation {
+                    showCategorySection = true
+                }
             }
         }
     }
     
     
-    var categorySection: some View {
-        Section {
-            HStack {
-                Text("Category")
-                Spacer()
-//                Image(systemName: keyword.category?.emoji ?? "questionmark.circle")
-//                    .foregroundStyle(keyword.category?.color ?? .primary)
-                CategorySheetButton2(category: $keyword.category)
+    var removeCategoryConditionButton: some View {
+        Button {
+            withAnimation {
+                keyword.category = nil
+                showCategorySection = false
             }
-        } header: {
-            Text("give it a category of…")
+        } label: {
+            Image(systemName: "xmark")
         }
+        .clipShape(.circle)
+        .tint(.gray)
+        .buttonStyle(.borderedProminent)
+    }
+    
+    
+    @ViewBuilder
+    var renameSection: some View {
+        if showRenameSection {
+            Section {
+                HStack {
+                    renameTextfield
+                    Spacer()
+                    removeRenameConditionButton
+                }
+            } header: {
+                Text(showCategorySection ? "and rename it to…" : "rename it to…")
+            } footer: {
+                Text("When accepting a transaction from Plaid, choose to rename it to something more friendly.")
+            }
+        } else {
+            Button("Add Rename") {
+                withAnimation {
+                    showRenameSection = true
+                }
+            }
+        }
+    }
+    
+    
+    var renameTextfield: some View {
+        Group {
+            #if os(iOS)
+            UITextFieldWrapper(placeholder: "Friendly title", text: $keyword.renameTo ?? "", toolbar: {
+                KeyboardToolbarView(focusedField: $focusedField)
+            })
+            .uiTag(1)
+            .uiClearButtonMode(.whileEditing)
+            .uiStartCursorAtEnd(true)
+            .uiTextAlignment(.left)
+            //.uiTextColor(.secondaryLabel)
+            #else
+            StandardTextField("Friendly title", text: $keyword.keyword, focusedField: $focusedField, focusValue: 0)
+            #endif
+        }
+        .focused($focusedField, equals: 0)
+    }
+    
+    
+    var removeRenameConditionButton: some View {
+        Button {
+            withAnimation {
+                keyword.renameTo = nil
+                showRenameSection = false
+            }
+        } label: {
+            Image(systemName: "xmark")
+        }
+        .clipShape(.circle)
+        .tint(.gray)
+        .buttonStyle(.borderedProminent)
     }
     
     
@@ -215,10 +303,11 @@ struct KeywordView: View {
         })
     }
     
+    
     var closeButton: some View {
         Button {
-            if keyword.action == .add && !keyword.keyword.isEmpty && (keyword.category == nil || keyword.category?.isNil ?? false) {
-                AppState.shared.showAlert("Please select a category")
+            if keyword.action == .add && !keyword.keyword.isEmpty && ((keyword.category == nil && keyword.renameTo == nil) || keyword.category?.isNil ?? false) {
+                AppState.shared.showAlert("Please add a condition")
                 return
             }
             editID = nil

@@ -31,6 +31,7 @@
         <attribute name="id" attributeType="String"/>
         <attribute name="isPending" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="keyword" optional="YES" attributeType="String"/>
+        <attribute name="renameTo" optional="YES" attributeType="String"/>
         <attribute name="triggerType" optional="YES" attributeType="String"/>
         <attribute name="updatedByID" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="updatedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>

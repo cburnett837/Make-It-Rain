@@ -7,7 +7,14 @@
 
 import SwiftUI
 
-struct PayMethodSheetButton: View {
+
+struct LogoInfo {
+    var include: Bool
+    var fallBackType: LogoFallBackType
+}
+
+#if os(macOS)
+struct PayMethodSheetButtonMac: View {
     @State private var showPayMethodSheet = false
     @State private var payMethodMenuColor: Color = Color(.tertiarySystemFill)
     
@@ -28,18 +35,16 @@ struct PayMethodSheetButton: View {
         }
         .onHover { payMethodMenuColor = $0 ? Color(.systemFill) : Color(.tertiarySystemFill) }
         .sheet(isPresented: $showPayMethodSheet) {
-            PayMethodSheet(payMethod: $payMethod, trans: trans, calcAndSaveOnChange: saveOnChange, whichPaymentMethods: whichPaymentMethods)
-            #if os(macOS)
+            PayMethodSheet(payMethod: $payMethod, whichPaymentMethods: whichPaymentMethods)
                 .frame(minWidth: 300, minHeight: 500)
                 .presentationSizing(.fitted)
-            #endif
         }
     }
 }
+#endif
 
-
-
-struct PayMethodSheetButton2: View {
+#if os(iOS)
+struct PayMethodSheetButtonPhone: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(PlaidModel.self) private var plaidModel
     
@@ -47,10 +52,12 @@ struct PayMethodSheetButton2: View {
     @State private var payMethodMenuColor: Color = Color(.tertiarySystemFill)
         
     var text: String
-    var image: String? = nil
+    var logoInfo: LogoInfo?
+    //var withLogo: Bool = true
+    //var fallBackType: LogoFallBackType
     @Binding var payMethod: CBPaymentMethod?
-    var trans: CBTransaction? = nil
-    var saveOnChange: Bool = false
+    //var trans: CBTransaction? = nil
+    //var saveOnChange: Bool = false
     let whichPaymentMethods: ApplicablePaymentMethods
     
     var body: some View {
@@ -58,12 +65,13 @@ struct PayMethodSheetButton2: View {
             showPayMethodSheet = true
         } label: {
             HStack {
-                if let image = image {
+                if let logoInfo = logoInfo {
                     Label {
                         Text(text)
                             .schemeBasedForegroundStyle()
                     } icon: {
-                        BusinessLogo(parent: payMethod, fallBackType: (payMethod ?? CBPaymentMethod()).isUnified ? .gradient : .color)
+                        //BusinessLogo(parent: payMethod, fallBackType: (payMethod ?? CBPaymentMethod()).isUnified ? .gradient : .color)
+                        BusinessLogo(parent: payMethod, fallBackType: logoInfo.fallBackType)
                     }
                 } else {
                     Text(text)
@@ -79,22 +87,15 @@ struct PayMethodSheetButton2: View {
                         .fontWeight(.semibold)
                 }
                 .tint(.none)
-                #if os(iOS)
                 .foregroundStyle(Color(.secondaryLabel))
-                #else
-                .foregroundStyle(.secondary)
-                #endif
             }
         }        
         .contentShape(Rectangle())
         .focusable(false)
         .onHover { payMethodMenuColor = $0 ? Color(.systemFill) : Color(.tertiarySystemFill) }
         .sheet(isPresented: $showPayMethodSheet) {
-            PayMethodSheet(payMethod: $payMethod, trans: trans, calcAndSaveOnChange: saveOnChange, whichPaymentMethods: whichPaymentMethods)
-            #if os(macOS)
-                .frame(minWidth: 300, minHeight: 500)
-                .presentationSizing(.fitted)
-            #endif
+            PayMethodSheet(payMethod: $payMethod, whichPaymentMethods: whichPaymentMethods)
         }
     }
 }
+#endif

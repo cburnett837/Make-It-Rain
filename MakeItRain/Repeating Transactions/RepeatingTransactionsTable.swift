@@ -166,7 +166,7 @@ struct RepeatingTransactionsTable: View {
     func phoneToolbar() -> some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) { ToolbarLongPollButton() }
         ToolbarItem(placement: .topBarTrailing) { ToolbarRefreshButton() }
-        ToolbarSpacer(.fixed, placement: .topBarTrailing)
+        //ToolbarSpacer(.fixed, placement: .topBarTrailing)
         ToolbarItem(placement: .topBarTrailing) {
             Button {
                 repTransactionEditID = UUID().uuidString

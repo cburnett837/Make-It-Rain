@@ -164,51 +164,51 @@ class PayMethodMonthlyBreakdown: Identifiable, Decodable, Equatable {
         Helpers.createDate(month: month, year: year)!
     }
     
-    var income: Double { Double(incomeString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0 }
+    var income: Double { Double(incomeString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
     var incomeString: String
     
-    var incomeAndPositiveAmounts: Double { Double(incomeAndPositiveAmountsString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0 }
+    var incomeAndPositiveAmounts: Double { Double(incomeAndPositiveAmountsString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
     var incomeAndPositiveAmountsString: String
     
-    var positiveAmounts: Double { Double(positiveAmountsString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0 }
+    var positiveAmounts: Double { Double(positiveAmountsString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
     var positiveAmountsString: String
     
-    var expenses: Double { Double(expensesString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0 }
+    var expenses: Double { Double(expensesString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
     var expensesString: String
     
-    var payments: Double { Double(paymentsString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0 }
+    var payments: Double { Double(paymentsString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
     var paymentsString: String
     
-    var startingAmounts: Double { Double(startingAmountsString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0 }
+    var startingAmounts: Double { Double(startingAmountsString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
     var startingAmountsString: String
     
-    var profitLoss: Double { Double(profitLossString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0 }
+    var profitLoss: Double { Double(profitLossString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
     var profitLossString: String
     
     var profitLossPercentage: Double
     
-//    var profitLossMinPercentage: Double { Double(profitLossMinPercentageString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0 }
+//    var profitLossMinPercentage: Double { Double(profitLossMinPercentageString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
 //    var profitLossMinPercentageString: String
 //    
-//    var profitLossMaxPercentage: Double { Double(profitLossMaxPercentageString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0 }
+//    var profitLossMaxPercentage: Double { Double(profitLossMaxPercentageString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
 //    var profitLossMaxPercentageString: String
 //    
-//    var profitLossMinAmount: Double { Double(profitLossMinAmountString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0 }
+//    var profitLossMinAmount: Double { Double(profitLossMinAmountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
 //    var profitLossMinAmountString: String
 //    
-//    var profitLossMaxAmount: Double { Double(profitLossMaxAmountString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0 }
+//    var profitLossMaxAmount: Double { Double(profitLossMaxAmountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
 //    var profitLossMaxAmountString: String
                 
-    var monthEnd: Double { Double(monthEndString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0 }
+    var monthEnd: Double { Double(monthEndString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
     var monthEndString: String
     
-    var minEod: Double { Double(minEodString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0 }
+    var minEod: Double { Double(minEodString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
     var minEodString: String
     
-    var maxEod: Double { Double(maxEodString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0 }
+    var maxEod: Double { Double(maxEodString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
     var maxEodString: String
         
-    var startingAmountsAndPositiveAmounts: Double { Double(startingAmountsAndPositiveAmountsString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0 }
+    var startingAmountsAndPositiveAmounts: Double { Double(startingAmountsAndPositiveAmountsString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
     var startingAmountsAndPositiveAmountsString: String
     
     

@@ -8,13 +8,8 @@
 import SwiftUI
 
 #if os(iOS)
-struct NavLinkPad: View {
-    @AppStorage("useGrayBackground") var useGrayBackground = true
-    //@Local(\.colorTheme) var colorTheme
-        
+struct NavLinkPad: View {        
     let destination: NavDestination
-//    let title: String
-//    let image: String
     var linkWidth: CGFloat
     var linkHeight: CGFloat
     

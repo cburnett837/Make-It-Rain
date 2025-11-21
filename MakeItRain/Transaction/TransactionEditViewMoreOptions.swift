@@ -25,7 +25,7 @@ struct TransactionEditViewMoreOptions: View {
     var body: some View {
         StandardContainerWithToolbar(.list) {
             Section {
-                NavigationLink(value: "title-color") {
+                NavigationLink(value: TransNavDestination.titleColorMenu) {
                     HStack {
                         Label {
                             Text("Title Color")

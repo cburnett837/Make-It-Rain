@@ -59,8 +59,8 @@ class KeywordModel {
         
         /// User is entering a new keyword but forgot the payment method.
         /// Remove the dud that is in `.add` mode since it's being upserted into the list on creation.
-        if (keyword.category == nil || keyword.category?.isNil ?? false) && !keyword.keyword.isEmpty {
-            AppState.shared.showAlert(title: "A category is required", subtitle: "\(keyword.keyword) was not saved.")
+        if ((keyword.category == nil || keyword.category?.isNil ?? false) && keyword.renameTo == nil) && !keyword.keyword.isEmpty {
+            AppState.shared.showAlert(title: "A condition is required", subtitle: "\(keyword.keyword) was not saved.")
             withAnimation { keywords.removeAll { $0.id == id } }
             return
         }
@@ -79,6 +79,7 @@ class KeywordModel {
         let keywordID = keyword.id
         let theKeyword = keyword.keyword
         let categoryID = keyword.category?.id ?? "0"
+        let renameTo = keyword.renameTo
         let triggerType = keyword.triggerType.rawValue
         //let action = "edit"
         //let isPending = false
@@ -94,19 +95,25 @@ class KeywordModel {
                 type: PersistentKeyword.self,
                 predicate: .byId(.string(keywordID)),
                 createIfNotFound: false
-            ),
-            let categoryEntity = DataManager.shared.getOne(
-                context: context,
-                type: PersistentCategory.self,
-                predicate: .byId(.string(categoryID)),
-                createIfNotFound: false
             ) {
                 entity.id = keywordID
                 entity.keyword = theKeyword
-                entity.category = categoryEntity
+                
+                
+                if let categoryEntity = DataManager.shared.getOne(
+                    context: context,
+                    type: PersistentCategory.self,
+                    predicate: .byId(.string(categoryID)),
+                    createIfNotFound: false
+                ) {
+                    entity.category = categoryEntity
+                }
+                
+                
                 entity.triggerType = triggerType
                 entity.action = "edit"
                 entity.isPending = false
+                entity.renameTo = renameTo
                 
                 entity.enteredByID = enteredByID
                 entity.updatedByID = updatedByID
@@ -262,8 +269,7 @@ class KeywordModel {
         case .success(let model):
             
             /// For testing bad network connection.
-            
-            //try? await Task.sleep(nanoseconds: UInt64(20 * Double(NSEC_PER_SEC)))
+            //try? await Task.sleep(for: .seconds(10))
 
             LogManager.networkingSuccessful()
             if let model {
@@ -277,6 +283,7 @@ class KeywordModel {
                                                 
                         let keywordID = keyword.id
                         let theKeyword = keyword.keyword
+                        let renameTo = keyword.renameTo
                         let triggerType = keyword.triggerType.rawValue
                         //let action = keyword.action.rawValue
                         //let isPending = false
@@ -285,7 +292,7 @@ class KeywordModel {
                         let enteredDate = keyword.enteredDate
                         let updatedDate = keyword.updatedDate
                         
-                        let categoryID = keyword.category?.id ?? "0"
+                        let categoryID = keyword.category?.id
                         let categoryTitle = keyword.category?.title
                         let categoryAmount = keyword.category?.amount ?? 0.0
                         let categoryHexCode = keyword.category?.color.toHex()
@@ -303,13 +310,12 @@ class KeywordModel {
                         /// Find the keyword in cache.
                         await context.perform {
                             let entity = DataManager.shared.getOne(context: context, type: PersistentKeyword.self, predicate: .byId(.string(keywordID)), createIfNotFound: true)
-                            let categoryEntity = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(categoryID)), createIfNotFound: true)
-                            
                             /// Update the cache and add to model (if applicable).
                             /// This should always be true because the line above creates the entity if it's not found.
-                            if let entity, let categoryEntity {
+                            if let entity {
                                 entity.id = keywordID
                                 entity.keyword = theKeyword
+                                entity.renameTo = renameTo
                                 entity.triggerType = triggerType
                                 entity.action = "edit"
                                 entity.isPending = false
@@ -319,17 +325,22 @@ class KeywordModel {
                                 entity.enteredDate = enteredDate
                                 entity.updatedDate = updatedDate
                                 
-                                if categoryEntity.id == nil {
-                                    categoryEntity.id = categoryID
-                                    categoryEntity.title = categoryTitle
-                                    categoryEntity.amount = categoryAmount
-                                    categoryEntity.hexCode = categoryHexCode
-                                    categoryEntity.emoji = categoryEmoji
-                                    categoryEntity.action = "edit"
-                                    categoryEntity.isPending = false
+                                if let categoryID,
+                                    let categoryEntity = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(categoryID)), createIfNotFound: true) {
+                                    
+                                    if categoryEntity.id == nil {
+                                        categoryEntity.id = categoryID
+                                        categoryEntity.title = categoryTitle
+                                        categoryEntity.amount = categoryAmount
+                                        categoryEntity.hexCode = categoryHexCode
+                                        categoryEntity.emoji = categoryEmoji
+                                        categoryEntity.action = "edit"
+                                        categoryEntity.isPending = false
+                                    }
+                                    
+                                    entity.category = categoryEntity
                                 }
                                 
-                                entity.category = categoryEntity
                                 let _ = DataManager.shared.save(context: context)
                             }
                         }
@@ -377,7 +388,8 @@ class KeywordModel {
         
         let keywordID = keyword.id
         let theKeyword = keyword.keyword
-        let categoryID = keyword.category?.id ?? "0"
+        let categoryID = keyword.category?.id
+        let renameTo = keyword.renameTo
         let triggerType = keyword.triggerType.rawValue
         let action = keyword.action
         let enteredByID = Int64(keyword.enteredBy.id)
@@ -388,16 +400,19 @@ class KeywordModel {
         let context = DataManager.shared.createContext()
         await context.perform {
             let entity = DataManager.shared.getOne(context: context, type: PersistentKeyword.self, predicate: .byId(.string(keywordID)), createIfNotFound: true)
-            let categoryEntity = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(categoryID)), createIfNotFound: true)
         
-            if let entity, let categoryEntity {
+            if let entity {
                 entity.id = keywordID
                 entity.keyword = theKeyword
+                entity.renameTo = renameTo
                 entity.triggerType = triggerType
                 entity.action = action.rawValue
                 entity.isPending = true
-                entity.category = categoryEntity
                 
+                if let categoryID, let categoryEntity = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(categoryID)), createIfNotFound: true) {
+                    entity.category = categoryEntity
+                }
+                                                
                 entity.enteredByID = enteredByID
                 entity.updatedByID = updatedByID
                 entity.enteredDate = enteredDate

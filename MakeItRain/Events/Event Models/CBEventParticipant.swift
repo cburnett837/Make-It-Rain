@@ -13,12 +13,12 @@ class CBEventParticipant: Codable, Identifiable, Hashable, Equatable {
     var uuid: String?
     var user: CBUser
     var groupAmount: Double? {
-        Double(groupAmountString?.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "") ?? "0.0") ?? 0.0
+        Double(groupAmountString?.replacing("$", with: "").replacing(",", with: "") ?? "0.0") ?? 0.0
     }
     var groupAmountString: String?
     
     var personalAmount: Double? {
-        Double(personalAmountString?.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "") ?? "0.0") ?? 0.0
+        Double(personalAmountString?.replacing("$", with: "").replacing(",", with: "") ?? "0.0") ?? 0.0
     }
     var personalAmountString: String?
     

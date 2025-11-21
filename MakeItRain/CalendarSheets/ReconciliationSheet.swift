@@ -15,12 +15,12 @@
 //    @Environment(CalendarModel.self) private var calModel
 //    @Environment(CategoryModel.self) private var catModel
 //    
-//    @State var date: Date
+//    @State private var date: Date
 //    
 //    @State private var account: CBPaymentMethod?
 //    @State private var amountString: String = ""
 //    var amount: Double {
-//        Double(amountString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
+//        Double(amountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
 //    }
 //        
 //    @FocusState private var focusedField: Int?
@@ -75,7 +75,7 @@
 //        HStack {
 //            Text("From")
 //            Spacer()
-//            //PayMethodSheetButton2(payMethod: $account, whichPaymentMethods: .allExceptUnified)
+//            //PayMethodSheetButtonPhone(payMethod: $account, whichPaymentMethods: .allExceptUnified)
 //        }
 //    }
 //    

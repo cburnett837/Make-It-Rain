@@ -22,6 +22,7 @@ class CBKeyword: Codable, Identifiable {
     var updatedBy: CBUser = AppState.shared.user!
     var enteredDate: Date
     var updatedDate: Date
+    var renameTo: String?
     
     
     /// For deep copies
@@ -58,6 +59,7 @@ class CBKeyword: Codable, Identifiable {
     init(entity: PersistentKeyword) {
         self.id = entity.id!
         self.keyword = entity.keyword ?? ""
+        self.renameTo = entity.renameTo
         self.triggerType = KeywordTriggerType(rawValue: entity.triggerType ?? "") ?? .contains
         
         if let categoryEntity = entity.category {
@@ -96,7 +98,7 @@ class CBKeyword: Codable, Identifiable {
 //    }
 //    
     
-    enum CodingKeys: CodingKey { case id, uuid, keyword, trigger_type, category, category_id, active, user_id, account_id, device_uuid, entered_by, updated_by, entered_date, updated_date }
+    enum CodingKeys: CodingKey { case id, uuid, keyword, trigger_type, category, category_id, active, user_id, account_id, device_uuid, entered_by, updated_by, entered_date, updated_date, rename_to }
     
     
     func encode(to encoder: Encoder) throws {
@@ -106,6 +108,7 @@ class CBKeyword: Codable, Identifiable {
         try container.encode(keyword, forKey: .keyword)
         try container.encode(triggerType.rawValue, forKey: .trigger_type)
         try container.encode(category, forKey: .category)
+        try container.encode(renameTo, forKey: .rename_to)
         //try container.encode(category?.id, forKey: .category_id)
         try container.encode(active ? 1 : 0, forKey: .active)
         try container.encode(AppState.shared.user?.id, forKey: .user_id)
@@ -130,8 +133,10 @@ class CBKeyword: Codable, Identifiable {
         let keywordTriggerType = try container.decode(String.self, forKey: .trigger_type)
         self.triggerType = KeywordTriggerType(rawValue: keywordTriggerType) ?? .contains
         
-        self.category = try container.decode(CBCategory.self, forKey: .category)
+        self.category = try container.decode(CBCategory?.self, forKey: .category)
         //self.categoryID = try container.decode(String.self, forKey: .category_id)
+        
+        self.renameTo = try container.decode(String?.self, forKey: .rename_to)
         
         let isActive = try container.decode(Int?.self, forKey: .active)
         self.active = isActive == 1 ? true : false
@@ -166,6 +171,7 @@ class CBKeyword: Codable, Identifiable {
         if let deepCopy = deepCopy {
             if self.keyword == deepCopy.keyword
             && self.triggerType == deepCopy.triggerType
+            && self.renameTo == deepCopy.renameTo
             && self.category == deepCopy.category {
                 return false
             }
@@ -184,6 +190,7 @@ class CBKeyword: Codable, Identifiable {
             copy.keyword = self.keyword
             copy.triggerType = self.triggerType
             copy.category = self.category
+            copy.renameTo = self.renameTo
             copy.active = self.active
             //copy.action = self.action
             self.deepCopy = copy
@@ -194,6 +201,7 @@ class CBKeyword: Codable, Identifiable {
                 self.keyword = deepCopy.keyword
                 self.triggerType = deepCopy.triggerType
                 self.category = deepCopy.category
+                self.renameTo = deepCopy.renameTo
                 self.active = deepCopy.active
                 //self.action = deepCopy.action
             }
@@ -207,6 +215,7 @@ class CBKeyword: Codable, Identifiable {
         self.keyword = keyword.keyword
         self.triggerType = keyword.triggerType
         self.category = keyword.category
+        self.renameTo = keyword.renameTo
         self.active = keyword.active
         
         self.enteredBy = keyword.enteredBy
@@ -227,6 +236,7 @@ extension CBKeyword: Equatable, Hashable {
         && lhs.keyword == rhs.keyword
         && lhs.triggerType == rhs.triggerType
         && lhs.category == rhs.category
+        && lhs.renameTo == rhs.renameTo
         && lhs.active == rhs.active {
             return true
         }

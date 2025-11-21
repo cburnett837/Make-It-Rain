@@ -15,7 +15,7 @@
 //    @AppStorage("calendarChartMode") var chartMode = CalendarChartModel.verticalBar
 //    @AppStorage("viewMode") var viewMode = CalendarViewMode.scrollable
 //    @Local(\.useWholeNumbers) var useWholeNumbers
-//    @AppStorage("categorySortMode") var categorySortMode: SortMode = .title
+//    @Local(\.categorySortMode) var categorySortMode
 //    
 //    @Environment(CalendarModel.self) private var calModel
 //    @Environment(CategoryModel.self) private var catModel

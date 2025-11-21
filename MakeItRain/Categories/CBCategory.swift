@@ -15,7 +15,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
     var title: String
     //var titleLower: String { title.lowercased() }
     var amount: Double? {
-        Double(amountString?.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "") ?? "0.0") ?? 0.0
+        Double(amountString?.replacing("$", with: "").replacing(",", with: "") ?? "0.0") ?? 0.0
     }
     var amountString: String?
     var color: Color

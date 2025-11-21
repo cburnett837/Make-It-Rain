@@ -20,9 +20,11 @@ struct CalendarMoreMenu: View {
         @Bindable var calProps = calProps
         Menu {
             Section("Analytics") {
-                dashboardSheetButton
-                analysisSheetButton
-                budgetSheetButton
+                ControlGroup {
+                    dashboardSheetButton
+                    analysisSheetButton
+                    budgetSheetButton
+                }
                 transactionListSheetButton
             }
             
@@ -69,7 +71,7 @@ struct CalendarMoreMenu: View {
                 calProps.showInspector = true
             }
         } label: {
-            Label("Dashboard", systemImage: "rectangle.grid.1x3.fill")
+            Label("Dashboard", systemImage: "list.bullet.below.rectangle")
         }
     }
     

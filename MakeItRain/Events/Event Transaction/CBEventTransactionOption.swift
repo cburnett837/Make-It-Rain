@@ -14,7 +14,7 @@ class CBEventTransactionOption: Codable, Identifiable, Hashable, Equatable, CanE
     var transactionID: String
     var title: String
     var amount: Double {
-        Double(amountString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
+        Double(amountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
     }
     var amountString: String
     

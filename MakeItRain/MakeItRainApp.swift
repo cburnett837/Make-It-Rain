@@ -14,14 +14,6 @@ import UIKit
 import AppIntents
 #endif
 
-enum ViewThatTriggeredChange {
-    case calendar, paymentMethodListOrders
-}
-
-
-
-
-
 @main
 struct MakeItRainApp: App {
     #if os(macOS)
@@ -37,8 +29,8 @@ struct MakeItRainApp: App {
     @AppStorage("appScreenWidth") var screenWidth: Double = 0
     @AppStorage("appScreenHeight") var screenHeight: Double = 0
     @AppStorage("useBiometrics") var useBiometrics = false
-    @AppStorage("startInFullScreen") var startInFullScreen = false
-    @AppStorage("userColorScheme") var userColorScheme: UserPreferedColorScheme = .userSystem
+    @Local(\.startInFullScreen) var startInFullScreen
+    @Local(\.userColorScheme) var userColorScheme
     
     @State private var appState = AppState.shared
     @State private var authState = AuthState.shared
@@ -110,15 +102,18 @@ struct MakeItRainApp: App {
         
     var body: some Scene {
         WindowGroup {
-            /// Allow for universal sheets. Such as Payment Method sheet when first downloading the app, universal alerts, etc.
+            /// Allow for universal sheets. Such as payment method sheet when first downloading the app, universal alerts, universal camera, etc.
+            /// Views shown in this layer will be at the top-most part of the UI - Allowing for content on top of both sheets, and the universal calendar sheet.
             RootViewWrapper(showCamera: $showCamera) {
+                /// Allow for a universal calendar view.
                 CalendarSheetLayerWrapper(monthNavigationNamespace: monthNavigationNamespace) {
                     @Bindable var appState = AppState.shared
                     Group {
                         /// `AuthState.shared.isThinking` is always true when app launches from fresh state.
                         /// `AppState.shared.appShouldShowSplashScreen` is set to false in `downloadEverything()` when the current month completes.
-                        /// `AppState.shared.splashTextAnimationIsFinished` is set to false in when the animation on the splash screen finishes.
-                        if AuthState.shared.isThinking || AppState.shared.appShouldShowSplashScreen || !AppState.shared.splashTextAnimationIsFinished/* || AppState.shared.holdSplash */{
+                        /// `AppState.shared.splashTextAnimationIsFinished` is set to false when the animation on the splash screen finishes.
+                        /// *Once the 3 conditions above are met, the view will flip to the `rootView` or the `loginView` (depending on the apps overall state).*
+                        if AuthState.shared.isThinking || appState.appShouldShowSplashScreen || !appState.splashTextAnimationIsFinished {
                             /// Always the first view to be shown.
                             /// Starts the login process.
                             /// Login flow descriptions are written in the `splashScreen` and `loginScreen` views,
@@ -157,36 +152,7 @@ struct MakeItRainApp: App {
                     #endif
                 }
             }
-//            .photoPickerAndCameraSheet(
-//                fileUploadCompletedDelegate: calModel,
-//                parentType: .transaction,
-//                allowMultiSelection: false,
-//                showPhotosPicker: .constant(false),
-//                showCamera: $showCamera
-//            )
-            .onOpenURL(perform: { url in
-                print(url.absoluteString)
-                
-                guard let urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
-                        fatalError("Could not create URLComponents")
-                    }
-                
-                if let queryItems = urlComponents.queryItems {
-                        for item in queryItems {
-                            print("Key: \(item.name), Value: \(item.value ?? "nil")")
-                            
-                            if item.name == "action" {
-                                if item.value == "take_photo" {
-                                    print("should open camera")
-                                    calModel.isUploadingSmartTransactionFile = true
-                                    showCamera = true
-                                }
-                            }
-                        }
-                    }
-                
-                
-            })
+            .onOpenURL { handleOpeningUrl($0) }
             #if os(macOS)
             .toolbar(.visible, for: .windowToolbar)
             #endif
@@ -232,15 +198,6 @@ struct MakeItRainApp: App {
         }
         .auxilaryWindow()
         
-//        Window("Pending Fit Transactions", id: "pendingFitTransactions") {
-//            FitTransactionOverlay(bottomPanelContent: .constant(.fitTransactions), bottomPanelHeight: .constant(0), scrollContentMargins: .constant(0))
-//                .frame(minWidth: 300, minHeight: 200)
-//                .environment(calModel)
-//                .environment(payModel)
-//                .environment(calProps)
-//        }
-//        .auxilaryWindow()
-        
         Window("Pending Plaid Transactions", id: "pendingPlaidTransactions") {
             PlaidTransactionOverlay(showInspector: .constant(true), navPath: .constant(.init()))
                 .frame(minWidth: 300, minHeight: 200)
@@ -284,9 +241,6 @@ struct MakeItRainApp: App {
                 .environment(plaidModel)
                 .environment(calProps)
                 .environment(dataChangeTriggers)
-//            .onDisappear {
-//                calModel.isInMultiSelectMode = false
-//            }
         }
         .auxilaryWindow()
             
@@ -315,7 +269,7 @@ struct MakeItRainApp: App {
                     .environment(dataChangeTriggers)
                     //.environment(mapModel)
                     .onAppear {
-                        if let window = NSApp.windows.first(where: {$0.title.contains("MonthlyWindowPlaceHolder")}) {
+                        if let window = NSApp.windows.first(where: { $0.title.contains("MonthlyWindowPlaceHolder") }) {
                             window.title = AppState.shared.monthlySheetWindowTitle
                         }
                     }
@@ -347,6 +301,7 @@ struct MakeItRainApp: App {
     }        
     
     
+    @ViewBuilder
     private var splashScreen: some View {
         /// -----Login flow for splash screen-----
         /// The splash screen is the first view to show.
@@ -354,10 +309,10 @@ struct MakeItRainApp: App {
         
         /// If `AuthState.attemptLogin()` is successful, it will ...
             /// 1. Return true to this task, which will  run ``FuncModel.downloadInitial()``.
-            /// As the download function runs, it will eventually hide the splash screen and show the `RootView` when the first month completes its download.
-            /// The task in `RootView` will trigger the calendar full screen cover to show.
+            /// As the download function runs, it will eventually hide the splash screen and show the ``RootView`` when the first month completes its download.
+            /// The task in ``RootView`` will trigger the calendar full screen cover to show.
         
-        /// If `AuthState.attemptLogin()`fails, it will set ...
+        /// If `AuthState.attemptLogin()` fails, it will ...
             /// 1. Set `AuthState.isLoggedIn = false`
             /// 2. Set `AuthState.isThinking = false`.
             /// 3. Set `AppState.appShouldShowSplashScreen = false`.
@@ -365,7 +320,7 @@ struct MakeItRainApp: App {
             /// The combo of variable settings above will cause the app to be redirected to the login screen.
                 
         @Bindable var navManager = NavigationManager.shared
-        return SplashScreen()
+        SplashScreen()
             .transition(.opacity)
             .task {
                 print("FLIPPED TO SPLASH SCREEN")
@@ -376,8 +331,7 @@ struct MakeItRainApp: App {
                 if didLogin {
                     funcModel.downloadInitial()
                 }
-                
-                
+                            
                 //await AuthState.shared.loginViaKeychain(funcModel: funcModel)
             }
     }
@@ -392,7 +346,7 @@ struct MakeItRainApp: App {
             /// 2. Set `AuthState.isThinking = false`.
             ///
             /// This will then call `AuthState.loginViaKeychain2` ----> This is a bug 6/21/25.
-            /// This happens because when the variables above flip, the show the splash screen, which runs the login via keychain.
+            /// This happens because when the variables above flip, we show the splash screen, which runs the login via keychain.
             /// At this point, if no payment methods exist, it will show the add sheet.
             ///
             /// 3. Set `AppState.appShouldShowSplashScreen = true`.  --- This will trigger the splash screen to show, which will run ``FuncModel.downloadInitial()``.
@@ -473,10 +427,32 @@ struct MakeItRainApp: App {
     
     private func setDefaultColorScheme(_ color: Color) {
         /// Set a default color scheme
-        
         if UserDefaults.standard.data(forKey: "colorTheme") == nil {
             let data = try? JSONEncoder().encode(color.description)
             UserDefaults.standard.set(data, forKey: "colorTheme")
+        }
+    }
+    
+    
+    private func handleOpeningUrl(_ url: URL) {
+        print(url.absoluteString)
+        
+        guard let urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            fatalError("Could not create URLComponents")
+        }
+        
+        if let queryItems = urlComponents.queryItems {
+            for item in queryItems {
+                print("Key: \(item.name), Value: \(item.value ?? "nil")")
+                
+                if item.name == "action" {
+                    if item.value == "take_photo" {
+                        print("should open camera")
+                        calModel.isUploadingSmartTransactionFile = true
+                        showCamera = true
+                    }
+                }
+            }
         }
     }
 }

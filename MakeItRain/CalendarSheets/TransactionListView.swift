@@ -11,8 +11,8 @@ struct TransactionListView: View {
     #if os(macOS)
     @Environment(\.dismiss) var dismiss
     #endif
-    @AppStorage("transactionSortMode") var transactionSortMode: TransactionSortMode = .title
-    @AppStorage("categorySortMode") var categorySortMode: SortMode = .title
+    @Local(\.transactionSortMode) var transactionSortMode
+    @Local(\.categorySortMode) var categorySortMode
     @Local(\.useWholeNumbers) var useWholeNumbers
     //@Local(\.colorTheme) var colorTheme
     @Environment(\.colorScheme) private var colorScheme
@@ -82,7 +82,7 @@ struct TransactionListView: View {
             prepareData()
         }
         .sheet(isPresented: $showTransferSheet) {
-            TransferSheet(date: transDay?.date ?? Date())
+            TransferSheet(defaultDate: transDay?.date ?? Date())
         }
         .photoPickerAndCameraSheet(
             fileUploadCompletedDelegate: calModel,

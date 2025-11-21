@@ -9,7 +9,7 @@ import SwiftUI
 import PDFKit
 
 struct DebugView: View {
-    @AppStorage("debugPrint") var debugPrint = false
+    @Local(\.debugPrint) var debugPrint
 
     @Environment(CalendarModel.self) var calModel
     @Environment(FuncModel.self) var funcModel

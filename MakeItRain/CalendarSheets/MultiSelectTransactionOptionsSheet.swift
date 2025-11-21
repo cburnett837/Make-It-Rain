@@ -158,6 +158,11 @@ struct MultiSelectTransactionOptionsSheet: View {
             withAnimation {
                 for trans in calModel.multiSelectTransactions {
                     trans.factorInCalculations = true
+                    
+                    if trans.relatedTransactionID != nil && trans.relatedTransactionType?.enumID == .transaction {
+                        let trans2 = calModel.getTransaction(by: trans.relatedTransactionID!, from: .normalList)
+                        trans2.factorInCalculations = true
+                    }
                 }
             }
             shouldSave = true
@@ -175,6 +180,11 @@ struct MultiSelectTransactionOptionsSheet: View {
             withAnimation {
                 for trans in calModel.multiSelectTransactions {
                     trans.factorInCalculations = false
+                    
+                    if trans.relatedTransactionID != nil && trans.relatedTransactionType?.enumID == .transaction {
+                        let trans2 = calModel.getTransaction(by: trans.relatedTransactionID!, from: .normalList)
+                        trans2.factorInCalculations = false
+                    }
                 }
             }
             shouldSave = true
@@ -198,6 +208,12 @@ struct MultiSelectTransactionOptionsSheet: View {
             withAnimation {
                 for trans in calModel.multiSelectTransactions {
                     trans.category = selectedCategory
+                    
+                    if trans.relatedTransactionID != nil && trans.relatedTransactionType?.enumID == .transaction {
+                        let trans2 = calModel.getTransaction(by: trans.relatedTransactionID!, from: .normalList)
+                        trans2.category = selectedCategory
+                    }
+                    
                 }
                 selectedCategory = nil
             }
@@ -213,7 +229,21 @@ struct MultiSelectTransactionOptionsSheet: View {
                 for trans in calModel.multiSelectTransactions {
                     trans.action = .delete
                     trans.intendedServerAction = .delete
-                    trans.active = false
+                    /// Pre set the status so the trash icon will show.
+                    /// However, the delete operation will not perform until the user closes the sheet,
+                    trans.status = .deleteSucceess
+                    
+                    //trans.active = false
+                    //calModel.performLineItemAnimations(for: trans)
+                    if trans.relatedTransactionID != nil && trans.relatedTransactionType?.enumID == .transaction {
+                        let trans2 = calModel.getTransaction(by: trans.relatedTransactionID!, from: .normalList)
+                        //trans2.deepCopy(.create)
+                        trans2.action = .delete
+                        trans2.intendedServerAction = .delete
+                        /// Pre set the status so the trash icon will show.
+                        /// However, the delete operation will not perform until the user closes the sheet,
+                        trans2.status = .deleteSucceess
+                    }
                 }
                 selectedCategory = nil
             }
@@ -236,9 +266,22 @@ struct MultiSelectTransactionOptionsSheet: View {
                 calModel.isInMultiSelectMode = false
                 calModel.sCategoriesForAnalysis.removeAll()
                 
+                var transToEdit = calModel.multiSelectTransactions
+                
                 if shouldSave {
+                    for trans in transToEdit {
+                        if trans.relatedTransactionID != nil && trans.relatedTransactionType?.enumID == .transaction {
+                            let trans2 = calModel.getTransaction(by: trans.relatedTransactionID!, from: .normalList)
+                            transToEdit.append(trans2)
+                        }
+                    }
+                    
                     Task {
-                        await calModel.editMultiple(trans: calModel.multiSelectTransactions)
+                        
+                        
+                        print("editing multiple transactions \(transToEdit)")
+                        
+                        await calModel.editMultiple(trans: transToEdit)
                         calModel.multiSelectTransactions.removeAll()
                     }
                 } else {

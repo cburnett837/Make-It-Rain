@@ -113,7 +113,6 @@ struct CategoryView: View {
                     switch selectedTab {
                     case .details: categoryPagePhone
                     case .insights: chartPage
-                    case .edit: EmptyView()
                     }
                 }
                 .background(Color(.systemBackground))

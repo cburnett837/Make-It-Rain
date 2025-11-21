@@ -190,7 +190,7 @@ struct FormatCurrencyLiveAndOnUnFocus: ViewModifier {
                         amountStringBinding = ""
                     } else {
                         /// When I click submit, the amount and amountString aren't updated with the new value that the Binding contains.
-                        let localAmount = Double(amountStringBinding.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
+                        let localAmount = Double(amountStringBinding.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
                         let useWholeNumbers = LocalStorage.shared.useWholeNumbers
                         amountStringBinding = localAmount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
                     }

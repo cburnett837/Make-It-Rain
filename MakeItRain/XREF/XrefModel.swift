@@ -71,6 +71,7 @@ enum XrefEnum: String {
     case repeatingTransaction
     case paymentMethod
     case plaidBank
+    case userPhoto
 }
 
 struct XrefItem: Identifiable, Equatable, Hashable {
@@ -173,6 +174,7 @@ struct XrefModel {
         XrefItem(id: 42, refType: "logo_parent_type", description: "Payment Method", enumID: .paymentMethod),
         XrefItem(id: 43, refType: "logo_parent_type", description: "Repeating Transaction", enumID: .repeatingTransaction),
         XrefItem(id: 44, refType: "logo_parent_type", description: "Plaid Bank", enumID: .plaidBank),
+        XrefItem(id: 47, refType: "logo_parent_type", description: "User Photo", enumID: .userPhoto),
     ]
     
     
@@ -219,11 +221,19 @@ struct XrefModel {
     
     static func getItem(from refType: RefType, byID id: Int) -> XrefItem {
         let items = self.getItems(forRefType: refType)
-        return items.filter { $0.id == id }.first!
+        if let item = items.filter({ $0.id == id }).first {
+            return item
+        } else {
+            fatalError("Could not find item for \(id) in list \(refType)", file: #file, line: #line)
+        }
     }
     
     static func getItem(from refType: RefType, byEnumID enumID: XrefEnum) -> XrefItem {
         let items = self.getItems(forRefType: refType)
-        return items.filter { $0.enumID == enumID }.first!
+        if let item = items.filter({ $0.enumID == enumID }).first {
+            return item
+        } else {
+            fatalError("Could not find item for \(enumID.rawValue) in list \(refType)", file: #file, line: #line)
+        }
     }
 }

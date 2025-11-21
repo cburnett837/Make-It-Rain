@@ -677,6 +677,7 @@ class FuncModel {
             }
             
             mainObjects.forEach { meth in
+                print("Meth title: \(meth.title) - editDefault: \(meth.isEditingDefault)")
                 if setDefaultPayMethod && meth.isViewingDefault {
                     calModel.sPayMethod = CBPaymentMethod(entity: meth)
                 }
@@ -694,7 +695,8 @@ class FuncModel {
                 type: .all,
                 calModel: calModel,
                 plaidModel: plaidModel,
-                searchText: .constant("")
+                searchText: .constant(""),
+                includeHidden: true
             )
                                                                     
 //            let sortedMeths = mainObjects
@@ -734,8 +736,7 @@ class FuncModel {
                 mainContext.object(with: $0) as? PersistentCategory
             }
             
-            mainObjects
-                .forEach { cat in
+            mainObjects.forEach { cat in
                 if let id = cat.id, !catModel.categories.contains(where: { $0.id == id }) {
                     catModel.categories.append(CBCategory(entity: cat))
                 }
@@ -936,12 +937,23 @@ class FuncModel {
                         if let eventParticipants = model.eventParticipants { await self.handleLongPollEventParticipants(eventParticipants) }
                         
                         if let invitations = model.invitations { await self.handleLongPollInvitations(invitations) }
-                        if let openRecords = model.openRecords { await self.handleLongPollOpenRecords(openRecords) }
+                        
+                        if let openRecords = model.openRecords, !openRecords.isEmpty {
+                            await self.handleLongPollOpenRecords(openRecords)
+                        }
                         
                         if let plaidBanks = model.plaidBanks { await self.handleLongPollPlaidBanks(plaidBanks) }
                         if let plaidAccounts = model.plaidAccounts { await self.handleLongPollPlaidAccounts(plaidAccounts) }
-                        if let plaidTransactionsWithCount = model.plaidTransactionsWithCount { self.handleLongPollPlaidTransactions(plaidTransactionsWithCount) }
-                        if let plaidBalances = model.plaidBalances { self.handleLongPollPlaidBalances(plaidBalances) }
+                        
+                        if let plaidTransactionsWithCount = model.plaidTransactionsWithCount {
+                            if let trans = plaidTransactionsWithCount.trans, !trans.isEmpty {
+                                self.handleLongPollPlaidTransactions(plaidTransactionsWithCount)
+                            }
+                        }
+                        
+                        if let plaidBalances = model.plaidBalances, !plaidBalances.isEmpty {
+                            self.handleLongPollPlaidBalances(plaidBalances)
+                        }
                         
                         if let logos = model.logos { self.handleLongPollLogos(logos) }
                     }
@@ -1637,7 +1649,7 @@ class FuncModel {
         for bank in banks {
             if plaidModel.doesExist(bank) {
                 if !bank.active {
-                    await plaidModel.delete(bank, andSubmit: false)
+                    plaidModel.delete(bank, andSubmit: false)
                     continue
                 } else {
                     if let index = plaidModel.getIndex(for: bank) {
@@ -1745,26 +1757,17 @@ class FuncModel {
     // MARK: - Misc
     @MainActor func prepareStartingAmounts(for month: CBMonth) {
         print("-- \(#function)")
-        for payMethod in payModel.paymentMethods.filter({ !$0.isHidden || !$0.isPrivate }) {
-            //print("preparing starting amounts for \(payMethod.title) - \(month.actualNum) - \(month.year)")
-            //calModel.prepareStartingAmount(for: payMethod)
-            
+        for payMethod in payModel.paymentMethods.filter({ $0.isPermittedAndViewable }) {
             /// Create a starting amount if it doesn't exist in the current month.
             if !month.startingAmounts.contains(where: { $0.payMethod.id == payMethod.id }) {
-                //print("\(payMethod.title) does not exist - creating")
                 let starting = CBStartingAmount()
                 starting.payMethod = payMethod
                 starting.action = .add
-                //starting.month = calModel.sMonth.num
-                //starting.year = calModel.sYear
-                
                 starting.month = month.actualNum
                 starting.year = month.year
                 
                 starting.amountString = ""
                 month.startingAmounts.append(starting)
-            } else {
-                //print("\(payMethod.title) does exist - not creating")
             }
                                                 
             if payMethod.isUnified {
@@ -1980,7 +1983,7 @@ class FuncModel {
             #if os(iOS)
             if let selectedMonth = navManager.selectedMonth {
                 /// set the calendar model to use the current month (ignore starting amounts and calculations)
-                await calModel.setSelectedMonthFromNavigation(navID: selectedMonth, prepareStartAmount: false)
+                await calModel.setSelectedMonthFromNavigation(navID: selectedMonth, calculateStartingAndEod: false)
                 /// download everything, and populate the days in the respective months with transactions.
                 await downloadEverything(setDefaultPayMethod: true, createNewStructs: true, refreshTechnique: .viaInitial)
             } else {
@@ -1989,7 +1992,7 @@ class FuncModel {
             #else
             if let selectedMonth = navManager.selection {
                 /// set the calendar model to use the current month (ignore starting amounts and calculations)
-                await calModel.setSelectedMonthFromNavigation(navID: selectedMonth, prepareStartAmount: false)
+                await calModel.setSelectedMonthFromNavigation(navID: selectedMonth, calculateStartingAndEod: false)
                 /// download everything, and populate the days in the respective months with transactions.
                 await downloadEverything(setDefaultPayMethod: true, createNewStructs: true, refreshTechnique: .viaInitial)
             }
@@ -2022,8 +2025,6 @@ class FuncModel {
         
         
     }
-    
-    
     
     
     // MARK: - Logout

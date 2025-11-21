@@ -9,9 +9,23 @@ import Foundation
 import UniformTypeIdentifiers
 import SwiftUI
 
+enum ObjectStatus {
+    case editing, inFlight, saveSuccess, saveFail, dummy, deleteSucceess
+}
+
 @Observable
 class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, CanEditTitleWithLocation, CanEditAmount {
-    var id: String
+    
+#warning("serverID Change")
+    /// This changed affected
+    /// ``CBTransaction``
+    /// ``CalendarModel``
+    /// ``CBDay``
+    var id: String {
+        uuid == nil ? serverID : uuid!
+    }
+    
+    var serverID: String
     var uuid: String?
     var fitID: String?
     var plaidID: String?
@@ -19,7 +33,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     var relatedTransactionID: String?
     var title: String
     var amount: Double {
-        Double(amountString.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "")) ?? 0.0
+        Double(amountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
     }
     
     //@Validate(.regularExpression(.currency, "Amount contains invalid characters."))
@@ -61,6 +75,9 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     var actionBeforeSave: TransactionAction = .add
     var tempAction: TransactionAction = .add
     var factorInCalculations: Bool
+    
+    var status: ObjectStatus?
+    var isInFlight = false
     
     var enteredBy: CBUser = AppState.shared.user ?? CBUser()
     var updatedBy: CBUser = AppState.shared.user ?? CBUser()
@@ -133,7 +150,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     
     init() {
         let uuid = UUID().uuidString
-        self.id = uuid
+        self.serverID = uuid
         self.uuid = uuid
         self.title = ""
         self.amountString = ""
@@ -165,7 +182,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     
     
     init(uuid: String) {
-        self.id = uuid
+        self.serverID = uuid
         self.uuid = uuid
         self.title = ""
         self.amountString = ""
@@ -198,7 +215,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     
     init(entity: TempTransaction, payMethod: CBPaymentMethod, category: CBCategory?, logs: Array<CBLog>) {
         self.isFromCoreData = true
-        self.id = entity.id ?? ""
+        self.serverID = entity.id ?? ""
         self.title = entity.title ?? ""
         
         self.amountString = entity.amount.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
@@ -250,7 +267,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     
     init(repTrans: CBRepeatingTransaction, date: Date, payMethod: CBPaymentMethod?, amountString: String) {
         let uuid = UUID().uuidString
-        self.id = uuid
+        self.serverID = uuid
         self.uuid = uuid
         self.repID = repTrans.id
         self.title = repTrans.title
@@ -281,7 +298,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     
     
     init(eventTrans: CBEventTransaction, relatedID: String) {
-        self.id = relatedID
+        self.serverID = relatedID
         self.uuid = relatedID
         self.relatedTransactionID = eventTrans.id
         self.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byID: 4)
@@ -314,7 +331,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     
     init(fitTrans: CBFitTransaction) {
         let uuid = UUID().uuidString
-        self.id = uuid
+        self.serverID = uuid
         self.uuid = uuid
         self.fitID = String(fitTrans.fitID)
         self.title = fitTrans.title
@@ -347,7 +364,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     
     init(plaidTrans: CBPlaidTransaction) {
         let uuid = UUID().uuidString
-        self.id = uuid
+        self.serverID = uuid
         self.uuid = uuid
         self.plaidID = String(plaidTrans.plaidID)
         self.title = plaidTrans.title
@@ -383,7 +400,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(id, forKey: .id)
+        try container.encode(serverID, forKey: .id)
         try container.encode(uuid, forKey: .uuid)
         try container.encode(relatedTransactionID, forKey: .related_transaction_id)
         try container.encode(title, forKey: .title)
@@ -434,12 +451,22 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         do {
-            id = try String(container.decode(Int.self, forKey: .id))
+            self.serverID = try String(container.decode(Int.self, forKey: .id))
         } catch {
-            id = try container.decode(String.self, forKey: .id)
+            self.serverID = try container.decode(String.self, forKey: .id)
         }
         
-        title = try container.decode(String.self, forKey: .title)
+        do {
+            self.uuid = try String(container.decode(String.self, forKey: .uuid))
+        } catch {
+            do {
+                self.uuid = try String(container.decode(Int.self, forKey: .id))
+            } catch {
+                self.uuid = try container.decode(String.self, forKey: .id)
+            }
+        }
+                        
+        self.title = try container.decode(String.self, forKey: .title)
         
         let amount = try container.decode(Double.self, forKey: .amount)
         self.amountString = amount.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
@@ -873,7 +900,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         switch mode {
         case .create:
             let copy = CBTransaction(uuid: UUID().uuidString)
-            copy.id = self.id
+            copy.serverID = self.serverID
             copy.uuid = self.uuid
             copy.title = self.title
             copy.amountString = self.amountString
@@ -903,7 +930,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
             
         case .restore:
             if let deepCopy = self.deepCopy {
-                self.id = deepCopy.id
+                self.serverID = deepCopy.serverID
                 self.uuid = deepCopy.uuid
                 self.title = deepCopy.title
                 self.amountString = deepCopy.amountString
@@ -931,7 +958,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
             }
             
         case .clear:
-            deepCopy?.uuid = nil
+            //deepCopy?.uuid = nil
             deepCopy?.title = ""
             deepCopy?.amountString = ""
             deepCopy?.date = nil
@@ -955,7 +982,8 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     }
     
     func setFromAnotherInstance(transaction: CBTransaction) {
-        self.id = transaction.id
+        self.serverID = transaction.serverID
+        self.uuid = transaction.uuid
         self.title = transaction.title
         self.amountString = transaction.amount.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
         self.payMethod = transaction.payMethod
