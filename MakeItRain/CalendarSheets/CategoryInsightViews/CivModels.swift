@@ -24,6 +24,12 @@ class CivViewModel {
     var progress: Double = 0
     var statusMessage: String = ""
     
+    
+    var selectedDataPoint: CivDataPoint? = nil
+    var selectedMonthGroup: Array<CivMonthlyData> = []
+    var selectedMonth: CivMonthlyData?
+    
+    
     var showLoadingSpinner = false
     var loadingSpinnerTimer: Timer?
     @objc func showLoadingSpinnerViaTimer() {

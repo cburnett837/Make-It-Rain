@@ -54,9 +54,9 @@ struct CategoryInsightsView: View {
     
     //private enum MonthlyData { case income, cashOut, totalSpending, spendingMinusPayments }
     
-    @State private var selectedDataPoint: CivDataPoint? = nil
-    @State private var selectedMonthGroup: Array<CivMonthlyData> = []
-    @State private var selectedMonth: CivMonthlyData?
+    //@State private var selectedDataPoint: CivDataPoint? = nil
+    //@State private var selectedMonthGroup: Array<CivMonthlyData> = []
+    //@State private var selectedMonth: CivMonthlyData?
 
     
     let columnGrid = Array(repeating: GridItem(.flexible(), spacing: 0), count: 4)
@@ -140,10 +140,10 @@ struct CategoryInsightsView: View {
         .navigationDestination(for: CivNavDestination.self) { dest in
             switch dest {
             case .monthList:
-                CivMonthMiddleMan(monthlyData: selectedMonthGroup, selectedMonth: $selectedMonth, model: model, navPath: $navPath)
+                CivMonthMiddleMan(monthlyData: model.selectedMonthGroup, selectedMonth: $model.selectedMonth, model: model, navPath: $navPath)
                 
             case .transactionList:
-                if let selectedMonth {
+                if let selectedMonth = model.selectedMonth {
                     CivTransactionList(data: selectedMonth, model: model)
                 } else {
                     ContentUnavailableView("Uh Oh!", systemImage: "exclamationmark.triangle.text.page", description: Text("The page you are looking for could not be found."))
@@ -207,9 +207,9 @@ struct CategoryInsightsView: View {
         /// Clear the seleted data when coming back from the list.
         .onChange(of: navPath) {
             if $1.isEmpty {
-                selectedDataPoint = nil
-                selectedMonth = nil
-                selectedMonthGroup.removeAll()
+                model.selectedDataPoint = nil
+                model.selectedMonth = nil
+                model.selectedMonthGroup.removeAll()
             }
             
 //            if $1.count == 0 {
@@ -531,7 +531,7 @@ struct CategoryInsightsView: View {
         let months = model.monthsForAnalysis.sorted(by: { $0.num < $1.num })
         Section("Actual Spending Breakdown") {
             Chart(months) { month in
-                let date = Calendar.current.date(from: DateComponents(year: month.year, month: month.actualNum))!
+                let date = Calendar.current.date(from: DateComponents(year: month.year, month: month.actualNum, day: 1))!
                 let trans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
                 let cost = calModel.getSpendMinusIncome(from: trans)
                 
@@ -544,12 +544,13 @@ struct CategoryInsightsView: View {
                 .symbol(by: .value("Month", "month"))
             }
             .chartLegend(.hidden)
+            .chartXAxis { chartXAxis }
         }
         
         
         Section("Transaction Count") {
             Chart(months) { month in
-                let date = Calendar.current.date(from: DateComponents(year: month.year, month: month.actualNum))!
+                let date = Calendar.current.date(from: DateComponents(year: month.year, month: month.actualNum, day: 1))!
                 let trans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
                 
                 LineMark(
@@ -561,38 +562,14 @@ struct CategoryInsightsView: View {
                 .symbol(by: .value("Month", "month"))
             }
             .chartLegend(.hidden)
+            .chartXAxis { chartXAxis }
         }
         
         
         Section("Actual Spending Breakdown By Category") {
-            
-//            Chart(months) { month in
-//                let date = Calendar.current.date(from: DateComponents(year: month.year, month: month.actualNum))!
-//                
-//                ForEach(calModel.sCategoriesForAnalysis) { cat in
-//                    let trans = model.transactions.filter {
-//                        $0.dateComponents?.month == month.actualNum
-//                        && $0.dateComponents?.year == month.year
-//                        && $0.category?.id == cat.id
-//                    }
-//                    let cost = calModel.getSpendMinusIncome(from: trans)
-//                    
-//                    LineMark(
-//                        x: .value("Month", date),
-//                        y: .value("Amount", abs(cost))
-//                    )
-//                    .interpolationMethod(.cardinal)
-//                    .foregroundStyle(cat.color)
-//                    //.symbol(by: .value("Month", "month"))
-//                }
-//            }
-//            .chartLegend(.hidden)
-            
-            
-            
             Chart(calModel.sCategoriesForAnalysis) { cat in
                 ForEach(months) { month in
-                    let date = Calendar.current.date(from: DateComponents(year: month.year, month: month.actualNum))!
+                    let date = Calendar.current.date(from: DateComponents(year: month.year, month: month.actualNum, day: 1))!
                     let trans = model.transactions.filter {
                         $0.dateComponents?.month == month.actualNum
                         && $0.dateComponents?.year == month.year
@@ -607,10 +584,29 @@ struct CategoryInsightsView: View {
                     )
                     .interpolationMethod(.cardinal)
                     .foregroundStyle(cat.color)
-                    //.symbol(by: .value("Month", "month"))
                 }
             }
             .chartLegend(.hidden)
+            .chartXAxis { chartXAxis }
+        }
+    }
+    
+    
+    @AxisContentBuilder
+    var chartXAxis: some AxisContent {
+        AxisMarks(values: .stride(by: .month, count: 1)) { value in
+            AxisGridLine()
+            AxisTick()
+            AxisValueLabel {
+                if let date = value.as(Date.self) {
+                    if model.monthsForAnalysis.count > 8 {
+                        Text(date, format: .dateTime.month(.narrow))
+                    } else {
+                        Text(date, format: .dateTime.month(.abbreviated))
+                    }
+                    
+                }
+            }
         }
     }
     
@@ -895,7 +891,7 @@ struct CategoryInsightsView: View {
     
     @MainActor
     func prepareData() {
-        //selectedMonthGroup.removeAll()
+        //model.selectedMonthGroup.removeAll()
         model.progress = 0
         withAnimation {
             model.showLoadingSpinner = true
@@ -933,9 +929,9 @@ struct CategoryInsightsView: View {
             
             //#error("FIX THIS TO HANDLE ALL DATAPOINTS. ALSO MIGHT NOT NEED STATE PROPERTY")
             
-            selectedMonthGroup.removeAll()
+            model.selectedMonthGroup.removeAll()
             
-            switch selectedDataPoint {
+            switch model.selectedDataPoint {
             case .moneyIn:
                 setMoneyIn(shouldNavigate: false)
                 
@@ -946,7 +942,7 @@ struct CategoryInsightsView: View {
                 setTotalSpending(shouldNavigate: false)
                 
             case .all:
-                if let selectedMonth {
+                if let selectedMonth = model.selectedMonth {
                     setAll(for: selectedMonth.month, shouldNavigate: false)
                 }
                 
@@ -962,7 +958,7 @@ struct CategoryInsightsView: View {
     
     /// This is called by both the user and the long poll. User action will cause navigation. Long poll will not.
     func setMoneyIn(shouldNavigate: Bool) {
-        selectedDataPoint = .moneyIn
+        model.selectedDataPoint = .moneyIn
         model.monthsForAnalysis.forEach { month in
             let monthlyTrans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
             let transactions = calModel.getIncomeTransactions(from: monthlyTrans)
@@ -984,7 +980,7 @@ struct CategoryInsightsView: View {
     
     /// This is called by both the user and the long poll. User action will cause navigation. Long poll will not.
     func setCashOut(shouldNavigate: Bool) {
-        selectedDataPoint = .cashOut
+        model.selectedDataPoint = .cashOut
         model.monthsForAnalysis.forEach { month in
             let monthlyTrans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
             let trans = calModel.getDebitSpendTransactions(from: monthlyTrans)
@@ -1006,7 +1002,7 @@ struct CategoryInsightsView: View {
     
     /// This is called by both the user and the long poll. User action will cause navigation. Long poll will not.
     func setTotalSpending(shouldNavigate: Bool) {
-        selectedDataPoint = .totalSpending
+        model.selectedDataPoint = .totalSpending
         model.monthsForAnalysis.forEach { month in
             let monthlyTrans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
             let trans = calModel.getSpendTransactions(from: monthlyTrans)
@@ -1027,7 +1023,7 @@ struct CategoryInsightsView: View {
     
     /// This is called by both the user and the long poll. User action will cause navigation. Long poll will not.
     func setActualSpending(shouldNavigate: Bool) {
-        selectedDataPoint = .actualSpending
+        model.selectedDataPoint = .actualSpending
         model.monthsForAnalysis.forEach { month in
             let monthlyTrans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
             let trans = calModel.getSpendTransactions(from: monthlyTrans)
@@ -1049,7 +1045,7 @@ struct CategoryInsightsView: View {
     
     /// This is called by both the user and the long poll. User action will cause navigation. Long poll will not.
     func setAll(for month: CBMonth, shouldNavigate: Bool) {
-        selectedDataPoint = .all
+        model.selectedDataPoint = .all
         let monthlyTrans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
         let moneyIn = calModel.getIncome(from: monthlyTrans)
         let cashOut = calModel.getDebitSpend(from: monthlyTrans)
@@ -1079,14 +1075,14 @@ struct CategoryInsightsView: View {
     fileprivate func process(data: CivMonthlyData, forceToTransactionList: Bool = false) {
         var target: CivMonthlyData?
         if model.monthsForAnalysis.count == 1 || forceToTransactionList {
-            target = selectedMonth
+            target = model.selectedMonth
         } else {
-            target = selectedMonthGroup.filter({ $0.month.num == data.month.num }).first
+            target = model.selectedMonthGroup.filter({ $0.month.num == data.month.num }).first
         }
         
         
-//        if !selectedMonthGroup.map({ $0.month.num }).contains(data.month.num) {
-//            selectedMonthGroup.removeAll(where: { $0.month.num == data.month.num })
+//        if !model.selectedMonthGroup.map({ $0.month.num }).contains(data.month.num) {
+//            model.selectedMonthGroup.removeAll(where: { $0.month.num == data.month.num })
 //            return
 //        }
         
@@ -1118,9 +1114,9 @@ struct CategoryInsightsView: View {
             }
         } else {
             if model.monthsForAnalysis.count == 1 || forceToTransactionList {
-                selectedMonth = data
+                model.selectedMonth = data
             } else {
-                selectedMonthGroup.append(data)
+                model.selectedMonthGroup.append(data)
             }
         }
     }
