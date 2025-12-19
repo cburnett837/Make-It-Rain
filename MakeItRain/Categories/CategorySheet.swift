@@ -47,7 +47,7 @@ struct CategorySheet: View {
     var filteredCategories: Array<CBCategory> {
         catModel.categories
             .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
-            .filter { !$0.isHidden }
+            .filter { !$0.isHidden && $0.appSuiteKey == nil }
             .filter { !$0.isNil }
             .sorted(by: Helpers.categorySorter())
     }
@@ -55,20 +55,43 @@ struct CategorySheet: View {
     var filteredHiddenCategories: Array<CBCategory> {
         catModel.categories
             .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
-            .filter { $0.isHidden }
+            .filter { $0.isHidden && $0.appSuiteKey == nil }
             .filter { !$0.isNil }
             .sorted(by: Helpers.categorySorter())
     }
     
+    var filteredSpecialCategories: Array<CBCategory> {
+        catModel.categories
+            .filter { !$0.isNil }
+            .filter { !$0.isHidden && $0.appSuiteKey != nil }
+            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+            .sorted(by: Helpers.categorySorter())
+    }
+    
+    var showMyCategories: Bool {
+        (!searchText.isEmpty && !filteredCategories.isEmpty) || searchText.isEmpty
+    }
+    
+    var showHiddenCategories: Bool {
+        (!searchText.isEmpty && !filteredHiddenCategories.isEmpty) || searchText.isEmpty
+    }
+    
+    var showSpecialCategories: Bool {
+        (!searchText.isEmpty && !filteredSpecialCategories.isEmpty) || searchText.isEmpty
+    }
+    
     var body: some View {        
         NavigationStack {
-            StandardContainerWithToolbar(.list) {
-                if filteredCategories.isEmpty {
+            Group {
+                if filteredCategories.isEmpty && filteredHiddenCategories.isEmpty && filteredSpecialCategories.isEmpty {
                     ContentUnavailableView("No categories found", systemImage: "exclamationmark.magnifyingglass")
                 } else {
-                    yourCategoriesSection
-                    hiddenCategoriesSections
-                    noneSection
+                    StandardContainerWithToolbar(.list) {
+                        if showMyCategories { yourCategoriesSection }
+                        if showHiddenCategories { hiddenCategoriesSections }
+                        if showSpecialCategories { specialCategoriesSections }
+                        if searchText.isEmpty { noneSection }
+                    }
                 }
             }
             //.scrollEdgeEffectStyle(.hard, for: .all)
@@ -90,7 +113,7 @@ struct CategorySheet: View {
         .sheet(item: $editCategory, onDismiss: {
             categoryEditID = nil
         }, content: { cat in
-            CategoryView(category: cat, editID: $categoryEditID)
+            CategoryEditView(category: cat, editID: $categoryEditID)
             //#if os(iOS)
             //.presentationDetents([.medium, .large])
             //#endif
@@ -167,6 +190,8 @@ struct CategorySheet: View {
         }
     }
     
+    
+    
     var hiddenSectionHeader: some View {
         HStack {
             HStack {
@@ -183,6 +208,24 @@ struct CategorySheet: View {
         .onAppear { isHiddenSectionExpanded = storedIsHiddenSectionExpanded }
         .onChange(of: isHiddenSectionExpanded) { storedIsHiddenSectionExpanded = $1 }
     }
+    
+    
+    @ViewBuilder
+    var specialCategoriesSections: some View {
+        Section {
+            ForEach(filteredSpecialCategories) { cat in
+                StandardCategoryLabel(
+                    cat: cat,
+                    labelWidth: labelWidth,
+                    showCheckmarkCondition: category?.id == cat.id
+                )
+                .onTapGesture { doIt(cat) }
+            }
+        } header: {
+            Text("Special Categories")
+        }
+    }
+    
   
     var closeButton: some View {
         Button {

@@ -16,7 +16,7 @@ struct CalendarNavGridPhone: View {
     @Environment(CategoryModel.self) var catModel
     @Environment(KeywordModel.self) var keyModel
     @Environment(RepeatingTransactionModel.self) var repModel
-    @Environment(EventModel.self) var eventModel
+    
     
     let monthNavigationNamespace: Namespace.ID
     
@@ -44,36 +44,24 @@ struct CalendarNavGridPhone: View {
                                 
                             }
                             GridRow(alignment: .top) {
-                                MonthNavigationLink(enumID: .january, monthNavigationNamespace: monthNavigationNamespace)
-                                    .id(1)
-                                MonthNavigationLink(enumID: .february, monthNavigationNamespace: monthNavigationNamespace)
-                                    .id(2)
-                                MonthNavigationLink(enumID: .march, monthNavigationNamespace: monthNavigationNamespace)
-                                    .id(3)
+                                MonthNavigationLink(enumID: .january, monthNavigationNamespace: monthNavigationNamespace).id(1)
+                                MonthNavigationLink(enumID: .february, monthNavigationNamespace: monthNavigationNamespace).id(2)
+                                MonthNavigationLink(enumID: .march, monthNavigationNamespace: monthNavigationNamespace).id(3)
                             }
                             GridRow(alignment: .top) {
-                                MonthNavigationLink(enumID: .april, monthNavigationNamespace: monthNavigationNamespace)
-                                    .id(4)
-                                MonthNavigationLink(enumID: .may, monthNavigationNamespace: monthNavigationNamespace)
-                                    .id(5)
-                                MonthNavigationLink(enumID: .june, monthNavigationNamespace: monthNavigationNamespace)
-                                    .id(6)
+                                MonthNavigationLink(enumID: .april, monthNavigationNamespace: monthNavigationNamespace).id(4)
+                                MonthNavigationLink(enumID: .may, monthNavigationNamespace: monthNavigationNamespace).id(5)
+                                MonthNavigationLink(enumID: .june, monthNavigationNamespace: monthNavigationNamespace).id(6)
                             }
                             GridRow(alignment: .top) {
-                                MonthNavigationLink(enumID: .july, monthNavigationNamespace: monthNavigationNamespace)
-                                    .id(7)
-                                MonthNavigationLink(enumID: .august, monthNavigationNamespace: monthNavigationNamespace)
-                                    .id(8)
-                                MonthNavigationLink(enumID: .september, monthNavigationNamespace: monthNavigationNamespace)
-                                    .id(9)
+                                MonthNavigationLink(enumID: .july, monthNavigationNamespace: monthNavigationNamespace).id(7)
+                                MonthNavigationLink(enumID: .august, monthNavigationNamespace: monthNavigationNamespace).id(8)
+                                MonthNavigationLink(enumID: .september, monthNavigationNamespace: monthNavigationNamespace).id(9)
                             }
                             GridRow(alignment: .top) {
-                                MonthNavigationLink(enumID: .october, monthNavigationNamespace: monthNavigationNamespace)
-                                    .id(10)
-                                MonthNavigationLink(enumID: .november, monthNavigationNamespace: monthNavigationNamespace)
-                                    .id(11)
-                                MonthNavigationLink(enumID: .december, monthNavigationNamespace: monthNavigationNamespace)
-                                    .id(12)
+                                MonthNavigationLink(enumID: .october, monthNavigationNamespace: monthNavigationNamespace).id(10)
+                                MonthNavigationLink(enumID: .november, monthNavigationNamespace: monthNavigationNamespace).id(11)
+                                MonthNavigationLink(enumID: .december, monthNavigationNamespace: monthNavigationNamespace).id(12)
                             }
                             GridRow(alignment: .top) {
                                 MonthNavigationLink(enumID: .nextJanuary, monthNavigationNamespace: monthNavigationNamespace)
@@ -97,13 +85,12 @@ struct CalendarNavGridPhone: View {
     func scrollToThisMonthOnAppearOfScrollView(_ proxy: ScrollViewProxy) {
         if !hasDoneInitialScrollToThisMonth {
             hasDoneInitialScrollToThisMonth = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                withAnimation {
+            //DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                //withAnimation {
                     proxy.scrollTo(AppState.shared.todayMonth, anchor: .center)
-                }
-            }
+                //}
+            //}
         }
-        
     }
 }
 #endif

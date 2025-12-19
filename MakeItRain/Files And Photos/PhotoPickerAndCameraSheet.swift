@@ -45,33 +45,47 @@ struct PhotoPickerAndCameraSheet: ViewModifier {
         @Bindable var photoModel = FileModel.shared
         
         return content
-            .if(allowMultiSelection) {
-                $0.photosPicker(
-                    isPresented: $showPhotosPicker,
-                    selection: $photoModel.imagesFromLibrary,
-                    selectionBehavior: .continuousAndOrdered,
-                    matching: .images,
-                    photoLibrary: .shared()
-                )
+            .sheet(isPresented: $showPhotosPicker) {
+                CustomImageAndCameraPicker(imageSourceType: .photoLibrary, selectedImage: $photoModel.imageFromCamera)
             }
-        /// Only allow 1 photo since this is happening only for smart transactions.
-            .if(!allowMultiSelection) {
-                $0.photosPicker(
-                    isPresented: $showPhotosPicker,
-                    selection: $photoModel.imagesFromLibrary,
-                    maxSelectionCount: 1,
-                    matching: .images,
-                    photoLibrary: .shared()
-                )
-            }
+//            .if(allowMultiSelection) {
+//                $0.photosPicker(
+//                    isPresented: $showPhotosPicker,
+//                    selection: $photoModel.imagesFromLibrary,
+//                    selectionBehavior: .continuousAndOrdered,
+//                    matching: .images,
+//                    photoLibrary: .shared()
+//                )
+//            }
+//            /// Only allow 1 photo since this is happening only for smart transactions.
+//            .if(!allowMultiSelection) {
+//                $0.photosPicker(
+//                    isPresented: $showPhotosPicker,
+//                    selection: $photoModel.imagesFromLibrary,
+//                    maxSelectionCount: 1,
+//                    matching: .images,
+//                    photoLibrary: .shared()
+//                )
+//            }
             
             /// Upload the picture from the selectedt photos when the photo picker sheet closes.
             .onChange(of: showPhotosPicker) {
+//                if !$1 {
+//                    if FileModel.shared.imagesFromLibrary.isEmpty {
+//                        fileUploadCompletedDelegate.cleanUpPhotoVariables()
+//                    } else {
+//                        FileModel.shared.uploadPicturesFromLibrary(
+//                            delegate: fileUploadCompletedDelegate,
+//                            parentType: parentTypeXr
+//                        )
+//                    }
+//                }
+                
                 if !$1 {
-                    if FileModel.shared.imagesFromLibrary.isEmpty {
+                    if FileModel.shared.imageFromCamera == nil {
                         fileUploadCompletedDelegate.cleanUpPhotoVariables()
                     } else {
-                        FileModel.shared.uploadPicturesFromLibrary(
+                        FileModel.shared.uploadPictureFromCamera(
                             delegate: fileUploadCompletedDelegate,
                             parentType: parentTypeXr
                         )
@@ -80,7 +94,8 @@ struct PhotoPickerAndCameraSheet: ViewModifier {
             }
             #if os(iOS)
             .fullScreenCover(isPresented: $showCamera) {
-                AccessCameraView(selectedImage: $photoModel.imageFromCamera)
+                CustomImageAndCameraPicker(imageSourceType: .camera, selectedImage: $photoModel.imageFromCamera)
+                //AccessCameraView(selectedImage: $photoModel.imageFromCamera)
                     .background(.black)
             }
             /// Upload the picture from the camera when the camera sheet closes.

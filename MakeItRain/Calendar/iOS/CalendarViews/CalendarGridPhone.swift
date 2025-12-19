@@ -6,6 +6,15 @@
 //
 
 import SwiftUI
+
+extension Array {
+    func chunked(into size: Int) -> [[Element]] {
+        stride(from: 0, to: count, by: size).map {
+            Array(self[$0 ..< Swift.min($0 + size, count)])
+        }
+    }
+}
+
 #if os(iOS)
 struct CalendarGridPhone: View {
     @Local(\.tightenUpEodTotals) var tightenUpEodTotals
@@ -34,9 +43,11 @@ struct CalendarGridPhone: View {
     
     @State private var initialGeoHeight: CGFloat = 0
     
+    
     #warning("REGARDING HITCH: All I did here was change binding to day to a regular bindable")
+    @ViewBuilder
     var body: some View {
-        let _ = Self._printChanges()
+        //let _ = Self._printChanges()
         @Bindable var calModel = calModel
         @Bindable var calProps = calProps
         
@@ -46,23 +57,53 @@ struct CalendarGridPhone: View {
             /// The new .scrollPosition($scrollPosition) causes big lagging issues when scrolling. ---> I think it's because it has to constantly report its position.
             ScrollViewReader { scrollProxy in
                 ScrollView {
-                    LazyVGrid(columns: sevenColumnGrid, spacing: 0) {
-                        #warning("day as $binding (not bindable) causes hitches with sheets.")
-                        ForEach(calModel.sMonth.days) { day in
-                            DayViewPhone(
-                                day: day,
-                                tightenUpEodTotals: tightenUpEodTotals,
-                                lineItemIndicator: lineItemIndicator,
-                                phoneLineItemDisplayItem: phoneLineItemDisplayItem,
-                                incomeColor: incomeColor,
-                                useWholeNumbers: useWholeNumbers
-                            )
-                            .overlay(dividingLine, alignment: .bottom)
-                            /// Use the initial geo height so the day view doesn't shrink too much when opening the bottom panel.
-                            .frame(minHeight: initialGeoHeight / divideBy, alignment: .center)
-                            .id(day.id)
+                    Grid(alignment: .top, horizontalSpacing: 0, verticalSpacing: 0) {
+                        let weeks = calModel.sMonth.days.chunked(into: 7)
+                        ForEach(weeks, id: \.self) { week in
+                            GridRow {
+                                ForEach(week) { day in
+                                    VStack(spacing: 0) {
+                                        DayViewPhone(
+                                            day: day,
+                                            tightenUpEodTotals: tightenUpEodTotals,
+                                            lineItemIndicator: lineItemIndicator,
+                                            phoneLineItemDisplayItem: phoneLineItemDisplayItem,
+                                            incomeColor: incomeColor,
+                                            useWholeNumbers: useWholeNumbers
+                                        )
+                                        
+                                        if week != weeks.last {
+                                            dividingLine
+                                        }
+                                    }
+                                    /// Use the initial geo height so the day view doesn't shrink too much when opening the bottom panel.
+                                    .frame(minHeight: initialGeoHeight / divideBy, alignment: .center)
+                                    .id(day.id)
+                                }
+                            }
                         }
                     }
+                    
+                    /// NOTE: Had to abandon the LazyVGrid, because when dismissing rhe bottom panel, the scroll view would not resize with the dismissing transition.
+                    /// It would just snap when the transition has finished. This is because the LazyVGrid would recalc its size.
+                    
+//                    LazyVGrid(columns: sevenColumnGrid, spacing: 0) {
+//                        #warning("day as $binding (not bindable) causes hitches with sheets.")
+//                        ForEach(calModel.sMonth.days) { day in
+//                            DayViewPhone(
+//                                day: day,
+//                                tightenUpEodTotals: tightenUpEodTotals,
+//                                lineItemIndicator: lineItemIndicator,
+//                                phoneLineItemDisplayItem: phoneLineItemDisplayItem,
+//                                incomeColor: incomeColor,
+//                                useWholeNumbers: useWholeNumbers
+//                            )
+//                            .overlay(dividingLine, alignment: .bottom)
+//                            /// Use the initial geo height so the day view doesn't shrink too much when opening the bottom panel.
+//                            .frame(minHeight: initialGeoHeight / divideBy, alignment: .center)
+//                            .id(day.id)
+//                        }
+//                    }
                 }
                 //.contentMargins(.bottom, calculatedScrollContentMargins, for: .scrollContent)
                 .frame(height: geo.size.height)
@@ -104,11 +145,9 @@ struct CalendarGridPhone: View {
     
     func scrollToTodayOnAppearOfScrollView(_ proxy: ScrollViewProxy) {
         if enumID.monthNum == AppState.shared.todayMonth {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-//                withAnimation {
-//                    proxy.scrollTo(AppState.shared.todayDay, anchor: .top)
-//                }
-                
+            /// Give a little delay since the view can take a while to render.
+            /// Without the delay, you can kind of see it flicker when it loads.
+            DispatchQueue.main.asyncAfter(deadline: .now() + (calModel.isFirstCalendarLoad ? 0.5 : 0.1)) {
                 if let today = calModel.sMonth.days.first(where: { $0.id == AppState.shared.todayDay }) {
                     withAnimation {
                         proxy.scrollTo(today.id, anchor: .top)
@@ -116,6 +155,14 @@ struct CalendarGridPhone: View {
                 } else {
                     print("⚠️ todayDay not found in current scrollable days.")
                 }
+                
+                /// There is an animation lag when the calendar first shows. So adjust the "scroll to today" time accordingly.
+                calModel.isFirstCalendarLoad = false
+            }
+        } else {
+            /// There is an animation lag when the calendar first shows. So adjust the "scroll to today" time accordingly.
+            if calModel.isFirstCalendarLoad {
+                calModel.isFirstCalendarLoad = false
             }
         }
     }

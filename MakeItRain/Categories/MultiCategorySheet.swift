@@ -7,6 +7,120 @@
 
 import SwiftUI
 
+
+//
+//struct MultiCategorySheetLite: View {
+//    @Environment(\.colorScheme) var colorScheme
+//    @Environment(\.dismiss) var dismiss
+//    
+//    @Environment(CalendarModel.self) private var calModel
+//    @Environment(CategoryModel.self) private var catModel
+//    @Environment(KeywordModel.self) private var keyModel
+//    
+//    @Binding var categories: Array<CBCategory>
+//    @Binding var categoryGroups: Array<CBCategoryGroup>
+//    var includeHidden: Bool = false
+//    
+//    var showAnalyticSpecificOptions = false
+//                
+//    @FocusState private var focusedField: Int?
+//    @State private var searchText = ""
+//    @State private var labelWidth: CGFloat = 20.0
+//    @State private var newGroupTitle = ""
+//    @State private var showDeleteAlert = false
+//    @State private var showInfo = false
+//    @State private var editGroup: CBCategoryGroup?
+//    @State private var groupEditID: CBCategoryGroup.ID?
+//    
+//    var body: some View {
+//        //let _ = Self._printChanges()
+//        //Text("hi")
+//        NavigationStack {
+//            StandardContainerWithToolbar(.list) {
+//                Section("My Categories") {
+//                    ForEach(catModel.categories) { cat in
+//                        multiCategoryPickerLineItem(cat: cat)
+//                    }
+//                }
+//            }
+//            .searchable(text: $searchText, prompt: Text("Search"))
+//            .navigationTitle("Categories")
+//            #if os(iOS)
+//            .navigationBarTitleDisplayMode(.inline)
+////            .toolbar {
+////                //ToolbarItem(placement: .topBarLeading) { selectButton }
+////                //DefaultToolbarItem(kind: .search, placement: .bottomBar)
+////                                
+////                ToolbarSpacer(.flexible, placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar)
+////                ToolbarItem(placement: AppState.shared.isIpad ? .topBarTrailing : .bottomBar) { CategorySortMenu() }
+////                if AppState.shared.isIpad {
+////                    ToolbarSpacer(.fixed, placement: .topBarTrailing)
+////                }
+////                                
+//////                ToolbarSpacer(.flexible, placement: .bottomBar)
+//////                ToolbarItem(placement: .bottomBar) { CategorySortMenu() }
+////                ToolbarItem(placement: .topBarTrailing) { closeButton }
+////            }
+//            #endif
+//        }
+//        .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
+//    }
+//    
+//    
+//    
+//    var closeButton: some View {
+//        Button {
+//            dismiss()
+//        } label: {
+//            Image(systemName: "xmark")
+//                .schemeBasedForegroundStyle()
+//        }
+//        //.buttonStyle(.glassProminent)
+//        //.tint(confirmButtonTint)
+//        //.background(confirmButtonTint)
+//        //.foregroundStyle(confirmButtonTint)
+//        //}
+//    }
+//    
+//    
+//    var selectButton: some View {
+//        Button {
+//            withAnimation {
+//                categories = categories.isEmpty ? catModel.categories : []
+//            }
+//        } label: {
+//            //Image(systemName: categories.isEmpty ? "checklist.checked" : "checklist.unchecked")
+//            Text(categories.isEmpty ? "Select All" : "Deselect All")
+//            //Image(systemName: categories.isEmpty ? "checkmark.rectangle.stack" : "checklist.checked")
+//                .schemeBasedForegroundStyle()
+//        }
+//    }
+//    
+//    
+//    @ViewBuilder
+//    func multiCategoryPickerLineItem(cat: CBCategory) -> some View {
+//        StandardCategoryLabel(
+//            cat: cat,
+//            labelWidth: labelWidth,
+//            showCheckmarkCondition: categories.filter{ $0.active }.contains(cat)
+//        )
+//        .onTapGesture {
+//            withAnimation { doit(cat) }
+//        }
+//    }
+//    
+//    
+//    func doit(_ category: CBCategory) {
+//        if categories.map({ $0.id }).contains(category.id) {
+//            categories.removeAll(where: { $0.id == category.id })
+//        } else {
+//            categories.append(category)
+//        }
+//    }
+//}
+
+
+
 struct MultiCategorySheet: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
@@ -17,11 +131,12 @@ struct MultiCategorySheet: View {
 
     
     @Environment(CalendarModel.self) private var calModel
-    
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
     
     @Binding var categories: Array<CBCategory>
+    @Binding var categoryGroup: Array<CBCategoryGroup>
+
     var includeHidden: Bool = false
     
     var showAnalyticSpecificOptions = false
@@ -39,7 +154,7 @@ struct MultiCategorySheet: View {
     var filteredCategories: Array<CBCategory> {
         catModel.categories
             .filter { !$0.isNil }
-            .filter { !$0.isHidden }
+            .filter { !$0.isHidden && $0.appSuiteKey == nil }
             .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
             .sorted(by: Helpers.categorySorter())
     }
@@ -48,7 +163,16 @@ struct MultiCategorySheet: View {
     var filteredHiddenCategories: Array<CBCategory> {
         catModel.categories
             .filter { !$0.isNil }
-            .filter { $0.isHidden }
+            .filter { $0.isHidden && $0.appSuiteKey == nil }
+            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+            .sorted(by: Helpers.categorySorter())
+    }
+    
+    
+    var filteredSpecialCategories: Array<CBCategory> {
+        catModel.categories
+            .filter { !$0.isNil }
+            .filter { !$0.isHidden && $0.appSuiteKey != nil }
             .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
             .sorted(by: Helpers.categorySorter())
     }
@@ -64,72 +188,92 @@ struct MultiCategorySheet: View {
     
     var selectedCategoryIds: [String] {
         categories
-            .filter { $0.active }
-            .filter { !$0.isHidden }
-            .sorted(by: Helpers.categorySorter())
+            //.filter { $0.active }
+            //.filter { !$0.isHidden }
+            //.sorted(by: Helpers.categorySorter())
             //.sorted { $0.id > $1.id }
             .compactMap(\.id)
     }
+    
     
     var showCategoryGroups: Bool {
         (!searchText.isEmpty && !filteredCategoryGroups.isEmpty) || searchText.isEmpty
     }
     
+    var showMyCategories: Bool {
+        (!searchText.isEmpty && !filteredCategories.isEmpty) || searchText.isEmpty
+    }
+    
+    var showHiddenCategories: Bool {
+        (!searchText.isEmpty && !filteredHiddenCategories.isEmpty) || searchText.isEmpty
+    }
+    
+    var showSpecialCategories: Bool {
+        (!searchText.isEmpty && !filteredSpecialCategories.isEmpty) || searchText.isEmpty
+    }
+    
     var body: some View {
+        //let _ = Self._printChanges()
+        //Text("hi")
         NavigationStack {
-            StandardContainerWithToolbar(.list) {
-                if filteredCategories.isEmpty {
+            Group {
+                if filteredCategories.isEmpty
+                && filteredHiddenCategories.isEmpty
+                && filteredSpecialCategories.isEmpty
+                && filteredCategoryGroups.isEmpty {
                     ContentUnavailableView("No categories found", systemImage: "exclamationmark.magnifyingglass")
                 } else {
-                    if showCategoryGroups {
-                        Section("Category Groups") {
-                            ForEach(filteredCategoryGroups) { group in
-                                CategoryGroupLine(
-                                    categories: $categories,
-                                    group: group,
-                                    showDeleteAlert: $showDeleteAlert,
-                                    groupEditID: $groupEditID,
-                                    selectedCategoryIds: selectedCategoryIds,
-                                    labelWidth: labelWidth,
-                                    getReversedColors: getReversedColors
-                                )
-                            }
-                            
-                            if searchText.isEmpty {
-                                allExpenseCategoriesButton
-                                
-                                if !catModel.categories.filter({$0.isIncome}).isEmpty {
-                                    allIncomeCategoriesButton
+                    StandardContainerWithToolbar(.list) {
+                        if showCategoryGroups {
+                            Section("Category Groups") {
+                                ForEach(filteredCategoryGroups) { group in
+                                    categoryGroupLine(group: group)
+//                                    CategoryGroupLine(
+//                                        categories: $categories,
+//                                        group: group,
+//                                        showDeleteAlert: $showDeleteAlert,
+//                                        groupEditID: $groupEditID,
+//                                        selectedCategoryIds: selectedCategoryIds,
+//                                        labelWidth: labelWidth,
+//                                        getReversedColors: getReversedColors
+//                                    )
                                 }
                                 
-                                if showAnalyticSpecificOptions {
-                                    anythingWithAnAmountButton
+                                if searchText.isEmpty {
+                                    allExpenseCategoriesButton
+                                    
+                                    if !catModel.categories.filter({ $0.isIncome }).isEmpty {
+                                        allIncomeCategoriesButton
+                                    }
+                                    
+                                    if showAnalyticSpecificOptions {
+                                        anythingWithAnAmountButton
+                                    }
+                                    
+                                    //addNewGroupButton
                                 }
-                                
-                                addNewGroupButton
                             }
                         }
-                    }
-                    
-                    
-                    Section("My Categories") {
-                        ForEach(filteredCategories) { cat in
-                            MultiCategoryPickerLineItem(
-                                cat: cat,
-                                categories: $categories,
-                                labelWidth: labelWidth,
-                                selectFunction: { doit(cat) }
-                            )
+                        
+                        if showMyCategories {
+                            Section("My Categories") {
+                                ForEach(filteredCategories) { cat in
+                                    multiCategoryPickerLineItem(cat: cat)
+                                }
+                            }
                         }
-                    }
-                    
-                    hiddenCategoriesSections
-                    
-                    if searchText.isEmpty {
-                        noneSection
+                        
+                        if showHiddenCategories { hiddenCategoriesSections }
+                        if showSpecialCategories { specialCategoriesSection }
+                        
+                        
+                        if searchText.isEmpty {
+                            noneSection
+                        }
                     }
                 }
             }
+            
             .searchable(text: $searchText, prompt: Text("Search"))
             .navigationTitle("Categories")
             #if os(iOS)
@@ -152,23 +296,23 @@ struct MultiCategorySheet: View {
         }
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
         
-        .onChange(of: groupEditID) { oldValue, newValue in
-            if let newValue {
-                editGroup = catModel.getCategoryGroup(by: newValue)
-            } else {
-                catModel.saveCategoryGroup(id: oldValue!)
-            }
-        }
-        
-        .sheet(item: $editGroup, onDismiss: {
-            groupEditID = nil
-        }, content: { group in
-            CategoryGroupView(group: group, editID: $groupEditID)
-            #if os(macOS)
-                .frame(minWidth: 500, minHeight: 700)
-                .presentationSizing(.fitted)
-            #endif
-        })
+//        .onChange(of: groupEditID) { oldValue, newValue in
+//            if let newValue {
+//                editGroup = catModel.getCategoryGroup(by: newValue)
+//            } else {
+//                catModel.saveCategoryGroup(id: oldValue!)
+//            }
+//        }
+//        
+//        .sheet(item: $editGroup, onDismiss: {
+//            groupEditID = nil
+//        }, content: { group in
+//            CategoryGroupEditView(group: group, editID: $groupEditID)
+//            #if os(macOS)
+//                .frame(minWidth: 500, minHeight: 700)
+//                .presentationSizing(.fitted)
+//            #endif
+//        })
     }
     
     var noneSection: some View {
@@ -203,12 +347,7 @@ struct MultiCategorySheet: View {
         Section {
             if isHiddenSectionExpanded {
                 ForEach(filteredHiddenCategories) { cat in
-                    MultiCategoryPickerLineItem(
-                        cat: cat,
-                        categories: $categories,
-                        labelWidth: labelWidth,
-                        selectFunction: { doit(cat) }
-                    )
+                    multiCategoryPickerLineItem(cat: cat)
                 }
             } else {
                 Button("Show All") {
@@ -219,6 +358,18 @@ struct MultiCategorySheet: View {
             hiddenSectionHeader
         }
     }
+    
+    @ViewBuilder
+    var specialCategoriesSection: some View {
+        if !filteredSpecialCategories.isEmpty {
+            Section("Special Categories") {
+                ForEach(filteredSpecialCategories) { cat in
+                    multiCategoryPickerLineItem(cat: cat)
+                }
+            }
+        }
+    }
+    
     
     var hiddenSectionHeader: some View {
         HStack {
@@ -265,7 +416,9 @@ struct MultiCategorySheet: View {
                 Text("Expenses")
                 Spacer()
                 
-                if selectedCategoryIds == categories.compactMap(\.id) {
+                if selectedCategoryIds.containsSameElements(as: categories.compactMap(\.id)) {
+                
+                //if selectedCategoryIds == categories.compactMap(\.id) {
                     Image(systemName: "checkmark")
                 }
             }
@@ -301,7 +454,8 @@ struct MultiCategorySheet: View {
                 Text("Income")
                 Spacer()
                 
-                if selectedCategoryIds == categories.compactMap(\.id) {
+                if selectedCategoryIds.containsSameElements(as: categories.compactMap(\.id)) {
+                //if selectedCategoryIds == categories.compactMap(\.id) {
                     Image(systemName: "checkmark")
                 }
             }
@@ -337,7 +491,8 @@ struct MultiCategorySheet: View {
                 Text("Relevant Categories")
                 Spacer()
                 
-                if selectedCategoryIds == categories.compactMap(\.id) {
+                if selectedCategoryIds.containsSameElements(as: categories.compactMap(\.id)) {
+                //if selectedCategoryIds == categories.compactMap(\.id) {
                     Image(systemName: "checkmark")
                 }
                 
@@ -349,6 +504,8 @@ struct MultiCategorySheet: View {
                 }
                 .popover(isPresented: $showInfo) {
                     Text("Include all expense categories that have transactions.")
+                        .frame(width: 200)
+                        .padding()
                         .presentationCompactAdaptation(.popover)
                 }
             }
@@ -512,6 +669,7 @@ struct MultiCategorySheet: View {
         Button {
             withAnimation {
                 categories = categories.isEmpty ? catModel.categories : []
+                //calModel.sCategoryGroupsForAnalysis
             }
         } label: {
             //Image(systemName: categories.isEmpty ? "checklist.checked" : "checklist.unchecked")
@@ -522,7 +680,29 @@ struct MultiCategorySheet: View {
     }
     
     
+    @ViewBuilder
+    func multiCategoryPickerLineItem(cat: CBCategory) -> some View {
+        StandardCategoryLabel(
+            cat: cat,
+            labelWidth: labelWidth,
+            showCheckmarkCondition: categories.filter{ $0.active }.contains(cat)
+        )
+        .onTapGesture {
+            withAnimation { doit(cat) }
+        }
+    }
+
+
+
+    
+    
     func doit(_ category: CBCategory) {
+        if !calModel.sCategoryGroupsForAnalysis.isEmpty {
+            calModel.sCategoryGroupsForAnalysis.removeAll()
+            categories.removeAll()
+        }
+        
+        
         if categories.map({ $0.id }).contains(category.id) {
             categories.removeAll(where: { $0.id == category.id })
         } else {
@@ -563,53 +743,90 @@ struct MultiCategorySheet: View {
     }
     
     
-    struct CategoryGroupLine: View {
-        @Environment(\.colorScheme) var colorScheme
-        
-        @Binding var categories: Array<CBCategory>
-        @Bindable var group: CBCategoryGroup
-        @Binding var showDeleteAlert: Bool
-        @Binding var groupEditID: String?
-        var selectedCategoryIds: [String]
-        var labelWidth: CGFloat
-        
-        var getReversedColors: (_ for: Array<CBCategory>) -> Array<Gradient.Stop>
-        
-        var body: some View {
-            Button {
-                withAnimation {
-                    self.categories = group.categories.filter({ $0.active })
-                }
-            } label: {
-                HStack {
-                    Group {
-                        Circle()
-                            .fill(AngularGradient(gradient: Gradient(stops: getReversedColors(group.categories)), center: .center))
-                            .frame(width: 20, height: 20)
-                    }
-                    .frame(minWidth: labelWidth, alignment: .center)
-                    
-                    
-                    Text(group.title)
-                    Spacer()
-                    if selectedCategoryIds == group.categories
-                        //.sorted(by: {$0.id > $1.id})
-                        .sorted(by: Helpers.categorySorter())
-                        .compactMap(\.id) {
-                        Image(systemName: "checkmark")
-                    }
-                }
-                .schemeBasedForegroundStyle()
-                .contentShape(Rectangle())
+    @ViewBuilder func categoryGroupLine(group: CBCategoryGroup) -> some View {
+        Button {
+            withAnimation {
+                self.categories = group.categories.filter({ $0.active })
+                self.categoryGroup = [group]
+                dismiss()
             }
-            #if os(macOS)
-            .buttonStyle(.plain)
-            #endif
-            .swipeActions(allowsFullSwipe: false) {
-                EditGroupButton(group: group, groupEditID: $groupEditID)
+        } label: {
+            HStack {
+                Group {
+                    Circle()
+                        .fill(AngularGradient(gradient: Gradient(stops: getReversedColors(group.categories)), center: .center))
+                        .frame(width: 20, height: 20)
+                }
+                .frame(minWidth: labelWidth, alignment: .center)
+                
+                
+                Text(group.title)
+                Spacer()
+                if selectedCategoryIds == group.categories
+                    //.sorted(by: {$0.id > $1.id})
+                    .sorted(by: Helpers.categorySorter())
+                    .compactMap(\.id) {
+                    Image(systemName: "checkmark")
+                }
             }
+            .schemeBasedForegroundStyle()
+            .contentShape(Rectangle())
         }
+        #if os(macOS)
+        .buttonStyle(.plain)
+        #endif
+//        .swipeActions(allowsFullSwipe: false) {
+//            EditGroupButton(group: group, groupEditID: $groupEditID)
+//        }
     }
+    
+//    struct CategoryGroupLine: View {
+//        @Environment(\.colorScheme) var colorScheme
+//        
+//        @Binding var categories: Array<CBCategory>
+//        @Bindable var group: CBCategoryGroup
+//        @Binding var showDeleteAlert: Bool
+//        @Binding var groupEditID: String?
+//        var selectedCategoryIds: [String]
+//        var labelWidth: CGFloat
+//        
+//        var getReversedColors: (_ for: Array<CBCategory>) -> Array<Gradient.Stop>
+//        
+//        var body: some View {
+//            Button {
+//                withAnimation {
+//                    self.categories = group.categories.filter({ $0.active })
+//                }
+//            } label: {
+//                HStack {
+//                    Group {
+//                        Circle()
+//                            .fill(AngularGradient(gradient: Gradient(stops: getReversedColors(group.categories)), center: .center))
+//                            .frame(width: 20, height: 20)
+//                    }
+//                    .frame(minWidth: labelWidth, alignment: .center)
+//                    
+//                    
+//                    Text(group.title)
+//                    Spacer()
+//                    if selectedCategoryIds == group.categories
+//                        //.sorted(by: {$0.id > $1.id})
+//                        .sorted(by: Helpers.categorySorter())
+//                        .compactMap(\.id) {
+//                        Image(systemName: "checkmark")
+//                    }
+//                }
+//                .schemeBasedForegroundStyle()
+//                .contentShape(Rectangle())
+//            }
+//            #if os(macOS)
+//            .buttonStyle(.plain)
+//            #endif
+//            .swipeActions(allowsFullSwipe: false) {
+//                EditGroupButton(group: group, groupEditID: $groupEditID)
+//            }
+//        }
+//    }
             
     
     struct EditGroupButton: View {
@@ -631,22 +848,25 @@ struct MultiCategorySheet: View {
 }
 
 
-struct MultiCategoryPickerLineItem: View {
-    var cat: CBCategory
-    @Binding var categories: [CBCategory]
-    var labelWidth: CGFloat
-    var selectFunction: () -> Void
-    
-    var body: some View {
-        StandardCategoryLabel(
-            cat: cat,
-            labelWidth: labelWidth,
-            showCheckmarkCondition: categories.filter{ $0.active }.contains(cat)
-        )
-        .onTapGesture {
-            withAnimation { selectFunction() }
-        }
-    }
-}
 
-
+//
+//
+//struct MultiCategoryPickerLineItem: View {
+//    var cat: CBCategory
+//    @Binding var categories: [CBCategory]
+//    var labelWidth: CGFloat
+//    var selectFunction: () -> Void
+//    
+//    var body: some View {
+//        StandardCategoryLabel(
+//            cat: cat,
+//            labelWidth: labelWidth,
+//            showCheckmarkCondition: categories.filter{ $0.active }.contains(cat)
+//        )
+//        .onTapGesture {
+//            withAnimation { selectFunction() }
+//        }
+//    }
+//}
+//
+//

@@ -24,7 +24,9 @@ struct MultiSelectTransactionOptionsSheet: View {
     
     @State private var shouldSave = false
     @State private var showCategorySheet = false
+    @State private var showDatePicker = false
     @State private var selectedCategory: CBCategory?
+    @State private var newDate: Date = Date()
         
     @Binding var showInspector: Bool
     
@@ -59,6 +61,8 @@ struct MultiSelectTransactionOptionsSheet: View {
                 withAnimation {
                     calModel.isInMultiSelectMode = false
                     calModel.sCategoriesForAnalysis.removeAll()
+                    calModel.sCategoryGroupForAnalysis = nil
+                    //calModel.sCategoryGroupsForAnalysis.removeAll()
                     
                     if shouldSave {
                         Task {
@@ -84,6 +88,7 @@ struct MultiSelectTransactionOptionsSheet: View {
         Section {
             MultiTitleColorMenu(transactions: calModel.multiSelectTransactions, shouldSave: $shouldSave) { Text("Change title color") }
             changeCategoryButton
+            //changeDateButton
             factorInCalculationsButton
             excludeFromCalculationsButton
         }
@@ -96,6 +101,7 @@ struct MultiSelectTransactionOptionsSheet: View {
             deleteButton
             MultiTitleColorMenu(transactions: calModel.multiSelectTransactions, shouldSave: $shouldSave) { Text("Change title color") }
             changeCategoryButton
+            //changeDateButton
             factorInCalculationsButton
             excludeFromCalculationsButton
         }
@@ -139,7 +145,8 @@ struct MultiSelectTransactionOptionsSheet: View {
                 //calProps.showAnalysisSheet = true
                 
                 if AppState.shared.isIphone {
-                    calProps.showAnalysisSheet = true
+                    calProps.navPath.append(CalendarNavDest.categoryInsights)
+                    //calProps.showAnalysisSheet = true
                 } else {
                     calProps.inspectorContent = .analysisSheet
                     calProps.showInspector = true
@@ -223,15 +230,49 @@ struct MultiSelectTransactionOptionsSheet: View {
         }
     }
     
+    
+    var changeDateButton: some View {
+        Button {
+            showDatePicker = true
+        } label: {
+            Text("Change date")
+        }
+        .sheet(isPresented: $showDatePicker, onDismiss: {
+            withAnimation {
+                //var transToEdit = calModel.multiSelectTransactions
+                
+                for trans in calModel.multiSelectTransactions {
+                    trans.action = .edit
+                    trans.intendedServerAction = .edit
+                    
+                    trans.date = newDate
+                    
+                    Task {
+                        await calModel.saveTransaction(id: trans.id)
+                    }
+                }
+            }
+            shouldSave = false
+        }) {
+            VStack {
+                Text("Change Date")
+                DatePicker("Choose Date", selection: $newDate)
+                Button("Change") {
+                    showDatePicker = false
+                }
+            }
+        }
+    }
+    
+    
     var deleteButton: some View {
         Button {
             withAnimation {
+                var transToEdit = calModel.multiSelectTransactions
+                
                 for trans in calModel.multiSelectTransactions {
                     trans.action = .delete
                     trans.intendedServerAction = .delete
-                    /// Pre set the status so the trash icon will show.
-                    /// However, the delete operation will not perform until the user closes the sheet,
-                    trans.status = .deleteSucceess
                     
                     //trans.active = false
                     //calModel.performLineItemAnimations(for: trans)
@@ -240,14 +281,20 @@ struct MultiSelectTransactionOptionsSheet: View {
                         //trans2.deepCopy(.create)
                         trans2.action = .delete
                         trans2.intendedServerAction = .delete
-                        /// Pre set the status so the trash icon will show.
-                        /// However, the delete operation will not perform until the user closes the sheet,
-                        trans2.status = .deleteSucceess
+                        transToEdit.append(trans2)
                     }
                 }
+                
+                Task {
+                    print("editing multiple transactions \(transToEdit)")
+                    
+                    await calModel.editMultiple(trans: transToEdit)
+                    calModel.multiSelectTransactions.removeAll()
+                }
+                
                 selectedCategory = nil
             }
-            shouldSave = true
+            shouldSave = false
         } label: {
             Text("Delete")
         }
@@ -265,6 +312,8 @@ struct MultiSelectTransactionOptionsSheet: View {
                 }
                 calModel.isInMultiSelectMode = false
                 calModel.sCategoriesForAnalysis.removeAll()
+                //calModel.sCategoryGroupsForAnalysis.removeAll()
+                calModel.sCategoryGroupsForAnalysis.removeAll()
                 
                 var transToEdit = calModel.multiSelectTransactions
                 
@@ -277,8 +326,6 @@ struct MultiSelectTransactionOptionsSheet: View {
                     }
                     
                     Task {
-                        
-                        
                         print("editing multiple transactions \(transToEdit)")
                         
                         await calModel.editMultiple(trans: transToEdit)

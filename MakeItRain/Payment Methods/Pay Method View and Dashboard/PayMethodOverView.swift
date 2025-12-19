@@ -38,7 +38,7 @@ struct PayMethodOverView: View {
     //@Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
     @Environment(CalendarModel.self) private var calModel
-    @Environment(EventModel.self) private var eventModel
+    
     @Environment(PayMethodModel.self) private var payModel
     @Environment(PlaidModel.self) private var plaidModel
     
@@ -58,6 +58,12 @@ struct PayMethodOverView: View {
     @State private var blur: CGFloat = 0
     @State private var scale: CGFloat = 1
     @State private var accountTypeMenuColor: Color = Color(.tertiarySystemFill)
+    
+    @State private var editKeychainDetails = false
+    @State private var keychainCardNumber: String?
+    @State private var keychainExpirationMonth: String?
+    @State private var keychainExpirationYear: String?
+    @State private var keychainSecurityCode: String?
     
     @FocusState private var focusedField: Int?
     
@@ -101,7 +107,7 @@ struct PayMethodOverView: View {
                     let payMethod = payModel.getPaymentMethod(by: newId)
                     editPaymentMethod = payMethod
                 } else {
-                    let _ = payModel.savePaymentMethod(id: oldId!, calModel: calModel)
+                    let _ = payModel.savePaymentMethod(id: oldId!, calModel: calModel, plaidModel: plaidModel)
                     payModel.determineIfUserIsRequiredToAddPaymentMethod()
                     /// Close if deleting since it will be gone.
                     /// Also close if adding, since the server will send back the real ID, and cause the list to redraw, which would cause the sheet to dismiss itself and reopen.
@@ -125,6 +131,7 @@ struct PayMethodOverView: View {
             chartPage
         } else {
             detailPage
+                .background(Color(uiColor: .systemGroupedBackground))
                 .navigationTitle("Account Details")
                 .navigationBarTitleDisplayMode(.inline)
                 .navigationDestination(for: String.self) { _ in chartPage }
@@ -138,10 +145,7 @@ struct PayMethodOverView: View {
                     
                     if AppState.shared.isIpad {
                         ToolbarSpacer(.fixed, placement: .topBarTrailing)
-                        
-                        ToolbarItem(placement: .topBarTrailing) {
-                            closeButton
-                        }
+                        ToolbarItem(placement: .topBarTrailing) { closeButton }
                     }
                 }
         }
@@ -150,39 +154,7 @@ struct PayMethodOverView: View {
     
     var detailPage: some View {
         ZStack(alignment: .top) {
-            VStack {
-                ZStack {
-                    fakeCardFront
-                        .opacity(flipped ? 0 : 1)
-                    
-                    ZStack {
-                        fakeCardBack
-                            .blur(radius: isUnlocked ? 0 : 8)
-                        
-                        if !isUnlocked {
-                            Image(systemName: authImage)
-                                .font(.system(size: 60))
-                                .onTapGesture {
-                                    authenticate()
-                                }
-                        }
-                    }
-                    .rotation3DEffect(.degrees(180), axis: (0,1,0))
-                    .opacity(flipped ? 1 : 0)
-                }
-                .rotation3DEffect(.degrees(flipped ? -180 : 0), axis: (0,1,0))
-                .animation(.easeInOut(duration: 0.6), value: flipped)
-                .onTapGesture {
-                    flipped.toggle()
-                    if flipped && !isUnlocked {
-                        authenticate()
-                    }
-                }
-                .blur(radius: blur)
-                .scaleEffect(scale)
-            }
-            .frame(height: 300)
-            .zIndex(zindex)
+            fakeCard
 
             List {
                 NavigationLink(value: "chart-page") {
@@ -219,6 +191,45 @@ struct PayMethodOverView: View {
         }
     }
     
+    
+    var fakeCard: some View {
+        VStack {
+            ZStack {
+                fakeCardFront
+                    .opacity(flipped ? 0 : 1)
+                
+                ZStack {
+                    fakeCardBack
+                        .blur(radius: isUnlocked ? 0 : 8)
+                    
+                    if !isUnlocked {
+                        Image(systemName: authImage)
+                            .font(.system(size: 60))
+                            .onTapGesture {
+                                authenticate()
+                            }
+                    }
+                }
+                .rotation3DEffect(.degrees(180), axis: (0,1,0))
+                .opacity(flipped ? 1 : 0)
+            }
+            .rotation3DEffect(.degrees(flipped ? -180 : 0), axis: (0,1,0))
+            .animation(.easeInOut(duration: 0.6), value: flipped)
+            .onTapGesture {
+                if payMethod.accountType != .cash {
+                    flipped.toggle()
+                    if flipped && !isUnlocked {
+                        authenticate()
+                    }
+                }
+            }
+            .blur(radius: blur)
+            .scaleEffect(scale)
+        }
+        .frame(height: 300)
+        .zIndex(zindex)
+    }
+    
   
     var fakeCardFront: some View {
         VStack {
@@ -227,8 +238,12 @@ struct PayMethodOverView: View {
                     Text(payMethod.title)
                         .font(.largeTitle)
                     Spacer()
-                    BigBusinessLogo(parent: payMethod, fallBackType: payMethod.isUnified ? .gradient : .color)
-                        .blur(radius: blur)
+                    BusinessLogo(config: .init(
+                        parent: payMethod,
+                        fallBackType: payMethod.isUnified ? .gradient : .color,
+                        size: 60
+                    ))
+                    .blur(radius: blur)
                 }
                 
                 HStack {
@@ -239,50 +254,31 @@ struct PayMethodOverView: View {
                                                 
                 Spacer()
                 
-                HStack {
-                    VStack(alignment: .leading) {
-                        if let balance = plaidModel.balances.filter({ $0.payMethodID == payMethod.id }).first {
-                            Text(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                                .bold()
+                VStack(alignment: .leading) {
+                    HStack {
+                        VStack(alignment: .leading) {
+                            if let balance = plaidModel.balances.filter({ $0.payMethodID == payMethod.id }).first {
+                                Text(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                                    .bold()
+                            }
                         }
+                                                                                    
+                        if payMethod.isPrivate { Image(systemName: "person.slash") }
+                        if payMethod.isHidden { Image(systemName: "eye.slash") }
+                        if payMethod.notifyOnDueDate { Image(systemName: "alarm") }
                     }
-                                                                                
-                    if payMethod.isPrivate { Image(systemName: "person.slash") }
-                    if payMethod.isHidden { Image(systemName: "eye.slash") }
-                    if payMethod.notifyOnDueDate { Image(systemName: "alarm") }
                     
-                    Spacer()
-                    
-                    Text(payMethod.accountType.prettyValue)
+                    HStack {
+                        Text(payMethod.holderOne?.name ?? "")
+                        Spacer()
+                        Text(payMethod.accountType.prettyValue)
+                    }
                 }
             }
             .padding(14)
-            
             .frame(maxWidth: .infinity)
             .frame(height: 250)
-            .background(
-                RoundedRectangle(cornerRadius: 26)
-                    .fill(
-                        MeshGradient(width: 3, height: 3, points: [
-                            .init(0, 0), .init(0.5, 0), .init(1, 0),
-                            .init(0, 0.5), .init(0.9, 0.6), .init(1, 0.5),
-                            .init(0, 1), .init(0.5, 1), .init(1, 1),
-                        ], colors: [
-//                            cardColor, cardColor, .pink,
-//                            .pink, .orange, cardColor,
-//                            cardColor, .orange, cardColor,
-                            
-//                            cardColor, cardColor, .white,
-//                            cardColor, cardColor, cardColor,
-//                            cardColor, .white, cardColor,
-                            
-                            cardColor, cardColor, cardColor.lighter(by: 30),
-                            cardColor, cardColor, cardColor,
-                            cardColor, cardColor.lighter(by: 30), cardColor,
-                        ])
-                    )
-                    //.fill(cardColor.gradient)
-            )
+            .background(fakeCardBackground)
             .shadow(radius: 10)
             .scenePadding(.horizontal)
                                     
@@ -299,61 +295,42 @@ struct PayMethodOverView: View {
             .padding(.leading, 14)
         }
     }
- 
+         
     
     var fakeCardBack: some View {
         VStack {
             VStack {
-                HStack {
-                    Rectangle()
-                        .fill(.black)
-                        .frame(height: 20)
-                }
+//                HStack {
+//                    Rectangle()
+//                        .fill(.black)
+//                        .frame(height: 20)
+//                }
                 
-                HStack {
-                    Text("1234 5678 9012 \(payMethod.last4 ?? "****")")
-                        .font(.title)
-                    Spacer()
+                fakeCardCardNumber
+                fakeCardExpirationDate
+                fakeCardSecurityCode
+                
+                Spacer()
+                
+                Text("These card details are only for your convenience, are stored securely on-device, and are never transmitted to the server.")
+                    .schemeBasedForegroundStyle()
+                    .font(.caption)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                Spacer()
+                
+                Button(editKeychainDetails ? "Done" : "Edit") {
+                    withAnimation {
+                        editKeychainDetails.toggle()
+                    }
                 }
-                                                
-                HStack {
-                    Text("10/22")
-                        .font(.title)
-                    Spacer()
-                }
-                HStack {
-                    Text("123")
-                        .font(.title)
-                    Spacer()
-                }
+                .schemeBasedForegroundStyle()
+                .buttonStyle(.glass)
             }
             .padding(14)
-            
             .frame(maxWidth: .infinity)
             .frame(height: 250)
-            .background(
-                RoundedRectangle(cornerRadius: 26)
-                    .fill(
-                        MeshGradient(width: 3, height: 3, points: [
-                            .init(0, 0), .init(0.5, 0), .init(1, 0),
-                            .init(0, 0.5), .init(0.9, 0.6), .init(1, 0.5),
-                            .init(0, 1), .init(0.5, 1), .init(1, 1),
-                        ], colors: [
-//                            cardColor, cardColor, .pink,
-//                            .pink, .orange, cardColor,
-//                            cardColor, .orange, cardColor,
-                            
-//                            cardColor, cardColor, .white,
-//                            cardColor, cardColor, cardColor,
-//                            cardColor, .white, cardColor,
-                            
-                            cardColor, cardColor, cardColor.lighter(by: 30),
-                            cardColor, cardColor, cardColor,
-                            cardColor, cardColor.lighter(by: 30), cardColor,
-                        ])
-                    )
-                    //.fill(cardColor.gradient)
-            )
+            .background(fakeCardBackground)
             .shadow(radius: 10)
             .scenePadding(.horizontal)
                                     
@@ -368,6 +345,120 @@ struct PayMethodOverView: View {
             }
             .scenePadding(.horizontal)
             .padding(.leading, 14)
+        }
+        .onChange(of: isUnlocked) {
+            if $1 { getCardDetailsFromKeychain() }
+        }
+        .onChange(of: editKeychainDetails) {
+            if !$1 { saveCardDetailsToKeychain() }
+        }
+    }
+    
+    
+    var fakeCardBackground: some View {
+        RoundedRectangle(cornerRadius: 26)
+            .fill(
+                MeshGradient(width: 3, height: 3, points: [
+                    .init(0, 0), .init(0.5, 0), .init(1, 0),
+                    .init(0, 0.5), .init(0.9, 0.6), .init(1, 0.5),
+                    .init(0, 1), .init(0.5, 1), .init(1, 1),
+                ], colors: [
+//                    cardColor, cardColor, .pink,
+//                    .pink, .orange, cardColor,
+//                    cardColor, .orange, cardColor,
+//                    
+//                    cardColor, cardColor, .white,
+//                    cardColor, cardColor, cardColor,
+//                    cardColor, .white, cardColor,
+                    
+                    cardColor, cardColor, cardColor.lighter(by: 30),
+                    cardColor, cardColor, cardColor,
+                    cardColor, cardColor.lighter(by: 30), cardColor,
+                ])
+            )
+            //.fill(cardColor.gradient)
+    }
+    
+    
+    var fakeCardCardNumber: some View {
+        HStack {
+            if editKeychainDetails {
+                TextField("Card Number", text: $keychainCardNumber ?? "")
+                    .textFieldStyle(.roundedBorder)
+                    .keyboardType(.numberPad)
+            } else {
+                HStack {
+                    Text("NUM:")
+                        .frame(width: 50, alignment: .leading)
+                    
+                    if let keychainCardNumber {
+                        Text(keychainCardNumber.isEmpty ? "N/A" : keychainCardNumber)
+                            .font(.title)
+                    } else {
+                        Text("N/A")
+                            .font(.title)
+                    }
+                }
+                
+                Spacer()
+            }
+        }
+    }
+    
+    
+    var fakeCardExpirationDate: some View {
+        HStack {
+            if editKeychainDetails {
+                TextField("Expiration Month", text: $keychainExpirationMonth ?? "")
+                    .textFieldStyle(.roundedBorder)
+                    .keyboardType(.numberPad)
+                TextField("Expiration Year", text: $keychainExpirationYear ?? "")
+                    .textFieldStyle(.roundedBorder)
+                    .keyboardType(.numberPad)
+            } else {
+                HStack {
+                    Text("EXP:")
+                        .frame(width: 50, alignment: .leading)
+                    
+                    if let keychainExpirationMonth, let keychainExpirationYear {
+                        Text(keychainExpirationMonth.isEmpty || keychainExpirationYear.isEmpty
+                             ? "N/A"
+                             : "\(keychainExpirationMonth)/\(keychainExpirationYear)"
+                        )
+                        .font(.title)
+                    } else {
+                        Text("N/A")
+                            .font(.title)
+                    }
+                }
+                
+                Spacer()
+            }
+        }
+    }
+    
+    
+    var fakeCardSecurityCode: some View {
+        HStack {
+            if editKeychainDetails {
+                TextField("Security Code", text: $keychainSecurityCode ?? "")
+                    .textFieldStyle(.roundedBorder)
+                    .keyboardType(.numberPad)
+            } else {
+                HStack {
+                    Text("CVV:")
+                        .frame(width: 50, alignment: .leading)
+                    
+                    if let keychainSecurityCode {
+                        Text(keychainSecurityCode.isEmpty ? "N/A" : keychainSecurityCode)
+                            .font(.title)
+                    } else {
+                        Text("N/A")
+                            .font(.title)
+                    }
+                }
+                Spacer()
+            }
         }
     }
     
@@ -388,7 +479,7 @@ struct PayMethodOverView: View {
         if payMethod.action == .add {
             ContentUnavailableView("Insights are not available when adding a new account", systemImage: "square.stack.3d.up.slash.fill")
         } else {
-            PayMethodDashboard(vm: viewModel, payMethod: payMethod)
+            PayMethodDashboard(vm: viewModel, payMethod: payMethod, navPath: $navPath)
                 .opacity(viewModel.isLoadingHistory ? 0 : 1)
                 .overlay {
                     ProgressView("Loading Insights…")
@@ -401,7 +492,11 @@ struct PayMethodOverView: View {
     
     
     func prepareView() async {
-        if payMethod.action != .add {
+        if payMethod.action == .add {
+            //payModel.upsert(payMethod)
+            paymentMethodEditID = payMethod.id
+            viewModel.isLoadingHistory = false
+        } else {
             /// iPhone: only fetch the new historical if it has been wiped out (by returning to the account list), or if a transaction has been updated since the history was fetched from the server.
             /// Due to the navigation stack, we can leave the chart open and go elsewhere in the app. Thus, no need to refresh the data unless a transaction changed in the meantime.
             /// Likewise, when returning to the account list, the viewmodel would be destroyed, and the history would need to be refetched.
@@ -412,10 +507,6 @@ struct PayMethodOverView: View {
                 fetchHistoryTime = Date()
                 await viewModel.fetchHistory(for: payMethod, payModel: payModel, setChartAsNew: true)
             }
-        } else {
-            payModel.upsert(payMethod)
-            paymentMethodEditID = payMethod.id
-            viewModel.isLoadingHistory = false
         }
         
         
@@ -450,6 +541,52 @@ struct PayMethodOverView: View {
             // no biometrics
         }
     }
+    
+    
+    func getCardDetailsFromKeychain() {
+        print("-- \(#function)")
+        let keychainManager = KeychainManager()
+        do {
+            if let cardNumber = try keychainManager.getFromKeychain(key: "payment_method_card_number_\(payMethod.id)") {
+                self.keychainCardNumber = cardNumber
+            }
+            if let expirationMonth = try keychainManager.getFromKeychain(key: "payment_method_expiration_month_\(payMethod.id)") {
+                self.keychainExpirationMonth = expirationMonth
+            }
+            if let expirationYear = try keychainManager.getFromKeychain(key: "payment_method_expiration_year_\(payMethod.id)") {
+                self.keychainExpirationYear = expirationYear
+            }
+            if let securityCode = try keychainManager.getFromKeychain(key: "payment_method_security_code_\(payMethod.id)") {
+                self.keychainSecurityCode = securityCode
+            }
+        } catch {
+            print(error.localizedDescription)
+        }
+    }
+    
+    
+    func saveCardDetailsToKeychain() {
+        print("-- \(#function)")
+        let keychainManager = KeychainManager()
+                        
+        do {
+            if let keychainCardNumber = keychainCardNumber {
+                try keychainManager.addToKeychain(key: "payment_method_card_number_\(payMethod.id)", value: keychainCardNumber)
+            }
+            if let keychainExpirationMonth = keychainExpirationMonth {
+                try keychainManager.addToKeychain(key: "payment_method_expiration_month_\(payMethod.id)", value: keychainExpirationMonth)
+            }
+            if let keychainExpirationYear = keychainExpirationYear {
+                try keychainManager.addToKeychain(key: "payment_method_expiration_year_\(payMethod.id)", value: keychainExpirationYear)
+            }
+            if let keychainSecurityCode = keychainSecurityCode {
+                try keychainManager.addToKeychain(key: "payment_method_security_code_\(payMethod.id)", value: keychainSecurityCode)
+            }
+
+        } catch {
+            print(error.localizedDescription)
+        }
+    }
 }
 
 
@@ -469,7 +606,10 @@ fileprivate struct TransactionList: View {
     
     var transactions: [CBTransaction] {
         guard let month = month else { return [] }
-        return calModel.getTransactions(months: [month], meth: payMethod)
+        let trans = calModel
+            .getTransactions(months: [month], meth: payMethod)
+            .filter { $0.dateComponents?.day ?? 0 <= AppState.shared.todayDay }
+        return trans
     }
     
     var noTransReasonText: String {

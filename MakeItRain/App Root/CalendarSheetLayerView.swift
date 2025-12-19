@@ -10,6 +10,17 @@ import SwiftUI
 #if os(iOS)
 import UIKit
 #endif
+//
+//struct SafeAreaInsetsKey: EnvironmentKey {
+//    static let defaultValue: EdgeInsets = EdgeInsets()
+//}
+//
+//extension EnvironmentValues {
+//    var safeAreaInsets: EdgeInsets {
+//        get { self[SafeAreaInsetsKey.self] }
+//        set { self[SafeAreaInsetsKey.self] = newValue }
+//    }
+//}
 
 struct CalendarSheetLayerView: View {
     //@Local(\.colorTheme) var colorTheme
@@ -32,6 +43,12 @@ struct CalendarSheetLayerView: View {
             #if os(iOS)
             .fullScreenCover(isPresented: $calModel.showMonth, onDismiss: {
                 //print("Cal sheet onDismiss")
+                if calModel.categoryFilterWasSetByCategoryPage {
+                    calModel.sCategories.removeAll()
+                    calModel.categoryFilterWasSetByCategoryPage = false
+                    calModel.sPayMethod = calModel.sPayMethodBeforeFilterWasSetByCategoryPage
+                    calModel.sPayMethodBeforeFilterWasSetByCategoryPage = nil
+                }
             }) {
                 calendarSheet
             }
@@ -43,12 +60,15 @@ struct CalendarSheetLayerView: View {
         Group {
             if let selectedMonth = NavigationManager.shared.selectedMonth {
                 if NavDestination.justMonths.contains(selectedMonth) {
-                    CalendarViewPhone(enumID: selectedMonth)
-                        .tint(Color.theme)
-                        .navigationTransition(.zoom(sourceID: selectedMonth, in: monthNavigationNamespace))
-                        .if(AppState.shared.methsExist) {
-                            $0.calendarLoadingSpinner(id: selectedMonth, text: "Loading…")
-                        }
+                    //GeometryReader { geo in
+                        CalendarViewPhone(enumID: selectedMonth)
+                            //.environment(\.safeAreaInsets, geo.safeAreaInsets)
+                            .tint(Color.theme)
+                            .navigationTransition(.zoom(sourceID: selectedMonth, in: monthNavigationNamespace))
+                            .if(AppState.shared.methsExist) {
+                                $0.calendarLoadingSpinner(id: selectedMonth, text: "Loading…")
+                            }
+                    //}
                 }
             }
         }

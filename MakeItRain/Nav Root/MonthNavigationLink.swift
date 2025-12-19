@@ -23,6 +23,24 @@ struct MonthNavigationLink: View {
     var month: CBMonth {
         calModel.months.filter { $0.enumID == enumID }.first!
     }
+    
+    var monthTitle: String {
+        if calModel.isPlayground {
+            if month.enumID == .lastDecember {
+                "Last \(month.abbreviatedName)"
+            } else if month.enumID == .nextJanuary {
+                "Next \(month.abbreviatedName)"
+            } else {
+                month.abbreviatedName
+            }
+        } else {
+            if month.enumID == .lastDecember || month.enumID == .nextJanuary {
+                "\(month.abbreviatedName) \(String(month.year))"
+            } else {
+                month.abbreviatedName
+            }
+        }
+    }
             
     var body: some View {
         VStack(alignment: .leading) {
@@ -37,16 +55,18 @@ struct MonthNavigationLink: View {
         .padding(4)
         /// Make sure all buttons are the same height, regardless of the amount of weekly rows in the month
         .frame(maxHeight: .infinity, alignment: .top)
-//        .if(AppState.shared.isIpad) {
-//            $0
-                .background(
-                RoundedRectangle(cornerRadius: 15)
-                    .fill(blinkView ? Color.theme : NavigationManager.shared.selectedMonth == month.enumID ? Color(.tertiarySystemFill) : Color.clear)
-            )
-        //}
+        .background(
+            RoundedRectangle(cornerRadius: 15)
+                .fill(blinkView
+                      ? Color.theme
+                      : NavigationManager.shared.selectedMonth == month.enumID
+                      ? Color(.tertiarySystemFill)
+                      : Color.clear
+                )
+        )
         
         .onTapGesture {
-            print("SourceID: \(month.enumID)")
+            //print("SourceID: \(month.enumID)")
             navigateToMonth()
         }
         .dropDestination(for: CBTransaction.self) { droppedTrans, location in
@@ -63,18 +83,14 @@ struct MonthNavigationLink: View {
     
     
     var monthName: some View {
-        Group {
-            if month.enumID == .lastDecember || month.enumID == .nextJanuary {
-                Text("\(month.abbreviatedName) \(String(month.year))")
-            } else {
-                Text(month.abbreviatedName)
-            }
-        }
-        .font(.title3)
-        .bold()
-        .if(AppState.shared.todayMonth == month.actualNum && AppState.shared.todayYear == month.year) {
-            $0.foregroundStyle(Color.theme)
-        }
+        Text(monthTitle)
+            .font(.title3)
+            .bold()
+            .foregroundStyle(
+                AppState.shared.todayMonth == month.actualNum && AppState.shared.todayYear == month.year
+                ? Color.theme
+                : Color.primary
+            )
     }
     
     
@@ -88,14 +104,9 @@ struct MonthNavigationLink: View {
                     } else {
                         Text("\(day.dateComponents?.day ?? 0)")
                             .lineLimit(1)
-                            //.minimumScaleFactor(0.5)
                             .font(.caption2)
-                            //.font(.system(size: 5))
-                            .if(AppState.shared.todayDay == (day.dateComponents?.day ?? 0) && AppState.shared.todayMonth == month.actualNum && AppState.shared.todayYear == month.year) {
-                                $0
-                                .bold()
-                                .foregroundStyle(Color.theme)
-                            }
+                            .bold(day.date.isToday)
+                            .foregroundStyle(day.date.isToday ? Color.theme : .primary)
                     }
                 }
                 .padding(.bottom, 4)

@@ -19,7 +19,7 @@ struct CalendarSheetLayerWrapper<Content: View>: View {
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
     @Environment(RepeatingTransactionModel.self) private var repModel
-    @Environment(EventModel.self) private var eventModel
+    
     #if os(iOS)
     @Environment(PlaidModel.self) private var plaidModel
     #endif
@@ -57,7 +57,6 @@ struct CalendarSheetLayerWrapper<Content: View>: View {
 //                        .environment(catModel)
 //                        .environment(keyModel)
 //                        .environment(repModel)
-//                        .environment(eventModel)
 //                )
 //
 //                let window = OverlayWindow(
@@ -88,7 +87,6 @@ struct CalendarSheetLayerWrapper<Content: View>: View {
                     .environment(catModel)
                     .environment(keyModel)
                     .environment(repModel)
-                    .environment(eventModel)
                     .environment(plaidModel)
                     .environment(calProps)
                     .environment(dataChangeTriggers)

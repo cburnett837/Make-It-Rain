@@ -55,7 +55,7 @@ struct BudgetBreakdownView: View {
                     Group {
                         HStack {
                             ChartCircleDot(
-                                budget: metric.budget,
+                                budget: metric.budgetForCategory,
                                 expenses: metric.expenses,
                                 color: metric.category.color,
                                 size: 12
@@ -67,13 +67,13 @@ struct BudgetBreakdownView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         
-                        Text(metric.budget.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                        Text(metric.budgetForCategory.currencyWithDecimals(useWholeNumbers ? 0 : 2))
                             
                         Text((metric.expenses == 0 ? 0 : metric.expenses * -1 - metric.income).currencyWithDecimals(useWholeNumbers ? 0 : 2))
                                                     
-                        Text((metric.income).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                        Text(metric.income.currencyWithDecimals(useWholeNumbers ? 0 : 2))
                                                     
-                        let overUnder = metric.budget + (metric.expenses + metric.income)
+                        let overUnder = (metric.budgetForCategory ?? 0) + (metric.expenses + metric.income)
                         Text(abs(overUnder).currencyWithDecimals(useWholeNumbers ? 0 : 2))
                             .foregroundStyle(overUnder < 0 ? .red : .green)
                             //.frame(maxWidth: .infinity, alignment: .leading)

@@ -56,8 +56,8 @@ class RepeatingTransactionModel {
         
         /// User is entering a new transaction but forgot the payment method.
         /// Remove the dud that is in `.add` mode since it's being upserted into the list on creation.
-        if repTransaction.payMethod == nil {
-            AppState.shared.showAlert(title: "Not Saved", subtitle: "An account is required.")
+        if repTransaction.title.isEmpty && repTransaction.payMethod == nil {
+            //AppState.shared.showAlert(title: "Not Saved", subtitle: "An account is required.")
             withAnimation { repTransactions.removeAll { $0.id == id } }
             return
         }
@@ -114,10 +114,7 @@ class RepeatingTransactionModel {
                 } else {
                     repTransactions.removeAll()
                 }
-            }
-            
-            /// Update the progress indicator.
-            AppState.shared.downloadedData.append(.repeatingTransactions)
+            }                        
             
             let currentElapsed = CFAbsoluteTimeGetCurrent() - start
             print("⏰It took \(currentElapsed) seconds to fetch the repeating transactions")
@@ -138,6 +135,12 @@ class RepeatingTransactionModel {
     @MainActor
     func submit(_ repTransaction: CBRepeatingTransaction) async {
         print("-- \(#function)")
+        
+        /// Allow more time to save if the user enters the background.
+        #if os(iOS)
+        var backgroundTaskId = AppState.shared.beginBackgroundTask()
+        #endif
+        
         isThinking = true
         //LoadingManager.shared.startDelayedSpinner()
         LogManager.log()
@@ -159,6 +162,11 @@ class RepeatingTransactionModel {
                     repTransaction.action = .edit
                 }                
             }
+            
+            /// End the background task.
+            #if os(iOS)
+            AppState.shared.endBackgroundTask(&backgroundTaskId)
+            #endif
                                     
         case .failure(let error):
             LogManager.error(error.localizedDescription)
@@ -176,6 +184,11 @@ class RepeatingTransactionModel {
         repTransaction.action = .edit
         #if os(macOS)
         fuckYouSwiftuiTableRefreshID = UUID()
+        #endif
+        
+        /// End the background task.
+        #if os(iOS)
+        AppState.shared.endBackgroundTask(&backgroundTaskId)
         #endif
     }
     

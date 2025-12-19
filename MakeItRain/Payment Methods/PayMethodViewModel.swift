@@ -34,10 +34,11 @@ class PayMethodViewModel {
     var mainPayMethod: CBPaymentMethod = CBPaymentMethod()
     var payMethods: Array<CBPaymentMethod> = []
     var chartLeadingDate: Date = Date()
-    var fetchYearStart = AppState.shared.todayYear - 10
-    var fetchYearEnd = AppState.shared.todayYear
+    var fetchYearStart = AppState.shared.todayYear - 11// - 10
+    var fetchYearEnd = AppState.shared.todayYear + 1
     var isLoadingHistory = true
     var isLoadingMoreHistory = false
+    var refreshTask: Task<Void, Never>?
     
     //    var rawData: [PayMethodMonthlyBreakdown] { data.flatMap { $0.data } }
     //    var dates: [Date] { Array(Set(rawData.map { $0.date })) }
@@ -154,17 +155,8 @@ class PayMethodViewModel {
     }
     
     var visibleDateRangeForHeader: ClosedRange<Date> {
-        /// Check if the date range of the data is within the visibleRange. Crop accordingly.
-//        var idealEndDate: Date
-//        
-//        if let firstOfNextYear = Calendar.current.date(from: DateComponents(year: chartLeadingDate.year + visibleYearCount.rawValue, month: 1, day: 1)) {
-//            // Get the last day of the current year
-//            idealEndDate = Calendar.current.date(byAdding: .day, value: -1, to: firstOfNextYear)!
-//        } else {
-//            idealEndDate = Calendar.current.date(byAdding: .day, value: (365 * (visibleYearCount.rawValue)), to: chartLeadingDate)!
-//        }
-        
         let firstOfNextYear = Calendar.current.date(from: DateComponents(year: chartLeadingDate.year + visibleYearCount.rawValue, month: 1, day: 1))!
+//        let firstOfNextYear = Calendar.current.date(from: DateComponents(year: chartLeadingDate.year, month: 1, day: 1))!
         let idealEndDate = Calendar.current.date(byAdding: .day, value: -1, to: firstOfNextYear)!
         
         
@@ -181,6 +173,31 @@ class PayMethodViewModel {
         HStack(spacing: 5) {
             let lower = visibleDateRangeForHeader.lowerBound.year
             let upper = visibleDateRangeForHeader.upperBound.year
+            
+            var ytdText: String {
+                if chartCropingStyle == .endAtCurrentMonth {
+                    if upper == lower && lower == AppState.shared.todayYear
+                    || upper != lower && upper == AppState.shared.todayYear {
+                        return " (YTD)"
+                    }
+                }
+                return ""
+            }
+            
+            if upper != lower {
+                Text(String(lower))
+                Text("-")
+            }
+                                                
+            Text("\(String(upper))\(ytdText)")
+        }
+    }
+    
+    
+    var displayMonthView: some View {
+        HStack(spacing: 5) {
+            let lower = visibleDateRangeForHeader.lowerBound.month
+            let upper = visibleDateRangeForHeader.upperBound.month
             
             var ytdText: String {
                 if chartCropingStyle == .endAtCurrentMonth {
@@ -306,304 +323,312 @@ class PayMethodViewModel {
     /// `@MainActor`  is required to fix the data race that occurs when `for breakdown in summarizedBreakdowns {}` is still updating `CBPaymentMethod.breakdowns`.
     /// In the chart, the raw data list will try and read `CBPaymentMethod.breakdowns` before `for breakdown in summarizedBreakdowns {}` is finished.
     @MainActor
-    func fetchHistory(for payMethod: CBPaymentMethod, payModel: PayMethodModel, setChartAsNew: Bool) async {
-        if setChartAsNew {
-            payMethod.breakdowns.removeAll()
-            payMethod.breakdownsRegardlessOfPaymentMethod.removeAll()
-            isLoadingHistory = true
-        }
-        
-        /// Accumulate the various payment method ID associated with the unified payment method.
-        var ids: [String] = []
-        if payMethod.isUnified {
-            let accountType = payMethod.accountType
-            if accountType == .unifiedCredit {
-                for each in payModel.paymentMethods
-                    .filter({ $0.accountType == .credit || $0.accountType == .loan })
-                    .filter({ !$0.isHidden }) {
-                    ids.append(each.id)
-                }
-            } else {
-                for each in payModel.paymentMethods
-                    .filter({ $0.accountType == .checking || $0.accountType == .cash })
-                    .filter({ !$0.isHidden }) {
-                    ids.append(each.id)
-                }
-            }
-        } else {
-            ids.append(payMethod.id)
-        }
-        
-        
-        let model = AnalysisRequestModel(recordIDs: ids, fetchYearStart: fetchYearStart, fetchYearEnd: fetchYearEnd, isUnifiedRequest: payMethod.isUnified)
-        
-        if let payMethods = await payModel.fetchAnalytics(model) {
+    func fetchHistory(for payMethod: CBPaymentMethod, payModel: PayMethodModel, setChartAsNew: Bool) {
+        self.refreshTask = Task {
             
-            var thePayMethods: [CBPaymentMethod] = []
-            /// If a unified view, summarize all the data.
+            
+            if setChartAsNew {
+                payMethod.breakdowns.removeAll()
+                payMethod.breakdownsRegardlessOfPaymentMethod.removeAll()
+                isLoadingHistory = true
+            }
+            
+            /// Accumulate the various payment method ID associated with the unified payment method.
+            var ids: [String] = []
             if payMethod.isUnified {
-                let rawData: [PayMethodMonthlyBreakdown] = payMethods.flatMap { $0.breakdowns }
-                var summarizedBreakdowns: [PayMethodMonthlyBreakdown] = []
-                let dates: [Date] = rawData.map({ $0.date }).uniqued { $0 }
-                
-                for each in dates {
-                    //print(each)
-                    let breakdowns = rawData.filter({ Calendar.current.isDate($0.date, inSameDayAs: each) })
-                    let incomes = breakdowns.map { $0.income }.reduce(0, +)
-                    let incomesAndPositiveAmounts = breakdowns.map { $0.incomeAndPositiveAmounts }.reduce(0, +)
-                    let positiveAmounts = breakdowns.map { $0.positiveAmounts }.reduce(0, +)
-                    let startingAmountsAndPositiveAmounts = breakdowns.map { $0.startingAmountsAndPositiveAmounts }.reduce(0, +)
-                    let expenses = breakdowns.map { $0.expenses }.reduce(0, +)
-                    let payments = breakdowns.map { $0.payments }.reduce(0, +)
-                    let startingAmounts = breakdowns.map { $0.startingAmounts }.reduce(0, +)
-                    let profitLoss = breakdowns.map { $0.profitLoss }.reduce(0, +)
-                    
-                    breakdowns.forEach { $0.profitLossPercentage = Helpers.netWorthPercentageChange(start: $0.startingAmounts, end: $0.monthEnd) }
-
-                    
-//                    breakdowns.profitLossPercentage = Helpers.netWorthPercentageChange(
-//                        start: startingAmounts,
-//                        end: breakdowns.map { $0.monthEnd }.reduce(0, +)
-//                    )
-                    
-                    
-                    
-                    //let profitLossPercentage = breakdowns.map { $0.profitLossPercentage }.reduce(0, +)
-                    
-//                    if each.month == 6 && each.year == 2025 {
-//                        print("HEREEEEEEE")
-//                        
-//                        
-//                        print(profitLoss)
-//                        
-//                        print(breakdowns.map { $0.profitLoss })
-//                        
-//                        print(breakdowns.map { $0.profitLossPercentage })
-//                        // [-62.64794935315167, 0.0, 240.0]
-//                        
-//                        breakdowns.forEach { print($0.payMethodID, $0.startingAmounts, $0.monthEnd) }
-//                        //5 3633.0 1357.0
-//                        //49 0.0 0.0
-//                        //7 500.0 1700.0
-//                        print(profitLossPercentage)
-//                        //177.35205064684834
-//
-//                        //(3633 + 500) (1357 + 1700)
-//                        //4133 + 3057
-//                        print(breakdowns.map { $0.startingAmounts })
-//                        print(breakdowns.map { $0.monthEnd })
-//                        print(Helpers.netWorthPercentageChange(start: startingAmounts, end: breakdowns.map { $0.monthEnd }.reduce(0, +)))
-//                        
-//
-//                    }
-                    
-                    
-                    let monthEnd = breakdowns.map { $0.monthEnd }.reduce(0, +)
-                    let minEod = breakdowns.map { $0.minEod }.reduce(0, +)
-                    let maxEod = breakdowns.map { $0.maxEod }.reduce(0, +)
-                    
-                    //print(breakdowns.map { $0.maxEod })
-                    
-                    let summarizedBreakdown = PayMethodMonthlyBreakdown(
-                        title: payMethod.title,
-                        color: payMethod.color,
-                        payMethodID: payMethod.id,
-                        month: each.month,
-                        year: each.year,
-                        incomeString: String(incomes),
-                        incomeAndPositiveAmountsString: String(incomesAndPositiveAmounts),
-                        positiveAmountsString: String(positiveAmounts),
-                        startingAmountsAndPositiveAmountsString: String(startingAmountsAndPositiveAmounts),
-                        expensesString: String(expenses),
-                        paymentsString: String(payments),
-                        startingAmountsString: String(startingAmounts),
-                        profitLossString: String(profitLoss),
-                        profitLossPercentage: Helpers.netWorthPercentageChange(start: startingAmounts, end: breakdowns.map { $0.monthEnd }.reduce(0, +)),
-                        //profitLossMinPercentageString: String(profitLossMinPercentage),
-                        //profitLossMaxPercentageString: String(profitLossMaxPercentage),
-                        //profitLossMinAmountString: String(profitLossMinAmount),
-                        //profitLossMaxAmountString: String(profitLossMaxAmount),
-                        monthEndString: String(monthEnd),
-                        minEodString: String(minEod),
-                        maxEodString: String(maxEod)
-                    )
-                    
-                    summarizedBreakdowns.append(summarizedBreakdown)
-                }
-                
-                //let profitLossMinPercentage = percentages.min() ?? 0
-                //let profitLossMaxPercentage = percentages.max() ?? 0
-                //let profitLossMinAmount = breakdowns.map { $0.profitLoss }.min() ?? 0
-                //let profitLossMaxAmount = breakdowns.map { $0.profitLoss }.max() ?? 0
-                
-                let percentages = summarizedBreakdowns.map {$0.profitLossPercentage}
-                let profitLossMinPercentage = percentages.min() ?? 0
-                let profitLossMaxPercentage = percentages.max() ?? 0
-                payMethod.profitLossMinPercentage = profitLossMinPercentage
-                payMethod.profitLossMaxPercentage = profitLossMaxPercentage
-                
-                let profitLosses = summarizedBreakdowns.map {$0.profitLoss}
-                let profitLossMinAmount = profitLosses.min() ?? 0
-                let profitLossMaxAmount = profitLosses.max() ?? 0
-                payMethod.profitLossMinAmountString = String(profitLossMinAmount)
-                payMethod.profitLossMaxAmountString = String(profitLossMaxAmount)
-                
-                let minEod = summarizedBreakdowns.map {$0.minEod}.min() ?? 0
-                let maxEod = summarizedBreakdowns.map {$0.maxEod}.min() ?? 0
-                payMethod.minEodString = String(minEod)
-                payMethod.maxEodString = String(maxEod)
-                
-                
-                
-                for breakdown in summarizedBreakdowns {
-                    if setChartAsNew {
-                        payMethod.breakdowns.append(breakdown)
-                    } else {
-                        if let index = payMethod.breakdowns.firstIndex(where: { $0.month == breakdown.month && $0.year == breakdown.year && $0.payMethodID == breakdown.payMethodID }) {
-                            payMethod.breakdowns[index].setFromAnotherInstance(breakdown)
-                        } else {
-                            payMethod.breakdowns.append(breakdown)
-                        }
+                let accountType = payMethod.accountType
+                if accountType == .unifiedCredit {
+                    for each in payModel.paymentMethods
+                        .filter({ $0.accountType == .credit || $0.accountType == .loan })
+                        .filter({ !$0.isHidden }) {
+                        ids.append(each.id)
+                    }
+                } else {
+                    for each in payModel.paymentMethods
+                        .filter({ $0.accountType == .checking || $0.accountType == .cash })
+                        .filter({ !$0.isHidden }) {
+                        ids.append(each.id)
                     }
                 }
-                
-                self.mainPayMethod = payMethod
-                thePayMethods = payMethods
             } else {
-                if let meth = payMethods.first {
+                ids.append(payMethod.id)
+            }
+            
+            
+            let model = AnalysisRequestModel(
+                recordIDs: ids,
+                groupID: nil,
+                fetchYearStart: fetchYearStart,
+                fetchYearEnd: fetchYearEnd,
+                isUnifiedRequest: payMethod.isUnified
+            )
+            
+            if let payMethods = await payModel.fetchAnalytics(model) {
+                
+                var thePayMethods: [CBPaymentMethod] = []
+                /// If a unified view, summarize all the data.
+                if payMethod.isUnified {
+                    let rawData: [PayMethodMonthlyBreakdown] = payMethods.flatMap { $0.breakdowns }
+                    var summarizedBreakdowns: [PayMethodMonthlyBreakdown] = []
+                    let dates: [Date] = rawData.map({ $0.date }).uniqued { $0 }
                     
-                    //let profitLossPercentage = breakdowns.map { Helpers.netWorthPercentageChange(start: $0.startingAmounts, end: $0.monthEnd) }.reduce(0, +)
-                    meth.breakdowns.forEach { $0.profitLossPercentage = Helpers.netWorthPercentageChange(start: $0.startingAmounts, end: $0.monthEnd) }
-                                                        
-                    let percentages = meth.breakdowns.map { $0.profitLossPercentage }
+                    for each in dates {
+                        //print(each)
+                        let breakdowns = rawData.filter({ Calendar.current.isDate($0.date, inSameDayAs: each) })
+                        let incomes = breakdowns.map { $0.income }.reduce(0, +)
+                        let incomesAndPositiveAmounts = breakdowns.map { $0.incomeAndPositiveAmounts }.reduce(0, +)
+                        let positiveAmounts = breakdowns.map { $0.positiveAmounts }.reduce(0, +)
+                        let startingAmountsAndPositiveAmounts = breakdowns.map { $0.startingAmountsAndPositiveAmounts }.reduce(0, +)
+                        let expenses = breakdowns.map { $0.expenses }.reduce(0, +)
+                        let payments = breakdowns.map { $0.payments }.reduce(0, +)
+                        let startingAmounts = breakdowns.map { $0.startingAmounts }.reduce(0, +)
+                        let profitLoss = breakdowns.map { $0.profitLoss }.reduce(0, +)
+                        
+                        breakdowns.forEach { $0.profitLossPercentage = Helpers.netWorthPercentageChange(start: $0.startingAmounts, end: $0.monthEnd) }
+                        
+                        
+                        //                    breakdowns.profitLossPercentage = Helpers.netWorthPercentageChange(
+                        //                        start: startingAmounts,
+                        //                        end: breakdowns.map { $0.monthEnd }.reduce(0, +)
+                        //                    )
+                        
+                        
+                        
+                        //let profitLossPercentage = breakdowns.map { $0.profitLossPercentage }.reduce(0, +)
+                        
+                        //                    if each.month == 6 && each.year == 2025 {
+                        //                        print("HEREEEEEEE")
+                        //
+                        //
+                        //                        print(profitLoss)
+                        //
+                        //                        print(breakdowns.map { $0.profitLoss })
+                        //
+                        //                        print(breakdowns.map { $0.profitLossPercentage })
+                        //                        // [-62.64794935315167, 0.0, 240.0]
+                        //
+                        //                        breakdowns.forEach { print($0.payMethodID, $0.startingAmounts, $0.monthEnd) }
+                        //                        //5 3633.0 1357.0
+                        //                        //49 0.0 0.0
+                        //                        //7 500.0 1700.0
+                        //                        print(profitLossPercentage)
+                        //                        //177.35205064684834
+                        //
+                        //                        //(3633 + 500) (1357 + 1700)
+                        //                        //4133 + 3057
+                        //                        print(breakdowns.map { $0.startingAmounts })
+                        //                        print(breakdowns.map { $0.monthEnd })
+                        //                        print(Helpers.netWorthPercentageChange(start: startingAmounts, end: breakdowns.map { $0.monthEnd }.reduce(0, +)))
+                        //
+                        //
+                        //                    }
+                        
+                        
+                        let monthEnd = breakdowns.map { $0.monthEnd }.reduce(0, +)
+                        let minEod = breakdowns.map { $0.minEod }.reduce(0, +)
+                        let maxEod = breakdowns.map { $0.maxEod }.reduce(0, +)
+                        
+                        //print(breakdowns.map { $0.maxEod })
+                        
+                        let summarizedBreakdown = PayMethodMonthlyBreakdown(
+                            title: payMethod.title,
+                            color: payMethod.color,
+                            payMethodID: payMethod.id,
+                            month: each.month,
+                            year: each.year,
+                            incomeString: String(incomes),
+                            incomeAndPositiveAmountsString: String(incomesAndPositiveAmounts),
+                            positiveAmountsString: String(positiveAmounts),
+                            startingAmountsAndPositiveAmountsString: String(startingAmountsAndPositiveAmounts),
+                            expensesString: String(expenses),
+                            paymentsString: String(payments),
+                            startingAmountsString: String(startingAmounts),
+                            profitLossString: String(profitLoss),
+                            profitLossPercentage: Helpers.netWorthPercentageChange(start: startingAmounts, end: breakdowns.map { $0.monthEnd }.reduce(0, +)),
+                            //profitLossMinPercentageString: String(profitLossMinPercentage),
+                            //profitLossMaxPercentageString: String(profitLossMaxPercentage),
+                            //profitLossMinAmountString: String(profitLossMinAmount),
+                            //profitLossMaxAmountString: String(profitLossMaxAmount),
+                            monthEndString: String(monthEnd),
+                            minEodString: String(minEod),
+                            maxEodString: String(maxEod)
+                        )
+                        
+                        summarizedBreakdowns.append(summarizedBreakdown)
+                    }
+                    
+                    //let profitLossMinPercentage = percentages.min() ?? 0
+                    //let profitLossMaxPercentage = percentages.max() ?? 0
+                    //let profitLossMinAmount = breakdowns.map { $0.profitLoss }.min() ?? 0
+                    //let profitLossMaxAmount = breakdowns.map { $0.profitLoss }.max() ?? 0
+                    
+                    let percentages = summarizedBreakdowns.map {$0.profitLossPercentage}
                     let profitLossMinPercentage = percentages.min() ?? 0
                     let profitLossMaxPercentage = percentages.max() ?? 0
                     payMethod.profitLossMinPercentage = profitLossMinPercentage
                     payMethod.profitLossMaxPercentage = profitLossMaxPercentage
                     
-                    let profitLosses = payMethods.flatMap { $0.breakdowns.map { $0.profitLoss } }
+                    let profitLosses = summarizedBreakdowns.map {$0.profitLoss}
                     let profitLossMinAmount = profitLosses.min() ?? 0
                     let profitLossMaxAmount = profitLosses.max() ?? 0
                     payMethod.profitLossMinAmountString = String(profitLossMinAmount)
                     payMethod.profitLossMaxAmountString = String(profitLossMaxAmount)
-                                        
-                    let minEod = payMethods.flatMap { $0.breakdowns.map { $0.minEod } }.min() ?? 0
-                    let maxEod = payMethods.flatMap { $0.breakdowns.map { $0.maxEod } }.max() ?? 0
+                    
+                    let minEod = summarizedBreakdowns.map {$0.minEod}.min() ?? 0
+                    let maxEod = summarizedBreakdowns.map {$0.maxEod}.min() ?? 0
                     payMethod.minEodString = String(minEod)
                     payMethod.maxEodString = String(maxEod)
-                    
-                    
-                    
-                    //let rawData: [PayMethodMonthlyBreakdown] = payMethods.flatMap { $0.breakdowns }
-                    //let dates: [Date] = rawData.map({ $0.date }).uniqued { $0 }
-                    
-//                    for each in dates {
-//                        let breakdowns = rawData.filter({ Calendar.current.isDate($0.date, inSameDayAs: each) })
-//                        
-//                        //let profitLoss = breakdowns.map { $0.profitLoss }.reduce(0, +)
-//                        
-//                        //let percentages = breakdowns.map { Helpers.netWorthPercentageChange(start: $0.startingAmounts, end: $0.monthEnd) }
-//                        //let profitLossMinPercentage = percentages.min() ?? 0
-//                        //let profitLossMaxPercentage = percentages.max() ?? 0
-//                        //let profitLossMinAmount = breakdowns.map { $0.profitLoss }.min() ?? 0
-//                        //let profitLossMaxAmount = breakdowns.map { $0.profitLoss }.max() ?? 0
-//                        
-//                    }
-                    
-                    
-                    
-                    self.mainPayMethod = meth
-                }
-                
-                thePayMethods = payMethods
-            }
-            
-            
-            
-            /// For each payment method that came from the server.
-            for meth in payMethods {
-                for breakdown in meth.breakdowns {
-                    if setChartAsNew {
-                        if payMethod.breakdownsRegardlessOfPaymentMethod.firstIndex(where: { $0.month == breakdown.month && $0.year == breakdown.year && $0.payMethodID == breakdown.payMethodID }) == nil {
-                            payMethod.breakdownsRegardlessOfPaymentMethod.append(breakdown)
-                        }
-                    } else {
-                        if let index = payMethod.breakdownsRegardlessOfPaymentMethod.firstIndex(where: { $0.month == breakdown.month && $0.year == breakdown.year && $0.payMethodID == breakdown.payMethodID }) {
-                            payMethod.breakdownsRegardlessOfPaymentMethod[index].setFromAnotherInstance(breakdown)
+                                                            
+                    for breakdown in summarizedBreakdowns {
+                        if setChartAsNew {
+                            payMethod.breakdowns.append(breakdown)
                         } else {
-                            payMethod.breakdownsRegardlessOfPaymentMethod.append(breakdown)
-                        }
-                    }
-                    
-                    
-                }
-            }
-            
-            
-            if setChartAsNew {
-                self.payMethods = thePayMethods
-                
-                /// Sort the data so it plays nice with the chart.
-                for each in self.payMethods {
-                    each.breakdowns.sort(by: { $0.date < $1.date })
-                }
-                
-                /// Set the scrollPosition to which ever is smaller, the idealStartDate, or the maxAvailStartDate.
-                //let rawData: [PayMethodMonthlyBreakdown] = self.payMethods.flatMap { $0.breakdowns }
-                //let dates: [Date] = rawData.map({ $0.date }).uniqued { $0 }
-                //let minDate = dates.min() ?? Date()
-                //let maxDate = dates.max() ?? Date()
-                
-                //self.minDate = minDate
-                //self.maxDate = maxDate
-                
-                //let maxDate = data.last?.date ?? Date()
-                //let idealDate = Calendar.current.date(byAdding: .day, value: -(365 * (visibleYearCount.rawValue)), to: maxDate)!
-                
-//                if visibleYearCount == .year1 {
-//                    let components = Calendar.current.dateComponents([.year], from: .now)
-//                    chartLeadingDate = Calendar.current.date(from: components)!
-//                } else {
-//                    chartLeadingDate = minDate < idealDate ? idealDate : minDate
-//                }
-                
-                //chartLeadingDate = minDate < idealDate ? idealDate : minDate
-                prepareData()
-                setChartScrolledToDate(visibleYearCount)
-                
-                isLoadingHistory = false
-                
-            } else {
-                /// When fetching more data (like at the end of the list), if the data does not already exist, append it.
-                for meth in thePayMethods {
-                    if let index = self.payMethods.firstIndex(where: { $0.id == meth.id }) {
-                        let obj = self.payMethods[index]
-                        for breakdown in meth.breakdowns {
-                            if let index = obj.breakdowns.firstIndex(where: { $0.month == breakdown.month && $0.year == breakdown.year && $0.payMethodID == breakdown.payMethodID }) {
-                                obj.breakdowns[index].setFromAnotherInstance(breakdown)
+                            if let index = payMethod.breakdowns.firstIndex(where: { $0.month == breakdown.month && $0.year == breakdown.year && $0.payMethodID == breakdown.payMethodID }) {
+                                payMethod.breakdowns[index].setFromAnotherInstance(breakdown)
                             } else {
-                                obj.breakdowns.append(breakdown)
+                                payMethod.breakdowns.append(breakdown)
                             }
                         }
                     }
+                    
+                    self.mainPayMethod = payMethod
+                    thePayMethods = payMethods
+                } else {
+                    if let meth = payMethods.first {
+                        
+                        //let profitLossPercentage = breakdowns.map { Helpers.netWorthPercentageChange(start: $0.startingAmounts, end: $0.monthEnd) }.reduce(0, +)
+                        meth.breakdowns.forEach { $0.profitLossPercentage = Helpers.netWorthPercentageChange(start: $0.startingAmounts, end: $0.monthEnd) }
+                        
+                        let percentages = meth.breakdowns.map { $0.profitLossPercentage }
+                        let profitLossMinPercentage = percentages.min() ?? 0
+                        let profitLossMaxPercentage = percentages.max() ?? 0
+                        payMethod.profitLossMinPercentage = profitLossMinPercentage
+                        payMethod.profitLossMaxPercentage = profitLossMaxPercentage
+                        
+                        let profitLosses = payMethods.flatMap { $0.breakdowns.map { $0.profitLoss } }
+                        let profitLossMinAmount = profitLosses.min() ?? 0
+                        let profitLossMaxAmount = profitLosses.max() ?? 0
+                        payMethod.profitLossMinAmountString = String(profitLossMinAmount)
+                        payMethod.profitLossMaxAmountString = String(profitLossMaxAmount)
+                        
+                        let minEod = payMethods.flatMap { $0.breakdowns.map { $0.minEod } }.min() ?? 0
+                        let maxEod = payMethods.flatMap { $0.breakdowns.map { $0.maxEod } }.max() ?? 0
+                        payMethod.minEodString = String(minEod)
+                        payMethod.maxEodString = String(maxEod)
+                        
+                        
+                        
+                        //let rawData: [PayMethodMonthlyBreakdown] = payMethods.flatMap { $0.breakdowns }
+                        //let dates: [Date] = rawData.map({ $0.date }).uniqued { $0 }
+                        
+                        //                    for each in dates {
+                        //                        let breakdowns = rawData.filter({ Calendar.current.isDate($0.date, inSameDayAs: each) })
+                        //
+                        //                        //let profitLoss = breakdowns.map { $0.profitLoss }.reduce(0, +)
+                        //
+                        //                        //let percentages = breakdowns.map { Helpers.netWorthPercentageChange(start: $0.startingAmounts, end: $0.monthEnd) }
+                        //                        //let profitLossMinPercentage = percentages.min() ?? 0
+                        //                        //let profitLossMaxPercentage = percentages.max() ?? 0
+                        //                        //let profitLossMinAmount = breakdowns.map { $0.profitLoss }.min() ?? 0
+                        //                        //let profitLossMaxAmount = breakdowns.map { $0.profitLoss }.max() ?? 0
+                        //
+                        //                    }
+                        
+                        
+                        
+                        self.mainPayMethod = meth
+                    }
+                    
+                    thePayMethods = payMethods
                 }
                 
-                /// Sort the data so it plays nice with the chart.
-                for each in self.payMethods {
-                    each.breakdowns.sort(by: { $0.date < $1.date })
+                
+                
+                /// For each payment method that came from the server.
+                for meth in payMethods {
+                    for breakdown in meth.breakdowns {
+                        if setChartAsNew {
+                            if payMethod.breakdownsRegardlessOfPaymentMethod.firstIndex(where: { $0.month == breakdown.month && $0.year == breakdown.year && $0.payMethodID == breakdown.payMethodID }) == nil {
+                                payMethod.breakdownsRegardlessOfPaymentMethod.append(breakdown)
+                            }
+                        } else {
+                            if let index = payMethod.breakdownsRegardlessOfPaymentMethod.firstIndex(where: { $0.month == breakdown.month && $0.year == breakdown.year && $0.payMethodID == breakdown.payMethodID }) {
+                                payMethod.breakdownsRegardlessOfPaymentMethod[index].setFromAnotherInstance(breakdown)
+                            } else {
+                                payMethod.breakdownsRegardlessOfPaymentMethod.append(breakdown)
+                            }
+                        }
+                        
+                        
+                    }
+                }
+                
+                
+                if setChartAsNew {
+                    self.payMethods = thePayMethods
+                    
+                    /// Sort the data so it plays nice with the chart.
+                    for each in self.payMethods {
+                        each.breakdowns.sort(by: { $0.date < $1.date })
+                    }
+                    
+                    /// Set the scrollPosition to which ever is smaller, the idealStartDate, or the maxAvailStartDate.
+                    //let rawData: [PayMethodMonthlyBreakdown] = self.payMethods.flatMap { $0.breakdowns }
+                    //let dates: [Date] = rawData.map({ $0.date }).uniqued { $0 }
+                    //let minDate = dates.min() ?? Date()
+                    //let maxDate = dates.max() ?? Date()
+                    
+                    //self.minDate = minDate
+                    //self.maxDate = maxDate
+                    
+                    //let maxDate = data.last?.date ?? Date()
+                    //let idealDate = Calendar.current.date(byAdding: .day, value: -(365 * (visibleYearCount.rawValue)), to: maxDate)!
+                    
+                    //                if visibleYearCount == .year1 {
+                    //                    let components = Calendar.current.dateComponents([.year], from: .now)
+                    //                    chartLeadingDate = Calendar.current.date(from: components)!
+                    //                } else {
+                    //                    chartLeadingDate = minDate < idealDate ? idealDate : minDate
+                    //                }
+                    
+                    //chartLeadingDate = minDate < idealDate ? idealDate : minDate
+                    prepareData()
+                    setChartScrolledToDate(visibleYearCount)
+                    
+                    isLoadingHistory = false
+                    
+                } else {
+                    /// When fetching more data (like at the end of the list), if the data does not already exist, append it.
+                    for meth in thePayMethods {
+                        if let index = self.payMethods.firstIndex(where: { $0.id == meth.id }) {
+                            let obj = self.payMethods[index]
+                            for breakdown in meth.breakdowns {
+                                if let index = obj.breakdowns.firstIndex(where: { $0.month == breakdown.month && $0.year == breakdown.year && $0.payMethodID == breakdown.payMethodID }) {
+                                    obj.breakdowns[index].setFromAnotherInstance(breakdown)
+                                } else {
+                                    obj.breakdowns.append(breakdown)
+                                }
+                            }
+                        }
+                    }
+                    
+                    /// Sort the data so it plays nice with the chart.
+                    for each in self.payMethods {
+                        each.breakdowns.sort(by: { $0.date < $1.date })
+                    }
                 }
             }
+            
+            
+            //        for each in self.payMethods {
+            //            for each in each.data {
+            //                print("\(each.month) - \(each.year)")
+            //            }
+            //        }
+            
+            //prepareData()
+            isLoadingMoreHistory = false
         }
-        
-        
-        //        for each in self.payMethods {
-        //            for each in each.data {
-        //                print("\(each.month) - \(each.year)")
-        //            }
-        //        }
-        
-        //prepareData()
-        isLoadingMoreHistory = false
     }
     
     
@@ -622,7 +647,8 @@ class PayMethodViewModel {
     
         
     func setChartScrolledToDate(_ newValue: PayMethodChartRange) {
-        let year = Calendar.current.date(byAdding: .year, value: -(newValue.rawValue) + 1, to: maxDate)!
+        //let year = Calendar.current.date(byAdding: .year, value: -(newValue.rawValue) + 1, to: maxDate)!
+        let year = Calendar.current.date(byAdding: .year, value: -(newValue.rawValue), to: maxDate)!
         let components = Calendar.current.dateComponents([.year], from: year)
         let targetDate = Calendar.current.date(from: components)!
         
@@ -748,12 +774,28 @@ class PayMethodViewModel {
         if forward {
             let new = Calendar.current.date(byAdding: .year, value: 1, to: chartLeadingDate)!
             print(new)
+            //guard new.year <= ((maxDate.year - visibleYearCount.rawValue) + 1) else { return }
             guard new.year <= ((maxDate.year - visibleYearCount.rawValue) + 1) else { return }
             chartLeadingDate = new
         } else {
             let new = Calendar.current.date(byAdding: .year, value: -1, to: chartLeadingDate)!
             print(new)
             guard new.year >= fetchYearStart else { return }
+            chartLeadingDate = new
+        }
+    }
+    
+    func moveMonths(forward: Bool) {
+        if forward {
+            let new = Calendar.current.date(byAdding: .month, value: 1, to: chartLeadingDate)!
+            print(new)
+            //guard new.year <= ((maxDate.year - visibleYearCount.rawValue) + 1) else { return }
+            //guard new.year <= ((maxDate.year - visibleYearCount.rawValue) + 1) else { return }
+            chartLeadingDate = new
+        } else {
+            let new = Calendar.current.date(byAdding: .month, value: -1, to: chartLeadingDate)!
+            print(new)
+            //guard new.year >= fetchYearStart else { return }
             chartLeadingDate = new
         }
     }

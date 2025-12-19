@@ -7,6 +7,11 @@
 
 import SwiftUI
 
+fileprivate struct TransListCumTotal {
+    var day: Int
+    var total: Double
+}
+
 struct TransactionListView: View {
     #if os(macOS)
     @Environment(\.dismiss) var dismiss
@@ -16,12 +21,12 @@ struct TransactionListView: View {
     @Local(\.useWholeNumbers) var useWholeNumbers
     //@Local(\.colorTheme) var colorTheme
     @Environment(\.colorScheme) private var colorScheme
-
+    @Environment(CalendarProps.self) private var calProps    
     @Environment(CalendarModel.self) private var calModel
     @Environment(PayMethodModel.self) private var payModel
-    @Environment(EventModel.self) private var eventModel
+    
 
-    @State private var transactions: [CBTransaction] = []
+    //@State private var transactions: [CBTransaction] = []
     @State private var totalSpent: Double = 0.0
     @State private var searchText = ""
 
@@ -29,7 +34,7 @@ struct TransactionListView: View {
     @State private var editTrans: CBTransaction?
     @State private var transDay: CBDay?
     
-    @State private var cumTotals: [CumTotal] = []
+    @State private var cumTotals: [TransListCumTotal] = []
     
     @Binding var showTransactionListSheet: Bool
     
@@ -39,47 +44,62 @@ struct TransactionListView: View {
     @State private var showPaymentMethodSheet = false
     
     @Namespace var paymentMethodMenuButtonNamespace
-
-    
-
-    struct CumTotal {
-        var day: Int
-        var total: Double
-    }
     
 //    var sheetTitle: String {
 //        "\(calModel.sPayMethod?.title ?? "N/A") \(calModel.sMonth.name) \(String(calModel.sYear))"
 //    }
     
     var body: some View {
+        if AppState.shared.isIphone {
+            content
+        } else {
+            NavigationStack {
+                content
+            }
+        }
+    }
+    
+    @ViewBuilder
+    var content: some View {
         @Bindable var calModel = calModel
         @Bindable var photoModel = FileModel.shared
-        NavigationStack {
-            ScrollViewReader { scrollProxy in
-                List {
-                    transactionList
+        
+        ScrollViewReader { scrollProxy in
+            List {
+                ForEach(calModel.sMonth.days.filter { $0.date != nil }) { day in
+                    DayChunk(
+                        day: day,
+                        //transactions: transactions,
+                        searchText: searchText,
+                        cumTotals: cumTotals,
+                        transDay: $transDay,
+                        transEditID: $transEditID
+                    )
                 }
-                /// Scroll to today when the view loads (if applicable)
-                .onAppear { scrollToTodayOnAppearOfScrollView(scrollProxy) }
             }
-            .searchable(text: $searchText, prompt: Text("Search"))
-            .navigationTitle("\(calModel.sMonth.name) \(String(calModel.sYear))")
-            .navigationSubtitle(calModel.sPayMethod?.title ?? "N/A")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                DefaultToolbarItem(kind: .search, placement: .bottomBar)
-                ToolbarSpacer(.flexible, placement: .bottomBar)
-                ToolbarItem(placement: .bottomBar) {
-                    NewTransactionMenuButton(transEditID: $transEditID, showTransferSheet: $showTransferSheet, showPhotosPicker: $showPhotosPicker, showCamera: $showCamera)
-                }
+            /// Scroll to today when the view loads (if applicable)
+            //.onAppear { scrollToTodayOnAppearOfScrollView(scrollProxy) }
+        }
+        .searchable(text: $searchText, prompt: Text("Search"))
+        .navigationTitle("\(calModel.sMonth.name) \(String(calModel.sYear))")
+        .navigationSubtitle(calModel.sPayMethod?.title ?? "N/A")
+        //.background(Color(.systemBackground)) // force matching
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            DefaultToolbarItem(kind: .search, placement: .bottomBar)
+            ToolbarSpacer(.flexible, placement: .bottomBar)
+            ToolbarItem(placement: .bottomBar) {
+                NewTransactionMenuButton(transEditID: $transEditID, showTransferSheet: $showTransferSheet, showPhotosPicker: $showPhotosPicker, showCamera: $showCamera)
+            }
+            if AppState.shared.isIpad {
                 ToolbarItem(placement: .topBarTrailing) { closeButton }
             }
-            #endif
         }
+        #endif
         .task {
             setSelectedDay()
-            prepareData()
+            //prepareData()
         }
         .sheet(isPresented: $showTransferSheet) {
             TransferSheet(defaultDate: transDay?.date ?? Date())
@@ -101,7 +121,6 @@ struct TransactionListView: View {
                 #endif
         }
     }
-    
     
     var paymentMethodButton: some View {
         Button {
@@ -127,63 +146,196 @@ struct TransactionListView: View {
     }
     
     
+    func scrollToTodayOnAppearOfScrollView(_ proxy: ScrollViewProxy) {
+        if calModel.sMonth.actualNum == AppState.shared.todayMonth {
+            /// Give the list time to open before scrolling
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                withAnimation {
+                    proxy.scrollTo(AppState.shared.todayDay, anchor: .top)
+                }
+            }
+        }
+    }
     
-    var transactionList: some View {
-        ForEach(calModel.sMonth.days.filter { $0.date != nil }) { day in
-            let filteredTrans = calModel.getTransactions(day: day.id)
+    
+//    func getTransactions(for day: CBDay) -> Array<CBTransaction> {
+//        return transactions
+//            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+//            .filter { $0.dateComponents?.day == day.date?.day }
+//            .filter { ($0.payMethod?.isPermitted ?? true) }
+//            //.filter { !($0.payMethod?.isHidden ?? false) && $0.payMethod?.id == calModel.sPayMethod?.id }
+//            //.filter { $0.payMethod?.id == calModel.sPayMethod?.id }
+//            .sorted {
+//                if transactionSortMode == .title {
+//                    return $0.title < $1.title
+//                    
+//                } else if transactionSortMode == .enteredDate {
+//                    return $0.enteredDate < $1.enteredDate
+//                    
+//                } else {
+//                    if categorySortMode == .title {
+//                        return ($0.category?.title ?? "").lowercased() < ($1.category?.title ?? "").lowercased()
+//                    } else {
+//                        return $0.category?.listOrder ?? 0 < $1.category?.listOrder ?? 0
+//                    }
+//                }
+//            }
+//    }
+    
+    
+    func setSelectedDay() {
+        transDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
+    }
+    
+//    func prepareData() {
+//        transactions = calModel.justTransactions
+//            .filter { calModel.isInMultiSelectMode ? calModel.multiSelectTransactions.map({ $0.id }).contains($0.id) : true }
+//            //.filter { $0.payMethod?.id == calModel.sPayMethod?.id }
+//            .filter { trans in
+//                if let sMethod = calModel.sPayMethod {
+//                    if sMethod.isUnifiedDebit {
+//                        let methods: Array<String> = payModel.paymentMethods
+//                            .filter { $0.isPermitted }
+//                            .filter { !$0.isHidden }
+//                            .filter { $0.isDebit }
+//                            .map { $0.id }
+//                        return methods.contains(trans.payMethod?.id ?? "")
+//
+//                    } else if sMethod.isUnifiedCredit {
+//                        let methods: Array<String> = payModel.paymentMethods
+//                            .filter { $0.isPermitted }
+//                            .filter { !$0.isHidden }
+//                            .filter { $0.isCredit }
+//                            .map { $0.id }
+//                        return methods.contains(trans.payMethod?.id ?? "")
+//
+//                    } else {
+//                        return trans.payMethod?.id == sMethod.id && (trans.payMethod?.isPermitted ?? true) && !(trans.payMethod?.isHidden ?? false)
+//                    }
+//                } else {
+//                    return false
+//                }
+//            }
+//            .filter { $0.dateComponents?.month == calModel.sMonth.actualNum }
+//            .filter { $0.dateComponents?.year == calModel.sMonth.year }
+//            .sorted { $0.dateComponents?.day ?? 0 < $1.dateComponents?.day ?? 0 }
+//        
+//
+////        totalSpent = transactions
+////            .map { $0.payMethod?.accountType == .credit ? $0.amount * -1 : $0.amount }
+////            .reduce(0.0, +)
+//            
+//        
+////        /// Analyze Data
+////        cumTotals.removeAll()
+////        
+////        var total: Double = 0.0
+////        calModel.sMonth.days.forEach { day in
+////            let doesHaveTransactions = !transactions.filter { $0.dateComponents?.day == day.date?.day }.isEmpty
+////            let dailyTotal = transactions
+////                .filter { $0.dateComponents?.day == day.date?.day }
+////                .map { $0.payMethod?.accountType == .credit ? $0.amount * -1 : $0.amount }
+////                .reduce(0.0, +)
+////            
+////            
+////            if doesHaveTransactions {
+////                total += dailyTotal
+////                cumTotals.append(TransListCumTotal(day: day.date!.day, total: total))
+////            }
+////
+////        }
+//    }
+}
+
+
+fileprivate struct DayChunk: View {
+    @Environment(CalendarModel.self) private var calModel
+
+    var day: CBDay
+    //var transactions: Array<CBTransaction>
+    var searchText: String
+    var cumTotals: [TransListCumTotal]
+    @Binding var transDay: CBDay?
+    @Binding var transEditID: String?
+    
+    @State private var filteredTrans: [CBTransaction] = []
+    @State private var doesHaveTransactions: Bool = false
+    @State private var dailyTotal: Double = 0.0
+    @State private var dailyCount: Int = 0
+    
+    var body: some View {
+        Section {
+            if doesHaveTransactions {
+                ForEach(filteredTrans) { trans in
+                //ForEach(getTransactions(for: day)) { trans in
+                    TransactionListLine(trans: trans)
+                        .onTapGesture {
+                            self.transDay = day
+                            self.transEditID = trans.id
+                        }
+                }
+            } else {
+                if searchText.isEmpty {
+                    Text("No Transactions")
+                        .foregroundStyle(.gray)
+                }
+                
+            }
+        } header: {
+            if let date = day.date, date.isToday {
+                HStack {
+                    Text("TODAY")
+                        .foregroundStyle(Color.theme)
+                    VStack {
+                        Divider()
+                            .overlay(Color.theme)
+                    }
+                }
+            } else {
+                Text(day.date?.string(to: .monthDayShortYear) ?? "")
+            }
             
-            let doesHaveTransactions = filteredTrans
+        } footer: {
+            if doesHaveTransactions {
+                SectionFooter(day: day, dailyCount: dailyCount, dailyTotal: dailyTotal, cumTotals: cumTotals)
+            }
+        }
+        .id(day.id)
+        .onChange(of: searchText, initial: true) { old, new in
+            self.filteredTrans = calModel.getTransactions(day: day.id)
+                .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(new) }
+            
+            self.doesHaveTransactions = filteredTrans
                 .filter { $0.dateComponents?.day == day.date?.day }
                 .count > 0
             
-            let dailyTotal = transactions
+            self.dailyTotal = filteredTrans
                 .filter { $0.dateComponents?.day == day.date?.day }
                 .filter { $0.factorInCalculations }
                 .map { ($0.payMethod?.isCreditOrLoan ?? false) ? $0.amount * -1 : $0.amount }
                 .reduce(0.0, +)
             
-            let dailyCount = transactions
+            self.dailyCount = filteredTrans
                 .filter { $0.dateComponents?.day == day.date?.day }
                 .count
-                                                
-            Section {
-                if doesHaveTransactions {
-                    ForEach(filteredTrans) { trans in
-                    //ForEach(getTransactions(for: day)) { trans in
-                        TransactionListLine(trans: trans)
-                            .onTapGesture {
-                                self.transDay = day
-                                self.transEditID = trans.id
-                            }
-                    }
-                } else {
-                    if searchText.isEmpty {
-                        Text("No Transactions")
-                            .foregroundStyle(.gray)
-                    }
-                    
-                }
-            } header: {
-                if let date = day.date, date.isToday {
-                    HStack {
-                        Text("TODAY")
-                            .foregroundStyle(Color.theme)
-                        VStack {
-                            Divider()
-                                .overlay(Color.theme)
-                        }
-                    }
-                } else {
-                    Text(day.date?.string(to: .monthDayShortYear) ?? "")
-                }
-                
-            } footer: {
-                if doesHaveTransactions {
-                    SectionFooter(day: day, dailyCount: dailyCount, dailyTotal: dailyTotal, cumTotals: cumTotals)
-                }
-            }
-            .id(day.id)
         }
+//        .task {
+//            self.filteredTrans = calModel.getTransactions(day: day.id)
+//            
+//            self.doesHaveTransactions = filteredTrans
+//                .filter { $0.dateComponents?.day == day.date?.day }
+//                .count > 0
+//            
+//            self.dailyTotal = filteredTrans
+//                .filter { $0.dateComponents?.day == day.date?.day }
+//                .filter { $0.factorInCalculations }
+//                .map { ($0.payMethod?.isCreditOrLoan ?? false) ? $0.amount * -1 : $0.amount }
+//                .reduce(0.0, +)
+//            
+//            self.dailyCount = filteredTrans
+//                .filter { $0.dateComponents?.day == day.date?.day }
+//                .count
+//        }
     }
     
     
@@ -194,7 +346,7 @@ struct TransactionListView: View {
         var day: CBDay
         var dailyCount: Int
         var dailyTotal: Double
-        var cumTotals: [CumTotal]
+        var cumTotals: [TransListCumTotal]
         
         private var eodColor: Color {
             if day.eodTotal > threshold {
@@ -217,126 +369,5 @@ struct TransactionListView: View {
                 }
             }
         }
-    }
-    
-    
-    func scrollToTodayOnAppearOfScrollView(_ proxy: ScrollViewProxy) {
-        if calModel.sMonth.actualNum == AppState.shared.todayMonth {
-            //DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
-                //withAnimation {
-                    proxy.scrollTo(AppState.shared.todayDay, anchor: .top)
-                //}
-            //}
-        }
-    }
-    
-    
-    func getTransactions(for day: CBDay) -> Array<CBTransaction> {
-        return transactions
-            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
-            .filter { $0.dateComponents?.day == day.date?.day }
-            .filter { ($0.payMethod?.isPermitted ?? true) }
-            //.filter { !($0.payMethod?.isHidden ?? false) && $0.payMethod?.id == calModel.sPayMethod?.id }
-            //.filter { $0.payMethod?.id == calModel.sPayMethod?.id }
-            .sorted {
-                if transactionSortMode == .title {
-                    return $0.title < $1.title
-                    
-                } else if transactionSortMode == .enteredDate {
-                    return $0.enteredDate < $1.enteredDate
-                    
-                } else {
-                    if categorySortMode == .title {
-                        return ($0.category?.title ?? "").lowercased() < ($1.category?.title ?? "").lowercased()
-                    } else {
-                        return $0.category?.listOrder ?? 0 < $1.category?.listOrder ?? 0
-                    }
-                }
-            }
-    }
-    
-    
-    func setSelectedDay() {
-        transDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
-    }
-    
-//    func transEditIdChanged(oldValue: String?, newValue: String?) {
-//        /// When `newValue` is false, save to the server. We have to use this because `.popover(isPresented:)` has no onDismiss option.
-//        if oldValue != nil && newValue == nil {
-////            let theDay = transDay
-////            transDay = nil
-//            calModel.saveTransaction(id: oldValue!, day: transDay!, eventModel: eventModel)
-//            //calModel.pictureTransactionID = nil
-//            FileModel.shared.fileParent = nil
-//            
-//            calModel.editLock = false
-//            
-//        } else if newValue != nil {
-//            if !calModel.editLock {
-//                /// Prevent a transaction from being opened while another one is trying to save.
-//                calModel.editLock = true
-//                editTrans = calModel.getTransaction(by: newValue!, from: .normalList)
-//            }
-//        }
-//    }
-    
-    
-    func prepareData() {
-        transactions = calModel.justTransactions
-            .filter { calModel.isInMultiSelectMode ? calModel.multiSelectTransactions.map({ $0.id }).contains($0.id) : true }
-            //.filter { $0.payMethod?.id == calModel.sPayMethod?.id }
-            .filter { trans in
-                if let sMethod = calModel.sPayMethod {
-                    if sMethod.isUnifiedDebit {
-                        let methods: Array<String> = payModel.paymentMethods
-                            .filter { $0.isPermitted }
-                            .filter { !$0.isHidden }
-                            .filter { $0.isDebit }
-                            .map { $0.id }
-                        return methods.contains(trans.payMethod?.id ?? "")
-
-                    } else if sMethod.isUnifiedCredit {
-                        let methods: Array<String> = payModel.paymentMethods
-                            .filter { $0.isPermitted }
-                            .filter { !$0.isHidden }
-                            .filter { $0.isCredit }
-                            .map { $0.id }
-                        return methods.contains(trans.payMethod?.id ?? "")
-
-                    } else {
-                        return trans.payMethod?.id == sMethod.id && (trans.payMethod?.isPermitted ?? true) && !(trans.payMethod?.isHidden ?? false)
-                    }
-                } else {
-                    return false
-                }
-            }
-            .filter { $0.dateComponents?.month == calModel.sMonth.actualNum }
-            .filter { $0.dateComponents?.year == calModel.sMonth.year }
-            .sorted { $0.dateComponents?.day ?? 0 < $1.dateComponents?.day ?? 0 }
-        
-
-//        totalSpent = transactions
-//            .map { $0.payMethod?.accountType == .credit ? $0.amount * -1 : $0.amount }
-//            .reduce(0.0, +)
-            
-        
-//        /// Analyze Data
-//        cumTotals.removeAll()
-//        
-//        var total: Double = 0.0
-//        calModel.sMonth.days.forEach { day in
-//            let doesHaveTransactions = !transactions.filter { $0.dateComponents?.day == day.date?.day }.isEmpty
-//            let dailyTotal = transactions
-//                .filter { $0.dateComponents?.day == day.date?.day }
-//                .map { $0.payMethod?.accountType == .credit ? $0.amount * -1 : $0.amount }
-//                .reduce(0.0, +)
-//            
-//            
-//            if doesHaveTransactions {
-//                total += dailyTotal
-//                cumTotals.append(CumTotal(day: day.date!.day, total: total))
-//            }
-//
-//        }
     }
 }

@@ -117,6 +117,19 @@ fileprivate enum ChildNavDestination {
 }
 
 
+struct CategoryInsightsSheetWrapperIpad: View {
+    @State private var navPath = NavigationPath()
+    @Binding var showAnalysisSheet: Bool
+    @Bindable var model: CategoryInsightsModel
+    
+    var body: some View {
+        NavigationStack(path: $navPath) {
+            CategoryInsightsSheet(navPath: $navPath, showAnalysisSheet: $showAnalysisSheet, model: model)
+        }
+    }
+}
+
+
 struct CategoryInsightsSheet: View {
     @Environment(\.colorScheme) var colorScheme
     #if os(macOS)
@@ -127,19 +140,21 @@ struct CategoryInsightsSheet: View {
     @Local(\.categorySortMode) var categorySortMode
     @Local(\.useWholeNumbers) var useWholeNumbers
     //@Local(\.colorTheme) var colorTheme
-
+    @Environment(CalendarProps.self) private var calProps
     @Environment(CalendarModel.self) private var calModel
     @Environment(PayMethodModel.self) private var payModel
-    @Environment(EventModel.self) private var eventModel
+    
+    @Binding var navPath: NavigationPath
     @Binding var showAnalysisSheet: Bool
     @Bindable var model: CategoryInsightsModel
     
+    @State private var showCategoryLiteSheet = false
     @State private var showCategorySheet = false
     @State private var showMonthSheet = false
     //@State private var isPreparingData = false
     @State private var recalc = false
     @State private var showInfo = false
-    @State private var navPath: Array<ChildNavDestination> = []
+    //@State private var navPath: Array<ChildNavDestination> = []
     @State private var refreshTask: Task<Void, Never>?
     
     //private enum MonthlyData { case income, cashOut, totalSpending, spendingMinusPayments }
@@ -175,41 +190,72 @@ struct CategoryInsightsSheet: View {
             .isEmpty
     }
 
-    
     var body: some View {
+        if AppState.shared.isIphone {
+            content
+        } else {
+            NavigationStack {
+                content
+            }
+        }
+    }
+    
+    
+    @ViewBuilder
+    var content: some View {
         @Bindable var calModel = calModel
-        NavigationStack(path: $navPath) {
-            VStack(spacing: 0) {
-                InsightCalculatingProgressView(model: model)
-                    
+        
+        VStack(spacing: 0) {
+            if calModel.sCategoriesForAnalysis.isEmpty {
+                ContentUnavailableView {
+                    Label {
+                        Text("No Categories Selected")
+                    } icon: {
+                        Image(systemName: "books.vertical")
+                    }
+                } description: {
+                    Text("Select some categories to view insights.")
+                } actions: {
+                    Button {
+                        showCategorySheet = true
+                    } label: {
+                        Text("Select Categories")
+                            .padding(4)
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            } else {
                 StandardContainerWithToolbar(.list) {
                     detailSection
                     chartSection
                     breakdownSection
                     transactionSection
                 }
-                .navigationTitle("Insights")
-                #if os(iOS)
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar { toolbar }
-                #endif
-                .navigationDestination(for: ChildNavDestination.self) { dest in
-                    switch dest {
-                    case .monthList:
-                        MonthMiddleMan(data: selectedMonthGroup, selectedMonth: $selectedMonth, model: model, navPath: $navPath)
-                        
-                    case .transactionList:
-                        if let selectedMonth {
-                            TransactionList(data: selectedMonth, model: model)
-                        } else {
-                            ContentUnavailableView("Uh Oh!", systemImage: "exclamationmark.triangle.text.page", description: Text("The page you are looking for could not be found."))
-                        }
-                    }
+            }
+        }
+        .safeAreaBar(edge: .top) {
+            InsightCalculatingProgressView(model: model)
+        }
+        .navigationTitle("Insights")
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar { toolbar }
+        #endif
+        .navigationDestination(for: ChildNavDestination.self) { dest in
+            switch dest {
+            case .monthList:
+                MonthMiddleMan(data: selectedMonthGroup, selectedMonth: $selectedMonth, model: model, navPath: $navPath)
+                
+            case .transactionList:
+                if let selectedMonth {
+                    TransactionList(data: selectedMonth, model: model)
+                } else {
+                    ContentUnavailableView("Uh Oh!", systemImage: "exclamationmark.triangle.text.page", description: Text("The page you are looking for could not be found."))
                 }
             }
-            .background(Color(.systemBackground)) // force matching
-            
         }
+        .background(Color(.systemBackground)) // force matching
+            
         .task { prepareView() }
         /// Needed for the inspector on iPad.
         .onChange(of: showAnalysisSheet) {
@@ -218,12 +264,29 @@ struct CategoryInsightsSheet: View {
         .sheet(isPresented: $showCategorySheet, onDismiss: {
             prepareData()
         }, content: {
-            MultiCategorySheet(categories: $calModel.sCategoriesForAnalysis, showAnalyticSpecificOptions: true)
+            MultiCategorySheet(
+                categories: $calModel.sCategoriesForAnalysis,
+                categoryGroup: $calModel.sCategoryGroupsForAnalysis,
+                showAnalyticSpecificOptions: true
+            )
             #if os(macOS)
                 .frame(minWidth: 300, minHeight: 500)
                 .presentationSizing(.fitted)
             #endif
         })
+//        .sheet(isPresented: $showCategoryLiteSheet, onDismiss: {
+//            prepareData()
+//        }, content: {
+//            MultiCategorySheetLite(
+//                categories: $calModel.sCategoriesForAnalysis,
+//                categoryGroup: $calModel.sCategoryGroupForAnalysis,
+//                showAnalyticSpecificOptions: true
+//            )
+//            #if os(macOS)
+//                .frame(minWidth: 300, minHeight: 500)
+//                .presentationSizing(.fitted)
+//            #endif
+//        })
         .sheet(isPresented: $showMonthSheet, onDismiss: {
             if recalc {
                 self.refreshTask?.cancel()
@@ -252,7 +315,15 @@ struct CategoryInsightsSheet: View {
                 selectedMonth = nil
                 selectedMonthGroup.removeAll()
             }
+            
+//            if $1.count == 0 {
+//                print("should reset multi select mode")
+//                calModel.isInMultiSelectMode = false
+//            }
         }
+//        .onDisappear {
+//            
+//        }
         
         #if os(macOS)
         .onChange(of: appearsActive) {
@@ -474,57 +545,74 @@ struct CategoryInsightsSheet: View {
     var chartSection: some View {
         Section {
             VStack {
-                Chart(model.chartData) { metric in
-                    BarMark(
-                        x: .value("Amount", metric.budget),
-                        y: .value("Key", "Budget")
-                    )
-                    .foregroundStyle(metric.category.color)
+                Chart {
+                    if calModel.sCategoryGroupsForAnalysis.isEmpty {
+                        ForEach(model.chartData) { metric in
+                            BarMark(
+                                x: .value("Amount", metric.budgetForCategory),
+                                y: .value("Key", "Budget")
+                            )
+                            .foregroundStyle(metric.category.color)
+                        }
+                    } else {
+                        BarMark(
+                            x: .value("Amount", model.budget),
+                            y: .value("Key", "Budget")
+                        )
+                        .foregroundStyle(.gray.gradient)
+                    }
                     
-                    BarMark(
-                        x: .value("Amount", (metric.expenses * -1 - metric.income)),
-                        y: .value("Key", "Expenses")
-                    )
-                    .foregroundStyle(metric.category.color)
+                    ForEach(model.chartData) { metric in
+                        BarMark(
+                            x: .value("Amount", (metric.expenses * -1 - metric.income)),
+                            y: .value("Key", "Expenses")
+                        )
+                        .foregroundStyle(metric.category.color)
+                    }
                 }
                 .chartLegend(.hidden)
                 
-                ScrollView(.horizontal) {
-                    ZStack {
-                        Spacer()
-                            .containerRelativeFrame([.horizontal])
-                            .frame(height: 1)
-                                                    
-                        HStack(spacing: 0) {
-                            ForEach(model.chartData) { item in
-                                HStack(alignment: .circleAndTitle, spacing: 5) {
-                                    Circle()
-                                        .fill(item.category.color)
-                                        .frame(maxWidth: 8, maxHeight: 8) // 8 seems to be the default from charts
-                                        .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-                                    
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(item.category.title)
-                                            .foregroundStyle(Color.secondary)
-                                            .font(.caption2)
-                                            .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-                                    }
-                                }
-                                .padding(.horizontal, 4)
-                                .contentShape(Rectangle())
-                            }
-                            Spacer()
-                        }
-                    }
-                }
-                .scrollBounceBehavior(.basedOnSize)
-                .contentMargins(.bottom, 10, for: .scrollContent)
+                chartLegend
             }
         } header: {
             sectionHeader("Chart")
         }
     }
     
+    
+    var chartLegend: some View {
+        ScrollView(.horizontal) {
+            ZStack {
+                Spacer()
+                    .containerRelativeFrame([.horizontal])
+                    .frame(height: 1)
+                                            
+                HStack(spacing: 0) {
+                    ForEach(model.chartData) { item in
+                        HStack(alignment: .circleAndTitle, spacing: 5) {
+                            //Text("\(item.category.active)")
+                            Circle()
+                                .fill(item.category.color)
+                                .frame(maxWidth: 8, maxHeight: 8) // 8 seems to be the default from charts
+                                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(item.category.title)
+                                    .foregroundStyle(Color.secondary)
+                                    .font(.caption2)
+                                    .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                            }
+                        }
+                        .padding(.horizontal, 4)
+                        .contentShape(Rectangle())
+                    }
+                    Spacer()
+                }
+            }
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .contentMargins(.bottom, 10, for: .scrollContent)
+    }
     
     
     // MARK: - Breakdown Section
@@ -546,19 +634,23 @@ struct CategoryInsightsSheet: View {
              ForEach(model.monthsForAnalysis.sorted(by: { $0.num < $1.num })) { month in
                  let trans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
                  
-                 let cost = calModel.getSpend(from: trans)
-                 FakeNavLink {
-                     VStack(alignment: .leading) {
-                         Text("\(month.name) \(String(month.year))")
-                         Text("\(cost.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
-                             .foregroundStyle(.gray)
-                             .contentTransition(.numericText())
+                 if trans.count > 0 {
+                     let cost = calModel.getSpend(from: trans)
+                     FakeNavLink {
+                         VStack(alignment: .leading) {
+                             Text("\(month.name) \(String(month.year))")
+                             Text("\(cost.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                                 .foregroundStyle(.gray)
+                                 .contentTransition(.numericText())
+                         }
+                         Spacer()
+                         TextWithCircleBackground(text: "\(trans.count)")
+                     } action: {
+                         setAll(for: month, shouldNavigate: true)
                      }
-                     Spacer()
-                     TextWithCircleBackground(text: "\(trans.count)")
-                 } action: {
-                     setAll(for: month, shouldNavigate: true)
                  }
+                 
+                 
              }
          } header: {
              sectionHeader("Transactions")
@@ -570,18 +662,29 @@ struct CategoryInsightsSheet: View {
     // MARK: - Toolbar Views
     @ToolbarContentBuilder
     var toolbar: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) { showCategorySheetButton }
-        ToolbarSpacer(.fixed, placement: .topBarLeading)
-        ToolbarItem(placement: .topBarLeading) { showMonthsButton }
+        if AppState.shared.isIpad {
+            ToolbarItem(placement: .topBarLeading) { showCategorySheetButton }
+            ToolbarSpacer(.fixed, placement: .topBarLeading)
+            ToolbarItem(placement: .topBarLeading) { showMonthsButton }
+        }
         
 //        if model.showLoadingSpinner {
 //            ToolbarItem(placement: .topBarTrailing) { ProgressView().tint(.none) }
 //                .sharedBackgroundVisibility(.hidden)
 //        }
 //        ToolbarSpacer(.fixed, placement: .topBarTrailing)
-        ToolbarItem(placement: .topBarTrailing) { closeButton }
+        if AppState.shared.isIpad {
+            ToolbarItem(placement: .topBarTrailing) { closeButton }
+        } else {
+            ToolbarItem(placement: .topBarTrailing) { showCategorySheetButton }
+            ToolbarSpacer(.fixed, placement: .topBarTrailing)
+            ToolbarItem(placement: .topBarTrailing) { showMonthsButton }
+        }
+        
                         
-        ToolbarItem(placement: .bottomBar) { showCalendarButton }
+        if !calModel.sCategoriesForAnalysis.isEmpty {
+            ToolbarItem(placement: .bottomBar) { showCalendarButton }
+        }
     }
     
     
@@ -609,11 +712,15 @@ struct CategoryInsightsSheet: View {
         Button {
             withAnimation {
                 calModel.sCategories = calModel.sCategoriesForAnalysis
+                calModel.sPayMethod = nil
             }
                                     
             #if os(iOS)
-            if !AppState.shared.isIpad {
-                withAnimation { showAnalysisSheet = false }
+            if AppState.shared.isIphone {
+                withAnimation {
+                    navPath.removeLast()
+                    //showAnalysisSheet = false
+                }
             }
             
             #else
@@ -670,19 +777,19 @@ struct CategoryInsightsSheet: View {
                         .first {
                             model.monthsForAnalysis.append(targetMonth)
                         }
-                    
                 }
             }
         } else {
             /// If there are no months set, add the current month
             if model.monthsForAnalysis.isEmpty {
-                let nowMonth = calModel
+                let viewingMonth = calModel
                     .months
-                    .filter { $0.actualNum == AppState.shared.todayMonth && $0.year == AppState.shared.todayYear }
+                    .filter { $0.num == calModel.sMonth.num }
+                    //.filter { $0.actualNum == AppState.shared.todayMonth && $0.year == AppState.shared.todayYear }
                     .first
                 
-                if let nowMonth {
-                    model.monthsForAnalysis.append(nowMonth)
+                if let viewingMonth {
+                    model.monthsForAnalysis.append(viewingMonth)
                 }
             }
         }
@@ -691,7 +798,7 @@ struct CategoryInsightsSheet: View {
         
                                 
         if calModel.sCategoriesForAnalysis.isEmpty && showAnalysisSheet {
-            showCategorySheet = true
+            //showCategorySheet = true
         } else {
             prepareData()
         }
@@ -922,9 +1029,9 @@ struct CategoryInsightsSheet: View {
     
     fileprivate func navigate(forceToTransactionList: Bool = false) {
         if model.monthsForAnalysis.count == 1 || forceToTransactionList {
-            navPath.append(.transactionList)
+            navPath.append(ChildNavDestination.transactionList)
         } else {
-            navPath.append(.monthList)
+            navPath.append(ChildNavDestination.monthList)
         }
     }
     
@@ -976,21 +1083,30 @@ struct CategoryInsightsSheet: View {
         AsyncStream { continuation in
             Task.detached(priority: .userInitiated) { [calModel, model] in
                 continuation.yield(.started)
-
-                let categoryIds: [String] = await calModel.sCategoriesForAnalysis.map(\.id)
                 
-                //continuation.yield(.step("Gathering transactions", 0.1))
                 let transactions = await calModel.getTransactions(months: model.monthsForAnalysis, cats: calModel.sCategoriesForAnalysis)
-
-                //continuation.yield(.step("Calculating totals", 0.025))
                 let income = await calModel.getIncome(from: transactions)
                 let totalSpent = await calModel.getSpend(from: transactions)
                 let debitSpend = await calModel.getDebitSpend(from: transactions)
                 let spendMinusPayments = await calModel.getSpendMinusPayments(from: transactions)
                 let spendMinusIncome = await calModel.getSpendMinusIncome(from: transactions)
                 
-                //continuation.yield(.step("Loading budgets", 0.05))
-                let relevantBudgets = await model.monthsForAnalysis.asyncFlatMap { $0.budgets }
+                /// Get budgets from other apps in the Cody Suite.
+                let appSuiteBudgets = await calModel.appSuiteBudgets
+                
+                /// Get all individual category budgets for the selected months.
+                let categoricalBudgets = await model.monthsForAnalysis.asyncFlatMap {
+                    $0.budgets.filter { $0.type == XrefModel.getItem(from: .budgetTypes, byEnumID: .category) }
+                }
+                
+                /// Get all group budgets for the selected months.
+                let groupBudgets = await model.monthsForAnalysis.asyncFlatMap {
+                    $0.budgets.filter { $0.type == XrefModel.getItem(from: .budgetTypes, byEnumID: .categoryGroup) }
+                }
+                
+                /// Filter the budgets from the selected months by the selected categories.
+                let categoryIds: [String] = await calModel.sCategoriesForAnalysis.map(\.id)
+                let relevantCategoricalBudgets = (categoricalBudgets + appSuiteBudgets)
                     .filter { budget in
                         if let id = budget.category?.id {
                             return categoryIds.contains(id)
@@ -998,17 +1114,65 @@ struct CategoryInsightsSheet: View {
                             return false
                         }
                     }
-
-                let budget = relevantBudgets.map(\.amount).reduce(0.0, +)
                 
-                //continuation.yield(.step("Building chart data", 0.075))
-                let chartData = await calModel.sCategoriesForAnalysis
-                    .sorted(by: Helpers.categorySorter())
-                    .asyncMap { cat in
-                        let trans = transactions.filter { $0.category?.id == cat.id }
-                        let budgets = relevantBudgets.filter { $0.category?.id == cat.id }
-                        return await calModel.createChartData(transactions: trans, cat: cat, budgets: budgets)
+                /// Filter the budgets from the selected months by the selected groups.
+                let groupIds: [String] = await calModel.sCategoryGroupsForAnalysis.map(\.id)
+                let relevantGroupBudgets = groupBudgets
+                    .filter { budget in
+                        if let id = budget.categoryGroup?.id {
+                            return groupIds.contains(id)
+                        } else {
+                            return false
+                        }
                     }
+                
+                let overallCategoricalBudgetAmount = relevantCategoricalBudgets.map(\.amount).reduce(0.0, +)
+                let overallGroupBudgetAmount = relevantGroupBudgets.map(\.amount).reduce(0.0, +)
+                let overallBudget = overallCategoricalBudgetAmount + overallGroupBudgetAmount
+                
+                var chartData: [ChartData]
+                if await calModel.sCategoryGroupsForAnalysis.isEmpty {
+                    chartData = await calModel.sCategoriesForAnalysis
+                        .sorted(by: Helpers.categorySorter())
+                        /// Map over each selected category and create the chart data.
+                        .asyncMap { cat in
+                            /// Get transactions from the total list only for this category.
+                            let trans = transactions.filter { $0.category?.id == cat.id }
+                            /// Get budgets for just this category.
+                            let budgets = relevantCategoricalBudgets.filter { $0.category?.id == cat.id }
+                            let budgetAmount = budgets.map { $0.amount }.reduce(0.0, +)
+                                                        
+                            return await calModel.createChartData(
+                                transactions: trans,
+                                category: cat,
+                                categoricalBudgetAmount: budgetAmount,
+                                categoryGroup: nil,
+                                groupBudgetAmount: nil,
+                                budgets: budgets
+                            )
+                        }                                        
+                } else {
+                    chartData = await calModel.sCategoryGroupsForAnalysis.asyncFlatMap { group in
+                        let result = await group.categories.filter({$0.active}).asyncMap { cat in
+                            /// Get transactions from the total list only for this category.
+                            let trans = transactions.filter { $0.category?.id == cat.id }
+                            /// Get budgets for just this category.
+                            let budgets = relevantCategoricalBudgets.filter { $0.category?.id == cat.id }
+                            let budgetAmount = budgets.map { $0.amount }.reduce(0.0, +)
+                            
+                            return await calModel.createChartData(
+                                transactions: trans,
+                                category: cat,
+                                categoricalBudgetAmount: budgetAmount,
+                                categoryGroup: group,
+                                groupBudgetAmount: overallBudget,
+                                budgets: budgets
+                            )
+                        }
+                        return result
+                    }
+                }
+                                
 
                 //continuation.yield(.step("Summarizing days", 0.1))
                 var cumTotals: [CumTotal] = []
@@ -1044,7 +1208,7 @@ struct CategoryInsightsSheet: View {
                     cashOut: debitSpend,
                     spendMinusIncome: spendMinusIncome,
                     spendMinusPayments: spendMinusPayments,
-                    budget: budget,
+                    budget: overallBudget,
                     chartData: chartData,
                     cumTotals: cumTotals
                 )
@@ -1109,10 +1273,18 @@ fileprivate struct MultiMonthSheetForCategoryInsights: View {
     @ViewBuilder func label(month: CBMonth) -> some View {
         HStack {
             Text(month.name)
+                .schemeBasedForegroundStyle(isDisabled: month.showSecondaryLoadingSpinner)
             Spacer()
-            Image(systemName: "checkmark")
-                .opacity(model.monthsForAnalysis.contains(month) ? 1 : 0)
+            if month.showSecondaryLoadingSpinner {
+                ProgressView()
+                    .tint(.none)
+            } else {
+                Image(systemName: "checkmark")
+                    .opacity(model.monthsForAnalysis.contains(month) ? 1 : 0)
+            }
+            
         }
+        .disabled(month.showSecondaryLoadingSpinner)
         .contentShape(Rectangle())
         .onTapGesture { doIt(month) }
     }
@@ -1153,16 +1325,26 @@ fileprivate struct MultiMonthSheetForCategoryInsights: View {
 
 fileprivate struct MonthMiddleMan: View {
     @Local(\.useWholeNumbers) var useWholeNumbers
+    @Environment(CalendarProps.self) private var calProps
 
     var data: [MonthlyData]
     @Binding var selectedMonth: MonthlyData?
     @Bindable var model: CategoryInsightsModel
-    @Binding var navPath: Array<ChildNavDestination>
+    //@Binding var navPath: Array<ChildNavDestination>
+    @Binding var navPath: NavigationPath
     
     var body: some View {
-        StandardContainerWithToolbar(.list) {
-            monthList
+        Group {
+            if data.filter({ !$0.trans.isEmpty }).isEmpty {
+                //if getTransactions(month: data.month).isEmpty {
+                ContentUnavailableView("No Transactions", systemImage: "rectangle.stack.slash.fill")
+            } else {
+                StandardContainerWithToolbar(.list) {
+                    monthList
+                }
+            }
         }
+        
         .navigationTitle(data.first?.dataPoint.titleString ?? "Unknown Data Point")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
@@ -1173,12 +1355,12 @@ fileprivate struct MonthMiddleMan: View {
     var monthList: some View {
         let relevantData = data.filter { !$0.trans.isEmpty }.sorted(by: { $0.month.num < $1.month.num })
         ForEach(relevantData) { data in
-            let transCount = data.trans.filter { $0.dateComponents?.month == data.month.actualNum }.count
+            //let transCount = data.trans.filter { $0.dateComponents?.month == data.month.actualNum }.count
             FakeNavLink {
                 line(data)
             } action: {
                 selectedMonth = data
-                navPath.append(.transactionList)
+                navPath.append(ChildNavDestination.transactionList)
             }
         }
     }
@@ -1200,11 +1382,13 @@ fileprivate struct MonthMiddleMan: View {
 
 
 fileprivate struct TransactionList: View {
-    @Local(\.transactionSortMode) var transactionSortMode
-    @Local(\.categorySortMode) var categorySortMode
     @AppStorage("transactionListDisplayMode") var transactionListDisplayMode: TransactionListDisplayMode = .condensed
     @AppStorage("transactionListDisplayModeShowEmptyDaysInFull") var transactionListDisplayModeShowEmptyDaysInFull: Bool = false
+    
+    @Local(\.transactionSortMode) var transactionSortMode
+    @Local(\.categorySortMode) var categorySortMode
     @Local(\.useWholeNumbers) var useWholeNumbers
+    
     @Environment(CalendarModel.self) private var calModel
     
     @Bindable var data: MonthlyData
@@ -1216,63 +1400,33 @@ fileprivate struct TransactionList: View {
 
 
     var body: some View {
-        //Text("\(data.dataPoint.titleString) - \(data.cost.currencyWithDecimals(useWholeNumbers ? 0 : 1))")
-        
-        StandardContainerWithToolbar(.list) {
-            switch transactionListDisplayMode {
-            case .full:
-                fullView(for: data.month)
-            case .condensed:
-                condensedView(for: data.month)
+        theView
+            .searchable(text: $searchText, prompt: Text("Search"))
+            .navigationTitle("\(data.dataPoint.titleString)")
+            .navigationSubtitle("\(data.month.name) \(String(data.month.year))")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) { viewModeMenu }
             }
-//            
-//            ForEach(months) { month in
-//                ForEach(month.legitDays) { day in
-//                    let trans = getTransactions(month: month, day: day)
-//                    
-//                    let doesHaveTransactions = !trans.isEmpty
-//                    
-//                    let dailyTotal = trans
-//                        .map { ($0.payMethod?.isCreditOrLoan ?? false) ? $0.amount * -1 : $0.amount }
-//                        .reduce(0.0, +)
-//                    
-//                    Section {
-//                        if doesHaveTransactions {
-//                            ForEach(trans) { trans in
-//                                TransactionListLine(trans: trans)
-//                                    .onTapGesture {
-//                                        self.transDay = day
-//                                        self.transEditID = trans.id
-//                                    }
-//                            }
-//                        } else {
-//                            Text("No Transactions")
-//                                .foregroundStyle(.gray)
-//                        }
-//                    } header: {
-//                        if let date = day.date, date.isToday {
-//                            todayIndicatorLine
-//                        } else {
-//                            Text(day.date?.string(to: .monthDayShortYear) ?? "")
-//                        }
-//                        
-//                    } footer: {
-//                        if doesHaveTransactions {
-//                            sectionFooter(day: day, dailyCount: trans.count, dailyTotal: dailyTotal)
-//                        }
-//                    }
-//                }
-//            }
-            
-        }
-        .searchable(text: $searchText, prompt: Text("Search"))
-        .navigationTitle("\(data.dataPoint.titleString)")
-        .navigationSubtitle("\(data.month.name) \(String(data.month.year))")
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) { viewModeMenu }
-        }
-        .transactionEditSheetAndLogic(transEditID: $transEditID, selectedDay: $transDay)
+            .transactionEditSheetAndLogic(transEditID: $transEditID, selectedDay: $transDay)
     }
+    
+    @ViewBuilder
+    var theView: some View {
+        if data.trans.isEmpty {
+        //if getTransactions(month: data.month).isEmpty {
+            ContentUnavailableView("No Transactions", systemImage: "rectangle.stack.slash.fill")
+        } else {
+            StandardContainerWithToolbar(.list) {
+                switch transactionListDisplayMode {
+                case .full:
+                    fullView(for: data.month)
+                case .condensed:
+                    condensedView(for: data.month)
+                }
+            }
+        }
+    }
+    
     
     var viewModeMenu: some View {
         Menu {
@@ -1362,7 +1516,7 @@ fileprivate struct TransactionList: View {
     @ViewBuilder
     func transLoop(trans: Array<CBTransaction>) -> some View {
         ForEach(trans) { trans in
-            TransactionListLine(trans: trans, withDate: false)
+            TransactionListLine(trans: trans, withDate: transactionListDisplayMode == .condensed)
                 .onTapGesture {
                     let day = data.month.days.filter { $0.id == trans.dateComponents?.day }.first
                     self.transDay = day
@@ -1505,5 +1659,11 @@ extension Sequence {
             results.append(contentsOf: inner)
         }
         return results
+    }
+    
+    func asyncForEach(_ transform: (Element) async throws -> Void) async rethrows {
+        for element in self {
+            try await transform(element)
+        }
     }
 }

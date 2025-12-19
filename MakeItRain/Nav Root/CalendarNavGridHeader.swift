@@ -11,7 +11,6 @@ import SwiftUI
 struct CalendarNavGridHeader: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(CalendarModel.self) var calModel
-    @Environment(EventModel.self) var eventModel
     @Environment(PlaidModel.self) var plaidModel
     
     let monthNavigationNamespace: Namespace.ID
@@ -36,14 +35,6 @@ struct CalendarNavGridHeader: View {
                 plaidWarningButton
             }
         }
-        
-//        ToolbarItem(placement: .topBarTrailing) {
-//            if !eventModel.invitations.isEmpty {
-//                ShowEventInvitesView()
-//            }
-//        }
-//        
-//        ToolbarSpacer(.fixed, placement: .topBarTrailing)
         
         ToolbarItem(placement: .topBarTrailing) {
             if AppState.shared.isIpad {

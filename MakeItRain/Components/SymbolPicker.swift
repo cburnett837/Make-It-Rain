@@ -150,7 +150,8 @@ struct SymbolPicker: View {
             "gift.fill",
             "balloon.2.fill",
             "birthday.cake.fill",
-            "party.popper.fill"
+            "party.popper.fill",
+            "snowflake"
         ]),
         
         SymbolSection(title: "Technology", symbols: [

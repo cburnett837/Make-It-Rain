@@ -47,10 +47,9 @@ class PaySection: Identifiable {
 
 
 struct PayMethodMenu<Content: View>: View {
+    @Local(\.paymentMethodFilterMode) var paymentMethodFilterMode
     @Environment(\.colorScheme) var colorScheme
-    
     @Environment(CalendarModel.self) private var calModel
-    
     @Environment(PayMethodModel.self) private var payModel
     #if os(iOS)
     @Environment(PlaidModel.self) private var plaidModel

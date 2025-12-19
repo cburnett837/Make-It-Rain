@@ -178,8 +178,20 @@ struct FormatCurrencyLiveAndOnUnFocus: ViewModifier {
                 Helpers.liveFormatCurrency(oldValue: $0, newValue: $1, text: $amountStringBinding)
             }
             .onChange(of: focusedField) {
-                print("Formatting \(focusValue)")
-                if let string = Helpers.formatCurrency(focusValue: focusValue, oldFocus: $0, newFocus: $1, amountString: amountStringBinding, amount: amount) {
+                //print("Formatting \(focusValue)")
+                
+                if amountStringBinding == "-" {
+                    amountStringBinding = ""
+                    return
+                }
+                
+                if focusValue == $0, !amountStringBinding.isEmpty, let string = Helpers.formatCurrency(
+                    focusValue: focusValue,
+                    oldFocus: $0,
+                    newFocus: $1,
+                    amountString: amountStringBinding,
+                    amount: amount
+                ) {
                     amountStringBinding = string
                 }
             }
@@ -201,6 +213,90 @@ struct FormatCurrencyLiveAndOnUnFocus: ViewModifier {
             #endif
     }
 }
+
+
+
+
+struct CalculateAndFormatCurrencyLiveAndOnUnFocus: ViewModifier {
+    @Local(\.useWholeNumbers) var useWholeNumbers
+
+    var focusValue: Int
+    var focusedField: Int?
+    var amountString: String?
+    @Binding var amountStringBinding: String
+    var amount: Double?
+    
+    @State private var tokens: [CalcToken] = []
+    @State private var currentNumber: String = ""
+    
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: amountString) {
+                Helpers.liveFormatCurrency(oldValue: $0, newValue: $1, text: $amountStringBinding)
+                
+                if let new = $1 {
+                    if new.isEmpty {
+                        currentNumber = ""
+                        tokens.removeAll()
+                    }
+                }
+            }
+            .onChange(of: focusedField) {
+                //print("Formatting \(focusValue)")
+                
+                if amountStringBinding == "-" {
+                    amountStringBinding = ""
+                    return
+                }
+                
+                if focusValue == $0, !amountStringBinding.isEmpty, let string = Helpers.formatCurrency(
+                    focusValue: focusValue,
+                    oldFocus: $0,
+                    newFocus: $1,
+                    amountString: amountStringBinding,
+                    amount: amount
+                ) {
+                    amountStringBinding = string
+                    
+                    commitCurrentNumber()
+
+                    if let result = CalculatorEngine.evaluate(tokens: tokens) {
+                        amountStringBinding = format(result)
+                        tokens = [.number(result)]
+                    }
+                }
+            }
+            #if os(macOS)
+            .onSubmit {
+                if !(amountString ?? "").isEmpty {
+                    if amountString == "$" || amountString == "-$" {
+                        amountStringBinding = ""
+                    } else {
+                        /// When I click submit, the amount and amountString aren't updated with the new value that the Binding contains.
+                        let localAmount = Double(amountStringBinding.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+                        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
+                        amountStringBinding = localAmount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                    }
+                } else {
+                    amountStringBinding = amountString ?? ""
+                }
+            }
+            #endif
+    }
+    
+    func commitCurrentNumber() {
+        let process: String = currentNumber.replacing("$", with: "")
+        guard let value = Double(process) else { return }
+        tokens.append(.number(value))
+        currentNumber = ""
+    }
+    
+    func format(_ value: Double) -> String {
+        useWholeNumbers ? String(Int(value)) : String(value)
+    }
+}
+
+
 //
 //#if os(macOS)
 //struct AccessoryWindow: ViewModifier {
@@ -215,6 +311,7 @@ struct FormatCurrencyLiveAndOnUnFocus: ViewModifier {
 //
 
 struct CalendarLoadingSpinner: ViewModifier {
+    @Environment(CalendarModel.self) var calModel
     let id: NavDestination
     let text: String?
     
@@ -230,25 +327,25 @@ struct CalendarLoadingSpinner: ViewModifier {
     
     func body(content: Content) -> some View {
         content
-        .opacity(AppState.shared.downloadedData.contains(id) ? 1 : 0)
-        .overlay {
-            Group {
-                if let text {
-                    VStack {
+            .opacity(calModel.months.get(byEnumId: id).showCalendarLoadingSpinner ? 0 : 1)
+            .overlay {
+                Group {
+                    if let text {
+                        VStack {
+                            ProgressView()
+                                .tint(.none)
+                            Text(text)
+                        }
+                        #if os(iOS)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        #endif
+                    } else {
                         ProgressView()
                             .tint(.none)
-                        Text(text)
                     }
-                    #if os(iOS)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    #endif
-                } else {
-                    ProgressView()
-                        .tint(.none)
                 }
+                .opacity(calModel.months.get(byEnumId: id).showCalendarLoadingSpinner ? 1 : 0)
             }
-            .opacity(AppState.shared.downloadedData.contains(id) ? 0 : 1)
-        }
     }
 }
 
@@ -385,10 +482,11 @@ struct ToolbarKeyboard: ViewModifier {
 
 
 struct SchemeBasedForegroundStyle: ViewModifier {
+    var isDisabled: Bool
     @Environment(\.colorScheme) var colorScheme
     func body(content: Content) -> some View {
         content
-            .foregroundStyle(colorScheme == .dark ? .white : .black)
+            .foregroundStyle(isDisabled ? .gray : (colorScheme == .dark ? .white : .black))
     }
 }
 

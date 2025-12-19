@@ -27,7 +27,8 @@ struct CustomDecimalKeyboard: View {
         }
     }
     
-    @ViewBuilder func buttonView(_ value: String = "", type: DecimalKeyboardButtonType = .number) -> some View {
+    @ViewBuilder
+    func buttonView(_ value: String = "", type: DecimalKeyboardButtonType = .number) -> some View {
         Button("") {
             switch type {
             case .number:

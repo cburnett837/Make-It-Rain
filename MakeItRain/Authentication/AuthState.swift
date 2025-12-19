@@ -35,7 +35,8 @@ class AuthState {
     
     /// This will take the stored credentials, and send them to the server for authentication.
     /// The server will send back a ``CBUser`` object. That object will contain the user information, as well as a flag that indicates if we need to force the user to the payment method screen.
-    @MainActor func getApiKeyFromKeychain() async -> String? {
+    @MainActor
+    func getApiKeyFromKeychain() async -> String? {
         do {
             if let apiKey = try keychainManager.getFromKeychain(key: "user_api_key") {
                 return apiKey
@@ -50,7 +51,7 @@ class AuthState {
     
     
     func attemptLogin(using loginType: LoginType, with loginModel: LoginModel) async {
-        print("-- \(#function)")
+        //print("-- \(#function)")
         
         //error = nil
         self.error = nil
@@ -81,18 +82,19 @@ class AuthState {
                         AppState.shared.isLoggingInForFirstTime = true
                         AppState.shared.hasBadConnection = false
                         
+                        AppState.shared.splashIsAnimating = true
                         withAnimation {
-                            AppState.shared.appShouldShowSplashScreen = true
+                            AppState.shared.shouldShowSplash = true
                         }
                                             
                         self.isLoggedIn = true
-                        self.isThinking = false
+                        self.isThinking = false                        
                         //self.isBioAuthed = true
                     } else {
                         self.isLoggedIn = false
                         self.isThinking = false
                         //self.isBioAuthed = false
-                        AppState.shared.appShouldShowSplashScreen = false
+                        AppState.shared.shouldShowSplash = false
                         clearLoginState()
                         AppState.shared.showAlert("Problem getting api key from the server.")
                     }
@@ -109,7 +111,7 @@ class AuthState {
             self.isLoggedIn = false
             self.isThinking = false
             //self.isBioAuthed = false
-            AppState.shared.appShouldShowSplashScreen = false
+            AppState.shared.shouldShowSplash = false
             
             switch error {
             case .incorrectCredentials, .accessRevoked:
@@ -173,14 +175,14 @@ class AuthState {
 //            }
 //        } else {
 //            self.isThinking = false
-//            AppState.shared.appShouldShowSplashScreen = false
+//            AppState.shared.shouldShowSplash = false
 //        }
 //    }
     
     
     
-    func loginViaKeychain2() async -> Bool {
-        print("-- \(#function)")
+    func loginViaKeychain() async -> Bool {
+        //print("-- \(#function)")
         /// This will check the keychain for credentials. If it finds them, it will attempt to authenticate with the server. If not, it will take the user to the login page.
         /// If the user successfully authenticates with the server, this will also look if the user has payment methods, and set AppState accordingly.
         if let apiKey = await self.getApiKeyFromKeychain() {
@@ -188,12 +190,10 @@ class AuthState {
                 /// Talk to server with the users API key.
                 await self.attemptLogin(using: .apiKey, with: LoginModel(apiKey: apiKey))
                 
-                /// This will get set via `attemptLogin()`
+                /// This will get set via `self.attemptLogin()`
                 if self.isLoggedIn {
                     /// When the user logs in, if they have no payment methods, show the payment method required sheet.
                     if !AppState.shared.methsExist {
-                        LoadingManager.shared.showInitiallyLoadingSpinner = false
-                        LoadingManager.shared.showLoadingBar = false
                         AppState.shared.showPaymentMethodNeededSheet = true
                     }
                     //await NotificationManager.shared.registerForPushNotifications()
@@ -207,7 +207,7 @@ class AuthState {
             return self.isLoggedIn
         } else {
             self.isThinking = false
-            AppState.shared.appShouldShowSplashScreen = false
+            AppState.shared.shouldShowSplash = false
             return false
         }
     }

@@ -164,7 +164,7 @@ import SwiftUI
 //
 
 fileprivate let animationDelay: Double = 1
-fileprivate let animationDuration: Double = 5
+fileprivate let animationDuration: Double = 15
 fileprivate let colors: Array<Color> = [.orange, .pink, .purple]
 //fileprivate let colors: Array<Color> = [.red, .yellow, .green, .blue, .purple]
 //fileprivate let colors: Array<Color> = [.purple, .blue, .green, .orange, .red]

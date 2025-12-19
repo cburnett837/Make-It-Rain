@@ -135,11 +135,35 @@ class PlaidModel {
         /// Used to test the snapshot data race
         //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
         
+        let id = bank.id
+        let logo = bank.logo
+        //print(keyword.action)
+        
+        let context = DataManager.shared.createContext()
+        await context.perform {
+            let pred1 = NSPredicate(format: "relatedID == %@", id)
+            let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .plaidBank).id))
+            let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
+            
+            if let perLogo = DataManager.shared.getOne(
+                context: context,
+                type: PersistentLogo.self,
+                predicate: .compound(comp),
+                createIfNotFound: true
+            ) {
+                perLogo.id = UUID().uuidString
+                perLogo.relatedID = id
+                perLogo.relatedTypeID = Int64(XrefModel.getItem(from: .logoTypes, byEnumID: .plaidBank).id)
+                perLogo.photoData = logo
+                perLogo.localUpdatedDate = Date()
+            }
+            
+            let _ = DataManager.shared.save(context: context)
+        }
+        
+        
         typealias ResultResponse = Result<ReturnIdModel?, AppError>
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
-        
-        
-        //print(keyword.action)
                     
         switch await result {
         case .success(let model):

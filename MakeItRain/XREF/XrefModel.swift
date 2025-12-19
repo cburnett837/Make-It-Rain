@@ -20,16 +20,20 @@ enum RefType {
     case accountTypes
     case paymentMethodUserOptions
     case logoTypes
+    case paymentMethodHolderTypes
+    case budgetTypes
 }
 
 enum XrefEnum: String {
     case pending
     case claimed
     
+    /// Related transactions
     case transaction
     case event
     case eventTransaction
     case eventTransactionOption
+    case christmasListGift
     
     case accepted
     case rejected
@@ -71,7 +75,15 @@ enum XrefEnum: String {
     case repeatingTransaction
     case paymentMethod
     case plaidBank
-    case userPhoto
+    case avatar
+    
+    /// For Payment Method Holders
+    case primary
+    case secondary
+    
+    /// For Budgets
+    case category
+    case categoryGroup
 }
 
 struct XrefItem: Identifiable, Equatable, Hashable {
@@ -100,14 +112,16 @@ struct XrefModel {
     
     static let relatedTransactionTypes: Array<XrefItem> = [
         XrefItem(id: 3, refType: "related_transaction_type", description: "Transaction", enumID: .transaction),
-        XrefItem(id: 4, refType: "related_transaction_type", description: "Event Transaction", enumID: .eventTransaction)
+        XrefItem(id: 4, refType: "related_transaction_type", description: "Event Transaction", enumID: .eventTransaction),
+        XrefItem(id: 50, refType: "related_transaction_type", description: "Christmas List Gift", enumID: .christmasListGift)
     ]
     
     static let fileTypes: Array<XrefItem> = [
         XrefItem(id: 5, refType: "file_type", description: "Transaction", enumID: .transaction),
         XrefItem(id: 6, refType: "file_type", description: "Event Transaction", enumID: .eventTransaction),
         XrefItem(id: 17, refType: "file_type", description: "Event", enumID: .event),
-        XrefItem(id: 18, refType: "file_type", description: "Event Transaction Option", enumID: .eventTransactionOption)
+        XrefItem(id: 18, refType: "file_type", description: "Event Transaction Option", enumID: .eventTransactionOption),
+        //XrefItem(id: 50, refType: "file_type", description: "Avatar", enumID: .avatar)
     ]
     
     static let eventInviteStatuses: Array<XrefItem> = [
@@ -174,7 +188,17 @@ struct XrefModel {
         XrefItem(id: 42, refType: "logo_parent_type", description: "Payment Method", enumID: .paymentMethod),
         XrefItem(id: 43, refType: "logo_parent_type", description: "Repeating Transaction", enumID: .repeatingTransaction),
         XrefItem(id: 44, refType: "logo_parent_type", description: "Plaid Bank", enumID: .plaidBank),
-        XrefItem(id: 47, refType: "logo_parent_type", description: "User Photo", enumID: .userPhoto),
+        XrefItem(id: 47, refType: "logo_parent_type", description: "User Avatar", enumID: .avatar),
+    ]
+    
+    static let paymentMethodHolderTypes: Array<XrefItem> = [
+        XrefItem(id: 48, refType: "payment_method_holder_type", description: "Primary", enumID: .primary),
+        XrefItem(id: 49, refType: "payment_method_holder_type", description: "Secondary", enumID: .secondary),
+    ]
+    
+    static let budgetTypes: Array<XrefItem> = [
+        XrefItem(id: 51, refType: "budget_type", description: "Category", enumID: .category),
+        XrefItem(id: 52, refType: "budget_type", description: "Category Group", enumID: .categoryGroup),
     ]
     
     
@@ -215,6 +239,12 @@ struct XrefModel {
             
         case .logoTypes:
             return logoTypes
+            
+        case .paymentMethodHolderTypes:
+            return paymentMethodHolderTypes
+            
+        case .budgetTypes:
+            return budgetTypes
         }
     }
     

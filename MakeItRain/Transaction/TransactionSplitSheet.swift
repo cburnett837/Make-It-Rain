@@ -151,6 +151,8 @@ struct TransactionSplitSheet: View {
         newTrans.date = trans.date
         newTrans.payMethod = trans.payMethod
         newTrans.files = trans.files
+        /// Tell the server to copy over any pre-existing file records.
+        newTrans.duplicateFileRecordsOnDb = true
         withAnimation {
             additionalTrans.append(newTrans)
         }

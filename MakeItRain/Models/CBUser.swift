@@ -9,15 +9,18 @@
 import Foundation
 import SwiftUI
 
-class CBUser: Codable, Identifiable, Hashable, Equatable {
+@Observable
+class CBUser: Codable, Identifiable, Hashable, Equatable, CanHandleUserAvatar {
     var id: Int
     var accountID: Int
     var name: String
     var initials: String
-    var email: String
+    var email: String    
+    var avatar: Data?
+    
     //var hasPaymentMethodsExisiting: Bool = false
     
-    enum CodingKeys: CodingKey { case id, account_id, name, initials, email, device_uuid }
+    enum CodingKeys: CodingKey { case id, account_id, name, initials, email, avatar, device_uuid }
     
     init() {
         self.id = 0
@@ -35,7 +38,7 @@ class CBUser: Codable, Identifiable, Hashable, Equatable {
         try container.encode(initials, forKey: .initials)
         try container.encode(email, forKey: .email)
         try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
-
+        try container.encode(avatar, forKey: .avatar)
     }
         
     required init(from decoder: Decoder) throws {
@@ -45,8 +48,21 @@ class CBUser: Codable, Identifiable, Hashable, Equatable {
         name = try container.decode(String.self, forKey: .name)
         initials = try container.decode(String.self, forKey: .initials)
         email = try container.decode(String.self, forKey: .email)
-        //let hasPaymentMethodsExisiting = try container.decodeIfPresent(Int.self, forKey: .has_payment_methods_existing)
-        //self.hasPaymentMethodsExisiting = hasPaymentMethodsExisiting == 1
+        
+//        let pred1 = NSPredicate(format: "relatedID == %@", String(self.id))
+//        let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .avatar).id))
+//        let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
+//        
+//        /// Fetch the logo out of core data since the encoded strings can be heavy and I don't want to use Async Image for every logo.
+//        let context = DataManager.shared.createContext()
+//        if let logo = DataManager.shared.getOne(
+//           context: context,
+//           type: PersistentLogo.self,
+//           predicate: .compound(comp),
+//           createIfNotFound: false
+//        ) {
+//            self.avatar = logo.photoData
+//        }
     }
     
     
@@ -60,6 +76,7 @@ class CBUser: Codable, Identifiable, Hashable, Equatable {
             copy.name = self.name
             copy.initials = self.initials
             copy.email = self.email
+            copy.avatar = self.avatar
             self.deepCopy = copy
         case .restore:
             if let deepCopy = self.deepCopy {
@@ -68,6 +85,7 @@ class CBUser: Codable, Identifiable, Hashable, Equatable {
                 self.name = deepCopy.name
                 self.initials = deepCopy.initials
                 self.email = deepCopy.email
+                self.avatar = deepCopy.avatar
             }
         case .clear:
             break
@@ -79,7 +97,9 @@ class CBUser: Codable, Identifiable, Hashable, Equatable {
     static func == (lhs: CBUser, rhs: CBUser) -> Bool {
         if lhs.id == rhs.id
             && lhs.name == rhs.name
-            && lhs.email == rhs.email {
+            && lhs.email == rhs.email
+            && lhs.avatar == rhs.avatar
+        {
             return true
         }
         return false

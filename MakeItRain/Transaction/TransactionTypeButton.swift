@@ -38,6 +38,7 @@ struct TransactionAmountRow<Content: View>: View {
 
     var amountTypeLingo: String
     @Binding var amountString: String
+    var isCalculator: Bool = false
     @ViewBuilder var content: Content
     
     var body: some View {
@@ -51,6 +52,8 @@ struct TransactionAmountRow<Content: View>: View {
                         .font(.subheadline)
                         .schemeBasedForegroundStyle()
                 }
+                /// Prevent the button from making the list row bigger
+                .padding(.vertical, -10)
                 .buttonStyle(.borderedProminent)
                 #if os(iOS)
                 .tint(Color(uiColor: .quaternarySystemFill))
@@ -58,8 +61,10 @@ struct TransactionAmountRow<Content: View>: View {
                 //.disabled(amountString.isEmpty)
             }
         }
+        .if(!isCalculator) {
+            $0.validate(amountString, rules: .regex(.currency, "The field contains invalid characters"))
+        }
         
-        .validate(amountString, rules: .regex(.currency, "The field contains invalid characters"))
         
     }
 }

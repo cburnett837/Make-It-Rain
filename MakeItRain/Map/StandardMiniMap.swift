@@ -79,39 +79,9 @@ struct StandardMiniMap: View {
         }
         
         /// Fix for iOS 26 not being able to touch the map directly.
-        .overlay { Color.gray.opacity(0.01) }
-        
+        .overlay(Color.gray.opacity(0.01))
         .task {
-            /// Create a map item for each CBLocation.
-            for loc in locations {
-                if loc.mapItem == nil {
-                    loc.mapItem = await mapModel.createMapItem(for: loc)
-                    //loc.mapItem = await mapModel.createMapItemFrom(coordinates: loc.coordinates)
-                }
-            }
-            
-            /// There is no location set, focus on the user position and create a location from there.
-            if locations.isEmpty {
-                if let coordinate = LocationManager.shared.currentLocation {
-                    let span = MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-                    let region = MKCoordinateRegion(center: coordinate, span: span)
-                    mapModel.visibleRegion = region
-                }
-                
-                mapModel.position = .userLocation(followsHeading: false, fallback: .userLocation(fallback: .automatic))
-                
-                
-                if addCurrentLocation {
-                    print("should add current location to parent")
-                    if let location = await mapModel.saveCurrentLocation(parentID: parentID, parentType: parentType) {
-                        parent.upsert(location)
-                        focusOnFirst(locations: parent.locations)
-                    }
-                }
-            } else {
-                /// Set the camera to the first location in the list when opening the map.
-                focusOnFirst(locations: locations)
-            }
+            await prepareMap()
         }
         .frame(maxWidth: .infinity)
         .frame(height: 150)
@@ -140,6 +110,40 @@ struct StandardMiniMap: View {
 //            StandardMapView(locations: $locations, parent: parent, parentID: parentID, parentType: parentType)
 //        }
 //        #endif
+    }
+    
+    
+    func prepareMap() async {
+        /// Create a map item for each CBLocation.
+        for loc in locations {
+            if loc.mapItem == nil {
+                loc.mapItem = await mapModel.createMapItem(for: loc)
+                //loc.mapItem = await mapModel.createMapItemFrom(coordinates: loc.coordinates)
+            }
+        }
+        
+        /// There is no location set, focus on the user position and create a location from there.
+        if locations.isEmpty {
+            if let coordinate = LocationManager.shared.currentLocation {
+                let span = MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                let region = MKCoordinateRegion(center: coordinate, span: span)
+                mapModel.visibleRegion = region
+            }
+            
+            mapModel.position = .userLocation(followsHeading: false, fallback: .userLocation(fallback: .automatic))
+            
+            
+            if addCurrentLocation {
+                print("should add current location to parent")
+                if let location = await mapModel.saveCurrentLocation(parentID: parentID, parentType: parentType) {
+                    parent.upsert(location)
+                    focusOnFirst(locations: parent.locations)
+                }
+            }
+        } else {
+            /// Set the camera to the first location in the list when opening the map.
+            focusOnFirst(locations: locations)
+        }
     }
     
     func focusOnFirst(locations: [CBLocation]) {

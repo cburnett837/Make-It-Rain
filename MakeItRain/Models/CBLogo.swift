@@ -75,7 +75,8 @@ class CBLogo: Codable, Identifiable, Hashable {
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(Int(id), forKey: .id) // This weird Int() thing is for the drag and drop
+        try container.encode(id, forKey: .id)
+        //try container.encode(Int(id), forKey: .id) // This weird Int() thing is for the drag and drop
         try container.encode(relatedID, forKey: .related_id)
         try container.encode(baseString, forKey: .base_string)
         try container.encode(active ? 1 : 0, forKey: .active)

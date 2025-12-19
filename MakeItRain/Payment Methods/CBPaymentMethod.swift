@@ -8,6 +8,12 @@
 import Foundation
 import SwiftUI
 
+struct PaymentMethodHolder: Identifiable {
+    var id: Int
+    var holder: CBUser?
+    var type: XrefItem?
+}
+
 @Observable
 class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo {
     var id: String
@@ -37,6 +43,16 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     var notifyOnDueDate: Bool = false
     var last4: String?
     var logo: Data?
+    var logoParentType: XrefItem = XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod)
+    
+    var holderOne: CBUser?
+    var holderOneType: XrefItem?
+    var holderTwo: CBUser?
+    var holderTwoType: XrefItem?
+    var holderThree: CBUser?
+    var holderThreeType: XrefItem?
+    var holderFour: CBUser?
+    var holderFourType: XrefItem?
     
     var fallbackImage: String {
         accountType == .checking || accountType == .cash ? "banknote.fill" : "creditcard.fill"
@@ -112,6 +128,15 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         isUnifiedDebit || isUnifiedCredit
     }
     
+    var allHolders: [PaymentMethodHolder] {
+        return [
+            PaymentMethodHolder(id: 1, holder: self.holderOne, type: self.holderOneType),
+            PaymentMethodHolder(id: 2, holder: self.holderTwo, type: self.holderTwoType),
+            PaymentMethodHolder(id: 3, holder: self.holderThree, type: self.holderThreeType),
+            PaymentMethodHolder(id: 4, holder: self.holderFour, type: self.holderFourType)
+        ]
+        
+    }
     
     // MARK: - Init
     init() {
@@ -145,6 +170,9 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         self.updatedBy = AppState.shared.user!
         self.enteredDate = Date()
         self.updatedDate = Date()
+        
+        self.holderOne = AppState.shared.user!
+        self.holderOneType = XrefModel.getItem(from: .paymentMethodHolderTypes, byEnumID: .primary)
     }
     
 //    init(unifiedAccountType: AccountType) {
@@ -196,6 +224,24 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         self.enteredDate = entity.enteredDate ?? Date()
         self.updatedDate = entity.updatedDate ?? Date()
         
+        self.holderOne = AppState.shared.getUserBy(id: Int(entity.holderOneID))
+        self.holderTwo = AppState.shared.getUserBy(id: Int(entity.holderTwoID))
+        self.holderThree = AppState.shared.getUserBy(id: Int(entity.holderThreeID))
+        self.holderFour = AppState.shared.getUserBy(id: Int(entity.holderFourID))
+        
+        if Int(entity.holderOneTypeID) != 0 {
+            self.holderOneType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: Int(entity.holderOneTypeID))
+        }
+        if Int(entity.holderTwoTypeID) != 0 {
+            self.holderTwoType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: Int(entity.holderTwoTypeID))
+        }
+        if Int(entity.holderThreeTypeID) != 0 {
+            self.holderThreeType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: Int(entity.holderThreeTypeID))
+        }
+        if Int(entity.holderFourTypeID) != 0 {
+            self.holderFourType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: Int(entity.holderFourTypeID))
+        }
+        
         
         self.isHidden = entity.isHidden
         self.isPrivate = entity.isPrivate
@@ -222,7 +268,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     /// If the method goes from private to public, update the starting amount records so the long poll will push them to other users on the account.
     var viewingYear: Int?
     
-    enum CodingKeys: CodingKey { case id, uuid, title, due_date, limit, account_type_id, hex_code, is_viewing_default, is_editing_default, active, user_id, account_id, device_uuid, notification_offset, notify_on_due_date, last_4_digits, entered_by, updated_by, entered_date, updated_date, breakdowns, interest_rate, loan_duration, is_hidden, is_private, logo, list_order, viewing_year }
+    enum CodingKeys: CodingKey { case id, uuid, title, due_date, limit, account_type_id, hex_code, is_viewing_default, is_editing_default, active, user_id, account_id, device_uuid, notification_offset, notify_on_due_date, last_4_digits, entered_by, updated_by, entered_date, updated_date, breakdowns, interest_rate, loan_duration, is_hidden, is_private, logo, list_order, viewing_year, holder_one, holder_two, holder_three, holder_four, holder_one_type_id, holder_two_type_id, holder_three_type_id, holder_four_type_id }
     
     
     func encode(to encoder: Encoder) throws {
@@ -255,6 +301,17 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date) // for the Transferable protocol
         
         try container.encode(listOrder, forKey: .list_order)
+        
+        //print("going to encode holder id1 \(holderOne?.id)")
+        
+        try container.encode(holderOne, forKey: .holder_one)
+        try container.encode(holderTwo, forKey: .holder_two)
+        try container.encode(holderThree, forKey: .holder_three)
+        try container.encode(holderFour, forKey: .holder_four)
+        try container.encode(holderOneType?.id, forKey: .holder_one_type_id)
+        try container.encode(holderTwoType?.id, forKey: .holder_two_type_id)
+        try container.encode(holderThreeType?.id, forKey: .holder_three_type_id)
+        try container.encode(holderFourType?.id, forKey: .holder_four_type_id)
         
         /// Send the current year to the server when updating a payment method for 1 use case:
         /// If the method goes from private to public, update the starting amount records so the long poll will push them to other users on the account.
@@ -306,13 +363,32 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         let isActive = try container.decode(Int?.self, forKey: .active)
         self.active = isActive == 1
         
-        self.notificationOffset = try container.decode(Int?.self, forKey: .notification_offset)
+        let offset = try container.decode(Int?.self, forKey: .notification_offset)
+        if offset == nil {
+            self.notificationOffset = 0
+        } else {
+            self.notificationOffset = offset
+        }
         
         let notifyOnDueDate = try container.decode(Int?.self, forKey: .notify_on_due_date)
         self.notifyOnDueDate = notifyOnDueDate == 1
         
         self.last4 = try container.decode(String?.self, forKey: .last_4_digits)
         //self.logo = try container.decode(String?.self, forKey: .logo)
+        holderOne = try container.decode(CBUser?.self, forKey: .holder_one)
+        holderTwo = try container.decode(CBUser?.self, forKey: .holder_two)
+        holderThree = try container.decode(CBUser?.self, forKey: .holder_three)
+        holderFour = try container.decode(CBUser?.self, forKey: .holder_four)
+        
+        let holderOneTypeID = try container.decode(Int?.self, forKey: .holder_one_type_id)
+        let holderTwoTypeID = try container.decode(Int?.self, forKey: .holder_two_type_id)
+        let holderThreeTypeID = try container.decode(Int?.self, forKey: .holder_three_type_id)
+        let holderFourTypeID = try container.decode(Int?.self, forKey: .holder_four_type_id)
+                
+        if let holderOneTypeID { holderOneType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: holderOneTypeID) }
+        if let holderTwoTypeID { holderTwoType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: holderTwoTypeID) }
+        if let holderThreeTypeID { holderThreeType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: holderThreeTypeID) }
+        if let holderFourTypeID { holderFourType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: holderFourTypeID) }
         
         //self.interestRate = try container.decode(Double?.self, forKey: .interest_rate)
         //self.loanDuration = try container.decode(Int?.self, forKey: .loan_duration)
@@ -392,6 +468,14 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
             && self.color == deepCopy.color
             && self.logo == deepCopy.logo
             && self.listOrder == deepCopy.listOrder
+            && self.holderOne == deepCopy.holderOne
+            && self.holderTwo == deepCopy.holderTwo
+            && self.holderThree == deepCopy.holderThree
+            && self.holderFour == deepCopy.holderFour
+            && self.holderOneType == deepCopy.holderOneType
+            && self.holderTwoType == deepCopy.holderTwoType
+            && self.holderThreeType == deepCopy.holderThreeType
+            && self.holderFourType == deepCopy.holderFourType
             {
                 return false
             }
@@ -424,6 +508,14 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
             copy.isPrivate = self.isPrivate
             copy.logo = self.logo
             copy.listOrder = self.listOrder
+            copy.holderOne = self.holderOne
+            copy.holderTwo = self.holderTwo
+            copy.holderThree = self.holderThree
+            copy.holderFour = self.holderFour
+            copy.holderOneType = self.holderOneType
+            copy.holderTwoType = self.holderTwoType
+            copy.holderThreeType = self.holderThreeType
+            copy.holderFourType = self.holderFourType
             //copy.action = self.action
             self.deepCopy = copy
         case .restore:
@@ -447,6 +539,14 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
                 self.isPrivate = deepCopy.isPrivate
                 self.logo = deepCopy.logo
                 self.listOrder = deepCopy.listOrder
+                self.holderOne = deepCopy.holderOne
+                self.holderTwo = deepCopy.holderTwo
+                self.holderThree = deepCopy.holderThree
+                self.holderFour = deepCopy.holderFour
+                self.holderOneType = deepCopy.holderOneType
+                self.holderTwoType = deepCopy.holderTwoType
+                self.holderThreeType = deepCopy.holderThreeType
+                self.holderFourType = deepCopy.holderFourType
                 //self.action = deepCopy.action
             }
         case .clear:
@@ -481,6 +581,14 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         self.enteredDate = payMethod.enteredDate
         self.updatedDate = payMethod.updatedDate
         self.listOrder = payMethod.listOrder
+        self.holderOne = payMethod.holderOne
+        self.holderTwo = payMethod.holderTwo
+        self.holderThree = payMethod.holderThree
+        self.holderFour = payMethod.holderFour
+        self.holderOneType = payMethod.holderOneType
+        self.holderTwoType = payMethod.holderTwoType
+        self.holderThreeType = payMethod.holderThreeType
+        self.holderFourType = payMethod.holderFourType
     }
             
     
@@ -519,6 +627,14 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         && lhs.logo == rhs.logo
         && lhs.listOrder == rhs.listOrder
         && lhs.active == rhs.active
+        && lhs.holderOne == rhs.holderOne
+        && lhs.holderTwo == rhs.holderTwo
+        && lhs.holderThree == rhs.holderThree
+        && lhs.holderFour == rhs.holderFour
+        && lhs.holderOneType == rhs.holderOneType
+        && lhs.holderTwoType == rhs.holderTwoType
+        && lhs.holderThreeType == rhs.holderThreeType
+        && lhs.holderFourType == rhs.holderFourType
         {
             return true
         }

@@ -9,15 +9,17 @@ import Foundation
 
 class AnalysisRequestModel: Encodable {
     let recordIDs: Array<String>
+    let groupID: String?
     let fetchYearStart: Int
     let fetchYearEnd: Int
     let isUnifiedRequest: Bool
     
-    enum CodingKeys: CodingKey { case record_ids, fetch_year_start, fetch_year_end, user_id, account_id, device_uuid, is_unified_request }
+    enum CodingKeys: CodingKey { case record_ids, fetch_year_start, fetch_year_end, user_id, account_id, device_uuid, is_unified_request, group_id }
     
     
-    init(recordIDs: Array<String>, fetchYearStart: Int, fetchYearEnd: Int, isUnifiedRequest: Bool) {
+    init(recordIDs: Array<String>, groupID: String?, fetchYearStart: Int, fetchYearEnd: Int, isUnifiedRequest: Bool) {
         self.recordIDs = recordIDs
+        self.groupID = groupID
         self.fetchYearStart = fetchYearStart
         self.fetchYearEnd = fetchYearEnd
         self.isUnifiedRequest = isUnifiedRequest
@@ -26,6 +28,7 @@ class AnalysisRequestModel: Encodable {
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(recordIDs, forKey: .record_ids)
+        try container.encode(groupID, forKey: .group_id)
         try container.encode(fetchYearStart, forKey: .fetch_year_start)
         try container.encode(fetchYearEnd, forKey: .fetch_year_end)
         try container.encode(isUnifiedRequest ? 1 : 0, forKey: .is_unified_request)

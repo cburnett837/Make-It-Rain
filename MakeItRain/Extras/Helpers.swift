@@ -235,7 +235,49 @@ struct Helpers {
                 }
             }
         }
-        
+    }
+    
+    
+    static func decodeAttributedString(from base64: String) throws -> AttributedString {
+        guard let data = Data(base64Encoded: base64) else {
+            throw NSError(domain: "InvalidBase64", code: -1)
+        }
+
+        let attributed = try JSONDecoder().decode(AttributedString.self, from: data)
+        return attributed
+    }
+    
+    
+    /// Turn a SwiftUI AttributedString into an NSAttributedString suitable for UITextView,
+    /// applying default UIKit font/color if there is no NS styling.
+    static func makeUITextViewString(from swiftAttr: AttributedString) -> NSAttributedString {
+        // Bridge SwiftUI.AttributedString -> NSAttributedString
+        let bridged = NSAttributedString(swiftAttr)  // this is a real initializer on iOS 15+
+
+        // Check if there is *any* UIFont already applied in NS land
+        var hasFontAttribute = false
+        bridged.enumerateAttribute(.font,
+                                   in: NSRange(location: 0, length: bridged.length),
+                                   options: []) { value, _, stop in
+            if value != nil {
+                hasFontAttribute = true
+                stop.pointee = true
+            }
+        }
+
+        // If there is already a UIKit font, just use it as-is.
+        guard !hasFontAttribute else {
+            return bridged
+        }
+
+        // Otherwise, apply default UIKit styling over the whole range
+        let mutable = NSMutableAttributedString(attributedString: bridged)
+        let fullRange = NSRange(location: 0, length: mutable.length)
+
+        mutable.addAttribute(.font, value: UIFont.preferredFont(forTextStyle: .body), range: fullRange)
+        mutable.addAttribute(.foregroundColor, value: UIColor.label, range: fullRange)
+
+        return mutable
     }
 }
 
@@ -245,5 +287,3 @@ func ??<T>(lhs: Binding<Optional<T>>, rhs: T) -> Binding<T> {
         set: { lhs.wrappedValue = $0 }
     )
 }
-
-

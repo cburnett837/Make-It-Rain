@@ -10,8 +10,8 @@ import SwiftUI
 
 struct TagView: View {
     //@Local(\.colorTheme) var colorTheme
-    @Environment(\.dismiss) var dismiss
-    @Environment(\.colorScheme) var colorScheme
+    //@Environment(\.dismiss) var dismiss
+    //@Environment(\.colorScheme) var colorScheme
 
     @Environment(CalendarModel.self) private var calModel
     
@@ -28,7 +28,7 @@ struct TagView: View {
     var gridTags: Array<CBTag> {
         var tags: [CBTag] = []
         var returnTags: [CBTag] = []
-        let allTags = calModel.tags
+        let allTags = calModel.tags.sorted(by: { $0.tag < $1.tag })
         let transTags = trans.tags
         
         for each in allTags {
@@ -67,7 +67,7 @@ struct TagView: View {
     
     
     var body: some View {
-        NavigationStack {
+        //NavigationStack {
             StandardContainerWithToolbar(.list) {
                 if isEditMode {
                     editList
@@ -99,17 +99,17 @@ struct TagView: View {
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { editButton }
-                if !isEditMode {
-                    ToolbarItem(placement: .topBarTrailing) { closeButton }
-                }
+                ToolbarItem(placement: .topBarTrailing) { editButton }
+//                if !isEditMode {
+//                    ToolbarItem(placement: .topBarTrailing) { closeButton }
+//                }
                 
             }
             .onChange(of: newTag) { old, new in
                 newTag = new.replacing(" ", with: "")
             }
             #endif
-        }
+        //}
     }
     
     
@@ -258,14 +258,14 @@ struct TagView: View {
     }
     
     
-    var closeButton: some View {
-        Button {
-            dismiss()
-        } label: {
-            Image(systemName: "xmark")
-                .schemeBasedForegroundStyle()
-        }
-    }
+//    var closeButton: some View {
+//        Button {
+//            dismiss()
+//        } label: {
+//            Image(systemName: "xmark")
+//                .schemeBasedForegroundStyle()
+//        }
+//    }
     
     
     

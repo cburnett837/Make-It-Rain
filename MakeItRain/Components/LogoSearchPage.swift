@@ -47,7 +47,11 @@ struct LogoSearchPage<T: CanHandleLogo & Observation.Observable>: View {
                         ProgressView()
                             .tint(.none)
                     } else {
-                        ContentUnavailableView("No Search Results", systemImage: "magnifyingglass")
+                        ContentUnavailableView(
+                            "No Search Results",
+                            systemImage: "magnifyingglass",
+                            description: Text("Search for a business to find their logo.\nI.E. Apple, Bank of America, Etc.")
+                        )
                     }
                 } else {
                     
@@ -159,26 +163,18 @@ struct LogoSearchPage<T: CanHandleLogo & Observation.Observable>: View {
         
         if let preparedSearchTerm = searchTerm.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) {
             let url = URL(string: "https://api.logo.dev/search?q=\(preparedSearchTerm)")!
-            
             var request = URLRequest(url: url)
-            
             request.setValue("Bearer sk_AflL_YtDQt-ihw_FbS-_Xw", forHTTPHeaderField: "Authorization")
-            let (data, response): (Data, URLResponse) = try await URLSession.shared.data(for: request)
+            let (data, _): (Data, URLResponse) = try await URLSession.shared.data(for: request)
             //let httpResponse = response as? HTTPURLResponse
             
-            let serverText = String(data: data, encoding: .utf8) ?? ""
-            print(serverText)
+            //let serverText = String(data: data, encoding: .utf8) ?? ""
+            //print(serverText)
             
-            #if targetEnvironment(simulator)
-            let decodedData = try! JSONDecoder().decode(Array<LogoSearchResult>?.self, from: data)
-            #else
-            let decodedData = try? JSONDecoder().decode(Array<LogoSearchResult>?.self, from: data)
-            #endif
-            
-            if let decodedData {
+            if let decodedData = try! JSONDecoder().decode(Array<LogoSearchResult>?.self, from: data) {
                 self.searchResults = decodedData
             }
-            
+
             showLoadingSpinner = false
         }
     }

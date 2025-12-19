@@ -14,6 +14,7 @@ struct MultiPayMethodSheet: View {
     @Environment(PayMethodModel.self) private var payModel
     @Environment(PlaidModel.self) private var plaidModel
     @Local(\.useBusinessLogos) var useBusinessLogos
+    @Local(\.paymentMethodFilterMode) var paymentMethodFilterMode
 
     @Binding var payMethods: Array<CBPaymentMethod>
     
@@ -34,16 +35,27 @@ struct MultiPayMethodSheet: View {
     
     var body: some View {
         NavigationStack {
-            StandardContainerWithToolbar(.list) {
-                content
+            Group {
+                if sections.flatMap({ $0.payMethods }).isEmpty && !searchText.isEmpty {
+                    ContentUnavailableView("No accounts found", systemImage: "exclamationmark.magnifyingglass")
+                } else {
+                    StandardContainerWithToolbar(.list) {
+                        content
+                    }
+                }
             }
+            
             .task { populateSections() }
+            .onChange(of: paymentMethodFilterMode) { populateSections() }
             .searchable(text: $searchText, prompt: "Search")
             .navigationTitle("Accounts")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { selectButton }
+                
+                ToolbarItem(placement: .bottomBar) { PayMethodFilterMenu() }
+                ToolbarSpacer(.flexible, placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar)
                 DefaultToolbarItem(kind: .search, placement: .bottomBar)
                 
                 ToolbarSpacer(.flexible, placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar)
@@ -120,7 +132,11 @@ struct MultiPayMethodSheet: View {
                 }
             } icon: {
                 //methColorCircle(meth)
-                BusinessLogo(parent: meth, fallBackType: .color)
+                //BusinessLogo(parent: meth, fallBackType: .color)
+                BusinessLogo(config: .init(
+                    parent: meth,
+                    fallBackType: .color
+                ))
             }
                                             
             Spacer()

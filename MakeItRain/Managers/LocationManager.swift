@@ -36,7 +36,7 @@ class LocationManager: NSObject, CLLocationManagerDelegate  {
     }
         
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        print("-- \(#function)")
+        //print("-- \(#function)")
         currentLocation = locations.last?.coordinate
         locations.last.map {
             region = MKCoordinateRegion(
@@ -56,13 +56,13 @@ class LocationManager: NSObject, CLLocationManagerDelegate  {
     
     
     func requestLocation() {
-        print("-- \(#function)")
+        //print("-- \(#function)")
         manager.requestLocation()
     }
         
     
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        print("-- \(#function)")
+        //print("-- \(#function)")
         switch manager.authorizationStatus {
         case .notDetermined:
             print("Location authorization notDetermined")
@@ -92,7 +92,7 @@ class LocationManager: NSObject, CLLocationManagerDelegate  {
     
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        print("-- \(#function)")
+        //print("-- \(#function)")
         print(error.localizedDescription)
     }
 }

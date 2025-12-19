@@ -20,9 +20,11 @@ struct PayMethodSortMenu: View {
                 listOrderButton
             }
         } label: {
-            Image(systemName: "arrow.up.arrow.down")
-                .schemeBasedForegroundStyle()
+            Label("Sort Order", systemImage: "arrow.up.arrow.down")
+            ////Image(systemName: "arrow.up.arrow.down")
+                //.schemeBasedForegroundStyle()
         }
+        .schemeBasedTint()
     }
     
     

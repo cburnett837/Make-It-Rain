@@ -9,6 +9,7 @@ import SwiftUI
 
 struct LineItemView: View {
     //@Local(\.colorTheme) var colorTheme
+    #warning("These local properties should be moved up the view hierarchy to improve performance")
     @Local(\.incomeColor) var incomeColor
     @Local(\.updatedByOtherUserDisplayMode) var updatedByOtherUserDisplayMode
     @Local(\.useWholeNumbers) var useWholeNumbers
@@ -19,12 +20,13 @@ struct LineItemView: View {
     //@AppStorage("showCategoryIndicator") var showCategoryIndicator = true
     //@AppStorage("showAccountOnUnifiedView") var showAccountOnUnifiedView = false
     
+    @Environment(CalendarProps.self) private var calProps
     @Environment(CalendarModel.self) private var calModel
-    
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
     
+    @FocusState private var focusedField: Int?
     @State private var transEditID: String?
     @State private var transDeleteID: String?
     @State private var showDeleteAlert = false
@@ -33,8 +35,6 @@ struct LineItemView: View {
     @Bindable var trans: CBTransaction
     @Bindable var day: CBDay
     var isOnCalendarView: Bool = true
-    
-    @FocusState var focusedField: Int?
     
     var amountColor: Color {
         if trans.payMethod?.accountType == .credit || trans.payMethod?.accountType == .loan {
@@ -82,8 +82,16 @@ struct LineItemView: View {
             Color.clear
         }
     }
+    
+    var opacity: Double {
+        switch trans.status {
+        case .editing, .none: 1
+        case .inFlight, .dummy, .saveSuccess, .saveFail, .deleteSucceess: 0.3
+        }
+    }
         
     var body: some View {
+        @Bindable var calProps = calProps
         //let _ = Self._printChanges()
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 0) {
@@ -99,8 +107,10 @@ struct LineItemView: View {
                 updatedByOtherUserView
             }
             .padding(.leading, subTextPadding)
-            
         }
+        .opacity(opacity)
+        .transition(.scale)
+        .overlay(alignment: .center) { overlayView }
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
         .padding(.leading, isOnCalendarView ? 8 : 0)
         #if os(iOS)
@@ -109,7 +119,7 @@ struct LineItemView: View {
         #else
         .padding(.trailing, isOnCalendarView ? 2 : 0)
         #endif
-        .contentShape(Rectangle())
+        .contentShape(.rect)
         .draggable(trans) { dragPreview }
         .background(RoundedRectangle(cornerRadius: 4).fill(lineColor))
         .onTapGesture(count: 1) { transactionTapped() }
@@ -126,47 +136,56 @@ struct LineItemView: View {
             Text("Delete \"\(trans.title)\"?")
             #endif
         }
+        .transactionEditSheetAndLogic(
+            transEditID: $transEditID,
+            selectedDay: $calProps.selectedDay,
+            overviewDay: $calProps.overviewDay,
+            findTransactionWhere: $calProps.findTransactionWhere,
+            presentTip: true,
+            resetSelectedDayOnClose: true,
+        )
         #if os(macOS)
         .contextMenu {
             TransactionContextMenu(trans: trans, transEditID: $transEditID, showDeleteAlert: $showDeleteAlert)
         }
         
         /// This `.popover(item: $transEditID) & .onChange(of: transEditID)` are used for editing existing transactions. They also exist in ``LineItemViewMac``, which are used to add new transactions.
-        .popover(item: $transEditID, arrowEdge: .trailing) { id in
-            TransactionEditView(trans: trans, transEditID: $transEditID, day: day, isTemp: false)
-                .frame(minWidth: 320, minHeight: 320)                
-        }
+        
+//        .popover(item: $transEditID, arrowEdge: .trailing) { id in
+//            TransactionEditView(trans: trans, transEditID: $transEditID, day: day, isTemp: false)
+//                .frame(minWidth: 320, minHeight: 320)                
+//        }
         #else
-        .sheet(item: $transEditID, onDismiss: transactionSheetDismissed) { id in
-            TransactionEditView(trans: trans, transEditID: $transEditID, day: day, isTemp: false)
-                .frame(minWidth: 320)                
-        }
+//        .sheet(item: $transEditID, onDismiss: transactionSheetDismissed) { id in
+//            TransactionEditView(trans: trans, transEditID: $transEditID, day: day, isTemp: false)
+//                .frame(minWidth: 320)                
+//        }
         #endif
         
-        /// This onChange is needed because you can close the popover without actually clicking the close button.
-        /// `popover()` has no `onDismiss()` optiion, so I need somewhere to do cleanup.
-        .onChange(of: transEditID) { oldValue, newValue in
-            if oldValue == nil && newValue != nil {
-                focusedField = nil
-            }
-            
-            if oldValue != nil && newValue == nil {
-                /// FOR iOS...
-                /// Since this view has its own `TransactionEditView` sheet, when you delete this trans, it will destory this view and mess up the animation of the sheet closing.
-                /// So when deleting, retain the id and delete the transaction in the sheets `onDismiss`.
-                #if os(iOS)
-                if trans.action == .delete {
-                    transDeleteID = oldValue!
-                } else {
-                    Task {
-                        await calModel.saveTransaction(id: oldValue!/*, day: day*/)
-                    }
-                }
-                #else
-                calModel.saveTransaction(id: oldValue!/*, day: day*/)
-                #endif
-            }
-        }
+//        /// This onChange is needed because you can close the popover without actually clicking the close button.
+//        /// `popover()` has no `onDismiss()` optiion, so I need somewhere to do cleanup.
+//        .onChange(of: transEditID) { oldValue, newValue in
+//            if oldValue == nil && newValue != nil {
+//                focusedField = nil
+//            }
+//            
+//            if oldValue != nil && newValue == nil {
+//                /// FOR iOS...
+//                /// Since this view has its own `TransactionEditView` sheet, when you delete this trans, it will destory this view and mess up the animation of the sheet closing.
+//                /// So when deleting, retain the id and delete the transaction in the sheets `onDismiss`.
+//                #if os(iOS)
+//                if trans.action == .delete {
+//                    transDeleteID = oldValue!
+//                } else {
+//                    Task {
+//                        await calModel.saveTransaction(id: oldValue!/*, day: day*/)
+//                    }
+//                }
+//                #else
+//                calModel.saveTransaction(id: oldValue!/*, day: day*/)
+//                #endif
+//            }
+//        }
         
 //        .task {
 //            /// `calModel.hilightTrans` should always be nil during a task. The only time it shouldn't should be is when a transaction was moved to a new day via a different device.
@@ -250,9 +269,15 @@ struct LineItemView: View {
                         ForEach(trans.tags) { tag in
                             Text("#\(tag.tag)")
                                 //.foregroundStyle(Color.theme)
+//                                .foregroundStyle(.gray)
+//                                .bold()
+//                                .font(.caption)
+                            
                                 .foregroundStyle(.gray)
-                                .bold()
                                 .font(.caption)
+                                .padding(4)
+                                .background(Color(.systemGray4))
+                                .cornerRadius(6)
                         }
                     }
                     #endif
@@ -311,10 +336,51 @@ struct LineItemView: View {
     }
     
     
+    @ViewBuilder
+    var overlayView: some View {
+        ZStack {
+            switch trans.status {
+            case nil, .dummy, .editing:
+                EmptyView()
+
+            case .inFlight:
+                //EmptyView()
+                Image(systemName: "circle", variableValue: 0.8)
+                    .symbolRenderingMode(.palette)
+                    .symbolVariableValueMode(.draw)
+                    .foregroundStyle(Color.primary, Color.gray)
+                    .symbolEffect(.rotate, options: .repeat(.continuous).speed(8))
+
+            case .saveSuccess:
+                Image(systemName: "checkmark.circle")
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(Color.primary, Color.green.gradient)
+                    .transition(.symbolEffect(.drawOn.individually))
+
+            case .saveFail:
+                Image(systemName: "exclamationmark.triangle")
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(Color.primary, Color.orange.gradient)
+                    .transition(.symbolEffect(.drawOn.individually))
+                
+            case .deleteSucceess:
+                Image(systemName: "trash.circle")
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(Color.primary, Color.red.gradient)
+                    .transition(.symbolEffect(.drawOn.individually))
+            }
+        }
+        .contentTransition(.symbolEffect(.replace))
+        .animation(.easeInOut, value: trans.status)
+    }
+    
+    
     func transactionTapped() {
+        trans.status = .editing
+        
         if calModel.isInMultiSelectMode {
             if calModel.multiSelectTransactions.map({ $0.id }).contains(trans.id) {
-                calModel.multiSelectTransactions.removeAll(where: {$0.id == trans.id})
+                calModel.multiSelectTransactions.removeAll(where: { $0.id == trans.id })
             } else {
                 calModel.multiSelectTransactions.append(trans)
             }
@@ -325,17 +391,17 @@ struct LineItemView: View {
     }
     
     
-    func transactionSheetDismissed() {
-        /// Only run this if deleteting to preserve animation behavior.
-        if let transDeleteID = transDeleteID {
-            Task {
-                await calModel.saveTransaction(id: transDeleteID/*, day: day*/)
-            }
-        } else {
-            /// Just some cleanup to make sure it stays blank
-            if transDeleteID != nil {
-                transDeleteID = nil
-            }
-        }
-    }
+//    func transactionSheetDismissed() {
+//        /// Only run this if deleteting to preserve animation behavior.
+//        if let transDeleteID = transDeleteID {
+//            Task {
+//                await calModel.saveTransaction(id: transDeleteID/*, day: day*/)
+//            }
+//        } else {
+//            /// Just some cleanup to make sure it stays blank
+//            if transDeleteID != nil {
+//                transDeleteID = nil
+//            }
+//        }
+//    }
 }

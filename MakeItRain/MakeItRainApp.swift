@@ -43,13 +43,12 @@ struct MakeItRainApp: App {
     @State private var catModel: CategoryModel
     @State private var keyModel: KeywordModel
     @State private var repModel: RepeatingTransactionModel
-    @State private var eventModel: EventModel
     @State private var plaidModel: PlaidModel
     
     @State private var photoModel = FileModel.shared
     @State private var locationManager = LocationManager.shared
     @State private var dataChangeTriggers = DataChangeTriggers.shared
-    @State private var mapModel = MapModel()
+    //@State private var mapModel = MapModel()
     
     @State private var calProps = CalendarProps()
     
@@ -72,7 +71,6 @@ struct MakeItRainApp: App {
         let catModel = CategoryModel()
         let keyModel = KeywordModel()
         let repModel = RepeatingTransactionModel()
-        let eventModel = EventModel()
         let plaidModel = PlaidModel()
         
         self.calModel = calModel
@@ -80,7 +78,6 @@ struct MakeItRainApp: App {
         self.catModel = catModel
         self.keyModel = keyModel
         self.repModel = repModel
-        self.eventModel = eventModel
         self.plaidModel = plaidModel
         
         self.funcModel = .init(
@@ -89,7 +86,6 @@ struct MakeItRainApp: App {
             catModel: catModel,
             keyModel: keyModel,
             repModel: repModel,
-            eventModel: eventModel,
             plaidModel: plaidModel
         )
         
@@ -109,16 +105,17 @@ struct MakeItRainApp: App {
                 CalendarSheetLayerWrapper(monthNavigationNamespace: monthNavigationNamespace) {
                     @Bindable var appState = AppState.shared
                     Group {
-                        /// `AuthState.shared.isThinking` is always true when app launches from fresh state.
-                        /// `AppState.shared.appShouldShowSplashScreen` is set to false in `downloadEverything()` when the current month completes.
-                        /// `AppState.shared.splashTextAnimationIsFinished` is set to false when the animation on the splash screen finishes.
+                        /// `AuthState.shared.isThinking` is always true when app launches from a fresh state.
+                        /// `AppState.shared.shouldShowSplash` is set to false in `downloadEverything()` when the current month completes, or if login fails.
+                        /// `AppState.shared.splashIsAnimating`is true when launching from a fresh state, and is set to false when the animation on the splash screen finishes.
                         /// *Once the 3 conditions above are met, the view will flip to the `rootView` or the `loginView` (depending on the apps overall state).*
-                        if AuthState.shared.isThinking || appState.appShouldShowSplashScreen || !appState.splashTextAnimationIsFinished {
+                        if AuthState.shared.isThinking || appState.shouldShowSplash || appState.splashIsAnimating {
                             /// Always the first view to be shown.
                             /// Starts the login process.
                             /// Login flow descriptions are written in the `splashScreen` and `loginScreen` views,
                             splashScreen
                         } else {
+                            //let _ = print("ROOT VIEW IS BEING RENDERED")
                             if AuthState.shared.isLoggedIn {
                                 rootView                                    
                             } else {
@@ -162,7 +159,6 @@ struct MakeItRainApp: App {
             .environment(catModel)
             .environment(keyModel)
             .environment(repModel)
-            .environment(eventModel)
             .environment(plaidModel)
             .environment(calProps)
             .environment(dataChangeTriggers)
@@ -183,122 +179,15 @@ struct MakeItRainApp: App {
         #endif
         
         #if os(macOS)
-        Window("Budget", id: "budgetWindow") {
-            CalendarDashboard()
-                .frame(minWidth: 300, minHeight: 200)
-                .environment(calModel)
-                .environment(payModel)
-                .environment(catModel)
-                .environment(keyModel)
-                .environment(repModel)
-                .environment(eventModel)
-                .environment(plaidModel)
-                .environment(calProps)
-                .environment(dataChangeTriggers)
-        }
-        .auxilaryWindow()
-        
-        Window("Pending Plaid Transactions", id: "pendingPlaidTransactions") {
-            PlaidTransactionOverlay(showInspector: .constant(true), navPath: .constant(.init()))
-                .frame(minWidth: 300, minHeight: 200)
-                .environment(calModel)
-                .environment(payModel)
-                .environment(plaidModel)
-                .environment(catModel)
-                .environment(calProps)
-                .environment(dataChangeTriggers)
-        }
-        .auxilaryWindow()
-        
-        Window("Category Analysis", id: "analysisSheet") {
-            CategoryInsightsSheet(showAnalysisSheet: .constant(true))
-                .frame(minWidth: 300, minHeight: 500)
-                .environment(funcModel)
-                .environment(calModel)
-                .environment(payModel)
-                .environment(catModel)
-                .environment(keyModel)
-                .environment(repModel)
-                .environment(eventModel)
-                .environment(plaidModel)
-                .environment(calProps)
-                .environment(dataChangeTriggers)
-                //.environment(mapModel)
-        }
-        .auxilaryWindow()
-                        
-        Window("Multi-Select", id: "multiSelectSheet") {
-            MultiSelectTransactionOptionsSheet(showInspector: .constant(true))
-                .frame(minHeight: 500)
-                .frame(width: 250)
-                .environment(funcModel)
-                .environment(calModel)
-                .environment(payModel)
-                .environment(catModel)
-                .environment(keyModel)
-                .environment(repModel)
-                .environment(eventModel)
-                .environment(plaidModel)
-                .environment(calProps)
-                .environment(dataChangeTriggers)
-        }
-        .auxilaryWindow()
-            
-        WindowGroup("MonthlyWindowPlaceHolder", id: "monthlyWindow", for: NavDestination?.self) { dest in
-            let width = ((NSScreen.main?.visibleFrame.width ?? 500) / 3) * 2
-            let height = ((NSScreen.main?.visibleFrame.height ?? 500) / 4) * 3
-                        
-            if let dest = dest.wrappedValue {
-                CalendarViewMac(enumID: dest!, isInWindow: true)
-                    /// Frame is required to prevent the window from entering full screen if the main window is full screen
-                    .frame(
-                        minWidth: width,
-                        maxWidth: (NSScreen.main?.visibleFrame.width ?? 500) - 1,
-                        minHeight: height,
-                        maxHeight: (NSScreen.main?.visibleFrame.height ?? 500) - 1
-                    )
-                    .environment(funcModel)
-                    .environment(calModel)
-                    .environment(payModel)
-                    .environment(catModel)
-                    .environment(keyModel)
-                    .environment(repModel)
-                    .environment(eventModel)
-                    .environment(plaidModel)
-                    .environment(calProps)
-                    .environment(dataChangeTriggers)
-                    //.environment(mapModel)
-                    .onAppear {
-                        if let window = NSApp.windows.first(where: { $0.title.contains("MonthlyWindowPlaceHolder") }) {
-                            window.title = AppState.shared.monthlySheetWindowTitle
-                        }
-                    }
-                    .onDisappear {
-                        calModel.windowMonth = nil
-                    }                
-            }
-        }
-        .windowStyle(.titleBar)
-        .windowToolbarStyle(.expanded)
-        .auxilaryWindow(openIn: .center)
-        
-        Settings {
-            SettingsView(showSettings: .constant(false))
-                .frame(maxWidth: 400, minHeight: 600)
-                .environment(funcModel)
-                .environment(calModel)
-                .environment(payModel)
-                .environment(catModel)
-                .environment(keyModel)
-                .environment(repModel)
-                .environment(eventModel)
-                .environment(plaidModel)
-                .environment(calProps)
-                .environment(dataChangeTriggers)
-                //.environment(mapModel)
-        }
+        dashboardWindow
+        plaidWindow
+        insightsWindow
+        multiSelectWindow
+        monthlyPlaceholderWindow
         #endif
-    }        
+    }
+    
+    
     
     
     @ViewBuilder
@@ -309,13 +198,16 @@ struct MakeItRainApp: App {
         
         /// If `AuthState.attemptLogin()` is successful, it will ...
             /// 1. Return true to this task, which will  run ``FuncModel.downloadInitial()``.
-            /// As the download function runs, it will eventually hide the splash screen and show the ``RootView`` when the first month completes its download.
-            /// The task in ``RootView`` will trigger the calendar full screen cover to show.
+            /// Once we are...
+            ///     1. Logged in…
+            ///     2. Splash animation has finished…
+            ///     3. First month has downloaded…
+            /// ... The the splash screen will show the calendar full screen cover, and a split seocnd later switch the app from the splash screen to the ``RootView``.
         
         /// If `AuthState.attemptLogin()` fails, it will ...
             /// 1. Set `AuthState.isLoggedIn = false`
             /// 2. Set `AuthState.isThinking = false`.
-            /// 3. Set `AppState.appShouldShowSplashScreen = false`.
+            /// 3. Set `AppState.shouldShowSplash = false`.
             /// 4. Clear login state. (AKA the api key from the keychain if it exists.)
             /// The combo of variable settings above will cause the app to be redirected to the login screen.
                 
@@ -323,16 +215,16 @@ struct MakeItRainApp: App {
         SplashScreen()
             .transition(.opacity)
             .task {
-                print("FLIPPED TO SPLASH SCREEN")
+                //print("FLIPPED TO SPLASH SCREEN")
                 funcModel.setDeviceUUID()
                 
-                let didLogin = await AuthState.shared.loginViaKeychain2()
-                print("didLogin: \(didLogin)")
-                if didLogin {
+                if AuthState.shared.isLoggedIn {
                     funcModel.downloadInitial()
+                } else {
+                    if await AuthState.shared.loginViaKeychain() {
+                        funcModel.downloadInitial()
+                    }
                 }
-                            
-                //await AuthState.shared.loginViaKeychain(funcModel: funcModel)
             }
     }
     
@@ -342,20 +234,17 @@ struct MakeItRainApp: App {
         /// You enter your email and password on the login page, and tap the login button, which calls `AuthState.attemptLogin()`.
         
         /// If `AuthState.attemptLogin()` is successful, it will set ...
-            /// 1. Set `AuthState.isLoggedIn = true`
-            /// 2. Set `AuthState.isThinking = false`.
-            ///
-            /// This will then call `AuthState.loginViaKeychain2` ----> This is a bug 6/21/25.
-            /// This happens because when the variables above flip, we show the splash screen, which runs the login via keychain.
-            /// At this point, if no payment methods exist, it will show the add sheet.
-            ///
-            /// 3. Set `AppState.appShouldShowSplashScreen = true`.  --- This will trigger the splash screen to show, which will run ``FuncModel.downloadInitial()``.
+            /// 1. `AuthState.isLoggedIn = true`
+            /// 2. `AuthState.isThinking = false`.
+            /// 3. `AppState.shared.splashIsAnimating = true`.
+            /// 4. `AppState.shouldShowSplash = true`.
+            /// --- This will trigger the splash screen to show, which will run ``FuncModel.downloadInitial()`` and do further app logic.
             /// --- See description in `private var splashScreen` for further information.
         
         /// If `AuthState.attemptLogin()`fails, it will...
             /// 1. Set `AuthState.isLoggedIn = false`
             /// 2. Set `AuthState.isThinking = false`.
-            /// 3. Set `AppState.appShouldShowSplashScreen = false`.
+            /// 3. Set `AppState.shouldShowSplash = false`.
             /// 4. Set an error in ``AuthState`` that will show an alert on the login screen.
             /// 5. Clear login state. (AKA the api key from the keychain if it exists.)
         LoginView()
@@ -369,7 +258,9 @@ struct MakeItRainApp: App {
     }
     
     
+    @ViewBuilder
     private var rootView: some View {
+        //let _ = print("RootView Render")
         RootView(monthNavigationNamespace: monthNavigationNamespace)
             .tint(Color.theme)
             .frame(idealWidth: screenWidth, idealHeight: screenHeight)

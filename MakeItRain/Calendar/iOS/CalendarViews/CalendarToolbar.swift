@@ -27,6 +27,8 @@ struct CalendarToolbar: ToolbarContent {
     
     @State private var showPopover = false
     
+    //@Binding var navPath: NavigationPath
+    
 //    @State private var temp = false
     
     
@@ -41,6 +43,7 @@ struct CalendarToolbar: ToolbarContent {
     
     var body: some ToolbarContent {
         @Bindable var calProps = calProps
+        
         if AppState.shared.isIphone || (AppState.shared.isIpad && calModel.isShowingFullScreenCoverOnIpad) {
             ToolbarItem(placement: .topBarLeading) {
                 backButton
@@ -121,6 +124,10 @@ struct CalendarToolbar: ToolbarContent {
             }
         }
         
+        if AppState.shared.isIpad {
+            ToolbarItem(placement: .topBarTrailing) { analysisSheetButton }
+        }
+        
         
         ToolbarItem(placement: .topBarTrailing) {
             GlassEffectContainer {
@@ -151,7 +158,7 @@ struct CalendarToolbar: ToolbarContent {
 //                    .navigationTransition(.zoom(sourceID: "MENUCONTENT", in: customMenuButtonNamespace))
 //                }
                 
-                CalendarMoreMenu()
+                CalendarMoreMenu(navPath: $calProps.navPath)
                     .glassEffectID("moreMenu", in: refreshButtonNamespace)
             }
         }
@@ -166,8 +173,10 @@ struct CalendarToolbar: ToolbarContent {
                 
 //                ToolbarSpacer(.flexible, placement: .bottomBar)
                 
+                ToolbarItem(placement: .bottomBar) { analysisSheetButton }
+                ToolbarSpacer(.fixed, placement: .bottomBar)
                 DefaultToolbarItem(kind: .search, placement: .bottomBar)
-                ToolbarSpacer(.flexible, placement: .bottomBar)
+                ToolbarSpacer(.fixed, placement: .bottomBar)
                 ToolbarItem(placement: .bottomBar) {
                     NewTransactionMenuButton(
                         transEditID: $calProps.transEditID,
@@ -197,6 +206,28 @@ struct CalendarToolbar: ToolbarContent {
 //                .presentationCompactAdaptation(.popover)
 //        }
 //    }
+    
+    
+    
+    var analysisSheetButton: some View {
+        Button {
+            if AppState.shared.isIphone {
+                
+                calProps.navPath.append(CalendarNavDest.categoryInsights)
+                
+                /// Sheet is in ``CalendarMoreMenu``.
+                //calProps.showAnalysisSheet = true
+            } else {
+                /// Inspector is in ``RootViewPad``.
+                calProps.inspectorContent = .analysisSheet
+                calProps.showInspector = true
+            }
+        } label: {
+            Label("Insights", systemImage: "chart.pie")
+        }
+        .schemeBasedTint()
+        //.schemeBasedForegroundStyle()
+    }
     
     
     var refeshingIndicator: some View {
@@ -310,7 +341,7 @@ struct CalendarToolbar: ToolbarContent {
                         return " \(funcModel.getPlaidCreditSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))"
                     }
                 } else {
-                    if let balance = funcModel.getPlaidBalance() {
+                    if let balance = funcModel.getPlaidBalance(matching: calModel.sPayMethod) {
                         return " \(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)) (\(calProps.timeSinceLastBalanceUpdate))"
                     }
                 }
@@ -367,7 +398,7 @@ struct CalendarToolbar: ToolbarContent {
                 //.navigationTransition(.zoom(sourceID: "paymentMethodButton", in: paymentMethodMenuButtonNamespace))
         }
         .sheet(isPresented: $calProps.showCategorySheet) {
-            MultiCategorySheet(categories: $calModel.sCategories)
+            MultiCategorySheet(categories: $calModel.sCategories, categoryGroup: .constant([]))
         }
     }
     

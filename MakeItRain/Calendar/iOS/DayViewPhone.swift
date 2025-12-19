@@ -22,19 +22,33 @@ struct DayViewPhone: View {
     @Environment(KeywordModel.self) private var keyModel
     
     private var eodColor: Color {
-        if calModel.sPayMethod == nil {
+        if let meth = calModel.sPayMethod {
+            if meth.isCreditOrLoan {
+                let limit = meth.limit ?? 0
+                let thresh = limit - threshold
+                
+                if day.eodTotal < thresh {
+                    return .gray
+                } else if day.eodTotal > limit {
+                    return .red
+                } else {
+                    return .orange
+                }
+                
+            } else {
+                if day.eodTotal > threshold {
+                    return .gray
+                } else if day.eodTotal < 0 {
+                    return .red
+                } else {
+                    return .orange
+                }
+            }
+        } else {
             if day.eodTotal > 0 {
                 return Color.fromName(incomeColor)
             } else {
                 return .gray
-            }
-        } else {
-            if day.eodTotal > threshold {
-                return .gray
-            } else if day.eodTotal < 0 {
-                return .red
-            } else {
-                return .orange
             }
         }
     }
@@ -90,7 +104,7 @@ struct DayViewPhone: View {
     
    
     var body: some View {
-        let _ = Self._printChanges()
+        //let _ = Self._printChanges()
         if day.date == nil {
             placeholderDayView
         } else {
@@ -237,7 +251,10 @@ struct DayViewPhone: View {
     var dayBackground: some View {
         RoundedRectangle(cornerRadius: 6)
             /// Use this to only hilight the overview day.
-            .fill((calProps.overviewDay == day && calProps.bottomPanelContent == .overviewDay) || calModel.dragTarget == day ? Color(.tertiarySystemFill) : Color.clear)
+            .fill(
+                (calProps.overviewDay == day && calProps.bottomPanelContent == .overviewDay)
+                || (calProps.overviewDay == day && calProps.inspectorContent == .overviewDay)
+                || calModel.dragTarget == day ? Color(.tertiarySystemFill) : Color.clear)
             /// Offset the overlay divider line in `CalendarViewPhone` that separates the weeks.
             .padding(.bottom, 2)
     }
@@ -262,6 +279,7 @@ struct DayViewPhone: View {
             .padding(.leading, AppState.shared.isIpad ? 6 : 0)
             .frame(maxWidth: .infinity, alignment: AppState.shared.isIpad ? .leading : .center)
     }
+    
     
 #warning("REGARDING HITCH: All I did here was pull the appstorage properties from the line item to this view, and reworked the shouldLimitTo5")
     @ViewBuilder
@@ -304,7 +322,8 @@ struct DayViewPhone: View {
     }
     
     
-    @ViewBuilder func lineItem(_ trans: CBTransaction) -> some View {
+    @ViewBuilder
+    func lineItem(_ trans: CBTransaction) -> some View {
         LineItemMiniView(
             trans: trans,
             day: day,
@@ -447,6 +466,7 @@ struct DayViewPhone: View {
         return true
     }
     
+    
     func handleDayIsDragTargeted(_ isTargeted: Bool) {
         if isTargeted {
             withAnimation { calModel.dragTarget = day }
@@ -455,14 +475,27 @@ struct DayViewPhone: View {
         }
     }
     
+    
     func handleDayWasTapped() {
         if phoneLineItemDisplayItem != .both {
             withAnimation {
-                calProps.overviewDay = day
-                /// Set `selectedDay` to the same day as the overview day that way any transactions or transfers initiated via the bottom panel will have the date of the bottom panel.
-                /// (Since `TransactionEditView` and `TransferSheet` use `selectedDate` as their default date.)
-                calProps.selectedDay = day
-                calProps.bottomPanelContent = .overviewDay
+                
+                if AppState.shared.isIphone {
+                    calProps.overviewDay = day
+                    /// Set `selectedDay` to the same day as the overview day that way any transactions or transfers initiated via the bottom panel will have the date of the bottom panel.
+                    /// (Since `TransactionEditView` and `TransferSheet` use `selectedDate` as their default date.)
+                    calProps.selectedDay = day
+                    calProps.bottomPanelContent = .overviewDay
+                } else {
+                    calProps.overviewDay = day
+                    calProps.selectedDay = day
+                    /// Inspector is in ``RootViewPad``.
+                    calProps.inspectorContent = .overviewDay
+                    calProps.showInspector = true
+                }
+                
+                
+                
             }
         }
     }

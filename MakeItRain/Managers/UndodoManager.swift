@@ -38,9 +38,9 @@ struct UndoTransactionSnapshot: Equatable {
     var trackingNumber: String?
     var orderNumber: String?
     var url: String?
-    var notes: String?
+    var notes: AttributedString?
     
-    init(title: String?, amount: String?, payMethodID: String?, categoryID: String?, date: String?, trackingNumber: String?, orderNumber: String?, url: String?, notes: String?) {
+    init(title: String?, amount: String?, payMethodID: String?, categoryID: String?, date: String?, trackingNumber: String?, orderNumber: String?, url: String?, notes: AttributedString?) {
         self.title = title
         self.amount = amount
         self.payMethodID = payMethodID

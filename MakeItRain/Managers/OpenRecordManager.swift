@@ -21,7 +21,7 @@ class OpenRecordManager {
         print("-- \(#function)")
         
         #if os(iOS)
-        var backgroundTaskID = AppState.shared.beginBackgroundTask()
+        var backgroundTaskId = AppState.shared.beginBackgroundTask()
         #endif
         
         LogManager.log()
@@ -47,17 +47,26 @@ class OpenRecordManager {
             openOrClosed.uuid = nil
                         
             #if os(iOS)
-            AppState.shared.endBackgroundTask(&backgroundTaskID!)
+            AppState.shared.endBackgroundTask(&backgroundTaskId)
             #endif
             return true
             
         case .failure(let error):
-            LogManager.error(error.localizedDescription)
-            AppState.shared.showAlert("There was a problem trying to mark the event as open or closed: \(error.localizedDescription)")
-            #if os(iOS)
-            AppState.shared.endBackgroundTask(&backgroundTaskID!)
-            #endif
-            return false
+            switch error {
+            case .taskCancelled:
+                print("markRecordAsOpenOrClosed Task Cancelled")
+                #if os(iOS)
+                AppState.shared.endBackgroundTask(&backgroundTaskId)
+                #endif
+                return false
+            default:
+                LogManager.error(error.localizedDescription)
+                AppState.shared.showAlert("There was a problem trying to mark the event as open or closed: \(error.localizedDescription)")
+                #if os(iOS)
+                AppState.shared.endBackgroundTask(&backgroundTaskId)
+                #endif
+                return false
+            }
         }
         //LoadingManager.shared.stopDelayedSpinner()
     }
@@ -84,7 +93,7 @@ class OpenRecordManager {
             LogManager.networkingSuccessful()
                         
             #if os(iOS)
-            AppState.shared.endBackgroundTask(&backgroundTaskID!)
+            AppState.shared.endBackgroundTask(&backgroundTaskID)
             #endif
             return true
             
@@ -92,7 +101,7 @@ class OpenRecordManager {
             LogManager.error(error.localizedDescription)
             AppState.shared.showAlert("There was a problem trying to mark the event as open or closed")
             #if os(iOS)
-            AppState.shared.endBackgroundTask(&backgroundTaskID!)
+            AppState.shared.endBackgroundTask(&backgroundTaskID)
             #endif
             return false
         }
@@ -103,7 +112,7 @@ class OpenRecordManager {
     
     @MainActor
     func fetchOpenOrClosed() async {
-        print("-- \(#function)")
+        //print("-- \(#function)")
         
         LogManager.log()
         let model = RequestModel(requestType: "fetch_open_or_closed_records", model: AppState.shared.user!)
@@ -122,10 +131,14 @@ class OpenRecordManager {
             }
             
         case .failure(let error):
-            LogManager.error(error.localizedDescription)
-            print("⚠️ \(error.localizedDescription)")
-            AppState.shared.showAlert("There was a problem trying to fetch the open or closed events.")
-            #warning("Undo behavior")
+            switch error {
+            case .taskCancelled:
+                print("fetchOpenOrClosed Task Cancelled")
+            default:
+                LogManager.error(error.localizedDescription)
+                print("⚠️ \(error.localizedDescription)")
+                AppState.shared.showAlert("There was a problem trying to fetch the open or closed events.")
+            }                                    
         }
         //LoadingManager.shared.stopDelayedSpinner()
     }

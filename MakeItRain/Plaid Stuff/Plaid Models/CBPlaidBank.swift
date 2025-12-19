@@ -10,7 +10,7 @@ import SwiftUI
 
 
 @Observable
-class CBPlaidBank: Codable, Identifiable, Equatable, Hashable {
+class CBPlaidBank: Codable, Identifiable, Equatable, Hashable, CanHandleLogo {
     var id: String
     var title: String
     var active: Bool
@@ -27,7 +27,9 @@ class CBPlaidBank: Codable, Identifiable, Equatable, Hashable {
     var lastTimeICheckedPlaidSyncedDate: Date?
     var plaidID: String?
     var requiresUpdate: Bool = false
-    var logo: String?
+    var logo: Data?
+    var logoParentType: XrefItem = XrefModel.getItem(from: .logoTypes, byEnumID: .plaidBank)
+    var color: Color = .primary
     
     var numberOfAccounts: Int {
         accounts.count
@@ -71,6 +73,7 @@ class CBPlaidBank: Codable, Identifiable, Equatable, Hashable {
         try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
         try container.encode(enteredDate.string(to: .serverDateTime), forKey: .entered_date) // for the Transferable protocol
         try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date) // for the Transferable protocol
+        try container.encode(logo, forKey: .logo)
     }
     
     required init(from decoder: Decoder) throws {
@@ -127,13 +130,29 @@ class CBPlaidBank: Codable, Identifiable, Equatable, Hashable {
             self.lastTimeICheckedPlaidSyncedDate = lastTimeICheckedPlaidSyncedDate.toDateObj(from: .serverDateTime)!
         }
         
-        logo = try container.decode(String?.self, forKey: .logo)
+        //logo = try container.decode(String?.self, forKey: .logo)
+        
+        let pred1 = NSPredicate(format: "relatedID == %@", self.id)
+        let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .plaidBank).id))
+        let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
+        
+        /// Fetch the logo out of core data since the encoded strings can be heavy and I don't want to use Async Image for every logo.
+        let context = DataManager.shared.createContext()
+        if let logo = DataManager.shared.getOne(
+           context: context,
+           type: PersistentLogo.self,
+           predicate: .compound(comp),
+           createIfNotFound: false
+        ) {
+            self.logo = logo.photoData
+        }
     }
         
     
     func hasChanges() -> Bool {
         if let deepCopy = deepCopy {
-            if self.title == deepCopy.title {
+            if self.title == deepCopy.title
+            && self.logo == deepCopy.logo {
                 return false
             }
         }
@@ -151,6 +170,7 @@ class CBPlaidBank: Codable, Identifiable, Equatable, Hashable {
             copy.plaidID = self.plaidID
             copy.requiresUpdate = self.requiresUpdate
             copy.active = self.active
+            copy.logo = self.logo
             //copy.action = self.action
             
             copy.accounts = self.accounts.map {
@@ -167,6 +187,7 @@ class CBPlaidBank: Codable, Identifiable, Equatable, Hashable {
                 self.requiresUpdate = deepCopy.requiresUpdate
                 self.accounts = deepCopy.accounts
                 self.active = deepCopy.active
+                self.logo = deepCopy.logo
                 //self.action = deepCopy.action
             }
         case .clear:
@@ -212,6 +233,7 @@ class CBPlaidBank: Codable, Identifiable, Equatable, Hashable {
         && lhs.requiresUpdate == rhs.requiresUpdate
         && lhs.title == rhs.title
         && lhs.accounts == rhs.accounts
+        && lhs.logo == rhs.logo
         && lhs.active == rhs.active {
             return true
         }

@@ -11,7 +11,7 @@ import SwiftUI
 @Observable
 class AppState {
     static let shared = AppState()
-    var downloadedData: Array<NavDestination> = []
+    //month.hasLoadedFromServer = falsevar downloadedMonths: Array<NavDestination> = []
     var user: CBUser?
     var apiKey: String?
     var accountUsers: Array<CBUser> = []
@@ -42,6 +42,7 @@ class AppState {
     let colorMenuOptions: Array<Color> = [.pink, .red, .orange, .yellow, .green, .mint, .teal, .cyan, .blue, .indigo, .purple, .brown, /*.white, .black*/]
     
     #if os(iOS)
+    var scenePhase: ScenePhase = .active
     var orientation: UIDeviceOrientation = UIDevice.current.orientation
     var isLandscape: Bool = false
     var isIpad: Bool { UIDevice.current.userInterfaceIdiom == .pad }
@@ -50,12 +51,13 @@ class AppState {
     //var isIphoneInPortrait: Bool { UIDevice.current.userInterfaceIdiom == .phone && !isLandscape }
     #else
     var isIpad: Bool = false
+    var isIphone: Bool = false
     #endif
 
     //var holdSplash = true
     //var splashTimer = Timer.publish(every: 3, tolerance: 0.5, on: .main, in: .common).autoconnect()
-    var appShouldShowSplashScreen: Bool = true
-    var splashTextAnimationIsFinished: Bool = false
+    var shouldShowSplash: Bool = true
+    var splashIsAnimating: Bool = true
     
     var longNetworkTaskTimer: Timer?
     
@@ -64,20 +66,28 @@ class AppState {
     var dragOnMonthTimer: Timer?
     var dragMonthTarget: NavDestination?
     
+    var showCustomAlert: Bool = false
+    var alertConfig: AlertConfig?
+    var toast: Toast?
+    
     func showDragTarget(for month: NavDestination) {
         self.dragMonthTarget = month
     }
-    
-    
+        
     var openOrClosedRecords: Array<CBOpenOrClosedRecord> = []
     
-    
+    var fromServerDateFormatter: DateFormatter {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = getDateFormat(.serverDateTime)
+        dateFormatter.timeZone = .none
+        return dateFormatter
+    }
+          
     
     init() {
         if let ud = UserDefaults.standard.data(forKey: "user") {
             do {
                 self.user = try JSONDecoder().decode(CBUser.self, from: ud)
-
             } catch {
                 print("Unable to Decode User (\(error))")
             }
@@ -92,6 +102,7 @@ class AppState {
             return false
         }
     }
+    
     
     func user(isNot user: CBUser?) -> Bool {
         if let user {
@@ -108,7 +119,7 @@ class AppState {
     
     
     func hasBadConnection() async -> Bool {
-        print("-- \(#function)")
+        //print("-- \(#function)")
         
         let model = RequestModel(requestType: "check_connection", model: CodablePlaceHolder())
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
@@ -150,99 +161,11 @@ class AppState {
     }
     
     
-    
-    
-    
-    func alertBasedOnScenePhase(
-        title: String,
-        subtitle: String? = nil,
-        body: String? = nil,
-        symbol: String = "exclamationmark.triangle",
-        symbolColor: Color? = .orange,
-        inAppPreference: InAppAlertPreference = .toast
-    ) {
-        #if os(iOS)
-        let state = UIApplication.shared.applicationState
-        if state == .background || state == .inactive {
-            NotificationManager.shared.sendNotification(title: title, subtitle: subtitle, body: body)
-        } else {
-            switch inAppPreference {
-            case .alert:
-                //showAlert(title)
-                
-                let alertConfig = AlertConfig(title: title, subtitle: subtitle, symbol: .init(name: symbol, color: symbolColor))
-                showAlert(config: alertConfig)
-                
-            case .toast:
-                showToast(title: title, subtitle: subtitle, body: body, symbol: symbol, symbolColor: symbolColor)
-            }
-        }
-        #else
-        switch inAppPreference {
-        case .alert:
-            showAlert(title)
-        case .toast:
-            showToast(title: title, subtitle: subtitle, body: body, symbol: symbol, symbolColor: symbolColor)
-        }
-        #endif
-    }
-    
-    
-    var toast: Toast?
-    func showToast(
-        title: String,
-        subtitle: String? = nil,
-        body: String? = nil,
-        symbol: String = "coloncurrencysign.circle",
-        symbolColor: Color? = nil,
-        autoDismiss: Bool = true,
-        action: @escaping () -> Void = {}
-    ) {
-        withAnimation(.bouncy) {
-            //DispatchQueue.main.async {
-            Helpers.buzzPhone(.success)
-            self.toast = Toast(header: title, title: subtitle, message: body, symbol: symbol, symbolColor: symbolColor, autoDismiss: autoDismiss, action: action)
-            //}
-        }
-        
-        let context = DataManager.shared.container.viewContext
-        let id = UUID().uuidString
-        if let perToast = DataManager.shared.getOne(context: context, type: PersistentToast.self, predicate: .byId(.string(id)), createIfNotFound: true) {
-            perToast.id = id
-            perToast.title = title
-            perToast.subtitle = subtitle ?? ""
-            perToast.body = body ?? ""
-            perToast.symbol = symbol
-            perToast.hexCode = symbolColor?.toHex() ?? ""
-            perToast.enteredDate = Date()
-            print(perToast)
-            let saveResult = DataManager.shared.save(context: context)
-            print(saveResult)
-        } else {
-            print("no per toast")
-        }
-        
-    }
-    
-        
     // MARK: - Current Date Stuff
     var currentDateTimer = Timer.publish(every: 1, tolerance: 0.5, on: .main, in: .common).autoconnect()
     var todayDay = Calendar.current.component(.day, from: Date())
     var todayMonth = Calendar.current.component(.month, from: Date())
     var todayYear = Calendar.current.component(.year, from: Date())
-    
-//    func isToday(date: Date?) -> Bool {
-//        if let date {
-//            return
-//                date.day == AppState.shared.todayDay
-//                && date.month == AppState.shared.todayMonth
-//                && date.year == AppState.shared.todayYear
-//        } else {
-//            return false
-//        }
-//        
-//    }
-    
 
     /// Called via `currentDateTimer`. The onReceive() modifier that calls this is in ``CalendarViewPhone``.
     func setNow() -> Bool {
@@ -269,92 +192,15 @@ class AppState {
         self.currentDateTimer.upstream.connect().cancel()
     }
                
-    
-    // MARK: - Alert Stuff
-//    var showAlert: Bool = false
-//    var alertText: String = ""
-//    var alertButtonText: String? = nil
-//    var alertFunction: (() -> Void)?
-//    var alertButtonText2: String? = nil
-//    var alertFunction2: (() -> Void)?
-//    func showAlert(_ text: String) {
-//        resetAlert()
-//        self.showAlert = true
-//        self.alertText = text
-//    }
-//    func showAlert(_ text: String, buttonText: String, _ function: @escaping () -> Void) {
-//        resetAlert()
-//        self.showAlert = true
-//        self.alertText = text
-//        self.alertButtonText = buttonText
-//        self.alertFunction = function
-//    }
-//    
-//    func showAlert(
-//        _ text: String,
-//        buttonText1: String? = nil,
-//        buttonFunction1: (() -> Void)? = nil,
-//        buttonText2: String? = nil,
-//        buttonFunction2: (() -> Void)? = nil
-//    ) {
-//        resetAlert()
-//        self.showAlert = true
-//        self.alertText = text
-//        self.alertButtonText = buttonText1
-//        self.alertFunction = buttonFunction1
-//        self.alertButtonText2 = buttonText2
-//        self.alertFunction2 = buttonFunction2
-//    }
-//    
-//    func resetAlert() {
-//        alertText = ""
-//        alertButtonText = ""
-//        alertFunction = nil
-//    }
-    
-    
-    func showAlert(_ text: String) {
-        withAnimation(.snappy(duration: 0.2)) {
-            let config = AlertConfig(title: text)
-            self.alertConfig = config
-            self.showCustomAlert = true
-        }
-    }
-    
-    func showAlert(title: String, subtitle: String) {
-        withAnimation(.snappy(duration: 0.2)) {
-            let config = AlertConfig(title: title, subtitle: subtitle)
-            self.alertConfig = config
-            self.showCustomAlert = true
-        }
-    }
-    
-    
-    var showCustomAlert: Bool = false
-    var alertConfig: AlertConfig?
-    func showAlert(config: AlertConfig) {
-        withAnimation(.snappy(duration: 0.2)) {
-            self.alertConfig = config
-            self.showCustomAlert = true
-        }
-    }
-    
-    func closeAlert() {
-        withAnimation(.snappy(duration: 0.2)) {
-            self.alertConfig = nil
-            self.showCustomAlert = false
-        }
-    }
-    
-    
+
     #if os(iOS)
-    func beginBackgroundTask() -> UIBackgroundTaskIdentifier? {
+    func beginBackgroundTask() -> UIBackgroundTaskIdentifier {
         var backgroundTaskID: UIBackgroundTaskIdentifier?
-        backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: "markEvent") {
+        backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: UUID().uuidString) {
             UIApplication.shared.endBackgroundTask(backgroundTaskID!)
             backgroundTaskID = .invalid
         }
-        return backgroundTaskID
+        return backgroundTaskID!
     }
     
     func endBackgroundTask(_ backgroundTaskID: inout UIBackgroundTaskIdentifier) {
@@ -362,5 +208,32 @@ class AppState {
         backgroundTaskID = .invalid
     }
     #endif
+    
+//    #if os(macOS)
+//    var activityAssertion: NSObjectProtocol?
+//
+//    func startLongRunningTask() {
+//        activityAssertion = ProcessInfo.processInfo.performExpiringActivity(withReason: "Performing important background work") { expired in
+//            if expired {
+//                print("Background activity expired. Cleaning up.")
+//                // Handle cleanup or cancellation if the task couldn't complete in time
+//            } else {
+//                print("Background activity started.")
+//                // Perform your long-running task here
+//                // ...
+//                // When the task is complete, invalidate the activity
+//                self.endLongRunningTask()
+//            }
+//        }
+//    }
+//
+//    func endLongRunningTask() {
+//        if let assertion = activityAssertion {
+//            ProcessInfo.processInfo.endActivity(assertion)
+//            activityAssertion = nil
+//            print("Background activity ended.")
+//        }
+//    }
+//    #endif
 }
 

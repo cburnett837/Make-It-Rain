@@ -50,7 +50,7 @@ class PayMethodModel {
     
     
     @discardableResult
-    func savePaymentMethod(id: String, calModel: CalendarModel) -> Bool {
+    func savePaymentMethod(id: String, calModel: CalendarModel, plaidModel: PlaidModel) -> Bool {
         let payMethod = getPaymentMethod(by: id)
         payMethod.viewingYear = calModel.sYear
         
@@ -83,6 +83,11 @@ class PayMethodModel {
             
             /// Update transactions.
             calModel.justTransactions
+                .filter { $0.payMethod?.id == payMethod.id }
+                .forEach { $0.payMethod?.setFromAnotherInstance(payMethod: payMethod) }
+            
+            /// Update plaid transactions.
+            plaidModel.trans
                 .filter { $0.payMethod?.id == payMethod.id }
                 .forEach { $0.payMethod?.setFromAnotherInstance(payMethod: payMethod) }
             
@@ -127,6 +132,17 @@ class PayMethodModel {
         let updatedDate = payMethod.updatedDate
         let listOrder = Int64(payMethod.listOrder ?? 0)
         
+        let holderOneID = Int64(payMethod.holderOne?.id ?? 0)
+        let holderTwoID = Int64(payMethod.holderTwo?.id ?? 0)
+        let holderThreeID = Int64(payMethod.holderThree?.id ?? 0)
+        let holderFourID = Int64(payMethod.holderFour?.id ?? 0)
+        
+        let holderOneTypeID = Int64(payMethod.holderOneType?.id ?? 0)
+        let holderTwoTypeID = Int64(payMethod.holderTwoType?.id ?? 0)
+        let holderThreeTypeID = Int64(payMethod.holderThreeType?.id ?? 0)
+        let holderFourTypeID = Int64(payMethod.holderFourType?.id ?? 0)
+        
+        
         
         let context = DataManager.shared.createContext()
         return await context.perform {
@@ -163,6 +179,15 @@ class PayMethodModel {
                 
                 entity.listOrder = listOrder
                 
+                entity.holderOneID = holderOneID
+                entity.holderTwoID = holderTwoID
+                entity.holderThreeID = holderThreeID
+                entity.holderFourID = holderFourID
+                entity.holderOneTypeID = holderOneTypeID
+                entity.holderTwoTypeID = holderTwoTypeID
+                entity.holderThreeTypeID = holderThreeTypeID
+                entity.holderFourTypeID = holderFourTypeID
+                
                 
                 let pred1 = NSPredicate(format: "relatedID == %@", id)
                 let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id))
@@ -189,7 +214,7 @@ class PayMethodModel {
     
     @MainActor
     func fetchPaymentMethods(calModel: CalendarModel) async {
-        print("-- \(#function)")
+        //print("-- \(#function)")
         LogManager.log()
         
         let start = CFAbsoluteTimeGetCurrent()
@@ -238,12 +263,19 @@ class PayMethodModel {
                         let updatedDate = payMethod.updatedDate
                         let listOrder = Int64(payMethod.listOrder ?? 0)
                         
+                        let holderOneID = Int64(payMethod.holderOne?.id ?? 0)
+                        let holderTwoID = Int64(payMethod.holderTwo?.id ?? 0)
+                        let holderThreeID = Int64(payMethod.holderThree?.id ?? 0)
+                        let holderFourID = Int64(payMethod.holderFour?.id ?? 0)
                         
-                        
-                        
-                        if calModel.sPayMethod == nil && payMethod.isViewingDefault {
-                            calModel.sPayMethod = payMethod
-                        }
+                        let holderOneTypeID = Int64(payMethod.holderOneType?.id ?? 0)
+                        let holderTwoTypeID = Int64(payMethod.holderTwoType?.id ?? 0)
+                        let holderThreeTypeID = Int64(payMethod.holderThreeType?.id ?? 0)
+                        let holderFourTypeID = Int64(payMethod.holderFourType?.id ?? 0)
+                                                                                                
+//                        if calModel.sPayMethod == nil && payMethod.isViewingDefault {
+//                            calModel.sPayMethod = payMethod
+//                        }
                         
                         let index = paymentMethods.firstIndex(where: { $0.id == payMethod.id })
                         if let index {
@@ -291,6 +323,15 @@ class PayMethodModel {
                                 
                                 entity.listOrder = listOrder
                                 
+                                entity.holderOneID = holderOneID
+                                entity.holderTwoID = holderTwoID
+                                entity.holderThreeID = holderThreeID
+                                entity.holderFourID = holderFourID
+                                entity.holderOneTypeID = holderOneTypeID
+                                entity.holderTwoTypeID = holderTwoTypeID
+                                entity.holderThreeTypeID = holderThreeTypeID
+                                entity.holderFourTypeID = holderFourTypeID
+                                
                                 let _ = DataManager.shared.save(context: context)
                             }
                         }
@@ -313,9 +354,6 @@ class PayMethodModel {
                 }
             }
             
-            /// Update the progress indicator.
-            AppState.shared.downloadedData.append(.paymentMethods)
-            
             let currentElapsed = CFAbsoluteTimeGetCurrent() - start
             print("⏰It took \(currentElapsed) seconds to fetch the payment methods")
             
@@ -335,6 +373,12 @@ class PayMethodModel {
     @MainActor
     func submit(_ payMethod: CBPaymentMethod) async -> Bool {
         print("-- \(#function)")
+                
+        /// Allow more time to save if the user enters the background.
+        #if os(iOS)
+        var backgroundTaskId = AppState.shared.beginBackgroundTask()
+        #endif
+        
         isThinking = true
         //LoadingManager.shared.startDelayedSpinner()
         LogManager.log()
@@ -362,6 +406,16 @@ class PayMethodModel {
         let updatedDate = payMethod.updatedDate
         
         let listOrder = Int64(payMethod.listOrder ?? 0)
+        
+        let holderOneID = Int64(payMethod.holderOne?.id ?? 0)
+        let holderTwoID = Int64(payMethod.holderTwo?.id ?? 0)
+        let holderThreeID = Int64(payMethod.holderThree?.id ?? 0)
+        let holderFourID = Int64(payMethod.holderFour?.id ?? 0)
+        
+        let holderOneTypeID = Int64(payMethod.holderOneType?.id ?? 0)
+        let holderTwoTypeID = Int64(payMethod.holderTwoType?.id ?? 0)
+        let holderThreeTypeID = Int64(payMethod.holderThreeType?.id ?? 0)
+        let holderFourTypeID = Int64(payMethod.holderFourType?.id ?? 0)
         
                 
         let context = DataManager.shared.createContext()
@@ -396,6 +450,15 @@ class PayMethodModel {
                 entity.enteredDate = enteredDate
                 entity.updatedDate = updatedDate
                 entity.listOrder = listOrder
+                
+                entity.holderOneID = holderOneID
+                entity.holderTwoID = holderTwoID
+                entity.holderThreeID = holderThreeID
+                entity.holderFourID = holderFourID
+                entity.holderOneTypeID = holderOneTypeID
+                entity.holderTwoTypeID = holderTwoTypeID
+                entity.holderThreeTypeID = holderThreeTypeID
+                entity.holderFourTypeID = holderFourTypeID
                 
                 let pred1 = NSPredicate(format: "relatedID == %@", id)
                 let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id))
@@ -468,9 +531,7 @@ class PayMethodModel {
                             perLogo.localUpdatedDate = updatedDate
                             perLogo.serverUpdatedDate = updatedDate
                         }
-                        
-                        
-                        
+                                                                        
                         let _ = DataManager.shared.save(context: context)
                     }
                 }
@@ -494,6 +555,12 @@ class PayMethodModel {
             #if os(macOS)
             fuckYouSwiftuiTableRefreshID = UUID()
             #endif
+            
+            /// End the background task.
+            #if os(iOS)
+            AppState.shared.endBackgroundTask(&backgroundTaskId)
+            #endif
+            
             return true
                                                 
         case .failure(let error):
@@ -513,6 +580,12 @@ class PayMethodModel {
             #if os(macOS)
             fuckYouSwiftuiTableRefreshID = UUID()
             #endif
+            
+            /// End the background task.
+            #if os(iOS)
+            AppState.shared.endBackgroundTask(&backgroundTaskId)
+            #endif
+            
             return false
         }
         
@@ -560,6 +633,12 @@ class PayMethodModel {
     @MainActor
     func setDefaultViewing(_ payMethod: CBPaymentMethod) async {
         print("-- \(#function)")
+        
+        /// Allow more time to save if the user enters the background.
+        #if os(iOS)
+        var backgroundTaskId = AppState.shared.beginBackgroundTask()
+        #endif
+        
         //LoadingManager.shared.startDelayedSpinner()
         LogManager.log()
                                 
@@ -593,12 +672,22 @@ class PayMethodModel {
         switch await result {
         case .success:
             LogManager.networkingSuccessful()
+            
+            /// End the background task.
+            #if os(iOS)
+            AppState.shared.endBackgroundTask(&backgroundTaskId)
+            #endif
 
         case .failure(let error):
             LogManager.error(error.localizedDescription)
             AppState.shared.showAlert("There was a problem trying to set the default payment method.")
             //showSaveAlert = true
             #warning("Undo behavior")
+            
+            /// End the background task.
+            #if os(iOS)
+            AppState.shared.endBackgroundTask(&backgroundTaskId)
+            #endif
         }
         //LoadingManager.shared.stopDelayedSpinner()
     }
@@ -607,6 +696,12 @@ class PayMethodModel {
     @MainActor
     func setDefaultEditing(_ payMethod: CBPaymentMethod) async {
         print("-- \(#function)")
+        
+        /// Allow more time to save if the user enters the background.
+        #if os(iOS)
+        var backgroundTaskId = AppState.shared.beginBackgroundTask()
+        #endif
+        
         //LoadingManager.shared.startDelayedSpinner()
         LogManager.log()
                                 
@@ -633,10 +728,7 @@ class PayMethodModel {
             
             let _ = DataManager.shared.save(context: context)
         }
-        
-        
-        
-      
+                              
         /// Networking
         let model = RequestModel(requestType: "set_default_editing_payment_method", model: payMethod)
         
@@ -646,12 +738,22 @@ class PayMethodModel {
         switch await result {
         case .success:
             LogManager.networkingSuccessful()
+            
+            /// End the background task.
+            #if os(iOS)
+            AppState.shared.endBackgroundTask(&backgroundTaskId)
+            #endif
 
         case .failure(let error):
             LogManager.error(error.localizedDescription)
             AppState.shared.showAlert("There was a problem trying to set the default payment method.")
             //showSaveAlert = true
             #warning("Undo behavior")
+            
+            /// End the background task.
+            #if os(iOS)
+            AppState.shared.endBackgroundTask(&backgroundTaskId)
+            #endif
         }
         //LoadingManager.shared.stopDelayedSpinner()
     }
@@ -677,13 +779,17 @@ class PayMethodModel {
             return model
 
         case .failure(let error):
-            LogManager.error(error.localizedDescription)
-            AppState.shared.showAlert("There was a problem trying to fetch analytics.")
+            switch error {
+            case .taskCancelled:
+                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
+                print("fetchStartingAmountsForDateRange Task Cancelled")
+            default:
+                LogManager.error(error.localizedDescription)
+                AppState.shared.showAlert("There was a problem trying to fetch starting amounts for date range.")
+            }
             return nil
-            //showSaveAlert = true
             #warning("Undo behavior")
         }
-        //LoadingManager.shared.stopDelayedSpinner()
     }
     
     
@@ -703,8 +809,14 @@ class PayMethodModel {
             return model
 
         case .failure(let error):
-            LogManager.error(error.localizedDescription)
-            AppState.shared.showAlert("There was a problem trying to fetch analytics.")
+            switch error {
+            case .taskCancelled:
+                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
+                print("fetchAnalytics Task Cancelled")
+            default:
+                LogManager.error(error.localizedDescription)
+                AppState.shared.showAlert("There was a problem trying to fetch analytics.")
+            }
             return nil
         }
     }
@@ -780,144 +892,351 @@ class PayMethodModel {
     }
     
     
-    func getApplicablePayMethods(type: ApplicablePaymentMethods, calModel: CalendarModel, plaidModel: PlaidModel, searchText: Binding<String>, includeHidden: Bool = false) -> Array<PaySection> {
+    private func getAllPayMethods(includeHidden: Bool, sText: String) -> Array<PaySection> {
+        return [
+            //PaySection(kind: .combined, payMethods: payModel.paymentMethods.filter { $0.accountType == .unifiedCredit || $0.accountType == .unifiedChecking }),
+            PaySection(
+                kind: .debit,
+                payMethods: self.paymentMethods
+                    .filter {
+                        $0.isDebit
+                        && $0.isPermitted
+                        && (includeHidden ? true : !$0.isHidden)
+                        && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
+                    }
+                    .filter {
+                        switch LocalStorage.shared.paymentMethodFilterMode {
+                        case .all:
+                            return true
+                        case .justPrimary:
+                            return $0.holderOne?.id == AppState.shared.user?.id
+                        case .primaryAndSecondary:
+                            return $0.holderOne?.id == AppState.shared.user?.id
+                            || $0.holderTwo?.id == AppState.shared.user?.id
+                            || $0.holderThree?.id == AppState.shared.user?.id
+                            || $0.holderFour?.id == AppState.shared.user?.id
+                        }
+                    }
+                    .sorted(by: Helpers.paymentMethodSorter())
+            ),
+            PaySection(
+                kind: .credit,
+                payMethods: self.paymentMethods
+                    .filter {
+                        $0.isCredit
+                        && $0.isPermitted
+                        && (includeHidden ? true : !$0.isHidden)
+                        && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
+                    }
+                    .filter {
+                        switch LocalStorage.shared.paymentMethodFilterMode {
+                        case .all:
+                            return true
+                        case .justPrimary:
+                            return $0.holderOne?.id == AppState.shared.user?.id
+                        case .primaryAndSecondary:
+                            return $0.holderOne?.id == AppState.shared.user?.id
+                            || $0.holderTwo?.id == AppState.shared.user?.id
+                            || $0.holderThree?.id == AppState.shared.user?.id
+                            || $0.holderFour?.id == AppState.shared.user?.id
+                        }
+                    }
+                    .sorted(by: Helpers.paymentMethodSorter())
+            ),
+            PaySection(
+                kind: .other,
+                payMethods: self.paymentMethods
+                    .filter {
+                        !$0.isDebit
+                        && !$0.isCredit
+                        && $0.isPermitted
+                        && (includeHidden ? true : !$0.isHidden)
+                        && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
+                    }
+                    .filter {
+                        switch LocalStorage.shared.paymentMethodFilterMode {
+                        case .all:
+                            return true
+                        case .justPrimary:
+                            return $0.holderOne?.id == AppState.shared.user?.id
+                        case .primaryAndSecondary:
+                            return $0.holderOne?.id == AppState.shared.user?.id
+                            || $0.holderTwo?.id == AppState.shared.user?.id
+                            || $0.holderThree?.id == AppState.shared.user?.id
+                            || $0.holderFour?.id == AppState.shared.user?.id
+                        }
+                    }
+                    .sorted(by: Helpers.paymentMethodSorter())
+            )
+        ]
+    }
+    
+    private func getAllExceptUnifiedPayMethods(includeHidden: Bool, sText: String) -> Array<PaySection> {
+        return [
+            PaySection(
+                kind: .debit,
+                payMethods: self.paymentMethods
+                    .filter {
+                        [.checking, .cash].contains($0.accountType)
+                        && $0.isPermitted
+                        && (includeHidden ? true : !$0.isHidden)
+                        && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
+                    }
+                    .filter {
+                        switch LocalStorage.shared.paymentMethodFilterMode {
+                        case .all:
+                            return true
+                        case .justPrimary:
+                            return $0.holderOne?.id == AppState.shared.user?.id
+                        case .primaryAndSecondary:
+                            return $0.holderOne?.id == AppState.shared.user?.id
+                            || $0.holderTwo?.id == AppState.shared.user?.id
+                            || $0.holderThree?.id == AppState.shared.user?.id
+                            || $0.holderFour?.id == AppState.shared.user?.id
+                        }
+                    }
+                    .sorted(by: Helpers.paymentMethodSorter())
+            ),
+            PaySection(
+                kind: .credit,
+                payMethods: self.paymentMethods
+                    .filter {
+                        $0.isCreditOrLoan
+                        && $0.isPermitted
+                        && (includeHidden ? true : !$0.isHidden)
+                        && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
+                    }
+                    .filter {
+                        switch LocalStorage.shared.paymentMethodFilterMode {
+                        case .all:
+                            return true
+                        case .justPrimary:
+                            return $0.holderOne?.id == AppState.shared.user?.id
+                        case .primaryAndSecondary:
+                            return $0.holderOne?.id == AppState.shared.user?.id
+                            || $0.holderTwo?.id == AppState.shared.user?.id
+                            || $0.holderThree?.id == AppState.shared.user?.id
+                            || $0.holderFour?.id == AppState.shared.user?.id
+                        }
+                    }
+                    .sorted(by: Helpers.paymentMethodSorter())
+            ),
+            PaySection(
+                kind: .other,
+                payMethods: self.paymentMethods
+                    .filter {
+                        !$0.isDebit
+                        && !$0.isCredit
+                        && $0.isPermitted
+                        && (includeHidden ? true : !$0.isHidden)
+                        && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
+                    }
+                    .filter {
+                        switch LocalStorage.shared.paymentMethodFilterMode {
+                        case .all:
+                            return true
+                        case .justPrimary:
+                            return $0.holderOne?.id == AppState.shared.user?.id
+                        case .primaryAndSecondary:
+                            return $0.holderOne?.id == AppState.shared.user?.id
+                            || $0.holderTwo?.id == AppState.shared.user?.id
+                            || $0.holderThree?.id == AppState.shared.user?.id
+                            || $0.holderFour?.id == AppState.shared.user?.id
+                        }
+                    }
+                    .sorted(by: Helpers.paymentMethodSorter())
+            )
+        ]
+    }
+    
+    private func getAllPayMethodsBasedOnSelected(includeHidden: Bool, sText: String, calModel: CalendarModel) -> Array<PaySection> {
+        if calModel.sPayMethod?.accountType == .unifiedChecking {
+            return [
+                PaySection(
+                    kind: .debit,
+                    payMethods: self.paymentMethods
+                        .filter {
+                            $0.isDebit
+                            && $0.isPermitted
+                            && (includeHidden ? true : !$0.isHidden)
+                            && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
+                        }
+                        .filter {
+                            switch LocalStorage.shared.paymentMethodFilterMode {
+                            case .all:
+                                return true
+                            case .justPrimary:
+                                return $0.holderOne?.id == AppState.shared.user?.id
+                            case .primaryAndSecondary:
+                                return $0.holderOne?.id == AppState.shared.user?.id
+                                || $0.holderTwo?.id == AppState.shared.user?.id
+                                || $0.holderThree?.id == AppState.shared.user?.id
+                                || $0.holderFour?.id == AppState.shared.user?.id
+                            }
+                        }
+                        .sorted(by: Helpers.paymentMethodSorter())
+                )
+            ]
+            
+        } else if calModel.sPayMethod?.accountType == .unifiedCredit {
+            return [
+                PaySection(
+                    kind: .credit,
+                    payMethods: self.paymentMethods
+                        .filter {
+                            $0.isCreditOrLoan
+                            && $0.isPermitted
+                            && (includeHidden ? true : !$0.isHidden)
+                            && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
+                        }
+                        .filter {
+                            switch LocalStorage.shared.paymentMethodFilterMode {
+                            case .all:
+                                return true
+                            case .justPrimary:
+                                return $0.holderOne?.id == AppState.shared.user?.id
+                            case .primaryAndSecondary:
+                                return $0.holderOne?.id == AppState.shared.user?.id
+                                || $0.holderTwo?.id == AppState.shared.user?.id
+                                || $0.holderThree?.id == AppState.shared.user?.id
+                                || $0.holderFour?.id == AppState.shared.user?.id
+                            }
+                        }
+                        .sorted(by: Helpers.paymentMethodSorter())
+                )
+            ]
+            
+        } else {
+            return [
+                PaySection(
+                    kind: .other,
+                    payMethods: self.paymentMethods
+                        .filter {
+                            !$0.isDebit
+                            && !$0.isCredit
+                            && $0.isPermitted
+                            && (includeHidden ? true : !$0.isHidden)
+                            && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
+                        }
+                        .filter {
+                            switch LocalStorage.shared.paymentMethodFilterMode {
+                            case .all:
+                                return true
+                            case .justPrimary:
+                                return $0.holderOne?.id == AppState.shared.user?.id
+                            case .primaryAndSecondary:
+                                return $0.holderOne?.id == AppState.shared.user?.id
+                                || $0.holderTwo?.id == AppState.shared.user?.id
+                                || $0.holderThree?.id == AppState.shared.user?.id
+                                || $0.holderFour?.id == AppState.shared.user?.id
+                            }
+                        }
+                        .sorted(by: Helpers.paymentMethodSorter())
+                )
+            ]
+        }
+    }
+    
+    private func getAllRemainingAvailbleForPlaidPayMethods(includeHidden: Bool, sText: String, plaidModel: PlaidModel) -> Array<PaySection> {
+        let taken: Array<String> = plaidModel.banks.flatMap ({ $0.accounts.compactMap({ $0.paymentMethodID }) })
+        return [
+            PaySection(
+                kind: .debit,
+                payMethods: self.paymentMethods
+                    /// Intentionally exclude cash
+                    .filter {
+                        $0.accountType == .checking
+                        && !taken.contains($0.id)
+                        && $0.isPermitted
+                        && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
+                    }
+                    .filter {
+                        switch LocalStorage.shared.paymentMethodFilterMode {
+                        case .all:
+                            return true
+                        case .justPrimary:
+                            return $0.holderOne?.id == AppState.shared.user?.id
+                        case .primaryAndSecondary:
+                            return $0.holderOne?.id == AppState.shared.user?.id
+                            || $0.holderTwo?.id == AppState.shared.user?.id
+                            || $0.holderThree?.id == AppState.shared.user?.id
+                            || $0.holderFour?.id == AppState.shared.user?.id
+                        }
+                    }
+                    .sorted(by: Helpers.paymentMethodSorter())
+            ),
+            PaySection(
+                kind: .credit,
+                payMethods: self.paymentMethods
+                    .filter {
+                        ($0.accountType == .credit || $0.accountType == .loan)
+                        && !taken.contains($0.id)
+                        && $0.isPermitted
+                        && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
+                    }
+                    .filter {
+                        switch LocalStorage.shared.paymentMethodFilterMode {
+                        case .all:
+                            return true
+                        case .justPrimary:
+                            return $0.holderOne?.id == AppState.shared.user?.id
+                        case .primaryAndSecondary:
+                            return $0.holderOne?.id == AppState.shared.user?.id
+                            || $0.holderTwo?.id == AppState.shared.user?.id
+                            || $0.holderThree?.id == AppState.shared.user?.id
+                            || $0.holderFour?.id == AppState.shared.user?.id
+                        }
+                    }
+                    .sorted(by: Helpers.paymentMethodSorter())
+            ),
+            PaySection(
+                kind: .other,
+                payMethods: self.paymentMethods
+                    .filter {
+                        !$0.isDebit
+                        && !$0.isCredit
+                        && $0.isPermitted
+                        && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
+                    }
+                    .filter {
+                        switch LocalStorage.shared.paymentMethodFilterMode {
+                        case .all:
+                            return true
+                        case .justPrimary:
+                            return $0.holderOne?.id == AppState.shared.user?.id
+                        case .primaryAndSecondary:
+                            return $0.holderOne?.id == AppState.shared.user?.id
+                            || $0.holderTwo?.id == AppState.shared.user?.id
+                            || $0.holderThree?.id == AppState.shared.user?.id
+                            || $0.holderFour?.id == AppState.shared.user?.id
+                        }
+                    }
+                    .sorted(by: Helpers.paymentMethodSorter())
+            )
+        ]
+    }
+    
+    func getApplicablePayMethods(
+        type: ApplicablePaymentMethods,
+        calModel: CalendarModel,
+        plaidModel: PlaidModel,
+        searchText: Binding<String>,
+        includeHidden: Bool = false
+    ) -> Array<PaySection> {
         let sText = searchText.wrappedValue
+        
         switch type {
         case .all:
-            return [
-                //PaySection(kind: .combined, payMethods: payModel.paymentMethods.filter { $0.accountType == .unifiedCredit || $0.accountType == .unifiedChecking }),
-                PaySection(
-                    kind: .debit,
-                    payMethods: self.paymentMethods
-                        .filter { $0.isDebit }
-                        .filter { $0.isPermitted }
-                        .filter { includeHidden ? true : !$0.isHidden }
-                        .filter { sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText) }
-                        .sorted(by: Helpers.paymentMethodSorter())
-                ),
-                PaySection(
-                    kind: .credit,
-                    payMethods: self.paymentMethods
-                        .filter { $0.isCredit }
-                        .filter { $0.isPermitted }
-                        .filter { includeHidden ? true : !$0.isHidden }
-                        .filter { sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText) }
-                        .sorted(by: Helpers.paymentMethodSorter())
-                ),
-                PaySection(
-                    kind: .other,
-                    payMethods: self.paymentMethods
-                        .filter { !$0.isDebit && !$0.isCredit }
-                        .filter { $0.isPermitted }
-                        .filter { includeHidden ? true : !$0.isHidden }
-                        .filter { sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText) }
-                        .sorted(by: Helpers.paymentMethodSorter())
-                )
-            ]
-            
+            return getAllPayMethods(includeHidden: includeHidden, sText: sText)
+                        
         case .allExceptUnified:
-            return [
-                PaySection(
-                    kind: .debit,
-                    payMethods: self.paymentMethods
-                        .filter { [.checking, .cash].contains($0.accountType) }
-                        .filter { $0.isPermitted }
-                        .filter { includeHidden ? true : !$0.isHidden }
-                        .filter { sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText) }
-                        .sorted(by: Helpers.paymentMethodSorter())
-                ),
-                PaySection(
-                    kind: .credit,
-                    payMethods: self.paymentMethods
-                        .filter { $0.isCreditOrLoan }
-                        .filter { $0.isPermitted }
-                        .filter { includeHidden ? true : !$0.isHidden }
-                        .filter { sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText) }
-                        .sorted(by: Helpers.paymentMethodSorter())
-                ),
-                PaySection(
-                    kind: .other,
-                    payMethods: self.paymentMethods
-                        .filter { !$0.isDebit && !$0.isCredit }
-                        .filter { $0.isPermitted }
-                        .filter { includeHidden ? true : !$0.isHidden }
-                        .filter { sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText) }
-                        .sorted(by: Helpers.paymentMethodSorter())
-                )
-            ]
+            return getAllExceptUnifiedPayMethods(includeHidden: includeHidden, sText: sText)
             
         case .basedOnSelected:
-            if calModel.sPayMethod?.accountType == .unifiedChecking {
-                return [
-                    PaySection(
-                        kind: .debit,
-                        payMethods: self.paymentMethods
-                            .filter { $0.isDebit }
-                            .filter { $0.isPermitted }
-                            .filter { includeHidden ? true : !$0.isHidden }
-                            .filter { sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText) }
-                            .sorted(by: Helpers.paymentMethodSorter())
-                    )
-                ]
-                
-            } else if calModel.sPayMethod?.accountType == .unifiedCredit {
-                return [
-                    PaySection(
-                        kind: .credit,
-                        payMethods: self.paymentMethods
-                            .filter { $0.isCreditOrLoan }
-                            .filter { $0.isPermitted }
-                            .filter { includeHidden ? true : !$0.isHidden }
-                            .filter { sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText) }
-                            .sorted(by: Helpers.paymentMethodSorter())
-                    )
-                ]
-                
-            } else {
-                return [
-                    PaySection(
-                        kind: .other,
-                        payMethods: self.paymentMethods
-                            .filter { !$0.isDebit && !$0.isCredit }
-                            .filter { $0.isPermitted }
-                            .filter { includeHidden ? true : !$0.isHidden }
-                            .filter { sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText) }
-                            .sorted(by: Helpers.paymentMethodSorter())
-                    )
-                ]
-            }
+            return getAllPayMethodsBasedOnSelected(includeHidden: includeHidden, sText: sText, calModel: calModel)
             
         case .remainingAvailbleForPlaid:
-            let taken: Array<String> = plaidModel.banks.flatMap ({ $0.accounts.compactMap({ $0.paymentMethodID }) })
-            print(taken)
-            //.map({ $0.paymentMethodID != nil })
-            return [
-                PaySection(
-                    kind: .debit,
-                    payMethods: self.paymentMethods
-                        /// Intentionally exclude cash
-                        .filter { $0.accountType == .checking && !taken.contains($0.id) }
-                        .filter { $0.isPermitted }
-                        .filter { sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText) }
-                        .sorted(by: Helpers.paymentMethodSorter())
-                ),
-                PaySection(
-                    kind: .credit,
-                    payMethods: self.paymentMethods
-                        .filter { ($0.accountType == .credit || $0.accountType == .loan) && !taken.contains($0.id) }
-                        .filter { $0.isPermitted }
-                        .filter { sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText) }
-                        .sorted(by: Helpers.paymentMethodSorter())
-                ),
-                PaySection(
-                    kind: .other,
-                    payMethods: self.paymentMethods
-                        .filter { !$0.isDebit && !$0.isCredit }
-                        .filter { $0.isPermitted }
-                        .filter { sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText) }
-                        .sorted(by: Helpers.paymentMethodSorter())
-                )
-            ]
+            return getAllRemainingAvailbleForPlaidPayMethods(includeHidden: includeHidden, sText: sText, plaidModel: plaidModel)
         }
     }
 }

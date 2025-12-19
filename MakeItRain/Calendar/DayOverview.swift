@@ -12,7 +12,7 @@ struct DayOverviewView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
     @Environment(CalendarProps.self) private var calProps    
-    @Environment(EventModel.self) private var eventModel
+    
     
     @Binding var day: CBDay?
     @Binding var showInspector: Bool
@@ -209,7 +209,7 @@ struct DayOverviewView: View {
                     day?.transactions.append(trans)
                     calModel.dragTarget = nil
                     Task {
-                        await calModel.saveTransaction(id: trans.id, eventModel: eventModel)
+                        await calModel.saveTransaction(id: trans.id)
                     }
                 }
             }

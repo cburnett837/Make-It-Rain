@@ -17,14 +17,14 @@ struct PayMethodsTable: View {
     @Local(\.useBusinessLogos) var useBusinessLogos
     @Local(\.useWholeNumbers) var useWholeNumbers
     @Local(\.paymentMethodSortMode) var paymentMethodSortMode
-    
+    @Local(\.paymentMethodFilterMode) var paymentMethodFilterMode
     @AppStorage("paymentMethodTableColumnOrder") private var columnCustomization: TableColumnCustomization<CBPaymentMethod>    
     
     @Environment(\.dismiss) var dismiss
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
     @Environment(PayMethodModel.self) private var payModel
-    @Environment(EventModel.self) private var eventModel
+    
     @Environment(PlaidModel.self) private var plaidModel
     
     @State private var searchText = ""
@@ -133,12 +133,16 @@ struct PayMethodsTable: View {
             .id(payModel.fuckYouSwiftuiTableRefreshID)
             #endif
             .navigationBarBackButtonHidden(true)
+            .onChange(of: paymentMethodFilterMode) { populateSections() }
             .task {
                 defaultViewingMethod = payModel.paymentMethods.filter { $0.isViewingDefault }.first
                 defaultEditingMethod = payModel.paymentMethods.filter { $0.isEditingDefault }.first
                 /// NOTE: Sorting must be done here and not in the computed property. If done in the computed property, when reording, they get all messed up.
                 payModel.paymentMethods.sort(by: Helpers.paymentMethodSorter())
                 populateSections()
+            }
+            .navigationDestination(for: CBPaymentMethod.self) { meth in
+                PayMethodOverView(payMethod: meth, navPath: $navPath)
             }
             .toolbar {
                 #if os(macOS)
@@ -179,9 +183,6 @@ struct PayMethodsTable: View {
                     selectedPaymentMethod = nil
                 }
             }
-            .navigationDestination(for: CBPaymentMethod.self) { meth in
-                PayMethodOverView(payMethod: meth, navPath: $navPath)
-            }
             .sheet(item: $selectedPaymentMethod, onDismiss: {
                 paymentMethodEditID = nil
                 payModel.determineIfUserIsRequiredToAddPaymentMethod()
@@ -190,14 +191,14 @@ struct PayMethodsTable: View {
                     //.presentationSizing(.page)
             }
             .sheet(isPresented: $showDefaultViewingSheet, onDismiss: setDefaultViewingMethod) {
-                PayMethodSheet(payMethod: $defaultViewingMethod, whichPaymentMethods: .all, showStartingAmountOption: false)
+                PayMethodSheet(payMethod: $defaultViewingMethod, whichPaymentMethods: .all)
                     #if os(macOS)
                     .frame(minWidth: 300, minHeight: 500)
                     .presentationSizing(.fitted)
                     #endif
             }
             .sheet(isPresented: $showDefaultEditingSheet, onDismiss: setDefaultEditingMethod) {
-                PayMethodSheet(payMethod: $defaultEditingMethod, whichPaymentMethods: .allExceptUnified, showStartingAmountOption: false)
+                PayMethodSheet(payMethod: $defaultEditingMethod, whichPaymentMethods: .allExceptUnified)
                     #if os(macOS)
                     .frame(minWidth: 300, minHeight: 500)
                     .presentationSizing(.fitted)
@@ -385,9 +386,34 @@ struct PayMethodsTable: View {
     @ToolbarContentBuilder
     func phoneToolbar() -> some ToolbarContent {
         @Bindable var payModel = payModel
-        ToolbarItem(placement: .topBarLeading) { PayMethodSortMenu(sections: $payModel.sections) }
+        ToolbarItem(placement: .topBarLeading) {
+            Menu {
+                PayMethodFilterMenu()
+                PayMethodSortMenu(sections: $payModel.sections)
+                //moreMenu
+                
+                Section("Default Viewing Account") {
+                    showDefaultForViewingSheetButton
+                }
+                
+                Section("Default Editing Account") {
+                    showDefaultForEditingSheetButton
+                }
+                
+                Section("Appearance") {
+                    useBusinessLogosToggle
+                }
+                
+            } label: {
+                Image(systemName: "ellipsis")
+                    .schemeBasedForegroundStyle()
+            }
+
+            
+        }
+        //ToolbarItem(placement: .topBarLeading) { PayMethodSortMenu(sections: $payModel.sections) }
         //ToolbarSpacer(.fixed, placement: .topBarLeading)
-        ToolbarItem(placement: .topBarLeading) { moreMenu }
+        //ToolbarItem(placement: .topBarLeading) { moreMenu }
         
         ToolbarItem(placement: .topBarTrailing) { ToolbarLongPollButton() }
         ToolbarItem(placement: .topBarTrailing) { ToolbarRefreshButton().disabled(!AppState.shared.methsExist) }
@@ -480,7 +506,15 @@ struct PayMethodsTable: View {
                     
                 }
             } icon: {
-                BusinessLogo(parent: meth, fallBackType: .gradient)
+                //BusinessLogo(parent: meth, fallBackType: .gradient)
+//                BusinessLogo(config: .init(
+//                    parent: meth,
+//                    fallBackType: .gradient
+//                ))
+                BusinessLogo(config: .init(
+                    parent: meth,
+                    fallBackType: .gradient
+                ))
             }
         } else {
             Label {
@@ -512,7 +546,11 @@ struct PayMethodsTable: View {
                     }
                 }
             } icon: {
-                BusinessLogo(parent: meth, fallBackType: .color)
+                BusinessLogo(config: .init(
+                    parent: meth,
+                    fallBackType: .color
+                ))
+                //BusinessLogo(parent: meth, fallBackType: .color)
             }
         }
     }
@@ -575,7 +613,7 @@ struct PayMethodsTable: View {
 //            }
             
         } label: {
-            Image(systemName: "ellipsis")
+            Label("More", systemImage: "ellipsis")            
         }
         .tint(.none)
     }

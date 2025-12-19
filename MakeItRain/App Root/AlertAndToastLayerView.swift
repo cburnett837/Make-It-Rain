@@ -11,7 +11,7 @@ struct AlertAndToastLayerView: View {
     //@Local(\.colorTheme) var colorTheme
     @Environment(CalendarModel.self) private var calModel
     @Binding var showCamera: Bool
-        
+    
     var body: some View {
         @Bindable var appState = AppState.shared
         @Bindable var calModel = calModel

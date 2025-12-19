@@ -13,10 +13,10 @@ import SwiftUI
 class LoadingManager {
     static let shared = LoadingManager()
     
-    var downloadAmount = 0.0
-    var showLoadingBar = false
+    //var downloadAmount = 0.0
+    //var showLoadingBar = false
     var showLoadingSpinner = false
-    var showInitiallyLoadingSpinner = false
+    //var showInitiallyLoadingSpinner = false
     
     var timer: Timer?
     var longNetworkTaskTimer: Timer?
@@ -62,6 +62,7 @@ class LoadingManager {
 //                }
 //            }
         )
+        
     }
             
     func startLongNetworkTimer() {

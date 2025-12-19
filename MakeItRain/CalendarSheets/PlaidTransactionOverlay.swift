@@ -46,9 +46,12 @@ struct PlaidTransactionOverlay: View {
             } header: {
                 sheetHeader
             }
-            .navigationDestination(for: String.self) { string in
-                clearBeforeDateView
-            }
+//            .navigationDestination(for: CalendarNavDestPlaid.self) { dest in
+//                switch dest {
+//                case .rejectPage:
+//                    clearBeforeDateView
+//                }
+//            }
         } else {
             NavigationStack(path: $navPath) {
                 StandardContainerWithToolbar(.list) {
@@ -66,9 +69,9 @@ struct PlaidTransactionOverlay: View {
                     ToolbarItem(placement: .topBarLeading) { moreMenu }
                     ToolbarItem(placement: .topBarTrailing) { closeButton }
                 }
-                .navigationDestination(for: String.self) { string in
-                    clearBeforeDateView
-                }
+//                .navigationDestination(for: String.self) { string in
+//                    clearBeforeDateView
+//                }
                 #endif
             }
         }
@@ -124,93 +127,56 @@ struct PlaidTransactionOverlay: View {
     }
     
     
-    var clearBeforeDateView: some View {
-        List {
-            Section {
-                DatePicker("", selection: $clearDate, displayedComponents: .date)
-                    .labelsHidden()
-            } header: {
-                Text("Choose a date to reject transactions")
-            } footer: {
-                Text(selectedMeth != nil ? "Only \(selectedMeth!.title)" : "(No Account Specified)")
-            }
-
-            Section {
-                Button("Reject") {
-                    Task {
-                        let theTrans = plaidModel.trans.filter({ selectedMeth == nil ? true : $0.payMethod == selectedMeth })
-                        let dummyTrans = CBTransaction()
-                        dummyTrans.date = clearDate
-                        dummyTrans.payMethod = selectedMeth
-                        
-                        for each in theTrans {
-                            if let date = each.date {
-                                if date < clearDate {
-                                    each.isAcknowledged = true
-                                    plaidModel.delete(each)
-                                    plaidModel.totalTransCount -= 1
-                                }
-                            }
-                        }
-                        /// Don't await
-                        Task {
-                            await plaidModel.clearPlaidTransactionBeforeDate(dummyTrans)
-                        }
-                        let theTransAgain = plaidModel.trans.filter({ selectedMeth == nil ? true : $0.payMethod == selectedMeth })
-                        if theTransAgain.isEmpty {
-                            selectedMeth = nil
-                        }
-                        
-                        navPath.removeLast()
-                    }
-                }
-                .tint(.red)
-                
-                Button("Cancel") {
-                    navPath.removeLast()
-                }
-            }
-        }
-        
-//        VStack {
-//            Text("Choose a date to reject transactions")
-//            Text("All transactions before this date will be rejected.")
-//                .foregroundStyle(.secondary)
-//                .font(.caption)
-//            
-//            DatePicker("", selection: $clearDate, displayedComponents: .date)
-//                .labelsHidden()
-//            
-//            HStack {
-//                Button("Cancel") {
-//                    navPath.removeLast()
-//                }
-//                .buttonStyle(.borderedProminent)
-//                
+//    var clearBeforeDateView: some View {
+//        List {
+//            Section {
+//                DatePicker("", selection: $clearDate, displayedComponents: .date)
+//                    .labelsHidden()
+//            } header: {
+//                Text("Choose a date to reject transactions")
+//            } footer: {
+//                Text(selectedMeth != nil ? "Only \(selectedMeth!.title)" : "(No Account Specified)")
+//            }
+//
+//            Section {
 //                Button("Reject") {
 //                    Task {
+//                        let theTrans = plaidModel.trans.filter({ selectedMeth == nil ? true : $0.payMethod == selectedMeth })
 //                        let dummyTrans = CBTransaction()
 //                        dummyTrans.date = clearDate
-//                        await plaidModel.clearPlaidTransactionBeforeDate(dummyTrans)
+//                        dummyTrans.payMethod = selectedMeth
 //                        
-//                        for each in plaidModel.trans {
+//                        for each in theTrans {
 //                            if let date = each.date {
 //                                if date < clearDate {
 //                                    each.isAcknowledged = true
 //                                    plaidModel.delete(each)
+//                                    plaidModel.totalTransCount -= 1
 //                                }
 //                            }
 //                        }
-//                        showClearBeforeDatePicker = false
+//                        /// Don't await
+//                        Task {
+//                            await plaidModel.clearPlaidTransactionBeforeDate(dummyTrans)
+//                        }
+//                        let theTransAgain = plaidModel.trans.filter({ selectedMeth == nil ? true : $0.payMethod == selectedMeth })
+//                        if theTransAgain.isEmpty {
+//                            selectedMeth = nil
+//                        }
+//                        
+//                        navPath.removeLast()
 //                    }
 //                }
 //                .tint(.red)
-//                .buttonStyle(.borderedProminent)
+//                
+//                Button("Cancel") {
+//                    navPath.removeLast()
+//                }
 //            }
 //        }
-        .navigationTitle("Reject Pending Transactions")
-        .navigationSubtitle(selectedMeth != nil ? "Only \(selectedMeth!.title)" : "(No Account Specified)")
-    }
+//        .navigationTitle("Reject Pending Transactions")
+//        .navigationSubtitle(selectedMeth != nil ? "Only \(selectedMeth!.title)" : "(No Account Specified)")
+//    }
     
     
     @ViewBuilder var sheetHeader: some View {
@@ -241,7 +207,8 @@ struct PlaidTransactionOverlay: View {
     @ViewBuilder
     var moreMenu: some View {
         Menu {
-            NavigationLink(value: "reject-view") {
+            NavigationLink(value: CalendarNavDest.plaidRejectPage) {
+            //NavigationLink(value: "reject-view") {
                 Text("Reject everything before date…")
             }
             
@@ -277,6 +244,9 @@ struct PlaidTransactionOverlay: View {
             Image(systemName: "ellipsis")
                 .contentShape(Rectangle())
                 .schemeBasedForegroundStyle()
+        }
+        .onChange(of: selectedMeth) {
+            calModel.sPayMethod = selectedMeth
         }
     }
     
@@ -362,7 +332,11 @@ struct PlaidTransactionOverlay: View {
                 HStack {
                     VStack(spacing: 0) {
                         HStack {
-                            BusinessLogo(parent: trans.payMethod, fallBackType: .color)
+                            BusinessLogo(config: .init(
+                                parent: trans.payMethod,
+                                fallBackType: .color
+                            ))
+                            //BusinessLogo(parent: trans.payMethod, fallBackType: .color)
                             
                             VStack(alignment: .leading, spacing: 0) {
                                 Text(trans.title.capitalized)
@@ -402,62 +376,7 @@ struct PlaidTransactionOverlay: View {
             #endif
             
         }
-        
-//        var transInfo: some View {
-////            VStack(alignment: .leading, spacing: 0) {
-////                HStack(spacing: 0) {
-////                    CircleDot(color: trans.category?.color, width: 10)
-////                    Text(trans.title.capitalized)
-////                        .lineLimit(showExpandedTitle ? nil : 1)
-////                }
-////                
-////                HStack(spacing: 0) {
-////                    CircleDot(color: trans.payMethod?.color, width: 10)
-////                    Text(trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-////                        .foregroundStyle(.gray)
-////                        .font(.footnote)
-////                }
-////                
-////                Text(trans.prettyDate ?? "N/A")
-////                    .foregroundStyle(.gray)
-////                    .font(.caption2)
-////            }
-////            .contentShape(Rectangle())
-////            .onTapGesture {
-////                showExpandedTitle.toggle()
-////            }
-//            
-//            
-//            
-//            
-//            VStack(spacing: 0) {
-//                HStack {
-//                    BusinessLogo(parent: trans.payMethod, fallBackType: .color)
-//                    
-//                    VStack(alignment: .leading, spacing: 0) {
-//                        Text(trans.title.capitalized)
-//                            .lineLimit(showExpandedTitle ? nil : 1)
-//                        
-//                        Text(trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-//                            .foregroundStyle(.gray)
-//                            .font(.footnote)
-//                                                                    
-//                        Text(trans.prettyDate ?? "N/A")
-//                            .foregroundStyle(.gray)
-//                            .font(.footnote)
-//                    }
-//                }
-//            }
-//            .listRowInsets(EdgeInsets())
-//            .contentShape(Rectangle())
-//            .onTapGesture {
-//                showExpandedTitle.toggle()
-//            }
-//            
-//            
-//            
-//            
-//        }
+       
         
         
         var acceptButton: some View {
@@ -465,10 +384,12 @@ struct PlaidTransactionOverlay: View {
                 
                 /// See if there is a rename rule and let the user know it will be renamed.
                 var willRenameTo: String? = nil
-                if let key = keyModel.keywords.filter({ $0.keyword.uppercased() == trans.title.uppercased() }).first {
+                
+                
+                for key in keyModel.keywords {
+                    let upKey = key.keyword.uppercased()
+                    
                     if let renameTo = key.renameTo {
-                        let upKey = key.keyword.uppercased()
-                                                                
                         switch key.triggerType {
                         case .equals:
                             if trans.title.uppercased() == upKey { willRenameTo = renameTo }
@@ -476,7 +397,22 @@ struct PlaidTransactionOverlay: View {
                             if trans.title.uppercased().contains(upKey) { willRenameTo = renameTo }
                         }
                     }
+                    
+                    if willRenameTo != nil { break }
                 }
+                
+//                if let key = keyModel.keywords.filter({ $0.keyword.uppercased() == trans.title.uppercased() }).first {
+//                    if let renameTo = key.renameTo {
+//                        let upKey = key.keyword.uppercased()
+//                                                                
+//                        switch key.triggerType {
+//                        case .equals:
+//                            if trans.title.uppercased() == upKey { willRenameTo = renameTo }
+//                        case .contains:
+//                            if trans.title.uppercased().contains(upKey) { willRenameTo = renameTo }
+//                        }
+//                    }
+//                }
                 
                 var config: AlertConfig?
                 
@@ -486,7 +422,12 @@ struct PlaidTransactionOverlay: View {
                     config = AlertConfig(
                         title: "Accept \(trans.title)?",
                         subtitle: (trans.prettyDate ?? "N/A"),
-                        symbol: .init(name: "checkmark.circle.badge.questionmark", color: .green),
+                        logo: .init(
+                            parent: trans.payMethod,
+                            fallBackType: .customImage(.init(name: "checkmark.circle.badge.questionmark", color: .green)),
+                            size: 65
+                        ),
+                        logoStrokeColor: .green,
                         primaryButton: AlertConfig.AlertButton(config: buttonConfig)
                     )
                 } else {
@@ -521,7 +462,12 @@ struct PlaidTransactionOverlay: View {
                     config = AlertConfig(
                         title: "Accept \(trans.title)?",
                         subtitleView: AnyView(subtitleView),
-                        symbol: .init(name: "checkmark.circle.badge.questionmark", color: .green),
+                        logo: .init(
+                            parent: trans.payMethod,
+                            fallBackType: .customImage(.init(name: "checkmark.circle.badge.questionmark", color: .green)),
+                            size: 65
+                        ),
+                        logoStrokeColor: .green,
                         primaryButton: AlertConfig.AlertButton(config: buttonConfig)
                     )
                 }
@@ -551,7 +497,12 @@ struct PlaidTransactionOverlay: View {
                 let config = AlertConfig(
                     title: "Reject \(trans.title)?",
                     subtitle: trans.prettyDate ?? "N/A",
-                    symbol: .init(name: "questionmark.circle", color: .orange),
+                    logo: .init(
+                        parent: trans.payMethod,
+                        fallBackType: .customImage(.init(name: "questionmark.circle", color: .orange)),
+                        size: 65
+                    ),
+                    logoStrokeColor: .orange,
                     primaryButton: AlertConfig.AlertButton(config: buttonConfig)
                 )
                 
@@ -623,5 +574,69 @@ struct PlaidTransactionOverlay: View {
                 plaidModel.trans.removeAll(where: {$0.id == trans.id})
             }
         }
+    }
+}
+
+
+struct ClearPlaidBeforeDateView: View {
+    @Environment(PlaidModel.self) private var plaidModel
+    @State private var clearDate: Date = Date()
+    
+    @Binding var selectedMeth: CBPaymentMethod?
+    @Binding var navPath: NavigationPath
+    
+    var body: some View {
+        clearBeforeDateView
+    }
+    
+    var clearBeforeDateView: some View {
+        List {
+            Section {
+                DatePicker("", selection: $clearDate, displayedComponents: .date)
+                    .labelsHidden()
+            } header: {
+                Text("Choose a date to reject transactions")
+            } footer: {
+                Text(selectedMeth != nil ? "Only \(selectedMeth!.title)" : "(No Account Specified)")
+            }
+
+            Section {
+                Button("Reject") {
+                    Task {
+                        let theTrans = plaidModel.trans.filter({ selectedMeth == nil ? true : $0.payMethod == selectedMeth })
+                        let dummyTrans = CBTransaction()
+                        dummyTrans.date = clearDate
+                        dummyTrans.payMethod = selectedMeth
+                        
+                        for each in theTrans {
+                            if let date = each.date {
+                                if date < clearDate {
+                                    each.isAcknowledged = true
+                                    plaidModel.delete(each)
+                                    plaidModel.totalTransCount -= 1
+                                }
+                            }
+                        }
+                        /// Don't await
+                        Task {
+                            await plaidModel.clearPlaidTransactionBeforeDate(dummyTrans)
+                        }
+                        let theTransAgain = plaidModel.trans.filter({ selectedMeth == nil ? true : $0.payMethod == selectedMeth })
+                        if theTransAgain.isEmpty {
+                            selectedMeth = nil
+                        }
+                        
+                        navPath.removeLast()
+                    }
+                }
+                .tint(.red)
+                
+                Button("Cancel") {
+                    navPath.removeLast()
+                }
+            }
+        }
+        .navigationTitle("Reject Pending Transactions")
+        .navigationSubtitle(selectedMeth != nil ? "Only \(selectedMeth!.title)" : "(No Account Specified)")
     }
 }

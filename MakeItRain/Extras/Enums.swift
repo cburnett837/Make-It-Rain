@@ -286,7 +286,7 @@ enum PhoneLineItemTotalPosition: String, CaseIterable {
 }
 
 public enum UpdatedByOtherUserDisplayMode: String, CaseIterable {
-    case concise, full
+    case concise, full, avatar
     
     var prettyValue: String {
         switch self {
@@ -294,6 +294,8 @@ public enum UpdatedByOtherUserDisplayMode: String, CaseIterable {
             "Bold & italic title"
         case .full:
             "Their Name"
+        case .avatar:
+            "Their Avatar"
         }
     }
     
@@ -301,6 +303,7 @@ public enum UpdatedByOtherUserDisplayMode: String, CaseIterable {
         switch theString {
         case "concise": return .concise
         case "full": return .full
+        case "avatar": return .avatar
         default: return .concise
         }
     }
@@ -347,6 +350,24 @@ public enum UserPreferedColorScheme: String {
     }
 }
 
+
+
+enum AppSuiteKey: String {
+    case christmas = "christmas_list"
+    
+    static func fromString(_ theString: String) -> Self {
+        switch theString {
+        case "christmas_list": return .christmas
+        default: return .christmas
+        }
+    }
+}
+
+enum ChristmasListDeletePreference: String {
+    case delete = "delete"
+    case resetStatusToIdea = "reset_status_to_idea"
+}
+
 enum ListOrderUpdateType: String {
     case categories = "categories"
     case eventCategories = "event_categories"
@@ -390,12 +411,18 @@ enum CBKeyboardType {
 }
 
 enum CustomKeyboardType {
-    case numpad
+    case numpad, calculator
 }
 
 enum DecimalKeyboardButtonType {
     case number, delete, decimalPoint, posNeg
 }
+
+
+enum CalculatorKeyboardButtonType {
+    case number, delete, decimalPoint, posNeg, divide, multiply, subtract, add
+}
+
 #endif
 
 enum FileType: String {
@@ -451,6 +478,20 @@ enum FileType: String {
         }
         return .photo
     }
+}
+
+enum AmountType: String, CaseIterable, Identifiable {
+    var id: AmountType { self }
+    case positive, negative, all
+    
+    var prettyValue: String {
+        switch self {
+        case .positive: return "Only income"
+        case .negative: return "Only expenses"
+        case .all: return "All"
+        }
+    }
+    
 }
 
 

@@ -15,10 +15,10 @@ struct BreakdownExportCsvButton:  View {
     // file rows
     var rows: [[String]] {
         chartData.map {
-            let budget = $0.budget
+            let budget = $0.budgetForCategory
             let expense = ($0.expenses == 0 ? 0 : $0.expenses * -1)
-            let income = ($0.income)
-            let overUnder1 = $0.budget + ($0.expenses + $0.income)
+            let income = $0.income
+            let overUnder1 = ($0.budgetForCategory) + ($0.expenses + $0.income)
             let overUnder2 = abs(overUnder1)
             
             return [$0.category.title, String(budget), String(expense), String(income), String(overUnder2)]

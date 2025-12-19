@@ -43,7 +43,6 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
     case keywords
     case search
     case analytics
-    case events
     case settings
     case placeholderMonth
     case debug
@@ -74,7 +73,7 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
         }
     }
     
-    var displayName: LocalizedStringKey {
+    var displayName: String {
         switch self {
         case .january, .nextJanuary:    "January"
         case .february:                 "February"
@@ -94,7 +93,6 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
         case .keywords:                 "Rules"
         case .search:                   "Search"
         case .analytics:                "Analytics"
-        case .events:                   "Events"
         case .settings:                 "Settings"
         case .debug:                    "Debug"
         case .plaid:                    "Plaid"
@@ -126,7 +124,6 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
         case .keywords:                 "ruler"
         case .search:                   "magnifyingglass"
         case .analytics:                "chart"
-        case .events:                   "beach.umbrella"
         case .settings:                 "gear"
         case .debug:                    "ladybug"
         case .plaid:                    "building.columns"
@@ -142,7 +139,7 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
     }
     
     static var justAccessorials: [NavDestination] {
-        [.repeatingTransactions, .paymentMethods, .categories, .keywords, .search, .analytics, .events, .debug, .plaid, .toasts]
+        [.repeatingTransactions, .paymentMethods, .categories, .keywords, .search, .analytics, .debug, .plaid, .toasts]
     }
     
     static func getMonthFromInt(_ int: Int) -> NavDestination? {
@@ -185,9 +182,6 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
             
         case .analytics:
             Text("analytics")
-            
-        case .events:
-            EventsTable()
             
         case .settings:
             SettingsView(showSettings: .constant(true))

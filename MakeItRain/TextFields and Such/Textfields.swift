@@ -905,6 +905,14 @@ struct UITextFieldWrapper</*Keyboard: View, */Toolbar: View>: UIViewRepresentabl
                 textField.inputView = inputController.view
                 textField.inputAssistantItem.leadingBarButtonGroups = []
                 textField.inputAssistantItem.trailingBarButtonGroups = []
+            case .calculator:
+                let keyboardView = CustomCalculatorKeyboard(text: $text)
+                let inputController = UIHostingController(rootView: keyboardView)
+                inputController.view.backgroundColor = .clear
+                inputController.view.frame = .init(origin: .zero, size: inputController.view.intrinsicContentSize)
+                textField.inputView = inputController.view
+                textField.inputAssistantItem.leadingBarButtonGroups = []
+                textField.inputAssistantItem.trailingBarButtonGroups = []
             }
         }
         
@@ -957,6 +965,20 @@ struct UITextFieldWrapper</*Keyboard: View, */Toolbar: View>: UIViewRepresentabl
         textField.addTarget(context.coordinator, action: #selector(Coordinator.textFieldDidChange(_:)), for: .editingChanged)
         return textField
     }
+    
+    /// The key function
+        private func updateAccessory(for textField: UITextField, context: Context) {
+            // Build a new hosting controller every update
+            if toolbar() is EmptyView { } else {
+                let toolbarController = UIHostingController(rootView: toolbar())
+                toolbarController.view.frame = .init(origin: .zero, size: toolbarController.view.intrinsicContentSize)
+                toolbarController.view.backgroundColor = .clear
+                textField.inputAccessoryView = toolbarController.view
+                
+                // Must reload input views to apply changes
+                textField.reloadInputViews()
+            }
+        }
         
         
     func updateUIView(_ textField: UITextField, context: Context) {
@@ -976,6 +998,25 @@ struct UITextFieldWrapper</*Keyboard: View, */Toolbar: View>: UIViewRepresentabl
             //textField.keyboardType = keyboardType
             if case .system(let systemType) = keyboardType {
                 textField.keyboardType = systemType
+            } else if case .custom(let customType) = keyboardType {
+                switch customType {
+                case .numpad:
+                    let keyboardView = CustomDecimalKeyboard(text: $text)
+                    let inputController = UIHostingController(rootView: keyboardView)
+                    inputController.view.backgroundColor = .clear
+                    inputController.view.frame = .init(origin: .zero, size: inputController.view.intrinsicContentSize)
+                    textField.inputView = inputController.view
+                    textField.inputAssistantItem.leadingBarButtonGroups = []
+                    textField.inputAssistantItem.trailingBarButtonGroups = []
+                case .calculator:
+                    let keyboardView = CustomCalculatorKeyboard(text: $text)
+                    let inputController = UIHostingController(rootView: keyboardView)
+                    inputController.view.backgroundColor = .clear
+                    inputController.view.frame = .init(origin: .zero, size: inputController.view.intrinsicContentSize)
+                    textField.inputView = inputController.view
+                    textField.inputAssistantItem.leadingBarButtonGroups = []
+                    textField.inputAssistantItem.trailingBarButtonGroups = []
+                }
             }
             textField.returnKeyType = returnKeyType
             textField.isSecureTextEntry = isSecure
@@ -989,6 +1030,10 @@ struct UITextFieldWrapper</*Keyboard: View, */Toolbar: View>: UIViewRepresentabl
             textField.setContentHuggingPriority(.defaultHigh, for: .vertical)
             textField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
             textField.addTarget(context.coordinator, action: #selector(Coordinator.textFieldDidChange(_:)), for: .editingChanged)
+            
+            
+            //updateAccessory(for: textField, context: context)
+
         }
     }
     

@@ -24,7 +24,7 @@
 //    @Environment(\.dismissWindow) private var dismissWindow
 //    #endif
 //    @Environment(\.dismiss) var dismiss
-//    @Environment(EventModel.self) private var eventModel
+//    
 //    
 //    @Bindable var category: CBCategory
 //    @Bindable var catModel: CategoryModel

@@ -10,7 +10,7 @@ import SwiftUI
 struct StandardUrlTextField: View {
     @Binding var url: String
     var symbolWidth: CGFloat
-    var focusedField: FocusState<Int?>
+    var focusedField: FocusState<Int?>.Binding
     var focusID: Int
     var showSymbol: Bool = true
     
@@ -74,6 +74,6 @@ struct StandardUrlTextField: View {
             }
             #endif
         }
-        .padding(.bottom, 6)
+        //.padding(.bottom, 6)
     }
 }

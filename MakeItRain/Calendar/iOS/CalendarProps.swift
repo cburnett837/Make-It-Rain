@@ -39,19 +39,18 @@ class CalendarProps {
     var showBudgetSheet = false
     var showAnalysisSheet = false
     var showTransactionListSheet = false
+    ///
         
     /// For iPad
-    //var showBudgetInspector = false
-    //var showAnalysisInspector = false
-    //var showTransactionListInspector = false
     var showInspector = false
     var inspectorContent: CalendarInspectorContent?
+    ///
+    
+    var navPath = NavigationPath()
     
     var bottomPanelContent: BottomPanelContent?
                 
     var findTransactionWhere = WhereToLookForTransaction.normalList
-    
-    var editLock = false
     
     var timeSinceLastBalanceUpdate: String = ""
     //var lastBalanceUpdateTimer: Timer?

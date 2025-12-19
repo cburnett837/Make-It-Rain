@@ -263,9 +263,35 @@ import SwiftUI
 //}
 //
 
+public enum PaymentMethodFilterMode: String, CaseIterable {
+    case all, justPrimary, primaryAndSecondary
+    
+    var prettyValue: String {
+        switch self {
+        case .all:
+            "All Accounts"
+        case .justPrimary:
+            "Primary Accounts"
+        case .primaryAndSecondary:
+            "Primary & Secondary Accounts"
+        }
+    }
+    
+    static func fromString(_ theString: String) -> Self {
+        switch theString {
+        case "all": return .all
+        case "justPrimary": return .justPrimary
+        case "primaryAndSecondary": return .primaryAndSecondary
+        default: return .all
+        }
+    }
+}
+
 struct PayMethodSheet: View {
     private enum WhichView: String { case select, edit }
+        
     @AppStorage("paymentMethodSheetViewMode") private var paymentMethodSheetViewMode: WhichView = .select
+    @Local(\.paymentMethodFilterMode) var paymentMethodFilterMode
     @Local(\.useWholeNumbers) var useWholeNumbers
     @Local(\.useBusinessLogos) var useBusinessLogos
 
@@ -275,7 +301,6 @@ struct PayMethodSheet: View {
     @Environment(CalendarModel.self) private var calModel
     @Environment(PayMethodModel.self) private var payModel
     @Environment(PlaidModel.self) private var plaidModel
-    
     @Environment(FuncModel.self) private var funcModel
     
     @FocusState private var focusedField: Int?
@@ -291,25 +316,25 @@ struct PayMethodSheet: View {
     var showStartingAmountOption: Bool
     var showNoneOption: Bool
     
-    init(
-        payMethod: Binding<CBPaymentMethod?>,
-        whichPaymentMethods: ApplicablePaymentMethods,
-        showStartingAmountOption: Bool = false,
-        showNoneOption: Bool = false
-    ) {
-        //print("-- \(#function)")
-        self._payMethod = payMethod
-        //self.trans = nil
-        //self.calcAndSaveOnChange = false
-        self.whichPaymentMethods = whichPaymentMethods
-        self.isPendingSmartTransaction = false
-        self.showStartingAmountOption = showStartingAmountOption
-        self.showNoneOption = showNoneOption
-        
-        if !showStartingAmountOption {
-            self.paymentMethodSheetViewMode = .select
-        }
-    }
+//    init(
+//        payMethod: Binding<CBPaymentMethod?>,
+//        whichPaymentMethods: ApplicablePaymentMethods,
+//        showStartingAmountOption: Bool = false,
+//        showNoneOption: Bool = false
+//    ) {
+//        //print("-- \(#function)")
+//        self._payMethod = payMethod
+//        //self.trans = nil
+//        //self.calcAndSaveOnChange = false
+//        self.whichPaymentMethods = whichPaymentMethods
+//        self.isPendingSmartTransaction = false
+//        self.showStartingAmountOption = showStartingAmountOption
+//        self.showNoneOption = showNoneOption
+//        
+//        if !showStartingAmountOption {
+//            self.paymentMethodSheetViewMode = .select
+//        }
+//    }
     
     init(
         payMethod: Binding<CBPaymentMethod?>,
@@ -380,36 +405,65 @@ struct PayMethodSheet: View {
     var body: some View {
         //let _ = Self._printChanges()
         NavigationStack {
-            if showStartingAmountOption {
-                pagePicker
-            }
+//            if showStartingAmountOption {
+//                pagePicker
+//                    .background(Color(uiColor: .systemGroupedBackground))
+//            }
             
-            StandardContainerWithToolbar(.list, scrollDismissesKeyboard: .never) {
+            Group {
                 if sections.flatMap({ $0.payMethods }).isEmpty && !searchText.isEmpty {
                     ContentUnavailableView("No accounts found", systemImage: "exclamationmark.magnifyingglass")
                 } else {
-                    if paymentMethodSheetViewMode == .select {
-                        content
-                        if showNoneOption {
-                            noneSection
+                    StandardContainerWithToolbar(.list, scrollDismissesKeyboard: .never) {
+                        if sections.flatMap({ $0.payMethods }).isEmpty && !searchText.isEmpty {
+                            ContentUnavailableView("No accounts found", systemImage: "exclamationmark.magnifyingglass")
+                        } else {
+                            if paymentMethodSheetViewMode == .select {
+                                if showNoneOption {
+                                    noneSection
+                                }
+                                
+                                content
+                                                                
+                            } else {
+                                startingAmounts
+                            }
                         }
-                        
-                    } else {
-                        startingAmounts
                     }
                 }
             }
+            .safeAreaBar(edge: .top, content: {
+                if showStartingAmountOption {
+                    pagePicker
+                        //.background(Color(uiColor: .systemGroupedBackground))
+                }
+            })
+            
+                        
             .task { prepareView() }
+            .onChange(of: paymentMethodFilterMode) { populateSections() }
             .searchable(text: $searchText, prompt: Text("Search"))
             .navigationTitle(paymentMethodSheetViewMode == .select ? "Accounts" : "Starting Amounts \(monthText)")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { moreMenu }
+                if AppState.shared.isIphone {
+                    ToolbarItem(placement: .bottomBar) { PayMethodFilterMenu() }
+                }
+                
+                
+                ToolbarSpacer(.flexible, placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar)
+                
                 DefaultToolbarItem(kind: .search, placement: .bottomBar)
                 
                 ToolbarSpacer(.flexible, placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar)
                 ToolbarItem(placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar) { PayMethodSortMenu(sections: $sections) }
+                
+                if AppState.shared.isIpad {
+                    ToolbarSpacer(.flexible, placement: .topBarLeading)
+                    ToolbarItem(placement: .topBarLeading) { PayMethodFilterMenu() }
+                }
                 
                 ToolbarItem(placement: .topBarTrailing) { closeButton }
             }
@@ -420,7 +474,8 @@ struct PayMethodSheet: View {
             }
             #endif
         }
-        .background(Color(.systemBackground))
+        .background(Color(uiColor: .systemGroupedBackground))
+        //.background(Color(.systemBackground))
     }
     
     
@@ -489,25 +544,39 @@ struct PayMethodSheet: View {
         .pickerStyle(.segmented)
         .scenePadding(.horizontal)
         //.padding(.bottom, 5)
-        .background(Color(.systemBackground)) // force matching
+        .background(Color(uiColor: .systemGroupedBackground))
+        //.background(Color(.systemBackground)) // force matching
     }
     
     
-    @ViewBuilder func methLine(_ meth: CBPaymentMethod) -> some View {
+    @ViewBuilder
+    func methLine(_ meth: CBPaymentMethod) -> some View {
         HStack {
             Label {
                 VStack(alignment: .leading) {
                     Text(meth.title)
-                    plaidBalance(meth)
+                    if showStartingAmountOption
+                        && AppState.shared.todayMonth == calModel.sMonth.actualNum
+                        && AppState.shared.todayYear == calModel.sMonth.year {
+                        Text(funcModel.getPlaidBalancePrettyString(meth, useWholeNumbers: useWholeNumbers) ?? "N/A")
+                            .foregroundStyle(.gray)
+                            .font(.caption)
+                    }
                 }
             } icon: {
                 //methColorCircle(meth)
-                BusinessLogo(parent: meth, fallBackType: meth.isUnified ? .gradient : .color)
+                //BusinessLogo(parent: meth, fallBackType: meth.isUnified ? .gradient : .color)
+                BusinessLogo(config: .init(
+                    parent: meth,
+                    fallBackType: meth.isUnified ? .gradient : .color
+                ))
             }
                                             
             Spacer()
+            if showStartingAmountOption {
+                transactionCountBadge(meth)
+            }
             
-            transactionCountBadge(meth)
                                  
             if payMethod?.id == meth.id {
                 Image(systemName: "checkmark")
@@ -517,7 +586,8 @@ struct PayMethodSheet: View {
     }
    
     
-    @ViewBuilder func transactionCountBadge(_ meth: CBPaymentMethod) -> some View {
+    @ViewBuilder
+    func transactionCountBadge(_ meth: CBPaymentMethod) -> some View {
         //if trans == nil {
             let count = calModel.getTransCount(for: meth, and: calModel.sMonth)
             if count > 0 {
@@ -527,29 +597,39 @@ struct PayMethodSheet: View {
     }
     
     
-    @ViewBuilder func plaidBalance(_ meth: CBPaymentMethod) -> some View {
-        if /*trans == nil &&*/ calModel.sMonth.actualNum == AppState.shared.todayMonth && calModel.sMonth.year == AppState.shared.todayYear {
-            
-            if meth.isUnified {
-                if meth.isDebit {
-                    Text("\(funcModel.getPlaidDebitSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))")
-                        .foregroundStyle(.gray)
-                        .font(.caption)
-                } else {
-                    Text("\(funcModel.getPlaidCreditSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))")
-                        .foregroundStyle(.gray)
-                        .font(.caption)
-                }
-            } else {
-                if let balance = plaidModel.balances.filter({ $0.payMethodID == meth.id }).first {
-                    Text("\(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)) (\(Date().timeSince(balance.enteredDate)))")
-                        .foregroundStyle(.gray)
-                        .font(.caption)
-                }
-            }
-        }
-    }
-    
+//    @ViewBuilder
+//    func plaidBalance(_ meth: CBPaymentMethod) -> some String? {
+//        if /*trans == nil &&*/ calModel.sMonth.actualNum == AppState.shared.todayMonth && calModel.sMonth.year == AppState.shared.todayYear {
+//            var result: String? {
+//                if meth.isUnified {
+//                    if meth.isDebit {
+//                        return "\(funcModel.getPlaidDebitSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))"
+//                    } else {
+//                        return "\(funcModel.getPlaidCreditSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))"
+//                    }
+//                } else if meth.accountType == .cash {
+//                    let bal = calModel.calculateChecking(for: calModel.sMonth, using: meth, and: .giveMeEodAsOfToday)
+//                    let balStr = bal.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+//                    return "\(balStr) (Manually)"
+//                    
+//                } else if let balance = plaidModel.balances.filter({ $0.payMethodID == meth.id }).first {
+//                    return "\(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)) (\(Date().timeSince(balance.enteredDate)))"
+//                }
+//                
+//                return nil
+//            }
+//            
+//            return result
+//            
+////            if let result {
+////                Text(result)
+////                    .foregroundStyle(.gray)
+////                    .font(.caption)
+////            }
+//            
+//        }
+//    }
+//    
     
     @ViewBuilder var startingAmounts: some View {
         ForEach(sections) { section in
@@ -733,7 +813,11 @@ fileprivate struct StartingAmountLine: View {
             Label {
                 Text("\(payMethod.title)")
             } icon: {
-                BusinessLogo(parent: payMethod, fallBackType: payMethod.isUnified ? .gradient : .color)
+                //BusinessLogo(parent: payMethod, fallBackType: payMethod.isUnified ? .gradient : .color)
+                BusinessLogo(config: .init(
+                    parent: payMethod,
+                    fallBackType: payMethod.isUnified ? .gradient : .color
+                ))
             }
             .contentShape(Rectangle())
             .onTapGesture {

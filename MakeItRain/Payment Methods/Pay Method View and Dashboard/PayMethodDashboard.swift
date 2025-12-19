@@ -26,6 +26,7 @@ struct PayMethodDashboard: View {
     
     @Bindable var vm: PayMethodViewModel
     var payMethod: CBPaymentMethod
+    @Binding var navPath: NavigationPath
     
     @State private var flipZindex: Bool = false
     @State private var showNonScrollingHeader: Bool = false
@@ -68,6 +69,7 @@ struct PayMethodDashboard: View {
         VStack {
             ChartDateRangeHeader(vm: vm, payMethod: payMethod)
                 .scenePadding(.horizontal)
+                
             
             Group {
                 if AppState.shared.isIpad {
@@ -134,6 +136,7 @@ struct PayMethodDashboard: View {
                 }
             }
         }
+        .background(Color(uiColor: .systemGroupedBackground))
         .refreshable { refreshCharts() }
         .navigationTitle("Insights")
         .navigationSubtitle(payMethod.title)
@@ -147,10 +150,21 @@ struct PayMethodDashboard: View {
                 refreshButton
                     .schemeBasedForegroundStyle()
             }
+            
+            if payMethod.isUnified && AppState.shared.isIpad {
+                ToolbarSpacer(.fixed, placement: .topBarTrailing)
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    closeButton
+                }
+            }
         }
-        
-        
-        
+        .onChange(of: navPath) {
+            if $1.isEmpty {
+                //print("killing refresh task")
+                vm.refreshTask?.cancel()
+            }
+        }
         
         
         
@@ -204,6 +218,16 @@ struct PayMethodDashboard: View {
 //                }
 //            }
 //        }
+    }
+    
+    /// Only for iPad.
+    var closeButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "xmark")
+                .schemeBasedForegroundStyle()
+        }
     }
     
     
@@ -375,13 +399,11 @@ struct PayMethodDashboard: View {
     func refreshCharts() {
         payMethod.breakdowns.removeAll()
         payMethod.breakdownsRegardlessOfPaymentMethod.removeAll()
-        Task {
-            vm.fetchYearStart = AppState.shared.todayYear - 10
-            vm.fetchYearEnd = AppState.shared.todayYear
-            vm.payMethods.removeAll()
-            vm.isLoadingHistory = true
-            await vm.fetchHistory(for: payMethod, payModel: payModel, setChartAsNew: true)
-        }
+        vm.fetchYearStart = AppState.shared.todayYear - 10
+        vm.fetchYearEnd = AppState.shared.todayYear
+        vm.payMethods.removeAll()
+        vm.isLoadingHistory = true
+        vm.fetchHistory(for: payMethod, payModel: payModel, setChartAsNew: true)
     }
         
     

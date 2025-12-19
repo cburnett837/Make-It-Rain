@@ -11,28 +11,26 @@ import TipKit
 import PhotosUI
 
 
-@Observable class SettingsModel: CanHandleLogo, FileUploadCompletedDelegate {
-    var id: String = UUID().uuidString
-    var logo: Data? = nil
-    var color: Color = .gray
-    
-    func addPlaceholderFile(recordID: String, uuid: String, parentType: XrefItem, fileType: FileType) {
+@Observable
+class SettingsModel {
+    @MainActor
+    func updateUserAvatar(user: CBUser) async {
+        print("-- \(#function)")
+        LogManager.log()
+      
+        let model = RequestModel(requestType: "update_user_avatar", model: user)
         
-    }
-    func markPlaceholderFileAsReadyForDownload(recordID: String, uuid: String, parentType: XrefItem, fileType: FileType) {
-        
-    }
-    func markFileAsFailedToUpload(recordID: String, uuid: String, parentType: XrefItem, fileType: FileType) {
-        
-    }
-    func displayCompleteAlert(recordID: String, parentType: XrefItem, fileType: FileType) {
-        
-    }
-    func cleanUpPhotoVariables() {
-        
-    }
-    func delete(file: CBFile, parentType: XrefItem, fileType: FileType) async {
-        
+        typealias ResultResponse = Result<ResultCompleteModel?, AppError>
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+                    
+        switch await result {
+        case .success(let model):
+            LogManager.networkingSuccessful()
+
+        case .failure(let error):
+            LogManager.error(error.localizedDescription)
+            AppState.shared.showAlert("There was a problem trying to update the user avatar.")
+        }
     }
 }
 
@@ -63,7 +61,8 @@ struct SettingsView: View {
     @Environment(CategoryModel.self) var catModel
     @Environment(KeywordModel.self) var keyModel
     @Environment(RepeatingTransactionModel.self) var repModel
-    @Environment(EventModel.self) var eventModel
+    @Environment(PlaidModel.self) var plaidModel
+    
         
     @Binding var showSettings: Bool
     
@@ -178,11 +177,12 @@ struct SettingsView: View {
     }
     
     @State private var showCamera: Bool = false
+    @State private var selectedAvatar: UIImage?
     @State private var showPhotosPicker: Bool = false
-    @State private var imagesFromLibrary: Array<PhotosPickerItem> = []
+    //@State private var imagesFromLibrary: Array<PhotosPickerItem> = []
     #if os(iOS)
-    @State private var imageFromCamera: UIImage?
-    #endif    
+    //@State private var imageFromCamera: UIImage?
+    #endif
     
     var myInfo: some View {
         Label {
@@ -193,83 +193,58 @@ struct SettingsView: View {
                     .font(.caption2)
             }
         } icon: {
-            BusinessLogo(parent: settingsModel, fallBackType: .customImage("person.crop.circle"))
-                .onTapGesture {
-                    showPhotosPicker = true
+            @Bindable var user = AppState.shared.user!
+            Group {
+                if AppState.shared.user?.avatar == nil {
+                    Button {
+                        showPhotosPicker = true
+                    } label: {
+                        UserAvatar(user: AppState.shared.user!)
+                    }
+                } else {
+                    Menu {
+                        Button("Clear Avatar") { changeAvatarAndSendToServer(avatarData: nil) }
+                        Button("Change Avatar") { showPhotosPicker = true }
+                    } label: {
+                        UserAvatar(user: AppState.shared.user!)
+                    }
                 }
-            //Image(systemName: "person.crop.circle")
-                //.foregroundStyle(.gray)
-        }
-//        .photoPickerAndCameraSheet(
-//            fileUploadCompletedDelegate: settingsModel,
-//            parentType: XrefModel.getItem(from: .logoTypes, byEnumID: .userPhoto).enumID,
-//            allowMultiSelection: true,
-//            showPhotosPicker: $showPhotosPicker,
-//            showCamera: $showCamera
-//        )
-        
-        .photosPicker(
-            isPresented: $showPhotosPicker,
-            selection: $imagesFromLibrary,
-            maxSelectionCount: 1,
-            matching: .images,
-            photoLibrary: .shared()
-        )
-        .task {
-            /// Fetch the logo out of core data since the encoded strings can be heavy and I don't want to use Async Image for every logo.
-            let context = DataManager.shared.createContext()
-            if let logo = DataManager.shared.getOne(context: context, type: PersistentLogo.self, predicate: .byId(.string("USER_PHOTO_ID")), createIfNotFound: false) {
-                settingsModel.logo = logo.photoData
-            } else {
-                print("user logo was not found")
             }
+            .sheet(isPresented: $showPhotosPicker) {
+                CustomImageAndCameraPicker(imageSourceType: .photoLibrary, selectedImage: $selectedAvatar)
+            }
+                                    
+//            UserAvatar(user: AppState.shared.user!)
+//                .onTapGesture {
+//                    showPhotosPicker = true
+//                }
+//                .sheet(isPresented: $showPhotosPicker) {
+//                    CustomImageAndCameraPicker(imageSourceType: .photoLibrary, selectedImage: $selectedAvatar)
+//                }
+//                                    
         }
+//        .task {
+//            /// Fetch the logo out of core data since the encoded strings can be heavy and I don't want to use Async Image for every logo.
+//            let avatarId = "avatar_user_\(AppState.shared.user!.id)"
+//            let context = DataManager.shared.createContext()
+//            if let logo = DataManager.shared.getOne(context: context, type: PersistentLogo.self, predicate: .byId(.string(avatarId)), createIfNotFound: false) {
+//                //settingsModel.logo = logo.photoData
+//                AppState.shared.user!.avatar = logo.photoData
+//            } else {
+//                print("user logo was not found")
+//            }
+//        }
             
         /// Upload the picture from the selectedt photos when the photo picker sheet closes.
         .onChange(of: showPhotosPicker) {
             if !$1 {
-                if imagesFromLibrary.isEmpty {
-                    settingsModel.cleanUpPhotoVariables()
+                if let image = selectedAvatar, let avatarData = FileModel.shared.prepareDataFromUIImage(image: image) {
+                    changeAvatarAndSendToServer(avatarData: avatarData)
                 } else {
-                    Task {
-                        if let logoData = await FileModel.shared.prepareDataFromPhotoPickerItem(image: imagesFromLibrary[0]) {
-                            let context = DataManager.shared.createContext()
-                            
-                            guard
-                                let perLogo = DataManager.shared.getOne(context: context, type: PersistentLogo.self, predicate: .byId(.string("USER_PHOTO_ID")), createIfNotFound: true)
-                            else {
-                                return
-                            }
-                            perLogo.id = "USER_PHOTO_ID"
-                            perLogo.photoData = logoData
-                            perLogo.serverUpdatedDate = Date()
-                            perLogo.localUpdatedDate = Date()
-                            
-                            let _ = DataManager.shared.save(context: context)
-                            
-                            settingsModel.logo = logoData
-                        }
-                    }
+                    changeAvatarAndSendToServer(avatarData: nil)
                 }
             }
         }
-//        #if os(iOS)
-//        .fullScreenCover(isPresented: $showCamera) {
-//            AccessCameraView(selectedImage: $imageFromCamera)
-//                .background(.black)
-//        }
-//        /// Upload the picture from the camera when the camera sheet closes.
-//        .onChange(of: showCamera) {
-//            if !$1 {
-//                FileModel.shared.uploadPictureFromCamera(
-//                    delegate: settingsModel,
-//                    parentType: XrefModel.getItem(from: .logoTypes, byEnumID: .userPhoto)
-//                )
-//            }
-//        }
-//        #endif
-        
-        
     }
     
     
@@ -497,7 +472,60 @@ struct SettingsView: View {
         categorySortMode = .title
         transactionSortMode = .title
         showHashTagsOnLineItems = true
-    }    
+    }
+    
+    
+    func changeAvatarAndSendToServer(avatarData: Data?) {
+        
+        if let avatarData = avatarData {
+            performChange(dataOrNil: avatarData)
+        } else {
+            performChange(dataOrNil: nil)
+        }
+        
+        
+        func performChange(dataOrNil: Data?) {
+            let context = DataManager.shared.createContext()
+            
+            /// Set user avatar.
+            let pred1 = NSPredicate(format: "relatedID == %@", String(AppState.shared.user!.id))
+            let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: 47))
+            let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
+            
+            guard
+                let perLogo = DataManager.shared.getOne(
+                    context: context,
+                    type: PersistentLogo.self,
+                    predicate: .compound(comp),
+                    createIfNotFound: true
+                )
+            else {
+                return
+            }
+            if perLogo.id == nil {
+                perLogo.id = UUID().uuidString
+            }
+            perLogo.relatedID = String(AppState.shared.user!.id)
+            perLogo.relatedTypeID = Int64(47)
+            perLogo.photoData = dataOrNil
+            perLogo.serverUpdatedDate = Date()
+            perLogo.localUpdatedDate = Date()
+            
+            let _ = DataManager.shared.save(context: context)
+            
+            
+            funcModel.changeAvatarLocally(to: dataOrNil, id: String(AppState.shared.user!.id))
+            
+            //settingsModel.logo = logoData
+            Task {
+                await settingsModel.updateUserAvatar(user: AppState.shared.user!)
+            }
+        }
+        
+        
+    }
+    
+    
     
 //    func biometricType() -> BiometricType {
 //        let authContext = LAContext()

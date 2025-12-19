@@ -12,8 +12,7 @@ struct PayMethodRemoveOption: Identifiable, Encodable {
     var title: String
     var transactions: Bool
     var startingAmount: Bool
-    
-    
+        
     enum CodingKeys: CodingKey { case payment_method_id, transactions, starting_amounts }
         
     func encode(to encoder: Encoder) throws {
@@ -41,31 +40,8 @@ class ResetOptions: Encodable {
     func encode(to encoder: Encoder) throws {
         let formatter = NumberFormatter()
         formatter.minimumIntegerDigits = 2
-        
-//        var fetchMonth = -1
-//        if month == 0 {
-//            fetchMonth = 12
-//        } else if month == 13 {
-//            fetchMonth = 1
-//        } else {
-//            fetchMonth = month
-//        }
-//        
-//        var fetchYear = 0
-//        if month == 0 {
-//            fetchYear = year - 1
-//        } else if month == 13 {
-//            fetchYear = year + 1
-//        } else {
-//            fetchYear = year
-//        }
-        
-        
-        
-        
-        
+     
         let optionalString = formatter.string(from: month as NSNumber)!
-        
         
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(optionalString, forKey: .month)
@@ -117,7 +93,7 @@ struct ResetMonthOptionSheet: View {
                 model.paymentMethods.append(PayMethodRemoveOption(id: $0.id, title: $0.title, transactions: true, startingAmount: true))
             }
         }
-        .alert("Reset \(calModel.sMonth.name) \(String(calModel.sMonth.year))", isPresented: $showResetMonthAlert) {
+        .alert("Reset \(calModel.sMonth.prettyName)", isPresented: $showResetMonthAlert) {
             Button("Reset", role: .destructive) {
                 dismiss()
                 calModel.resetMonth(model)

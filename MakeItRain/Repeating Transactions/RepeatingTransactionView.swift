@@ -36,31 +36,8 @@ struct RepeatingTransactionView: View {
     @State private var showPayMethodSheet = false
     @State private var showCategorySheet = false
     @State private var showColorPicker = false
-    
-    var deleteButton: some View {
-        Button {
-            showDeleteAlert = true
-        } label: {
-            Image(systemName: "trash")
-        }
-        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
-        .tint(.none)
-        .confirmationDialog("Delete \"\(repTransaction.title)\"?", isPresented: $showDeleteAlert, actions: {
-            Button("Yes", role: .destructive) {
-                //Task {
-                    repTransaction.action = .delete
-                    dismiss()
-                    //await repModel.delete(repTransaction, andSubmit: true)
-                //}
-            }
-            
-            Button("No", role: .close) { showDeleteAlert = false }
-        }, message: {
-            #if os(iOS)
-            Text("Delete \"\(repTransaction.title)\"?")
-            #endif
-        })
-    }
+    @State private var selection = AttributedTextSelection()
+    @State private var textCommands = TextViewCommands()
     
     var paymentMethodTitle: String {
         if repTransaction.repeatingTransactionType.enumID == .payment {
@@ -217,61 +194,77 @@ struct RepeatingTransactionView: View {
     
     
     #if os(iOS)
+    @ViewBuilder
     var bodyPhone: some View {
         NavigationStack {
-            StandardContainerWithToolbar(.list) {
-                Section {
-                    titleRow
-                    
-                    TransactionAmountRow(amountTypeLingo: repTransaction.amountTypeLingo, amountString: $repTransaction.amountString) {
-                        amountRow
+            ScrollViewReader { scrollProxy in
+                StandardContainerWithToolbar(.list) {
+                    Section {
+                        titleRow
+                        
+                        TransactionAmountRow(amountTypeLingo: repTransaction.amountTypeLingo, amountString: $repTransaction.amountString) {
+                            amountRow
+                        }
+                    } header: {
+                        Text("Title & Amount")
                     }
                     
-                } header: {
-                    Text("Title & Amount")
-                }
-                
-                Section {
-                    payFromRow
-                    if !isRegularTransaction { payToRow }
-                    typeRow
-                } header: {
-                    Text("Transaction Details")
-                } footer: {
-                    Text("Specify a transaction type to organize your transactions. For example, categorizing as a **payment** will allow you specify a pay-to account and will influence the anaytics in the account page.")
-                }
-                
-                Section("Additional Details") {
-                    CategorySheetButtonPhone(category: $repTransaction.category)
-                    colorRow
-                }
-                
-                Section {
-                    VStack(alignment: .leading) {
-                        Text("On Specific Weekdays")
-                            .foregroundStyle(.secondary)
-                            .font(.subheadline)
-                        weekdayToggles
+                    Section {
+                        includeRow
+                    } footer: {
+                        Text("Choose if this transaction should be added the calendar when preparing a month.")
+                    }
+
+                    
+                    
+                    Section {
+                        payFromRow
+                        if !isRegularTransaction { payToRow }
+                        typeRow
+                    } header: {
+                        Text("Transaction Details")
+                    } footer: {
+                        Text("Specify a transaction type to organize your transactions. For example, categorizing as a **payment** will allow you specify a pay-to account and will influence the anaytics in the account page.")
                     }
                     
-                    VStack(alignment: .leading) {
-                        Text("During Specific Months")
-                            .foregroundStyle(.secondary)
-                            .font(.subheadline)
-                        monthToggles
+                    Section("Additional Details") {
+                        CategorySheetButtonPhone(category: $repTransaction.category)
+                        colorRow
                     }
                     
-                    VStack(alignment: .leading) {
-                        Text("On Specific Days")
-                            .foregroundStyle(.secondary)
-                            .font(.subheadline)
-                        dayToggles
+                    Section {
+                        VStack(alignment: .leading) {
+                            Text("On Specific Weekdays")
+                                .foregroundStyle(.secondary)
+                                .font(.subheadline)
+                            weekdayToggles
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("During Specific Months")
+                                .foregroundStyle(.secondary)
+                                .font(.subheadline)
+                            monthToggles
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("On Specific Days")
+                                .foregroundStyle(.secondary)
+                                .font(.subheadline)
+                            dayToggles
+                        }
+                        
+                    } header: {
+                        Text("Repeating Schedule")
+                    } footer: {
+                        Text("Select a combo of weekdays, months, and days to repeat the transaction. For example, selecting **Sunday**, **January**, and **15** will create this transaction on every Sunday in January, **and** on January 15th.")
                     }
                     
-                } header: {
-                    Text("Repeating Schedule")
-                } footer: {
-                    Text("Select a combo of weekdays, months, and days to repeat the transaction. For example, selecting **Sunday**, **January**, and **15** will create this transaction on every Sunday in January, **and** on January 15th.")
+                    //                Section {
+                    //                    StandardNoteTextEditor(notes: $repTransaction.notes, symbolWidth: 0, focusedField: _focusedField, focusID: 3, showSymbol: true)
+                    //                }
+                    
+                    StandardUITextEditor(text: $repTransaction.notes, focusedField: _focusedField, focusID: 2, scrollProxy: scrollProxy)
                 }
             }
             .navigationTitle(title)
@@ -392,10 +385,7 @@ struct RepeatingTransactionView: View {
     var payFromRow: some View {
         PayMethodSheetButtonPhone(
             text: "Pay From",
-            logoInfo: .init(
-                include: true,
-                fallBackType: .customImage(repTransaction.payMethod?.fallbackImage)
-            ),
+            logoFallBackType:.customImage(.init(name: repTransaction.payMethod?.fallbackImage, color: repTransaction.color)),
             payMethod: $repTransaction.payMethod,
             whichPaymentMethods: .allExceptUnified
         )
@@ -405,10 +395,7 @@ struct RepeatingTransactionView: View {
     var payToRow: some View {
         PayMethodSheetButtonPhone(
             text: "Pay To",
-            logoInfo: .init(
-                include: true,
-                fallBackType: .customImage(repTransaction.payMethod?.fallbackImage)
-            ),
+            logoFallBackType:.customImage(.init(name: repTransaction.payMethodPayTo?.fallbackImage, color: repTransaction.color)),
             payMethod: $repTransaction.payMethodPayTo,
             whichPaymentMethods: .allExceptUnified
         )
@@ -485,6 +472,19 @@ struct RepeatingTransactionView: View {
     }
     
     
+    
+    var includeRow: some View {
+        HStack {
+            Image(systemName: "checkmark")
+                .foregroundStyle(.gray)
+            
+            Toggle(isOn: $repTransaction.include) {
+                Text("Include")
+            }
+        }
+    }
+    
+    
 //    
 //    var transactionTypeButton: some View {
 //        HStack(spacing: 1) {
@@ -506,7 +506,30 @@ struct RepeatingTransactionView: View {
 //    
 //    
 //    
-    
+    var deleteButton: some View {
+        Button {
+            showDeleteAlert = true
+        } label: {
+            Image(systemName: "trash")
+        }
+        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
+        .tint(.none)
+        .confirmationDialog("Delete \"\(repTransaction.title)\"?", isPresented: $showDeleteAlert, actions: {
+            Button("Yes", role: .destructive) {
+                //Task {
+                    repTransaction.action = .delete
+                    dismiss()
+                    //await repModel.delete(repTransaction, andSubmit: true)
+                //}
+            }
+            
+            Button("No", role: .close) { showDeleteAlert = false }
+        }, message: {
+            #if os(iOS)
+            Text("Delete \"\(repTransaction.title)\"?")
+            #endif
+        })
+    }
     
     
     var weekdayToggles: some View {

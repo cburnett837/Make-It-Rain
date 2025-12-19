@@ -19,8 +19,7 @@ struct NavLinkMac: View {
     let image: String
             
     var iconColor: Color {
-        //!AppState.shared.downloadedData.contains(destination) && showIndividualLoadingSpinner ? .gray : destination == NavigationManager.shared.selection ? .white : .blue
-        !AppState.shared.downloadedData.contains(destination) && showIndividualLoadingSpinner ? .gray : destination == NavigationManager.shared.selection ? .white : Color.theme
+        destination == NavigationManager.shared.selection ? .white : Color.theme
     }
     
     var body: some View {
@@ -47,6 +46,5 @@ struct NavLinkMac: View {
                 }
             }
         }
-        //.disabled(!AppState.shared.downloadedData.contains(destination))
     }
 }

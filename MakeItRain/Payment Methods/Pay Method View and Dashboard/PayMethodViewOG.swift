@@ -32,7 +32,7 @@
 //    @Environment(\.dismiss) var dismiss
 //    @Environment(\.colorScheme) var colorScheme
 //    @Environment(CalendarModel.self) private var calModel
-//    @Environment(EventModel.self) private var eventModel
+//    
 //    @Environment(PayMethodModel.self) private var payModel
 //    @Environment(PlaidModel.self) private var plaidModel
 //

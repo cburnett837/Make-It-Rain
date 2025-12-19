@@ -21,15 +21,17 @@ struct DebugView: View {
     
     var body: some View {
         List {
+            
+            //CustomCalculatorKeyboard(text: $text)
+            
             #if os(iOS)
             customNumPad
             #endif
             
             Section {
-                dumpCoreDataButton
                 printAllBudgetsButton
-                documentTester
-                logoNavLink
+                //documentTester
+                NavigationLink("Cache") { CoreDataList() }
             }
             
             
@@ -122,34 +124,6 @@ struct DebugView: View {
     }
     
     
-    var logoNavLink: some View {
-        NavigationLink("Logos") {
-            LogoList()
-        }
-    }
-    
-    
-    
-    
-    
-    
-    var dumpCoreDataButton: some View {
-        Button("Clear Core Data") {
-            let context = DataManager.shared.createContext()
-            context.perform {
-                /// Remove all from cache.
-                let _ = DataManager.shared.deleteAll(context: context, for: PersistentPaymentMethod.self)
-                let _ = DataManager.shared.deleteAll(context: context, for: PersistentCategory.self)
-                let _ = DataManager.shared.deleteAll(context: context, for: PersistentKeyword.self)
-                let _ = DataManager.shared.deleteAll(context: context, for: PersistentToast.self)
-                let _ = DataManager.shared.deleteAll(context: context, for: PersistentLogo.self)
-                
-                let _ = DataManager.shared.save(context: context)
-            }
-        }
-    }
-    
-    
     var customNumPad: some View {
         Section {
             UITextFieldWrapper(placeholder: "Demo", text: $text, toolbar: {
@@ -160,7 +134,7 @@ struct DebugView: View {
                         Helpers.plusMinus($text)
                     })
             })
-            .uiKeyboardType(.custom(.numpad))
+            .uiKeyboardType(.custom(.calculator))
             .focused($focusedField, equals: 0)
         }
     }
@@ -359,15 +333,75 @@ struct DebugView: View {
 }
 
 
-fileprivate struct LogoList: View {
+fileprivate struct CoreDataList: View {
+    @Environment(\.dismiss) var dismiss
     @State private var logos: Array<PersistentLogo> = []
+    @State private var categoryGroups: Array<PersistentCategoryGroup> = []
+    @State private var categories: Array<PersistentCategory> = []
+    @State private var accounts: Array<PersistentPaymentMethod> = []
+    @State private var keywords: Array<PersistentKeyword> = []
     
     var body: some View {
+        List {
+            NavigationLink("Categories") { categoryList }
+            NavigationLink("Category Groups") { categoryGroupList }
+            NavigationLink("Accounts") { accountList }
+            NavigationLink("Logos") { logoList }
+            NavigationLink("Rules") { keywordsList }
+        }
+        .task {
+            let context = DataManager.shared.container.viewContext
+            if let logos = DataManager.shared.getMany(context: context, type: PersistentLogo.self) { self.logos = logos }
+            if let categoryGroups = DataManager.shared.getMany(context: context, type: PersistentCategoryGroup.self) { self.categoryGroups = categoryGroups }
+            if let categories = DataManager.shared.getMany(context: context, type: PersistentCategory.self) { self.categories = categories }
+            if let accounts = DataManager.shared.getMany(context: context, type: PersistentPaymentMethod.self) { self.accounts = accounts }
+            if let keywords = DataManager.shared.getMany(context: context, type: PersistentKeyword.self) { self.keywords = keywords }
+        }
+        .navigationTitle("Local Cache")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                dumpCoreDataButton
+            }
+        }
+    }
+    
+    @State private var showClearCacheAlert = false
+    var dumpCoreDataButton: some View {
+        Button("Clear Cache") {
+            showClearCacheAlert = true
+        }
+        .schemeBasedForegroundStyle()
+        .confirmationDialog("Clear Cache?", isPresented: $showClearCacheAlert) {
+            Button("Yes", role: .destructive) {
+                let context = DataManager.shared.createContext()
+                context.perform {
+                    /// Remove all from cache.
+                    let _ = DataManager.shared.deleteAll(context: context, for: PersistentPaymentMethod.self)
+                    let _ = DataManager.shared.deleteAll(context: context, for: PersistentCategory.self)
+                    let _ = DataManager.shared.deleteAll(context: context, for: PersistentCategoryGroup.self)
+                    let _ = DataManager.shared.deleteAll(context: context, for: PersistentKeyword.self)
+                    let _ = DataManager.shared.deleteAll(context: context, for: PersistentToast.self)
+                    let _ = DataManager.shared.deleteAll(context: context, for: PersistentLogo.self)
+                    let _ = DataManager.shared.deleteAll(context: context, for: TempTransaction.self)
+                    
+                    let _ = DataManager.shared.save(context: context)
+                }
+                
+                dismiss()
+            }
+            Button("Cancel", role: .close) {}
+        } message: {
+            Text("Clear Cache?\nThis will only clear your local storage and not the data on the server. Local storage will be re-populated the next time you refresh.")
+        }
+    }
+    
+    
+    var logoList: some View {
         List(logos) { logo in
             HStack {
                 Label {
                     VStack(alignment: .leading) {
-                        Text("LogoID: \(logo.id ?? "N/A")")
+                        Text("ID: \(logo.id ?? "N/A")")
                         Text("RelatedID: \(String(describing: logo.relatedID))")
                         Text("RelatedTypeID: \(String(describing: logo.relatedTypeID))")
                         Text("ServerUpdated: \(String(describing: logo.serverUpdatedDate?.string(to: .serverDateTime)))")
@@ -386,17 +420,73 @@ fileprivate struct LogoList: View {
                 }
             }
         }
-        .task {
-            print("fetching logos")
-            let context = DataManager.shared.container.viewContext
-            //let context = DataManager.shared.sharedContext
-            if let logos = DataManager.shared.getMany(context: context, type: PersistentLogo.self) {
-                self.logos = logos
-            }
-        }
-        .navigationTitle("Stored Logos")
+        .navigationTitle("Logos Cache")
     }
     
+    
+    var categoryList: some View {
+        List(categories) { cat in
+            HStack {
+                VStack(alignment: .leading) {
+                    Text("ID: \(cat.id ?? "N/A")")
+                    Text("Title: \(String(describing: cat.title))")
+                    Text("Amount: \(cat.amount)")
+                    Text("Pending: \(cat.isPending ? "yes" : "no")")
+                    Text("Listorder: \(Int(cat.listOrder))")
+                    Text("Symbol: \(String(describing: cat.emoji))")
+                }
+                .font(.caption2)
+            }
+        }
+        .navigationTitle("Categories Cache")
+    }
+    
+    
+    var categoryGroupList: some View {
+        List(categoryGroups) { group in
+            HStack {
+                VStack(alignment: .leading) {
+                    Text("ID: \(group.id ?? "N/A")")
+                    Text("Title: \(String(describing: group.title))")
+                    Text("Amount: \(group.amount)")
+                    Text("Pending: \(group.isPending ? "yes" : "no")")
+                }
+                .font(.caption2)
+            }
+        }
+        .navigationTitle("Category Groups Cache")
+    }
+    
+    
+    var accountList: some View {
+        List(accounts) { act in
+            HStack {
+                VStack(alignment: .leading) {
+                    Text("ID: \(act.id ?? "N/A")")
+                    Text("Title: \(String(describing: act.title))")
+                    Text("Limit: \(act.limit)")
+                    Text("Pending: \(act.isPending ? "yes" : "no")")
+                    Text("Listorder: \(Int(act.listOrder))")
+
+                }
+                .font(.caption2)
+            }
+        }
+        .navigationTitle("Accounts Cache")
+    }
+    
+    var keywordsList: some View {
+        List(keywords) { key in
+            HStack {
+                VStack(alignment: .leading) {
+                    Text("ID: \(key.id ?? "N/A")")
+                    Text("Title: \(String(describing: key.keyword))")
+                    Text("Pending: \(key.isPending ? "yes" : "no")")
+                    Text("Rename To: \(String(describing: key.renameTo))")
+                }
+                .font(.caption2)
+            }
+        }
+        .navigationTitle("Rules Cache")
+    }
 }
-
-

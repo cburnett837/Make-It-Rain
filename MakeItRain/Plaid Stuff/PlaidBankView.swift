@@ -33,15 +33,22 @@ struct PlaidBankView: View {
     @State private var isForceSyncingBalances = false
     @State private var isForceSyncingTransactions = false
     
+    @State private var showLogoSearchPage = false
+    
     var isValidToSave: Bool {
         bank.hasChanges() && !bank.title.isEmpty
     }
     
     var body: some View {
-        let _ = Self._printChanges()
+        //let _ = Self._printChanges()
         NavigationStack {
             StandardContainerWithToolbar(.list) {
                 titleRow
+                
+                LogoPickerRow(parent: bank, parentType: .plaidBank, fallbackType: .color)
+
+                
+                //logoRow
                 accountSection
                 
                 if bank.requiresUpdate {
@@ -231,6 +238,66 @@ struct PlaidBankView: View {
             .font(.caption)
         }
     }
+    
+    
+//    @ViewBuilder
+//    var logoRow: some View {
+//        #if os(iOS)
+//        Group {
+//            if bank.logo == nil {
+//                Button {
+//                    showLogoSearchPage = true
+//                } label: {
+//                    logoLabel
+//                }
+//            } else {
+//                Menu {
+//                    Button("Clear Logo") { bank.logo = nil }
+//                    Button("Change Logo") { showLogoSearchPage = true }
+//                } label: {
+//                    logoLabel
+//                }
+//            }
+//        }
+//        .sheet(isPresented: $showLogoSearchPage) {
+//            LogoSearchPage(parent: bank, parentType: .plaidBank)
+//        }
+//        
+//        #else
+//        LabeledRow("Color", labelWidth) {
+//            HStack {
+//                ColorPicker("", selection: $payMethod.color, supportsOpacity: false)
+//                    .labelsHidden()
+//                Capsule()
+//                    .fill(payMethod.color)
+//                    .onTapGesture {
+//                        AppState.shared.showToast(title: "Color Picker", subtitle: "Click the circle to the left to change the color.", body: nil, symbol: "theatermask.and.paintbrush", symbolColor: payMethod.color)
+//                    }
+//            }
+//        }
+//        #endif
+//    }
+//    
+//    
+//    var logoLabel: some View {
+//        HStack {
+//            Label {
+//                Text("Logo")
+//                    .schemeBasedForegroundStyle()
+//            } icon: {
+//                Image(systemName: "circle.hexagongrid")
+//                    .foregroundStyle(.gray)
+//            }
+//            Spacer()
+//            //StandardColorPicker(color: $payMethod.color)
+//            BusinessLogo(config: .init(
+//                parent: bank,
+//                fallBackType: .color
+//            ))
+//            
+//            //BusinessLogo(parent: payMethod, fallBackType: payMethod.isUnified ? .gradient : .color)
+//        }
+//    }
     
     
     

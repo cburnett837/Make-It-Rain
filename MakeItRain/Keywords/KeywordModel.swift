@@ -252,6 +252,8 @@ class KeywordModel {
 //    
 //    
 //    
+    
+    
     @MainActor
     func fetchKeywords(file: String = #file, line: Int = #line, function: String = #function) async {
         NSLog("\(file):\(line) : \(function)")
@@ -357,10 +359,7 @@ class KeywordModel {
                 } else {
                     keywords.removeAll()
                 }
-            }
-            
-            /// Update the progress indicator.
-            AppState.shared.downloadedData.append(.keywords)
+            }                        
             
             let currentElapsed = CFAbsoluteTimeGetCurrent() - start
             print("⏰It took \(currentElapsed) seconds to fetch the keywords")
@@ -382,6 +381,12 @@ class KeywordModel {
     @MainActor
     func submit(_ keyword: CBKeyword, file: String = #file, line: Int = #line, function: String = #function) async -> Bool {
         print("-- \(#function) -- Called from: \(file):\(line) : \(function)")
+        
+        /// Allow more time to save if the user enters the background.
+        #if os(iOS)
+        var backgroundTaskId = AppState.shared.beginBackgroundTask()
+        #endif
+        
         isThinking = true
         //LoadingManager.shared.startDelayedSpinner()
         LogManager.log()
@@ -464,6 +469,12 @@ class KeywordModel {
             #if os(macOS)
             fuckYouSwiftuiTableRefreshID = UUID()
             #endif
+            
+            /// End the background task.
+            #if os(iOS)
+            AppState.shared.endBackgroundTask(&backgroundTaskId)
+            #endif
+            
             return true
             
         case .failure(let error):
@@ -483,6 +494,12 @@ class KeywordModel {
         #if os(macOS)
         fuckYouSwiftuiTableRefreshID = UUID()
         #endif
+        
+        /// End the background task.
+        #if os(iOS)
+        AppState.shared.endBackgroundTask(&backgroundTaskId)
+        #endif
+        
         return false
     }
     

@@ -47,7 +47,6 @@ struct DashboardHeader: View {
                     
                     Button {
                         funcModel.refreshTask = Task {
-                            LoadingManager.shared.showInitiallyLoadingSpinner = true
                             calModel.months.forEach { month in
                                 month.days.removeAll()
                                 month.budgets.removeAll()

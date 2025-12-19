@@ -105,7 +105,7 @@ struct PopulateMonthOptionsSheet: View {
     var populateButton: some View {
         Button {
             dismiss()
-            calModel.populate(options: model, repTransactions: repModel.repTransactions, categories: catModel.categories)
+            calModel.populate(options: model, repTransactions: repModel.repTransactions, categories: catModel.categories, categoryGroups: catModel.categoryGroups)
         } label: {
             Text("Populate")
                 .schemeBasedForegroundStyle()

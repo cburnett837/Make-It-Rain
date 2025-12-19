@@ -18,7 +18,7 @@ struct CalendarDashboard: View {
     @Local(\.useWholeNumbers) var useWholeNumbers
     @Local(\.categorySortMode) var categorySortMode
     
-    
+    @Environment(CalendarProps.self) private var calProps    
     @Environment(CalendarModel.self) private var calModel
     @Environment(CategoryModel.self) private var catModel
     
@@ -51,36 +51,47 @@ struct CalendarDashboard: View {
     let columns = [GridItem(.flexible()), GridItem(.flexible())]
     
     var body: some View {
-        //let _ = Self._printChanges()
-        NavigationStack {
-            StandardContainerWithToolbar(.list) {
-                Section("Net Worth Change") {
-                    networthChange
-                }
-                
-                Section {
-                    if breakdownOrChart == "chart" {
-                        verticalBarChart
-                    } else {
-                        BudgetBreakdownView(chartData: data, calculateDataFunction: prepareData)
-                    }
-                } header: {
-                    expenseByCategoryHeaderMenu
-                }
-                .textCase(nil)
-                
-                Section("Spending Overview") {
-                    pieChart
-                }
+        if AppState.shared.isIphone {
+            content
+        } else {
+            NavigationStack {
+                content
             }
-            #if os(iOS)
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
+        }
+    }
+    
+    
+    @ViewBuilder
+    var content: some View {
+        StandardContainerWithToolbar(.list) {
+            Section("Net Worth Change") {
+                networthChange
+            }
+            
+            Section {
+                if breakdownOrChart == "chart" {
+                    verticalBarChart
+                } else {
+                    BudgetBreakdownView(chartData: data, calculateDataFunction: prepareData)
+                }
+            } header: {
+                expenseByCategoryHeaderMenu
+            }
+            .textCase(nil)
+            
+            Section("Spending Overview") {
+                pieChart
+            }
+        }
+        #if os(iOS)
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if AppState.shared.isIpad {
                 ToolbarItem(placement: .topBarTrailing) { closeButton }
             }
-            #endif
         }
+        #endif
         .onChange(of: budgetEditID) { oldValue, newValue in
             if let newValue {
                 editBudget = calModel.sMonth.budgets.filter { $0.id == newValue }.first!
@@ -114,12 +125,13 @@ struct CalendarDashboard: View {
         .onChange(of: DataChangeTriggers.shared.calendarDidChange) {
             print("🤞🏻 CalendarDashboard.body: Received recalc trigger")
             prepareData()
-//            Task {
-//                try? await Task.sleep(nanoseconds: UInt64(0.3 * Double(NSEC_PER_SEC)))
-//                prepareData()
-//            }
+    //            Task {
+    //                try? await Task.sleep(nanoseconds: UInt64(0.3 * Double(NSEC_PER_SEC)))
+    //                prepareData()
+    //            }
         }
     }
+    
     
     @ViewBuilder
     var networthChange: some View {
@@ -480,10 +492,10 @@ struct CalendarDashboard: View {
     var exportCsvButton: some View {
         // file rows
         let rows = data.map {
-            let budget = $0.budget
+            let budget = $0.budgetForCategory
             let expense = ($0.expenses == 0 ? 0 : $0.expenses * -1)
             let income = ($0.income)
-            let overUnder1 = $0.budget + ($0.expenses + $0.income)
+            let overUnder1 = $0.budgetForCategory + ($0.expenses + $0.income)
             let overUnder2 = abs(overUnder1)
             
             return [$0.category.title, String(budget), String(expense), String(income), String(overUnder2)]
@@ -542,7 +554,7 @@ struct CalendarDashboard: View {
                             x: .value("Amount", item.chartPercentage),
                             y: .value("Budget", item.category.title)
                         )
-                        .foregroundStyle(getColor(for: item.category, withOpacity: false))
+                        .foregroundStyle(getColor(for: item.category, withOpacity: false) ?? .primary)
                     }
                     
                     BarMark(
@@ -592,7 +604,7 @@ struct CalendarDashboard: View {
                 Spacer()
                 
                 ChartCircleDot(
-                    budget: selectedData!.budget,
+                    budget: selectedData!.budgetForCategory,
                     expenses: abs(selectedData!.expenses),
                     color: colorScheme == .dark ? .white : .black,
                     size: 20
@@ -603,7 +615,7 @@ struct CalendarDashboard: View {
             .font(.headline)
             
             Divider()
-            Text("Budget: \(selectedData!.budget.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+            Text("Budget: \(selectedData!.budgetForCategory.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
                 .bold()
             Text("Income: \(selectedData!.income.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
                 .bold()
@@ -641,7 +653,7 @@ struct CalendarDashboard: View {
                         VStack(spacing: 0) {
                             HStack(spacing: 5) {
                                 ChartCircleDot(
-                                    budget: item.budget,
+                                    budget: item.budgetForCategory,
                                     expenses: item.expenses,
                                     color: item.category.color,
                                     size: 22
@@ -875,11 +887,26 @@ struct CalendarDashboard: View {
             .compactMap { (index, budget) in
                 if let cat = budget.category {
                     let transactions = calModel.getTransactions(cats: [cat])
+                    
+                    let budgetAmount = budget.amount
+                    
+//                    return calModel.createChartData(
+//                        transactions: transactions,
+//                        cat: cat,
+//                        categoricalBudgetAmount: budgetAmount,
+//                        budgetAmount: budgetAmount
+//                    )
+                    
+                    
                     return calModel.createChartData(
                         transactions: transactions,
-                        cat: cat,
-                        budgets: [budget]
+                        category: cat,
+                        categoricalBudgetAmount: budgetAmount,
+                        categoryGroup: nil,
+                        groupBudgetAmount: nil,
+                        budgets: nil
                     )
+                    
                 } else {
                     return nil
                 }

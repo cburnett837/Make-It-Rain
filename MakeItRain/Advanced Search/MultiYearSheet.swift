@@ -14,7 +14,11 @@ struct MultiYearSheet: View {
     @Binding var years: Array<Int>
     
     var yearOptions: [Int] { Array(2000...2099).map { $0 } }
-    var nowishYears: [Int] { [AppState.shared.todayYear - 1, AppState.shared.todayYear, AppState.shared.todayYear + 1] }
+    var nowishYears: [Int] {[
+        AppState.shared.todayYear - 1,
+        AppState.shared.todayYear,
+        AppState.shared.todayYear + 1
+    ]}
     
     @State private var searchText = ""
     
@@ -24,9 +28,16 @@ struct MultiYearSheet: View {
     
     var body: some View {
         NavigationStack {
-            StandardContainerWithToolbar(.list) {
-                content
+            Group {
+                if filteredYears.isEmpty {
+                    ContentUnavailableView("No years found", systemImage: "exclamationmark.magnifyingglass")
+                } else {
+                    StandardContainerWithToolbar(.list) {
+                        content
+                    }
+                }
             }
+            
             #if os(iOS)
             .searchable(text: $searchText, prompt: "Search")
             .navigationTitle("Years")
@@ -54,12 +65,8 @@ struct MultiYearSheet: View {
         }
                                 
         Section("All Years") {
-            if filteredYears.isEmpty {
-                ContentUnavailableView("No years found", systemImage: "exclamationmark.magnifyingglass")
-            } else {
-                ForEach(filteredYears) { year in
-                    LineItem(year: year, years: $years)
-                }
+            ForEach(filteredYears) { year in
+                LineItem(year: year, years: $years)
             }
         }
     }

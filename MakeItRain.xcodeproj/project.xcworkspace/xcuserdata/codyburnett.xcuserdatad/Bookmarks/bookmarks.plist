@@ -12,13 +12,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>541</string>
+					<string>520</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>540</string>
+					<string>519</string>
 					<key>Timestamp</key>
-					<string>784237817.794448</string>
+					<string>787069598.6825809</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -59,13 +59,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>1065</string>
+					<string>1033</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>1064</string>
+					<string>1032</string>
 					<key>Timestamp</key>
-					<string>785081390.414818</string>
+					<string>787069598.682595</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -89,7 +89,7 @@
 </string>
 				<key>trailing</key>
 				<string>                    //calModel.prepareStartingAmount(for: startingAmount.payMethod)
-                    let targetAmount = targetMonth.startingAmounts.filter{ $0.payMethod.id == startingAmount.payMethod.id }.first
+                    let targetAmount = targetMonth.startingAmounts.filter { $0.payMethod.id == startingAmount.payMethod.id }.first
                     if let targetAmount {
 </string>
 			</dict>
@@ -153,13 +153,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>310</string>
+					<string>407</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>309</string>
+					<string>406</string>
 					<key>Timestamp</key>
-					<string>785290738.002807</string>
+					<string>787515765.345251</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>

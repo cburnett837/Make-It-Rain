@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-
+#if os(macOS)
 struct DayViewMac: View {
     @Local(\.useWholeNumbers) var useWholeNumbers
     @Local(\.threshold) var threshold
@@ -17,7 +17,7 @@ struct DayViewMac: View {
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
-    @Environment(EventModel.self) private var eventModel
+    
     
     //@State private var transEditID: String?
     @Binding var transEditID: String?
@@ -324,3 +324,4 @@ struct DayViewMac: View {
 
 
 
+#endif

@@ -180,6 +180,13 @@ public class LocalStorage {
         set { set(\.creditEodView.rawValue, key: "creditEodView", new: newValue.rawValue) }
     }
     
+    //@AppStorage("paymentMethodSheetFilterMode") private var paymentMethodSheetFilterMode: PaymentMethodFilterMode = .justPrimary
+    public var paymentMethodFilterMode: PaymentMethodFilterMode {
+        get { PaymentMethodFilterMode.fromString(get(\.paymentMethodFilterMode.rawValue, key: "paymentMethodFilterMode", default: PaymentMethodFilterMode.all.rawValue)) }
+        set { set(\.paymentMethodFilterMode.rawValue, key: "paymentMethodFilterMode", new: newValue.rawValue) }
+    }
+
+    
         
     
     // MARK: - Chart Variables

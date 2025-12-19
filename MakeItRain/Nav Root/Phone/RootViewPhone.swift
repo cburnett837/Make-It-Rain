@@ -16,7 +16,7 @@ struct RootViewPhone: View {
     @Environment(CategoryModel.self) var catModel
     @Environment(KeywordModel.self) var keyModel
     @Environment(RepeatingTransactionModel.self) var repModel
-    @Environment(EventModel.self) var eventModel
+    
     @Environment(PlaidModel.self) var plaidModel
     
     let monthNavigationNamespace: Namespace.ID
@@ -56,6 +56,14 @@ struct RootViewPhone: View {
             }
             .badge(plaidModel.banksWithIssues.count)
         }
+//        .onChange(of: sel) { oldValue, newValue in
+//            if oldValue == NavDestination.categories {
+//                if calModel.categoryFilterWasSetByCategoryPage {
+//                    calModel.sCategories.removeAll()
+//                    calModel.categoryFilterWasSetByCategoryPage = false
+//                }
+//            }
+//        }
     }
     
     
@@ -143,7 +151,7 @@ struct RootViewPhone: View {
 //    @Environment(CategoryModel.self) var catModel
 //    @Environment(KeywordModel.self) var keyModel
 //    @Environment(RepeatingTransactionModel.self) var repModel
-//    @Environment(EventModel.self) var eventModel
+//    
 //    @Environment(PlaidModel.self) var plaidModel
 //    
 //    let monthNavigationNamespace: Namespace.ID

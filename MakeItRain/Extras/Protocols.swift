@@ -12,6 +12,13 @@ protocol CanHandleLogo: AnyObject {
     var logo: Data? {get set}
     var id: String {get}
     var color: Color {get set}
+    var logoParentType: XrefItem {get}
+}
+
+
+protocol CanHandleUserAvatar: AnyObject {
+    var avatar: Data? {get set}
+    var id: Int {get}
 }
 
 protocol CanEditTitleWithLocation: AnyObject, CanHandleLocationsDelegate {

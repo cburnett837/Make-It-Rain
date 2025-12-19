@@ -19,7 +19,7 @@ struct KeychainManager {
         
     
     func addToKeychain(key: String, value: String) throws {
-        print("-- \(#function)")
+        //print("-- \(#function)")
         
         let valueData = value.data(using: .utf8)!
         
@@ -34,7 +34,7 @@ struct KeychainManager {
         let status = SecItemAdd(query as CFDictionary, nil)
         
         if status == errSecDuplicateItem {
-            print("Item already exists")
+            //print("Item already exists")
             try updateKeychain(key: key, value: value)
             //throw KeychainError.duplicateItem
             
@@ -43,7 +43,7 @@ struct KeychainManager {
             throw KeychainError.unknown(status)
             
         } else {
-            print("User saved successfully in the keychain")
+            //print("User saved successfully in the keychain")
         }
         
 //        
@@ -64,7 +64,7 @@ struct KeychainManager {
     
     
     func updateKeychain(key: String, value: String) throws {
-        print("-- \(#function)")
+        //print("-- \(#function)")
         
         let valueData = value.data(using: .utf8)!
         
@@ -80,7 +80,7 @@ struct KeychainManager {
         
         let status = SecItemUpdate(query as CFDictionary, attributesToUpdate as CFDictionary)
         if status == errSecItemNotFound {
-            print("item not found")
+            //print("item not found")
             throw KeychainError.itemNotFound
             
         } else if status != errSecSuccess {
@@ -103,7 +103,7 @@ struct KeychainManager {
         
         let status = SecItemDelete(query as CFDictionary)
         if status == errSecItemNotFound {
-            print("item not found")
+            //print("item not found")
             throw KeychainError.itemNotFound
             
         } else if status != errSecSuccess {
@@ -111,7 +111,7 @@ struct KeychainManager {
             throw KeychainError.unknown(status)
             
         } else {
-            print("successfully removed from keychain")
+            //print("successfully removed from keychain")
         }
     }
     
@@ -130,7 +130,7 @@ struct KeychainManager {
     
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         if status == errSecItemNotFound {
-            print("\(#function) -- item not found \(status)")
+            //print("\(#function) -- item not found \(status)")
             throw KeychainError.itemNotFound
             
             //https://www.oreilly.com/api/v2/epubs/9780133086898/files/graphics/18tab03.jpg
@@ -169,7 +169,7 @@ struct KeychainManager {
         
             let status = SecItemCopyMatching(query as CFDictionary, &item)
             if status == errSecItemNotFound {
-                print("item not found")
+                //print("item not found")
                 throw KeychainError.itemNotFound
                 
             } else if status != errSecSuccess {
@@ -182,7 +182,7 @@ struct KeychainManager {
                let passwordData = existingItem[kSecValueData as String] as? Data,
                let password = String(data: passwordData, encoding: .utf8)
             {
-                print("Successfully got user credentials from Keychain")
+                //print("Successfully got user credentials from Keychain")
                 return (email, password)
             }
             

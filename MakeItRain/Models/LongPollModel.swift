@@ -22,14 +22,6 @@ class LongPollModel: Decodable {
     let keywords: Array<CBKeyword>?
     let budgets: Array<CBBudget>?
     
-    let events: Array<CBEvent>?
-    let eventTransactions: Array<CBEventTransaction>?
-    let eventTransactionOptions: Array<CBEventTransactionOption>?
-    let eventCategories: Array<CBEventCategory>?
-    let eventItems: Array<CBEventItem>?
-    let eventParticipants: Array<CBEventParticipant>?
-    
-    let invitations: Array<CBEventParticipant>?
     let fitTransactions: Array<CBFitTransaction>?
     let openRecords: Array<CBOpenOrClosedRecord>?
     
@@ -40,7 +32,7 @@ class LongPollModel: Decodable {
     
     let logos: Array<CBLogo>?
     
-    enum CodingKeys: CodingKey { case return_time, transactions, starting_amounts, repeating_transactions, pay_methods, categories, category_groups, keywords, budgets, events, event_transactions, event_transaction_options, event_categories, event_items, event_participants, invitations, fit_transactions, open_records, plaid_banks, plaid_accounts, plaid_transactions, plaid_balances, logos }
+    enum CodingKeys: CodingKey { case return_time, transactions, starting_amounts, repeating_transactions, pay_methods, categories, category_groups, keywords, budgets, fit_transactions, open_records, plaid_banks, plaid_accounts, plaid_transactions, plaid_balances, logos }
     
     init () {
         self.returnTime = nil
@@ -53,14 +45,6 @@ class LongPollModel: Decodable {
         self.keywords = nil
         self.budgets = nil
         
-        self.events = nil
-        self.eventTransactions = nil
-        self.eventTransactionOptions = nil
-        self.eventCategories = nil
-        self.eventItems = nil
-        self.eventParticipants = nil
-        
-        self.invitations = nil
         self.fitTransactions = nil
         self.openRecords = nil
         
@@ -84,16 +68,7 @@ class LongPollModel: Decodable {
         self.categoryGroups = try container.decodeIfPresent(Array<CBCategoryGroup>.self, forKey: .category_groups)
         self.keywords = try container.decodeIfPresent(Array<CBKeyword>.self, forKey: .keywords)
         self.budgets = try container.decodeIfPresent(Array<CBBudget>.self, forKey: .budgets)
-        
-        self.events = try container.decodeIfPresent(Array<CBEvent>.self, forKey: .events)
-        self.eventTransactions = try container.decodeIfPresent(Array<CBEventTransaction>.self, forKey: .event_transactions)
-        self.eventTransactionOptions = try container.decodeIfPresent(Array<CBEventTransactionOption>.self, forKey: .event_transaction_options)
-        self.eventCategories = try container.decodeIfPresent(Array<CBEventCategory>.self, forKey: .event_categories)
-        self.eventItems = try container.decodeIfPresent(Array<CBEventItem>.self, forKey: .event_items)
-        self.eventParticipants = try container.decodeIfPresent(Array<CBEventParticipant>.self, forKey: .event_participants)
-        
-        
-        self.invitations = try container.decodeIfPresent(Array<CBEventParticipant>.self, forKey: .invitations)
+                
         self.fitTransactions = try container.decodeIfPresent(Array<CBFitTransaction>.self, forKey: .fit_transactions)
         self.openRecords = try container.decodeIfPresent(Array<CBOpenOrClosedRecord>.self, forKey: .open_records)
         

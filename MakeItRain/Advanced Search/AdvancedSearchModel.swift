@@ -8,20 +8,6 @@
 
 import SwiftUI
 
-enum AmountType: String, CaseIterable, Identifiable {
-    var id: AmountType { self }
-    case positive, negative, all
-    
-    var prettyValue: String {
-        switch self {
-        case .positive: return "Only income"
-        case .negative: return "Only expenses"
-        case .all: return "All"
-        }
-    }
-    
-}
-
 @Observable
 class AdvancedSearchModel: Encodable {
     var payMethods: Array<CBPaymentMethod> = []

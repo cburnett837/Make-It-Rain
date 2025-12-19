@@ -15,17 +15,28 @@ struct KeyboardToolbarView: View {
     var focusedField: FocusState<Int?>.Binding
     
     var removeNavButtons: Bool = false
+    
+    var disableUp: Bool = false
+    var disableDown: Bool = false
+    
+    
     var accessoryText1: String?
     var accessoryImage1: String?
     var accessoryFunc1: (() -> Void)?
+    var focusUpExtraFunction: (() -> Void)?
     
     var accessoryText2: String?
     var accessoryImage2: String?
     var accessoryFunc2: (() -> Void)?
+    var focusDownExtraFunction: (() -> Void)?
     
     var accessoryText3: String?
     var accessoryImage3: String?
     var accessoryFunc3: (() -> Void)?
+    
+    var accessoryText4: String?
+    var accessoryImage4: String?
+    var accessoryFunc4: (() -> Void)?
     
     
 //    var accessoryText4: String?
@@ -67,17 +78,29 @@ struct KeyboardToolbarView: View {
                                 if let _ = focusedField.wrappedValue {
                                     focusedField.wrappedValue! -= 1
                                 }
+                                if let focusUpExtraFunction = focusUpExtraFunction {
+                                    focusUpExtraFunction()
+                                }
+                                
                             } label: {
                                 Image(systemName: "chevron.up")
                             }
+                            .schemeBasedTint()
+                            .disabled(disableUp)
                             
                             Button {
                                 if let _ = focusedField.wrappedValue {
                                     focusedField.wrappedValue! += 1
                                 }
+                                
+                                if let focusDownExtraFunction = focusDownExtraFunction {
+                                    focusDownExtraFunction()
+                                }
                             } label: {
                                 Image(systemName: "chevron.down")
                             }
+                            .schemeBasedTint()
+                            .disabled(disableDown)
                         }
                         
                     } else {
@@ -95,6 +118,7 @@ struct KeyboardToolbarView: View {
                                     }
                                 }
                             }
+                            .schemeBasedTint()
                         }
                         
                         if let accessoryFunc2 = accessoryFunc2 {
@@ -111,6 +135,7 @@ struct KeyboardToolbarView: View {
                                     }
                                 }
                             }
+                            .schemeBasedTint()
                         }
                     }
                 }
@@ -132,23 +157,25 @@ struct KeyboardToolbarView: View {
                                 }
                             }
                         }
+                        .schemeBasedTint()
                     }
                     
-//                    if let accessoryFunc4 = accessoryFunc4 {
-//                        Button {
-//                            accessoryFunc4()
-//                        } label: {
-//                            if let accessoryText4 {
-//                                Text(accessoryText4)
-//                                    .font(.body)
-//                            } else {
-//                                if let accessoryImage4 {
-//                                    Image(systemName: accessoryImage4)
-//                                }
-//                            }
-//                        }
-//                    }
-//
+                    if let accessoryFunc4 = accessoryFunc4 {
+                        Button {
+                            accessoryFunc4()
+                        } label: {
+                            if let accessoryText4 {
+                                Text(accessoryText4)
+                                    .font(.body)
+                            } else {
+                                if let accessoryImage4 {
+                                    Image(systemName: accessoryImage4)
+                                }
+                            }
+                        }
+                        .schemeBasedTint()
+                    }
+
                     Button {
                         focusedField.wrappedValue = nil
                         
@@ -164,6 +191,7 @@ struct KeyboardToolbarView: View {
     //                    Image(systemName: "keyboard.chevron.compact.down")
     //                        .foregroundStyle(.gray)
                     }
+                    .schemeBasedTint()
                 }
             }
             .padding(.horizontal)
@@ -173,7 +201,7 @@ struct KeyboardToolbarView: View {
             }
             //.background(Color(.red))
             .font(.title2)
-            .schemeBasedForegroundStyle()
+            //.schemeBasedForegroundStyle()
             //.foregroundStyle(Color.theme)
         }
     }

@@ -238,7 +238,6 @@ struct CalendarOptionsSheet: View {
                 
                 AppState.shared.showAlert(config: config)
                 
-                
             } else {
                 showPopulateOptionsSheet = true
                 //calModel.populate(repTransactions: repModel.repTransactions, categories: catModel.categories)
@@ -257,7 +256,7 @@ struct CalendarOptionsSheet: View {
             
             let buttonConfig = AlertConfig.ButtonConfig(text: "Options", role: .primary) { showResetOptionsSheet = true }
             let config = AlertConfig(
-                title: "Reset \(calModel.sMonth.name) \(String(calModel.sMonth.year))",
+                title: "Reset \(calModel.sMonth.prettyName)",
                 subtitle: "You will be able to choose what to reset on the next page.",
                 symbol: .init(name: "exclamationmark.triangle.fill", color: .red),
                 primaryButton: AlertConfig.AlertButton(config: buttonConfig)

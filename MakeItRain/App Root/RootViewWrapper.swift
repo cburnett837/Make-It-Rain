@@ -20,7 +20,7 @@ struct RootViewWrapper<Content: View>: View {
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
     @Environment(RepeatingTransactionModel.self) private var repModel
-    @Environment(EventModel.self) private var eventModel
+    
     @Environment(PlaidModel.self) private var plaidModel
     //@Environment(MapModel.self) private var mapModel
     
@@ -39,7 +39,7 @@ struct RootViewWrapper<Content: View>: View {
 //    }
                         
     var body: some View {
-        let _ = Self._printChanges()
+        //let _ = Self._printChanges()
         @Bindable var appState = AppState.shared
         content
             #if os(iOS)
@@ -59,7 +59,6 @@ struct RootViewWrapper<Content: View>: View {
                     .environment(catModel)
                     .environment(keyModel)
                     .environment(repModel)
-                    .environment(eventModel)
                     .environment(plaidModel)
                     .environment(calProps)
                     .environment(dataChangeTriggers)
@@ -83,7 +82,6 @@ struct RootViewWrapper<Content: View>: View {
                     .environment(catModel)
                     .environment(keyModel)
                     .environment(repModel)
-                    .environment(eventModel)
                     .environment(plaidModel)
                     .environment(calProps)
                     .environment(dataChangeTriggers)

@@ -69,7 +69,7 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     
     //@available(iOSApplicationExtension, unavailable)
     func registerForPushNotifications() async {
-        print("-- \(#function)")
+        //print("-- \(#function)")
         
         do {
              if try await notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) == true {
@@ -266,7 +266,7 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     
     
     func sendNotificationTokenToServer(token: String) {
-        print("-- \(#function)")
+        //print("-- \(#function)")
         
         AppState.shared.notificationToken = token
         

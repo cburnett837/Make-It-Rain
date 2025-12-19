@@ -26,7 +26,7 @@ struct BottomPanelContainerView<Content: View>: View {
             content
         }
         #if os(iOS)
-        .if(!AppState.shared.isIpad) {
+        .if(AppState.shared.isIphone) {
             $0.background {
                 //Color.darkGray.ignoresSafeArea(edges: .bottom)
 //                ConcentricRectangle()

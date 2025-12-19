@@ -110,12 +110,20 @@ struct CalendarMonthLabel: View {
                     }
                                         
                     if isCurrentMonth {
-                        currentBalanceView
+                        //currentBalanceView
+                        if let meth = calModel.sPayMethod {
+                            Text(funcModel.getPlaidBalancePrettyString(meth, useWholeNumbers: useWholeNumbers) ?? "N/A")
+                                .font(.callout)
+                                .foregroundStyle(.gray)
+                                .lineLimit(1)
+                        }
                     }
                 }
 //                Image(systemName: "chevron.right")
 //                    .foregroundStyle(.gray)
             }
+            .contentShape(.rect)
+            .onTapGesture { showBalanceBreakdownAlert() }
         }
     }
     
@@ -127,28 +135,93 @@ struct CalendarMonthLabel: View {
             .italic()
     }
     
-    @ViewBuilder var currentBalanceView: some View {
-        if let meth = calModel.sPayMethod {
-            if meth.isUnified {
-                if meth.isDebit {
-                    sumLine("\(funcModel.getPlaidDebitSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))")
-                    
-                } else {
-                    sumLine("\(funcModel.getPlaidCreditSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))")
-                }
-            } else {
-                if let balance = funcModel.getPlaidBalance() {
-                    sumLine("\(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)) (\(calProps.timeSinceLastBalanceUpdate))")
+    
+//    @ViewBuilder var currentBalanceView: some View {
+//        if let meth = calModel.sPayMethod {
+//            if meth.isUnified {
+//                if meth.isDebit {
+//                    sumLine("\(funcModel.getPlaidDebitSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+//                    
+//                } else {
+//                    sumLine("\(funcModel.getPlaidCreditSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+//                }
+//            } else {
+//                if meth.accountType == .cash {
+//                    let cashBal = calModel.calculateChecking(
+//                        for: calModel.sMonth,
+//                        using: calModel.sPayMethod,
+//                        and: .giveMeEodAsOfToday
+//                    )
+//                    
+//                    sumLine("\(cashBal.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+//                    
+//                } else if let balance = funcModel.getPlaidBalance(matching: calModel.sPayMethod) {
+//                    sumLine("\(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)) (\(calProps.timeSinceLastBalanceUpdate))")
+//                }
+//                
+//            }
+//        }
+//    }
+//    
+//    @ViewBuilder func sumLine(_ text: String) -> some View {
+//        Text(text)
+//            .font(.callout)
+//            .foregroundStyle(.gray)
+//            .lineLimit(1)
+//    }
+    
+    
+    func showBalanceBreakdownAlert() {
+        guard let selMeth = calModel.sPayMethod, selMeth.isUnified else { return }
+
+        let views: Array<AlertConfig.ViewConfig> = payModel.paymentMethods
+            .filter {
+                $0.active
+                && $0.isPermitted
+                && !$0.isHidden
+                && (selMeth.isUnifiedDebit ? $0.isDebit : $0.isCredit)
+                && !$0.isUnified
+            }
+            .filter {
+                switch LocalStorage.shared.paymentMethodFilterMode {
+                case .all:
+                    return true
+                case .justPrimary:
+                    return $0.holderOne?.id == AppState.shared.user?.id
+                case .primaryAndSecondary:
+                    return $0.holderOne?.id == AppState.shared.user?.id
+                    || $0.holderTwo?.id == AppState.shared.user?.id
+                    || $0.holderThree?.id == AppState.shared.user?.id
+                    || $0.holderFour?.id == AppState.shared.user?.id
                 }
             }
-        }
-    }
-    
-    @ViewBuilder func sumLine(_ text: String) -> some View {
-        Text(text)
-            .font(.callout)
-            .foregroundStyle(.gray)
-            .lineLimit(1)
+            
+            .map { meth in
+                let theView = HStack {
+                    BusinessLogo(config: .init(
+                        parent: meth,
+                        fallBackType: meth.isUnified ? .gradient : .color
+                    ))
+                    VStack(alignment: .leading) {
+                        Text(meth.title)
+                        Text(funcModel.getPlaidBalancePrettyString(meth, useWholeNumbers: useWholeNumbers) ?? "N/A")
+                            .foregroundStyle(.gray)
+                            .font(.caption)
+                    }
+                    
+                }
+                
+                return AlertConfig.ViewConfig(content: AnyView(theView))
+            }
+        
+        let config = AlertConfig(
+            title: "Accounts",
+            subtitle: "These are the accounts being factored into the balance.",
+            symbol: .init(name: "info.circle", color: .green),
+            views: views
+        )
+        
+        AppState.shared.showAlert(config: config)
     }
     
 }

@@ -3,6 +3,7 @@
     <entity name="PersistentCategory" representedClassName="PersistentCategory" syncable="YES" codeGenerationType="class">
         <attribute name="action" optional="YES" attributeType="String"/>
         <attribute name="amount" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="appSuiteKey" optional="YES" attributeType="String"/>
         <attribute name="emoji" optional="YES" attributeType="String"/>
         <attribute name="enteredByID" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="enteredDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
@@ -16,12 +17,25 @@
         <attribute name="typeID" optional="YES" attributeType="Integer 64" usesScalarValueType="YES"/>
         <attribute name="updatedByID" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="updatedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="group" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="PersistentCategoryGroup" inverseName="categories" inverseEntity="PersistentCategoryGroup"/>
         <relationship name="keywords" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="PersistentKeyword" inverseName="category" inverseEntity="PersistentKeyword"/>
         <uniquenessConstraints>
             <uniquenessConstraint>
                 <constraint value="id"/>
             </uniquenessConstraint>
         </uniquenessConstraints>
+    </entity>
+    <entity name="PersistentCategoryGroup" representedClassName="PersistentCategoryGroup" syncable="YES" codeGenerationType="class">
+        <attribute name="action" optional="YES" attributeType="String"/>
+        <attribute name="amount" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="enteredByID" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="enteredDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" optional="YES" attributeType="String"/>
+        <attribute name="isPending" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="title" optional="YES" attributeType="String"/>
+        <attribute name="updatedByID" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="updatedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="categories" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="PersistentCategory" inverseName="group" inverseEntity="PersistentCategory"/>
     </entity>
     <entity name="PersistentKeyword" representedClassName="PersistentKeyword" syncable="YES" codeGenerationType="class">
         <attribute name="action" optional="YES" attributeType="String"/>
@@ -36,6 +50,7 @@
         <attribute name="updatedByID" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="updatedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <relationship name="category" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PersistentCategory" inverseName="keywords" inverseEntity="PersistentCategory"/>
+        <relationship name="group" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PersistentCategoryGroup"/>
         <uniquenessConstraints>
             <uniquenessConstraint>
                 <constraint value="id"/>
@@ -59,6 +74,14 @@
         <attribute name="enteredByID" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="enteredDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="hexCode" optional="YES" attributeType="String"/>
+        <attribute name="holderFourID" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="holderFourTypeID" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="holderOneID" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="holderOneTypeID" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="holderThreeID" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="holderThreeTypeID" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="holderTwoID" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="holderTwoTypeID" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="id" attributeType="String"/>
         <attribute name="interestRate" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="isEditingDefault" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>

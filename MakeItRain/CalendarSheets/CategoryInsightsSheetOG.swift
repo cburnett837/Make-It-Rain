@@ -115,7 +115,7 @@
 //
 //    @Environment(CalendarModel.self) private var calModel
 //    @Environment(PayMethodModel.self) private var payModel
-//    @Environment(EventModel.self) private var eventModel
+//    
 //    @Binding var showAnalysisSheet: Bool
 //    @Bindable var model: CategoryInsightsModel
 //    

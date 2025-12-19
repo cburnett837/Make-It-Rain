@@ -47,7 +47,7 @@ struct LogSheet: View {
         VStack {
             if showNoLogs {
                 Spacer()
-                ContentUnavailableView("No Logs", systemImage: "square.stack.3d.up.slash.fill", description: Text("Logs will appear here when changes are made."))
+                ContentUnavailableView("No Logs", systemImage: "text.page.slash", description: Text("Logs will appear here when changes are made."))
                 Spacer()
             } else {
                 StandardContainerWithToolbar(showNoLogs ? .scrolling : .list) {
@@ -97,8 +97,10 @@ struct LogSheet: View {
                     .bold()
                 }
             } footer: {
-                Text("\(group.enteredBy.initials) - \(group.enteredDate.string(to: .monthDayShortYear)) - \(group.enteredDate.string(to: .timeAmPm))")
-                    //.padding(.bottom, 4)
+                HStack {
+                    UserAvatar(user: group.enteredBy)
+                    Text("\(group.enteredBy.initials) - \(group.enteredDate.string(to: .monthDayShortYear)) - \(group.enteredDate.string(to: .timeAmPm))")
+                }
             }
         }
         #if os(iOS)
@@ -140,6 +142,8 @@ struct LogSheet: View {
             case .url:
                 break
             case .date:
+                break
+            case .christmasGiftStatus:
                 break
             }
         case .paymentMethod:

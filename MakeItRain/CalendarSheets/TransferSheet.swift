@@ -168,20 +168,14 @@ struct TransferSheet: View {
             Section {
                 PayMethodSheetButtonPhone(
                     text: "From",
-                    logoInfo: .init(
-                        include: true,
-                        fallBackType: .customImage(transfer.from?.fallbackImage)
-                    ),
+                    logoFallBackType: .customImage(.init(name: transfer.from?.fallbackImage, color: transfer.from?.color)),
                     payMethod: $transfer.from,
                     whichPaymentMethods: .allExceptUnified
                 )
                 
                 PayMethodSheetButtonPhone(
                     text: "To",
-                    logoInfo: .init(
-                        include: true,
-                        fallBackType: .customImage(transfer.to?.fallbackImage)
-                    ),
+                    logoFallBackType: .customImage(.init(name: transfer.to?.fallbackImage, color: transfer.to?.color)),
                     payMethod: $transfer.to,
                     whichPaymentMethods: .allExceptUnified
                 )
@@ -255,6 +249,7 @@ struct TransferSheet: View {
         .listRowInsets(EdgeInsets())
         .padding(.horizontal, 16)
     }
+    
     
     var transferButtonPhone: some View {
         Button(action: validateForm) {

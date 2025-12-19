@@ -17,10 +17,8 @@ struct ToolbarRefreshButton: View {
             funcModel.isLoading = true
             funcModel.refreshTask?.cancel()
             funcModel.refreshTask = Task {
-                
                 plaidModel.trans.removeAll()
                 
-                LoadingManager.shared.showInitiallyLoadingSpinner = true
                 calModel.months.forEach { month in
                     month.days.removeAll()
                     month.budgets.removeAll()

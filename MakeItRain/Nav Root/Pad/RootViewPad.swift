@@ -20,7 +20,7 @@ struct RootViewPad: View {
     @Environment(CategoryModel.self) var catModel
     @Environment(KeywordModel.self) var keyModel
     @Environment(RepeatingTransactionModel.self) var repModel
-    @Environment(EventModel.self) var eventModel
+    
     @Environment(PlaidModel.self) var plaidModel
     
     //@FocusState private var focusedField: Int?
@@ -36,7 +36,7 @@ struct RootViewPad: View {
     //@State private var columnVisibility = NavigationSplitViewVisibility.doubleColumn
         
     var body: some View {
-        let _ = Self._printChanges()
+        //let _ = Self._printChanges()
         @Bindable var navManager = NavigationManager.shared
         @Bindable var calProps = calProps
         
@@ -78,7 +78,7 @@ struct RootViewPad: View {
                 CalendarDashboard()
                 
             case .analysisSheet:
-                CategoryInsightsSheet(showAnalysisSheet: $calProps.showInspector, model: categoryAnalysisModel)
+                CategoryInsightsSheetWrapperIpad(showAnalysisSheet: $calProps.showInspector, model: categoryAnalysisModel)
                     //.onDisappear { calModel.isInMultiSelectMode = false }
                 
             case .transactionList:

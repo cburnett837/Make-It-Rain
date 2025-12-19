@@ -17,7 +17,23 @@ struct CustomAlert: View {
     
     var body: some View {
         VStack {
-            symbolImage
+            if let logoConfig = config.logo, let image = logoConfig.parent?.logo {
+                BusinessLogo(config: .init(
+                    parent: logoConfig.parent,
+                    fallBackType: logoConfig.fallBackType,
+                    size: logoConfig.size
+                ))
+                .frame(width: 65, height: 65)
+                .background {
+                    Circle()
+                        .stroke(config.logoStrokeColor ?? Color(uiColor: .systemBackground), lineWidth: 8)
+                }
+            } else if case let .customImage(imageConfig) = config.logo?.fallBackType {
+                symbolImage(name: imageConfig?.name, color: imageConfig?.color)
+                
+            } else {
+                symbolImage(name: config.symbol.name, color: config.symbol.color)
+            }
             
             VStack(spacing: 4) {
                 title
@@ -29,6 +45,15 @@ struct CustomAlert: View {
                 
             }
             .padding(.bottom, 8)
+            
+                        
+            if !config.views.isEmpty {
+                List(config.views) { view in
+                    view.content
+                        .listRowBackground(Color.clear)
+                }
+                .listStyle(.plain)
+            }
             
             if config.primaryButton == nil && config.secondaryButton == nil {
                 AlertConfig.AlertButton(config: cancelButtonConfig)
@@ -46,12 +71,12 @@ struct CustomAlert: View {
     
     
     @ViewBuilder
-    var symbolImage: some View {
-        Image(systemName: config.symbol.name)
+    func symbolImage(name: String?, color: Color?) -> some View {
+        Image(systemName: name ?? "exclamationmark.triangle.fill")
             .font(.title)
             .foregroundStyle(.primary)
             .frame(width: 65, height: 65)
-            .background((config.symbol.color ?? .primary).gradient, in: .circle)
+            .background((color ?? .primary).gradient, in: .circle)
             .background {
                 Circle()
                     .stroke(.background, lineWidth: 8)
@@ -111,127 +136,43 @@ struct CustomAlert: View {
 
 
 
+extension AppState {
+    func showAlert(_ text: String) {
+        withAnimation(.snappy(duration: 0.2)) {
+            let config = AlertConfig(title: text)
+            self.alertConfig = config
+            self.showCustomAlert = true
+        }
+    }
+    
+    func showAlert(title: String, subtitle: String) {
+        withAnimation(.snappy(duration: 0.2)) {
+            let config = AlertConfig(title: title, subtitle: subtitle)
+            self.alertConfig = config
+            self.showCustomAlert = true
+        }
+    }
+            
+    func showAlert(config: AlertConfig) {
+        withAnimation(.snappy(duration: 0.2)) {
+            self.alertConfig = config
+            self.showCustomAlert = true
+        }
+    }
+    
+    func closeAlert() {
+        withAnimation(.snappy(duration: 0.2)) {
+            self.alertConfig = nil
+            self.showCustomAlert = false
+        }
+    }
+}
 
 
-
-//
-//struct CustomAlertOG: View {
-//    
-//    let config: AlertConfig
-//    var body: some View {
-//        VStack {
-//            Image(systemName: config.symbol.name)
-//                .font(.title)
-//                .foregroundStyle(.primary)
-//                .frame(width: 65, height: 65)
-//                .background((config.symbol.color ?? .primary).gradient, in: .circle)
-//                .background {
-//                    Circle()
-//                        .stroke(.background, lineWidth: 8)
-//                }
-//            
-//            Group {
-//                Text(config.title)
-//                    .font(.title3.bold())
-//                    .multilineTextAlignment(.center)
-//                
-//                if let subtitle = config.subtitle {
-//                    Text(subtitle)
-//                        .font(.callout)
-//                        .multilineTextAlignment(.center)
-//                        .lineLimit(5)
-//                        .foregroundStyle(.gray)
-//                    //.padding(.vertical, 4)
-//                }
-//            }
-//            .padding(.horizontal, 15)
-//                
-//            if !config.views.isEmpty {
-//                ForEach(config.views) { viewConfig in
-//                    Divider()
-//                    viewConfig.content
-//                }
-//            }
-//        
-//                                    
-//            VStack(spacing: 0) {
-//                Divider()
-//                
-//                if config.primaryButton == nil && config.secondaryButton == nil {
-//                    let buttonConfig = AlertConfig.ButtonConfig(
-//                        text: "Cancel",
-//                        role: .cancel,
-//                        //edge: .horizontal
-//                    ) {
-//                        AppState.shared.closeAlert()
-//                    }
-//                    
-//                    AlertConfig.AlertButton(config: buttonConfig)
-//                    
-//                    //AlertConfig.CancelButton(isAlone: true)
-//                        .fixedSize(horizontal: false, vertical: true)
-//                } else {
-//                    HStack(spacing: 0) {
-//                        if let button = config.secondaryButton {
-//                            button
-//                            Divider()
-//                        } else {
-//                            if let _ = config.primaryButton {
-//                                //AlertConfig.CancelButton(isAlone: false)
-//                                let buttonConfig = AlertConfig.ButtonConfig(
-//                                    text: "Cancel",
-//                                    role: .cancel,
-//                                    //edge: .leading
-//                                ) {
-//                                    AppState.shared.closeAlert()
-//                                }
-//                                AlertConfig.AlertButton(config: buttonConfig)
-//                                Divider()
-//                            } else {
-//                                let buttonConfig = AlertConfig.ButtonConfig(
-//                                    text: "Cancel",
-//                                    role: .cancel,
-//                                    //edge: .horizontal
-//                                ) {
-//                                    AppState.shared.closeAlert()
-//                                }
-//                                AlertConfig.AlertButton(config: buttonConfig)
-//                                //AlertConfig.CancelButton(isAlone: true)
-//                            }
-//                        }
-//                        
-//                        if let button = config.primaryButton {
-//                            button
-//                        }
-//                    }
-//                    .fixedSize(horizontal: false, vertical: true)
-//                }
-//                
-//                
-//            }
-//        }
-//        //.glassEffect(in: .rect(cornerRadius: 15))
-//        //.padding(.top, 30)
-//        //.padding([.horizontal, .bottom], 15)
-//        .background {
-//            RoundedRectangle(cornerRadius: 25)
-//                .opacity(0)
-//                #if os(iOS)
-//                .glassEffect(.regular, in: .rect(cornerRadius: 25))
-//                #endif
-//                //.glassEffect(in: .rect(cornerRadius: 15))
-//                //.fill(.ultraThickMaterial)
-//                .padding(.top, 30)
-//        }
-//        .frame(maxWidth: 310)
-//        .compositingGroup()
-//    }
-//}
-//
-//
-
-
-
+struct SymbolConfig {
+    var name: String?
+    var color: Color? = .primary
+}
 
 
 struct AlertConfig {
@@ -239,14 +180,11 @@ struct AlertConfig {
     var subtitle: String?
     var subtitleView: AnyView?
     var symbol: SymbolConfig = .init(name: "exclamationmark.triangle.fill", color: .orange)
+    var logo: LogoConfig?
+    var logoStrokeColor: Color?
     var primaryButton: AlertButton?
     var secondaryButton: AlertButton?
     var views: [ViewConfig] = []
-    
-    struct SymbolConfig {
-        var name: String
-        var color: Color? = .primary
-    }
     
     struct ViewConfig: Identifiable {
         var id: UUID = UUID()
@@ -324,3 +262,123 @@ let alertConfigExample = AlertConfig(
     ]
 )
 //AppState.shared.showAlert(config: alertConfigExample)
+
+
+
+//
+//struct CustomAlertOG: View {
+//
+//    let config: AlertConfig
+//    var body: some View {
+//        VStack {
+//            Image(systemName: config.symbol.name)
+//                .font(.title)
+//                .foregroundStyle(.primary)
+//                .frame(width: 65, height: 65)
+//                .background((config.symbol.color ?? .primary).gradient, in: .circle)
+//                .background {
+//                    Circle()
+//                        .stroke(.background, lineWidth: 8)
+//                }
+//
+//            Group {
+//                Text(config.title)
+//                    .font(.title3.bold())
+//                    .multilineTextAlignment(.center)
+//
+//                if let subtitle = config.subtitle {
+//                    Text(subtitle)
+//                        .font(.callout)
+//                        .multilineTextAlignment(.center)
+//                        .lineLimit(5)
+//                        .foregroundStyle(.gray)
+//                    //.padding(.vertical, 4)
+//                }
+//            }
+//            .padding(.horizontal, 15)
+//
+//            if !config.views.isEmpty {
+//                ForEach(config.views) { viewConfig in
+//                    Divider()
+//                    viewConfig.content
+//                }
+//            }
+//
+//
+//            VStack(spacing: 0) {
+//                Divider()
+//
+//                if config.primaryButton == nil && config.secondaryButton == nil {
+//                    let buttonConfig = AlertConfig.ButtonConfig(
+//                        text: "Cancel",
+//                        role: .cancel,
+//                        //edge: .horizontal
+//                    ) {
+//                        AppState.shared.closeAlert()
+//                    }
+//
+//                    AlertConfig.AlertButton(config: buttonConfig)
+//
+//                    //AlertConfig.CancelButton(isAlone: true)
+//                        .fixedSize(horizontal: false, vertical: true)
+//                } else {
+//                    HStack(spacing: 0) {
+//                        if let button = config.secondaryButton {
+//                            button
+//                            Divider()
+//                        } else {
+//                            if let _ = config.primaryButton {
+//                                //AlertConfig.CancelButton(isAlone: false)
+//                                let buttonConfig = AlertConfig.ButtonConfig(
+//                                    text: "Cancel",
+//                                    role: .cancel,
+//                                    //edge: .leading
+//                                ) {
+//                                    AppState.shared.closeAlert()
+//                                }
+//                                AlertConfig.AlertButton(config: buttonConfig)
+//                                Divider()
+//                            } else {
+//                                let buttonConfig = AlertConfig.ButtonConfig(
+//                                    text: "Cancel",
+//                                    role: .cancel,
+//                                    //edge: .horizontal
+//                                ) {
+//                                    AppState.shared.closeAlert()
+//                                }
+//                                AlertConfig.AlertButton(config: buttonConfig)
+//                                //AlertConfig.CancelButton(isAlone: true)
+//                            }
+//                        }
+//
+//                        if let button = config.primaryButton {
+//                            button
+//                        }
+//                    }
+//                    .fixedSize(horizontal: false, vertical: true)
+//                }
+//
+//
+//            }
+//        }
+//        //.glassEffect(in: .rect(cornerRadius: 15))
+//        //.padding(.top, 30)
+//        //.padding([.horizontal, .bottom], 15)
+//        .background {
+//            RoundedRectangle(cornerRadius: 25)
+//                .opacity(0)
+//                #if os(iOS)
+//                .glassEffect(.regular, in: .rect(cornerRadius: 25))
+//                #endif
+//                //.glassEffect(in: .rect(cornerRadius: 15))
+//                //.fill(.ultraThickMaterial)
+//                .padding(.top, 30)
+//        }
+//        .frame(maxWidth: 310)
+//        .compositingGroup()
+//    }
+//}
+//
+//
+
+

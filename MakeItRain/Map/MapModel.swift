@@ -52,7 +52,6 @@ class MapModel: NSObject {
     
     
     func getAutoCompletions(for text: String) {
-        print("-- \(#function)")
         if blockCompletion {
             blockCompletion = false
         } else {
@@ -60,7 +59,6 @@ class MapModel: NSObject {
             completer.resultTypes = [.address, .pointOfInterest]
             completer.region = visibleRegion ?? defaultRegion
         }
-        
     }
     
     
@@ -72,7 +70,6 @@ class MapModel: NSObject {
             recentQueries.append(searchQuery)
         }
     }
-    
     
     
     func search(parentID: String, parentType: XrefEnum, useLastQuery: Bool = false) {

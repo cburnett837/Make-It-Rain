@@ -12,38 +12,54 @@ struct TransactionListLine: View {
     
     @Bindable var trans: CBTransaction
     var withDate: Bool = false
+    var withTags: Bool = false
     
     var body: some View {
-        HStack {
-            BusinessLogo(parent: trans.payMethod, fallBackType: .color)
+        HStack(alignment: .circleAndTitle) {
+            BusinessLogo(config: .init(
+                parent: trans.payMethod,
+                fallBackType: .color
+            ))
+            
+            //BusinessLogo(parent: trans.payMethod, fallBackType: .color)
+            .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+            
             VStack(spacing: 2) {
-                HStack {
-                    Text(trans.title)
+                VStack(spacing: 2) {
+                    HStack {
+                        Text(trans.title)
+                        Spacer()
+                        amount
+                    }
+                    .overlay { ExcludeFromTotalsLine(trans: trans) }
                     
-                    Spacer()
-                    
-                    Group {
-                        if trans.payMethod?.accountType == .credit || trans.payMethod?.accountType == .loan {
-                            Text((trans.amount * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                        } else {
-                            Text(trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                    HStack {
+                        category
+                        Spacer()
+                        if withDate {
+                            date
                         }
                     }
+                    .overlay { ExcludeFromTotalsLine(trans: trans) }
                 }
-                .overlay { ExcludeFromTotalsLine(trans: trans) }
-                                
-                HStack {
-                    category
-                    Spacer()
-                    if withDate { date }
+                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                
+                if withTags && !trans.tags.isEmpty {
+                    tags
                 }
-                .overlay { ExcludeFromTotalsLine(trans: trans) }
             }
             .contentShape(Rectangle())
         }
-        
     }
     
+    @ViewBuilder
+    var amount: some View {
+        if trans.payMethod?.accountType == .credit || trans.payMethod?.accountType == .loan {
+            Text((trans.amount * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+        } else {
+            Text(trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+        }
+    }
     
     var category: some View {
         HStack(spacing: 4) {
@@ -62,5 +78,19 @@ struct TransactionListLine: View {
         Text(trans.prettyDate ?? "N/A")
             .foregroundStyle(.gray)
             .font(.caption)
+    }
+    
+    var tags: some View {
+        TagLayout(alignment: .leading, spacing: 5) {
+            ForEach(trans.tags.sorted(by: { $0.tag < $1.tag })) { tag in
+                Text("#\(tag.tag)")
+                    .foregroundStyle(.gray)
+                    .font(.caption)
+                    .padding(4)
+                    .background(Color(.systemGray4))
+                    .cornerRadius(6)
+                    .overlay { ExcludeFromTotalsLine(trans: trans) }
+            }
+        }
     }
 }

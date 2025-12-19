@@ -10,9 +10,6 @@ import SwiftUI
 
 #if os(iOS)
 struct LineItemMiniView: View {
-    //@Local(\.incomeColor) var incomeColor
-    //@Local(\.useWholeNumbers) var useWholeNumbers
-    
     @Environment(\.colorScheme) var colorScheme
     @Environment(CalendarModel.self) private var calModel
     @Environment(CalendarProps.self) private var calProps
@@ -25,7 +22,7 @@ struct LineItemMiniView: View {
     var incomeColor: String
     var useWholeNumbers: Bool
             
-    @State private var transEditID: String?
+    //@State private var transEditID: String?
     @State private var labelWidth: CGFloat = 20.0
     @State private var showDeleteAlert = false
     @State private var hilightMe = false
@@ -63,52 +60,29 @@ struct LineItemMiniView: View {
     var categoryColor: Color {
         (trans.category?.isNil ?? false) ? .gray : trans.category?.color ?? .gray
     }
-    
-    
+        
     var opacity: Double {
         switch trans.status {
         case .editing, .none: 1
         case .inFlight, .dummy, .saveSuccess, .saveFail, .deleteSucceess: 0.3
         }
     }
-//
-//
-//    enum CheckState {
-//        case normal
-//        case pending
-//        case success
-//        case fail
-//        case restoring
-//    }
-//
-//    @State private var status: CheckState = .normal
-
-#warning("REGARDING HITCH: All I did here was pull the appstorage properties up to the day view, and made the transaction sheet local.")
+    
+    //#warning("REGARDING HITCH: All I did here was pull the appstorage properties up to the day view, and made the transaction sheet local.")
     var body: some View {
-        let _ = Self._printChanges()
+        //let _ = Self._printChanges()
         @Bindable var calModel = calModel
         @Bindable var calProps = calProps
         Group {
-            //Text("hey")
-            //Text(trans.action.rawValue)
             detailsLineItem
                 .opacity(opacity)
-                .transition(.opacity)
+                .transition(.scale)
                 .overlay(alignment: .center) { overlayView }
-                //.transition(.opacity)
-                //.frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 2)
-                /// Ignore the transHeight variable until it has been fully calculated, and the apply it.
-                /// As Per ChatGPT:
-                /// The issue you’re encountering is likely due to the timing of how SwiftUI resolves layout constraints. The subviews are being resized before the maximum size has been properly determined because the frame modifier is applied too early in the layout process.
-                /// To fix this, you can ensure the maximum size is only applied after all views have been measured by delaying the application of the frame modifier until the maximum size is fully resolved.
-                //.frame(height: transHeight > 0 ? transHeight : nil)
                 .background(RoundedRectangle(cornerRadius: 4).fill(lineColor))
-                //.transMaxViewHeightObserver()
-            //let _ = print("transHeight: \(transHeight)")
         }
         .padding(.horizontal, 0)
-        .contentShape(Rectangle())
+        .contentShape(.rect)
         .allowsHitTesting(phoneLineItemDisplayItem == .both)
 //        .if(phoneLineItemDisplayItem == .both) {
 //            $0
@@ -132,67 +106,18 @@ struct LineItemMiniView: View {
 //        }
         
         .fixedSize(horizontal: false, vertical: true)
-//        .onChange(of: trans.status) {
-//            if $1 == nil { return }
-//            if $1 == .saveSuccess || $1 == .saveFail || $1 == .deleteSucceess {
-//                //runCheckmarkAnimation(status: $1!)
-//                
-//                resetCheckmark()
-//            }
-//        }
-//        .task {
-//            if trans.status != nil {
-//                trans.status = nil
-//            }
-//        }
-        .transactionEditSheetAndLogic(
-            transEditID: $transEditID,
-            //day: day,
-            selectedDay: $calProps.selectedDay,
-            findTransactionWhere: .constant(.normalList),
-            presentTip: true,
-            resetSelectedDayOnClose: true
-        ) { didSave in
-//            withAnimation {
-//                hilightMe = false
-//            }
-            
-        }
+        /// Note about `transactionEditSheetAndLogic()`.
+        /// If you move the transaction sheet here, if the date changes via the long poll, the sheet will close.
+        /// If performance issues arise due to the `calProps.tranEditID` binding, and the sheet must be moved here, finish fleshing out the `trans.dateChangeViaLongPoll` idea.
+        /// That essentially will tell the model that the transaction has to be moved from one day to another when the sheet closes.
+//        .transactionEditSheetAndLogic(
+//            transEditID: $calProps.transEditID,
+//            selectedDay: $calProps.selectedDay,
+//            findTransactionWhere: .constant(.normalList),
+//            resetSelectedDayOnClose: true
+//        )
     }
     
-    
-//    @ViewBuilder
-//    var overlayView: some View {
-//        switch trans.status {
-//        case nil, .dummy:
-//            EmptyView()
-//
-//        case .editing, .inFlight:
-//            //EmptyView()
-////            ProgressView()
-////                .tint(.none)
-//
-//            Image(systemName: "arrow.triangle.2.circlepath")
-//                .foregroundStyle(.gray)
-//                .contentTransition(.symbolEffect(.replace))
-//                //.opacity(funcModel.isLoading ? 0 : 1)
-//                .symbolEffect(.rotate, options: SymbolEffectOptions.repeat(.continuous).speed(3))
-//
-//        case .saveSuccess:
-//            Image(systemName:"checkmark.circle")
-//                .contentTransition(.symbolEffect(.replace))
-//                .symbolRenderingMode(.palette)
-//                .transition(.symbolEffect(.drawOn.byLayer))
-//                .foregroundStyle(Color.primary, Color.green.gradient)
-//
-//        case .saveFail:
-//            Image(systemName: "exclamationmark.triangle")
-//                .contentTransition(.symbolEffect(.replace))
-//                .symbolRenderingMode(.palette)
-//                .transition(.symbolEffect(.drawOn.byLayer))
-//                .foregroundStyle(Color.primary, Color.orange.gradient)
-//        }
-//    }
     
     
     @ViewBuilder
@@ -283,8 +208,9 @@ struct LineItemMiniView: View {
     
     
     var notificationIndicator: some View {
-        Image(systemName: "alarm")
+        Image(systemName: "bell.badge")
             .foregroundStyle(.primary)
+            .symbolRenderingMode(.multicolor)
             //.font(.caption2)
             .font(.system(size: 10))
     }
@@ -353,12 +279,7 @@ struct LineItemMiniView: View {
     var totalText: some View {
         Group {
             if useWholeNumbers && tightenUpEodTotals {
-                
-                //Text(trans.amountString.replacing("$", with: "").replacing(",", with: ""))
-                
                 Text(trans.amount.currencyWithDecimals(0).replacing("$", with: "").replacing(",", with: ""))
-                
-                //Text("\(String(format: "%.00f", trans.amount).replacing("$", with: "").replacing(",", with: ""))")
                 
             } else if useWholeNumbers {
                 Text(trans.amount.currencyWithDecimals(0))
@@ -381,70 +302,30 @@ struct LineItemMiniView: View {
             .padding(6)
             .background(Capsule().fill(categoryColor))
     }
-    
-    
-//    func resetCheckmark() {
-//        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-//            /// This triggers drawOff (reverse of drawOn)
-//            withAnimation(.easeOut(duration: 0.8)) {
-//                trans.status = .dummy
-//            }
-//            
-//            /// STEP 3 — Wait for drawOff to finish (~0.6s)
-//            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-//                withAnimation(.easeOut(duration: 0.6)) {
-//                    trans.status = nil
-//                    
-//                    if trans.action == .delete {
-//                        day.remove(trans)
-//                        let _ = calModel.calculateTotal(for: calModel.sMonth)
-//                    }
-//                }
-//            }
-//        }
-//    }
-    
-//    func runCheckmarkAnimation(status: ObjectStatus) {
-//        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-//            // This triggers drawOff (reverse of drawOn)
-//            withAnimation(.easeOut(duration: 0.6)) {
-//                self.status = .restoring
-//            }
-//
-//            // STEP 3 — Wait for drawOff to finish (~0.6s)
-//            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-//                withAnimation(.easeOut(duration: 0.6)) {
-//                    self.status = .normal
-//                }
-//            }
-//        }
-//    }
-    
+   
     
     func selectTrans() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+        //DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
             trans.status = .editing
-        }
+        //}
         /// Prevent a transaction from being opened while another one is trying to save.
-        if calModel.editLock { return }
+        //if calModel.editLock { return }
                         
         if calModel.isInMultiSelectMode {
             if calModel.multiSelectTransactions.map({ $0.id }).contains(trans.id) {
-                calModel.multiSelectTransactions.removeAll(where: {$0.id == trans.id})
+                calModel.multiSelectTransactions.removeAll { $0.id == trans.id }
             } else {
                 calModel.multiSelectTransactions.append(trans)
             }
         } else {
             //calModel.hilightTrans = trans
             hilightMe = true
-            transEditID = trans.id
-            
-            
-            
+            calProps.transEditID = trans.id
+                         
+            /// Remove the hilight so we don't see it animate away when we close the transaction.
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 hilightMe = false
             }
-            
         }
     }
 }

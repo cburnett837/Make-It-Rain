@@ -8,8 +8,13 @@
 import Foundation
 struct ChartData: Identifiable {
     var id: String { return category.id }
+    
     let category: CBCategory
-    var budget: Double
+    var budgetForCategory: Double
+    
+    let categoryGroup: CBCategoryGroup?
+    var budgetForCategoryGroup: Double?
+    
     var income: Double
     var incomeMinusPayments: Double
     var expenses: Double

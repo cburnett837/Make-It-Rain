@@ -209,14 +209,13 @@ struct TempTransactionList: View {
         let context = DataManager.shared.createContext()
         await context.perform {
             if let entity = DataManager.shared.getOne(context: context, type: TempTransaction.self, predicate: .byId(.string(trans.id)), createIfNotFound: true) {
-                
                 entity.id = trans.id
                 entity.title = trans.title
                 entity.amount = trans.amount
                 entity.payMethodID = trans.payMethod?.id ?? "0"
                 entity.categoryID = trans.category?.id ?? "0"
                 entity.date = trans.date
-                entity.notes = trans.notes
+                entity.notes = String(trans.notes.characters)
                 entity.hexCode = trans.color.toHex()
                 //entity.hexCode = trans.color.description
                 //entity.tags = trans.tags

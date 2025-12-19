@@ -9,27 +9,6 @@ import SwiftUI
 import Charts
 import LocalAuthentication
 
-//struct PayMethodCharts: View {
-//    @Bindable var payMethod: CBPaymentMethod
-//    @Bindable var viewModel: PayMethodViewModel
-//    
-//    var body: some View {
-//        if payMethod.action == .add {
-//            ContentUnavailableView("Insights are not available when adding a new account", systemImage: "square.stack.3d.up.slash.fill")
-//        } else {
-//            //VStack {
-//                PayMethodDashboard(vm: viewModel, payMethod: payMethod)
-//            //}
-//            .opacity(viewModel.isLoadingHistory ? 0 : 1)
-//            .overlay {
-//                ProgressView("Loading Insights…")
-//                    .tint(.none)
-//                    .opacity(viewModel.isLoadingHistory ? 1 : 0)
-//            }
-//            .focusable(false)
-//        }
-//    }
-//}
 struct PayMethodEditView: View {
     enum Offset: Int {
         case dayBack0 = 0
@@ -44,6 +23,7 @@ struct PayMethodEditView: View {
         case year4 = 4
         case year5 = 5
     }
+    
     @Local(\.incomeColor) var incomeColor
     @Local(\.useWholeNumbers) var useWholeNumbers
     @AppStorage("selectedPaymentMethodTab") var selectedTab: DetailsOrInsights = .details
@@ -52,7 +32,6 @@ struct PayMethodEditView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
     @Environment(CalendarModel.self) private var calModel
-    @Environment(EventModel.self) private var eventModel
     @Environment(PayMethodModel.self) private var payModel
     @Environment(PlaidModel.self) private var plaidModel
 
@@ -83,14 +62,10 @@ struct PayMethodEditView: View {
     
     
     var title: String {
-        if selectedTab == .details {
-            if payMethod.isUnified {
-                payMethod.title
-            } else {
-                payMethod.action == .add ? "New Account" : "Edit Account"
-            }
-        } else {
+        if payMethod.isUnified {
             payMethod.title
+        } else {
+            payMethod.action == .add ? "New Account" : "Edit Account"
         }
     }
         
@@ -110,75 +85,10 @@ struct PayMethodEditView: View {
             #if os(iOS)
             NavigationStack {
                 editPagePhone
-//                VStack {
-//                    if payMethod.isUnified {
-//                        chartPage
-//                    } else {
-//                        VStack {
-//                            pagePicker
-//                            
-//                            if selectedTab == .details {
-//                                editPagePhone
-//                            } else {
-//                                chartPage
-//                            }
-//                        }
-//                    }
-//                }
-                .background(Color(.systemBackground)) // force matching
-                .navigationTitle(title)
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        GlassEffectContainer {
-                            if selectedTab == .insights {
-                                refreshButton
-                                    .glassEffectID("refresh", in: namespace)
-//                                PaymentMethodChartStyleMenu(vm: viewModel)
-//                                    .glassEffectID("style", in: namespace)
-                                
-                            } else {
-                                if !payMethod.isUnified {
-                                    deleteButton
-                                        .glassEffectID("delete", in: namespace)
-                                }
-                            }
-                        }
-                    }
-                    
-                    if selectedTab == .insights {
-                        ToolbarSpacer(.fixed, placement: .topBarLeading)
-                        
-                        ToolbarItem(placement: .topBarLeading) {
-                            GlassEffectContainer {
-                                PaymentMethodChartStyleMenu(vm: viewModel)
-                                    .glassEffectID("style", in: namespace)
-//                                refreshButton
-//                                    .glassEffectID("refresh", in: namespace)
-                            }
-                        }
-                    } else {
-                        ToolbarSpacer(.fixed, placement: .topBarLeading)
-                        
-                        ToolbarItem(placement: .topBarLeading) {
-                            GlassEffectContainer {
-                                if (payMethod.accountType == .credit || payMethod.accountType == .loan) && payMethod.dueDate != nil {
-                                    notificationButton.disabled(payMethod.isUnified)
-                                        .glassEffectID("notify", in: namespace)
-                                }
-                            }
-                        }
-                    }
-                    
-                    ToolbarItem(placement: .topBarTrailing) {
-                        AnimatedCloseButton(isValidToSave: isValidToSave, closeButton: closeButton)
-                    }
-                    
-                    ToolbarItem(placement: .bottomBar) {
-                        EnteredByAndUpdatedByView(enteredBy: payMethod.enteredBy, updatedBy: payMethod.updatedBy, enteredDate: payMethod.enteredDate, updatedDate: payMethod.updatedDate)
-                    }
-                    .sharedBackgroundVisibility(.hidden)
-                }
+                    .background(Color(.systemBackground)) // force matching
+                    .navigationTitle(title)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar { toolbar }
             }
             
             #else
@@ -201,17 +111,35 @@ struct PayMethodEditView: View {
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
         .task { await prepareView() }
     }
+       
     
-    var pagePicker: some View {
-        Picker("",selection: $selectedTab.animation(pickerAnimation)) {
-            Text("Details")
-                .tag(DetailsOrInsights.details)
-            Text("Insights")
-                .tag(DetailsOrInsights.insights)
+    @ToolbarContentBuilder
+    var toolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            if !payMethod.isUnified {
+                deleteButton
+                    .glassEffectID("delete", in: namespace)
+            }
         }
-        .labelsHidden()
-        .pickerStyle(.segmented)
-        .scenePadding(.horizontal)
+                
+        ToolbarSpacer(.fixed, placement: .topBarLeading)
+        
+        ToolbarItem(placement: .topBarLeading) {
+            if (payMethod.accountType == .credit || payMethod.accountType == .loan) && payMethod.dueDate != nil {
+                notificationButton.disabled(payMethod.isUnified)
+                    .glassEffectID("notify", in: namespace)
+            }
+        }
+        
+        ToolbarItem(placement: .topBarTrailing) {
+            AnimatedCloseButton(isValidToSave: isValidToSave, closeButton: closeButton)
+        }
+        
+        ToolbarItem(placement: .bottomBar) {
+            EnteredByAndUpdatedByView(enteredBy: payMethod.enteredBy, updatedBy: payMethod.updatedBy, enteredDate: payMethod.enteredDate, updatedDate: payMethod.updatedDate)
+        }
+        .sharedBackgroundVisibility(.hidden)
+
     }
     
     
@@ -224,9 +152,12 @@ struct PayMethodEditView: View {
         }
             
         Section {
+            accountHolders
             typeRowPhone
             colorRow
-            logoRow
+            
+            LogoPickerRow(parent: payMethod, parentType: .paymentMethod, fallbackType: payMethod.isUnified ? .gradient : .color)
+            
             if payMethod.accountType == .checking || payMethod.accountType == .credit {
                 last4Row
             }
@@ -283,81 +214,81 @@ struct PayMethodEditView: View {
     
     
     
-    var editPagePhoneOG: some View {
-        StandardContainerWithToolbar(.list) {
-            
-            
-            //BigBusinessLogo(parent: payMethod, fallBackType: payMethod.isUnified ? .gradient : .color)
-            
-            Section("Title") {
-                titleRow
-            }
-            
-            Section {
-                typeRowPhone
-                colorRow
-                logoRow
-                if payMethod.accountType == .checking || payMethod.accountType == .credit {
-                    last4Row
-                }
-            } header: {
-                Text("Details")
-            } footer: {
-                if payMethod.accountType == .checking || payMethod.accountType == .credit {
-                    Text("If you wish to use the smart receipt feature offered by ChatGPT, enter the last 4 digits of your card information. If not, you can leave this field blank.")
-                        .validate(payMethod.last4 ?? "", rules: .regex(.onlyNumbers, "Only numbers are allowed"))
-                }
-            }
-
-            
-            
-//            if payMethod.accountType == .checking || payMethod.accountType == .credit {
-//                Section {
+//    var editPagePhoneOG: some View {
+//        StandardContainerWithToolbar(.list) {
+//            
+//            
+//            //BigBusinessLogo(parent: payMethod, fallBackType: payMethod.isUnified ? .gradient : .color)
+//            
+//            Section("Title") {
+//                titleRow
+//            }
+//            
+//            Section {
+//                typeRowPhone
+//                colorRow
+//                logoRow
+//                if payMethod.accountType == .checking || payMethod.accountType == .credit {
 //                    last4Row
-//                } footer: {
+//                }
+//            } header: {
+//                Text("Details")
+//            } footer: {
+//                if payMethod.accountType == .checking || payMethod.accountType == .credit {
 //                    Text("If you wish to use the smart receipt feature offered by ChatGPT, enter the last 4 digits of your card information. If not, you can leave this field blank.")
 //                        .validate(payMethod.last4 ?? "", rules: .regex(.onlyNumbers, "Only numbers are allowed"))
 //                }
 //            }
-            
-            if payMethod.accountType == .credit || payMethod.accountType == .loan {
-                Section("Credit Details") {
-                    dueDateRow
-                    limitRow
-                    interestRateRow
-                    if payMethod.accountType == .loan {
-                        loanDurationRow
-                    }
-                }
-            }
-            
-            if (payMethod.accountType == .credit || payMethod.accountType == .loan) && payMethod.dueDate != nil && payMethod.notifyOnDueDate {
-                Section {
-                    reminderRow
-                } footer: {
-                    Text("Alerts will be sent out at 9:00 AM")
-                }
-            }
-                                    
-            if !payMethod.isUnified {
-                Section {
-                    isPrivateRow
-                } footer: {
-                    Text("Transactions, Search Results, Etc. belonging to this account will only be visible to you.")
-                }
-                
-                Section {
-                    isHiddenRow
-                } footer: {
-                    Text("Hide this account from **my** menus. (This will not delete any data).")
-                }
-            }
 //
-//            Section {
-//                colorRow
+//            
+//            
+////            if payMethod.accountType == .checking || payMethod.accountType == .credit {
+////                Section {
+////                    last4Row
+////                } footer: {
+////                    Text("If you wish to use the smart receipt feature offered by ChatGPT, enter the last 4 digits of your card information. If not, you can leave this field blank.")
+////                        .validate(payMethod.last4 ?? "", rules: .regex(.onlyNumbers, "Only numbers are allowed"))
+////                }
+////            }
+//            
+//            if payMethod.accountType == .credit || payMethod.accountType == .loan {
+//                Section("Credit Details") {
+//                    dueDateRow
+//                    limitRow
+//                    interestRateRow
+//                    if payMethod.accountType == .loan {
+//                        loanDurationRow
+//                    }
+//                }
 //            }
-        }
-    }
+//            
+//            if (payMethod.accountType == .credit || payMethod.accountType == .loan) && payMethod.dueDate != nil && payMethod.notifyOnDueDate {
+//                Section {
+//                    reminderRow
+//                } footer: {
+//                    Text("Alerts will be sent out at 9:00 AM")
+//                }
+//            }
+//                                    
+//            if !payMethod.isUnified {
+//                Section {
+//                    isPrivateRow
+//                } footer: {
+//                    Text("Transactions, Search Results, Etc. belonging to this account will only be visible to you.")
+//                }
+//                
+//                Section {
+//                    isHiddenRow
+//                } footer: {
+//                    Text("Hide this account from **my** menus. (This will not delete any data).")
+//                }
+//            }
+////
+////            Section {
+////                colorRow
+////            }
+//        }
+//    }
     
     
     
@@ -413,7 +344,6 @@ struct PayMethodEditView: View {
     }
                 
     
-    // MARK: - Title
     var titleRow: some View {
         #if os(iOS)
         HStack(spacing: 0) {
@@ -445,8 +375,6 @@ struct PayMethodEditView: View {
     }
     
     
-        
-    // MARK: - Type
     var typeRowMac: some View {
         LabeledRow("Type", labelWidth) {
             StandardRectangle {
@@ -484,6 +412,22 @@ struct PayMethodEditView: View {
     }
     
     
+    var accountHolders: some View {
+        NavigationLink {
+            AccountHolders(payMethod: payMethod)
+        } label: {
+            Label {
+                Text("Account Holders")
+            } icon: {
+                Image(systemName: "person.2")
+                    .foregroundStyle(.gray)
+            }
+
+        }
+
+    }
+    
+    
     var typeRowPhone: some View {
         Picker(selection: $payMethod.accountType) {
             Section {
@@ -515,9 +459,7 @@ struct PayMethodEditView: View {
         .tint(.secondary)
     }
     
-    
-    
-    // MARK: - Last 4
+
     var last4Row: some View {
         #if os(iOS)
         HStack {
@@ -552,9 +494,7 @@ struct PayMethodEditView: View {
         #endif
     }
     
-    
-    
-    // MARK: - Due Date
+        
     var dueDateRow: some View {
         Group {
             #if os(iOS)
@@ -601,9 +541,7 @@ struct PayMethodEditView: View {
         }
     }
     
-    
-    
-    // MARK: - Limit
+        
     @ViewBuilder
     var limitRow: some View {
         Group {
@@ -650,9 +588,7 @@ struct PayMethodEditView: View {
         
     }
     
-    
-    
-    // MARK: - Interest Rate
+        
     @ViewBuilder
     var interestRateRow: some View {
         #if os(iOS)
@@ -688,8 +624,6 @@ struct PayMethodEditView: View {
     }
     
     
-    
-    // MARK: - Loan Duration
     @ViewBuilder
     var loanDurationRow: some View {
         #if os(iOS)
@@ -730,10 +664,8 @@ struct PayMethodEditView: View {
         }
         #endif
     }
-    
-    
-    
-    // MARK: - Is Private
+            
+
     var isPrivateRow: some View {
         #if os(iOS)
         Toggle(isOn: $payMethod.isPrivate.animation()) {
@@ -759,8 +691,6 @@ struct PayMethodEditView: View {
     }
     
    
-    
-    // MARK: - Is Hidden
     var isHiddenRow: some View {
         #if os(iOS)
         Toggle(isOn: $payMethod.isHidden.animation()) {
@@ -786,8 +716,6 @@ struct PayMethodEditView: View {
     }
  
     
-    
-    // MARK: - Reminder
     var reminderRow: some View {
         #if os(iOS)
         
@@ -814,8 +742,6 @@ struct PayMethodEditView: View {
     }
     
     
-    
-    // MARK: - Color
     var colorRow: some View {
         #if os(iOS)
         Button {
@@ -854,58 +780,64 @@ struct PayMethodEditView: View {
     }
     
     
-    // MARK: - Logo
-   @ViewBuilder var logoRow: some View {
-        #if os(iOS)
-        Group {
-            if payMethod.logo == nil {
-                Button {
-                    showLogoSearchPage = true
-                } label: {
-                    logoLabel
-                }
-            } else {
-                Menu {
-                    Button("Clear Logo") { payMethod.logo = nil }
-                    Button("Change Logo") { showLogoSearchPage = true }
-                } label: {
-                    logoLabel
-                }
-            }
-        }
-        .sheet(isPresented: $showLogoSearchPage) {
-            LogoSearchPage(parent: payMethod, parentType: .paymentMethod)
-        }
-        
-        #else
-        LabeledRow("Color", labelWidth) {
-            HStack {
-                ColorPicker("", selection: $payMethod.color, supportsOpacity: false)
-                    .labelsHidden()
-                Capsule()
-                    .fill(payMethod.color)
-                    .onTapGesture {
-                        AppState.shared.showToast(title: "Color Picker", subtitle: "Click the circle to the left to change the color.", body: nil, symbol: "theatermask.and.paintbrush", symbolColor: payMethod.color)
-                    }
-            }
-        }
-        #endif
-    }
-    
-    var logoLabel: some View {
-        HStack {
-            Label {
-                Text("Logo")
-                    .schemeBasedForegroundStyle()
-            } icon: {
-                Image(systemName: "circle.hexagongrid")
-                    .foregroundStyle(.gray)
-            }
-            Spacer()
-            //StandardColorPicker(color: $payMethod.color)
-            BusinessLogo(parent: payMethod, fallBackType: payMethod.isUnified ? .gradient : .color)
-        }
-    }
+//    @ViewBuilder
+//    var logoRow: some View {
+//        #if os(iOS)
+//        Group {
+//            if payMethod.logo == nil {
+//                Button {
+//                    showLogoSearchPage = true
+//                } label: {
+//                    logoLabel
+//                }
+//            } else {
+//                Menu {
+//                    Button("Clear Logo") { payMethod.logo = nil }
+//                    Button("Change Logo") { showLogoSearchPage = true }
+//                } label: {
+//                    logoLabel
+//                }
+//            }
+//        }
+//        .sheet(isPresented: $showLogoSearchPage) {
+//            LogoSearchPage(parent: payMethod, parentType: .paymentMethod)
+//        }
+//        
+//        #else
+//        LabeledRow("Color", labelWidth) {
+//            HStack {
+//                ColorPicker("", selection: $payMethod.color, supportsOpacity: false)
+//                    .labelsHidden()
+//                Capsule()
+//                    .fill(payMethod.color)
+//                    .onTapGesture {
+//                        AppState.shared.showToast(title: "Color Picker", subtitle: "Click the circle to the left to change the color.", body: nil, symbol: "theatermask.and.paintbrush", symbolColor: payMethod.color)
+//                    }
+//            }
+//        }
+//        #endif
+//    }
+//    
+//    
+//    var logoLabel: some View {
+//        HStack {
+//            Label {
+//                Text("Logo")
+//                    .schemeBasedForegroundStyle()
+//            } icon: {
+//                Image(systemName: "circle.hexagongrid")
+//                    .foregroundStyle(.gray)
+//            }
+//            Spacer()
+//            //StandardColorPicker(color: $payMethod.color)
+//            BusinessLogo(config: .init(
+//                parent: payMethod,
+//                fallBackType: payMethod.isUnified ? .gradient : .color
+//            ))
+//            
+//            //BusinessLogo(parent: payMethod, fallBackType: payMethod.isUnified ? .gradient : .color)
+//        }
+//    }
     
         
     
@@ -927,26 +859,24 @@ struct PayMethodEditView: View {
         }
     }
 
-    var profitLossText: String { payMethod.isCredit ? "Available Balance": "Profit/Loss" }
-    var incomeText: String { payMethod.isCredit ? "Income / Refunds": "Income / Refunds / Deposits" }
 
-    @ViewBuilder
-    var chartPage: some View {
-        if payMethod.action == .add {
-            ContentUnavailableView("Insights are not available when adding a new account", systemImage: "square.stack.3d.up.slash.fill")
-        } else {
-            VStack {
-                PayMethodDashboard(vm: viewModel, payMethod: payMethod)
-            }
-            .opacity(viewModel.isLoadingHistory ? 0 : 1)
-            .overlay {
-                ProgressView("Loading Insights…")
-                    .tint(.none)
-                    .opacity(viewModel.isLoadingHistory ? 1 : 0)
-            }
-            .focusable(false)
-        }
-    }
+//    @ViewBuilder
+//    var chartPage: some View {
+//        if payMethod.action == .add {
+//            ContentUnavailableView("Insights are not available when adding a new account", systemImage: "square.stack.3d.up.slash.fill")
+//        } else {
+//            VStack {
+//                PayMethodDashboard(vm: viewModel, payMethod: payMethod)
+//            }
+//            .opacity(viewModel.isLoadingHistory ? 0 : 1)
+//            .overlay {
+//                ProgressView("Loading Insights…")
+//                    .tint(.none)
+//                    .opacity(viewModel.isLoadingHistory ? 1 : 0)
+//            }
+//            .focusable(false)
+//        }
+//    }
     
     
     
@@ -1093,14 +1023,126 @@ struct PayMethodEditView: View {
     }
     
     
+    private struct AccountHolders: View {
+        @Bindable var payMethod: CBPaymentMethod
+        
+        var body: some View {
+            NavigationStack {
+                List {
+                    Section("Primary") {
+                        holderLine(id: 1, isPrimary: true)
+                    }
+                    Section("Secondary") {
+                        holderLine(id: 2, isPrimary: false)
+                        holderLine(id: 3, isPrimary: false)
+                        holderLine(id: 4, isPrimary: false)
+                    }
+                }
+                .navigationTitle("Account Holders")
+            }
+        }
+        
+        @ViewBuilder func holderLine(id: Int, isPrimary: Bool) -> some View {
+            HStack {
+                
+                let user: CBUser? = switch id {
+                case 1:
+                    payMethod.holderOne
+                case 2:
+                    payMethod.holderTwo
+                case 3:
+                    payMethod.holderThree
+                case 4:
+                    payMethod.holderFour
+                default:
+                    nil
+                }
+                
+                if let user = user {
+                    UserAvatar(user: user)
+                } else {
+                    Image(systemName: "person.crop.circle")
+                        .foregroundStyle(.gray)
+                }
+                
+                
+                accountUsersMenu(id: id)
+                Spacer()
+            }
+        }
+         
+        @ViewBuilder func accountUsersMenu(id: Int) -> some View {
+            Menu {
+                let users = AppState.shared
+                .accountUsers
+                .filter {
+                    payMethod.holderOne != $0
+                    && payMethod.holderTwo != $0
+                    && payMethod.holderThree != $0
+                    && payMethod.holderFour != $0
+                }
+                
+                Section {
+                    Button("None") {
+                        switch id {
+                        case 1:
+                            payMethod.holderOne = nil
+                            payMethod.holderOneType = nil
+                        case 2:
+                            payMethod.holderTwo = nil
+                            payMethod.holderTwoType = nil
+                        case 3:
+                            payMethod.holderThree = nil
+                            payMethod.holderThreeType = nil
+                        case 4:
+                            payMethod.holderFour = nil
+                            payMethod.holderFourType = nil
+                        default:
+                            break
+                        }
+                    }
+                }
+                
+                
+                ForEach(users) { user in
+                    Button(user.name) {
+                        switch id {
+                        case 1:
+                            payMethod.holderOne = user
+                            payMethod.holderOneType = XrefModel.getItem(from: .paymentMethodHolderTypes, byEnumID: .primary)
+                        case 2:
+                            payMethod.holderTwo = user
+                            payMethod.holderTwoType = XrefModel.getItem(from: .paymentMethodHolderTypes, byEnumID: .secondary)
+                        case 3:
+                            payMethod.holderThree = user
+                            payMethod.holderThreeType = XrefModel.getItem(from: .paymentMethodHolderTypes, byEnumID: .secondary)
+                        case 4:
+                            payMethod.holderFour = user
+                            payMethod.holderFourType = XrefModel.getItem(from: .paymentMethodHolderTypes, byEnumID: .secondary)
+                        default:
+                            break
+                        }
+                    }
+                }
+            } label: {
+                let text: String? = switch id {
+                case 1: payMethod.holderOne?.name
+                case 2: payMethod.holderTwo?.name
+                case 3: payMethod.holderThree?.name
+                case 4: payMethod.holderFour?.name
+                default: nil
+                }
+                
+                Text(text ?? "Select Person")
+                    .foregroundStyle(Color.theme)
+            }
+        }
+    }
+    
     
     
     // MARK: - Functions
-    func prepareView() async {        
-        if payMethod.isUnified {
-            selectedTab = .insights
-        }
-        
+    func prepareView() async {
         payMethod.deepCopy(.create)
         /// Just for formatting.
         payMethod.limitString = payMethod.limit?.currencyWithDecimals(useWholeNumbers ? 0 : 2)

@@ -23,6 +23,42 @@ extension UTType {
 //    var amount: Double
 //}
 
+
+enum PrevNext {
+    case prev, next
+}
+
+extension [CBMonth] {
+//    func get(actualNum: Int, year: Int) -> CBMonth? {
+//        first(where: { $0.actualNum == actualNum && $0.year == year })
+//    }
+    
+    func get(by pair: (Int, Int)) -> CBMonth? {
+        first(where: { $0.actualNum == pair.0 && $0.year == pair.1 })
+    }
+    
+    func get(byNum num: Int) -> CBMonth? {
+        first(where: { $0.num == num })
+    }
+    
+    func get(byEnumId enumId: NavDestination) -> CBMonth {
+        first(where: { $0.enumID == enumId })!
+    }
+    
+    func getDay(by date: Date) -> CBDay? {
+        first(where: { $0.actualNum == date.month && $0.year == date.year })?.getDay(by: date)
+    }
+    
+    func getAdjacent(num: Int, direction: PrevNext) -> CBMonth? {
+        switch direction {
+        case .prev:
+            first(where: { $0.num == num + 1 })
+        case .next:
+            first(where: { $0.num == num - 1 })
+        }
+    }
+}
+
 @Observable
 class CBMonth: Identifiable, Hashable, Equatable, Encodable {
     var id: UUID = UUID()
@@ -38,7 +74,37 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
     var days: Array<CBDay> = []
     var startingAmounts: Array<CBStartingAmount> = []
     var budgets: Array<CBBudget> = []
+    var budgetGroups: Array<CBBudget> = []
     var hasBeenPopulated = false
+    /// Control the main spinner that covers the calendar during initial download, and during a user-initiated refresh.
+    /// When refreshing via long poll or scene change, this spinner is ignored.
+    var showCalendarLoadingSpinner = false
+    
+    /// Control the secondary loading spinner. This is used on the insights sheet month picker, for example.
+    /// It should always show when a download is happening - regardless of the download technique.
+    var showSecondaryLoadingSpinner = false
+    
+    
+    var prettyName: String {
+        if (year == 1901 && actualNum == 1) || (year == 1899 && actualNum == 12) || year == 1900 {
+            return "\(self.name) Playground"
+        } else {
+            return "\(self.name) \(String(self.year))"
+        }
+    }
+    
+    func changeLoadingSpinners(toShowing: Bool, includeCalendar: Bool) {
+        if toShowing {
+            if includeCalendar {
+                showCalendarLoadingSpinner = true
+            }
+            showSecondaryLoadingSpinner = true
+        } else {
+            showSecondaryLoadingSpinner = false
+            showCalendarLoadingSpinner = false
+            
+        }
+    }
     
     var legitDays: Array<CBDay> {
         days.filter { !$0.isPlaceholder }
@@ -244,6 +310,7 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
             && lhs.days == rhs.days
             && lhs.startingAmounts == rhs.startingAmounts
             && lhs.budgets == rhs.budgets
+            && lhs.budgetGroups == rhs.budgetGroups
             && lhs.hasBeenPopulated == rhs.hasBeenPopulated
         {
             return true
@@ -253,6 +320,15 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
     
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
+    }
+    
+    
+    func getDay(by date: Date) -> CBDay? {
+        return days.first(where: { $0.date == date })
+    }
+    
+    func getDay(by dayNum: Int) -> CBDay? {
+        return days.first(where: { $0.dateComponents?.day == dayNum })
     }
     
 //    static var empty: CBMonth {
@@ -298,7 +374,7 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
 //        self.year = year
 //    }
 
-    
+    // MARK: - Budgets
     func isExisting(_ budget: CBBudget) -> Bool {
         return !budgets.filter { $0.id == budget.id }.isEmpty
     }
@@ -319,5 +395,5 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
     
     func delete(_ budget: CBBudget) {
         budgets.removeAll(where: { $0.id == budget.id })
-    }        
+    }            
 }

@@ -9,6 +9,30 @@ import Foundation
 import UniformTypeIdentifiers
 import SwiftUI
 
+enum GiftStatus: String, CaseIterable, Identifiable {
+    case idea, purchased, inTransit, inHand, wrapped
+    var id: String { return self.rawValue }
+    var string: String { String(describing: self).capitalized }
+    
+    var prettyValue: String {
+        switch self {
+        case .idea:
+            "Idea"
+        case .purchased:
+            "Bought"
+        case .inTransit:
+            "Shipped"
+        case .inHand:
+            "Have"
+        case .wrapped:
+            "Done"
+        }
+    }
+    
+    //var boughtArray: Array<GiftStatus> { [GiftStatus.purchased, GiftStatus.inTransit, GiftStatus.inHand, GiftStatus.wrapped] }
+}
+
+
 enum ObjectStatus {
     case editing, inFlight, saveSuccess, saveFail, dummy, deleteSucceess
 }
@@ -16,7 +40,7 @@ enum ObjectStatus {
 @Observable
 class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, CanEditTitleWithLocation, CanEditAmount {
     
-#warning("serverID Change")
+    #warning("serverID Change")
     /// This changed affected
     /// ``CBTransaction``
     /// ``CalendarModel``
@@ -67,7 +91,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     }
     var payMethod: CBPaymentMethod?
     var category: CBCategory?
-    var notes: String = ""
+    var notes: AttributedString = ""
     var active: Bool
     var color: Color
     var action: TransactionAction
@@ -87,6 +111,8 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     
     var locations: Array<CBLocation>
     var files: Array<CBFile>?
+    /// Files get uploaded to the server before a record gets saved. So traditionally we just update the files records with the transaction ID when the transaction gets to the server. However, when splitting a transaction, we need to add new files records. This flag tells the server to do that.
+    var duplicateFileRecordsOnDb: Bool = false
     var tags: Array<CBTag>
     
     var notificationOffset: Int? = 0
@@ -99,6 +125,9 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     var orderNumber: String
     var url: String
     var relatedTransactionType: XrefItem?
+    var christmasListGiftID: Int?
+    var christmasListDeletePreference: ChristmasListDeletePreference?
+    var christmasListStatus: GiftStatus?
     
     var isSmartTransaction: Bool?
     var smartTransactionIssue: XrefItem?
@@ -108,6 +137,10 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     var isPaymentDest: Bool
     var isTransferOrigin: Bool
     var isTransferDest: Bool
+    
+    var isOrigin: Bool { isPaymentOrigin || isTransferOrigin }
+    var isDest: Bool { isPaymentDest || isTransferDest }
+    
     
     var isBudgetable: Bool { self.payMethod?.accountType == .cash || self.payMethod?.accountType == .checking }
     var isIncome: Bool { (self.payMethod ?? CBPaymentMethod()).isCreditOrLoan ? self.amount < 0 : self.amount > 0 }
@@ -233,7 +266,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         self.url = entity.url ?? ""
         
         self.date = entity.date
-        self.notes = entity.notes ?? ""
+        self.notes = AttributedString(entity.notes ?? "")
         
         let color = Color.fromHex(entity.hexCode) ?? .primary
         if color == .white || color == .black {
@@ -287,6 +320,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         self.tags = []
         self.locations = []
         self.wasAddedFromPopulate = true
+        self.notes = repTrans.notes
         
         self.isPaymentOrigin = false
         self.isPaymentDest = false
@@ -294,38 +328,6 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         self.isTransferDest = false
         
         //self.undoManager = TransUndoManager(trans: self)
-    }
-    
-    
-    init(eventTrans: CBEventTransaction, relatedID: String) {
-        self.serverID = relatedID
-        self.uuid = relatedID
-        self.relatedTransactionID = eventTrans.id
-        self.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byID: 4)
-        self.title = eventTrans.title
-        self.amountString = eventTrans.amountString
-        //self.action = .add
-        self.factorInCalculations = true
-        self.payMethod = eventTrans.payMethod
-        //self.category = eventTrans.category
-        self.date = eventTrans.date
-        self.color = .primary
-        self.active = true
-        self.enteredDate = Date()
-        self.updatedDate = Date()
-        self.trackingNumber = ""
-        self.orderNumber = ""
-        self.url = ""
-        self.tags = []
-        self.locations = []
-        self.wasAddedFromPopulate = false
-        
-        self.isPaymentOrigin = false
-        self.isPaymentDest = false
-        self.isTransferOrigin = false
-        self.isTransferDest = false
-                
-        self.action = eventTrans.actionForRealTransaction!
     }
     
     
@@ -395,7 +397,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     }
     
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, entered_date, updated_date, files, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, related_transaction_type_id, fit_id, is_smart_transaction, smart_transaction_issue_id, smart_transaction_is_acknowledged, locations, action, is_payment_origin, is_payment_dest, is_transfer_origin, is_transfer_dest, plaid_id }
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, entered_date, updated_date, files, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, related_transaction_type_id, fit_id, is_smart_transaction, smart_transaction_issue_id, smart_transaction_is_acknowledged, locations, action, is_payment_origin, is_payment_dest, is_transfer_origin, is_transfer_dest, plaid_id, duplicate_file_records, christmas_list_gift_id, christmas_list_delete_preference, christmas_list_gift_status }
     
     
     func encode(to encoder: Encoder) throws {
@@ -407,7 +409,12 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         try container.encode(amount, forKey: .amount)
         try container.encode(payMethod, forKey: .payment_method)
         try container.encode(category, forKey: .category)
-        try container.encode(notes, forKey: .notes)
+        
+        let data = try JSONEncoder().encode(notes)
+        let base64 = data.base64EncodedString()
+        try container.encode(base64, forKey: .notes)
+        
+        //try container.encode(notes, forKey: .notes)
         try container.encode(date?.string(to: .serverDate), forKey: .date)
         try container.encode(color.toHex(), forKey: .title_hex_code)
         //try container.encode(color.description, forKey: .title_hex_code)
@@ -421,6 +428,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         try container.encode(enteredDate.string(to: .serverDateTime), forKey: .entered_date) // for the Transferable protocol
         try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date) // for the Transferable protocol
         try container.encode(files, forKey: .files)
+        try container.encode(duplicateFileRecordsOnDb ? 1 : 0, forKey: .duplicate_file_records)
         try container.encode(tags, forKey: .tags)
         try container.encode(locations, forKey: .locations)
         try container.encode(notificationOffset, forKey: .notification_offset)
@@ -445,6 +453,25 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         try container.encode(isPaymentDest ? 1 : 0, forKey: .is_payment_dest)
         try container.encode(isTransferOrigin ? 1 : 0, forKey: .is_transfer_origin)
         try container.encode(isTransferDest ? 1 : 0, forKey: .is_transfer_dest)
+        try container.encode(christmasListGiftID, forKey: .christmas_list_gift_id)
+        try container.encode(christmasListDeletePreference?.rawValue, forKey: .christmas_list_delete_preference)
+        
+        var statusString: String?
+        switch christmasListStatus {
+        case .idea:
+            statusString = "idea"
+        case .purchased:
+            statusString = "purchased"
+        case .inTransit:
+            statusString = "in_transit"
+        case .inHand:
+            statusString = "in_hand"
+        case .wrapped:
+            statusString = "wrapped"
+        case .none:
+            statusString = nil
+        }
+        try container.encode(statusString, forKey: .christmas_list_gift_status)
     }
     
     
@@ -473,7 +500,22 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         
         self.payMethod = try container.decode(CBPaymentMethod?.self, forKey: .payment_method)
         self.category = try container.decode(CBCategory?.self, forKey: .category)
-        self.notes = try container.decode(String?.self, forKey: .notes) ?? ""
+        
+        
+        if let notes = try container.decode(String?.self, forKey: .notes) {
+            do {
+                let notes = try Helpers.decodeAttributedString(from: notes)
+                //print("Settings notes to \(notes)")
+                self.notes = notes
+            } catch {
+                self.notes = AttributedString(stringLiteral: notes)
+            }
+        } else {
+            self.notes = ""
+        }
+        
+        
+        self.christmasListGiftID = try container.decode(Int?.self, forKey: .christmas_list_gift_id)
         
         self.trackingNumber = try container.decode(String?.self, forKey: .tracking_number) ?? ""
         self.orderNumber = try container.decode(String?.self, forKey: .order_number) ?? ""
@@ -502,7 +544,15 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         }
         
         
-        self.notificationOffset = try container.decode(Int?.self, forKey: .notification_offset)
+        //self.notificationOffset = try container.decode(Int?.self, forKey: .notification_offset)
+        
+        let offset = try container.decode(Int?.self, forKey: .notification_offset)
+        if offset == nil {
+            self.notificationOffset = 0
+        } else {
+            self.notificationOffset = offset
+        }
+        
         
         let notifyOnDueDate = try container.decode(Int?.self, forKey: .notify_on_due_date)
         self.notifyOnDueDate = notifyOnDueDate == 1
@@ -618,6 +668,26 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         }
         
         
+        
+        let status = try container.decode(String?.self, forKey: .christmas_list_gift_status)
+        if let status {
+            switch status {
+            case "idea":
+                self.christmasListStatus = GiftStatus.idea
+            case "purchased":
+                self.christmasListStatus = GiftStatus.purchased
+            case "in_transit":
+                self.christmasListStatus = GiftStatus.inTransit
+            case "in_hand":
+                self.christmasListStatus = GiftStatus.inHand
+            case "wrapped":
+                self.christmasListStatus = GiftStatus.wrapped
+            default:
+                self.christmasListStatus = nil
+            }
+        }
+        
+        
         //self.undoManager = TransUndoManager(trans: self)
     }
     
@@ -675,8 +745,11 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     
         
     
-    func hasChanges(shouldLog: Bool = true) -> Bool {
-        //print("-- \(#function) \(function)")
+    func hasChanges(shouldLog: Bool = true, file: String = #file, line: Int = #line, function: String = #function) -> Bool {
+        //print("-- \(#function)")
+        
+        print("-- \(#function) -- Called from: \(file):\(line) : \(function)")
+        
         guard let deepCopy = deepCopy else {
             print("No deepCopy available → assuming changes")
             return true
@@ -737,6 +810,9 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         }
         if self.date != deepCopy.date {
             changes.append("date: \(String(describing: deepCopy.date)) → \(String(describing: self.date))")
+        }
+        if self.christmasListStatus != deepCopy.christmasListStatus {
+            changes.append("gift status: \(String(describing: deepCopy.christmasListStatus)) → \(String(describing: self.christmasListStatus))")
         }
         
         if !changes.isEmpty {
@@ -855,7 +931,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
                 self.log(field: .category, old: deepCopy.category?.id, new: self.category?.id, groupID: groupID)
             }
             if self.notes != deepCopy.notes {
-                self.log(field: .notes, old: deepCopy.notes, new: self.notes, groupID: groupID)
+                self.log(field: .notes, old: String(deepCopy.notes.characters), new: String(self.notes.characters), groupID: groupID)
             }
             if self.factorInCalculations != deepCopy.factorInCalculations {
                 self.log(field: .factorInCalculations, old: deepCopy.factorInCalculations ? "true" : "false", new: self.factorInCalculations ? "true" : "false", groupID: groupID)
@@ -883,6 +959,9 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
             }
             if self.date != deepCopy.date  {
                 self.log(field: .date, old: deepCopy.date?.string(to: .monthDayShortYear), new: self.date?.string(to: .monthDayShortYear), groupID: groupID)
+            }
+            if self.christmasListStatus != deepCopy.christmasListStatus  {
+                self.log(field: .christmasGiftStatus, old: deepCopy.christmasListStatus?.rawValue, new: self.christmasListStatus?.rawValue, groupID: groupID)
             }
         }
     }
@@ -925,6 +1004,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
             copy.active = self.active
             copy.wasAddedFromPopulate = self.wasAddedFromPopulate
             copy.files = self.files
+            copy.christmasListStatus = self.christmasListStatus
             //copy.action = self.action
             self.deepCopy = copy
             
@@ -954,6 +1034,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
                 self.active = deepCopy.active
                 self.wasAddedFromPopulate = deepCopy.wasAddedFromPopulate
                 self.files = deepCopy.files
+                self.christmasListStatus = deepCopy.christmasListStatus
                 //self.action = deepCopy.action
             }
             
@@ -978,6 +1059,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
             deepCopy?.tags = []
             deepCopy?.locations = []
             deepCopy?.wasAddedFromPopulate = false
+            deepCopy?.christmasListStatus = nil
         }
     }
     
@@ -1015,22 +1097,8 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         self.orderNumber = transaction.orderNumber
         self.url = transaction.url
         self.wasAddedFromPopulate = transaction.wasAddedFromPopulate
-    }
-    
-    
-    func setFromEventInstance(eventTrans: CBEventTransaction) {
-        //self.id = transaction.id
-        self.title = eventTrans.title
-        self.amountString = eventTrans.amount.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
-        self.date = eventTrans.date
-        //self.enteredBy = eventTrans.paidBy!
-        //self.updatedBy = eventTrans.paidBy!
-        self.relatedTransactionID = eventTrans.id
-        self.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .eventTransaction)
-        self.payMethod = eventTrans.payMethod
-        //self.category = eventTrans.category
-        self.enteredDate = Date()
-        self.updatedDate = Date()
+        self.christmasListGiftID = transaction.christmasListGiftID
+        self.christmasListStatus = transaction.christmasListStatus
     }
     
 
@@ -1112,6 +1180,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         && lhs.orderNumber == rhs.orderNumber
         && lhs.wasAddedFromPopulate == rhs.wasAddedFromPopulate
         && lhs.url == rhs.url
+        && lhs.christmasListStatus == rhs.christmasListStatus
         {
             return true
         }
@@ -1161,6 +1230,14 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
             print("CANT FIND LOCATION")
         }
     }
+    
+//    var dateChangeViaLongPoll = false
+//    var oldDate: Date?
+//    var newDate: Date?
+//    func prepareDateChangeFromLongPoll(to new: Date?) {
+//        self.newDate = new
+//        self.dateChangeViaLongPoll = true
+//    }
     
     
     

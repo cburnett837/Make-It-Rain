@@ -23,15 +23,7 @@ struct StandardFileSection: View {
         var symbol: String
         var action: () -> Void
     }
-    
-    @Observable
-    class FileViewProps {
-        var hoverFile: CBFile?
-        var deleteFile: CBFile?
-        var isDeletingFile = false
-        var showDeleteFileAlert = false
-    }
-    
+            
     private struct MaxSymbolHeightPreferenceKey: PreferenceKey {
         static var defaultValue: CGFloat = .zero
 
@@ -152,6 +144,7 @@ struct StandardFileSection: View {
         }
     }
     
+    
     @ViewBuilder func photoGrid(_ files: Array<CBFile>) -> some View {
         LazyVGrid(columns: threeColumnGrid, spacing: 5) {
             ForEach(files) { file in
@@ -160,11 +153,17 @@ struct StandardFileSection: View {
                     selectedFile: $selectedFile,
                     displayStyle: displayStyle,
                     parentType: parentTypeXr,
-                    fileUploadCompletedDelegate: fileUploadCompletedDelegate
+                    fileUploadCompletedDelegate: fileUploadCompletedDelegate,
+                    placeholderView: {
+                        LoadingPlaceholder(text: "Uploading…", displayStyle: displayStyle)
+                    }, photoView: {
+                        FileImage(file: file, displayStyle: displayStyle)
+                    }
                 )
             }
         }
     }
+    
     
     @ViewBuilder func photoHstack(_ files: Array<CBFile>) -> some View {
         HStack(alignment: .top, spacing: 4) {
@@ -174,7 +173,12 @@ struct StandardFileSection: View {
                     selectedFile: $selectedFile,
                     displayStyle: displayStyle,
                     parentType: parentTypeXr,
-                    fileUploadCompletedDelegate: fileUploadCompletedDelegate
+                    fileUploadCompletedDelegate: fileUploadCompletedDelegate,
+                    placeholderView: {
+                        LoadingPlaceholder(text: "Uploading…", displayStyle: displayStyle)
+                    }, photoView: {
+                        FileImage(file: file, displayStyle: displayStyle)
+                    }
                 )
             }
             fileSelectionButtons
@@ -323,134 +327,10 @@ struct StandardFileSection: View {
     }
     
     
-    struct ConditionalFileView: View {
-        @Environment(FileViewProps.self) var props
-        #if os(macOS)
-        @Environment(\.openURL) var openURL
-        #endif
-        
-        var file: CBFile
-        //@Binding var safariUrl: URL?
-        @Binding var selectedFile: CBFile?
-        var displayStyle: FileSectionDisplayStyle
-        var parentType: XrefItem
-        var fileUploadCompletedDelegate: FileUploadCompletedDelegate
-        @State private var showDeleteFileAlert = false
-        
-        var body: some View {
-            @Bindable var props = props
-            VStack {
-                ZStack {
-                    if file.isPlaceholder {
-                        LoadingPlaceholder(text: "Uploading…", displayStyle: displayStyle)
-                    } else {
-                        
-                        switch file.fileType {
-                        case .photo:
-                            FileImage(file: file, displayStyle: displayStyle)
-                        case .pdf:
-                            CustomAsyncPdf(file: file, displayStyle: displayStyle)
-                        case .csv, .spreadsheet:
-                            CustomAsyncCsv(file: file, displayStyle: displayStyle)
-                        }
-                    }
-                    
-                    #if os(macOS)
-                    if props.hoverFile == file {
-                        FileButtons(file: file)
-                    }
-                    #endif
-                }
-            }
-            .overlay {
-                Color.gray.opacity(0.01)
-                /// Open inline safari-sheet
-                .onTapGesture {
-                    selectedFile = file
-                }
-                /// Long press to show delete (no share sheet option. Can share directly from safari sheet)
-                .onLongPressGesture {
-                    //buzzPhone(.warning)
-                    props.deleteFile = file
-                    showDeleteFileAlert = true
-                }
-            }
-            #if os(macOS)
-            /// Open in safari browser
-            .onTapGesture {
-                openURL(URL(string: "https://\(Keys.baseURL):8676/files/\(file.fileType.rawValue).photo.\(file.uuid).\(file.fileType.ext)")!)
-            }
-            /// Hover to show share button and delete button.
-            .onContinuousHover { phase in
-                switch phase {
-                case .active:
-                    props.hoverFile = file
-                case .ended:
-                    props.hoverFile = nil
-                }
-            }
-            #else
-            /// Open inline safari-sheet
-//            .onTapGesture {
-//                selectedFile = file
-//            }
-            /// Long press to show delete (no share sheet option. Can share directly from safari sheet)
-//            .onLongPressGesture {
-//                props.deleteFile = file
-//                showDeleteFileAlert = true
-//            }
-            .sensoryFeedback(.warning, trigger: props.showDeleteFileAlert) { !$0 && $1 }
-            #endif
-            .confirmationDialog("Delete this \(file.fileType.rawValue)?", isPresented: $showDeleteFileAlert) {
-                Button("Yes", role: .destructive) {
-                    deleteFile(fileType: .photo)
-                }
-                Button("No", role: .close) {
-                    props.hoverFile = nil
-                    props.deleteFile = nil
-                }
-            } message: {
-                Text("Delete this \(file.fileType.rawValue)?")
-            }
-        }
-        
-        func deleteFile(fileType: FileType) {
-            Task {
-                props.isDeletingFile = true
-                let _ = await fileUploadCompletedDelegate.delete(file: props.deleteFile!, parentType: parentType, fileType: fileType)
-                props.isDeletingFile = false
-                props.deleteFile = nil
-            }
-        }
-    }
     
     
-    struct LoadingPlaceholder: View {
-        let text: String
-        var displayStyle: FileSectionDisplayStyle
-        
-        var body: some View {
-            Group {
-                switch displayStyle {
-                case .standard:
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(Color.gray.opacity(0.1))
-                        .frame(width: fileWidth, height: fileHeight)
-                case .grid:
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(Color.gray.opacity(0.1))
-                        .aspectRatio(1, contentMode: .fit)
-                }
-            }
-            .overlay {
-                VStack {
-                    ProgressView()
-                        .tint(.none)
-                    Text(text)
-                }
-            }
-        }
-    }
+    
+    
     
     
     struct FileImage: View {
@@ -505,137 +385,6 @@ struct StandardFileSection: View {
             .overlay(ProgressView().tint(.none).opacity(isDeletingFile ? 1 : 0))
         }
     }
-    
-    
-    struct CustomAsyncImage<Content: View, Placeholder: View>: View {
-        #if os(iOS)
-        @State private var uiImage: UIImage?
-        #else
-        @State private var nsImage: NSImage?
-        #endif
-
-        var file: CBFile
-        @ViewBuilder var content: (Image) -> Content
-        @ViewBuilder var placeholder: () -> Placeholder
-
-        var body: some View {
-            #if os(iOS)
-                if let uiImage = uiImage {
-                    content(Image(uiImage: uiImage))
-                } else {
-                    placeholder().task { await getImage() }
-                }
-            #else
-                if let nsImage = nsImage {
-                    content(Image(nsImage: nsImage))
-                } else {
-                    placeholder().task { await getImage() }
-                }
-            #endif
-        }
-        
-        func getImage() async {
-            let fileModel = FileRequestModel(path: "budget_app.\(file.fileType.rawValue).\(file.uuid).\(file.fileType.ext)")
-            let requestModel = RequestModel(requestType: "download_file", model: fileModel)
-            let result = await NetworkManager().downloadFile(requestModel: requestModel)
-            
-            switch result {
-            case .success(let data):
-                if let data = data {
-                    #if os(iOS)
-                        self.uiImage = UIImage(data: data)
-                    #else
-                        self.nsImage = NSImage(data: data)
-                    #endif
-                }
-                
-            case .failure:
-                AppState.shared.showAlert("There was a problem downloading the image.")
-            }
-        }
-    }
-    
-    
-    struct CustomAsyncPdf: View {
-        var file: CBFile
-        var displayStyle: FileSectionDisplayStyle
-
-        @State private var data: Data?
-                
-        var body: some View {
-            if let data = data {
-                PDFKitRepresentedView(pdfData: data)
-                    .frame(width: fileWidth, height: fileHeight)
-                    .clipShape(.rect(cornerRadius: 14))
-            } else {
-                LoadingPlaceholder(text: "Downloading…", displayStyle: displayStyle)
-                    .task { await getFile() }
-            }
-        }
-        
-        func getFile() async {
-            let fileModel = FileRequestModel(path: "budget_app.\(file.fileType.rawValue).\(file.uuid).\(file.fileType.ext)")
-            let requestModel = RequestModel(requestType: "download_file", model: fileModel)
-            let result = await NetworkManager().downloadFile(requestModel: requestModel)
-            
-            switch result {
-            case .success(let data):
-                self.data = data
-                
-            case .failure:
-                AppState.shared.showAlert("There was a problem downloading the file.")
-            }
-        }
-    }
-    
-    
-    struct CustomAsyncCsv: View {
-        var file: CBFile
-        var displayStyle: FileSectionDisplayStyle
-        
-        @State private var page = WebPage()
-        
-        var body: some View {
-            Group {
-                if page.isLoading {
-                    LoadingPlaceholder(text: "Downloading…", displayStyle: displayStyle)
-                } else {
-                    WebView(page)
-                }
-            }
-            .frame(width: fileWidth, height: fileHeight)
-            .clipShape(.rect(cornerRadius: 14))
-            .task {
-                let requestModel = RequestModel(
-                    requestType: "download_file",
-                    model: FileRequestModel(path: "budget_app.\(file.fileType.rawValue).\(file.uuid).\(file.fileType.ext)")
-                )
-                
-                let jsonData = try? JSONEncoder().encode(requestModel)
-                var request = NetworkManager().request
-                request!.setValue(AppState.shared.apiKey, forHTTPHeaderField: "Api-Key")
-                request!.httpBody = jsonData
-                
-                page.load(request!)
-            }
-            
-            
-            
-                
-            
-//            WebViewRep(requestModel: RequestModel(
-//                requestType: "download_file",
-//                model: FileRequestModel(path: "budget_app.\(file.fileType.rawValue).\(file.uuid).\(file.fileType.ext)")
-//            ))
-//            .frame(width: fileWidth, height: fileHeight)
-//            .clipShape(.rect(cornerRadius: 14))
-        }
-    }
-    
-    
-
-
-    
     
     
     
@@ -792,18 +541,18 @@ struct StandardFileSection: View {
 import PDFKit
 
 struct PDFKitRepresentedView: UIViewRepresentable {
-        let pdfData: Data
+    let pdfData: Data
 
-        func makeUIView(context: Context) -> PDFView {
-            let pdfView = PDFView()
-            pdfView.document = PDFDocument(data: pdfData)
-            pdfView.autoScales = true // Adjusts the PDF to fit the view
-            pdfView.isUserInteractionEnabled = false
-            return pdfView
-        }
-
-        func updateUIView(_ uiView: PDFView, context: Context) {
-            // Update the view if needed, e.g., if pdfData changes
-            uiView.document = PDFDocument(data: pdfData)
-        }
+    func makeUIView(context: Context) -> PDFView {
+        let pdfView = PDFView()
+        pdfView.document = PDFDocument(data: pdfData)
+        pdfView.autoScales = true // Adjusts the PDF to fit the view
+        pdfView.isUserInteractionEnabled = false
+        return pdfView
     }
+
+    func updateUIView(_ uiView: PDFView, context: Context) {
+        // Update the view if needed, e.g., if pdfData changes
+        uiView.document = PDFDocument(data: pdfData)
+    }
+}

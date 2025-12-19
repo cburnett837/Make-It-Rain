@@ -51,6 +51,14 @@ struct BudgetEditView: View {
             .map { ($0.payMethod ?? CBPaymentMethod()).isCreditOrLoan ? $0.amount : $0.amount * -1 }
             .reduce(0.0, +)
     }
+    
+    var title: String {
+        if budget.type == XrefModel.getItem(from: .budgetTypes, byEnumID: .category) {
+            budget.category?.title ?? "N/A"
+        } else {
+            budget.categoryGroup?.title ?? "N/A"
+        }
+    }
 
     
 //    var transactions: Array<CBTransaction> {
@@ -81,7 +89,7 @@ struct BudgetEditView: View {
                 transactionList
             }
             .searchable(text: $searchText, prompt: Text("Search"))
-            .navigationTitle(budget.category?.title ?? "N/A")
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: AppState.shared.isIphone ? .topBarTrailing : .topBarLeading) { closeButton }
@@ -247,63 +255,32 @@ struct BudgetEditView: View {
     
     
     func prepareData() {
-        if let cat = budget.category {
-            transactions = calModel.getTransactions(cats: [cat])
-                .filter { $0.dateComponents?.month == calModel.sMonth.actualNum }
-                .filter { $0.dateComponents?.year == calModel.sMonth.year }
-            
-            //        transactions = calModel.justTransactions
-            //            .filter { calModel.isInMultiSelectMode ? calModel.multiSelectTransactions.map({ $0.id }).contains($0.id) : true }
-            //            //.filter { $0.payMethod?.id == calModel.sPayMethod?.id }
-            ////            .filter { trans in
-            ////                if let sMethod = calModel.sPayMethod {
-            ////                    if sMethod.isUnifiedDebit {
-            ////                        let methods: Array<String> = payModel.paymentMethods
-            ////                            .filter { $0.isPermitted }
-            ////                            .filter { !$0.isHidden }
-            ////                            .filter { $0.isDebit }
-            ////                            .map { $0.id }
-            ////                        return methods.contains(trans.payMethod?.id ?? "")
-            ////
-            ////                    } else if sMethod.isUnifiedCredit {
-            ////                        let methods: Array<String> = payModel.paymentMethods
-            ////                            .filter { $0.isPermitted }
-            ////                            .filter { !$0.isHidden }
-            ////                            .filter { $0.isCredit }
-            ////                            .map { $0.id }
-            ////                        return methods.contains(trans.payMethod?.id ?? "")
-            ////
-            ////                    } else {
-            ////                        return trans.payMethod?.id == sMethod.id && (trans.payMethod?.isPermitted ?? true) && !(trans.payMethod?.isHidden ?? false)
-            ////                    }
-            ////                } else {
-            ////                    return false
-            ////                }
-            ////            }
-            //            .filter { $0.dateComponents?.month == calModel.sMonth.actualNum }
-            //            .filter { $0.dateComponents?.year == calModel.sMonth.year }
-            //            .filter {
-            //                $0.categoryIdsInCurrentAndDeepCopy.contains(budget.category?.id)
-            //                && $0.payMethod?.isPermitted ?? true
-            //                && !$0.hasHiddenMethodInCurrentOrDeepCopy
-            //                //&& !$0.hasPrivateMethodInCurrentOrDeepCopy
-            //            }
-            //            .sorted { $0.dateComponents?.day ?? 0 < $1.dateComponents?.day ?? 0 }
-            
-            
-            /// Get how much has been spend up until each day.
-            self.cumTotals.removeAll()
-            var total: Double = 0.0
-            
-            calModel.sMonth.days.forEach { day in
-                let trans = transactions.filter { $0.dateComponents?.day == day.date?.day }
-                if !trans.isEmpty {
-                    let dailySpend = calModel.getSpend(from: trans)
-                    let dailyIncome = calModel.getIncome(from: trans)
-                    
-                    total += (dailySpend + dailyIncome)
-                    self.cumTotals.append(CumTotal(day: day.date!.day, total: total))
-                }
+        if budget.type == XrefModel.getItem(from: .budgetTypes, byEnumID: .category) {
+            if let cat = budget.category {
+                transactions = calModel.getTransactions(cats: [cat])
+                    .filter { $0.dateComponents?.month == calModel.sMonth.actualNum }
+                    .filter { $0.dateComponents?.year == calModel.sMonth.year }
+            }
+        } else {
+            if let cats = budget.categoryGroup?.categories {
+                transactions = calModel.getTransactions(cats: cats)
+                    .filter { $0.dateComponents?.month == calModel.sMonth.actualNum }
+                    .filter { $0.dateComponents?.year == calModel.sMonth.year }
+            }
+        }
+                
+        /// Get how much has been spend up until each day.
+        self.cumTotals.removeAll()
+        var total: Double = 0.0
+        
+        calModel.sMonth.days.forEach { day in
+            let trans = transactions.filter { $0.dateComponents?.day == day.date?.day }
+            if !trans.isEmpty {
+                let dailySpend = calModel.getSpend(from: trans)
+                let dailyIncome = calModel.getIncome(from: trans)
+                
+                total += (dailySpend + dailyIncome)
+                self.cumTotals.append(CumTotal(day: day.date!.day, total: total))
             }
         }
     }

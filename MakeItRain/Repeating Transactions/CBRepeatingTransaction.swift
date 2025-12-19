@@ -38,6 +38,7 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
     var payMethod: CBPaymentMethod?
     var payMethodPayTo: CBPaymentMethod?
     var category: CBCategory?
+    var notes: AttributedString = ""
     var when: Array<CBRepeatingTransactionWhen>
     var active: Bool
     var action: RepeatingTransactionAction
@@ -45,6 +46,7 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
     var updatedBy: CBUser = AppState.shared.user!
     var enteredDate: Date
     var updatedDate: Date
+    var include: Bool
     
     var repeatingTransactionType: XrefItem = XrefModel.getItem(from: .repeatingTransactionType, byEnumID: .regular)
 
@@ -65,6 +67,7 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         self.updatedBy = AppState.shared.user!
         self.enteredDate = Date()
         self.updatedDate = Date()
+        self.include = true
         self.when = [
             CBRepeatingTransactionWhen(when: "sunday", displayTitle: "Sun", whenType: .weekday),
             CBRepeatingTransactionWhen(when: "monday", displayTitle: "Mon", whenType: .weekday),
@@ -135,6 +138,7 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         self.updatedBy = AppState.shared.user!
         self.enteredDate = Date()
         self.updatedDate = Date()
+        self.include = true
         self.when = [
             CBRepeatingTransactionWhen(when: "sunday", displayTitle: "Sun", whenType: .weekday),
             CBRepeatingTransactionWhen(when: "monday", displayTitle: "Mon", whenType: .weekday),
@@ -189,7 +193,7 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         ]
     }
         
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, title_hex_code, payment_method, payment_method_pay_to, category, active, user_id, account_id, device_uuid, when, sunday, monday, tuesday, wednesday, thursday, friday, saturday, january, february, march, april, may, june, july, august, september, october, november, december, day1, day2, day3, day4, day5, day6, day7, day8, day9, day10, day11, day12, day13, day14, day15, day16, day17, day18, day19, day20, day21, day22, day23, day24, day25, day26, day27, day28, day29, day30, day31, entered_by, updated_by, entered_date, updated_date, repeating_transaction_type_id }
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, title_hex_code, payment_method, payment_method_pay_to, category, active, user_id, account_id, device_uuid, when, sunday, monday, tuesday, wednesday, thursday, friday, saturday, january, february, march, april, may, june, july, august, september, october, november, december, day1, day2, day3, day4, day5, day6, day7, day8, day9, day10, day11, day12, day13, day14, day15, day16, day17, day18, day19, day20, day21, day22, day23, day24, day25, day26, day27, day28, day29, day30, day31, entered_by, updated_by, entered_date, updated_date, repeating_transaction_type_id, notes, include }
     
     
     func encode(to encoder: Encoder) throws {
@@ -203,6 +207,13 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         try container.encode(payMethod, forKey: .payment_method)
         try container.encode(payMethodPayTo, forKey: .payment_method_pay_to)
         try container.encode(category, forKey: .category)
+        try container.encode(include ? 1 : 0, forKey: .include)
+        //try container.encode(notes, forKey: .notes)
+        
+        let data = try JSONEncoder().encode(notes)
+        let base64 = data.base64EncodedString()
+        try container.encode(base64, forKey: .notes)
+
         
         try container.encode(when.filter { $0.when == "sunday" }.first!.active, forKey: .sunday)
         try container.encode(when.filter { $0.when == "monday" }.first!.active, forKey: .monday)
@@ -280,6 +291,18 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         self.payMethod = try container.decode(CBPaymentMethod.self, forKey: .payment_method)
         self.payMethodPayTo = try container.decode(CBPaymentMethod?.self, forKey: .payment_method_pay_to)
         self.category = try container.decode(CBCategory?.self, forKey: .category)
+        //self.notes = try container.decode(AttributedString?.self, forKey: .notes) ?? ""
+        
+        if let notes = try container.decode(String?.self, forKey: .notes) {
+            do {
+                self.notes = try Helpers.decodeAttributedString(from: notes)
+            } catch {
+                self.notes = AttributedString(stringLiteral: notes)
+            }
+        } else {
+            self.notes = ""
+        }
+
         self.when = try container.decode(Array<CBRepeatingTransactionWhen>.self, forKey: .when)
                 
         let hexCode = try container.decode(String?.self, forKey: .title_hex_code)
@@ -300,7 +323,10 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         //self.color = Color.fromName(colorDescription ?? "white")
         
         let isActive = try container.decode(Int?.self, forKey: .active)
-        self.active = isActive == 1 ? true : false
+        self.active = isActive == 1
+        
+        let shouldInclude = try container.decode(Int?.self, forKey: .include)
+        self.include = shouldInclude == 1
         
         action = .edit
         
@@ -344,6 +370,8 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
             && self.payMethod?.id == deepCopy.payMethod?.id
             && self.payMethodPayTo?.id == deepCopy.payMethodPayTo?.id
             && self.category?.id == deepCopy.category?.id
+            && self.notes == deepCopy.notes
+            && self.include == deepCopy.include
             && self.repeatingTransactionType == deepCopy.repeatingTransactionType
             && self.when == deepCopy.when {
                 return false
@@ -366,6 +394,8 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
             copy.payMethod = self.payMethod
             copy.payMethodPayTo = self.payMethodPayTo
             copy.category = self.category
+            copy.notes = self.notes
+            copy.include = self.include
             copy.repeatingTransactionType = self.repeatingTransactionType
             copy.when = self.when.map {
                 $0.deepCopy(.create)
@@ -385,6 +415,8 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
                 self.payMethod = deepCopy.payMethod
                 self.payMethodPayTo = deepCopy.payMethodPayTo
                 self.category = deepCopy.category
+                self.notes = deepCopy.notes
+                self.include = deepCopy.include
                 self.when = deepCopy.when
                 self.active = deepCopy.active
                 self.repeatingTransactionType = deepCopy.repeatingTransactionType
@@ -401,7 +433,7 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         
         let useWholeNumbers = LocalStorage.shared.useWholeNumbers
         self.amountString = repTransaction.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
-        
+        self.notes = repTransaction.notes
         self.payMethod = repTransaction.payMethod
         self.payMethodPayTo = repTransaction.payMethodPayTo
         self.category = repTransaction.category
@@ -410,6 +442,7 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         self.repeatingTransactionType = repTransaction.repeatingTransactionType
         self.enteredBy = repTransaction.enteredBy
         self.updatedBy = repTransaction.updatedBy
+        self.include = repTransaction.include
     }
     
     
@@ -419,10 +452,12 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         && lhs.title == rhs.title
         && lhs.amount == rhs.amount
         && lhs.color == rhs.color
+        && lhs.notes == rhs.notes
         && lhs.payMethod?.id == rhs.payMethod?.id
         && lhs.payMethodPayTo?.id == rhs.payMethodPayTo?.id
         && lhs.category?.id == rhs.category?.id
         && lhs.repeatingTransactionType == rhs.repeatingTransactionType
+        && lhs.include == rhs.include
         && lhs.when == rhs.when {
             return true
         }

@@ -17,7 +17,7 @@ struct AdvancedSearchView: View {
     @Environment(CalendarModel.self) var calModel
     @Environment(PayMethodModel.self) var payModel
     @Environment(CategoryModel.self) var catModel
-    @Environment(EventModel.self) private var eventModel
+    
     
     @State private var searchModel = AdvancedSearchModel()
     @State private var showPayMethodSheet = false
@@ -165,7 +165,7 @@ struct AdvancedSearchView: View {
             #endif
         }
         .sheet(isPresented: $showCategorySheet) {
-            MultiCategorySheet(categories: $searchModel.categories, includeHidden: true)
+            MultiCategorySheet(categories: $searchModel.categories, categoryGroup: .constant([]), includeHidden: true)
             #if os(macOS)
                 .frame(minWidth: 300, minHeight: 500)
                 .presentationSizing(.fitted)
@@ -345,7 +345,7 @@ struct AdvancedSearchView: View {
                         ContentUnavailableView("No Transactions", systemImage: "square.stack.3d.up.slash.fill", description: Text("Choose some filters above and/or enter a search term."))
                     } else {
                         ForEach(calModel.searchedTransactions) { trans in
-                            TransactionListLine(trans: trans, withDate: true)
+                            TransactionListLine(trans: trans, withDate: true, withTags: true)
                                 .onTapGesture {
                                     //self.transDay = day
                                     self.transEditID = trans.id
@@ -358,6 +358,7 @@ struct AdvancedSearchView: View {
                     ProgressView {
                         Text("Searching…")
                     }
+                    .tint(.none)
                     .opacity(isSearching ? 1 : 0)
                 }
             } header: {
@@ -527,7 +528,11 @@ struct AdvancedSearchView: View {
         }
         .schemeBasedForegroundStyle()
         .opacity(isSearching ? 0 : 1)
-        .overlay { ProgressView().opacity(isSearching ? 1 : 0) }
+        .overlay {
+            ProgressView()
+                .opacity(isSearching ? 1 : 0)
+                .tint(.none)
+        }
         .buttonStyle(.glassProminent)
         .disabled(calModel.searchedTransactions.isEmpty)
     }
@@ -577,7 +582,7 @@ struct AdvancedSearchView: View {
                 searchModel.newSearchTerm = ""
                 calModel.searchedTransactions.removeAll()
                 isSearching = true
-                await calModel.advancedSearch(model: searchModel, sortOrder: sortOrder)
+                await search(calModel: calModel, sortOrder: sortOrder)
                 isSearching = false
             }
         } else {
@@ -603,6 +608,39 @@ struct AdvancedSearchView: View {
             searchModel.years.removeAll()
             searchModel.searchTerms.removeAll()
             searchModel.newSearchTerm = ""
+        }
+    }
+    
+    
+    @MainActor
+    func search(calModel: CalendarModel, sortOrder: SortOrder) async {
+        print("-- \(#function)")
+        LogManager.log()
+        
+        let model = RequestModel(requestType: "new_advanced_search", model: searchModel)
+        typealias ResultResponse = Result<Array<CBTransaction>?, AppError>
+        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+        
+        switch await result {
+        case .success(let model):
+            LogManager.networkingSuccessful()
+            if let model {
+                if sortOrder == .forward {
+                    calModel.searchedTransactions = model.sorted { $0.date ?? Date() > $1.date ?? Date() }
+                } else {
+                    calModel.searchedTransactions = model.sorted { $0.date ?? Date() < $1.date ?? Date() }
+                }
+            }
+            
+        case .failure (let error):
+            switch error {
+            case .taskCancelled:
+                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
+                print("calModel fetchFrom Server Task Cancelled")
+            default:
+                LogManager.error(error.localizedDescription)
+                AppState.shared.showAlert("There was a problem trying to fetch transactions.")
+            }
         }
     }
 }

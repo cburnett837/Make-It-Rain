@@ -14,95 +14,101 @@
 //fileprivate let photoWidth: CGFloat = 125
 //fileprivate let photoHeight: CGFloat = 200
 //
+//enum TitleSuggestionType: String {
+//    case location, history
+//}
 //
-//struct TransactionEditViewBackup: View {
-////    @Observable
-////    class ViewModel {
-////        var hoverPic: CBPicture?
-////        var deletePic: CBPicture?
-////        var isDeletingPic = false
-////        var showDeletePicAlert = false
-////    }
-//    
-//    //@Environment(\.dismiss) var dismiss <--- NO NICE THAT ONE WITH SHEETS IN A SHEET.
-//    @Environment(\.colorScheme) var colorScheme
-//    //@Local(\.colorTheme) var colorTheme
+//enum TransNavDestination: Hashable {
+//    case options, logs, titleColorMenu
+//}
+//
+//struct TransactionEditView: View {
 //    @Local(\.lineItemIndicator) var lineItemIndicator
 //    @Local(\.useWholeNumbers) var useWholeNumbers
+//    
+//    @AppStorage("transactionTitleSuggestionType") var transactionTitleSuggestionType: TitleSuggestionType = .location
+//    //@Environment(\.fontResolutionContext) var fontResolutionContext
 //
+//    //@Environment(\.colorScheme) var colorScheme
+//    @Environment(\.dismiss) var dismiss // <--- NO NICE THAT ONE WITH SHEETS IN A SHEET. BEWARE!.
 //    #if os(macOS)
 //    @Environment(\.openURL) var openURL
 //    #endif
 //    @Environment(CalendarModel.self) private var calModel
-//    
 //    @Environment(PayMethodModel.self) private var payModel
 //    @Environment(CategoryModel.self) private var catModel
 //    @Environment(KeywordModel.self) private var keyModel
-//    //@Environment(MapModel.self) private var mapModel
-//    
-//    @State private var mapModel = MapModel()
-//    //@Environment(TagModel.self) private var tagModel
-//    
-//    //@State private var vm = ViewModel()
-//    
-//    @State private var titleColorButtonHoverColor: Color = .gray
-//    @State private var payMethodMenuColor: Color = Color(.tertiarySystemFill)
-//    @State private var categoryMenuColor: Color = Color(.tertiarySystemFill)
-//    //@State private var addPhotoButtonHoverColor: Color = .gray
-//    //@State private var addPhotoButtonHoverColor2: Color = Color(.tertiarySystemFill)
-//        
-//    @FocusState private var focusedField: Int?
 //    
 //    @Bindable var trans: CBTransaction
 //    @Binding var transEditID: String?
 //    @Bindable var day: CBDay
+//    
 //    var isTemp: Bool
 //    var transLocation: WhereToLookForTransaction = .normalList
-//    
-//    var title: String { trans.action == .add ? "New Transaction" : "Edit Transaction" }
+//    var isWarmUp = false
 //    let symbolWidth: CGFloat = 26
 //        
-//    //@State private var safariUrl: URL?
-//    
-//    //@State private var totalHeight = CGFloat.zero
+//    @FocusState private var focusedField: Int?
+//    @State private var mapModel = MapModel()
+//    @State private var titleColorButtonHoverColor: Color = .gray
+//    @State private var payMethodMenuColor: Color = Color(.tertiarySystemFill)
+//    @State private var categoryMenuColor: Color = Color(.tertiarySystemFill)
 //    @State private var showLogSheet = false
 //    @State private var showTagSheet = false
 //    @State private var showPayMethodSheet = false
 //    @State private var showCategorySheet = false
 //    @State private var showPaymentMethodChangeAlert = false
 //    @State private var showDeleteAlert = false
-//    
 //    @State private var blockUndoCommitOnLoad = true
 //    @State private var blockKeywordChangeWhenViewLoads = true
+//    @State private var blockSuggestionsFromPopulating = false
 //    @State private var showTrackingOrderAndUrlFields = false
 //    @State private var showCamera: Bool = false
 //    @State private var showPhotosPicker: Bool = false
 //    @State private var showTopTitles: Bool = false
-//    //@State private var showPhotosPicker = false
-//    //@State private var showCamera = false
-//    
+//    @State private var showSplitSheet = false
 //    @State private var titleChangedTask: Task<Void, Error>?
 //    @State private var amountChangedTask: Task<Void, Error>?
-//    //@State private var position: MapCameraPosition = .userLocation(followsHeading: true, fallback: .userLocation(fallback: .automatic))
 //    @State private var showUndoRedoAlert = false
+//    @State private var suggestedTitles: Array<CBSuggestedTitle> = []
+//    @State private var navPath = NavigationPath()
+//    @State private var isValidToSave = false
+//    @State private var hasAnimatedBrain = false
+//    /// These are just to control the animations in the options sheet. The are here so we don't see the option sheet "set up its state" when the view appears.
+//    @State private var showBadgeBell = false
+//    @State private var showHiddenEye = false
+//    //@State private var selection = AttributedTextSelection()
+//    //@State private var textCommands = TextViewCommands()
+//
+//
 //        
 //    let changeTransactionTitleColorTip = ChangeTransactionTitleColorTip()
 //    
+//    var title: String { trans.action == .add ? "New \(transTypeLingo)" : "Edit \(transTypeLingo)" }
+//    
 //    var transTypeLingo: String {
 //        if trans.payMethod?.accountType == .credit || trans.payMethod?.accountType == .loan {
-//            trans.amountString.contains("-") ? "Payment" : "Expense"
+//            trans.amountString.contains("-")
+//            ? "Payment"
+//            : trans.christmasListGiftID != nil ? "Gift" : "Expense"
 //        } else {
-//            trans.amountString.contains("-") ? "Expense" : "Income"
+//            trans.amountString.contains("-")
+//            ? trans.christmasListGiftID != nil ? "Gift" : "Expense"
+//            : "Income"
 //        }
 //    }
 //    
 //    var linkedLingo: String? {
 //        if trans.relatedTransactionID != nil {
-//            if trans.relatedTransactionType == XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction) {
-//                return "(This is linked to another transaction)"
-//            } else {
-//                return "(This is linked to an event transaction)"
-//            }
+////            if trans.relatedTransactionType == XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction) {
+////                return "(This transaction is linked to another)"
+////            } else {
+////                return "(This transaction is linked to an event)"
+////            }
+////
+//            return "(Linked)"
+//        } else if trans.christmasListGiftID != nil {
+//            return "(Linked 🎄)"
 //        } else {
 //            return nil
 //        }
@@ -111,8 +117,7 @@
 //    var paymentMethodMissing: Bool {
 //        return !trans.title.isEmpty && !trans.amountString.isEmpty && trans.payMethod == nil
 //    }
-//    
-//    
+//        
 //    var undoRedoValuesChanged: Int {
 //        var hasher = Hasher()
 //        hasher.combine(trans.title)
@@ -126,6 +131,52 @@
 //        hasher.combine(trans.date)
 //        return hasher.finalize()
 //    }
+//        
+//    var transactionValuesChanged: Int {
+//        var hasher = Hasher()
+//        hasher.combine(trans.factorInCalculations)
+//        hasher.combine(trans.notificationOffset)
+//        hasher.combine(trans.notifyOnDueDate)
+//        hasher.combine(trans.title)
+//        hasher.combine(trans.amountString)
+//        hasher.combine(trans.payMethod)
+//        hasher.combine(trans.category)
+//        hasher.combine(trans.date)
+//        hasher.combine(trans.locations)
+//        hasher.combine(trans.trackingNumber)
+//        hasher.combine(trans.orderNumber)
+//        hasher.combine(trans.url)
+//        hasher.combine(trans.tags)
+//        hasher.combine(trans.notes)
+//        hasher.combine(trans.color.hashValue)
+//        return hasher.finalize()
+//    }
+//    
+//    var shouldShowSuggestions: Bool {
+//        if (showTopTitles && !(trans.category?.topTitles ?? []).isEmpty) {
+//            return true
+//        } else {
+//            switch transactionTitleSuggestionType {
+//            case .location:
+//                return !mapModel.completions.isEmpty
+//            case .history:
+//                return !suggestedTitles.isEmpty
+//            }
+//        }
+//        //return false
+//    }
+//    
+//    var disableInteractiveDismiss: Bool {
+//        paymentMethodMissing || !navPath.isEmpty
+//    }
+//    
+////    var isValidToSave: Bool {
+////        if trans.title.isEmpty { return false }
+////        if trans.payMethod == nil { return false }
+////        if trans.date == nil && (trans.isSmartTransaction ?? false) { return false }
+////        if !trans.hasChanges() { return false }
+////        return true
+////    }
 //
 //    
 ////    var header: some View {
@@ -144,6 +195,11 @@
 ////        }
 ////    }
 //    
+//    
+//    @State private var showExpensiveSections = false
+//
+//    
+//    
 //    var body: some View {
 //        //let _ = Self._printChanges()
 //        @Bindable var calModel = calModel
@@ -152,120 +208,89 @@
 //        @Bindable var keyModel = keyModel
 //        @Bindable var appState = AppState.shared
 //        
-//        StandardContainer {
-//            //titleTextField
-//            StandardTitleTextField(symbolWidth: symbolWidth, focusedField: _focusedField, focusID: 0, showSymbol: true, parentType: XrefEnum.transaction, showTitleSuggestions: $showTopTitles, titleSuggestions: trans.category?.topTitles ?? [], obj: trans)
-//                .onChange(of: trans.category) { oldValue, newValue in
-//                    if let newValue {
-//                        if trans.action == .add && trans.title.isEmpty && !newValue.isNil {
-//                            showTopTitles = true
+//        Group {
+//            #if os(iOS)
+//            NavigationStack(path: $navPath) {
+//                //if showExpensiveSections {
+//                    ScrollViewReader { scrollProxy in
+//                        StandardContainerWithToolbar(.list) {
+//                            content(scrollProxy)
 //                        }
 //                    }
-//                }
-//
-//            
-//            StandardAmountTextField(symbolWidth: symbolWidth, focusedField: _focusedField, focusID: 1, showSymbol: true, negativeOnFocusIfEmpty: trans.payMethod?.accountType != .credit, obj: trans)
-//            StandardDivider()
-//            
-//            paymentMethodMenu
-//            categoryMenu
-//            
-//            StandardDivider()
-//            
-//            #if os(iOS)
-//            datePickerSection
-//            StandardDivider()
-//            #endif
-//            
-//            if !isTemp {
-//                HStack(alignment: .top) {
-//                    Image(systemName: "map.fill")
-//                        .foregroundColor(.gray)
-//                        .frame(width: symbolWidth)
 //                    
-//                    StandardMiniMap(locations: $trans.locations, parent: trans, parentID: trans.id, parentType: XrefEnum.transaction, addCurrentLocation: trans.action == .add)
-//                        .cornerRadius(8)
-//                }
-//                .padding(.bottom, 6)
-//                
-//                StandardDivider()
+//                    
+//                    .if(trans.christmasListGiftID != nil) {
+//                        $0
+//                            .scrollContentBackground(.hidden)
+//                            .background(SnowyBackground(blurred: false, withSnow: true))
+//                    }
+//                    .navigationTitle(title)
+//                    .if(trans.relatedTransactionID != nil || trans.christmasListGiftID != nil) { $0.navigationSubtitle(linkedLingo!) }
+//                    .navigationBarTitleDisplayMode(.inline)
+//                    .toolbar { toolbar }
+//                    .navigationDestination(for: TransNavDestination.self) { dest in
+//                        switch dest {
+//                        case .options:
+//                            TransactionEditViewMoreOptions(
+//                                trans: trans,
+//                                showSplitSheet: $showSplitSheet,
+//                                isTemp: isTemp,
+//                                navPath: $navPath,
+//                                showBadgeBell: $showBadgeBell,
+//                                showHiddenEye: $showHiddenEye
+//                            )
+//                            
+//                        case .logs:
+//                            LogSheet(title: trans.title, itemID: trans.id, logType: .transaction)
+//                            
+//                        case .titleColorMenu:
+//                            TitleColorList(trans: trans, saveOnChange: false, navPath: $navPath)
+//                        }
+//                    }
+//                //}
 //            }
-//            
-//            
-//            if trans.notifyOnDueDate {
-//                if !isTemp {
-//                    reminderSection
-//                    StandardDivider()
-//                }
+//            #else
+//            StandardContainer(.list) {
+//                content
+//            } header: {
+//                MacSheetHeaderView(title: title, trans: trans, validateBeforeClosing: validateBeforeClosing, moreMenu: {
+//                    moreMenu
+//                }, deleteButton: {
+//                    deleteButton
+//                })
 //            }
-//            
-//            trackingAndOrderSection
-//            StandardDivider()
-//            
-//            if !isTemp {
-//                hashtags
-//                StandardDivider()
-//            }
-//                                                            
-//            if !isTemp {
-////                photoSection
-//                StandardFileSection(
-//                    files: $trans.files,
-//                    fileUploadCompletedDelegate: calModel,
-//                    parentType: .transaction,
-//                    showCamera: $showCamera,
-//                    showPhotosPicker: $showPhotosPicker
-//                )
-//                StandardDivider()
-//            }
-//                                    
-//            StandardNoteTextEditor(notes: $trans.notes, symbolWidth: symbolWidth, focusedField: _focusedField, focusID: showTrackingOrderAndUrlFields ? 5 : 2, showSymbol: true)
-//            
-//            StandardDivider()
-//            
-//            if !isTemp {
-//                logs
-//                StandardDivider()
-//            }
-//                                    
-//            alteredBy
-//        } header: {
-//            SheetHeaderView(title: title, trans: trans, transEditID: $transEditID, focusedField: $focusedField, showDeleteAlert: $showDeleteAlert, isTemp: isTemp)
-//        } footer: {
-//            if let linkedLingo {
-//                Text(linkedLingo)
-//                   .font(.caption2)
-//                   .foregroundStyle(.gray)
-//            }
+//            .navigationTitle(title)
+//            #endif
 //        }
-//        .onDisappear {
-//            transEditID = nil
-//        }
-//        .interactiveDismissDisabled(paymentMethodMissing)
-//        .environment(mapModel)
+//        
+//        //.onDisappear { transEditID = nil }
+//        .interactiveDismissDisabled(disableInteractiveDismiss)
 //        .task {
-//            prepareTransactionForEditing(isTemp: isTemp)
-//            ChangeTransactionTitleColorTip.didOpenTransaction.sendDonation()
+//            if !isWarmUp {
+//                prepareTransactionForEditing(isTemp: isTemp)
+//                ChangeTransactionTitleColorTip.didOpenTransaction.sendDonation()
+//            }
+//            
 //        }
-//        .alert("Please change the payment method by right-clicking on the line item from the main view.", isPresented: $showPaymentMethodChangeAlert) {
+//        .alert("Please change the selected account by right-clicking on the line item from the main view.", isPresented: $showPaymentMethodChangeAlert) {
 //            Button("OK") {}
 //        }
-//        .confirmationDialog("Delete \"\(trans.title)\"?", isPresented: $showDeleteAlert) {
-//            /// There's a bug in dismiss() that causes the photo sheet to open, close, and then open again. By moving the dismiss variable into a seperate view, it doesn't affect the photo sheet anymore.
-//            DeleteYesButton(trans: trans, transEditID: $transEditID, isTemp: isTemp)
-//                        
-//            Button("No", role: .cancel) {
-//                showDeleteAlert = false
-//            }
-//        } message: {
-//            Text("Delete \"\(trans.title)\"?")
+//        .sheet(isPresented: $showSplitSheet) {
+//            TransactionSplitSheet(trans: trans, showSplitSheet: $showSplitSheet)
 //        }
-//        // MARK: - Undo Stuff
+//        .environment(mapModel)
+//        /// Check what color the save button should be.
+//        .onChange(of: transactionValuesChanged) { checkIfTransactionIsValidToSave() }
+//                                
 //        #if os(iOS)
+//        /// Prompt for undo/redo on shake.
 //        .onShake {
 //            UndodoManager.shared.getChangeFields(trans: trans)
 //            UndodoManager.shared.showAlert = true
 //        }
+//        /// Handle undo and redo.
+//        .onChange(of: undoRedoValuesChanged) { UndodoManager.shared.processChange(trans: trans) }
+//        /// Handle undo and redo.
 //        .onChange(of: UndodoManager.shared.returnMe) {
 //            if let new = $1 {
 //                trans.title = new.title ?? ""
@@ -283,24 +308,9 @@
 //                })
 //            }
 //        }
-//        .onChange(of: undoRedoValuesChanged) { UndodoManager.shared.processChange(trans: trans) }
-////        .onChange(of: trans.title) { UndodoManager.shared.processChange(trans: trans) }
-////        .onChange(of: trans.amountString) { UndodoManager.shared.processChange(trans: trans) }
-////        .onChange(of: trans.payMethod) { UndodoManager.shared.processChange(trans: trans) }
-////        .onChange(of: trans.category) { UndodoManager.shared.processChange(trans: trans) }
-////        //.onChange(of: trans.date) { UndodoManager.shared.commitChange(trans: trans) }
-////        .onChange(of: trans.trackingNumber) { UndodoManager.shared.processChange(trans: trans) }
-////        .onChange(of: trans.orderNumber) { UndodoManager.shared.processChange(trans: trans) }
-////        .onChange(of: trans.url) { UndodoManager.shared.processChange(trans: trans) }
-////        .onChange(of: trans.notes) { UndodoManager.shared.processChange(trans: trans) }
-//        .onChange(of: trans.date) { oldValue, newValue in
-//            if oldValue != nil { /// Date is nil when creating a new transaction.
-//                focusedField = nil /// Clear any focused text field when changing the date.
-//                UndodoManager.shared.processChange(trans: trans)
-//            }
-//        }
-//        .onChange(of: focusedField) { oldValue, newValue in
-//            if newValue != nil {
+//        /// Handle undo and redo.
+//        .onChange(of: focusedField) {
+//            if $1 != nil {
 //                if trans.action == .add && blockUndoCommitOnLoad {
 //                    blockUndoCommitOnLoad = false
 //                } else {
@@ -308,14 +318,398 @@
 //                    UndodoManager.shared.commitChange(trans: trans)
 //                }
 //            }
+//            
+//            /// For titles.
+//            /// Clear map suggestions when unfocusing from the title field.
+//            if $0 == 1 && $1 != 1 {
+//                //withAnimation {
+//                suggestedTitles.removeAll()
+//                mapModel.completions.removeAll()
+//                //}
+//            }
+//        }
+//        #endif
+//        .onAppear {
+//            /// Run this in dispatch queue since the inital render is expensive.
+//            /// Subsequent renders should appear seamless.
+//            DispatchQueue.main.async {
+//                showExpensiveSections = true
+//            }
 //        }
 //        
-//        //.onChange(of: mapModel.position) { self.position = $1 }
-//        #endif
+//    }
+//    
+//    @ToolbarContentBuilder
+//    var toolbar: some ToolbarContent {
+//        ToolbarItem(placement: .topBarLeading) { deleteButton }
+//        ToolbarSpacer(.fixed, placement: .topBarLeading)
+//        ToolbarItem(placement: .topBarLeading) {
+//            moreMenu
+//                .if(trans.notifyOnDueDate) {
+//                    $0.badge(Text(""))
+//                }
+//        }
+//        ToolbarItem(placement: .topBarTrailing) {
+//            AnimatedCloseButton(isValidToSave: isValidToSave, closeButton: closeButton)
+//        }
 //        
-//        .onChange(of: trans.title) { oldValue, newValue in
+//        ToolbarItem(placement: .bottomBar) {
+//            NavigationLink(value: TransNavDestination.logs) {
+//                EnteredByAndUpdatedByView(
+//                    enteredBy: trans.enteredBy,
+//                    updatedBy: trans.updatedBy,
+//                    enteredDate: trans.enteredDate,
+//                    updatedDate: trans.updatedDate
+//                )
+//            }
+//        }
+//    }
+//
+//    @ViewBuilder
+//    func content(_ scrollProxy: ScrollViewProxy) -> some View {
+//        //Text(trans.id)
+//        Section {
+//            titleRow
+//            TransactionAmountRow(amountTypeLingo: trans.amountTypeLingo, amountString: $trans.amountString) {
+//                amountRow
+//            }
+//            .overlay {
+//                Color.red
+//                    .frame(height: 2)
+//                    .opacity(trans.factorInCalculations ? 0 : 1)
+//            }
+//        }
+//        
+//        Section {
+//            PayMethodSheetButtonPhone(
+//                text: "Account",
+//                logoFallBackType: .customImage(.init(
+//                    name: trans.payMethod?.fallbackImage,
+//                    color: trans.payMethod?.color
+//                )),
+//                payMethod: $trans.payMethod,
+//                whichPaymentMethods: .allExceptUnified
+//            )
+//            
+//            CategorySheetButtonPhone(category: $trans.category)
+//        }
+//        
+//        ruleSuggestionButton
+//        
+//        Section {
+//            datePickerRow
+//                .listRowInsets(EdgeInsets())
+//                .padding(.horizontal, 16)
+//            
+//            if (trans.isSmartTransaction ?? false) &&
+//                (trans.smartTransactionIssue?.enumID == .missingDate
+//                 || trans.smartTransactionIssue?.enumID == .missingPaymentMethodAndDate
+//                 || trans.smartTransactionIssue?.enumID == .funkyDate)
+//                && !(trans.smartTransactionIsAcknowledged ?? true) {
+//                
+//                dateFixerRow
+//                    .listRowInsets(EdgeInsets())
+//                    .padding(.horizontal, 16)
+//            }
+//        }
+//        
+//        if !isTemp {
+//            Section {
+//                StandardMiniMap(
+//                    locations: $trans.locations,
+//                    parent: trans,
+//                    parentID: trans.id,
+//                    parentType: XrefEnum.transaction,
+//                    addCurrentLocation: false
+//                )
+//                .listRowInsets(EdgeInsets())
+//            }
+//        }
+//        
+//        trackingAndOrderRow
+//        
+//        if !isTemp {
+//            hashtagsRow
+//        }
+//        
+//        if !isTemp {
+//            Section("Photos & Documents") {
+//                StandardFileSection(
+//                    files: $trans.files,
+//                    fileUploadCompletedDelegate: calModel,
+//                    parentType: .transaction,
+//                    showCamera: $showCamera,
+//                    showPhotosPicker: $showPhotosPicker
+//                )
+//            }
+//        }
+//        StandardUITextEditor(text: $trans.notes, focusedField: _focusedField, focusID: 2, scrollProxy: scrollProxy)
+////        StandardNoteTextEditor(notes: $trans.notes, symbolWidth: symbolWidth, focusedField: _focusedField, focusID: showTrackingOrderAndUrlFields ? 5 : 2, showSymbol: true)
+////                    .id(showTrackingOrderAndUrlFields ? 5 : 2)
+//    }
+//    
+//    
+//    // MARK: - SubViews
+//    
+//    
+//    @ViewBuilder
+//    var categoryTitleSuggestions: some View {
+//        let titleSuggestions = trans.category?.topTitles ?? []
+//        ScrollView(.horizontal) {
+//            HStack {
+//                ForEach(titleSuggestions, id: \.self) { title in
+//                    Button {
+//                        trans.title = title.capitalized
+//                        showTopTitles = false
+//                    } label: {
+//                        Text("\(title.capitalized)?")
+//                        .foregroundStyle(.gray)
+//                        .font(.subheadline)
+//                    }
+//                    .padding(8)
+//                    .background(Capsule().foregroundStyle(.thickMaterial))
+//                }
+//            }
+//        }
+//        .scrollIndicators(.hidden)
+//        .contentMargins(.vertical, 5, for: .scrollContent)
+//    }
+//    
+//        
+//    @ViewBuilder
+//    var historyTitleSuggestions: some View {
+//        ScrollView(.horizontal) {
+//            HStack {
+//                ForEach(suggestedTitles.sorted { $0.transactionCount > $1.transactionCount }.prefix(3), id: \.id) { opt in
+//                    Button {
+//                        blockSuggestionsFromPopulating = true
+//                        trans.title = opt.title.capitalized
+//                        showTopTitles = false
+//                        suggestedTitles.removeAll()
+//                    } label: {
+//                        Text("\(opt.title.capitalized)?")
+//                        .foregroundStyle(.gray)
+//                        .font(.subheadline)
+//                    }
+//                    .padding(8)
+//                    .background(Capsule().foregroundStyle(.thickMaterial))
+//                }
+//            }
+//        }
+//        .scrollIndicators(.hidden)
+//        //.contentMargins(.vertical, 5, for: .scrollContent)
+//    }
+//    
+//    @State private var isHilighting = false
+//    @State private var hideHilight = false
+//    @ViewBuilder private func smartIndicatorView() -> some View {
+//        
+//        ZStack {
+//            let shape = Capsule()
+//            shape
+//                .stroke(
+//                    //Color.theme.gradient,
+//                    AngularGradient(gradient: Gradient(colors: [.red, .yellow, .green, .blue, .purple, .red]), center: .center),
+//                    style: .init(lineWidth: 2, lineCap: .round, lineJoin: .round)
+//                )
+//                .mask {
+//                    let clearColors: [Color] = Array(repeating: .clear, count: 4)
+//                    shape
+//                        .fill(AngularGradient(
+//                            colors: clearColors + [.red, .yellow, .green, .blue, .purple, .red] + clearColors,
+//                            center: .center,
+//                            angle: .init(degrees: isHilighting ? 360 : 0)
+//                        ))
+//                        .opacity(hideHilight ? 0 : 1)
+//                }
+//                .padding(-2)
+//                .blur(radius: 0)
+//                .onAppear {
+//                    withAnimation(.linear(duration: 2).repeatCount(1, autoreverses: false)) {
+//                        isHilighting = true
+//                    }
+//                    
+//                    // fade out starting 1.5s into the final spin (slightly before the end)
+//                    let totalDuration = 2.0 // 2s per spin * 1 repeats
+//                    let fadeDuration = 1.0
+//                    let fadeStart = totalDuration - fadeDuration
+//                    
+//                    DispatchQueue.main.asyncAfter(deadline: .now() + fadeStart) {
+//                        withAnimation(.easeOut(duration: fadeDuration)) {
+//                            hideHilight = true
+//                        }
+//                    }
+//                }
+//                .onDisappear {
+//                    isHilighting = false
+//                    hideHilight = false
+//                }
+//        }
+//    }
+//    
+//    
+//    
+//    var mapLocationSuggestions: some View {
+//        HStack {
+//            ScrollView(.horizontal) {
+//                HStack {
+//                    ForEach(mapModel.completions.prefix(3), id: \.self) { completion in
+//                        Button {
+//                            mapModel.blockCompletion = true
+//                            trans.title = completion.title
+//                            suggestedTitles.removeAll()
+//                            Task {
+//                                if let location = await mapModel.getMapItem(from: completion, parentID: trans.id, parentType: XrefEnum.transaction) {
+//                                    trans.upsert(location)
+//                                    mapModel.focusOnFirst(locations: trans.locations)
+//                                }
+//                            }
+//                        } label: {
+//                            VStack(alignment: .leading) {
+//                                Text(AttributedString(completion.highlightedTitleStringForDisplay))
+//                                    .font(.caption2)
+//                                    .foregroundStyle(.gray)
+//                                
+//                                Text(AttributedString(completion.truncatedHighlightedSubtitleStringForDisplay))
+//                                    .font(.caption2)
+//                                    .foregroundStyle(.gray)
+//                            }
+//                        }
+//                        .padding(8)
+//                        .background(Capsule().foregroundStyle(.thickMaterial))
+//                    }
+//                    
+//                    mapLocationCurrentButton
+//                    mapLocationClearButton
+//                }
+//            }
+//            .scrollIndicators(.hidden)
+//            .contentMargins(.vertical, 5, for: .scrollContent)
+//        }
+//    }
+//
+//    
+//    var mapLocationCurrentButton: some View {
+//        Button {
+//            //withAnimation {
+//                mapModel.completions.removeAll()
+//            //}
+//            Task {
+//                if let location = await mapModel.saveCurrentLocation(parentID: trans.id, parentType: XrefEnum.transaction) {
+//                    trans.upsert(location)
+//                }
+//            }
+//        } label: {
+//            Image(systemName: "location.fill")
+//        }
+//        .padding(8)
+//        .background(Capsule().foregroundStyle(.thickMaterial))
+//        .focusable(false)
+//        .bold(true)
+//        .font(.subheadline)
+//    }
+//    
+//    
+//    var mapLocationClearButton: some View {
+//        Button {
+//            //withAnimation {
+//                mapModel.completions.removeAll()
+//            //}
+//        } label: {
+//            Image(systemName: "xmark")
+//        }
+//        .padding(8)
+//        .background(Capsule().foregroundStyle(.thickMaterial))
+//        .focusable(false)
+//        .bold(true)
+//        .font(.subheadline)
+//    }
+//    
+//    
+//    @ViewBuilder
+//    var titleRow: some View {
+//        VStack {
+//            HStack(spacing: 0) {
+//                Label {
+//                    Text("")
+//                } icon: {
+//                    Image(systemName: "t.circle")
+//                        .foregroundStyle(.gray)
+//                }
+//                
+//                titleTextField
+//            }
+//            
+//            suggestionsRow
+//                .padding(.bottom, -7)
+//        }
+//    }
+//    
+//    
+//    @ViewBuilder
+//    var titleTextField: some View {
+//        Group {
+//            #if os(iOS)
+//            UITextFieldWrapper(placeholder: "Title", text: $trans.title, onSubmit: {
+//                focusedField = 1
+//            }, toolbar: {
+//                KeyboardToolbarView(focusedField: $focusedField, disableUp: true)
+//            })
+//            .uiTag(0)
+//            .uiClearButtonMode(.whileEditing)
+//            .uiStartCursorAtEnd(true)
+//            .uiTextAlignment(.left)
+//            .uiReturnKeyType(.next)
+//            .uiTextColor(UIColor(trans.color))
+//            #else
+//            StandardTextField("Title", text: $trans.title, focusedField: $focusedField, focusValue: 0)
+//                .onSubmit { focusedField = 1 }
+//            #endif
+//        }
+//        .focused($focusedField, equals: 0)
+//        .overlay {
+//            Color.red
+//                .frame(height: 2)
+//                .opacity(trans.factorInCalculations ? 0 : 1)
+//        }
+//        
+//        /// Suggest top titles associated with a category if the title has not yet been entered when the category is selected.
+//        .onChange(of: trans.category) {
+//            if let newValue = $1 {
+//                if trans.action == .add && trans.title.isEmpty && !newValue.isNil {
+//                    showTopTitles = true
+//                }
+//            }
+//        }
+//        .onChange(of: trans.title) {
+//            let new = $1
+//            
+//            /// Handle search suggestions
+//            if !showTopTitles {
+//                mapModel.getAutoCompletions(for: new)
+//            }
+//            if !new.isEmpty {
+//                showTopTitles = false
+//            }
+//            ///
+//            
+//            /// Suggest adding a new keyword for common titles that may not have one.
+//            if new.isEmpty {
+//                suggestedTitles.removeAll()
+//                mapModel.completions.removeAll()
+//            } else {
+//                if !blockSuggestionsFromPopulating {
+//                    suggestedTitles = calModel.suggestedTitles.filter {
+//                        $0.title//.localizedCaseInsensitiveContains(new)
+//                            .range(of: new, options: [.caseInsensitive, .diacriticInsensitive, .anchored]) != nil
+//                    }//.prefix(3)
+//                } else {
+//                    blockSuggestionsFromPopulating = false
+//                }
+//            }
+//            
 //            if !blockKeywordChangeWhenViewLoads {
-//                let upVal = newValue.uppercased()
+//                let upVal = new.uppercased()
 //                
 //                for key in keyModel.keywords {
 //                    let upKey = key.keyword.uppercased()
@@ -332,196 +726,141 @@
 //            }
 //        }
 //    }
-//               
+//    
+//        
+//    @ViewBuilder
+//    var suggestionsRow: some View {
+//        if shouldShowSuggestions {
+//            HStack(spacing: 0) {
+//                Label {
+//                    Text("")
+//                } icon: {
+//                    AiAnimatedAliveSymbol(symbol: "brain", withGlow: true)
+//                    //AiAnimatedSwishSymbol(symbol: "brain", hasAnimated: $hasAnimatedBrain)
+//                }
+//                                    
+//                VStack(alignment: .leading) {
+//                    if showTopTitles && !(trans.category?.topTitles ?? []).isEmpty {
+//                        categoryTitleSuggestions
+//                    } else {
+//                        switch transactionTitleSuggestionType {
+//                        case .location:
+//                            if !mapModel.completions.isEmpty {
+//                                mapLocationSuggestions
+//                            }
+//                        case .history:
+//                            if !suggestedTitles.isEmpty {
+//                                historyTitleSuggestions
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//            .padding(.top, 7)
+//        }
+//    }
 //    
 //    
-//    
-//    // MARK: - SubViews
-////    var titleTextField: some View {
-////        HStack {
-////            #if os(macOS)
-////            Image(systemName: "bag.fill")
-////            //Image(systemName: trans.color == .primary ? "lightspectrum.horizontal" : "bag.fill")
-////                .foregroundColor(titleColorButtonHoverColor)
-////                .frame(width: symbolWidth)
-////                //.symbolRenderingMode(.multicolor)
-////                .contentShape(Rectangle())
-////                .overlay {
-////                    TitleColorMenu(trans: trans, saveOnChange: false) {
-////                        EmptyView()
-////                    }
-////                    .menuStyle(.borderlessButton)
-////                    .menuIndicator(.hidden)
-////                    .onTapGesture {
-////                        ChangeTransactionTitleColorTip.didTouchColorChangeButton = true
-////                    }
-////                    //.padding(.leading, 4)
-////                }
-////                .onHover { isHovering in titleColorButtonHoverColor = isHovering ? (trans.color == Color.accentColor ? .white : Color.accentColor) : ((trans.color == .white || trans.color == .primary) ? .gray : trans.color) }
-////                .padding(.leading, 1)
-////                .popoverTip(changeTransactionTitleColorTip)
-////                //.focusEffectDisabled(true)
-////
-////            #else
-////            TitleColorMenu(trans: trans, saveOnChange: false) {
-////                Image(systemName: "bag.fill")
-////                //Image(systemName: trans.color == .primary ? "lightspectrum.horizontal" :"bag.fill")
-////                    .foregroundColor(trans.color == .primary ? .gray : trans.color)
-////                    .frame(width: symbolWidth)
-////                    .onTapGesture {
-////                        ChangeTransactionTitleColorTip.didTouchColorChangeButton = true
-////                    }
-////                    //.symbolRenderingMode(.multicolor)
-////            }
-////            .popoverTip(changeTransactionTitleColorTip)
-////            #endif
-////
-////            Group {
-////                #if os(iOS)
-////
-////                StandardUITextField("Title", text: $trans.title, onSubmit: {
-////                    focusedField = 1
-////                }, toolbar: {
-////                    KeyboardToolbarView(focusedField: $focusedField)
+//    @ViewBuilder
+//    var amountRow: some View {
+//        HStack(spacing: 0) {
+//            Label {
+//                Text("")
+//            } icon: {
+//                Image(systemName: "dollarsign.circle")
+//                    .foregroundStyle(.gray)
+//            }
+//            
+//            Group {
+//                #if os(iOS)
+//                
+//                UITextFieldWrapper(placeholder: "Amount", text: $trans.amountString, toolbar: {
+//                    KeyboardToolbarView(
+//                        focusedField: $focusedField,
+//                        //disableUp: 0,
+//                        disableDown: true,
+////                        focusDownExtraFunction: {
+////                           // withAnimation(.easeInOut(duration: 5)) {
+////                                scrollProxy.scrollTo(showTrackingOrderAndUrlFields ? 5 : 2)
+////                            //} completion: {
+////                                //focusedField = showTrackingOrderAndUrlFields ? 5 : 2
+////                            //}
+////                        },
+//                        accessoryImage3: "plus.forwardslash.minus",
+//                        accessoryFunc3: {
+//                            Helpers.plusMinus($trans.amountString)
+//                        })
+//                })
+//                
+////                UITextFieldWrapper(placeholder: "Amount", text: $trans.amountString, toolbar: {
+////                    KeyboardToolbarView(
+////                        focusedField: $focusedField,
+////                        accessoryImage3: "plus.forwardslash.minus",
+////                        accessoryFunc3: {
+////                            Helpers.plusMinus($trans.amountString)
+////                        })
 ////                })
-////                .cbClearButtonMode(.whileEditing)
-////                .cbFocused(_focusedField, equals: 0)
-////                .cbSubmitLabel(.next)
-////                .overlay {
-////                    if !trans.factorInCalculations {
-////                        RoundedRectangle(cornerRadius: 8)
-////                            .stroke(.red, lineWidth: 4)
-////                    }
+//                .uiTag(1)
+//                .uiClearButtonMode(.whileEditing)
+//                .uiStartCursorAtEnd(true)
+//                .uiTextAlignment(.left)
+//                //.uiKeyboardType(.numpad)
+//                .uiKeyboardType(.custom(.numpad))
+//                //.uiKeyboardType(AppState.shared.isIpad ? .default : useWholeNumbers ? .numberPad : .decimalPad)
+//                //.uiTextColor(.secondaryLabel)
+//                //.uiFont(UIFont.systemFont(ofSize: 24.0))
+//                #else
+//                StandardTextField("Amount", text: $trans.amountString, focusedField: $focusedField, focusValue: 1)
+//                #endif
+//            }
+//            .focused($focusedField, equals: 1)
+//            .formatCurrencyLiveAndOnUnFocus(
+//                focusValue: 1,
+//                focusedField: focusedField,
+//                amountString: trans.amountString,
+//                amountStringBinding: $trans.amountString,
+//                amount: trans.amount
+//            )
+//            .onChange(of: focusedField) { oldValue, newValue in
+//                if newValue == 1 && trans.amountString.isEmpty && (trans.payMethod ?? CBPaymentMethod()).isDebit {
+//                    trans.amountString = "-"
+//                }
+//                
+//                
+////                if newValue == 1 {
+////                    Helpers.formatCurrency(
+////                        focusValue: focusValue,
+////                        oldFocus: oldValue,
+////                        newFocus: newValue,
+////                        amountString: amountStringBinding,
+////                        amount: amount
+////                    )
 ////                }
-////
-////                #else
-////                StandardTextField("Title", text: $trans.title, focusedField: $focusedField, focusValue: 0)
-////                    .onSubmit { focusedField = 1 }
-////                    .overlay {
-////                        if !trans.factorInCalculations {
-////                            RoundedRectangle(cornerRadius: 8)
-////                                .stroke(.red, lineWidth: 4)
-////                        }
-////                    }
-////                #endif
-////            }
-////            .onChange(of: trans.title) { oldValue, newValue in
-////                if !blockKeywordChangeWhenViewLoads {
-////                    let upVal = newValue.uppercased()
-////
-////                    for key in keyModel.keywords {
-////                        let upKey = key.keyword.uppercased()
-////
-////                        switch key.triggerType {
-////                        case .equals:
-////                            if upVal == upKey { trans.category = key.category }
-////                        case .contains:
-////                            if upVal.contains(upKey) { trans.category = key.category }
-////                        }
-////                    }
-////                } else {
-////                    blockKeywordChangeWhenViewLoads = false
-////                }
-////            }
-////        }
-////    }
+//            }
+//            /// Keep the amount in sync with the payment method at the time the payment method was changed.
+//            .onChange(of: trans.payMethod) { oldValue, newValue in
+//                if let oldValue, let newValue {
+//                    if (oldValue.isDebit && newValue.isCreditOrLoan) || (oldValue.isCreditOrLoan && newValue.isDebit) {
+//                        Helpers.plusMinus($trans.amountString)
+//                    }
+//                }
+//            }
+//        }
+//    }
+//   
 //    
-////
-////    var amountTextField: some View {
-////        HStack(alignment: .circleAndTitle) {
-////            Image(systemName: "dollarsign.circle.fill")
-////                .foregroundColor(.gray)
-////                .frame(width: symbolWidth)
-////                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-////
-////            VStack(alignment: .leading, spacing: 0) {
-////                Group {
-////                    #if os(iOS)
-////                    StandardUITextField("Amount", text: $trans.amountString, toolbar: {
-////                        KeyboardToolbarView(
-////                            focusedField: $focusedField,
-////                            accessoryImage3: "plus.forwardslash.minus",
-////                            accessoryFunc3: {
-////                                Helpers.plusMinus($trans.amountString)
-////                            })
-////                    })
-////                    .cbClearButtonMode(.whileEditing)
-////                    .cbFocused(_focusedField, equals: 1)
-////                    .cbKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
-////                    //.cbTextfieldInputType(.currency)
-//////                    .onChange(of: trans.amountString) {
-//////                        Helpers.liveFormatCurrency(oldValue: $0, newValue: $1, text: $trans.amountString)
-//////                    }
-//////                    .onChange(of: focusedField) {
-//////                        if let string = Helpers.formatCurrency(focusValue: 1, oldFocus: $0, newFocus: $1, amountString: trans.amountString, amount: trans.amount) {
-//////                            trans.amountString = string
-//////                        }
-//////                    }
-//////
-//////
-//////                    .onChange(of: focusedField) { oldValue, newValue in
-//////                        if newValue == 1 {
-//////                            if trans.amount == 0.0 {
-//////                                trans.amountString = ""
-//////                            }
-//////                        } else {
-//////                            if oldValue == 1 && !trans.amountString.isEmpty {
-//////                                if trans.amountString == "$" || trans.amountString == "-$" {
-//////                                    trans.amountString = ""
-//////                                } else {
-//////                                    trans.amountString = trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
-//////                                }
-//////                            }
-//////                        }
-//////                    }
-//////                    .onChange(of: trans.amountString) { oldValue, newValue in
-//////                        if trans.amountString != "-" {
-//////                            if trans.amount == 0.0 {
-//////                                trans.amountString = ""
-//////                            } else {
-//////                                trans.amountString = trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
-//////                            }
-//////                        }
-//////                    }
-////                    #else
-////                    StandardTextField("Amount", text: $trans.amountString, focusedField: $focusedField, focusValue: 1)
-////                    #endif
-////                }
-////                .formatCurrencyLiveAndOnUnFocus(
-////                    focusValue: 1,
-////                    focusedField: focusedField,
-////                    amountString: trans.amountString,
-////                    amountStringBinding: $trans.amountString,
-////                    amount: trans.amount
-////                )
-////                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-////
-////                (Text("Transaction Type: ") + Text(transTypeLingo).bold(true).foregroundStyle(Color.theme))
-////                    .foregroundStyle(.gray)
-////                    .font(.caption)
-////                    .multilineTextAlignment(.leading)
-////                    .padding(.leading, 6)
-////                    .disabled(trans.amountString.isEmpty)
-////                    .onTapGesture {
-////                        Helpers.plusMinus($trans.amountString)
-////
-////                        /// Just do on Mac because the calendar view is still visable.
-////                        #if os(macOS)
-////                        let _ = calModel.calculateTotal(for: calModel.sMonth)
-////                        #endif
-////                    }
-////            }
-////        }
-////    }
-////
-////
-//    var datePickerSection: some View {
+//    @ViewBuilder
+//    var datePickerRow: some View {
 //        HStack {
-//            Image(systemName: trans.date != nil ? "calendar" : "exclamationmark.circle.fill")
-//                .foregroundColor(trans.date != nil ? .gray : Color.theme == Color.red ? Color.orange : Color.red)
-//                .frame(width: symbolWidth)
-//            
-//            
+//            Label {
+//                Text("Date")
+//            } icon: {
+//                Image(systemName: trans.date != nil ? "calendar" : "exclamationmark.circle.fill")
+//                    .foregroundColor(trans.date != nil ? .gray : Color.theme == Color.red ? Color.orange : Color.red)
+//                    //.frame(width: symbolWidth)
+//            }
+//
+//            Spacer()
 //            if trans.date == nil && (trans.isSmartTransaction ?? false) {
 //                Button("A Date Is Required") {
 //                    trans.date = day.date!
@@ -531,8 +870,14 @@
 //                
 //            } else {
 //                #if os(iOS)
-//                UIKitDatePicker(date: $trans.date, alignment: .leading) // Have to use because of reformatting issue
-//                    .frame(height: 40)
+////                UIKitDatePicker(date: $trans.date, alignment: .trailing) // Have to use because of reformatting issue
+////                    .frame(height: 40)
+//                
+//                DatePicker("", selection: $trans.date ?? Date(), displayedComponents: [.date])
+//                    .frame(maxWidth: .infinity, alignment: .trailing)
+//                    .labelsHidden()
+//                
+//                
 //                #else
 //                DatePicker("", selection: $trans.date ?? Date(), displayedComponents: [.date])
 //                    .frame(maxWidth: .infinity, alignment: .leading)
@@ -540,67 +885,168 @@
 //                #endif
 //            }
 //        }
+//        .onChange(of: trans.date) { old, new in
+//            if old != nil { /// Date is nil when creating a new transaction.
+//                focusedField = nil /// Clear any focused text field when changing the date.
+//                UndodoManager.shared.processChange(trans: trans)
+//            }
+//        }
 //    }
 //    
 //    
-//    var trackingAndOrderSection: some View {
-//        Group {
-//            if showTrackingOrderAndUrlFields {
-//                VStack(alignment: .leading) {
-//                    trackingNumberTextField
-//                    orderNumberTextField
-//                    urlTextField
+//    @State private var dateFixerTicker = 0
+//    
+//    var dateFixerRow: some View {
+//        HStack {
+//            Label {
+//                Text("Fix Date")
+//            } icon: {
+//                Image(systemName: "calendar.badge.exclamationmark")
+//                    .foregroundColor(Color.theme == Color.red ? Color.orange : Color.red)
+//            }
+//
+//            Spacer()
+//            
+//            
+//            ControlGroup {
+//                Button {
+//                    dateFixerTicker -= 1
+//                    trans.date = Calendar.current.date(byAdding: DateComponents(day: dateFixerTicker), to: Date())
+//                } label: {
+//                    Image(systemName: "chevron.left")
 //                }
-//            } else {
-//                HStack {
-//                    Image(systemName: "shippingbox.fill")
-//                        .foregroundColor(.gray)
-//                        .frame(width: symbolWidth)
-//                    
-//                    Button {
-//                        withAnimation {
-//                            showTrackingOrderAndUrlFields = true
-//                        }
-//                        
-//                    } label: {
-//                        HStack {
-//                            Text("Tracking, Order, Link…")
-//                            Spacer()
-//                            Image(systemName: "chevron.right")
-//                        }
-//                        .foregroundStyle(.gray)
-//                        .contentShape(Rectangle())
-//                    }
-//                    .buttonStyle(.plain)
+//                
+//                Button("Today") {
+//                    dateFixerTicker = 0
+//                    trans.date = Date()
+//                }
+//                
+//                Button {
+//                    dateFixerTicker += 1
+//                    trans.date = Calendar.current.date(byAdding: DateComponents(day: dateFixerTicker), to: Date())
+//                } label: {
+//                    Image(systemName: "chevron.right")
 //                }
 //            }
+//            
+//            
+//            .buttonStyle(.borderedProminent)
+//        }
+//    }
+//    
+//    
+//    var reminderRow: some View {
+//        Section {
+//            ReminderPicker(notificationOffset: $trans.notificationOffset)
+////            Picker("", selection: $trans.notificationOffset) {
+////                Text("2 days before")
+////                    .tag(2)
+////                Text("1 day before")
+////                    .tag(1)
+////                Text("Day of")
+////                    .tag(0)
+////            }
+////            .labelsHidden()
+////            .pickerStyle(.palette)
+////        } header: {
+////            Text("Reminder")
+//        } footer: {
+//            Text("Alerts will be sent out at 9:00 AM")
+//                .foregroundStyle(.gray)
+//                .font(.caption)
+//                .multilineTextAlignment(.leading)
+//                .padding(.horizontal, 6)
+//        }
+//    }
+//
+//    
+//    var trackingAndOrderRow: some View {
+//        Section {
+//            if showTrackingOrderAndUrlFields {
+//                trackingNumberTextField
+//                orderNumberTextField
+//                StandardUrlTextField(url: $trans.url, symbolWidth: symbolWidth, focusedField: _focusedField, focusID: 4, showSymbol: true)
+//            } else {
+//                
+//                Button {
+//                    withAnimation { showTrackingOrderAndUrlFields = true }
+//                } label: {
+//                    Label {
+//                        Text("add fields")
+//                            .schemeBasedForegroundStyle()
+//                    } icon: {
+//                        Image(systemName: "plus.circle.fill")
+//                            .foregroundStyle(.gray)
+//                    }
+//                }
+//                
+////                HStack {
+////                    Image(systemName: "shippingbox.fill")
+////                        .foregroundColor(.gray)
+////                        .frame(width: symbolWidth)
+////
+////                    Button {
+////                        withAnimation { showTrackingOrderAndUrlFields = true }
+////                    } label: {
+////                        HStack {
+////                            Text("Add Fields")
+////                            Spacer()
+////                            Image(systemName: "chevron.right")
+////                        }
+////                        .foregroundStyle(.gray)
+////                        .contentShape(Rectangle())
+////                    }
+////                    .buttonStyle(.plain)
+////                }
+//            }
+//        } header: {
+//            Text("Tracking, Order, & Link")
+//        } footer: {
+//            if trans.trackingNumber.isEmpty && trans.orderNumber.isEmpty && trans.url.isEmpty {
+//                if showTrackingOrderAndUrlFields {
+//                    Button {
+//                        withAnimation { showTrackingOrderAndUrlFields = false }
+//                    } label: {
+//                        Text("Hide")
+//                    }
+//                    .tint(Color.theme)
+//                    //.buttonStyle(.borderedProminent)
+//                }
+//            }
+//            
 //        }
 //    }
 //    
 //    
 //    var trackingNumberTextField: some View {
 //        HStack {
-//            Image(systemName: "truck.box.fill")
-//                .foregroundColor(.gray)
-//                .frame(width: symbolWidth)
+//            Label {
+//                Text("Tracking #")
+//            } icon: {
+//                Image(systemName: "truck.box.fill")
+//                    .foregroundStyle(.gray)
+//            }
 //                                    
 //            Group {
 //                #if os(iOS)
-//                StandardUITextField("Tracking Number", text: $trans.trackingNumber, onSubmit: {
+//                UITextFieldWrapper(placeholder: "ABC123", text: $trans.trackingNumber, onSubmit: {
 //                    focusedField = 3
 //                }, toolbar: {
 //                    KeyboardToolbarView(focusedField: $focusedField)
 //                })
-//                .cbClearButtonMode(.whileEditing)
-//                .cbFocused(_focusedField, equals: 2)
-//                .cbAutoCorrectionDisabled(true)
-//                .cbSubmitLabel(.next)
+//                .uiTag(2)
+//                .uiClearButtonMode(.whileEditing)
+//                .uiStartCursorAtEnd(true)
+//                .uiTextAlignment(.right)
+//                .uiReturnKeyType(.next)
+//                .uiAutoCorrectionDisabled(true)
 //                #else
 //                StandardTextField("Tracking Number", text: $trans.trackingNumber, focusedField: $focusedField, focusValue: 2)
 //                    .autocorrectionDisabled(true)
 //                    .onSubmit { focusedField = 3 }
 //                #endif
 //            }
+//            .focused($focusedField, equals: 2)
 //        }
 //        .padding(.bottom, 6)
 //    }
@@ -608,27 +1054,43 @@
 //    
 //    var orderNumberTextField: some View {
 //        HStack {
-//            Image(systemName: "shippingbox.fill")
-//                .foregroundColor(.gray)
-//                .frame(width: symbolWidth)
+//            Label {
+//                Text("Order #")
+//            } icon: {
+//                Image(systemName: "shippingbox.fill")
+//                    .foregroundStyle(.gray)
+//            }
 //                        
 //            Group {
 //                #if os(iOS)
-//                StandardUITextField("Order Number", text: $trans.orderNumber, onSubmit: {
+//                UITextFieldWrapper(placeholder: "ABC123", text: $trans.orderNumber, onSubmit: {
 //                    focusedField = 4
 //                }, toolbar: {
 //                    KeyboardToolbarView(focusedField: $focusedField)
 //                })
-//                .cbClearButtonMode(.whileEditing)
-//                .cbFocused(_focusedField, equals: 3)
-//                .cbAutoCorrectionDisabled(true)
-//                .cbSubmitLabel(.next)
+//                .uiTag(3)
+//                .uiClearButtonMode(.whileEditing)
+//                .uiStartCursorAtEnd(true)
+//                .uiTextAlignment(.right)
+//                .uiReturnKeyType(.next)
+//                .uiAutoCorrectionDisabled(true)
+//                
+////                StandardUITextField("Order Number", text: $trans.orderNumber, onSubmit: {
+////                    focusedField = 4
+////                }, toolbar: {
+////                    KeyboardToolbarView(focusedField: $focusedField)
+////                })
+////                .cbClearButtonMode(.whileEditing)
+////                .cbFocused(_focusedField, equals: 3)
+////                .cbAutoCorrectionDisabled(true)
+////                .cbSubmitLabel(.next)
 //                #else
 //                StandardTextField("Order Number", text: $trans.orderNumber, focusedField: $focusedField, focusValue: 3)
 //                    .autocorrectionDisabled(true)
 //                    .onSubmit { focusedField = 4 }
 //                #endif
 //            }
+//            .focused($focusedField, equals: 3)
 //        }
 //        .padding(.bottom, 6)
 //    }
@@ -655,161 +1117,35 @@
 //                
 //            }
 //        }
+//        .focused($focusedField, equals: 4)
 //    }
-//        
+//     
 //    
-//    var reminderSection: some View {
-//        HStack(alignment: .circleAndTitle) {
-//            Image(systemName: "bell.fill")
-//                .foregroundColor(.gray)
-//                .frame(width: symbolWidth)
-//                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-//                                                    
-//                VStack(alignment: .leading) {
-//                    Picker("", selection: $trans.notificationOffset) {
-//                        Text("2 days before")
-//                            .tag(2)
-//                        Text("1 day before")
-//                            .tag(1)
-//                        Text("Day of")
-//                            .tag(0)
-//                    }
-//                    .labelsHidden()
-//                    .pickerStyle(.palette)
-//                    .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-//                    
-//                    Text("Alerts will be sent out at 9:00 AM")
-//                        .foregroundStyle(.gray)
-//                        .font(.caption)
-//                        .multilineTextAlignment(.leading)
-//                        .padding(.horizontal, 6)
-//                }
-//        }
-//    }
-//
-//    
-//    var paymentMethodMenu: some View {
-//        HStack {
-//            Image(systemName: trans.payMethod?.accountType == .checking ? "banknote.fill" : "creditcard.fill")
-//                .foregroundStyle(trans.payMethod == nil ? Color.gray.gradient : trans.payMethod!.color.gradient)
-//                .frame(width: symbolWidth)
-//            
-//            PayMethodSheetButtonMac(payMethod: $trans.payMethod, trans: trans, saveOnChange: false, whichPaymentMethods: .allExceptUnified)
-//        }
-//    }
-//    
-//    
-//    var categoryMenu: some View {
-//        HStack(alignment: .circleAndTitle) {
-//            Group {
-//                if lineItemIndicator == .dot {
-//                    Image(systemName: "books.vertical.fill")
-//                        .foregroundStyle((trans.category?.isNil ?? false ? .gray : trans.category?.color ?? .gray).gradient)
-//                    
-//                } else if let emoji = trans.category?.emoji {
-//                    Image(systemName: emoji)
-//                        .foregroundStyle((trans.category?.isNil ?? false ? .gray : trans.category?.color ?? .gray).gradient)
-//                        //.foregroundStyle((trans.category?.color ?? .gray).gradient)
-//                    //Text(emoji)
-//                } else {
-//                    Image(systemName: "books.vertical.fill")
-//                        .foregroundStyle(.gray.gradient)
-//                }
-//            }
-//            .frame(width: symbolWidth)
-//            .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-//            
-//            VStack(alignment: .leading, spacing: 0) {
-//                CategorySheetButton(category: $trans.category)
-//                    /// Initial undo handled inside the button.
-//                    .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-//                
-//                if trans.category != nil && !(trans.category?.isNil ?? false) {
-//                    let isRelevant = calModel.justTransactions
-//                        .filter { $0.title.localizedCaseInsensitiveContains(trans.title) && $0.category?.id == trans.category!.id }
-//                        .count >= 3 && !trans.wasAddedFromPopulate
-//                    
-//                    if isRelevant {
-//                        let alsoIsRelevant = keyModel.keywords.filter { $0.keyword.localizedCaseInsensitiveContains(trans.title) && $0.category?.id == trans.category!.id }.isEmpty
-//                        if alsoIsRelevant {
-//                            VStack(alignment: .leading) {
-//                                Button {
-//                                    let keyword = CBKeyword()
-//                                    keyword.keyword = trans.title
-//                                    keyword.category = trans.category!
-//                                    keyword.triggerType = .contains
-//                                    
-//                                    keyword.deepCopy(.create)
-//                                    keyModel.upsert(keyword)
-//                                    keyModel.keywords.sort { $0.keyword < $1.keyword }
-//                                    
-//                                    AppState.shared.showToast(title: "Rule Created", subtitle: trans.title, body: "\(trans.category!.title)", symbol: "textformat.abc.dottedunderline", symbolColor: .green)
-//                                    
-//                                    Task {
-//                                        await keyModel.submit(keyword)
-//                                    }
-//                                } label: {
-//                                    HStack(alignment: .top, spacing: 0) {
-////                                        Image(systemName: "exclamationmark.bubble.circle.fill")
-////                                            .symbolRenderingMode(.multicolor)
-////                                            .foregroundStyle(.purple, .primary)
-//                                        Text("You seem to have the combo of \"\(trans.title)\" & \"\(trans.category!.title)\" often. Touch here to create a trigger to automatically assign the category.")
-//                                            .foregroundStyle(.gray)
-//                                            .font(.caption)
-//                                            .multilineTextAlignment(.leading)
-//                                            .padding(.horizontal, 6)
-//                                    }
-//                                    
-//                                }
-//                            }
-//                            .padding(.top, 2)
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//    }
-//    
-//    
-//    var hashtags: some View {
-//        HStack {
-//            Image(systemName: "number")
-//                .foregroundColor(.gray)
-//                .frame(width: symbolWidth)
-//                        
-//            if isTemp {
-//                Text("Tags are unavailable without internet connection.")
-//                    .italic(true)
-//                    .foregroundStyle(.gray)
-//                Spacer()
-//            } else {
-//                
+//    var hashtagsRow: some View {
+//        Section {
+//            HStack {
 //                Button {
 //                    showTagSheet = true
 //                } label: {
-//                    Group {
-//                        if trans.tags.isEmpty {
-//                            HStack {
-//                                Text("Tags...")
-//                                Spacer()
-//                                Image(systemName: "chevron.right")
-//                            }
-//                            .foregroundStyle(.gray)
-//                            .contentShape(Rectangle())
-//                        } else {
-//                            TagLayout(alignment: .leading, spacing: 5) {
-//                                ForEach(trans.tags) { tag in
-//                                    Text("#\(tag.tag)")
-//                                        .foregroundStyle(Color.theme)
-//                                        .bold()
-//                                }
-//                            }
-//                            .contentShape(Rectangle())
+//                    if trans.tags.isEmpty {
+//                        Label {
+//                            Text("Tags")
+//                                .schemeBasedForegroundStyle()
+//                        } icon: {
+//                            Image(systemName: "number")
+//                                .foregroundStyle(.gray)
 //                        }
+//                    } else {
+//                        TagLayout(alignment: .leading, spacing: 5) {
+//                            ForEach(trans.tags.sorted(by: { $0.tag < $1.tag })) { tag in
+//                                Text("#\(tag.tag)")
+//                                    .foregroundStyle(Color.theme)
+//                                    .bold()
+//                            }
+//                        }
+//                        .contentShape(Rectangle())
 //                    }
 //                }
-//                .buttonStyle(.plain)
-//                
 //            }
 //        }
 //        .sheet(isPresented: $showTagSheet) {
@@ -819,48 +1155,9 @@
 //                .presentationSizing(.fitted)
 //            #endif
 //        }
-//        
-//            
 //    }
 //    
-//    var logs: some View {
-//        HStack {
-//            Image(systemName: "list.clipboard.fill")
-//                .foregroundColor(.gray)
-//                .frame(width: symbolWidth)
-//                        
-//            if isTemp {
-//                Text("Logs are unavailable without internet connection.")
-//                    .foregroundStyle(.gray)
-//                    .italic(true)
-//                Spacer()
-//            } else {
-//                Button {
-//                    withAnimation {
-//                        showLogSheet = true
-//                    }
-//                } label: {
-//                    HStack {
-//                        Text("Change Logs")
-//                        Spacer()
-//                        Image(systemName: "chevron.right")
-//                    }
-//                    .foregroundStyle(.gray)
-//                    .contentShape(Rectangle())
-//                }
-//                .buttonStyle(.plain)
-//            }
-//        }
-//        .sheet(isPresented: $showLogSheet) {
-//            LogSheet(title: trans.title, itemID: trans.id, logType: .transaction)
-//                #if os(macOS)
-//                .frame(minWidth: 300, minHeight: 500)
-//                .presentationSizing(.fitted)
-//                #endif
-//        }
-//    }
-//    
-//                
+//  
 //    var alteredBy: some View {
 //        HStack {
 //            Image(systemName: "person.fill")
@@ -895,8 +1192,9 @@
 //            .font(.caption)
 //            .foregroundColor(.gray)
 //            
-//            Spacer()
+//            //Spacer()
 //        }
+//        .frame(maxWidth: .infinity)
 //        #if os(macOS)
 //        .padding(.bottom, 12)
 //        #else
@@ -907,179 +1205,104 @@
 //    }
 //    
 //    
-//    struct TransactionSplitSheet: View {
-//        @Local(\.lineItemIndicator) var lineItemIndicator
-//
+//    var closeButton: some View {
+//        Button {
+//            if !isValidToSave {
+//                trans.status = nil
+//            }
+//            validateBeforeClosing()
+//        } label: {
+//            Image(systemName: isValidToSave ? "checkmark" : "xmark")
+//                .schemeBasedForegroundStyle()
+//        }
+//    }
+//    
 //        
-//        @Environment(\.dismiss) var dismiss
-//        @Environment(CalendarModel.self) private var calModel
-//        @Local(\.useWholeNumbers) var useWholeNumbers
+//    var moreMenu: some View {
+////        NavigationLink(value: "MOREMENU") {
+////            Image(systemName: "ellipsis")
+////                .schemeBasedForegroundStyle()
+////        }
 //        
-//        @Bindable var trans: CBTransaction
-//        @Binding var showSplitSheet: Bool
+//        NavigationLink(value: TransNavDestination.options) {
+//            Image(systemName: "ellipsis")
+//                .schemeBasedForegroundStyle()
+//        }
+//    }
 //        
-//        @State private var additionalTrans: Array<CBTransaction> = []
-//        @FocusState private var focusedField: Int?
-//
-//        @State private var originalAmount = 0.0
-//        
-//        
-//        var body: some View {
-//            StandardContainer {
-//                VStack {
-//                    VStack {
-//                        HStack {
-//                            Text("Original Total \(originalAmount.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
-//                            Spacer()
-//                        }
-//                        HStack {
-//                            Text("Original Transaction")
-//                            Spacer()
-//                        }
-//                        StandardTitleTextField(symbolWidth: 26, focusedField: _focusedField, focusID: 0, showSymbol: true, parentType: XrefEnum.transaction, showTitleSuggestions: .constant(false), obj: trans)
+//    
+//    var deleteButton: some View {
+//        Button {
+//            showDeleteAlert = true
+//        } label: {
+//            Image(systemName: "trash")
+//        }
+//        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
+//        .tint(.none)
+//        .confirmationDialog("Delete \"\(trans.title)\"?", isPresented: $showDeleteAlert) {
+//            /// There's a bug in dismiss() that causes the photo sheet to open, close, and then open again. By moving the dismiss variable into a seperate view, it doesn't affect the photo sheet anymore.
+//            DeleteYesButton(trans: trans, transEditID: $transEditID, isTemp: isTemp)
 //                        
-//                        StandardAmountTextField(symbolWidth: 26, focusedField: _focusedField, focusID: 1, showSymbol: true, negativeOnFocusIfEmpty: trans.payMethod?.accountType != .credit, obj: trans)
-//                            .disabled(true)
-//                        
-//                        categoryMenu
-//                        
-//                        Divider()
-//                            .padding(.bottom, 12)
-//                    }
-//                    
-//                    
-//                    ForEach(additionalTrans) { newTrans in
-//                        TransactionLine(trans: newTrans, additionalTrans: $additionalTrans)
-//                        Divider()
-//                            .padding(.bottom, 12)
-//                    }
-//                    
-//                    splitButton
-//                }
-//            } header: {
-//                SheetHeader(title: "Split Transaction") {
-//                    trans.amountString = String(originalAmount)
-//                    showSplitSheet = false
-//                } view1: {
-//                    addTransButton
-//                }
+//            Button("No", role: .close) {
+//                showDeleteAlert = false
 //            }
-//            .task {
-//                originalAmount = trans.amount
-//                addTrans()
-//            }
-//            .onChange(of: additionalTrans.map { $0.amount }) { oldValue, newValue in
-//                let newAmount = newValue.reduce(0, +)
-//                trans.amountString = String(originalAmount - newAmount)
-//            }
+//        } message: {
+//            Text("Delete \"\(trans.title)\"?")
 //        }
+//    }
+//    
 //        
-//        func addTrans() {
-//            let newTrans = CBTransaction(uuid: UUID().uuidString)
-//            newTrans.title = trans.title
-//            newTrans.date = trans.date
-//            newTrans.payMethod = trans.payMethod
-//            withAnimation {
-//                additionalTrans.append(newTrans)
-//            }
-//        }
-//        
-//        var addTransButton: some View {
-//            Button(action: addTrans) {
-//                Image(systemName: "plus")
-//            }
-//        }
-//        
-//        var splitButton: some View {
-//            Button("Perform Split") {
-//                showSplitSheet = false
-//                                
-//                if let day = calModel.sMonth.days.filter({ $0.dateComponents?.day == trans.dateComponents?.day }).first {
-//                    for each in additionalTrans {
-//                        day.upsert(each)
-//                    }
+//    @ViewBuilder var ruleSuggestionButton: some View {
+//        if trans.category != nil && !(trans.category?.isNil ?? false) {
+//            let existingCount = calModel.justTransactions
+//                .filter {
+//                    $0.title.localizedCaseInsensitiveContains(trans.title)
+//                    && $0.category?.id == trans.category!.id
 //                }
-//                
-//                Task {
-//                    await calModel.editMultiple(trans: additionalTrans)
-//                }
-//            }
-//            .disabled(additionalTrans.isEmpty || additionalTrans.map { $0.amount }.contains(0))
-//            .buttonStyle(.borderedProminent)
-//        }
-//                
-//        var categoryMenu: some View {
-//            HStack {
-//                Group {
-//                    if lineItemIndicator == .dot {
-//                        Image(systemName: "books.vertical.fill")
-//                            .foregroundStyle((trans.category?.color ?? .gray).gradient)
-//                        
-//                    } else if let emoji = trans.category?.emoji {
-//                        Image(systemName: emoji)
-//                            .foregroundStyle((trans.category?.color ?? .gray).gradient)
-//                        //Text(emoji)
-//                    } else {
-//                        Image(systemName: "books.vertical.fill")
-//                            .foregroundStyle(.gray.gradient)
-//                    }
-//                }
-//                .frame(width: 26)
-//                
-//                CategorySheetButton(category: $trans.category)
-//            }
-//        }
-//        
-//        
-//        private struct TransactionLine: View {
-//            @Bindable var trans: CBTransaction
-//            @Binding var additionalTrans: [CBTransaction]
+//                .count
 //            
-//            @FocusState private var focusedField: Int?
+//            let comboExists = existingCount >= 3 && !trans.wasAddedFromPopulate
 //            
-//            var body: some View {
-//                VStack {
-//                    HStack {
-//                        Text("New Transaction")
-//                        Spacer()
-//                        Button("Remove") {
-//                            withAnimation {
-//                                additionalTrans.removeAll(where: {$0.id == trans.id})
-//                            }
-//                            
-//                        }
-//                        .foregroundStyle(.red)
-//                    }
-//                    
-//                    StandardTitleTextField(symbolWidth: 26, focusedField: _focusedField, focusID: 0, showSymbol: true, parentType: XrefEnum.transaction, showTitleSuggestions: .constant(false), obj: trans)
-//                    
-//                    StandardAmountTextField(symbolWidth: 26, focusedField: _focusedField, focusID: 1, showSymbol: true, negativeOnFocusIfEmpty: trans.payMethod?.accountType != .credit, obj: trans)
-//                    
-//                    HStack {
-//                        Image(systemName: "books.vertical.fill")
-//                            .foregroundStyle((trans.category?.color ?? .gray).gradient)
-//                            .frame(width: 26)
+//            let ruleDoesNotExist = keyModel
+//                .keywords
+//                .filter {
+//                    $0.keyword.localizedCaseInsensitiveContains(trans.title)
+//                    && $0.category?.id == trans.category!.id
+//                }
+//                .isEmpty
+//            
+//            if comboExists && ruleDoesNotExist {
+//                Section {
+//                    Button {
+//                        createRule()
+//                    } label: {
+//                        //AiLabel(text: "Add Rule")
+//                        //AiLabel2(text: "Add Rule")
+//                        //LiquidAliveTextForReal(text: "Add Rule")
 //                        
-//                        CategorySheetButton(category: $trans.category)
+//                        AiAnimatedAliveLabel("Create New Rule", systemImage: "brain", withGlow: true)
 //                    }
+//                } footer: {
+//                    let message: LocalizedStringKey = "**\(trans.title)** was categorized as **\(trans.category!.title)** at least \(existingCount) times this year. Consider creating a rule to auto-categorize in the future."
+//                    
+//                    Text(message)
 //                }
 //            }
 //        }
 //    }
 //    
 //    
-//    struct SheetHeaderView: View {
+//    
+//    #if os(macOS)
+//    struct MacSheetHeaderView<MoreMenu: View, DeleteButton: View>: View {
 //        @Environment(\.dismiss) var dismiss
 //        @Environment(CalendarModel.self) private var calModel
 //            
 //        var title: String
 //        @Bindable var trans: CBTransaction
-//        @Binding var transEditID: String?
-//        var focusedField: FocusState<Int?>.Binding
-//        @Binding var showDeleteAlert: Bool
-//        var isTemp: Bool
-//        
-//        @State private var showSplitSheet = false
+//        var validateBeforeClosing: () -> ()
+//        @ViewBuilder var moreMenu: MoreMenu
+//        @ViewBuilder var deleteButton: DeleteButton
 //        
 //        var linkedLingo: String? {
 //            if trans.relatedTransactionType == XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction) {
@@ -1094,141 +1317,12 @@
 //                title: title,
 //                //subtitle: trans.relatedTransactionID == nil ? nil : linkedLingo,
 //                close: { validateBeforeClosing() },
-//                view1: { theMenu },
+//                view1: { moreMenu },
 //                view3: { deleteButton }
 //            )
-//            .sheet(isPresented: $showSplitSheet) {
-//                TransactionSplitSheet(trans: trans, showSplitSheet: $showSplitSheet)
-//            }
-//        }
-//        
-//        var theMenu: some View {
-//            Menu {
-//                Section {
-//                    factorInCalculationsButton
-//                    if !isTemp {
-//                        notificationButton
-//                    }
-//                }
-//                
-//                if !isTemp {
-//                    Section {
-//                        copyButton
-//                        splitButton
-//                    }
-//                }
-//                
-//                Section {
-//                    TitleColorMenu(transactions: [trans], saveOnChange: false) {
-//                        Label {
-//                            Text("Title Color")
-//                        } icon: {
-//                            Image(systemName: "paintbrush.fill")
-//                                .tint(trans.color)
-//                        }
-//                    }
-//                }
-//            } label: {
-//                Image(systemName: "ellipsis")
-//            }
-//
-//        }
-//        
-//        var deleteButton: some View {
-//            Button {
-//                showDeleteAlert = true
-//            } label: {
-//                Image(systemName: "trash")
-//            }
-//            .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
-//        }
-//        
-//        var copyButton: some View {
-//            Button {
-//                calModel.transactionToCopy = trans
-//                AppState.shared.showToast(title: "Transaction Copied", symbol: "doc.on.doc.fill", symbolColor: .green)
-//                
-//            } label: {
-//                Label {
-//                    Text("Copy Transaction")
-//                } icon: {
-//                    Image(systemName: "doc.on.doc.fill")
-//                }
-//            }
-//        }
-//        
-//        var splitButton: some View {
-//            Button {
-//                showSplitSheet = true
-//                
-//            } label: {
-//                Label {
-//                    Text("Split Transaction")
-//                } icon: {
-//                    Image(systemName: "plus.square.fill.on.square.fill")
-//                }
-//            }
-//        }
-//        
-//        var notificationButton: some View {
-//            Button {
-//                withAnimation {
-//                    if trans.notifyOnDueDate {
-//                        trans.notifyOnDueDate = false
-//                        trans.notificationOffset = nil
-//                    } else {
-//                        trans.notifyOnDueDate = true
-//                        trans.notificationOffset = 0
-//                    }
-//                }
-//            } label: {
-//                Label {
-//                    Text(trans.notifyOnDueDate ? "Cancel Notification" : "Add Notification")
-//                } icon: {
-//                    Image(systemName: trans.notifyOnDueDate ? "bell.slash.fill" : "bell.fill")
-//                }
-//            }
-//        }
-//        
-//        var factorInCalculationsButton: some View {
-//            Button {
-//                withAnimation {
-//                    trans.factorInCalculations.toggle()
-//                }
-//            } label: {
-//                Label {
-//                    Text(trans.factorInCalculations ? "Exclude from Calculations" : "Include in Calculations")
-//                } icon: {
-//                    Image(systemName: trans.factorInCalculations ? "eye.slash.fill" : "eye.fill")
-//                }
-//            }
-//        }
-//        
-//        func validateBeforeClosing() {
-//            if !trans.title.isEmpty && !trans.amountString.isEmpty && trans.payMethod == nil {
-//                
-//                if trans.payMethod == nil && (trans.isSmartTransaction ?? false) {
-//                    focusedField.wrappedValue = nil
-//                    transEditID = nil
-//                    dismiss()
-//                } else {
-//                    let config = AlertConfig(
-//                        title: "Missing Payment Method",
-//                        subtitle: "Please add a payment method or delete this transaction.",
-//                        symbol: .init(name: "creditcard.trianglebadge.exclamationmark.fill", color: .orange)
-//                    )
-//                    AppState.shared.showAlert(config: config)
-//                }
-//                
-//                
-//                
-//            } else {
-//                focusedField.wrappedValue = nil
-//                transEditID = nil
-//                dismiss()
-//            }
 //        }
 //    }
+//    #endif
 //    
 //    
 //    struct DeleteYesButton: View {
@@ -1240,356 +1334,151 @@
 //        var isTemp: Bool
 //        
 //        var body: some View {
-//            Button("Yes", role: .destructive) {
-//                if isTemp {
-//                    //transEditID = nil
-//                    dismiss()
-//                    calModel.tempTransactions.removeAll { $0.id == trans.id }
-//                    //let _ = DataManager.shared.delete(type: TempTransaction.self, predicate: .byId(.string(trans.id)))
-//                    
-//                    Task {
-//                        let context = DataManager.shared.createContext()
-//                        context.perform {
-//                            if let entity = DataManager.shared.getOne(context: context, type: TempTransaction.self, predicate: .byId(.string(trans.id)), createIfNotFound: true) {
-//                                entity.action = TransactionAction.delete.rawValue
-//                                entity.tempAction = TransactionAction.delete.rawValue
-//                                let _ = DataManager.shared.save(context: context)
-//                            }
+//            Button("Yes", role: .destructive, action: delete)
+//        }
+//        
+//        func delete() {
+//            if isTemp {
+//                dismiss()
+//                calModel.tempTransactions.removeAll { $0.id == trans.id }
+//                //let _ = DataManager.shared.delete(type: TempTransaction.self, predicate: .byId(.string(trans.id)))
+//                
+//                Task {
+//                    let context = DataManager.shared.createContext()
+//                    context.perform {
+//                        if let entity = DataManager.shared.getOne(context: context, type: TempTransaction.self, predicate: .byId(.string(trans.id)), createIfNotFound: true) {
+//                            entity.action = TransactionAction.delete.rawValue
+//                            entity.tempAction = TransactionAction.delete.rawValue
+//                            let _ = DataManager.shared.save(context: context)
 //                        }
 //                    }
-//                    
-//                } else {
-//                    transEditID = nil
-//                    trans.action = .delete
-//                    dismiss()
-//                    
-//                    //calModel.saveTransaction(id: trans.id, day: day)
 //                }
+//                
+//            } else {
+//                //transEditID = nil
+//                trans.action = .delete
+//                dismiss()
+//                
+//                //calModel.saveTransaction(id: trans.id, day: day)
 //            }
 //        }
 //    }
 //    
 //    
 //    
-//    // MARK: - Photo Views
-////    var photoSection: some View {
-////        Group {
-////            @Bindable var calModel = calModel
-////            @Bindable var photoModel = FileModel.shared
-////
-////            HStack(alignment: .top) {
-////                Image(systemName: "photo.fill")
-////                    .foregroundColor(.gray)
-////                    .frame(width: symbolWidth)
-////
-////
-////                if isTemp {
-////                    Text("Photos are unavailable without internet connection.")
-////                        .foregroundStyle(.gray)
-////                        .italic(true)
-////                    Spacer()
-////                } else {
-////
-////                    /// Check for active for 1 situation only - if a photo fails to upload, we deactivate it to hide the view.
-////                    if let files = trans.files?.filter({ $0.active }) {
-////                        ScrollView(.horizontal, showsIndicators: false) {
-////                            HStack(alignment: .top, spacing: 4) {
-////                                ForEach(files) { pic in
-////                                    VStack {
-////                                        ZStack {
-////                                            if pic.isPlaceholder {
-////                                                PicPlaceholder(text: "Uploading…")
-////                                            } else {
-////                                                PicImage(pic: pic)
-////                                            }
-////
-////                                            #if os(macOS)
-////                                            if vm.hoverPic == pic {
-////                                                PicButtons(pic: pic, trans: trans)
-////                                            }
-////                                            #endif
-////                                        }
-////                                    }
-////                                    #if os(macOS)
-////                                    /// Open in safari browser
-////                                    .onTapGesture {
-////                                        openURL(URL(string: "https://\(Keys.baseURL):8676/files/budget_app.photo.\(pic.uuid).jpg")!)
-////                                    }
-////                                    /// Hover to show share button and delete button.
-////                                    .onContinuousHover { phase in
-////                                        switch phase {
-////                                        case .active:
-////                                            vm.hoverPic = pic
-////                                        case .ended:
-////                                            vm.hoverPic = nil
-////                                        }
-////                                    }
-////                                    #else
-////
-////                                    /// Open inline safari-sheet
-////                                    .onTapGesture {
-////                                        safariUrl = URL(string: "https://\(Keys.baseURL):8676/files/budget_app.photo.\(pic.uuid).jpg")!
-////                                    }
-////                                    /// Long press to show delete (no share sheet option. Can share directly from safari sheet)
-////                                    .onLongPressGesture {
-////                                        //buzzPhone(.warning)
-////                                        vm.deletePic = pic
-////                                        vm.showDeletePicAlert = true
-////                                    }
-////                                    .sensoryFeedback(.warning, trigger: vm.showDeletePicAlert) { oldValue, newValue in
-////                                        !oldValue && newValue
-////                                    }
-////                                    #endif
-////                                }
-////                                photoPickerButton
-////                            }
-////                        }
-////                    } else {
-////                        photoPickerButton
-////                        Spacer()
-////                    }
-////                }
-////            }
-////            .photosPicker(isPresented: $showPhotosPicker, selection: $photoModel.imagesFromLibrary, matching: .images, photoLibrary: .shared())
-////            .onChange(of: showPhotosPicker) { oldValue, newValue in
-////                if !newValue {
-////                    if FileModel.shared.imagesFromLibrary.isEmpty {
-////                        calModel.cleanUpPhotoVariables()
-////                    } else {
-////                        FileModel.shared.uploadPicturesFromLibrary(delegate: calModel, fileType: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction))
-////                    }
-////                }
-////            }
-////            #if os(iOS)
-////            .fullScreenCover(isPresented: $showCamera) {
-////                AccessCameraView(selectedImage: $photoModel.imageFromCamera)
-////                    .background(.black)
-////            }
-////            .onChange(of: showCamera) { oldValue, newValue in
-////                if !newValue {
-////                    FileModel.shared.uploadPictureFromCamera(delegate: calModel, fileType: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction))
-////                }
-////            }
-////            #endif
-////        }
-////    }
-////
-////
-////    var photoPickerButton: some View {
-////        Group {
-////            @Bindable var calModel = calModel
-////            VStack(spacing: 6) {
-////                Button(action: {
-////                    showPhotosPicker = true
-////                }, label: {
-////                    RoundedRectangle(cornerRadius: 8)
-////                        .fill(addPhotoButtonHoverColor2)
-////                        #if os(iOS)
-////                        .frame(width: photoWidth, height: (photoHeight / 2) - 3)
-////                        #else
-////                        .frame(width: photoWidth, height: photoHeight)
-////                        #endif
-////
-////                        .overlay {
-////                            VStack {
-////                                Image(systemName: "photo.badge.plus")
-////                                    .font(.title)
-////                                Text("Library")
-////                            }
-////                            .foregroundStyle(.gray)
-////                        }
-////                })
-////                .buttonStyle(.plain)
-////                .onHover { isHovered in addPhotoButtonHoverColor2 = isHovered ? Color(.systemFill) : Color(.tertiarySystemFill) }
-////                .focusEffectDisabled(true)
-////
-////                #if os(iOS)
-////                Button {
-////                    showCamera = true
-////                } label: {
-////                    RoundedRectangle(cornerRadius: 8)
-////                        .fill(addPhotoButtonHoverColor2)
-////                        .frame(width: photoWidth, height: (photoHeight / 2) - 3)
-////                        .overlay {
-////                            VStack {
-////                                Image(systemName: "camera")
-////                                    .font(.title)
-////                                Text("Camera")
-////                            }
-////                            .foregroundStyle(.gray)
-////                        }
-////                }
-////                .buttonStyle(.plain)
-////                .onHover { isHovered in addPhotoButtonHoverColor2 = isHovered ? Color(.systemFill) : Color(.tertiarySystemFill) }
-////                .focusEffectDisabled(true)
-////                #endif
-////
-////            }
-////
-////        }
-////    }
-////
-////
-////    struct PicImage: View {
-////        @Environment(ViewModel.self) var vw
-////        var pic: CBPicture
-////
-////        var body: some View {
-////            @Bindable var vw = vw
-////            AsyncImage(
-////                //url: URL(string: "http://www.codyburnett.com:8677/budget_app.photo.\(picture.path).jpg"),
-////                url: URL(string: "https://\(Keys.baseURL):8676/files/budget_app.photo.\(pic.uuid).jpg"),
-////                content: { image in
-////                    image
-////                        .resizable()
-////                        .frame(width: photoWidth, height: photoHeight)
-////                        .aspectRatio(contentMode: .fill)
-////                        .clipShape(.rect(cornerRadius: 12))
-////                        //.frame(maxWidth: 300, maxHeight: 300)
-////                },
-////                placeholder: {
-////                    PicPlaceholder(text: "Downloading…")
-////                }
-////            )
-////            .opacity(((vw.isDeletingPic && pic.id == vw.deletePic?.id) || vw.hoverPic == pic || pic.isPlaceholder) ? 0.2 : 1)
-////            .overlay(ProgressView().tint(.none).opacity(vw.isDeletingPic && pic.id == vw.deletePic?.id ? 1 : 0))
-////        }
-////    }
-////
-////
-////    struct PicPlaceholder: View {
-////        let text: String
-////        var body: some View {
-////            RoundedRectangle(cornerRadius: 8)
-////                .fill(Color.gray.opacity(0.1))
-////                .frame(width: photoWidth, height: photoHeight)
-////                .overlay {
-////                    VStack {
-////                        ProgressView()
-////                            .tint(.none)
-////                        Text(text)
-////                    }
-////                }
-////        }
-////    }
-////
-////    #if os(macOS)
-////    struct PicButtons: View {
-////        @Environment(ViewModel.self) var vm
-////        var pic: CBPicture
-////        var trans: CBTransaction
-////
-////        var body: some View {
-////            @Bindable var vm = vm
-////
-////            VStack {
-////                HStack {
-//////                    Link(destination: URL(string: "http://\(Keys.baseURL):8677/budget_app.photo.\(pic.uuid).jpg")!) {
-//////                        Image(systemName: "arrow.down.left.and.arrow.up.right")
-//////                            .frame(width: 30, height: 30)
-//////                            .background(RoundedRectangle(cornerRadius: 4).fill(.ultraThickMaterial))
-//////                    }
-////
-////                    ShareLink(item: URL(string: "https://\(Keys.baseURL):8676/files/budget_app.photo.\(pic.uuid).jpg")! /*, subject: Text(trans.title), message: Text(trans.amountString)*/) {
-////                        Image(systemName: "square.and.arrow.up")
-////                            .frame(width: 30, height: 30)
-////                            .foregroundStyle(Color.accentColor)
-////                            .background(RoundedRectangle(cornerRadius: 4).fill(.ultraThickMaterial))
-////                    }
-////                    .buttonStyle(.plain)
-////
-////                    Button {
-////                        vm.deletePic = pic
-////                        vm.showDeletePicAlert = true
-////                    } label: {
-////                        Image(systemName: "trash")
-////                            .foregroundStyle(.red)
-////                            .frame(width: 30, height: 30)
-////                            .background(RoundedRectangle(cornerRadius: 4).fill(.ultraThickMaterial))
-////                    }
-////                    .buttonStyle(.plain)
-////
-////                    //Spacer()
-////                }
-////                .padding(.leading, 4)
-////                Spacer()
-////            }
-////            .padding(.top, 4)
-////
-////            .opacity(vm.isDeletingPic && pic.id == vm.deletePic?.id ? 0 : 1)
-////            .disabled(vm.isDeletingPic && pic.id != vm.deletePic?.id)
-////        }
-////    }
-////    #endif
-//    
-//    
-//    
-//    
-//    
 //    // MARK: - Functions
+//    func validateBeforeClosing() {
+//        if !trans.title.isEmpty && !trans.amountString.isEmpty && trans.payMethod == nil {
+//            
+//            if trans.payMethod == nil && (trans.isSmartTransaction ?? false) {
+//                focusedField = nil
+//                //transEditID = nil
+//                dismiss()
+//            } else {
+//                let config = AlertConfig(
+//                    title: "Missing Payment Method",
+//                    subtitle: "Please assign an account or delete this transaction.",
+//                    symbol: .init(name: "creditcard.trianglebadge.exclamationmark.fill", color: .orange)
+//                )
+//                AppState.shared.showAlert(config: config)
+//            }
+//            
+//        } else {
+//            focusedField = nil
+//            //transEditID = nil
+//            dismiss()
+//        }
+//    }
+//    
+//    
+//    func checkIfTransactionIsValidToSave() {
+//        if trans.title.isEmpty {
+//            isValidToSave = false; return
+//        }
+//        if trans.payMethod == nil {
+//            isValidToSave = false; return
+//        }
+//        if trans.date == nil && (trans.isSmartTransaction ?? false) {
+//            isValidToSave = false; return
+//        }
+//        if !trans.hasChanges(shouldLog: false) {
+//            //print("Transaction does not have changes")
+//            isValidToSave = false; return
+//        } else {
+//            //print("Transaction does! have changes")
+//            isValidToSave = true; return
+//        }
+//    }
+//    
+//        
 //    func prepareTransactionForEditing(isTemp: Bool) {
-//        /// `WARNING!` Can't do this logic in `init()` due to redraws.
-//
+//        print("-- \(#function)")
 //        /// Clear undo history.
 //        UndodoManager.shared.clearHistory()
 //        UndodoManager.shared.commitChange(trans: trans)
 //        
-//        calModel.hilightTrans = nil
-//        
-//        /// Grab the transaction from the model or create a new one.
-//        /// 2/12/25 now passed in to the view
-//        //trans = calModel.getTransaction(by: transEditID!, from: isTemp ? .tempList : transLocation)
+//        //calModel.hilightTrans = nil
 //            
 //        /// Determine the title button color.
 //        titleColorButtonHoverColor = trans.color == .primary ? .gray : trans.color
-//        /// Set the transaction date to the date of the passed in day.
 //        
+//        /// Set the transaction date to the date of the passed in day.
 //        if trans.date == nil && !(trans.isSmartTransaction ?? false) {
 //            trans.date = day.date!
 //        }
-//        
-//        /// Just for formatting.
-//        trans.amountString = trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+//                
+//        /// Format the dollar amount.
+//        if trans.action != .add && trans.tempAction != .add {
+//            trans.amountString = trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+//        }
 //                
 //        /// Set a reference to the transactions ID so photos know where to go.
-//        //calModel.pictureTransactionID = trans.id
 //        FileModel.shared.fileParent = FileParent(id: trans.id, type: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction))
 //
 //        /// If the transaction is new.
 //        if trans.action == .add && !isTemp {
 //            trans.amountString = ""
 //            
-//            trans.category = catModel.categories.filter { $0.isNil }.first!
+//            /// Set the dummy nil category to the trans so it's not a real nil.
+//            trans.category = catModel.getNil()
 //            
-//            if calModel.isUnifiedPayMethod {
-//                /// If the unified editing payment method is set, use it.
-//                
-//                if calModel.sPayMethod?.accountType == .unifiedChecking {
-//                    if payModel.paymentMethods.filter({ $0.isEditingDefault }).first?.accountType == .checking {
-//                        trans.payMethod = payModel.paymentMethods.filter { $0.isEditingDefault }.first
-//                    }
-//                }
-//                
-//                if calModel.sPayMethod?.accountType == .unifiedCredit {
-//                    if payModel.paymentMethods.filter({ $0.isEditingDefault }).first?.accountType == .credit || payModel.paymentMethods.filter({ $0.isEditingDefault }).first?.accountType == .loan {
-//                        trans.payMethod = payModel.paymentMethods.filter { $0.isEditingDefault }.first
-//                    }
-//                }
+//            /// If the unified editing payment method is set, use it.
+//            if calModel.sPayMethod?.accountType == .unifiedChecking && payModel.editingDefaultAccountType == .checking {
+//                trans.payMethod = payModel.getEditingDefault()
+//            
+//            /// If the unified editing payment method is set, use it.
+//            } else if calModel.sPayMethod?.accountType == .unifiedCredit && [.credit, .loan].contains(payModel.editingDefaultAccountType) {
+//                trans.payMethod = payModel.getEditingDefault()
 //                
 //            } else {
 //                /// Add the selected viewing payment method to the transaction.
 //                trans.payMethod = calModel.sPayMethod
 //            }
+//                        
+//            #if os(iOS)
+//            Task {
+//                /// Wait a split second before adding to the day so we don't see it happen.
+//                try await Task.sleep(for: .seconds(0.5))
+//                /// Pre-add the transaction to the day so we can add photos to it before saving. Get's removed on cancel if title and payment method are blank.
+//                day.upsert(trans)
+//            }
+//            #else
 //            /// Pre-add the transaction to the day so we can add photos to it before saving. Get's removed on cancel if title and payment method are blank.
 //            day.upsert(trans)
+//            #endif
+//            
 //            
 //        } else if trans.tempAction == .add && isTemp {
+//            /// Set the dummy nil category to the trans so it's not a real nil.
+//            trans.category = catModel.getNil()
+//            
 //            calModel.tempTransactions.append(trans)
 //            trans.amountString = ""
-//            trans.payMethod = nil
+//            trans.payMethod = payModel.getEditingDefault()
 //            trans.action = .add
 //        }
 //        
+//        /// Show the tracking / url fields if there is a value in them.
 //        if !trans.trackingNumber.isEmpty || !trans.orderNumber.isEmpty || !trans.url.isEmpty {
 //            showTrackingOrderAndUrlFields = true
 //        }
@@ -1602,11 +1491,16 @@
 //        focusedField = 0
 //        #else
 //        if (trans.action == .add && !isTemp) || (trans.tempAction == .add && isTemp) {
-//            //print("should run")
-//            //trans.title = "Hey"
-//            focusedField = 0
+//            Task {
+//                /// Wait a split second so the view isn't clunky.
+//                //try? await Task.sleep(nanoseconds: UInt64(0.5 * Double(NSEC_PER_SEC)))
+//                try? await Task.sleep(for: .seconds(0.5))
+//                focusedField = 0
+//            }
 //        }
 //        #endif
+//        
+//        checkIfTransactionIsValidToSave()
 //        
 //        
 //        /// Remove the date from the deepCopy if editing from a smart transaction that has a date as a problem.
@@ -1616,10 +1510,32 @@
 ////            trans.deepCopy?.date = nil
 ////        }
 //        
+//        /// Protect the transaction from being updated via scene changes if it is open.
+//        /// Ignore this transaction if it's open and you're coming back to the app from another app (ie if bouncing back and forth between this app and a banking app).
+//        //calModel.transEditID = transEditID
 //        
-//        calModel.transEditID = transEditID
+//        /// These are just to control the animations in the options sheet. The are here so we don't see the option sheet "set up its state" when the view appears.
+//        if !trans.factorInCalculations { showHiddenEye = true }
+//        if trans.notifyOnDueDate { showBadgeBell = true }
 //    }
+//        
 //    
+//    func createRule() {
+//        let keyword = CBKeyword()
+//        withAnimation {
+//            keyword.keyword = trans.title
+//            keyword.category = trans.category!
+//            keyword.triggerType = .contains
+//            
+//            keyword.deepCopy(.create)
+//            keyModel.upsert(keyword)
+//            keyModel.keywords.sort { $0.keyword < $1.keyword }
+//            
+//            AppState.shared.showToast(title: "Rule Created", subtitle: trans.title, body: "\(trans.category!.title)", symbol: "ruler", symbolColor: .green)
+//        }
+//        
+//        Task { await keyModel.submit(keyword) }
+//    }
 //    
 ////    func deletePicture() {
 ////        Task {
@@ -1630,3 +1546,7 @@
 ////        }
 ////    }
 //}
+//
+//
+//
+//

@@ -17,17 +17,35 @@ struct RootView: View {
     @Environment(CategoryModel.self) var catModel
     @Environment(KeywordModel.self) var keyModel
     @Environment(RepeatingTransactionModel.self) var repModel
-    @Environment(EventModel.self) var eventModel
+    
+    //@State private var warmUpTransactionView = false
     
     let monthNavigationNamespace: Namespace.ID
         
     var body: some View {
-        let _ = Self._printChanges()
+        //let _ = Self._printChanges()
         @Bindable var navManager = NavigationManager.shared
         @Bindable var funcModel = funcModel
         
         content
-            .task { prepareView() }
+//            .onAppear {
+//                warmUpTransactionView = true
+//            }
+            /// We have to "Warm Up" the transaction view since it's expensive to compute.
+            /// This way the layout will get cached and future transactions will open quickly.
+//            .background {
+//                TransactionEditView(
+//                    trans: CBTransaction(),
+//                    transEditID: .constant("0"),
+//                    day: CBDay(date: Date()),
+//                    isTemp: false,
+//                    transLocation: .searchResultList,
+//                    isWarmUp: true
+//                )
+//                .opacity(0)
+//                .allowsHitTesting(false)
+//            }
+            //.task { prepareView() }
             /// This is here in case you want to cancel the dragging transaction - this will unhilight the last hilighted day.
             .dropDestination(for: CBTransaction.self) { _, _ in
                 calModel.dragTarget = nil
@@ -152,11 +170,7 @@ struct RootView: View {
         
     
     func downloadContentOnYearChange(_ old: Int, _ new: Int) {
-        /// Kick off the download task then the year changes.
-        
-        LoadingManager.shared.showInitiallyLoadingSpinner = true
-        AppState.shared.downloadedData.removeAll()
-        
+        /// Kick off the download task when the year changes.
         funcModel.refreshTask?.cancel()
         funcModel.refreshTask = Task {
             calModel.months.forEach { month in
@@ -201,6 +215,7 @@ struct RootView: View {
     
     // MARK: - LifeCycle Functions
     func sceneBecameActive() {
+        AppState.shared.scenePhase = .active
         AppState.shared.startNewNowTimer()
         
         if funcModel.refreshTask == nil {
@@ -217,6 +232,7 @@ struct RootView: View {
     }
     
     func sceneBecameBackground() {
+        AppState.shared.scenePhase = .background
         AppState.shared.cancelNowTimer()
         funcModel.longPollTask?.cancel()
         funcModel.longPollTask = nil
@@ -271,7 +287,7 @@ struct RootView: View {
 //    @Environment(CategoryModel.self) var catModel
 //    @Environment(KeywordModel.self) var keyModel
 //    @Environment(RepeatingTransactionModel.self) var repModel
-//    @Environment(EventModel.self) var eventModel
+//    
 //    
 //    let monthNavigationNamespace: Namespace.ID
 //        

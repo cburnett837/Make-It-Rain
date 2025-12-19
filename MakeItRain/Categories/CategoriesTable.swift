@@ -20,11 +20,15 @@ struct CategoriesTable: View {
     
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
-    @Environment(EventModel.self) private var eventModel
     
+    @State private var navPath = NavigationPath()
+
     @State private var searchText = ""
     @State private var editCategory: CBCategory?
     @State private var categoryEditID: CBCategory.ID?
+    
+    @State private var editGroup: CBCategoryGroup?
+    @State private var groupEditID: CBCategoryGroup.ID?
 
     @AppStorage("categoryTableColumnOrder") private var columnCustomization: TableColumnCustomization<CBCategory>
     #if os(macOS)
@@ -35,9 +39,23 @@ struct CategoriesTable: View {
     @State private var sortOrder = [KeyPathComparator(\CBCategory.title)]
     @State private var labelWidth: CGFloat = 20.0
     
+    var filteredCategoryGroups: Array<CBCategoryGroup> {
+        catModel.categoryGroups
+            .filter { !$0.title.isEmpty }
+            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+            //.sorted { $0.title.lowercased() < $1.title.lowercased() }
+    }
+    
     var filteredCategories: [CBCategory] {
         catModel.categories
-            .filter { !$0.isNil }
+            .filter { !$0.isNil && $0.appSuiteKey == nil }
+            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedCaseInsensitiveContains(searchText) }
+            /// NOTE: Sorting must be done in the task and not in the computed property. If done in the computed property, when reording, they get all messed up.
+    }
+    
+    var filteredSpecialCategories: [CBCategory] {
+        catModel.categories
+            .filter { !$0.isNil && $0.appSuiteKey != nil }
             .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedCaseInsensitiveContains(searchText) }
             /// NOTE: Sorting must be done in the task and not in the computed property. If done in the computed property, when reording, they get all messed up.
     }
@@ -45,96 +63,122 @@ struct CategoriesTable: View {
     var body: some View {
         //let _ = Self._printChanges()
         @Bindable var catModel = catModel
-        
-        Group {
-            if !catModel.categories.filter({ !$0.isNil }).isEmpty {
-                #if os(macOS)
-                macTable
-                #else
-//                if AppState.shared.isIphone {
-//                    listForPhoneAndMacSort
-//                } else {
-//                    macTable
-//                }
-                
-                if filteredCategories.isEmpty {
-                    ContentUnavailableView("No categories found", systemImage: "exclamationmark.magnifyingglass")
+        NavigationStack(path: $navPath) {
+            VStack {
+                if !catModel.categories.filter({ !$0.isNil }).isEmpty {
+                    #if os(macOS)
+                    macTable
+                    #else
+                    if filteredCategories.isEmpty
+                    && filteredCategoryGroups.isEmpty
+                    && filteredSpecialCategories.isEmpty {
+                        ContentUnavailableView("No categories found", systemImage: "exclamationmark.magnifyingglass")
+                    } else {
+                        if AppState.shared.isIphone {
+                            listForPhoneAndMacSort
+                        } else {
+                            padList
+                        }
+                    }
+                    #endif
                 } else {
-                    listForPhoneAndMacSort
+                    ContentUnavailableView("No Categories", systemImage: "books.vertical", description: Text("Click the plus button above to add a category."))
                 }
-                
-                #endif
-            } else {
-                ContentUnavailableView("No Categories", systemImage: "books.vertical", description: Text("Click the plus button above to add a category."))
             }
-        }
-        .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
-        #if os(iOS)
-        .navigationTitle("Categories")
-        //.navigationBarTitleDisplayMode(.inline)
-        #endif
-        #if os(macOS)
-        /// There seems to be a bug in SwiftUI `Table` that prevents the view from refreshing when adding a new category, and then trying to edit it.
-        /// When I add a new category, and then update `model.categories` with the new ID from the server, the table still contains an ID of 0 on the newly created category.
-        /// Setting this id forces the view to refresh and update the relevant category with the new ID.
-        .id(catModel.fuckYouSwiftuiTableRefreshID)
-        #endif
-        //.navigationBarBackButtonHidden(true)
-        .task {
-            /// NOTE: Sorting must be done here and not in the computed property. If done in the computed property, when reording, they get all messed up.
-            //let categorySortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
-                                
-            catModel.categories.sort(by: Helpers.categorySorter())
-        }
-        .toolbar {
-            #if os(macOS)
-            macToolbar()
-            #else
-            phoneToolbar()
+            .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
+            #if os(iOS)
+            .navigationTitle("Categories")
+            //.navigationBarTitleDisplayMode(.inline)
             #endif
-        }
-        .searchable(text: $searchText)
-        .onChange(of: categoryEditID) { oldValue, newValue in
-            if let newValue {
-                editCategory = catModel.getCategory(by: newValue)
-            } else {
-                catModel.saveCategory(id: oldValue!, calModel: calModel, keyModel: keyModel)
-                //catModel.categories.sort(by: Helpers.categorySorter())
+            #if os(macOS)
+            /// There seems to be a bug in SwiftUI `Table` that prevents the view from refreshing when adding a new category, and then trying to edit it.
+            /// When I add a new category, and then update `model.categories` with the new ID from the server, the table still contains an ID of 0 on the newly created category.
+            /// Setting this id forces the view to refresh and update the relevant category with the new ID.
+            .id(catModel.fuckYouSwiftuiTableRefreshID)
+            #endif
+            //.navigationBarBackButtonHidden(true)
+            .task {
+                /// NOTE: Sorting must be done here and not in the computed property. If done in the computed property, when reording, they get all messed up.
+                //let categorySortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
+                
+                catModel.categories.sort(by: Helpers.categorySorter())
             }
-        }
-        .sheet(item: $editCategory, onDismiss: {
-            categoryEditID = nil
-            
-            if calModel.categoryFilterWasSetByCategoryPage {
-                calModel.sCategories.removeAll()
-                calModel.categoryFilterWasSetByCategoryPage = false
-            }            
-            
-        }) { cat in
-            CategoryView(category: cat, editID: $categoryEditID)
+            .navigationDestination(for: CBCategory.self) { cat in
+                CategoryOverView(category: cat, navPath: $navPath, calModel: calModel, catModel: catModel)
+            }
+            .navigationDestination(for: CBCategoryGroup.self) { group in
+                CategoryGroupOverView(group: group, navPath: $navPath, calModel: calModel, catModel: catModel)
+            }
+            .toolbar {
                 #if os(macOS)
-                .frame(minWidth: 500, minHeight: 700)
-                .presentationSizing(.fitted)
+                macToolbar()
                 #else
-                .presentationSizing(.page) // big sheet
-                //.presentationSizing(.fitted) // small sheet - resizable - doesn't work on iOS
-                //.presentationSizing(.form) // seems to be the same as a regular sheet
+                phoneToolbar()
                 #endif
-        }
-        #if os(macOS)
-        .sheet(isPresented: $showReorderList) {
-            StandardContainer(.plainList) {
-                listForPhoneAndMacSortContent
-            } header: {
-                SheetHeader(title: "Drag To Reorder", close: { showReorderList = false })
             }
-            .frame(minWidth: 300, minHeight: 500)
-            .presentationSizing(.fitted)
-        }
-        #endif
-        
-        .onChange(of: sortOrder) { _, sortOrder in
-            catModel.categories.sort(using: sortOrder)
+            .searchable(text: $searchText)
+            .onChange(of: categoryEditID) { oldValue, newValue in
+                if let newValue {
+                    editCategory = catModel.getCategory(by: newValue)
+                } else {
+                    catModel.saveCategory(id: oldValue!, calModel: calModel, keyModel: keyModel)
+                    //catModel.categories.sort(by: Helpers.categorySorter())
+                }
+            }            
+            .sheet(item: $editCategory, onDismiss: {
+                categoryEditID = nil
+                
+                if calModel.categoryFilterWasSetByCategoryPage {
+                    calModel.sCategories.removeAll()
+                    calModel.categoryFilterWasSetByCategoryPage = false
+                }
+            }) { cat in
+                CategoryOverViewWrapperIpad(category: cat, calModel: calModel, catModel: catModel)
+
+//                CategoryView(category: cat, editID: $categoryEditID)
+//                    #if os(macOS)
+//                    .frame(minWidth: 500, minHeight: 700)
+//                    .presentationSizing(.fitted)
+//                    #else
+//                    .presentationSizing(.page) // big sheet
+//                    //.presentationSizing(.fitted) // small sheet - resizable - doesn't work on iOS
+//                    //.presentationSizing(.form) // seems to be the same as a regular sheet
+//                    #endif
+            }
+            #if os(macOS)
+            .sheet(isPresented: $showReorderList) {
+                StandardContainer(.plainList) {
+                    listForPhoneAndMacSortContent
+                } header: {
+                    SheetHeader(title: "Drag To Reorder", close: { showReorderList = false })
+                }
+                .frame(minWidth: 300, minHeight: 500)
+                .presentationSizing(.fitted)
+            }
+            #endif
+            
+            .onChange(of: sortOrder) { _, sortOrder in
+                catModel.categories.sort(using: sortOrder)
+            }
+            .onChange(of: groupEditID) { oldValue, newValue in
+                if let newValue {
+                    editGroup = catModel.getCategoryGroup(by: newValue)
+                } else {
+                    catModel.saveCategoryGroup(id: oldValue!)
+                }
+            }
+            
+            .sheet(item: $editGroup, onDismiss: {
+                groupEditID = nil
+            }, content: { group in
+                CategoryGroupOverViewWrapperIpad(group: group, calModel: calModel, catModel: catModel)
+                
+                //CategoryGroupEditView(group: group, editID: $groupEditID)
+                #if os(macOS)
+                    .frame(minWidth: 500, minHeight: 700)
+                    .presentationSizing(.fitted)
+                #endif
+            })
         }
     }
     
@@ -238,28 +282,27 @@ struct CategoriesTable: View {
         //ToolbarItem(placement: .topBarLeading) { CategorySortMenu() }
         //ToolbarSpacer(.fixed, placement: .topBarLeading)
         ToolbarItem(placement: .topBarLeading) { moreMenu }
-                
-        
-        ToolbarItem(placement: .topBarLeading) { ToolbarLongPollButton() }
+                        
+        ToolbarItem(placement: .topBarTrailing) { ToolbarLongPollButton() }
                 
         //ToolbarSpacer(.fixed, placement: .topBarTrailing)
         ToolbarItem(placement: .topBarTrailing) { ToolbarRefreshButton() }
-        ToolbarItem(placement: .topBarTrailing) { newButton }
+        ToolbarItem(placement: .topBarTrailing) { newCategoryButton }
         //ToolbarSpacer(.fixed, placement: .topBarTrailing)
 //        ToolbarItem(placement: .topBarTrailing) { moreMenu }
     }
     #endif
     
-    
-    var newButton: some View {
-        Button {
-            categoryEditID = UUID().uuidString
-        } label: {
-            Image(systemName: "plus")
-        }
-        .tint(.none)
-    }
-    
+//    
+//    var newButton: some View {
+//        Button {
+//            categoryEditID = UUID().uuidString
+//        } label: {
+//            Image(systemName: "plus")
+//        }
+//        .tint(.none)
+//    }
+//    
     var moreMenu: some View {
         Menu {
             CategorySortMenu(displayStyle: .inlineWithMenu)
@@ -278,76 +321,165 @@ struct CategoriesTable: View {
     
     
     var listForPhoneAndMacSort: some View {
-        List(selection: $categoryEditID) {
+        List {
             listForPhoneAndMacSortContent
         }
         .listStyle(.plain)
     }
     
     
+    @ViewBuilder
     var listForPhoneAndMacSortContent: some View {
-        ForEach(filteredCategories) { cat in
-            Label {
-                VStack(alignment: .leading) {
-                    HStack {
-                        Text(cat.title)
-                        if cat.isHidden { Image(systemName: "eye.slash") }
-                        
-                        Spacer()
-                        Text(cat.amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-")
-                            //.foregroundStyle(.gray)
-                            //.font(.caption)
-                    }
+        Section("Category Groups") {
+            ForEach(filteredCategoryGroups) { group in
+                NavigationLink(value: group) {
+                    categoryGroupLine(group: group)
                 }
-            } icon: {
-                
-                StandardCategorySymbol(cat: cat, labelWidth: labelWidth)
-                
-//                if let emoji = cat.emoji {
-//                    Image(systemName: emoji)
-//                        .foregroundStyle(cat.color.gradient)
-//                        .frame(minWidth: labelWidth, alignment: .center)
-//                        .maxViewWidthObserver()
-//                } else {
-//                    Circle()
-//                        .fill(cat.color.gradient)
-//                        .frame(width: 12, height: 12)
-//                }
             }
-
-//            HStack(alignment: .center) {
-//                VStack(alignment: .leading) {
-//                    HStack {
-//                        Text(cat.title)
-//                        if cat.isHidden { Image(systemName: "eye.slash") }
+        }
+        
+        Section("My Categories") {
+            ForEach(filteredCategories) { cat in
+                NavigationLink(value: cat) {
+                    line(for: cat)
+                }
+            }
+            .if(categorySortMode == .listOrder) {
+                $0.onMove(perform: move)
+            }
+        }
+        
+        Section("Special Categories") {
+            ForEach(filteredSpecialCategories) { cat in
+                NavigationLink(value: cat) {
+                    line(for: cat)
+                }
+            }
+        }
+        
+    }
+    
+    
+    @ViewBuilder
+    var padList: some View {
+//        List(selection: $groupEditID) {
+//            Section("Category Groups") {
+//                ForEach(filteredCategoryGroups) { group in
+//                    NavigationLink(value: group) {
+//                        categoryGroupLine(group: group)
 //                    }
-//                    Text(cat.amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-")
-//                        .foregroundStyle(.gray)
-//                        .font(.caption)
-//                }
-//                
-//                Spacer()
-//                
-//                if let emoji = cat.emoji {
-//                    Image(systemName: emoji)
-//                        .foregroundStyle(cat.color.gradient)
-//                        .frame(minWidth: labelWidth, alignment: .center)
-//                        .maxViewWidthObserver()
-//                } else {
-//                    Circle()
-//                        .fill(cat.color.gradient)
-//                        .frame(width: 12, height: 12)
 //                }
 //            }
-            #if os(macOS)            
-            .selectionDisabled()
-            #endif
+//        }
+//        .listStyle(.plain)
+//        
+        List {
+            Section("Category Groups") {
+                ForEach(filteredCategoryGroups) { group in
+                    categoryGroupLine(group: group)
+                        .contentShape(.rect)
+                        .onTapGesture {
+                            groupEditID = group.id
+                        }
+                }
+            }
+            Section("Categories") {
+                ForEach(filteredCategories) { cat in
+                    line(for: cat)
+                        .onTapGesture {
+                            categoryEditID = cat.id
+                        }
+                }
+            }
+            
+            Section("Special Categories") {
+                ForEach(filteredSpecialCategories) { cat in
+                    line(for: cat)
+                        .onTapGesture {
+                            categoryEditID = cat.id
+                        }
+                }
+            }
         }
-        .if(categorySortMode == .listOrder) {
-            $0.onMove(perform: move)
+        .listStyle(.plain)
+    }
+    
+    @ViewBuilder
+    func line(for cat: CBCategory) -> some View {
+        Label {
+            VStack(alignment: .leading) {
+                HStack {
+                    Text(cat.title)
+                    if cat.isHidden { Image(systemName: "eye.slash") }
+                    
+                    Spacer()
+                    Text(cat.amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-")
+                }
+            }
+        } icon: {
+            StandardCategorySymbol(cat: cat, labelWidth: labelWidth)
+        }
+        #if os(macOS)
+        .selectionDisabled()
+        #endif
+    }
+    
+    @State private var showAddNewDialog = false
+    var newCategoryButton: some View {
+        Button {
+            showAddNewDialog = true
+        } label: {
+            Image(systemName: "plus")
+        }
+        .tint(.none)
+        .confirmationDialog("Add New", isPresented: $showAddNewDialog) {
+            Button("Category") {
+                let newId = UUID().uuidString
+                
+                /// On iPhone, push the details page to the nav, which will auto-open the edit sheet.
+                if AppState.shared.isIphone {
+                    let newCat = catModel.getCategory(by: newId)
+                    navPath.append(newCat)
+                } else {
+                    /// On iPad, trigger the details sheet to open, which will then open the edit sheet.
+                    //#error("On Ipad, when closing the edit sheet, the details sheet freaks out.")
+                    categoryEditID = newId
+                }
+            }
+            
+            Button("Group") {
+                let newId = UUID().uuidString
+                
+                /// On iPhone, push the details page to the nav, which will auto-open the edit sheet.
+                if AppState.shared.isIphone {
+                    let newGroup = catModel.getCategoryGroup(by: newId)
+                    navPath.append(newGroup)
+                } else {
+                    /// On iPad, trigger the details sheet to open, which will then open the edit sheet.
+                    //#error("On Ipad, when closing the edit sheet, the details sheet freaks out.")
+                    groupEditID = newId
+                }
+            }
         }
     }
     
+    
+    @ViewBuilder func categoryGroupLine(group: CBCategoryGroup) -> some View {
+        Label {
+            VStack(alignment: .leading) {
+                HStack {
+                    Text(group.title)
+                    Spacer()
+                    Text(group.amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-")
+                }
+            }
+        } icon: {
+            Circle()
+                .fill(AngularGradient(gradient: Gradient(stops: getReversedColors(group.categories)), center: .center))
+                .frame(width: 20, height: 20)
+        }
+        
+    }
     
 //    var sortMenu: some View {
 //        Menu {
@@ -404,6 +536,30 @@ struct CategoriesTable: View {
 ////        }
 //        
 //    }
+    
+    func getReversedColors(_ categories: Array<CBCategory>) -> Array<Gradient.Stop> {
+         let colors = categories
+            .filter({ $0.active })
+            .sorted(by: Helpers.categorySorter())
+            .map {$0.color}
+        
+        
+        let count = colors.count
+        let step = 1.0 / Double(count)
+        let epsilon = 0.00001
+
+        // For sharp edges, we give each color two stops: start and end.
+        let stops: [Gradient.Stop] = colors.enumerated().flatMap { index, color in
+            let start = Double(index) * step
+            let end = start + step - epsilon // Slightly before the next color's start
+            return [
+                Gradient.Stop(color: color, location: start),
+                Gradient.Stop(color: color, location: end)
+            ]
+        }
+        
+        return stops
+    }
     
     
     func move(from source: IndexSet, to destination: Int) {

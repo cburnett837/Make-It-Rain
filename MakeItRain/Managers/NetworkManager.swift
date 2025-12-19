@@ -73,7 +73,10 @@ class NetworkManager {
                 let (data, response): (Data, URLResponse) = try await session.data(for: request!)
                 let httpResponse = response as? HTTPURLResponse
                 
-                if retainTime { AppState.shared.lastNetworkTime = .now }
+                /// Only retain the time if the app is in the foreground. This prevents the time from updating if something is in flight in the background, and a change happens from another device.
+                if retainTime && AppState.shared.scenePhase == .active {
+                    AppState.shared.lastNetworkTime = .now
+                }
                 
                 if httpResponse?.statusCode == 401 {
                     await AuthState.shared.serverAccessRevoked()
@@ -131,7 +134,7 @@ class NetworkManager {
     
     
     func singleRequest<T: Encodable, U: Decodable>(requestModel: RequestModel<T>, ticker: Int = 3, sessionID: String = "", retainTime: Bool = true) async -> Result<U?, AppError> {
-        print("-- \(#function)")
+        //print("-- \(#function)")
         request?.setValue(AppState.shared.apiKey, forHTTPHeaderField: "Api-Key")
         
 //        do {
@@ -163,7 +166,10 @@ class NetworkManager {
                 let httpResponse = response as? HTTPURLResponse
                 //print(httpResponse?.statusCode)
                 
-                if retainTime { AppState.shared.lastNetworkTime = .now }
+                /// Only retain the time if the app is in the foreground. This prevents the time from updating if something is in flight in the background, and a change happens from another device.
+                if retainTime && AppState.shared.scenePhase == .active {
+                    AppState.shared.lastNetworkTime = .now
+                }
                 
                 if httpResponse?.statusCode == 401 {
                     await AuthState.shared.serverAccessRevoked()
@@ -338,7 +344,6 @@ class NetworkManager {
                 let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response
                 
                 LogManager.log("decoding data", session: sesh)
-                
                 
                 if httpResponse?.statusCode == 403 {
                     return .failure(.incorrectCredentials)

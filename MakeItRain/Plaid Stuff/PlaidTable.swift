@@ -113,13 +113,18 @@ struct PlaidTable: View {
     var phoneList: some View {
         List(filteredBanks, selection: $bankEditID) { bank in
             HStack {
-                if let logoBase = bank.logo, let data = Data(base64Encoded: logoBase), let image = UIImage(data: data) {
-                    Image(uiImage: image)
-                        .resizable()
-                        .frame(width: 30, height: 30, alignment: .center)
-                        .clipShape(Circle())
-                        //.alignmentGuide(.circleAndTitle) { $0[VerticalAlignment.center] }
-                }
+                BusinessLogo(config: .init(
+                    parent: bank,
+                    fallBackType: .color
+                ))
+                
+//                if let data = bank.logo, let image = UIImage(data: data) {
+//                    Image(uiImage: image)
+//                        .resizable()
+//                        .frame(width: 30, height: 30, alignment: .center)
+//                        .clipShape(Circle())
+//                        //.alignmentGuide(.circleAndTitle) { $0[VerticalAlignment.center] }
+//                }
                 
                 VStack(alignment: .leading) {
                     Text(bank.title)

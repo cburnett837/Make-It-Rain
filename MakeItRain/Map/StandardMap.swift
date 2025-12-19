@@ -39,6 +39,7 @@ struct SearchSuggestions: View {
     var focusedField: FocusState<Int?>.Binding
     var parentID: String
     var parentType: XrefEnum
+    var parent: CanHandleLocationsDelegate
     
     var body: some View {
         List {
@@ -86,6 +87,7 @@ struct SearchSuggestions: View {
         }
     }
     
+    
     var nearYouSection: some View {
         ForEach(mapModel.completions, id: \.self) { completion in
             VStack(alignment: .leading) {
@@ -124,6 +126,23 @@ struct SearchSuggestions: View {
                 //focusedField.wrappedValue = nil
                 mapModel.panelContent = .details
                 dismissSearch()
+                
+                
+                
+                let selection = mapModel.selectedMapItem!
+                
+                mapModel.searchResults.removeAll { $0.mapItem?.identifier == selection.mapItem?.identifier }
+                parent.upsert(selection)
+                
+                if parent.title.isEmpty {
+                    parent.setTitle(selection.title)
+                    //parent.title = selection.title
+                }
+                
+                withAnimation {
+                    mapModel.selection = MapSelection(selection)
+                }
+                
             }
         }
     }
@@ -230,7 +249,7 @@ struct StandardMapView: View {
             .navigationTitle(mapModel.showSearchSuggestions ? "Search Maps" : "")
             .toolbar { if !mapModel.showSearchSuggestions { mapToolbar() } }
             .overlay {
-                SearchSuggestions(focusedField: $focusedField, parentID: parentID, parentType: parentType)
+                SearchSuggestions(focusedField: $focusedField, parentID: parentID, parentType: parentType, parent: parent)
                     .frame(maxHeight: .infinity)
                     .opacity(mapModel.showSearchSuggestions ? 1 : 0)
                     .searchable(text: $mapModel.searchQuery, prompt: "Search Maps")
@@ -339,6 +358,7 @@ struct StandardMapView: View {
         }
     }
 
+    
     var currentLocationButton: some View {
         Button {
             if LocationManager.shared.authIsAllowed == false && LocationManager.shared.manager.authorizationStatus == .denied {
@@ -360,12 +380,18 @@ struct StandardMapView: View {
             }
             
         } label: {
-            Image(systemName: mapModel.position.positionedByUser ? "location" : "location.fill")
-                .contentTransition(.symbolEffect(.replace))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.primary)
+            if LocationManager.shared.authIsAllowed == false && LocationManager.shared.manager.authorizationStatus == .denied {
+                Image(systemName: "exclamationmark.triangle")
+                    //.resizable()
+                    //.frame(width: 50, height: 50)
+                    .foregroundStyle(LinearGradient(gradient: Gradient(colors: [.orange, .red]), startPoint: .top, endPoint: .bottom))
+            } else {
+                Image(systemName: mapModel.position.positionedByUser ? "location" : "location.fill")
+                    .contentTransition(.symbolEffect(.replace))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.primary)
+            }
         }
-        
     }
     
     

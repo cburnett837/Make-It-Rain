@@ -199,6 +199,17 @@ fileprivate struct TransactionEditSheetAndLogic: ViewModifier {
         return content
             .onChange(of: transEditID) { transEditIdChanged(oldValue: $0, newValue: $1) }
             .sensoryFeedback(.selection, trigger: transEditID) { $1 != nil }
+            #if os(macOS)
+            .popover(item: $editTrans, arrowEdge: .trailing) { trans in
+                TransactionEditView(
+                    trans: trans,
+                    transEditID: $transEditID,
+                    day: selectedDay!,
+                    isTemp: false
+                )
+                    .frame(minWidth: 320, minHeight: 320)
+            }
+            #else
             .sheet(item: $editTrans) { trans in
                 TransactionEditView(
                     trans: trans,
@@ -215,10 +226,12 @@ fileprivate struct TransactionEditSheetAndLogic: ViewModifier {
                     transEditID = nil
                 }
             }
+            #endif
         }
     
 
     func transEditIdChanged(oldValue: String?, newValue: String?) {
+        print("-- \(#function)")
         /// When `newValue` is nil, save to the server via the `oldValue`.
         /// We have to use this technique because on Mac, `.popover(isPresented:)` has no onDismiss option.
         /// In addition, even if I wanted to use a sheets onDismiss, I can't catch the transaction ID there.
@@ -232,14 +245,18 @@ fileprivate struct TransactionEditSheetAndLogic: ViewModifier {
     }
     
     func transactionSheetWasOpened(transId: String) {
-        if !calModel.editLock {
+        print("-- \(#function)")
+        //if !calModel.editLock {
             /// Prevent a transaction from being opened while another one is trying to save.
-            calModel.editLock = true
+            //calModel.editLock = true
             editTrans = calModel.getTransaction(by: transId, from: findTransactionWhere)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                editTrans?.status = .editing
-            }
-        }
+//            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+//                editTrans?.status = .editing
+//            }
+        
+        editTrans?.status = .editing
+        
+        //}
     }
     
     func transactionSheetWasClosed(transId: String) async {
@@ -252,14 +269,12 @@ fileprivate struct TransactionEditSheetAndLogic: ViewModifier {
             }
         }
         #endif
-                            
         
         /// - When adding a transaction via a day's context menu, `selectedDay` gets changed to the contexts day.
         ///   So when closing the transaction, put `selectedDay`back to today so the normal plus button works and the gray box goes back to today.
         /// - Gotta have a `selectedDay` for the editing of a transaction and transfer sheet.
         ///   Since one is not always used in details view, set to the current day if in the current month, otherwise set to the first of the month.
         /// - If you're viewing the bottom panel, reset `selectedDay` to `overviewDay` so any transactions that are added via the bottom panel have the date of the bottom panel.
-
         if resetSelectedDayOnClose {
             if overviewDay != nil {
                 selectedDay = overviewDay
@@ -289,7 +304,7 @@ fileprivate struct TransactionEditSheetAndLogic: ViewModifier {
         
         /// When true, prevents a transaction from being opened while another one is trying to save.
         /// So unlock and allow further transactions to be edited.
-        calModel.editLock = false
+        //calModel.editLock = false
     }
 }
 

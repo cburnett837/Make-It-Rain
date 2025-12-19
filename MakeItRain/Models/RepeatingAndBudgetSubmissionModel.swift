@@ -12,6 +12,7 @@ struct RepeatingAndBudgetSubmissionModel: Encodable {
     var year: Int
     var transactions: Array<CBTransaction>
     var budgets: Array<CBBudget>
+    //var budgetGroups: Array<CBBudgetGroup>
     var isTransfer: Bool
     
     enum CodingKeys: CodingKey { case user_id, account_id, transactions, budgets, device_uuid, has_submitted, month, year, is_transfer }
@@ -22,6 +23,7 @@ struct RepeatingAndBudgetSubmissionModel: Encodable {
         try container.encode(year, forKey: .year)
         try container.encode(transactions, forKey: .transactions)
         try container.encode(budgets, forKey: .budgets)
+        //try container.encode(budgetGroups, forKey: .budget_groups)
         try container.encode(1, forKey: .has_submitted)
         try container.encode(isTransfer ? 1 : 0, forKey: .is_transfer)
         try container.encode(AppState.shared.user?.id, forKey: .user_id)

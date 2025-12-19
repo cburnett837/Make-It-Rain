@@ -31,12 +31,13 @@ struct LoginView: View {
                 
                 makeItRainLogo
                 Spacer()
+                    .frame(maxHeight: 100)
                 
                 emailField
-                Spacer().frame(height: 16)
+                Spacer().frame(height: 24)
                 
                 passwordField
-                Spacer().frame(height: 16)
+                Spacer().frame(height: 24)
                 
                 loginButton
                 Spacer()
@@ -61,8 +62,13 @@ struct LoginView: View {
             .ignoresSafeArea(.all)
     }
     
+    @ViewBuilder
     var makeItRainLogo: some View {
-        Text("Make it Rain")
+//        Image("MakeItRain-logo-no-background")
+//            .resizable()
+//            .scaledToFit()
+//            .frame(width: 250, height: 250)
+        Text("Make It Rain")
             .font(.largeTitle)
             .foregroundStyle(.primary)
     }
@@ -70,16 +76,21 @@ struct LoginView: View {
     
     var emailField: some View {
         VStack(spacing: 0) {
-            UITextFieldWrapper(placeholder: "Email", text: $email, toolbar: {
-                KeyboardToolbarView(focusedField: $focusedField)
-            })
-            .uiTag(0)
-            .uiClearButtonMode(.whileEditing)
-            .uiStartCursorAtEnd(true)
-            .uiTextAlignment(.left)
-            .uiKeyboardType(.system(.emailAddress))
-            .uiAutoCapitalizationType(.none)
-            .focused($focusedField, equals: 0)
+            HStack {
+                Image(systemName: "person")
+                    .foregroundStyle(.gray)
+                
+                UITextFieldWrapper(placeholder: "Email", text: $email, toolbar: {
+                    KeyboardToolbarView(focusedField: $focusedField)
+                })
+                .uiTag(0)
+                .uiClearButtonMode(.whileEditing)
+                .uiStartCursorAtEnd(true)
+                .uiTextAlignment(.left)
+                .uiKeyboardType(.system(.emailAddress))
+                .uiAutoCapitalizationType(.none)
+                .focused($focusedField, equals: 0)
+            }
             .frame(width: 250)
                                                                         
             Divider()
@@ -90,21 +101,26 @@ struct LoginView: View {
     
     var passwordField: some View {
         VStack(spacing: 0) {
-            UITextFieldWrapper(placeholder: "Password", text: $password, onSubmit: {
-                focusedField = nil
-                attemptingLogin = true
-                Task { await attemptLogin() }
-            }, toolbar: {
-                KeyboardToolbarView(focusedField: $focusedField)
-            })
-            .uiTag(1)
-            .uiClearButtonMode(.whileEditing)
-            .uiStartCursorAtEnd(true)
-            .uiTextAlignment(.left)
-            .uiKeyboardType(.system(.default))
-            .uiAutoCapitalizationType(.none)
-            .uiIsSecure(true)
-            .focused($focusedField, equals: 1)
+            HStack {
+                Image(systemName: "lock")
+                    .foregroundStyle(.gray)
+                
+                UITextFieldWrapper(placeholder: "Password", text: $password, onSubmit: {
+                    focusedField = nil
+                    attemptingLogin = true
+                    Task { await attemptLogin() }
+                }, toolbar: {
+                    KeyboardToolbarView(focusedField: $focusedField)
+                })
+                .uiTag(1)
+                .uiClearButtonMode(.whileEditing)
+                .uiStartCursorAtEnd(true)
+                .uiTextAlignment(.left)
+                .uiKeyboardType(.system(.default))
+                .uiAutoCapitalizationType(.none)
+                .uiIsSecure(true)
+                .focused($focusedField, equals: 1)
+            }
             .frame(width: 250)
                                 
             Divider()
@@ -114,20 +130,44 @@ struct LoginView: View {
     
     
     var loginButton: some View {
-        Button("Login") {
-            focusedField = nil
-            attemptingLogin = true
-            Task { await attemptLogin() }
-        }
-        .opacity(attemptingLogin ? 0 : 1)
-        .buttonStyle(.borderedProminent)
-        .tint(.green)
-        .keyboardShortcut(.return)
-        .overlay {
-            ProgressView()
-                .tint(.none)
-                .opacity(attemptingLogin ? 1 : 0)
-        }
+        Capsule()
+            .fill(.green)
+            .frame(width: 250, height: 40)
+            .onTapGesture {
+                focusedField = nil
+                attemptingLogin = true
+                Task { await attemptLogin() }
+            }
+            .disabled(attemptingLogin)
+            //.opacity(attemptingLogin ? 0 : 1)
+            .keyboardShortcut(.return)
+            .overlay {
+                if attemptingLogin {
+                    ProgressView()
+                        .tint(.none)
+                        .opacity(attemptingLogin ? 1 : 0)
+                } else {
+                    Text("Sign In")
+                }
+            }
+        
+        
+//        Button("Login") {
+//            focusedField = nil
+//            attemptingLogin = true
+//            Task { await attemptLogin() }
+//        }
+//        .frame(width: 250)
+//        .opacity(attemptingLogin ? 0 : 1)
+//        .buttonStyle(.borderedProminent)
+//        .tint(.green)
+//        //.tint(Color.fromHex("ffa300"))
+//        .keyboardShortcut(.return)
+//        .overlay {
+//            ProgressView()
+//                .tint(.none)
+//                .opacity(attemptingLogin ? 1 : 0)
+//        }
     }
     
     
@@ -161,7 +201,7 @@ struct LoginView: View {
         
         /// Sets `AuthState.isThinking`
         /// Sets `AuthState.isLoggedIn`
-        /// Sets `AppState.appShouldShowSplashScreen`
+        /// Sets `AppState.shouldShowSplash`
         await AuthState.shared.attemptLogin(using: .emailAndPassword, with: LoginModel(email: email, password: password))
                 
         switch AuthState.shared.error {

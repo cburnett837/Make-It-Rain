@@ -71,7 +71,7 @@ struct SmartTransactionsWithIssuesOverlay: View {
     @ViewBuilder func lineItem(_ trans: CBTransaction) -> some View {
         VStack(spacing: 0) {
             HStack {
-                BusinessLogo(parent: trans.payMethod, fallBackType: .color)
+                BusinessLogo(config: .init(parent: trans.payMethod, fallBackType: .color))
                 
                 VStack(alignment: .leading, spacing: 0) {
                     Text(trans.title)

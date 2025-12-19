@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 
+
 @Observable
 class CBCategory: Codable, Identifiable, Hashable, Equatable {
     var id: String
@@ -38,7 +39,9 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
     var isSavings: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .savings) }
     var isHidden = false
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, hex_code, emoji, active, user_id, account_id, device_uuid, type_id, list_order, entered_by, updated_by, entered_date, updated_date, is_nil, top_titles, is_hidden }
+    var appSuiteKey: AppSuiteKey?
+    
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, hex_code, emoji, active, user_id, account_id, device_uuid, type_id, list_order, entered_by, updated_by, entered_date, updated_date, is_nil, top_titles, is_hidden, app_suite_key }
         
     init() {
         let uuid = UUID().uuidString
@@ -100,13 +103,34 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         self.updatedBy = AppState.shared.getUserBy(id: Int(entity.updatedByID)) ?? AppState.shared.user!
         self.enteredDate = entity.enteredDate ?? Date()
         self.updatedDate = entity.updatedDate ?? Date()
-        
-        
-        
-        
+                                
         self.isNil = entity.isNil
         self.isHidden = entity.isHidden
+        if let key = entity.appSuiteKey {
+            self.appSuiteKey = AppSuiteKey.fromString(key)
+        }
+        
     }
+    
+    
+    /// For Christmas or other special events
+    init(title: String, appSuiteKey: AppSuiteKey) {
+        let uuid = UUID().uuidString
+        self.id = uuid
+        self.uuid = uuid
+        self.title = title
+        self.color = .red
+        //self.emoji = "questionmark.circle.fill"
+        self.active = true
+        self.action = .edit
+        self.enteredBy = AppState.shared.user!
+        self.updatedBy = AppState.shared.user!
+        self.enteredDate = Date()
+        self.updatedDate = Date()
+        
+        self.appSuiteKey = appSuiteKey
+    }
+    
     
 //    init(entity: TempCategory) {
 //        self.id = entity.id!
@@ -142,6 +166,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         
         try container.encode(isNil ? 1 : 0, forKey: .is_nil) // for the Transferable protocol
         try container.encode(isHidden ? 1 : 0, forKey: .is_hidden)
+        try container.encode(appSuiteKey?.rawValue, forKey: .app_suite_key)
     }
     
     
@@ -214,6 +239,11 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         
         let isHidden = try container.decode(Int?.self, forKey: .is_hidden)
         self.isHidden = isHidden == 1
+        
+        if let appSuiteKey = try container.decode(String?.self, forKey: .app_suite_key) {
+            self.appSuiteKey = AppSuiteKey.fromString(appSuiteKey)
+        }
+        
     }
     
     
@@ -296,6 +326,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         self.updatedBy = category.updatedBy
         self.enteredDate = category.enteredDate
         self.updatedDate = category.updatedDate
+        self.appSuiteKey = category.appSuiteKey
     }
     
     
