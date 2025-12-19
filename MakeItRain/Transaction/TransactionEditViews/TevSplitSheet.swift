@@ -12,7 +12,7 @@ import SafariServices
 import TipKit
 import MapKit
 
-struct TransactionSplitSheet: View {
+struct TevSplitSheet: View {
     @Local(\.lineItemIndicator) var lineItemIndicator
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss

@@ -50,7 +50,7 @@ struct CalendarViewPhone: View {
     //@State private var showSearchBar = true
     
     /// Retain this here so we don't lose the data when we leave the sheet
-    @State private var categoryAnalysisModel = CategoryInsightsModel()
+    @State private var categoryAnalysisModel = CivViewModel()
     @State private var selectedPlaidFilterMeth: CBPaymentMethod?
 
     
@@ -90,7 +90,7 @@ struct CalendarViewPhone: View {
                 .navigationDestination(for: CalendarNavDest.self) { dest in
                     switch dest {
                     case .categoryInsights:
-                        CategoryInsightsSheet(
+                        CategoryInsightsView(
                             navPath: $calProps.navPath,
                             showAnalysisSheet: $calProps.showAnalysisSheet,
                             model: categoryAnalysisModel

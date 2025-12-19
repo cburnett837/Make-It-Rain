@@ -155,6 +155,7 @@ struct TevTitle: View {
         }
     }
     
+    
     @ViewBuilder
     var suggestionsRow: some View {
         if shouldShowSuggestions {

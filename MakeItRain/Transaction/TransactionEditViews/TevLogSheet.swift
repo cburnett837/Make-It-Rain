@@ -28,7 +28,7 @@ class FetchLogModel: Encodable {
     }
 }
 
-struct LogSheet: View {
+struct TevLogSheet: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel

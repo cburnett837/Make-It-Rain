@@ -9,128 +9,23 @@ import SwiftUI
 import Charts
 
 
-@Observable
-class CategoryInsightsModel {
-    var monthsForAnalysis: [CBMonth] = []
-    var transactions: [CBTransaction] = []
-    var totalSpent: Double = 0.0
-    var spendMinusIncome: Double = 0.0
-    var spendMinusPayments: Double = 0.0
-    var cashOut: Double = 0.0
-    var income: Double = 0.0
-    var budget: Double = 0.0
-    var chartData: [ChartData] = []
-    var cumTotals: [CumTotal] = []
-    var progress: Double = 0
-    var statusMessage: String = ""
-    
-    var showLoadingSpinner = false
-    var loadingSpinnerTimer: Timer?
-    @objc func showLoadingSpinnerViaTimer() {
-        showLoadingSpinner = true
-    }
-    
-    func startDelayedLoadingSpinnerTimer() {
-        loadingSpinnerTimer = Timer(
-            fireAt: Date.now.addingTimeInterval(0.5),
-            interval: 0,
-            target: self,
-            selector: #selector(showLoadingSpinnerViaTimer),
-            userInfo: nil,
-            repeats: false
-        )
-        RunLoop.main.add(loadingSpinnerTimer!, forMode: .common)
-    }
-    
-    func stopDelayedLoadingSpinnerTimer() {
-        if let loadingSpinnerTimer = self.loadingSpinnerTimer {
-            loadingSpinnerTimer.invalidate()
-        }
-        if showLoadingSpinner {
-            showLoadingSpinner = false
-        }
-        
-    }
-}
-
-struct CumTotal {
-    var day: Int
-    var total: Double
-}
-
-fileprivate struct InsightCalculatingProgressView: View {
-    @Bindable var model: CategoryInsightsModel
-
-    var body: some View {
-        ProgressView(value: model.progress)
-            .background(Color(.systemBackground))
-            .opacity(model.showLoadingSpinner ? 1 : 0)
-            .scenePadding(.horizontal)
-    }
-}
-
-fileprivate enum DataPoint {
-    case moneyIn, cashOut, totalSpending, all
-    
-    var titleString: String {
-        switch self {
-        case .moneyIn:
-            "Money In"
-        case .cashOut:
-            "Cash Out"
-        case .totalSpending:
-            "Total Spending"
-        case .all:
-            "All Transactions"
-        }
-    }
-}
-
-@Observable
-fileprivate class MonthlyData: Hashable, Identifiable {
-    var id = UUID()
-    var dataPoint: DataPoint
-    var month: CBMonth
-    var trans: [CBTransaction]
-    var cost: Double
-    
-    init(id: UUID = UUID(), dataPoint: DataPoint, month: CBMonth, trans: [CBTransaction], cost: Double) {
-        self.id = id
-        self.dataPoint = dataPoint
-        self.month = month
-        self.trans = trans
-        self.cost = cost
-    }
-    
-    static func == (lhs: MonthlyData, rhs: MonthlyData) -> Bool {
-        lhs.month.id == rhs.month.id
-    }
-    
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(month.id)
-    }
-}
-
-
-fileprivate enum ChildNavDestination {
+enum CivNavDestination {
     case monthList, transactionList
 }
 
-
-struct CategoryInsightsSheetWrapperIpad: View {
+struct CategoryInsightsViewWrapperIpad: View {
     @State private var navPath = NavigationPath()
     @Binding var showAnalysisSheet: Bool
-    @Bindable var model: CategoryInsightsModel
+    @Bindable var model: CivViewModel
     
     var body: some View {
         NavigationStack(path: $navPath) {
-            CategoryInsightsSheet(navPath: $navPath, showAnalysisSheet: $showAnalysisSheet, model: model)
+            CategoryInsightsView(navPath: $navPath, showAnalysisSheet: $showAnalysisSheet, model: model)
         }
     }
 }
 
-
-struct CategoryInsightsSheet: View {
+struct CategoryInsightsView: View {
     @Environment(\.colorScheme) var colorScheme
     #if os(macOS)
     @Environment(\.dismiss) private var dismiss
@@ -146,7 +41,7 @@ struct CategoryInsightsSheet: View {
     
     @Binding var navPath: NavigationPath
     @Binding var showAnalysisSheet: Bool
-    @Bindable var model: CategoryInsightsModel
+    @Bindable var model: CivViewModel
     
     @State private var showCategoryLiteSheet = false
     @State private var showCategorySheet = false
@@ -154,14 +49,14 @@ struct CategoryInsightsSheet: View {
     //@State private var isPreparingData = false
     @State private var recalc = false
     @State private var showInfo = false
-    //@State private var navPath: Array<ChildNavDestination> = []
+    //@State private var navPath: Array<CivNavDestination> = []
     @State private var refreshTask: Task<Void, Never>?
     
     //private enum MonthlyData { case income, cashOut, totalSpending, spendingMinusPayments }
     
-    @State private var selectedDataPoint: DataPoint? = nil
-    @State private var selectedMonthGroup: Array<MonthlyData> = []
-    @State private var selectedMonth: MonthlyData?
+    @State private var selectedDataPoint: CivDataPoint? = nil
+    @State private var selectedMonthGroup: Array<CivMonthlyData> = []
+    @State private var selectedMonth: CivMonthlyData?
 
     
     let columnGrid = Array(repeating: GridItem(.flexible(), spacing: 0), count: 4)
@@ -229,26 +124,27 @@ struct CategoryInsightsSheet: View {
                     detailSection
                     chartSection
                     breakdownSection
+                    if model.monthsForAnalysis.count > 1 { transactionCharts }
                     transactionSection
                 }
             }
         }
         .safeAreaBar(edge: .top) {
-            InsightCalculatingProgressView(model: model)
+            CivCalculatingProgressView(model: model)
         }
         .navigationTitle("Insights")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbar }
         #endif
-        .navigationDestination(for: ChildNavDestination.self) { dest in
+        .navigationDestination(for: CivNavDestination.self) { dest in
             switch dest {
             case .monthList:
-                MonthMiddleMan(data: selectedMonthGroup, selectedMonth: $selectedMonth, model: model, navPath: $navPath)
+                CivMonthMiddleMan(monthlyData: selectedMonthGroup, selectedMonth: $selectedMonth, model: model, navPath: $navPath)
                 
             case .transactionList:
                 if let selectedMonth {
-                    TransactionList(data: selectedMonth, model: model)
+                    CivTransactionList(data: selectedMonth, model: model)
                 } else {
                     ContentUnavailableView("Uh Oh!", systemImage: "exclamationmark.triangle.text.page", description: Text("The page you are looking for could not be found."))
                 }
@@ -294,7 +190,7 @@ struct CategoryInsightsSheet: View {
                 prepareData()
             }
         }) {
-            MultiMonthSheetForCategoryInsights(model: model, recalc: $recalc)
+            CivMultiMonthSheet(model: model, recalc: $recalc)
             #if os(macOS)
                 .frame(minWidth: 300, minHeight: 500)
                 .presentationSizing(.fitted)
@@ -443,7 +339,7 @@ struct CategoryInsightsSheet: View {
     
     @ViewBuilder
     var incomeRow: some View {
-        FakeNavLink {
+        CivFakeNavLink {
             HStack {
                 infoButtonLabel("Money in…")
                 Spacer()
@@ -458,7 +354,7 @@ struct CategoryInsightsSheet: View {
     
     @ViewBuilder
     var cashOutRow: some View {
-        FakeNavLink {
+        CivFakeNavLink {
             HStack {
                 infoButtonLabel("Cash out…")
                 Spacer()
@@ -473,7 +369,7 @@ struct CategoryInsightsSheet: View {
     
     @ViewBuilder
     var totalSpendingRow: some View {
-        FakeNavLink {
+        CivFakeNavLink {
             HStack {
                 infoButtonLabel("Total spending…")
                 Spacer()
@@ -629,33 +525,124 @@ struct CategoryInsightsSheet: View {
     
     
     // MARK: - Transaction Section
-     var transactionSection: some View {
-         Section {
-             ForEach(model.monthsForAnalysis.sorted(by: { $0.num < $1.num })) { month in
-                 let trans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
-                 
-                 if trans.count > 0 {
-                     let cost = calModel.getSpend(from: trans)
-                     FakeNavLink {
-                         VStack(alignment: .leading) {
-                             Text("\(month.name) \(String(month.year))")
-                             Text("\(cost.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
-                                 .foregroundStyle(.gray)
-                                 .contentTransition(.numericText())
-                         }
-                         Spacer()
-                         TextWithCircleBackground(text: "\(trans.count)")
-                     } action: {
-                         setAll(for: month, shouldNavigate: true)
-                     }
-                 }
-                 
-                 
-             }
-         } header: {
-             sectionHeader("Transactions")
-         }
-     }
+    
+    @ViewBuilder
+    var transactionCharts: some View {
+        let months = model.monthsForAnalysis.sorted(by: { $0.num < $1.num })
+        Section("Actual Spending Breakdown") {
+            Chart(months) { month in
+                let date = Calendar.current.date(from: DateComponents(year: month.year, month: month.actualNum))!
+                let trans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
+                let cost = calModel.getSpendMinusIncome(from: trans)
+                
+                LineMark(
+                    x: .value("Month", date),
+                    y: .value("Amount", abs(cost))
+                )
+                .interpolationMethod(.cardinal)
+                .foregroundStyle(Color.theme)
+                .symbol(by: .value("Month", "month"))
+            }
+            .chartLegend(.hidden)
+        }
+        
+        
+        Section("Transaction Count") {
+            Chart(months) { month in
+                let date = Calendar.current.date(from: DateComponents(year: month.year, month: month.actualNum))!
+                let trans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
+                
+                LineMark(
+                    x: .value("Month", date),
+                    y: .value("Amount", trans.count)
+                )
+                .interpolationMethod(.cardinal)
+                .foregroundStyle(Color.theme)
+                .symbol(by: .value("Month", "month"))
+            }
+            .chartLegend(.hidden)
+        }
+        
+        
+        Section("Actual Spending Breakdown By Category") {
+            
+//            Chart(months) { month in
+//                let date = Calendar.current.date(from: DateComponents(year: month.year, month: month.actualNum))!
+//                
+//                ForEach(calModel.sCategoriesForAnalysis) { cat in
+//                    let trans = model.transactions.filter {
+//                        $0.dateComponents?.month == month.actualNum
+//                        && $0.dateComponents?.year == month.year
+//                        && $0.category?.id == cat.id
+//                    }
+//                    let cost = calModel.getSpendMinusIncome(from: trans)
+//                    
+//                    LineMark(
+//                        x: .value("Month", date),
+//                        y: .value("Amount", abs(cost))
+//                    )
+//                    .interpolationMethod(.cardinal)
+//                    .foregroundStyle(cat.color)
+//                    //.symbol(by: .value("Month", "month"))
+//                }
+//            }
+//            .chartLegend(.hidden)
+            
+            
+            
+            Chart(calModel.sCategoriesForAnalysis) { cat in
+                ForEach(months) { month in
+                    let date = Calendar.current.date(from: DateComponents(year: month.year, month: month.actualNum))!
+                    let trans = model.transactions.filter {
+                        $0.dateComponents?.month == month.actualNum
+                        && $0.dateComponents?.year == month.year
+                        && $0.category?.id == cat.id
+                    }
+                    let cost = calModel.getSpendMinusIncome(from: trans)
+                    
+                    LineMark(
+                        x: .value("Month", date),
+                        y: .value("Amount", abs(cost)),
+                        series: .value("", cat.id)
+                    )
+                    .interpolationMethod(.cardinal)
+                    .foregroundStyle(cat.color)
+                    //.symbol(by: .value("Month", "month"))
+                }
+            }
+            .chartLegend(.hidden)
+        }
+    }
+    
+    @ViewBuilder
+    var transactionSection: some View {
+        let months = model.monthsForAnalysis.sorted(by: { $0.num < $1.num })
+        Section {
+            ForEach(months) { month in
+                let trans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
+                
+                if trans.count > 0 {
+                    let cost = calModel.getSpendMinusIncome(from: trans)
+                    CivFakeNavLink {
+                        VStack(alignment: .leading) {
+                            Text("\(month.name) \(String(month.year))")
+                            Text("\(abs(cost).currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                                .foregroundStyle(.gray)
+                                .contentTransition(.numericText())
+                        }
+                        Spacer()
+                        TextWithCircleBackground(text: "\(trans.count)")
+                    } action: {
+                        setAll(for: month, shouldNavigate: true)
+                    }
+                }
+                
+                
+            }
+        } header: {
+            sectionHeader("Transactions")
+        }
+    }
      
     
     
@@ -908,6 +895,7 @@ struct CategoryInsightsSheet: View {
     
     @MainActor
     func prepareData() {
+        //selectedMonthGroup.removeAll()
         model.progress = 0
         withAnimation {
             model.showLoadingSpinner = true
@@ -945,6 +933,8 @@ struct CategoryInsightsSheet: View {
             
             //#error("FIX THIS TO HANDLE ALL DATAPOINTS. ALSO MIGHT NOT NEED STATE PROPERTY")
             
+            selectedMonthGroup.removeAll()
+            
             switch selectedDataPoint {
             case .moneyIn:
                 setMoneyIn(shouldNavigate: false)
@@ -959,6 +949,10 @@ struct CategoryInsightsSheet: View {
                 if let selectedMonth {
                     setAll(for: selectedMonth.month, shouldNavigate: false)
                 }
+                
+            case .actualSpending:
+                setActualSpending(shouldNavigate: false)
+                
             case nil:
                 break
             }
@@ -972,8 +966,14 @@ struct CategoryInsightsSheet: View {
         model.monthsForAnalysis.forEach { month in
             let monthlyTrans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
             let transactions = calModel.getIncomeTransactions(from: monthlyTrans)
-            let cost = calModel.getIncome(from: monthlyTrans)
-            let data = MonthlyData(dataPoint: .moneyIn, month: month, trans: transactions, cost: cost)
+            let moneyIn = calModel.getIncome(from: monthlyTrans)
+            let cashOut = calModel.getDebitSpend(from: monthlyTrans)
+            let totalSpend = calModel.getSpend(from: monthlyTrans)
+            let actualSpend = calModel.getSpendMinusIncome(from: monthlyTrans)
+            
+            //let overallTotalSpend = calModel.getSpend(from: model.transactions)
+            let breakdown = CivBreakdownData(moneyIn: moneyIn, cashOut: cashOut, spending: totalSpend, actualSpending: actualSpend)
+            let data = CivMonthlyData(dataPoint: .moneyIn, month: month, trans: transactions, breakdown: breakdown)
             process(data: data)
         }
         if shouldNavigate {
@@ -988,8 +988,14 @@ struct CategoryInsightsSheet: View {
         model.monthsForAnalysis.forEach { month in
             let monthlyTrans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
             let trans = calModel.getDebitSpendTransactions(from: monthlyTrans)
-            let cost = calModel.getDebitSpend(from: monthlyTrans)
-            let data = MonthlyData(dataPoint: .cashOut, month: month, trans: trans, cost: cost)
+            let moneyIn = calModel.getIncome(from: monthlyTrans)
+            let cashOut = calModel.getDebitSpend(from: monthlyTrans)
+            let totalSpend = calModel.getSpend(from: monthlyTrans)
+            let actualSpend = calModel.getSpendMinusIncome(from: monthlyTrans)
+            
+            //let overallTotalSpend = calModel.getSpend(from: model.transactions)
+            let breakdown = CivBreakdownData(moneyIn: moneyIn, cashOut: cashOut, spending: totalSpend, actualSpending: actualSpend)
+            let data = CivMonthlyData(dataPoint: .cashOut, month: month, trans: trans, breakdown: breakdown)
             process(data: data)
         }
         if shouldNavigate {
@@ -1004,8 +1010,35 @@ struct CategoryInsightsSheet: View {
         model.monthsForAnalysis.forEach { month in
             let monthlyTrans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
             let trans = calModel.getSpendTransactions(from: monthlyTrans)
-            let cost = calModel.getSpend(from: monthlyTrans)
-            let data = MonthlyData(dataPoint: .totalSpending, month: month, trans: trans, cost: cost)
+            let moneyIn = calModel.getIncome(from: monthlyTrans)
+            let cashOut = calModel.getDebitSpend(from: monthlyTrans)
+            let totalSpend = calModel.getSpend(from: monthlyTrans)
+            let actualSpend = calModel.getSpendMinusIncome(from: monthlyTrans)
+            
+            //let overallTotalSpend = calModel.getSpend(from: model.transactions)
+            let breakdown = CivBreakdownData(moneyIn: moneyIn, cashOut: cashOut, spending: totalSpend, actualSpending: actualSpend)
+            let data = CivMonthlyData(dataPoint: .totalSpending, month: month, trans: trans, breakdown: breakdown)
+            process(data: data)
+        }
+        if shouldNavigate {
+            navigate()
+        }
+    }
+    
+    /// This is called by both the user and the long poll. User action will cause navigation. Long poll will not.
+    func setActualSpending(shouldNavigate: Bool) {
+        selectedDataPoint = .actualSpending
+        model.monthsForAnalysis.forEach { month in
+            let monthlyTrans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
+            let trans = calModel.getSpendTransactions(from: monthlyTrans)
+            let moneyIn = calModel.getIncome(from: monthlyTrans)
+            let cashOut = calModel.getDebitSpend(from: monthlyTrans)
+            let totalSpend = calModel.getSpend(from: monthlyTrans)
+            let actualSpend = calModel.getSpendMinusIncome(from: monthlyTrans)
+            
+            //let overallTotalSpend = calModel.getSpend(from: model.transactions)
+            let breakdown = CivBreakdownData(moneyIn: moneyIn, cashOut: cashOut, spending: totalSpend, actualSpending: actualSpend)
+            let data = CivMonthlyData(dataPoint: .actualSpending, month: month, trans: trans, breakdown: breakdown)
             process(data: data)
         }
         if shouldNavigate {
@@ -1017,8 +1050,15 @@ struct CategoryInsightsSheet: View {
     /// This is called by both the user and the long poll. User action will cause navigation. Long poll will not.
     func setAll(for month: CBMonth, shouldNavigate: Bool) {
         selectedDataPoint = .all
-        let cost = calModel.getSpend(from: model.transactions)
-        let data = MonthlyData(dataPoint: .all, month: month, trans: model.transactions, cost: cost)
+        let monthlyTrans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
+        let moneyIn = calModel.getIncome(from: monthlyTrans)
+        let cashOut = calModel.getDebitSpend(from: monthlyTrans)
+        let totalSpend = calModel.getSpend(from: monthlyTrans)
+        let actualSpend = calModel.getSpendMinusIncome(from: monthlyTrans)
+        
+        //let overallTotalSpend = calModel.getSpend(from: model.transactions)
+        let breakdown = CivBreakdownData(moneyIn: moneyIn, cashOut: cashOut, spending: totalSpend, actualSpending: actualSpend)
+        let data = CivMonthlyData(dataPoint: .all, month: month, trans: model.transactions, breakdown: breakdown)
         process(data: data, forceToTransactionList: true)
         
         if shouldNavigate {
@@ -1029,24 +1069,33 @@ struct CategoryInsightsSheet: View {
     
     fileprivate func navigate(forceToTransactionList: Bool = false) {
         if model.monthsForAnalysis.count == 1 || forceToTransactionList {
-            navPath.append(ChildNavDestination.transactionList)
+            navPath.append(CivNavDestination.transactionList)
         } else {
-            navPath.append(ChildNavDestination.monthList)
+            navPath.append(CivNavDestination.monthList)
         }
     }
     
     
-    fileprivate func process(data: MonthlyData, forceToTransactionList: Bool = false) {
-        var target: MonthlyData?
+    fileprivate func process(data: CivMonthlyData, forceToTransactionList: Bool = false) {
+        var target: CivMonthlyData?
         if model.monthsForAnalysis.count == 1 || forceToTransactionList {
             target = selectedMonth
         } else {
             target = selectedMonthGroup.filter({ $0.month.num == data.month.num }).first
-        }        
+        }
+        
+        
+//        if !selectedMonthGroup.map({ $0.month.num }).contains(data.month.num) {
+//            selectedMonthGroup.removeAll(where: { $0.month.num == data.month.num })
+//            return
+//        }
+        
         
         if let target {
             withAnimation {
-                target.cost = data.cost
+                target.month = data.month
+                target.dataPoint = data.dataPoint
+                target.breakdown = data.breakdown
                 var activeIds: Array<String> = []
                 
                 for trans in data.trans {
@@ -1066,8 +1115,6 @@ struct CategoryInsightsSheet: View {
                         target.trans.removeAll(where: { $0.id == trans.id })
                     }
                 }
-                
-                target.month = data.month
             }
         } else {
             if model.monthsForAnalysis.count == 1 || forceToTransactionList {
@@ -1223,421 +1270,18 @@ struct CategoryInsightsSheet: View {
 
 
 
-fileprivate struct MultiMonthSheetForCategoryInsights: View {
-    @Environment(\.dismiss) var dismiss
-    @Environment(\.colorScheme) var colorScheme
-    @Environment(CalendarModel.self) private var calModel
-    @Bindable var model: CategoryInsightsModel
-    @Binding var recalc: Bool
-    
-    var body: some View {
-        @Bindable var calModel = calModel
-        NavigationStack {
-            StandardContainerWithToolbar(.list) {
-                content
-            }
-            #if os(iOS)
-            .navigationTitle("Months")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) { selectButton }
-                ToolbarItem(placement: .topBarTrailing) { closeButton }
-            }
-            #endif
-        }
-        .onChange(of: model.monthsForAnalysis) {
-            print("should recalc")
-            recalc = true
-        }
-    }
-    
-    @ViewBuilder
-    var content: some View {
-        let lastDecember = calModel.months.filter {$0.enumID == .lastDecember}.first!
-        Section(String(lastDecember.year)) {
-            label(month: lastDecember)
-        }
-        
-        Section(String(calModel.sYear)) {
-            ForEach(calModel.months.filter { ![.lastDecember, .nextJanuary].contains($0.enumID) }, id: \.self) { month in
-                label(month: month)
-            }
-        }
-        
-        let nextJanuary = calModel.months.filter {$0.enumID == .nextJanuary}.first!
-        Section(String(nextJanuary.year)) {
-            label(month: nextJanuary)
-        }
-    }
-    
-    @ViewBuilder func label(month: CBMonth) -> some View {
-        HStack {
-            Text(month.name)
-                .schemeBasedForegroundStyle(isDisabled: month.showSecondaryLoadingSpinner)
-            Spacer()
-            if month.showSecondaryLoadingSpinner {
-                ProgressView()
-                    .tint(.none)
-            } else {
-                Image(systemName: "checkmark")
-                    .opacity(model.monthsForAnalysis.contains(month) ? 1 : 0)
-            }
-            
-        }
-        .disabled(month.showSecondaryLoadingSpinner)
-        .contentShape(Rectangle())
-        .onTapGesture { doIt(month) }
-    }
-    
-    
-    var selectButton: some View {
-        Button {
-            model.monthsForAnalysis = model.monthsForAnalysis.isEmpty ? calModel.months : []
-        } label: {
-            Text(model.monthsForAnalysis.isEmpty  ? "Select All" : "Deselect All")
-            //Image(systemName: months.isEmpty ? "checklist.checked" : "checklist.unchecked")
-                .schemeBasedForegroundStyle()
-        }
-    }
-    
-    
-    var closeButton: some View {
-        Button {
-            dismiss()
-        } label: {
-            Image(systemName: "xmark")
-                .schemeBasedForegroundStyle()
-        }
-    }
-    
-    
-    func doIt(_ month: CBMonth) {
-        if model.monthsForAnalysis.contains(month) {
-            model.monthsForAnalysis.removeAll(where: { $0.num == month.num })
-        } else {
-            model.monthsForAnalysis.append(month)
-        }
-    }
-}
 
 
 
 
-fileprivate struct MonthMiddleMan: View {
-    @Local(\.useWholeNumbers) var useWholeNumbers
-    @Environment(CalendarProps.self) private var calProps
-
-    var data: [MonthlyData]
-    @Binding var selectedMonth: MonthlyData?
-    @Bindable var model: CategoryInsightsModel
-    //@Binding var navPath: Array<ChildNavDestination>
-    @Binding var navPath: NavigationPath
-    
-    var body: some View {
-        Group {
-            if data.filter({ !$0.trans.isEmpty }).isEmpty {
-                //if getTransactions(month: data.month).isEmpty {
-                ContentUnavailableView("No Transactions", systemImage: "rectangle.stack.slash.fill")
-            } else {
-                StandardContainerWithToolbar(.list) {
-                    monthList
-                }
-            }
-        }
-        
-        .navigationTitle(data.first?.dataPoint.titleString ?? "Unknown Data Point")
-        #if os(iOS)
-        .navigationBarTitleDisplayMode(.inline)
-        #endif
-    }
-    
-    @ViewBuilder
-    var monthList: some View {
-        let relevantData = data.filter { !$0.trans.isEmpty }.sorted(by: { $0.month.num < $1.month.num })
-        ForEach(relevantData) { data in
-            //let transCount = data.trans.filter { $0.dateComponents?.month == data.month.actualNum }.count
-            FakeNavLink {
-                line(data)
-            } action: {
-                selectedMonth = data
-                navPath.append(ChildNavDestination.transactionList)
-            }
-        }
-    }
-    
-    @ViewBuilder func line(_ data: MonthlyData) -> some View {
-        let transCount = data.trans.filter { $0.dateComponents?.month == data.month.actualNum }.count
-        HStack {
-            VStack(alignment: .leading) {
-                Text("\(data.month.name) \(String(data.month.year))")
-                Text("\(data.cost.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
-                    .foregroundStyle(.gray)
-                    .contentTransition(.numericText())
-            }
-            Spacer()
-            TextWithCircleBackground(text: "\(transCount)")
-        }
-    }
-}
 
 
-fileprivate struct TransactionList: View {
-    @AppStorage("transactionListDisplayMode") var transactionListDisplayMode: TransactionListDisplayMode = .condensed
-    @AppStorage("transactionListDisplayModeShowEmptyDaysInFull") var transactionListDisplayModeShowEmptyDaysInFull: Bool = false
-    
-    @Local(\.transactionSortMode) var transactionSortMode
-    @Local(\.categorySortMode) var categorySortMode
-    @Local(\.useWholeNumbers) var useWholeNumbers
-    
-    @Environment(CalendarModel.self) private var calModel
-    
-    @Bindable var data: MonthlyData
-    @Bindable var model: CategoryInsightsModel
-        
-    @State private var transEditID: String?
-    @State private var transDay: CBDay?
-    @State private var searchText = ""
 
 
-    var body: some View {
-        theView
-            .searchable(text: $searchText, prompt: Text("Search"))
-            .navigationTitle("\(data.dataPoint.titleString)")
-            .navigationSubtitle("\(data.month.name) \(String(data.month.year))")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) { viewModeMenu }
-            }
-            .transactionEditSheetAndLogic(transEditID: $transEditID, selectedDay: $transDay)
-    }
-    
-    @ViewBuilder
-    var theView: some View {
-        if data.trans.isEmpty {
-        //if getTransactions(month: data.month).isEmpty {
-            ContentUnavailableView("No Transactions", systemImage: "rectangle.stack.slash.fill")
-        } else {
-            StandardContainerWithToolbar(.list) {
-                switch transactionListDisplayMode {
-                case .full:
-                    fullView(for: data.month)
-                case .condensed:
-                    condensedView(for: data.month)
-                }
-            }
-        }
-    }
-    
-    
-    var viewModeMenu: some View {
-        Menu {
-            Section("Display Mode") {
-                ForEach(TransactionListDisplayMode.allCases, id: \.self) { opt in
-                    Button {
-                        withAnimation {
-                            transactionListDisplayMode = opt
-                        }
-                        
-                    } label: {
-                        HStack {
-                            Text(opt.prettyValue)
-                            Spacer()
-                            if opt == transactionListDisplayMode {
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                    }
-                    
-                    if opt == .full && transactionListDisplayMode == .full {
-                        Menu("Show empty days") {
-                            emptyDayButton(show: true)
-                            emptyDayButton(show: false)
-                        }
-                    }
-                }
-            }
-        } label: {
-            Image(systemName: "line.3.horizontal")
-                .schemeBasedForegroundStyle()
-        }
-    }
-    
-    
-    @ViewBuilder
-    func emptyDayButton(show: Bool) -> some View {
-        Button {
-            withAnimation {
-                transactionListDisplayModeShowEmptyDaysInFull = show
-            }
-        } label: {
-            HStack {
-                Text(show ? "Yes" : "No")
-                Spacer()
-                if transactionListDisplayModeShowEmptyDaysInFull == show {
-                    Image(systemName: "checkmark")
-                }
-            }
-        }
-    }
-    
-    
-    @ViewBuilder
-    func fullView(for month: CBMonth) -> some View {
-        ForEach(month.legitDays) { day in
-            let trans = getTransactions(month: month, day: day)
-            let doesHaveTransactions = !trans.isEmpty
-            
-            if transactionListDisplayModeShowEmptyDaysInFull {
-                theSection(day: day, trans: trans) {
-                    if doesHaveTransactions {
-                        transLoop(trans: trans)
-                    } else {
-                        Text("No Transactions")
-                            .foregroundStyle(.gray)
-                    }
-                }
-            } else {
-                if doesHaveTransactions {
-                    theSection(day: day, trans: trans) {
-                        transLoop(trans: trans)
-                    }
-                }
-            }
-        }
-    }
-    
-    
-    @ViewBuilder
-    func condensedView(for month: CBMonth) -> some View {
-        let trans = getTransactions(month: month)
-        transLoop(trans: trans)
-    }
-    
-    
-    @ViewBuilder
-    func transLoop(trans: Array<CBTransaction>) -> some View {
-        ForEach(trans) { trans in
-            TransactionListLine(trans: trans, withDate: transactionListDisplayMode == .condensed)
-                .onTapGesture {
-                    let day = data.month.days.filter { $0.id == trans.dateComponents?.day }.first
-                    self.transDay = day
-                    self.transEditID = trans.id
-                }
-        }
-    }
-    
-    
-    @ViewBuilder
-    func theSection(day: CBDay, trans: Array<CBTransaction>, @ViewBuilder content: () -> some View) -> some View {
-        let doesHaveTransactions = !trans.isEmpty
-        let dailyTotal = trans
-            .map { ($0.payMethod?.isCreditOrLoan ?? false) ? $0.amount * -1 : $0.amount }
-            .reduce(0.0, +)
-
-        Section {
-            content()
-        } header: {
-            if let date = day.date, date.isToday {
-                todayIndicatorLine
-            } else {
-                Text(day.date?.string(to: .monthDayShortYear) ?? "")
-            }
-            
-        } footer: {
-            if doesHaveTransactions {
-                sectionFooter(day: day, dailyCount: trans.count, dailyTotal: dailyTotal)
-            }
-        }
-    }
-    
-    
-    var todayIndicatorLine: some View {
-        HStack {
-            Text("TODAY")
-                .foregroundStyle(Color.theme)
-            VStack {
-                Divider()
-                    .overlay(Color.theme)
-            }
-        }
-    }
-    
-    
-    @ViewBuilder
-    func sectionFooter(day: CBDay, dailyCount: Int, dailyTotal: Double) -> some View {
-        HStack {
-            Text("Cumulative Total: \((model.cumTotals.filter { $0.day == day.date!.day }.first?.total ?? 0.0).currencyWithDecimals(useWholeNumbers ? 0 : 2))")
-            
-            Spacer()
-            if dailyCount > 1 {
-                Text(dailyTotal.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-            }
-        }
-    }
-    
-    
-    func getTransactions(month: CBMonth, day: CBDay? = nil) -> Array<CBTransaction> {
-        data.trans
-            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
-            .filter { transaction in
-                guard
-                    let comps = transaction.dateComponents,
-                    comps.month == month.actualNum,
-                    comps.year == month.year
-                else { return false }
-
-                // If a specific day is provided, it must match.
-                if let day = day?.id {
-                    return comps.day == day
-                }
-
-                // Otherwise, ignore the day.
-                return true
-            }
-            .sorted {
-                if transactionListDisplayMode == .full {
-                    if transactionSortMode == .title {
-                        return $0.title < $1.title
-                        
-                    } else if transactionSortMode == .enteredDate {
-                        return $0.enteredDate < $1.enteredDate
-                        
-                    } else {
-                        if categorySortMode == .title {
-                            return ($0.category?.title ?? "").lowercased() < ($1.category?.title ?? "").lowercased()
-                        } else {
-                            return $0.category?.listOrder ?? 10000000000 < $1.category?.listOrder ?? 10000000000
-                        }
-                    }
-                } else {
-                    return $0.date ?? Date() < $1.date ?? Date()
-                }
-                
-            }
-    }
-}
 
 
-fileprivate struct FakeNavLink<Content: View>: View {
-    @ViewBuilder var label: () -> Content
-    var action: () -> Void
-    
-    var body: some View {
-        
-        Button {
-            action()
-        } label: {
-            HStack {
-                label()
-                    .schemeBasedForegroundStyle()
-                
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.gray)
-            }
-            
-        }
-    }
-}
+
+
 
 
 

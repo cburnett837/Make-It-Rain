@@ -229,7 +229,7 @@ struct TransactionEditView: View {
             Button("OK") {}
         }
         .sheet(isPresented: $showSplitSheet) {
-            TransactionSplitSheet(trans: trans, showSplitSheet: $showSplitSheet)
+            TevSplitSheet(trans: trans, showSplitSheet: $showSplitSheet)
         }
         .environment(mapModel)
 //        /// Check what color the save button should be.
@@ -344,7 +344,7 @@ struct TransactionEditView: View {
             }
             
         case .logs:
-            LogSheet(title: trans.title, itemID: trans.id, logType: .transaction)
+            TevLogSheet(title: trans.title, itemID: trans.id, logType: .transaction)
                 .if(trans.christmasListGiftID != nil) {
                     $0
                     .scrollContentBackground(.hidden)

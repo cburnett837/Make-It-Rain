@@ -10,7 +10,7 @@
 //
 //
 //@Observable
-//class CategoryInsightsModel {
+//class CivViewModel {
 //    var monthsForAnalysis: [CBMonth] = []
 //    var transactions: [CBTransaction] = []
 //    var totalSpent: Double = 0.0
@@ -31,7 +31,7 @@
 //    @Environment(\.dismiss) var dismiss
 //    @Environment(\.colorScheme) var colorScheme
 //    @Environment(CalendarModel.self) private var calModel
-//    @Bindable var model: CategoryInsightsModel
+//    @Bindable var model: CivViewModel
 //    @Binding var recalc: Bool
 //    
 //    var body: some View {
@@ -117,7 +117,7 @@
 //    @Environment(PayMethodModel.self) private var payModel
 //    
 //    @Binding var showAnalysisSheet: Bool
-//    @Bindable var model: CategoryInsightsModel
+//    @Bindable var model: CivViewModel
 //    
 ////    struct ChartData: Identifiable {
 ////        var id: String { return category.id }

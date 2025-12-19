@@ -29,7 +29,7 @@ struct RootViewPad: View {
         
     /// Used to navigate to additional pages in the bottom panel. (Plaid transactions reject all before date)
     @State private var navPath = NavigationPath()
-    @State private var categoryAnalysisModel = CategoryInsightsModel()
+    @State private var categoryAnalysisModel = CivViewModel()
 
 
     
@@ -78,7 +78,7 @@ struct RootViewPad: View {
                 CalendarDashboard()
                 
             case .analysisSheet:
-                CategoryInsightsSheetWrapperIpad(showAnalysisSheet: $calProps.showInspector, model: categoryAnalysisModel)
+                CategoryInsightsViewWrapperIpad(showAnalysisSheet: $calProps.showInspector, model: categoryAnalysisModel)
                     //.onDisappear { calModel.isInMultiSelectMode = false }
                 
             case .transactionList:

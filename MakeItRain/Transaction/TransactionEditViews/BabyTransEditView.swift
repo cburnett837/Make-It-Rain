@@ -110,7 +110,7 @@ struct BabyTransEditView: View {
                         )
                         
                     case .logs:
-                        LogSheet(title: trans.title, itemID: trans.id, logType: .transaction)
+                        TevLogSheet(title: trans.title, itemID: trans.id, logType: .transaction)
                         
                     case .titleColorMenu:
                         TitleColorList(trans: trans, saveOnChange: false, navPath: $navPath)

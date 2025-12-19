@@ -127,7 +127,7 @@
 		FD76DA472EA40994002E30DA /* StandardCategoryLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD76DA462EA40994002E30DA /* StandardCategoryLabel.swift */; };
 		FD7F77022E8C75600087F229 /* TransactionTypeButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD7F77012E8C75600087F229 /* TransactionTypeButton.swift */; };
 		FD7F77042E8D57E10087F229 /* StandardContainerWithToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD7F77032E8D57E10087F229 /* StandardContainerWithToolbar.swift */; };
-		FD7F77062E8D624C0087F229 /* TransactionSplitSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD7F77052E8D624C0087F229 /* TransactionSplitSheet.swift */; };
+		FD7F77062E8D624C0087F229 /* TevSplitSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD7F77052E8D624C0087F229 /* TevSplitSheet.swift */; };
 		FD7F77082E8D6A2E0087F229 /* EnteredByAndUpdatedByView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD7F77072E8D6A2E0087F229 /* EnteredByAndUpdatedByView.swift */; };
 		FD7F770A2E8D87E20087F229 /* PlaidSyncInfoSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD7F77092E8D87E20087F229 /* PlaidSyncInfoSheet.swift */; };
 		FD7F77232E900A4C0087F229 /* CalendarViewPhoneBackup.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD7F77222E900A4C0087F229 /* CalendarViewPhoneBackup.swift */; };
@@ -149,6 +149,14 @@
 		FDA172542EF458A100C113F2 /* TevRuleSuggestionButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA172532EF458A100C113F2 /* TevRuleSuggestionButton.swift */; };
 		FDA172562EF459FE00C113F2 /* TevHashtags.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA172552EF459FE00C113F2 /* TevHashtags.swift */; };
 		FDA172582EF45B9600C113F2 /* TevToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA172572EF45B9600C113F2 /* TevToolbar.swift */; };
+		FDA1725B2EF596FC00C113F2 /* CivMonthMiddleMan.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA1725A2EF596FC00C113F2 /* CivMonthMiddleMan.swift */; };
+		FDA1725D2EF5970400C113F2 /* CivTransactionList.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA1725C2EF5970400C113F2 /* CivTransactionList.swift */; };
+		FDA1725F2EF5970C00C113F2 /* CivFakeNavLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA1725E2EF5970C00C113F2 /* CivFakeNavLink.swift */; };
+		FDA172612EF5971A00C113F2 /* CivMultiMonthSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA172602EF5971A00C113F2 /* CivMultiMonthSheet.swift */; };
+		FDA172632EF5972600C113F2 /* CivModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA172622EF5972600C113F2 /* CivModels.swift */; };
+		FDA172652EF5973400C113F2 /* CivCalculatingProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA172642EF5973400C113F2 /* CivCalculatingProgressView.swift */; };
+		FDA172672EF5974B00C113F2 /* CivDataPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA172662EF5974B00C113F2 /* CivDataPoint.swift */; };
+		FDA172692EF5999200C113F2 /* CumTotal.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA172682EF5999200C113F2 /* CumTotal.swift */; };
 		FDA579392C9E6FA9004E9B60 /* PersistentModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = FDA579372C9E6FA9004E9B60 /* PersistentModel.xcdatamodeld */; };
 		FDA8FA442EB2947100D7C29B /* NavLinkPhone.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA8FA432EB2947100D7C29B /* NavLinkPhone.swift */; };
 		FDA8FA462EB51F1600D7C29B /* CBSuggestedTitle.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA8FA452EB51F1600D7C29B /* CBSuggestedTitle.swift */; };
@@ -291,7 +299,7 @@
 		FDC26E7D2D3E86D500B0A97C /* CBStartingAmount.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DAC2D3E86D500B0A97C /* CBStartingAmount.swift */; };
 		FDC26E7E2D3E86D500B0A97C /* CategoryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26D9F2D3E86D500B0A97C /* CategoryModel.swift */; };
 		FDC26E7F2D3E86D500B0A97C /* DayContextMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DB52D3E86D500B0A97C /* DayContextMenu.swift */; };
-		FDC26E802D3E86D500B0A97C /* LogSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DD02D3E86D500B0A97C /* LogSheet.swift */; };
+		FDC26E802D3E86D500B0A97C /* TevLogSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DD02D3E86D500B0A97C /* TevLogSheet.swift */; };
 		FDC26E812D3E86D500B0A97C /* CBUser.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DB02D3E86D500B0A97C /* CBUser.swift */; };
 		FDC26E822D3E86D500B0A97C /* PayMethodSheetButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DE32D3E86D500B0A97C /* PayMethodSheetButton.swift */; };
 		FDC26E832D3E86D500B0A97C /* LoginModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DF72D3E86D500B0A97C /* LoginModel.swift */; };
@@ -304,7 +312,7 @@
 		FDC26E8A2D3E86D500B0A97C /* RequestModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DEF2D3E86D500B0A97C /* RequestModel.swift */; };
 		FDC26E8B2D3E86D500B0A97C /* RepeatingAndBudgetSubmissionModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DEB2D3E86D500B0A97C /* RepeatingAndBudgetSubmissionModel.swift */; };
 		FDC26E8C2D3E86D500B0A97C /* CalendarModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26D972D3E86D500B0A97C /* CalendarModel.swift */; };
-		FDC26E8D2D3E86D500B0A97C /* CategoryInsightsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26D9D2D3E86D500B0A97C /* CategoryInsightsSheet.swift */; };
+		FDC26E8D2D3E86D500B0A97C /* CategoryInsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26D9D2D3E86D500B0A97C /* CategoryInsightsView.swift */; };
 		FDC26E8E2D3E86D500B0A97C /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FDC26DE92D3E86D500B0A97C /* Preview Assets.xcassets */; };
 		FDC26E8F2D3E86D500B0A97C /* Assets 2.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FDC26D912D3E86D500B0A97C /* Assets 2.xcassets */; };
 		FDC26E902D3E86D500B0A97C /* DollarPartical.sks in Resources */ = {isa = PBXBuildFile; fileRef = FDC26DB82D3E86D500B0A97C /* DollarPartical.sks */; };
@@ -503,7 +511,7 @@
 		FD76DA462EA40994002E30DA /* StandardCategoryLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandardCategoryLabel.swift; sourceTree = "<group>"; };
 		FD7F77012E8C75600087F229 /* TransactionTypeButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionTypeButton.swift; sourceTree = "<group>"; };
 		FD7F77032E8D57E10087F229 /* StandardContainerWithToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandardContainerWithToolbar.swift; sourceTree = "<group>"; };
-		FD7F77052E8D624C0087F229 /* TransactionSplitSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionSplitSheet.swift; sourceTree = "<group>"; };
+		FD7F77052E8D624C0087F229 /* TevSplitSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TevSplitSheet.swift; sourceTree = "<group>"; };
 		FD7F77072E8D6A2E0087F229 /* EnteredByAndUpdatedByView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnteredByAndUpdatedByView.swift; sourceTree = "<group>"; };
 		FD7F77092E8D87E20087F229 /* PlaidSyncInfoSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaidSyncInfoSheet.swift; sourceTree = "<group>"; };
 		FD7F77222E900A4C0087F229 /* CalendarViewPhoneBackup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarViewPhoneBackup.swift; sourceTree = "<group>"; };
@@ -526,6 +534,14 @@
 		FDA172532EF458A100C113F2 /* TevRuleSuggestionButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TevRuleSuggestionButton.swift; sourceTree = "<group>"; };
 		FDA172552EF459FE00C113F2 /* TevHashtags.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TevHashtags.swift; sourceTree = "<group>"; };
 		FDA172572EF45B9600C113F2 /* TevToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TevToolbar.swift; sourceTree = "<group>"; };
+		FDA1725A2EF596FC00C113F2 /* CivMonthMiddleMan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CivMonthMiddleMan.swift; sourceTree = "<group>"; };
+		FDA1725C2EF5970400C113F2 /* CivTransactionList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CivTransactionList.swift; sourceTree = "<group>"; };
+		FDA1725E2EF5970C00C113F2 /* CivFakeNavLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CivFakeNavLink.swift; sourceTree = "<group>"; };
+		FDA172602EF5971A00C113F2 /* CivMultiMonthSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CivMultiMonthSheet.swift; sourceTree = "<group>"; };
+		FDA172622EF5972600C113F2 /* CivModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CivModels.swift; sourceTree = "<group>"; };
+		FDA172642EF5973400C113F2 /* CivCalculatingProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CivCalculatingProgressView.swift; sourceTree = "<group>"; };
+		FDA172662EF5974B00C113F2 /* CivDataPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CivDataPoint.swift; sourceTree = "<group>"; };
+		FDA172682EF5999200C113F2 /* CumTotal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CumTotal.swift; sourceTree = "<group>"; };
 		FDA8FA432EB2947100D7C29B /* NavLinkPhone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavLinkPhone.swift; sourceTree = "<group>"; };
 		FDA8FA452EB51F1600D7C29B /* CBSuggestedTitle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBSuggestedTitle.swift; sourceTree = "<group>"; };
 		FDA8FA472EB5334100D7C29B /* TevMoreOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TevMoreOptions.swift; sourceTree = "<group>"; };
@@ -575,7 +591,7 @@
 		FDC26D9A2D3E86D500B0A97C /* CalendarViewPhone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarViewPhone.swift; sourceTree = "<group>"; };
 		FDC26D9B2D3E86D500B0A97C /* CameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraView.swift; sourceTree = "<group>"; };
 		FDC26D9C2D3E86D500B0A97C /* CategoriesTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriesTable.swift; sourceTree = "<group>"; };
-		FDC26D9D2D3E86D500B0A97C /* CategoryInsightsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryInsightsSheet.swift; sourceTree = "<group>"; };
+		FDC26D9D2D3E86D500B0A97C /* CategoryInsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryInsightsView.swift; sourceTree = "<group>"; };
 		FDC26D9E2D3E86D500B0A97C /* CategoryMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryMenu.swift; sourceTree = "<group>"; };
 		FDC26D9F2D3E86D500B0A97C /* CategoryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryModel.swift; sourceTree = "<group>"; };
 		FDC26DA02D3E86D500B0A97C /* CategorySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategorySheet.swift; sourceTree = "<group>"; };
@@ -624,7 +640,7 @@
 		FDC26DCD2D3E86D500B0A97C /* LoadingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingManager.swift; sourceTree = "<group>"; };
 		FDC26DCE2D3E86D500B0A97C /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		FDC26DCF2D3E86D500B0A97C /* LogManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogManager.swift; sourceTree = "<group>"; };
-		FDC26DD02D3E86D500B0A97C /* LogSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogSheet.swift; sourceTree = "<group>"; };
+		FDC26DD02D3E86D500B0A97C /* TevLogSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TevLogSheet.swift; sourceTree = "<group>"; };
 		FDC26DD12D3E86D500B0A97C /* LongPollModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LongPollModel.swift; sourceTree = "<group>"; };
 		FDC26DD22D3E86D500B0A97C /* MakeItRain.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MakeItRain.entitlements; sourceTree = "<group>"; };
 		FDC26DD32D3E86D500B0A97C /* MakeItRainApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MakeItRainApp.swift; sourceTree = "<group>"; };
@@ -872,12 +888,17 @@
 		FD3DFD0B2EDFDBCB002C2051 /* TransactionEditViews */ = {
 			isa = PBXGroup;
 			children = (
+				FDC26E0C2D3E86D500B0A97C /* TransactionEditView.swift */,
+				FDE202BD2E86D37E00848266 /* TransactionEditViewBackup.swift */,
+				FD1088C02ED397820030090E /* BabyTransEditView.swift */,
 				FD3DFD0C2EDFDBF7002C2051 /* TevTitle.swift */,
 				FD3DFD0E2EDFDE5E002C2051 /* TevAmount.swift */,
 				FD3DFD102EDFDF08002C2051 /* TevDatePicker.swift */,
 				FDA172552EF459FE00C113F2 /* TevHashtags.swift */,
+				FDC26DD02D3E86D500B0A97C /* TevLogSheet.swift */,
 				FDA8FA472EB5334100D7C29B /* TevMoreOptions.swift */,
 				FDA172532EF458A100C113F2 /* TevRuleSuggestionButton.swift */,
+				FD7F77052E8D624C0087F229 /* TevSplitSheet.swift */,
 				FDA172572EF45B9600C113F2 /* TevToolbar.swift */,
 				FDA1724F2EF4557300C113F2 /* TevTrackingAndOrder.swift */,
 				FD5563FF2EF32F6A00830102 /* TevTrackingNumberView.swift */,
@@ -1004,6 +1025,22 @@
 			path = Mac;
 			sourceTree = "<group>";
 		};
+		FDA172592EF596EC00C113F2 /* CategoryInsightViews */ = {
+			isa = PBXGroup;
+			children = (
+				FDC26D9D2D3E86D500B0A97C /* CategoryInsightsView.swift */,
+				FDA172622EF5972600C113F2 /* CivModels.swift */,
+				FDA172662EF5974B00C113F2 /* CivDataPoint.swift */,
+				FDA172642EF5973400C113F2 /* CivCalculatingProgressView.swift */,
+				FDA172602EF5971A00C113F2 /* CivMultiMonthSheet.swift */,
+				FDA1725E2EF5970C00C113F2 /* CivFakeNavLink.swift */,
+				FDA1725C2EF5970400C113F2 /* CivTransactionList.swift */,
+				FDA1725A2EF596FC00C113F2 /* CivMonthMiddleMan.swift */,
+				FDED0A782EC27A8700FBD08C /* CategoryInsightsSheetOG.swift */,
+			);
+			path = CategoryInsightViews;
+			sourceTree = "<group>";
+		};
 		FDAECC4B2DCA6E8D00C6EDA5 /* App Root */ = {
 			isa = PBXGroup;
 			children = (
@@ -1108,9 +1145,8 @@
 		FDC26D7D2D3E86D500B0A97C /* CalendarSheets */ = {
 			isa = PBXGroup;
 			children = (
+				FDA172592EF596EC00C113F2 /* CategoryInsightViews */,
 				FDC26D952D3E86D500B0A97C /* CalendarDashboard.swift */,
-				FDC26D9D2D3E86D500B0A97C /* CategoryInsightsSheet.swift */,
-				FDED0A782EC27A8700FBD08C /* CategoryInsightsSheetOG.swift */,
 				FDC26D982D3E86D500B0A97C /* CalendarOptionsSheet.swift */,
 				FD07E24B2D68B53500024B11 /* FitTransactionOverlay.swift */,
 				FDDDF9542DBFABF200B85979 /* MultiSelectTransactionOptionsSheet.swift */,
@@ -1254,6 +1290,7 @@
 				FDED0A7A2EC2872600FBD08C /* ChartData.swift */,
 				FD09FF502D9C312900795C28 /* CheckIfShouldDownloadModel.swift */,
 				FD09FF4E2D9C311700795C28 /* CodablePlaceHolder.swift */,
+				FDA172682EF5999200C113F2 /* CumTotal.swift */,
 				FD6CA8422EBD2DE300BC773B /* DataChangeTriggers.swift */,
 				FD09FF4A2D9C30F100795C28 /* ListOrderUpdateModel.swift */,
 				FDC26DD12D3E86D500B0A97C /* LongPollModel.swift */,
@@ -1340,18 +1377,13 @@
 			children = (
 				FD3DFD0B2EDFDBCB002C2051 /* TransactionEditViews */,
 				FDC26DAE2D3E86D500B0A97C /* CBTransaction.swift */,
-				FDC26DD02D3E86D500B0A97C /* LogSheet.swift */,
 				FD6D7F002D6682AB0026D39D /* NewTransactionAppIntent.swift */,
 				FD83716D2DEDEBEA0099C6F3 /* NewTransactionMenuButton.swift */,
 				FDC26E042D3E86D500B0A97C /* TempTransactionList.swift */,
 				FDC26E0B2D3E86D500B0A97C /* TransactionContextMenu.swift */,
 				FDA8FA802EBAAC5900D7C29B /* TransactionEditSheetAndLogic.swift */,
-				FDC26E0C2D3E86D500B0A97C /* TransactionEditView.swift */,
-				FDE202BD2E86D37E00848266 /* TransactionEditViewBackup.swift */,
 				FDC26E0D2D3E86D500B0A97C /* TransactionListLine.swift */,
-				FD7F77052E8D624C0087F229 /* TransactionSplitSheet.swift */,
 				FD7F77012E8C75600087F229 /* TransactionTypeButton.swift */,
-				FD1088C02ED397820030090E /* BabyTransEditView.swift */,
 			);
 			path = Transaction;
 			sourceTree = "<group>";
@@ -1660,6 +1692,7 @@
 				FDC26E1B2D3E86D500B0A97C /* Keys.swift in Sources */,
 				FD6674AF2EAFDC50000F2E90 /* UpdateLogoModel.swift in Sources */,
 				FDC26E1C2D3E86D500B0A97C /* LoadingManager.swift in Sources */,
+				FDA1725B2EF596FC00C113F2 /* CivMonthMiddleMan.swift in Sources */,
 				FDC26E1D2D3E86D500B0A97C /* TagView.swift in Sources */,
 				FDC26E1E2D3E86D500B0A97C /* MultiYearSheet.swift in Sources */,
 				FDC26E1F2D3E86D500B0A97C /* CBMonth.swift in Sources */,
@@ -1689,6 +1722,7 @@
 				FD174C342ED5406E00A01F67 /* Extensions+Array.swift in Sources */,
 				FDC26E2A2D3E86D500B0A97C /* SFSafariView.swift in Sources */,
 				FD7F77322E901F8B0087F229 /* CalendarToolbar.swift in Sources */,
+				FDA172652EF5973400C113F2 /* CivCalculatingProgressView.swift in Sources */,
 				FD174D472ED7432900A01F67 /* FileViewProps.swift in Sources */,
 				FD174C402ED5425E00A01F67 /* Extensions+Alignment.swift in Sources */,
 				FD174C3E2ED5423000A01F67 /* Extensions+ChartContent.swift in Sources */,
@@ -1709,6 +1743,7 @@
 				FDC26E312D3E86D500B0A97C /* AdvancedSearchView.swift in Sources */,
 				FDA172502EF4557300C113F2 /* TevTrackingAndOrder.swift in Sources */,
 				FD2FC7F92D7A267100501D41 /* StandardContainer.swift in Sources */,
+				FDA172692EF5999200C113F2 /* CumTotal.swift in Sources */,
 				FDC26E322D3E86D500B0A97C /* ExcludeFromTotalsLine.swift in Sources */,
 				FDC26E332D3E86D500B0A97C /* AppState.swift in Sources */,
 				FD174C362ED540A800A01F67 /* Extensions+View.swift in Sources */,
@@ -1728,6 +1763,7 @@
 				FDA8FA812EBAAC5900D7C29B /* TransactionEditSheetAndLogic.swift in Sources */,
 				FDC26E382D3E86D500B0A97C /* ButtonStyles.swift in Sources */,
 				FDC26E392D3E86D500B0A97C /* ToolbarNowButton.swift in Sources */,
+				FDA1725D2EF5970400C113F2 /* CivTransactionList.swift in Sources */,
 				FDECFACA2EBF124E004DC491 /* AiAnimatedAliveLabel.swift in Sources */,
 				FD7F77022E8C75600087F229 /* TransactionTypeButton.swift in Sources */,
 				FD678EC62DBAB87500D6BC5E /* RootViewPad.swift in Sources */,
@@ -1780,6 +1816,7 @@
 				FDD6CDE62DA97D78002B00E5 /* StandardMiniMap.swift in Sources */,
 				FDBA69CE2DEE2973007FB0CB /* ProfitLossChart.swift in Sources */,
 				FDFBC4602DE67FAA006DE685 /* CBPlaidTransaction.swift in Sources */,
+				FDA1725F2EF5970C00C113F2 /* CivFakeNavLink.swift in Sources */,
 				FDC26E482D3E86D500B0A97C /* CalendarViewPhone.swift in Sources */,
 				FD43EA202EEB19E00004477B /* CatChartRawDataListForGroup.swift in Sources */,
 				FDC26E492D3E86D500B0A97C /* Helpers.swift in Sources */,
@@ -1789,6 +1826,7 @@
 				FDFBC4502DDE346C006DE685 /* PlaidLinkView.swift in Sources */,
 				FDC26E4B2D3E86D500B0A97C /* RepeatingTransactionsTable.swift in Sources */,
 				FDAECC462DCA6E1D00C6EDA5 /* CalendarSheetLayerView.swift in Sources */,
+				FDA172612EF5971A00C113F2 /* CivMultiMonthSheet.swift in Sources */,
 				FDC26E4C2D3E86D500B0A97C /* ResetMonthModel.swift in Sources */,
 				FD9D52FF2DAED8E8008CD1BA /* StandardAmountTextField.swift in Sources */,
 				FD6674AD2EAFD2E6000F2E90 /* LogoSearchPage.swift in Sources */,
@@ -1815,6 +1853,7 @@
 				FDC26E572D3E86D500B0A97C /* DayViewMac.swift in Sources */,
 				FD174C382ED540DA00A01F67 /* Extensions+UserDefaults.swift in Sources */,
 				FD49F8892DD77CBD00A563C8 /* PayMethodViewModelOG.swift in Sources */,
+				FDA172672EF5974B00C113F2 /* CivDataPoint.swift in Sources */,
 				FDBA69D02DEE29A6007FB0CB /* MinMaxEodChart.swift in Sources */,
 				FD6674B12EAFF35F000F2E90 /* CBLogo.swift in Sources */,
 				FDC26E582D3E86D500B0A97C /* MultiCategorySheet.swift in Sources */,
@@ -1870,6 +1909,7 @@
 				FDC26E6E2D3E86D500B0A97C /* TransactionListLine.swift in Sources */,
 				FD618F4A2EE728E800D97C86 /* LogoPickerRow.swift in Sources */,
 				FD678ECC2DBABA4200D6BC5E /* CalendarNavGridHeader.swift in Sources */,
+				FDA172632EF5972600C113F2 /* CivModels.swift in Sources */,
 				FD09FF512D9C312900795C28 /* CheckIfShouldDownloadModel.swift in Sources */,
 				FD174C262ED53EA300A01F67 /* Extensions+UiWindow.swift in Sources */,
 				FD174C3A2ED540EF00A01F67 /* Extensions+Color.swift in Sources */,
@@ -1882,7 +1922,7 @@
 				FDC26E722D3E86D500B0A97C /* CBTag.swift in Sources */,
 				FDC26E732D3E86D500B0A97C /* Extensions+Date.swift in Sources */,
 				FDC26E742D3E86D500B0A97C /* CalendarDashboard.swift in Sources */,
-				FD7F77062E8D624C0087F229 /* TransactionSplitSheet.swift in Sources */,
+				FD7F77062E8D624C0087F229 /* TevSplitSheet.swift in Sources */,
 				FDA1724C2EF4504600C113F2 /* ImageCache.swift in Sources */,
 				FD06F6B62DEA34B800753490 /* ChartIncomeOptionMenu.swift in Sources */,
 				FDC26E752D3E86D500B0A97C /* Extensions.swift in Sources */,
@@ -1917,7 +1957,7 @@
 				FDC26E7F2D3E86D500B0A97C /* DayContextMenu.swift in Sources */,
 				FD174D4B2ED74F4D00A01F67 /* StandardUserAvatar.swift in Sources */,
 				FDE202BE2E86D37E00848266 /* TransactionEditViewBackup.swift in Sources */,
-				FDC26E802D3E86D500B0A97C /* LogSheet.swift in Sources */,
+				FDC26E802D3E86D500B0A97C /* TevLogSheet.swift in Sources */,
 				FDA8FA442EB2947100D7C29B /* NavLinkPhone.swift in Sources */,
 				FD46D3E82EC632610039D4D4 /* PayMethodViewOG.swift in Sources */,
 				FD2F25BC2EE9E5ED00E18F99 /* CatChartRefreshButton.swift in Sources */,
@@ -1948,7 +1988,7 @@
 				FD49F8852DD6C57B00A563C8 /* PayMethodViewContainer.swift in Sources */,
 				FD6D7F032D66CD0A0026D39D /* CBFitTransaction.swift in Sources */,
 				FDC26E8C2D3E86D500B0A97C /* CalendarModel.swift in Sources */,
-				FDC26E8D2D3E86D500B0A97C /* CategoryInsightsSheet.swift in Sources */,
+				FDC26E8D2D3E86D500B0A97C /* CategoryInsightsView.swift in Sources */,
 				FDA579392C9E6FA9004E9B60 /* PersistentModel.xcdatamodeld in Sources */,
 				FD9D52FD2DAED743008CD1BA /* Protocols.swift in Sources */,
 			);
