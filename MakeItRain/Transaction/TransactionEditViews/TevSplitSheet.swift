@@ -349,8 +349,9 @@ struct TevSplitSheet: View {
                     amountStringBinding: $trans.amountString,
                     amount: trans.amount
                 )
-                .onChange(of: focusedField) { oldValue, newValue in
-                    if newValue == 1 && trans.amountString.isEmpty && (trans.payMethod ?? CBPaymentMethod()).isDebit {
+                .onChange(of: focusedField) {
+                    guard let meth = trans.payMethod else { return }
+                    if $1 == 1 && trans.amountString.isEmpty && meth.isDebitOrCash {
                         trans.amountString = "-"
                     }
                 }

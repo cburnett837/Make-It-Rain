@@ -191,7 +191,7 @@ struct PayMethodsTable: View {
                     //.presentationSizing(.page)
             }
             .sheet(isPresented: $showDefaultViewingSheet, onDismiss: setDefaultViewingMethod) {
-                PayMethodSheet(payMethod: $defaultViewingMethod, whichPaymentMethods: .all)
+                PayMethodSheet(payMethod: $defaultViewingMethod, whichPaymentMethods: .all, showNoneOption: true)
                     #if os(macOS)
                     .frame(minWidth: 300, minHeight: 500)
                     .presentationSizing(.fitted)
@@ -489,9 +489,10 @@ struct PayMethodsTable: View {
                         Text(meth.title)
                         Spacer()
                         
-                        if meth.isDebit {
+                        if meth.isDebitOrCash {
                             Text("\(funcModel.getPlaidDebitSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))")
-                        } else {
+                            
+                        } else if meth.isCreditOrLoan {
                             Text("\(funcModel.getPlaidCreditSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))")
                         }
                     }
@@ -716,17 +717,23 @@ struct PayMethodsTable: View {
     
     
     func setDefaultViewingMethod() {
-        //print("-- \(#function)")
-        if let defaultViewingMethod = defaultViewingMethod {
-            if let currentDefaultID = payModel.paymentMethods.filter({ $0.isViewingDefault }).first?.id {
-                if currentDefaultID != defaultViewingMethod.id {
-                    defaultViewingMethod.isViewingDefault = true
-                    Task { await payModel.setDefaultViewing(defaultViewingMethod) }
-                }
-            }
-        } else {
-            print("not set")
-        }
+        
+        print("-- \(#function)")
+        
+        Task { await payModel.setDefaultViewing(defaultViewingMethod) }
+        
+//        if let defaultViewingMethod = defaultViewingMethod {
+//            if let currentDefaultID = payModel.paymentMethods.filter({ $0.isViewingDefault }).first?.id {
+//                if currentDefaultID != defaultViewingMethod.id {
+//                    defaultViewingMethod.isViewingDefault = true
+//                    Task { await payModel.setDefaultViewing(defaultViewingMethod) }
+//                }
+//            }
+//        } else {
+//            print("not set")
+//        }
+        
+        
     }
     
     

@@ -101,29 +101,43 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     var isPermitted: Bool {
         isPrivate ? AppState.shared.user!.id == enteredBy.id : true
     }
+    
     var isPermittedAndViewable: Bool {
         isPermitted && !isHidden
     }
     
-    var isDebit: Bool {
+    var isDebitOrUnified: Bool {
         [.unifiedChecking, .checking, .cash].contains(accountType)
     }
-    var isCredit: Bool {
+    
+    var isCreditOrUnified: Bool {
         [.unifiedCredit, .credit, .loan].contains(accountType)
     }
+    
     var isInvestment: Bool {
         [.investment, .brokerage, .k401].contains(accountType)
+    }
+    
+//    var isDebit: Bool {
+//        accountType == .checking
+//    }
+    
+    var isDebitOrCash: Bool {
+        [.checking, .cash].contains(accountType)
     }
     
     var isCreditOrLoan: Bool {
         [.credit, .loan].contains(accountType)
     }
+    
     var isUnifiedDebit: Bool {
         accountType == .unifiedChecking
     }
+    
     var isUnifiedCredit: Bool {
         accountType == .unifiedCredit
     }
+    
     var isUnified: Bool {
         isUnifiedDebit || isUnifiedCredit
     }
@@ -249,6 +263,8 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         
         self.listOrder = Int(entity.listOrder)
         
+        
+        /// Fetch the logo from core data and store it in the image cache.
         let pred1 = NSPredicate(format: "relatedID == %@", id)
         let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id))
         let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
@@ -261,6 +277,23 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
             createIfNotFound: false
         ) {
             self.logo = perLogo.photoData
+            
+            if ImageCache.shared.loadFromCache(
+                parentTypeId: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id,
+                parentId: entity.id!,
+                id: entity.id!
+            ) == nil {
+                if let data = perLogo.photoData {
+                    Task {
+                        await ImageCache.shared.saveToCache(
+                            parentTypeId: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id,
+                            parentId: entity.id!,
+                            id: entity.id!,
+                            data: data
+                        )
+                    }
+                }
+            }
         }
     }
     

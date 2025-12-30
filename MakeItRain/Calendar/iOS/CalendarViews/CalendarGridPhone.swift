@@ -144,7 +144,7 @@ struct CalendarGridPhone: View {
     
     
     func scrollToTodayOnAppearOfScrollView(_ proxy: ScrollViewProxy) {
-        if enumID.monthNum == AppState.shared.todayMonth {
+        if enumID.monthActualNum == AppState.shared.todayMonth && calModel.sMonth.year == AppState.shared.todayYear {
             /// Give a little delay since the view can take a while to render.
             /// Without the delay, you can kind of see it flicker when it loads.
             DispatchQueue.main.asyncAfter(deadline: .now() + (calModel.isFirstCalendarLoad ? 0.5 : 0.1)) {

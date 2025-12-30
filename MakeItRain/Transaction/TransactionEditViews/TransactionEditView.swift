@@ -27,6 +27,7 @@ struct TransactionEditView: View {
     @Local(\.lineItemIndicator) var lineItemIndicator
     @Local(\.useWholeNumbers) var useWholeNumbers
     
+    @AppStorage("shouldWarmUpTransactionViewDuringSplash") var shouldWarmUpTransactionViewDuringSplash: Bool = false
     @AppStorage("transactionTitleSuggestionType") var transactionTitleSuggestionType: TitleSuggestionType = .location
     //@Environment(\.fontResolutionContext) var fontResolutionContext
 
@@ -56,10 +57,10 @@ struct TransactionEditView: View {
     @State private var categoryMenuColor: Color = Color(.tertiarySystemFill)
     //@State private var showLogSheet = false
     //@State private var showTagSheet = false
-    @State private var showPayMethodSheet = false
-    @State private var showCategorySheet = false
+    //@State private var showPayMethodSheet = false
+    //@State private var showCategorySheet = false
     @State private var showPaymentMethodChangeAlert = false
-    @State private var showDeleteAlert = false
+    //@State private var showDeleteAlert = false
     @State private var blockUndoCommitOnLoad = true
     //@State private var blockKeywordChangeWhenViewLoads = true
     //@State private var blockSuggestionsFromPopulating = false
@@ -68,13 +69,13 @@ struct TransactionEditView: View {
     @State private var showPhotosPicker: Bool = false
     //@State private var showTopTitles: Bool = false
     @State private var showSplitSheet = false
-    @State private var titleChangedTask: Task<Void, Error>?
-    @State private var amountChangedTask: Task<Void, Error>?
+    //@State private var titleChangedTask: Task<Void, Error>?
+    //@State private var amountChangedTask: Task<Void, Error>?
     @State private var showUndoRedoAlert = false
     //@State private var suggestedTitles: Array<CBSuggestedTitle> = []
     @State private var navPath = NavigationPath()
     @State private var isValidToSave = false
-    @State private var hasAnimatedBrain = false
+    //@State private var hasAnimatedBrain = false
     /// These are just to control the animations in the options sheet. The are here so we don't see the option sheet "set up its state" when the view appears.
     @State private var showBadgeBell = false
     @State private var showHiddenEye = false
@@ -171,66 +172,39 @@ struct TransactionEditView: View {
     
     var body: some View {
         //let _ = Self._printChanges()
-        @Bindable var calModel = calModel
-        @Bindable var payModel = payModel
-        @Bindable var catModel = catModel
-        @Bindable var keyModel = keyModel
-        @Bindable var appState = AppState.shared
-        
-        Group {
-            #if os(iOS)
-            NavigationStack(path: $navPath) {
-                if showContent {
-                    ScrollViewReader { scrollProxy in
-                        StandardContainerWithToolbar(.list) {
-                            content(scrollProxy)
-                        }
+        NavigationStack(path: $navPath) {
+            if showContent {
+                ScrollViewReader { scrollProxy in
+                    StandardContainerWithToolbar(.list) {
+                        content(scrollProxy)
                     }
-                    .if(trans.christmasListGiftID != nil) {
-                        $0
-                        .scrollContentBackground(.hidden)
-                        .background(SnowyBackground(blurred: true, withSnow: true))
-                    }
-                    .navigationTitle(title)
-                    .if(trans.relatedTransactionID != nil || trans.christmasListGiftID != nil) { $0.navigationSubtitle(linkedLingo!) }
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar { toolbar }
-                    .navigationDestination(for: TransNavDestination.self) { determineNavDest(for: $0) }
-                } else if !calModel.transactionViewHasBeenWarmedUp {
-                    ProgressView()
-                        .tint(.none)
                 }
+                .navigationTitle(title)
+                .if(trans.relatedTransactionID != nil || trans.christmasListGiftID != nil) { $0.navigationSubtitle(linkedLingo!) }
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar { toolbar }
+                .navigationDestination(for: TransNavDestination.self) { determineNavDest(for: $0) }
+                .scrollContentBackground(trans.christmasListGiftID == nil ? .visible : .hidden)
+                .background(
+                    SnowyBackground(blurred: true, withSnow: true)
+                        .opacity(trans.christmasListGiftID == nil ? 0 : 1)
+                )
             }
-            #else
-            StandardContainer(.list) {
-                content
-            } header: {
-                MacSheetHeaderView(title: title, trans: trans, validateBeforeClosing: validateBeforeClosing, moreMenu: {
-                    moreMenu
-                }, deleteButton: {
-                    deleteButton
-                })
+            else if !calModel.transactionViewHasBeenWarmedUp && !shouldWarmUpTransactionViewDuringSplash {
+                ProgressView()
+                    .tint(.none)
             }
-            .navigationTitle(title)
-            #endif
         }
-        
-        //.onDisappear { transEditID = nil }
         .interactiveDismissDisabled(paymentMethodMissing || !navPath.isEmpty)
         .onAppear { handleWarmUpAndExpensiveViews() }
         .task {
-            //if !isWarmUp {
+            if !isWarmUp {
                 prepareTransactionForEditing(isTemp: isTemp)
                 ChangeTransactionTitleColorTip.didOpenTransaction.sendDonation()
-            //}
-            
+            }
         }
-        .alert("Please change the selected account by right-clicking on the line item from the main view.", isPresented: $showPaymentMethodChangeAlert) {
-            Button("OK") {}
-        }
-        .sheet(isPresented: $showSplitSheet) {
-            TevSplitSheet(trans: trans, showSplitSheet: $showSplitSheet)
-        }
+        .alert("Please change the selected account by right-clicking on the line item from the main view.", isPresented: $showPaymentMethodChangeAlert) { Button("OK") {} }
+        .sheet(isPresented: $showSplitSheet) { TevSplitSheet(trans: trans, showSplitSheet: $showSplitSheet) }
         .environment(mapModel)
 //        /// Check what color the save button should be.
 //        .onChange(of: transactionValuesChanged) { checkIfTransactionIsValidToSave() }
@@ -352,7 +326,8 @@ struct TransactionEditView: View {
                 }
             
         case .titleColorMenu:
-            TitleColorList(trans: trans, saveOnChange: false, navPath: $navPath)
+            TitleColorList(color: $trans.color, navPath: $navPath)
+            //TitleColorList(trans: trans, saveOnChange: false, navPath: $navPath)
                 .if(trans.christmasListGiftID != nil) {
                     $0
                     .scrollContentBackground(.hidden)
@@ -556,18 +531,28 @@ struct TransactionEditView: View {
             /// Set the dummy nil category to the trans so it's not a real nil.
             trans.category = catModel.getNil()
             
-            /// If the unified editing payment method is set, use it.
-            if calModel.sPayMethod?.accountType == .unifiedChecking && payModel.editingDefaultAccountType == .checking {
-                trans.payMethod = payModel.getEditingDefault()
             
-            /// If the unified editing payment method is set, use it.
-            } else if calModel.sPayMethod?.accountType == .unifiedCredit && [.credit, .loan].contains(payModel.editingDefaultAccountType) {
+            if calModel.sPayMethod?.accountType == .unifiedChecking || calModel.sPayMethod?.accountType == .unifiedCredit {
                 trans.payMethod = payModel.getEditingDefault()
                 
-            } else {
-                /// Add the selected viewing payment method to the transaction.
+            } else if let meth = calModel.sPayMethod, !meth.isUnified {
+                /// Add the selected viewing payment method to the transaction. (But only if it's not unified.)
                 trans.payMethod = calModel.sPayMethod
             }
+            
+            
+//            /// If the unified editing payment method is set, use it.
+//            if calModel.sPayMethod?.accountType == .unifiedChecking && payModel.editingDefaultAccountType == .checking {
+//                trans.payMethod = payModel.getEditingDefault()
+//            
+//            /// If the unified editing payment method is set, use it.
+//            } else if calModel.sPayMethod?.accountType == .unifiedCredit && [.credit, .loan].contains(payModel.editingDefaultAccountType) {
+//                trans.payMethod = payModel.getEditingDefault()
+//                
+//            } else if let meth = calModel.sPayMethod, !meth.isUnified {
+//                /// Add the selected viewing payment method to the transaction. (But only if it's not unified.)
+//                trans.payMethod = calModel.sPayMethod
+//            }
                         
             #if os(iOS)
             Task {
@@ -650,35 +635,42 @@ struct TransactionEditView: View {
     
     
     func handleWarmUpAndExpensiveViews() {
-        if calModel.transactionViewHasBeenWarmedUp {
-            showContent = true
-            //DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-            DispatchQueue.main.async {
-                showExpensiveViews = true
-            }
-        } else {
-            /// Run this in dispatch queue since the inital render is expensive.
-            /// Subsequent renders should appear seamless.
-            DispatchQueue.main.async {
+        // MARK: - Technique 1 - View warmed up in splash screen
+        if shouldWarmUpTransactionViewDuringSplash {
+            if isWarmUp {
+                /// Run this in dispatch queue since the inital render is expensive.
+                /// Subsequent renders should appear seamless.
+                DispatchQueue.main.async {
+                    showContent = true
+                    showExpensiveViews = true
+                }
+            } else {
                 showContent = true
-                showExpensiveViews = true
-                calModel.transactionViewHasBeenWarmedUp = true
+                //DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                DispatchQueue.main.async {
+                    showExpensiveViews = true
+                }
             }
         }
-//            if isWarmUp {
-//                /// Run this in dispatch queue since the inital render is expensive.
-//                /// Subsequent renders should appear seamless.
-//                DispatchQueue.main.async {
-//                    showContent = true
-//                    showExpensiveViews = true
-//                }
-//            } else {
-//                showContent = true
-//                //DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-//                DispatchQueue.main.async {
-//                    showExpensiveViews = true
-//                }
-//            }
+        
+        // MARK: - Technique 2 - view warmed up on first appearance.
+        else {
+            if calModel.transactionViewHasBeenWarmedUp {
+                showContent = true
+                //DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                DispatchQueue.main.async {
+                    showExpensiveViews = true
+                }
+            } else {
+                /// Run this in dispatch queue since the inital render is expensive.
+                /// Subsequent renders should appear seamless.
+                DispatchQueue.main.async {
+                    showContent = true
+                    showExpensiveViews = true
+                    calModel.transactionViewHasBeenWarmedUp = true
+                }
+            }
+        }
     }
 }
 

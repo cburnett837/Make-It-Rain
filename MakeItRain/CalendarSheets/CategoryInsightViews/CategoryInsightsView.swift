@@ -122,9 +122,52 @@ struct CategoryInsightsView: View {
             } else {
                 StandardContainerWithToolbar(.list) {
                     detailSection
-                    chartSection
+                    Section {
+                        CivBudgetCompareChart(model: model)
+                        CivChartLegend(model: model)
+                    }
+                    
+                    Section {
+                        HStack {
+                            CivActualSpendingByCategoryPieChart(model: model)
+                            CivActualSpendingByCategoryBarChart(model: model)
+                        }
+                    } header: {
+                        VStack(alignment: .leading) {
+                            Text("Actual Spending")
+                            Text("(Summary)")
+                                .font(.footnote)
+                        }
+                    }
+                                                   
                     breakdownSection
-                    if model.monthsForAnalysis.count > 1 { transactionCharts }
+                    
+                    if model.monthsForAnalysis.count > 1 {
+                        Section {
+                            CivSpendingBreakdownChart(model: model)
+                        } header: {
+                            VStack(alignment: .leading) {
+                                Text("Actual Spending Over Time")
+                                Text("(Summary)")
+                                    .font(.footnote)
+                            }
+                        }
+                        
+                        Section {
+                            CivActualSpendingByCategoryByMonthLineChart(model: model)
+                        } header: {
+                            VStack(alignment: .leading) {
+                                Text("Actual Spending Over Time")
+                                Text("(By category)")
+                                    .font(.footnote)
+                            }
+                        }
+                        
+                        Section("Transaction Count") {
+                            CivTransactionCountChart(model: model)
+                        }
+                    }
+                    
                     transactionSection
                 }
             }
@@ -144,7 +187,7 @@ struct CategoryInsightsView: View {
                 
             case .transactionList:
                 if let selectedMonth = model.selectedMonth {
-                    CivTransactionList(data: selectedMonth, model: model)
+                    CivTransactionList(model: model)
                 } else {
                     ContentUnavailableView("Uh Oh!", systemImage: "exclamationmark.triangle.text.page", description: Text("The page you are looking for could not be found."))
                 }
@@ -170,19 +213,6 @@ struct CategoryInsightsView: View {
                 .presentationSizing(.fitted)
             #endif
         })
-//        .sheet(isPresented: $showCategoryLiteSheet, onDismiss: {
-//            prepareData()
-//        }, content: {
-//            MultiCategorySheetLite(
-//                categories: $calModel.sCategoriesForAnalysis,
-//                categoryGroup: $calModel.sCategoryGroupForAnalysis,
-//                showAnalyticSpecificOptions: true
-//            )
-//            #if os(macOS)
-//                .frame(minWidth: 300, minHeight: 500)
-//                .presentationSizing(.fitted)
-//            #endif
-//        })
         .sheet(isPresented: $showMonthSheet, onDismiss: {
             if recalc {
                 self.refreshTask?.cancel()
@@ -211,16 +241,7 @@ struct CategoryInsightsView: View {
                 model.selectedMonth = nil
                 model.selectedMonthGroup.removeAll()
             }
-            
-//            if $1.count == 0 {
-//                print("should reset multi select mode")
-//                calModel.isInMultiSelectMode = false
-//            }
         }
-//        .onDisappear {
-//            
-//        }
-        
         #if os(macOS)
         .onChange(of: appearsActive) {
             if $1 { Task { prepareData() } }
@@ -437,79 +458,6 @@ struct CategoryInsightsView: View {
         
     
     
-    // MARK: - Chart Section
-    var chartSection: some View {
-        Section {
-            VStack {
-                Chart {
-                    if calModel.sCategoryGroupsForAnalysis.isEmpty {
-                        ForEach(model.chartData) { metric in
-                            BarMark(
-                                x: .value("Amount", metric.budgetForCategory),
-                                y: .value("Key", "Budget")
-                            )
-                            .foregroundStyle(metric.category.color)
-                        }
-                    } else {
-                        BarMark(
-                            x: .value("Amount", model.budget),
-                            y: .value("Key", "Budget")
-                        )
-                        .foregroundStyle(.gray.gradient)
-                    }
-                    
-                    ForEach(model.chartData) { metric in
-                        BarMark(
-                            x: .value("Amount", (metric.expenses * -1 - metric.income)),
-                            y: .value("Key", "Expenses")
-                        )
-                        .foregroundStyle(metric.category.color)
-                    }
-                }
-                .chartLegend(.hidden)
-                
-                chartLegend
-            }
-        } header: {
-            sectionHeader("Chart")
-        }
-    }
-    
-    
-    var chartLegend: some View {
-        ScrollView(.horizontal) {
-            ZStack {
-                Spacer()
-                    .containerRelativeFrame([.horizontal])
-                    .frame(height: 1)
-                                            
-                HStack(spacing: 0) {
-                    ForEach(model.chartData) { item in
-                        HStack(alignment: .circleAndTitle, spacing: 5) {
-                            //Text("\(item.category.active)")
-                            Circle()
-                                .fill(item.category.color)
-                                .frame(maxWidth: 8, maxHeight: 8) // 8 seems to be the default from charts
-                                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-                            
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(item.category.title)
-                                    .foregroundStyle(Color.secondary)
-                                    .font(.caption2)
-                                    .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-                            }
-                        }
-                        .padding(.horizontal, 4)
-                        .contentShape(Rectangle())
-                    }
-                    Spacer()
-                }
-            }
-        }
-        .scrollBounceBehavior(.basedOnSize)
-        .contentMargins(.bottom, 10, for: .scrollContent)
-    }
-    
     
     // MARK: - Breakdown Section
     var breakdownSection: some View {
@@ -526,89 +474,6 @@ struct CategoryInsightsView: View {
     
     // MARK: - Transaction Section
     
-    @ViewBuilder
-    var transactionCharts: some View {
-        let months = model.monthsForAnalysis.sorted(by: { $0.num < $1.num })
-        Section("Actual Spending Breakdown") {
-            Chart(months) { month in
-                let date = Calendar.current.date(from: DateComponents(year: month.year, month: month.actualNum, day: 1))!
-                let trans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
-                let cost = calModel.getSpendMinusIncome(from: trans)
-                
-                LineMark(
-                    x: .value("Month", date),
-                    y: .value("Amount", abs(cost))
-                )
-                .interpolationMethod(.cardinal)
-                .foregroundStyle(Color.theme)
-                .symbol(by: .value("Month", "month"))
-            }
-            .chartLegend(.hidden)
-            .chartXAxis { chartXAxis }
-        }
-        
-        
-        Section("Transaction Count") {
-            Chart(months) { month in
-                let date = Calendar.current.date(from: DateComponents(year: month.year, month: month.actualNum, day: 1))!
-                let trans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
-                
-                LineMark(
-                    x: .value("Month", date),
-                    y: .value("Amount", trans.count)
-                )
-                .interpolationMethod(.cardinal)
-                .foregroundStyle(Color.theme)
-                .symbol(by: .value("Month", "month"))
-            }
-            .chartLegend(.hidden)
-            .chartXAxis { chartXAxis }
-        }
-        
-        
-        Section("Actual Spending Breakdown By Category") {
-            Chart(calModel.sCategoriesForAnalysis) { cat in
-                ForEach(months) { month in
-                    let date = Calendar.current.date(from: DateComponents(year: month.year, month: month.actualNum, day: 1))!
-                    let trans = model.transactions.filter {
-                        $0.dateComponents?.month == month.actualNum
-                        && $0.dateComponents?.year == month.year
-                        && $0.category?.id == cat.id
-                    }
-                    let cost = calModel.getSpendMinusIncome(from: trans)
-                    
-                    LineMark(
-                        x: .value("Month", date),
-                        y: .value("Amount", abs(cost)),
-                        series: .value("", cat.id)
-                    )
-                    .interpolationMethod(.cardinal)
-                    .foregroundStyle(cat.color)
-                }
-            }
-            .chartLegend(.hidden)
-            .chartXAxis { chartXAxis }
-        }
-    }
-    
-    
-    @AxisContentBuilder
-    var chartXAxis: some AxisContent {
-        AxisMarks(values: .stride(by: .month, count: 1)) { value in
-            AxisGridLine()
-            AxisTick()
-            AxisValueLabel {
-                if let date = value.as(Date.self) {
-                    if model.monthsForAnalysis.count > 8 {
-                        Text(date, format: .dateTime.month(.narrow))
-                    } else {
-                        Text(date, format: .dateTime.month(.abbreviated))
-                    }
-                    
-                }
-            }
-        }
-    }
     
     @ViewBuilder
     var transactionSection: some View {
@@ -798,6 +663,9 @@ struct CategoryInsightsView: View {
         var budget: Double
         var chartData: [ChartData]
         var cumTotals: [CumTotal]
+        var spendingBreakdownChartdata: [CivSpendingBreakdownChartData]
+        var transactionCountChartData: [CivTransactionCountChartData]
+        var actualSpendingBreakdownByCategoryChartData: [CivActualSpendingBreakdownByCategoryOuterChartData]
     }
     
 //    func prepareData() {
@@ -920,9 +788,19 @@ struct CategoryInsightsView: View {
                         model.budget = data.budget
                         model.chartData = data.chartData
                         model.cumTotals = data.cumTotals
+                    }
+                    
+                    withAnimation {
+                        model.spendingBreakdownChartdata = data.spendingBreakdownChartdata
+                        model.transactionCountChartData = data.transactionCountChartData
+                        model.actualSpendingBreakdownByCategoryChartData = data.actualSpendingBreakdownByCategoryChartData
+                    }
+                    
+                    withAnimation {
                         model.progress = 1
                         model.showLoadingSpinner = false
                     }
+                    
                     //model.stopDelayedLoadingSpinnerTimer()
                 }
             }
@@ -952,6 +830,43 @@ struct CategoryInsightsView: View {
             case nil:
                 break
             }
+            
+            
+//            let months = model.monthsForAnalysis.sorted(by: { $0.num < $1.num })
+//            
+//            
+//            withAnimation {
+//                model.spendingBreakdownChartdata = months.map { month in
+//                    let date = Calendar.current.date(from: DateComponents(year: month.year, month: month.actualNum, day: 1))!
+//                    let trans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
+//                    let cost = calModel.getSpendMinusIncome(from: trans)
+//                    
+//                    return CivSpendingBreakdownChartData(month: month, date: date, cost: cost)
+//                }
+//                
+//                model.transactionCountChartData = months.map { month in
+//                    let date = Calendar.current.date(from: DateComponents(year: month.year, month: month.actualNum, day: 1))!
+//                    let trans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
+//                    
+//                    return CivTransactionCountChartData(month: month, date: date, count: trans.count)
+//                }
+//                
+//                model.actualSpendingBreakdownByCategoryChartData = calModel.sCategoriesForAnalysis.map { cat in
+//                    let data = months.map { month in
+//                        let date = Calendar.current.date(from: DateComponents(year: month.year, month: month.actualNum, day: 1))!
+//                        let trans = model.transactions.filter {
+//                            $0.dateComponents?.month == month.actualNum
+//                            && $0.dateComponents?.year == month.year
+//                            && $0.category?.id == cat.id
+//                        }
+//                        let cost = calModel.getSpendMinusIncome(from: trans)
+//                        
+//                        return CivActualSpendingBreakdownByCategoryChartData(month: month, date: date, cost: cost)
+//                    }
+//                    
+//                    return CivActualSpendingBreakdownByCategoryOuterChartData(category: cat, data: data)
+//                }
+//            }
         }
     }
     
@@ -1055,6 +970,7 @@ struct CategoryInsightsView: View {
         //let overallTotalSpend = calModel.getSpend(from: model.transactions)
         let breakdown = CivBreakdownData(moneyIn: moneyIn, cashOut: cashOut, spending: totalSpend, actualSpending: actualSpend)
         let data = CivMonthlyData(dataPoint: .all, month: month, trans: model.transactions, breakdown: breakdown)
+        print("Process!!")
         process(data: data, forceToTransactionList: true)
         
         if shouldNavigate {
@@ -1065,6 +981,7 @@ struct CategoryInsightsView: View {
     
     fileprivate func navigate(forceToTransactionList: Bool = false) {
         if model.monthsForAnalysis.count == 1 || forceToTransactionList {
+            print("Navigating to transaction list")
             navPath.append(CivNavDestination.transactionList)
         } else {
             navPath.append(CivNavDestination.monthList)
@@ -1073,51 +990,56 @@ struct CategoryInsightsView: View {
     
     
     fileprivate func process(data: CivMonthlyData, forceToTransactionList: Bool = false) {
-        var target: CivMonthlyData?
-        if model.monthsForAnalysis.count == 1 || forceToTransactionList {
-            target = model.selectedMonth
-        } else {
-            target = model.selectedMonthGroup.filter({ $0.month.num == data.month.num }).first
-        }
-        
-        
-//        if !model.selectedMonthGroup.map({ $0.month.num }).contains(data.month.num) {
-//            model.selectedMonthGroup.removeAll(where: { $0.month.num == data.month.num })
-//            return
-//        }
-        
-        
-        if let target {
-            withAnimation {
-                target.month = data.month
-                target.dataPoint = data.dataPoint
-                target.breakdown = data.breakdown
-                var activeIds: Array<String> = []
-                
-                for trans in data.trans {
-                    activeIds.append(trans.id)
-                    if let targetTrans = target.trans.filter({ $0.id == trans.id }).first {
-                        /// Edit.
-                        targetTrans.setFromAnotherInstance(transaction: trans)
-                    } else {
-                        /// Add.
-                        target.trans.append(trans)
-                    }
-                }
-                
-                /// Delete.
-                for trans in target.trans {
-                    if !activeIds.contains(trans.id) {
-                        target.trans.removeAll(where: { $0.id == trans.id })
-                    }
-                }
-            }
-        } else {
+        Task.detached(priority: .userInitiated) { [model] in
+            print("-- \(#function)")
+            var target: CivMonthlyData?
             if model.monthsForAnalysis.count == 1 || forceToTransactionList {
-                model.selectedMonth = data
+                target = model.selectedMonth
             } else {
-                model.selectedMonthGroup.append(data)
+                target = model.selectedMonthGroup.filter({ $0.month.num == data.month.num }).first
             }
+            
+            
+            //        if !model.selectedMonthGroup.map({ $0.month.num }).contains(data.month.num) {
+            //            model.selectedMonthGroup.removeAll(where: { $0.month.num == data.month.num })
+            //            return
+            //        }
+            
+            
+            if let target {
+                withAnimation {
+                    target.month = data.month
+                    target.dataPoint = data.dataPoint
+                    target.breakdown = data.breakdown
+                    var activeIds: Array<String> = []
+                    
+                    for trans in data.trans {
+                        activeIds.append(trans.id)
+                        if let targetTrans = target.trans.filter({ $0.id == trans.id }).first {
+                            /// Edit.
+                            targetTrans.setFromAnotherInstance(transaction: trans)
+                        } else {
+                            /// Add.
+                            target.trans.append(trans)
+                        }
+                    }
+                    
+                    /// Delete.
+                    for trans in target.trans {
+                        if !activeIds.contains(trans.id) {
+                            target.trans.removeAll(where: { $0.id == trans.id })
+                        }
+                    }
+                }
+            } else {
+                if model.monthsForAnalysis.count == 1 || forceToTransactionList {
+                    model.selectedMonth = data
+                } else {
+                    model.selectedMonthGroup.append(data)
+                }
+            }
+            
+            print("-- \(#function) - DONE")
         }
     }
     
@@ -1134,16 +1056,20 @@ struct CategoryInsightsView: View {
                 let spendMinusPayments = await calModel.getSpendMinusPayments(from: transactions)
                 let spendMinusIncome = await calModel.getSpendMinusIncome(from: transactions)
                 
+                
+                print("income: \(income)")
+                print("totalSpent: \(totalSpent)")
+                
                 /// Get budgets from other apps in the Cody Suite.
                 let appSuiteBudgets = await calModel.appSuiteBudgets
                 
                 /// Get all individual category budgets for the selected months.
-                let categoricalBudgets = await model.monthsForAnalysis.asyncFlatMap {
+                let categoricalBudgets = model.monthsForAnalysis.flatMap {
                     $0.budgets.filter { $0.type == XrefModel.getItem(from: .budgetTypes, byEnumID: .category) }
                 }
                 
                 /// Get all group budgets for the selected months.
-                let groupBudgets = await model.monthsForAnalysis.asyncFlatMap {
+                let groupBudgets = model.monthsForAnalysis.flatMap {
                     $0.budgets.filter { $0.type == XrefModel.getItem(from: .budgetTypes, byEnumID: .categoryGroup) }
                 }
                 
@@ -1215,6 +1141,42 @@ struct CategoryInsightsView: View {
                         return result
                     }
                 }
+                
+                
+                let months = model.monthsForAnalysis.sorted(by: { $0.num < $1.num })
+                
+                let spendingBreakdownChartdata = await months.asyncMap { month in
+                    let date = Calendar.current.date(from: DateComponents(year: month.year, month: month.actualNum, day: 1))!
+                    let trans = transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
+                    let cost = await calModel.getSpendMinusIncome(from: trans)
+                    
+                    return CivSpendingBreakdownChartData(month: month, date: date, cost: cost)
+                }
+                
+                let transactionCountChartData = await months.asyncMap { month in
+                    let date = Calendar.current.date(from: DateComponents(year: month.year, month: month.actualNum, day: 1))!
+                    let trans = transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
+                    print("\(month.num): \(trans.count)")
+                    
+                    return CivTransactionCountChartData(month: month, date: date, count: trans.count)
+                }
+                
+                let actualSpendingBreakdownByCategoryChartData = await calModel.sCategoriesForAnalysis.asyncMap { cat in
+                    let data = await months.asyncMap { month in
+                        let date = Calendar.current.date(from: DateComponents(year: month.year, month: month.actualNum, day: 1))!
+                        let trans = transactions.filter {
+                            $0.dateComponents?.month == month.actualNum
+                            && $0.dateComponents?.year == month.year
+                            && $0.category?.id == cat.id
+                        }
+                        let cost = await calModel.getSpendMinusIncome(from: trans)
+                        
+                        return CivActualSpendingBreakdownByCategoryChartData(month: month, date: date, cost: cost)
+                    }
+                    
+                    return CivActualSpendingBreakdownByCategoryOuterChartData(category: cat, data: data)
+                }
+                
                                 
 
                 //continuation.yield(.step("Summarizing days", 0.1))
@@ -1253,7 +1215,30 @@ struct CategoryInsightsView: View {
                     spendMinusPayments: spendMinusPayments,
                     budget: overallBudget,
                     chartData: chartData,
-                    cumTotals: cumTotals
+                    /*
+                     `ChartData` = Array of...
+                     struct ChartData: Identifiable {
+                         var id: String { return category.id }
+                         
+                         let category: CBCategory
+                         var budgetForCategory: Double
+                         
+                         let categoryGroup: CBCategoryGroup?
+                         var budgetForCategoryGroup: Double?
+                         
+                         var income: Double
+                         var incomeMinusPayments: Double
+                         var expenses: Double
+                         var expensesMinusIncome: Double
+                         var chartPercentage: Double
+                         var actualPercentage: Double
+                         var budgetObjects: Array<CBBudget>?
+                     }
+                     */
+                    cumTotals: cumTotals,
+                    spendingBreakdownChartdata: spendingBreakdownChartdata,
+                    transactionCountChartData: transactionCountChartData,
+                    actualSpendingBreakdownByCategoryChartData: actualSpendingBreakdownByCategoryChartData
                 )
 
                 continuation.yield(.finished(data))

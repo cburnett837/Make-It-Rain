@@ -115,8 +115,9 @@ struct TevAmount: View {
 //                amountStringBinding: $trans.amountString,
 //                amount: trans.amount
 //            )
-            .onChange(of: focusedField.wrappedValue) { oldValue, newValue in
-                if newValue == 1 && trans.amountString.isEmpty && (trans.payMethod ?? CBPaymentMethod()).isDebit {
+            .onChange(of: focusedField.wrappedValue) {
+                guard let meth = trans.payMethod else { return }
+                if $1 == 1 && trans.amountString.isEmpty && meth.isDebitOrCash {
                     trans.amountString = "-"
                 }
                 
@@ -132,9 +133,9 @@ struct TevAmount: View {
 //                }
             }
             /// Keep the amount in sync with the payment method at the time the payment method was changed.
-            .onChange(of: trans.payMethod) { oldValue, newValue in
-                if let oldValue, let newValue {
-                    if (oldValue.isDebit && newValue.isCreditOrLoan) || (oldValue.isCreditOrLoan && newValue.isDebit) {
+            .onChange(of: trans.payMethod) { oldMeth, newMeth in
+                if let oldMeth, let newMeth {
+                    if (oldMeth.isDebitOrCash && newMeth.isCreditOrLoan) || (oldMeth.isCreditOrLoan && newMeth.isDebitOrCash) {
                         Helpers.plusMinus($trans.amountString)
                     }
                 }

@@ -35,16 +35,9 @@ struct ResetMonthModel: Encodable {
             fetchYear = year
         }
         
-        
-        
-        
-        
         let optionalString = formatter.string(from: fetchMonth as NSNumber)!
-        
-        
         //let optionalString = formatter.string(from: calNum as NSNumber)!
-        
-        
+                
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(optionalString, forKey: .month)
         try container.encode(String(fetchYear), forKey: .year)

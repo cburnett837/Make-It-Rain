@@ -43,11 +43,15 @@ class MapModel: NSObject {
         center: CLLocationCoordinate2D(latitude: 40.83657722488077, longitude: 14.306896671048852),
         span: MKCoordinateSpan(latitudeDelta: 0.0125, longitudeDelta: 0.0125)
     )
-        
     
     override init() {
         super.init()        
         completer.delegate = self
+        
+        let userDefaults = UserDefaultsManager<String>(file: .mapSearches)
+        if let recentQueries = userDefaults.loadMany() {
+            self.recentQueries = recentQueries
+        }
     }
     
     
@@ -63,12 +67,20 @@ class MapModel: NSObject {
     
     
     func addQueryToRecents() {
+        
+        if let index = recentQueries.firstIndex(of: searchQuery) {
+            recentQueries.remove(at: index)
+        }
+        
         if recentQueries.count > 5 {
             recentQueries.removeFirst()
         }
         if !searchQuery.isEmpty {
             recentQueries.append(searchQuery)
         }
+        
+        let userDefaults = UserDefaultsManager<String>(file: .mapSearches)
+        userDefaults.saveMany(recentQueries)
     }
     
     
@@ -237,6 +249,7 @@ class MapModel: NSObject {
         }
         #endif
     }
+    
     
     func createMapItem(for location: CBLocation) async -> MKMapItem? {
         if let savedIdentifier = location.identifier, let identifier = MKMapItem.Identifier(rawValue: savedIdentifier) {

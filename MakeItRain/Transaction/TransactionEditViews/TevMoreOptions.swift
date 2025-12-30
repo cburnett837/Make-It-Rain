@@ -18,9 +18,9 @@ struct TevMoreOptions: View {
     @Binding var showBadgeBell: Bool
     @Binding var showHiddenEye: Bool
     
-    var titleColorDescription: String {
-        trans.color == .primary ? (colorScheme == .dark ? "White" : "Black") : trans.color.description.capitalized
-    }
+//    var titleColorDescription: String {
+//        trans.color == .primary ? (colorScheme == .dark ? "White" : "Black") : trans.color.description.capitalized
+//    }
         
     var body: some View {
         StandardContainerWithToolbar(.list) {
@@ -38,8 +38,11 @@ struct TevMoreOptions: View {
                         }
                         
                         Spacer()
-                        Text(titleColorDescription)
-                            .foregroundStyle(trans.color)
+                        Circle()
+                            .fill(trans.color)
+                            .frame(width: 25, height: 25)
+//                        Text(titleColorDescription)
+//                            .foregroundStyle(trans.color)
                     }
                     
                 }

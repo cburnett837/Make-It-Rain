@@ -104,6 +104,10 @@ struct CategoryGroupOverView: View {
                 ToolbarItem(placement: .topBarTrailing) { closeButton }
             }
         }
+        .refreshable {
+            model.fetchHistoryTime = Date()
+            model.fetchHistory(setChartAsNew: true)
+        }
         .onChange(of: groupEditID) { oldValue, newValue in
             if let newValue {
                 editGroup = catModel.getCategoryGroup(by: newValue)

@@ -388,13 +388,14 @@ struct PlaidTransactionOverlay: View {
                 
                 for key in keyModel.keywords {
                     let upKey = key.keyword.uppercased()
+                    let upTitle = trans.title.uppercased()
                     
                     if let renameTo = key.renameTo {
                         switch key.triggerType {
                         case .equals:
-                            if trans.title.uppercased() == upKey { willRenameTo = renameTo }
+                            if upTitle == upKey { willRenameTo = renameTo }
                         case .contains:
-                            if trans.title.uppercased().contains(upKey) { willRenameTo = renameTo }
+                            if upTitle.contains(upKey) { willRenameTo = renameTo }
                         }
                     }
                     
@@ -416,7 +417,12 @@ struct PlaidTransactionOverlay: View {
                 
                 var config: AlertConfig?
                 
-                let buttonConfig = AlertConfig.ButtonConfig(text: "Yes", role: .primary) { accept() }
+                let buttonConfig = AlertConfig.ButtonConfig(text: "Yes", role: .primary) {
+                    if let newName = willRenameTo {
+                        trans.title = newName
+                    }
+                    accept()
+                }
                 
                 if willRenameTo == nil {
                     config = AlertConfig(
@@ -521,7 +527,7 @@ struct PlaidTransactionOverlay: View {
             
             plaidModel.totalTransCount -= 1
             
-            if trans.payMethod?.isCredit ?? false {
+            if trans.payMethod?.isCreditOrUnified ?? false {
                 if trans.amountString.contains("-") {
                     trans.amountString = trans.amountString.replacing("-", with: "")
                 } else {

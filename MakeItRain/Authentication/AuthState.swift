@@ -17,6 +17,7 @@ enum LoginType {
 @MainActor
 @Observable
 class AuthState {
+    var keychainCredentialsExist = false
     var isLoggedIn = false
     //var isBioAuthed = false
     var isThinking = true
@@ -76,6 +77,7 @@ class AuthState {
                         
                         let userData = try JSONEncoder().encode(model.user)
                         UserDefaults.standard.set(userData, forKey: "user")
+                        AppSettings.shared.setFromAnotherInstance(setting: model.settings)
                         AppState.shared.user = model.user
                         AppState.shared.accountUsers = model.accountUsers
                         AppState.shared.methsExist = model.hasPaymentMethodsExisiting
@@ -186,6 +188,7 @@ class AuthState {
         /// This will check the keychain for credentials. If it finds them, it will attempt to authenticate with the server. If not, it will take the user to the login page.
         /// If the user successfully authenticates with the server, this will also look if the user has payment methods, and set AppState accordingly.
         if let apiKey = await self.getApiKeyFromKeychain() {
+            self.keychainCredentialsExist = true
             self.loginTask = Task {
                 /// Talk to server with the users API key.
                 await self.attemptLogin(using: .apiKey, with: LoginModel(apiKey: apiKey))
@@ -206,6 +209,7 @@ class AuthState {
             _ = await self.loginTask?.result
             return self.isLoggedIn
         } else {
+            self.keychainCredentialsExist = false
             self.isThinking = false
             AppState.shared.shouldShowSplash = false
             return false

@@ -25,6 +25,12 @@ struct CustomAsyncImage<Content: View, Placeholder: View>: View {
         #if os(iOS)
             if let uiImage = uiImage {
                 content(Image(uiImage: uiImage))
+            } else if let image = ImageCache.shared.loadFromCache(
+                parentTypeId: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction).id,
+                parentId: file.relatedID,
+                id: file.id
+            ) {
+                content(Image(uiImage: image))
             } else {
                 placeholder().task { await getImage() }
             }
@@ -45,6 +51,14 @@ struct CustomAsyncImage<Content: View, Placeholder: View>: View {
         switch result {
         case .success(let data):
             if let data = data {
+                
+                await ImageCache.shared.saveToCache(
+                    parentTypeId: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction).id,
+                    parentId: file.relatedID,
+                    id: file.id,
+                    data: data
+                )
+                
                 #if os(iOS)
                     self.uiImage = UIImage(data: data)
                 #else
@@ -52,8 +66,14 @@ struct CustomAsyncImage<Content: View, Placeholder: View>: View {
                 #endif
             }
             
-        case .failure:
-            AppState.shared.showAlert("There was a problem downloading the image.")
+        case .failure(let error):
+            switch error {
+            case .taskCancelled:
+                print("\(#function) Task Cancelled")
+            default:
+                LogManager.error(error.localizedDescription)
+                AppState.shared.showAlert("There was a problem downloading the image.")
+            }
         }
     }
 }

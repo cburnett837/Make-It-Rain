@@ -30,6 +30,13 @@ class CivViewModel {
     var selectedMonth: CivMonthlyData?
     
     
+    
+    var spendingBreakdownChartdata = [CivSpendingBreakdownChartData]()
+    var transactionCountChartData = [CivTransactionCountChartData]()
+    var actualSpendingBreakdownByCategoryChartData = [CivActualSpendingBreakdownByCategoryOuterChartData]()
+
+    
+    
     var showLoadingSpinner = false
     var loadingSpinnerTimer: Timer?
     @objc func showLoadingSpinnerViaTimer() {
@@ -55,7 +62,25 @@ class CivViewModel {
         if showLoadingSpinner {
             showLoadingSpinner = false
         }
-        
+    }
+    
+    
+    @AxisContentBuilder
+    var chartXAxis: some AxisContent {
+        AxisMarks(values: .stride(by: .month, count: 1)) { value in
+            AxisGridLine()
+            AxisTick()
+            AxisValueLabel {
+                if let date = value.as(Date.self) {
+                    if self.monthsForAnalysis.count > 8 {
+                        Text(date, format: .dateTime.month(.narrow))
+                    } else {
+                        Text(date, format: .dateTime.month(.abbreviated))
+                    }
+                    
+                }
+            }
+        }
     }
 }
 

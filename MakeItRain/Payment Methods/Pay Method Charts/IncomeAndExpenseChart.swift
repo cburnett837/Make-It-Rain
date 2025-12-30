@@ -93,7 +93,7 @@ struct IncomeAndExpenseChartDetails: View {
         if let selectedDate = selectedDate {
             
             var startingText: String {
-                vm.viewByQuarter ? (payMethod.isCredit ? "Starting (avg)" : "Starting (sum)") : "Starting"
+                vm.viewByQuarter ? (payMethod.isCreditOrUnified ? "Starting (avg)" : "Starting (sum)") : "Starting"
             }
             
             ChartSelectedDataContainer(
@@ -105,7 +105,7 @@ struct IncomeAndExpenseChartDetails: View {
                 Text("Income")
                 Text("Expenses")
                 Text(startingText)
-                if payMethod.isCredit {
+                if payMethod.isCreditOrUnified {
                     Text("Payments")
                 }
             } rows: {
@@ -120,7 +120,7 @@ struct IncomeAndExpenseChartDetails: View {
                         Text(breakdown.expenses.currencyWithDecimals(useWholeNumbers ? 0 : 2))
                         Text(breakdown.startingAmounts.currencyWithDecimals(useWholeNumbers ? 0 : 2))
                         
-                        if payMethod.isCredit {
+                        if payMethod.isCreditOrUnified {
                             Text(breakdown.payments.currencyWithDecimals(useWholeNumbers ? 0 : 2))
                         }
                     }
@@ -133,7 +133,7 @@ struct IncomeAndExpenseChartDetails: View {
                 Text(breakdown.expenses.currencyWithDecimals(useWholeNumbers ? 0 : 2))
                 Text(breakdown.startingAmounts.currencyWithDecimals(useWholeNumbers ? 0 : 2))
                                             
-                if payMethod.isCredit {
+                if payMethod.isCreditOrUnified {
                     Text(breakdown.payments.currencyWithDecimals(useWholeNumbers ? 0 : 2))
                 }
             }
@@ -193,7 +193,7 @@ struct IncomeExpenseChart: View {
                 if showIncome { incomeLine($0, showLines: showLines) }
                 if showExpenses { expensesLine($0, showLines: showLines) }
                 if showStartingAmount { startingAmountLine($0, showLines: showLines) }
-                if payMethod.isCredit && showPayments { paymentLine($0, showLines: showLines) }
+                if payMethod.isCreditOrUnified && showPayments { paymentLine($0, showLines: showLines) }
             }
         }
         //.frame(minHeight: allowSelection ? 250 : 150)
@@ -264,7 +264,7 @@ struct IncomeExpenseChart: View {
             (id: UUID(), title: "Month Begin", color: Color.orange),
         ]
         
-        if payMethod.isCredit {
+        if payMethod.isCreditOrUnified {
             legendItems.append((id: UUID(), title: "Payments", color: Color.green))
         }
         
@@ -295,7 +295,7 @@ fileprivate struct ChartOptionsSheet: View {
             ChartOptionToggle(description: expenseDescription, title: Text("Expenses"), color: .red, show: $showExpenses)
             ChartOptionToggle(description: startingAmountDescription, title: Text("Month Begin"), color: .orange, show: $showStartingAmount)
             
-            if payMethod.isCredit {
+            if payMethod.isCreditOrUnified {
                 ChartOptionToggle(description: paymentDescription, title: Text("Payments"), color: .green, show: $showPayments)
             }
             

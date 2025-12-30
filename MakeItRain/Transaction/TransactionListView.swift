@@ -12,6 +12,11 @@ fileprivate struct TransListCumTotal {
     var total: Double
 }
 
+
+enum WhichTransactionsToShow {
+    case selectedMonth, onlyWithReceipts
+}
+
 struct TransactionListView: View {
     #if os(macOS)
     @Environment(\.dismiss) var dismiss

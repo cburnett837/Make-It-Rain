@@ -31,8 +31,9 @@ class LongPollModel: Decodable {
     let plaidBalances: Array<CBPlaidBalance>?
     
     let logos: Array<CBLogo>?
+    let settings: AppSettings?
     
-    enum CodingKeys: CodingKey { case return_time, transactions, starting_amounts, repeating_transactions, pay_methods, categories, category_groups, keywords, budgets, fit_transactions, open_records, plaid_banks, plaid_accounts, plaid_transactions, plaid_balances, logos }
+    enum CodingKeys: CodingKey { case return_time, transactions, starting_amounts, repeating_transactions, pay_methods, categories, category_groups, keywords, budgets, fit_transactions, open_records, plaid_banks, plaid_accounts, plaid_transactions, plaid_balances, logos, settings }
     
     init () {
         self.returnTime = nil
@@ -54,6 +55,7 @@ class LongPollModel: Decodable {
         self.plaidBalances = nil
         
         self.logos = nil
+        self.settings = nil
     }
     
     
@@ -78,6 +80,7 @@ class LongPollModel: Decodable {
         self.plaidBalances = try container.decodeIfPresent(Array<CBPlaidBalance>.self, forKey: .plaid_balances)
         
         self.logos = try container.decodeIfPresent(Array<CBLogo>.self, forKey: .logos)
+        self.settings = try container.decodeIfPresent(AppSettings.self, forKey: .settings)
     }
 }
 

@@ -202,8 +202,8 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         try container.encode(uuid, forKey: .uuid)
         try container.encode(title, forKey: .title)
         try container.encode(amount, forKey: .amount)
-        try container.encode(color.toHex(), forKey: .title_hex_code)
-        //try container.encode(color.description, forKey: .title_hex_code)
+        //try container.encode(color.toHex(), forKey: .title_hex_code)
+        try container.encode(color.description, forKey: .title_hex_code)
         try container.encode(payMethod, forKey: .payment_method)
         try container.encode(payMethodPayTo, forKey: .payment_method_pay_to)
         try container.encode(category, forKey: .category)
@@ -307,7 +307,8 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
                 
         let hexCode = try container.decode(String?.self, forKey: .title_hex_code)
         //#if os(iOS)
-        let color = Color.fromHex(hexCode) ?? .primary
+        //let color = Color.fromHex(hexCode) ?? .primary
+        let color = Color.fromName(hexCode ?? "primary")
         
         if color == .white || color == .black {
             self.color = .primary

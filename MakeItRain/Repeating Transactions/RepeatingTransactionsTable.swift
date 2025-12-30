@@ -31,6 +31,7 @@ struct RepeatingTransactionsTable: View {
     var filteredTransactions: [CBRepeatingTransaction] {
         repModel.repTransactions
             .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedCaseInsensitiveContains(searchText) }
+            .sorted(by: { $0.title.lowercased() < $1.title.lowercased() })
     }
         
     var body: some View {
@@ -42,11 +43,19 @@ struct RepeatingTransactionsTable: View {
                 macTable
                 #else
                 if filteredTransactions.isEmpty {
-                    ContentUnavailableView("No transactions found", systemImage: "exclamationmark.magnifyingglass")
+                    if funcModel.isLoading {
+                        ProgressView()
+                            .tint(.none)
+                    } else {
+                        ContentUnavailableView("No transactions found", systemImage: "exclamationmark.magnifyingglass")
+                    }
                 } else {
                     phoneList
                 }
                 #endif
+            } else if funcModel.isLoading {
+                ProgressView()
+                    .tint(.none)
             } else {
                 ContentUnavailableView("No Reoccuring Transactions", systemImage: "repeat", description: Text("Click the plus button above to add a new repeating transaction."))
             }
@@ -183,13 +192,7 @@ struct RepeatingTransactionsTable: View {
                 
                 StandardCategorySymbol(cat: repTrans.category, labelWidth: labelWidth)
                     .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-                
-                
-//                Circle()
-//                    .fill(repTrans.category?.color ?? .clear)
-//                    .frame(width: 12, height: 12)
-//                    .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-                
+
                 VStack(alignment: .leading) {
                     HStack {
                         Text(repTrans.title)
@@ -219,23 +222,6 @@ struct RepeatingTransactionsTable: View {
                         .foregroundStyle(.gray)
                         .font(.caption)
                     }
-                    
-                    
-//                    HStack {
-//                        Text("Account")
-//                        Spacer()
-//                        Text(repTrans.payMethod?.title ?? "N/A")
-//                    }
-//                    .foregroundStyle(.gray)
-//                    .font(.caption)
-                    
-//                    HStack {
-//                        Text("Category:")
-//                        Spacer()
-//                        Text(repTrans.category?.title ?? "N/A")
-//                    }
-//                    .foregroundStyle(.gray)
-//                    .font(.caption)
                 }
             }            
         }

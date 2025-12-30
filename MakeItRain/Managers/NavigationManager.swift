@@ -49,6 +49,7 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
     case plaid
     case toasts
     case more
+    case recentReceipts
     
     var id: NavDestination { return self }
     
@@ -68,6 +69,27 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
         case .november:         11
         case .december:         12
         case .nextJanuary:      13
+        case .placeholderMonth: 100000
+        default: nil
+        }
+    }
+    
+    var monthActualNum: Int? {
+        switch self {
+        case .lastDecember:     12
+        case .january:          1
+        case .february:         2
+        case .march:            3
+        case .april:            4
+        case .may:              5
+        case .june:             6
+        case .july:             7
+        case .august:           8
+        case .september:        9
+        case .october:          10
+        case .november:         11
+        case .december:         12
+        case .nextJanuary:      1
         case .placeholderMonth: 100000
         default: nil
         }
@@ -100,6 +122,7 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
         case .toasts:                   "Notifications"
         case .calendar:                 "Calendar"
         case .more:                     "More"
+        case .recentReceipts:           "Receipts"
         }
     }
     
@@ -131,6 +154,7 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
         case .toasts:                   "bell.badge"
         case .calendar:                 "calendar"
         case .more:                     "ellipsis"
+        case .recentReceipts:           "receipt"
         }
     }
     
@@ -194,6 +218,9 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
             
         case .toasts:
             ToastList()
+            
+        case .recentReceipts:
+            RecentReceiptsView()
             
         default:
             EmptyView()

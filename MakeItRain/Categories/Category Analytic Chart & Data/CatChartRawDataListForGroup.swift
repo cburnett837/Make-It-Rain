@@ -48,7 +48,7 @@ struct CatChartRawDataListForGroup: View {
         #endif
         .onChange(of: calModel.showMonth) {
             if !$1 && $0 {
-                Task { await model.fetchHistory(setChartAsNew: false) }
+                model.fetchHistory(setChartAsNew: false)
             }
         }
         .onChange(of: model.isLoadingHistory, initial: true) {
@@ -57,7 +57,7 @@ struct CatChartRawDataListForGroup: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .updateCategoryAnalytics, object: nil)) { _ in
-            Task { await model.fetchHistory(setChartAsNew: false) }
+            model.fetchHistory(setChartAsNew: false)
         }
     }
     

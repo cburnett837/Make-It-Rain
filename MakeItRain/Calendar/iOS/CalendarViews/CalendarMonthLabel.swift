@@ -97,13 +97,20 @@ struct CalendarMonthLabel: View {
             Spacer()
             HStack(spacing: 0) {
                 VStack(alignment: .trailing, spacing: 0) {
-                    HStack(spacing: 2) {
+                    HStack(spacing: 4) {
+                        
                         Text("\(calModel.sPayMethod?.title ?? "All Transactions")")
-                            .padding(.leading, -2)
+                            //.padding(.leading, -2)
+                        
+//                        if let meth = calModel.sPayMethod, meth.isUnified {
+//                            Image(systemName: "info.circle")
+//                                .foregroundStyle(Color.theme)
+//                        }
+                        
                     }
                     .font(.callout)
                     .foregroundStyle(.gray)
-                    .contentShape(Rectangle())
+                    .contentShape(.rect)
                     
                     if !calModel.sCategories.isEmpty {
                         selectedCategoriesView
@@ -111,16 +118,15 @@ struct CalendarMonthLabel: View {
                                         
                     if isCurrentMonth {
                         //currentBalanceView
-                        if let meth = calModel.sPayMethod {
-                            Text(funcModel.getPlaidBalancePrettyString(meth, useWholeNumbers: useWholeNumbers) ?? "N/A")
+                        if let meth = calModel.sPayMethod,
+                            let balance = funcModel.getPlaidBalancePrettyString(meth, useWholeNumbers: useWholeNumbers) {
+                            Text(balance)
                                 .font(.callout)
                                 .foregroundStyle(.gray)
                                 .lineLimit(1)
                         }
                     }
                 }
-//                Image(systemName: "chevron.right")
-//                    .foregroundStyle(.gray)
             }
             .contentShape(.rect)
             .onTapGesture { showBalanceBreakdownAlert() }
@@ -179,7 +185,9 @@ struct CalendarMonthLabel: View {
                 $0.active
                 && $0.isPermitted
                 && !$0.isHidden
-                && (selMeth.isUnifiedDebit ? $0.isDebit : $0.isCredit)
+                /// Removing the cash option because it makes weird calculations if you withdrawl money from a checking account and the checking balance has not yet updated from plaid.
+                //&& (selMeth.isUnifiedDebit ? $0.isDebit : $0.isCredit)
+                && (selMeth.isUnifiedDebit ? $0.accountType == .checking : $0.isCreditOrUnified)
                 && !$0.isUnified
             }
             .filter {
@@ -214,9 +222,12 @@ struct CalendarMonthLabel: View {
                 return AlertConfig.ViewConfig(content: AnyView(theView))
             }
         
+        
+        let extraMessage: String = selMeth.isUnifiedDebit ? "\n(Note these are only balances synced via plaid. Thus, any cash you have on hand is omitted.)" : "\n(Note these are only balances synced via plaid.)"
+        
         let config = AlertConfig(
-            title: "Accounts",
-            subtitle: "These are the accounts being factored into the balance.",
+            title: "Balance Info",
+            subtitle: "These are the accounts being factored into the balance.\(extraMessage)",
             symbol: .init(name: "info.circle", color: .green),
             views: views
         )

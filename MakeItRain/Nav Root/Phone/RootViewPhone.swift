@@ -75,6 +75,9 @@ struct RootViewPhone: View {
                 case .settings:
                     SettingsView(showSettings: .constant(false))
                         .onAppear { toolbar(to: .hidden) }
+                case .toasts:
+                    ToastList()
+                        .onAppear { toolbar(to: .hidden) }
                 default:
                     EmptyView()
                 }
@@ -104,6 +107,7 @@ struct RootViewPhone: View {
                 if AppState.shared.methsExist {
                     NavLinkPhone(destination: .repeatingTransactions)
                     NavLinkPhone(destination: .keywords)
+                    NavLinkPhone(destination: .recentReceipts)
                 }
             }
             
@@ -124,9 +128,7 @@ struct RootViewPhone: View {
         }
         .listStyle(.plain)
         .navigationTitle("More")
-        .navigationDestination(for: NavDestination.self) { dest in
-            NavDestination.view(for: dest)
-        }
+        .navigationDestination(for: NavDestination.self) { NavDestination.view(for: $0) }
     }
     
     

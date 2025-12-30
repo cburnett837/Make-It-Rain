@@ -13,6 +13,7 @@ import SwiftUI
 struct PlaidTable: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(PlaidModel.self) private var plaidModel
+    @Environment(FuncModel.self) private var funcModel
     //@State private var fetchBanks = false
         
     @State private var searchText = ""
@@ -37,17 +38,24 @@ struct PlaidTable: View {
                 macTable
                 #else
                 if filteredBanks.isEmpty {
-                    ContentUnavailableView("No banks found", systemImage: "exclamationmark.magnifyingglass")
+                    if funcModel.isLoading {
+                        ProgressView()
+                            .tint(.none)
+                    } else {
+                        ContentUnavailableView("No banks found", systemImage: "exclamationmark.magnifyingglass")
+                    }
+                    
                 } else {
                     phoneList
                 }
                 #endif
+            } else if funcModel.isLoading {
+                ProgressView()
+                    .tint(.none)
             } else {
                 ContentUnavailableView("No Plaid Banks", systemImage: "building.columns", description: Text("Click the plus button above to add a bank."))
             }
         }
-        
-        
         .environment(plaidModel)
         .navigationTitle("Plaid Institutions")
         .id(plaidModel.fuckYouSwiftuiTableRefreshID)

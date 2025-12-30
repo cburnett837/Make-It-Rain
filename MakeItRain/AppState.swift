@@ -75,6 +75,8 @@ class AppState {
     }
         
     var openOrClosedRecords: Array<CBOpenOrClosedRecord> = []
+        
+    //var shouldWarmUpTransactionViewDuringSplash = false
     
     var fromServerDateFormatter: DateFormatter {
         let dateFormatter = DateFormatter()

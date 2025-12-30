@@ -8,8 +8,6 @@
 import SwiftUI
 
 struct NewTransactionMenuButton: View {
-    //@Local(\.colorTheme) var colorTheme
-    @Environment(\.colorScheme) var colorScheme
     @Environment(CalendarModel.self) private var calModel
         
     #if os(iOS)
@@ -28,8 +26,8 @@ struct NewTransactionMenuButton: View {
             }
             
             Section("Smart Receipts") {
-                takePhotoButton
-                selectPhotoButton
+                TakePhotoButton(showCamera: $showCamera)
+                SelectPhotoButton(showPhotosPicker: $showPhotosPicker)
             }
         } label: {
             Image(systemName: "plus")
@@ -76,48 +74,6 @@ struct NewTransactionMenuButton: View {
                 Text("New Transfer / Payment")
             } icon: {
                 Image(systemName: "arrowshape.turn.up.forward")
-            }
-        }
-    }
-    
-    
-    var takePhotoButton: some View {
-        Button {
-            //let newID = UUID().uuidString
-            //calModel.pendingSmartTransaction = CBTransaction(uuid: newID)
-            //calModel.pictureTransactionID = newID
-            calModel.isUploadingSmartTransactionFile = true
-            showCamera = true
-            #if os(iOS)
-            TouchAndHoldPlusButtonTip.didSelectSmartReceiptOrTransferOption = true
-            touchAndHoldPlusButtonTip.invalidate(reason: .actionPerformed)
-            #endif
-        } label: {
-            Label {
-                Text("Take Photo")
-            } icon: {
-                Image(systemName: "camera")
-            }
-        }
-    }
-    
-    
-    var selectPhotoButton: some View {
-        Button {
-            //let newID = UUID().uuidString
-            //calModel.pendingSmartTransaction = CBTransaction(uuid: newID)
-            //calModel.pictureTransactionID = newID
-            calModel.isUploadingSmartTransactionFile = true
-            showPhotosPicker = true
-            #if os(iOS)
-            TouchAndHoldPlusButtonTip.didSelectSmartReceiptOrTransferOption = true
-            touchAndHoldPlusButtonTip.invalidate(reason: .actionPerformed)
-            #endif
-        } label: {
-            Label {
-                Text("Photo Library")
-            } icon: {
-                Image(systemName: "photo.badge.plus")
             }
         }
     }

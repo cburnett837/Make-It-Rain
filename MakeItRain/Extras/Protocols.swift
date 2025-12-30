@@ -15,6 +15,13 @@ protocol CanHandleLogo: AnyObject {
     var logoParentType: XrefItem {get}
 }
 
+protocol CanUpdateTitleColor: AnyObject {
+    var logo: Data? {get set}
+    var id: String {get}
+    var color: Color {get set}
+    var logoParentType: XrefItem {get}
+}
+
 
 protocol CanHandleUserAvatar: AnyObject {
     var avatar: Data? {get set}

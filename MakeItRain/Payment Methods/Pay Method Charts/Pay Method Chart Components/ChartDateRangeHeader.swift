@@ -30,7 +30,7 @@ struct ChartDateRangeHeader: View {
                     
                     Spacer()
                     
-                    if payMethod.isCredit {
+                    if payMethod.isCreditOrUnified {
                         Text("Payments: \(vm.visiblePayments.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
                             .foregroundStyle(.gray)
                             .font(.subheadline)

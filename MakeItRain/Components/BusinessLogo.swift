@@ -112,18 +112,21 @@ struct BusinessLogo: View {
     func prepareLogo(data: Data?) {
         if let cachedImage = ImageCache.shared.loadFromCache(
             parentTypeId: config.parent?.logoParentType.id,
-            parentId: config.parent?.id
+            parentId: config.parent?.id,
+            id: config.parent?.id
         ) {
-            print("Found cached image for \(config.parent?.logoParentType.id ?? 0)_\(config.parent?.id ?? "unknown")")
+            //print("Found cached image for \(config.parent?.logoParentType.id ?? 0)_\(config.parent?.id ?? "unknown")")
             self.logo = cachedImage
             
         } else if let logoData = config.parent?.logo, let image = UIImage(data: logoData) {
-            print("need to cache image for \(config.parent?.logoParentType.id ?? 0)_\(config.parent?.id ?? "unknown")")
+            //print("need to cache image for \(config.parent?.logoParentType.id ?? 0)_\(config.parent?.id ?? "unknown")")
             self.logo = image
             Task.detached {
                 await ImageCache.shared.saveToCache(
                     parentTypeId: config.parent?.logoParentType.id,
-                    parentId: config.parent?.id, data: logoData
+                    parentId: config.parent?.id,
+                    id: config.parent?.id,
+                    data: logoData
                 )
             }
             

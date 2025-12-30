@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct TransferSheet: View {
-    private enum TransferType { case cashAdvance, deposit, payment, transfer, savings }
+    private enum TransferType { case cashAdvance, deposit, payment, transfer, savings, withdrawal }
     
     @Local(\.useWholeNumbers) var useWholeNumbers
     @Environment(\.colorScheme) var colorScheme
@@ -30,6 +30,8 @@ struct TransferSheet: View {
             return .deposit
         } else if transfer.to?.accountType == .credit || transfer.to?.accountType == .loan {
             return .payment
+        } else if transfer.from?.accountType == .checking && transfer.to?.accountType == .cash {
+            return .withdrawal
         } else if transfer.to?.accountType == .savings {
             return .savings
         } else {
@@ -49,6 +51,8 @@ struct TransferSheet: View {
             "New Transfer"
         case .savings:
             "New Savings"
+        case .withdrawal:
+            "New Withdrawal"
         }
     }
     
@@ -65,6 +69,8 @@ struct TransferSheet: View {
             "Transfer"
         case .savings:
             "Savings"
+        case .withdrawal:
+            "Withdrawal"
         }
     }
     

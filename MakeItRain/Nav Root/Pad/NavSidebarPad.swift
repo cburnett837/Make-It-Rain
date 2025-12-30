@@ -74,6 +74,7 @@ struct NavSidebarPad: View {
                             Section {
                                 NavLinkPad(destination: .repeatingTransactions, linkWidth: linkWidth, linkHeight: linkHeight)
                                 NavLinkPad(destination: .keywords, linkWidth: linkWidth, linkHeight: linkHeight)
+                                NavLinkPad(destination: .recentReceipts, linkWidth: linkWidth, linkHeight: linkHeight)
                             }
                             
                             Section {

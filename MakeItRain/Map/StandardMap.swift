@@ -80,7 +80,8 @@ struct SearchSuggestions: View {
                         mapModel.searchQuery = recent
                         mapModel.search(parentID: parentID, parentType: parentType)
                         mapModel.showSearchSuggestions = false
-                        dismissSearch()
+                        focusedField.wrappedValue = nil
+                        //dismissSearch()
                     }
             }
             .listRowBackground(Color.clear)

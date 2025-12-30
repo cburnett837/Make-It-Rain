@@ -53,7 +53,7 @@ struct ConditionalFileView<Placeholder: View, PhotoView: View>: View {
                 }
                 #endif
             }
-        }
+        }        
         .overlay {
             Color.gray.opacity(0.01)
             /// Open inline safari-sheet

@@ -113,7 +113,7 @@ struct BabyTransEditView: View {
                         TevLogSheet(title: trans.title, itemID: trans.id, logType: .transaction)
                         
                     case .titleColorMenu:
-                        TitleColorList(trans: trans, saveOnChange: false, navPath: $navPath)
+                        TitleColorList(color: $trans.color, navPath: $navPath)
                     case .tracking:
                         EmptyView()
                     case .tags:
@@ -253,7 +253,7 @@ struct BabyTransEditView: View {
             /// Keep the amount in sync with the payment method at the time the payment method was changed.
             .onChange(of: trans.payMethod) { oldValue, newValue in
                 if let oldValue, let newValue {
-                    if (oldValue.isDebit && newValue.isCreditOrLoan) || (oldValue.isCreditOrLoan && newValue.isDebit) {
+                    if (oldValue.isDebitOrUnified && newValue.isCreditOrLoan) || (oldValue.isCreditOrLoan && newValue.isDebitOrUnified) {
                         Helpers.plusMinus($trans.amountString)
                     }
                 }

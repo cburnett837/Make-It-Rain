@@ -44,17 +44,26 @@ struct CalendarNavGridHeader: View {
             }
         }
         
-//        if AppState.shared.isIpad {
-//            ToolbarSpacer(.fixed, placement: .topBarTrailing)
-//        }
+        ToolbarItem(placement: .topBarTrailing) {
+            Button {
+                if AppState.shared.isIphone {
+                    calendarNavPath.append(NavDestination.toasts)
+                } else {
+                    NavigationManager.shared.selectedMonth = nil
+                    NavigationManager.shared.selection = .toasts
+                }
+                
+            } label: {
+                Image(systemName: "bell.badge")
+                    .schemeBasedForegroundStyle()
+            }
+        }
         
         ToolbarItem(placement: .topBarTrailing) {
             ToolbarRefreshButton()
         }
         
         if AppState.shared.isIphone {
-            //ToolbarSpacer(.fixed, placement: .topBarTrailing)
-            
             ToolbarItem(placement: .topBarTrailing) {
                 settingsButton
             }

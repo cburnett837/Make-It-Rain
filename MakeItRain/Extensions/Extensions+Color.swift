@@ -120,7 +120,7 @@ extension Color {
         if name == "primary" {
             return Color.primary
         } else {
-            return AppState.shared.colorMenuOptions.first(where: { $0.description == name })!
+            return AppState.shared.colorMenuOptions.first(where: { $0.description == name }) ?? .primary
         }
     }
     

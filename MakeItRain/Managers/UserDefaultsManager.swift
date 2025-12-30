@@ -11,9 +11,10 @@ enum CacheFile: String {
     case keywords = "keywords.json"
     case payMethods = "payMethods.json"
     case categories = "categories.json"
+    case mapSearches = "map_searches.json"
 }
 
-struct CacheManager<T: Codable> {
+struct UserDefaultsManager<T: Codable> {
     let file: CacheFile
 
     func loadOne(_ value: T) -> T? {

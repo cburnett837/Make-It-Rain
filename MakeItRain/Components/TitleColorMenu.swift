@@ -81,10 +81,10 @@ struct TitleColorMenu<Content: View>: View {
 
 struct TitleColorList: View {
     @Environment(\.colorScheme) var colorScheme
-    @Environment(CalendarModel.self) private var calModel
+    //@Environment(CalendarModel.self) private var calModel
     
-    @Bindable var trans: CBTransaction
-    let saveOnChange: Bool
+    //@Bindable var trans: CBTransaction
+    @Binding var color: Color
     @Binding var navPath: NavigationPath
 
     
@@ -92,14 +92,9 @@ struct TitleColorList: View {
         List {
             Section("Default") {
                 Button {
-                    trans.color = .primary
-                    trans.updatedBy = AppState.shared.user!
-                    trans.updatedDate = Date()
-                    if saveOnChange {
-                        Task {
-                            await calModel.saveTransaction(id: trans.id)
-                        }
-                    }
+                    self.color = .primary
+                    //trans.updatedBy = AppState.shared.user!
+                    //trans.updatedDate = Date()
                     navPath.removeLast()
                     
                 } label: {
@@ -108,7 +103,7 @@ struct TitleColorList: View {
                             .schemeBasedForegroundStyle()
                         Spacer()
                         
-                        if trans.color == .primary {
+                        if self.color == .primary {
                             Image(systemName: "checkmark")
                         }
                     }
@@ -119,14 +114,9 @@ struct TitleColorList: View {
             Section("Others") {
                 ForEach(AppState.shared.colorMenuOptions, id: \.self) { color in
                     Button {
-                        trans.color = color
-                        trans.updatedBy = AppState.shared.user!
-                        trans.updatedDate = Date()
-                        if saveOnChange {
-                            Task {
-                                await calModel.saveTransaction(id: trans.id)
-                            }
-                        }
+                        self.color = color
+                        //trans.updatedBy = AppState.shared.user!
+                        //trans.updatedDate = Date()
                         navPath.removeLast()
                     } label: {
                         HStack {
@@ -140,7 +130,7 @@ struct TitleColorList: View {
                             
                             Spacer()
                             
-                            if trans.color == color {
+                            if self.color == color {
                                 Image(systemName: "checkmark")
                             }
                         }

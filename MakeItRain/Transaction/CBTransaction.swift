@@ -416,8 +416,8 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         
         //try container.encode(notes, forKey: .notes)
         try container.encode(date?.string(to: .serverDate), forKey: .date)
-        try container.encode(color.toHex(), forKey: .title_hex_code)
-        //try container.encode(color.description, forKey: .title_hex_code)
+        //try container.encode(color.toHex(), forKey: .title_hex_code)
+        try container.encode(color.description, forKey: .title_hex_code)
         try container.encode(factorInCalculations ? 1 : 0, forKey: .factor_in_calculations)
         try container.encode(active ? 1 : 0, forKey: .active) // for the Transferable protocol
         try container.encode(AppState.shared.user?.id, forKey: .user_id)
@@ -520,11 +520,10 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         self.trackingNumber = try container.decode(String?.self, forKey: .tracking_number) ?? ""
         self.orderNumber = try container.decode(String?.self, forKey: .order_number) ?? ""
         self.url = try container.decode(String?.self, forKey: .url) ?? ""
-        
-        //let colorDescription = try container.decode(String?.self, forKey: .title_hex_code)
-        //let color = Color.fromName(colorDescription ?? "white")
+                
         let hexCode = try container.decode(String?.self, forKey: .title_hex_code)
-        let color = Color.fromHex(hexCode) ?? .primary
+        //let color = Color.fromHex(hexCode) ?? .primary
+        let color = Color.fromName(hexCode ?? "primary")
         
         if color == .white || color == .black {
             self.color = .primary

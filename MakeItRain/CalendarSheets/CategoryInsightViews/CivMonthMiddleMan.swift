@@ -49,8 +49,10 @@ struct CivMonthMiddleMan: View {
                             case nil:               0.0
                             }
                             
+                            let date = Calendar.current.date(from: DateComponents(year: month.month.year, month: month.month.actualNum, day: 1))!
+                            
                             LineMark(
-                                x: .value("Month", "\(month.month.name) \(String(month.month.year))"),
+                                x: .value("Month", date),
                                 y: .value("Amount", abs(value))
                             )
                             .interpolationMethod(.cardinal)
@@ -58,13 +60,15 @@ struct CivMonthMiddleMan: View {
                             .symbol(by: .value("Month", "month"))
                         }
                         .chartLegend(.hidden)
+                        .chartXAxis { model.chartXAxis }
                     }
                     
                     
                     Section("Transaction Count") {
                         Chart(monthsThatHaveTrans) { month in
+                            let date = Calendar.current.date(from: DateComponents(year: month.month.year, month: month.month.actualNum, day: 1))!
                             LineMark(
-                                x: .value("Month", "\(month.month.name) \(String(month.month.year))"),
+                                x: .value("Month", date),
                                 y: .value("Amount", month.trans.count)
                             )
                             .interpolationMethod(.cardinal)
@@ -72,6 +76,7 @@ struct CivMonthMiddleMan: View {
                             .symbol(by: .value("Month", "month"))
                         }
                         .chartLegend(.hidden)
+                        .chartXAxis { model.chartXAxis }
                     }
                     
                     monthList

@@ -631,7 +631,7 @@ class PayMethodModel {
     
     
     @MainActor
-    func setDefaultViewing(_ payMethod: CBPaymentMethod) async {
+    func setDefaultViewing(_ payMethod: CBPaymentMethod?) async {
         print("-- \(#function)")
         
         /// Allow more time to save if the user enters the background.
@@ -642,11 +642,22 @@ class PayMethodModel {
         //LoadingManager.shared.startDelayedSpinner()
         LogManager.log()
                                 
-        paymentMethods = paymentMethods.map({
-            let optionItem = $0
-            $0.isViewingDefault = $0.id == payMethod.id
-            return optionItem
-        })
+        
+        for each in paymentMethods {
+            each.isViewingDefault = false
+        }
+        
+        for each in paymentMethods {
+            if each.id == payMethod?.id {
+                each.isViewingDefault = true
+            }
+        }
+        
+//        self.paymentMethods = paymentMethods.map({
+//            let optionItem = $0
+//            $0.isViewingDefault = $0.id == payMethod.id
+//            return optionItem
+//        })
                 
         let methInfos = await MainActor.run {
             self.paymentMethods.map { (id: $0.id, isViewingDefault: $0.isViewingDefault) }
@@ -655,16 +666,23 @@ class PayMethodModel {
         let context = DataManager.shared.createContext()
         await context.perform {
             for method in methInfos {
-                if let entity = DataManager.shared.getOne(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(method.id)), createIfNotFound: true) {
+                if let entity = DataManager.shared.getOne(
+                    context: context,
+                    type: PersistentPaymentMethod.self,
+                    predicate: .byId(.string(method.id)),
+                    createIfNotFound: true
+                ) {
                     entity.isViewingDefault = method.isViewingDefault
                 }
             }
             
             let _ = DataManager.shared.save(context: context)
         }
+        
+        let submitModel = IdSubmitModel(id: payMethod?.id)
       
         /// Networking
-        let model = RequestModel(requestType: "set_default_viewing_payment_method", model: payMethod)
+        let model = RequestModel(requestType: "set_default_viewing_payment_method", model: submitModel)
         
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
@@ -899,7 +917,7 @@ class PayMethodModel {
                 kind: .debit,
                 payMethods: self.paymentMethods
                     .filter {
-                        $0.isDebit
+                        $0.isDebitOrUnified
                         && $0.isPermitted
                         && (includeHidden ? true : !$0.isHidden)
                         && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
@@ -923,7 +941,7 @@ class PayMethodModel {
                 kind: .credit,
                 payMethods: self.paymentMethods
                     .filter {
-                        $0.isCredit
+                        $0.isCreditOrUnified
                         && $0.isPermitted
                         && (includeHidden ? true : !$0.isHidden)
                         && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
@@ -947,8 +965,8 @@ class PayMethodModel {
                 kind: .other,
                 payMethods: self.paymentMethods
                     .filter {
-                        !$0.isDebit
-                        && !$0.isCredit
+                        !$0.isDebitOrUnified
+                        && !$0.isCreditOrUnified
                         && $0.isPermitted
                         && (includeHidden ? true : !$0.isHidden)
                         && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
@@ -977,7 +995,7 @@ class PayMethodModel {
                 kind: .debit,
                 payMethods: self.paymentMethods
                     .filter {
-                        [.checking, .cash].contains($0.accountType)
+                        $0.isDebitOrCash
                         && $0.isPermitted
                         && (includeHidden ? true : !$0.isHidden)
                         && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
@@ -1025,8 +1043,8 @@ class PayMethodModel {
                 kind: .other,
                 payMethods: self.paymentMethods
                     .filter {
-                        !$0.isDebit
-                        && !$0.isCredit
+                        !$0.isDebitOrUnified
+                        && !$0.isCreditOrUnified
                         && $0.isPermitted
                         && (includeHidden ? true : !$0.isHidden)
                         && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
@@ -1056,7 +1074,7 @@ class PayMethodModel {
                     kind: .debit,
                     payMethods: self.paymentMethods
                         .filter {
-                            $0.isDebit
+                            $0.isDebitOrUnified
                             && $0.isPermitted
                             && (includeHidden ? true : !$0.isHidden)
                             && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
@@ -1112,8 +1130,8 @@ class PayMethodModel {
                     kind: .other,
                     payMethods: self.paymentMethods
                         .filter {
-                            !$0.isDebit
-                            && !$0.isCredit
+                            !$0.isDebitOrUnified
+                            && !$0.isCreditOrUnified
                             && $0.isPermitted
                             && (includeHidden ? true : !$0.isHidden)
                             && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
@@ -1193,8 +1211,8 @@ class PayMethodModel {
                 kind: .other,
                 payMethods: self.paymentMethods
                     .filter {
-                        !$0.isDebit
-                        && !$0.isCredit
+                        !$0.isDebitOrUnified
+                        && !$0.isCreditOrUnified
                         && $0.isPermitted
                         && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
                     }

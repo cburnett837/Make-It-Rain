@@ -82,7 +82,7 @@ struct PayMethodDashboard: View {
                             }
                             .cornerRadius(25)
                                     
-                            if !payMethod.isCredit {
+                            if !payMethod.isCreditOrUnified {
                                 GroupBox {
                                     ProfitLossChartWidget(vm: vm, payMethod: payMethod)
                                 } label: {
@@ -114,7 +114,7 @@ struct PayMethodDashboard: View {
                             Text("Transactions")
                         }
                                 
-                        if !payMethod.isCredit {
+                        if !payMethod.isCreditOrUnified {
                             Section {
                                 ProfitLossChartWidget(vm: vm, payMethod: payMethod)
                             } header: {
@@ -426,7 +426,7 @@ struct PayMethodDashboard: View {
     var chartStack: some View {
         IncomeExpenseChartWidget(vm: vm, payMethod: payMethod)
                 
-        if !payMethod.isCredit {
+        if !payMethod.isCreditOrUnified {
             ProfitLossChartWidget(vm: vm, payMethod: payMethod)
         }
         
@@ -711,7 +711,7 @@ struct PayMethodDashboardOG: View {
                     
                     Spacer()
                     
-                    if payMethod.isCredit {
+                    if payMethod.isCreditOrUnified {
                         Text("Payments: \(vm.visiblePayments.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
                             .foregroundStyle(.gray)
                             .font(.subheadline)
@@ -852,7 +852,7 @@ struct PayMethodDashboardOG: View {
         VStack(alignment: .leading, spacing: 6) {
             IncomeExpenseChartWidget(vm: vm, payMethod: payMethod)
             
-            if !payMethod.isCredit {
+            if !payMethod.isCreditOrUnified {
                 ProfitLossChartWidget(vm: vm, payMethod: payMethod)
             }
             

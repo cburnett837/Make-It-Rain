@@ -16,7 +16,7 @@ struct ToastList: View {
     var body: some View {
         Group {
             if toasts.isEmpty {
-                ContentUnavailableView("No Notifications", systemImage: "bell.slash")
+                ContentUnavailableView("No Notifications", systemImage: "bell.slash", description: Text("Note: Notifications are specific to this device."))
             } else {
                 StandardContainerWithToolbar(.plainList) {
                     ForEach(toasts, id: \.objectID) { toast in

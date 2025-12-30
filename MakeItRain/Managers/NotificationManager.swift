@@ -36,12 +36,62 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     }
     
     
-    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-            // Here we actually handle the notification
-            print("Notification received with identifier \(notification.request.identifier)")
-            // So we call the completionHandler telling that the notification should display a banner and play the notification sound - this will happen while the app is in foreground
-            completionHandler([.banner, .sound])
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        /// Here we actually handle the notification
+        print("Notification received with identifier \(notification.request.identifier)")
+        /// So we call the completionHandler telling that the notification should display a banner and play the notification sound - this will happen while the app is in foreground
+    
+        let content = notification.request.content
+        let title = content.title
+        let subtitle = content.subtitle.isEmpty ? nil : content.subtitle
+        let body = content.body.isEmpty ? nil : content.body
+        let userInfo = content.userInfo
+        
+        var symbol: String?
+        var symbolColor: Color?
+        
+        /// See if the server sent a specific symbol and color to show for the toast.
+        if let myDict = userInfo["my_dict"] as? [String: String] {
+            if let localSymbol = myDict["symbol"] {
+                symbol = localSymbol
+            }
+            
+            if let localSymbolColor = myDict["symbol_color"] {
+                symbolColor = Color.fromName(localSymbolColor)
+            }
         }
+                    
+        /// Determine if the app is in the foreground. If it is, show a toast, else show a standard notification.
+        #if os(iOS)
+        let state = UIApplication.shared.applicationState
+        if state == .background || state == .inactive {
+            completionHandler([.banner, .sound])
+        } else {
+            if let symbol, let symbolColor {
+                AppState.shared.showToast(
+                    title: title,
+                    subtitle: subtitle,
+                    body: body,
+                    symbol: symbol,
+                    symbolColor: symbolColor,
+                )
+            } else {
+                AppState.shared.showToast(title: title, subtitle: subtitle, body: body)
+            }
+            
+            completionHandler([])
+        }
+        #else
+            completionHandler([.banner, .sound])
+        #endif
+    
+    
+            
+    }
     
     func getNotifications() {
         //notificationCenter.removeAllPendingNotificationRequests()

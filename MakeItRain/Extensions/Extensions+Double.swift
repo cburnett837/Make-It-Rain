@@ -32,7 +32,7 @@ extension Double {
         }
     }
     
-    func currencyWithDecimals(_ decimals: Int) -> String {
+    func currencyWithDecimals(_ decimals: Int = AppSettings.shared.useWholeNumbers ? 0 : 2) -> String {
         let formatter = AppState.shared.numberFormatter
         formatter.numberStyle = .currency
         formatter.currencyCode = "USD"

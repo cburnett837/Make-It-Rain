@@ -133,6 +133,10 @@ struct SmartTransactionsWithIssuesOverlay: View {
                 Text("Missing account…")
                     .foregroundStyle(.red)
                 
+            } else if trans.smartTransactionIssue?.enumID == .missingTitle {
+                Text("Missing title…")
+                    .foregroundStyle(.red)
+                
             } else if trans.smartTransactionIssue?.enumID == .missingDate {
                 Text("Missing date…")
                     .foregroundStyle(.red)

@@ -22,6 +22,7 @@ enum RefType {
     case logoTypes
     case paymentMethodHolderTypes
     case budgetTypes
+    case settingTypes
 }
 
 enum XrefEnum: String {
@@ -43,6 +44,7 @@ enum XrefEnum: String {
     case missingDate
     case missingPaymentMethodAndDate
     case funkyDate
+    case missingTitle
     
     /// Repeating Transaction Types
     case regular
@@ -84,6 +86,16 @@ enum XrefEnum: String {
     /// For Budgets
     case category
     case categoryGroup
+    
+    /// For Settings
+    case useWholeNumbers
+    case trimTotals
+    case lowBalanceThreshold
+    case paymentMethodHolderFilter
+    case paymentMethodSortOrder
+    case transactionSortOrder
+    case categorySortOrder
+    case incomeColor
 }
 
 struct XrefItem: Identifiable, Equatable, Hashable {
@@ -109,7 +121,6 @@ struct XrefModel {
         XrefItem(id: 2, refType: "event_transaction_status", description: "Claimed", enumID: .claimed)
     ]
     
-    
     static let relatedTransactionTypes: Array<XrefItem> = [
         XrefItem(id: 3, refType: "related_transaction_type", description: "Transaction", enumID: .transaction),
         XrefItem(id: 4, refType: "related_transaction_type", description: "Event Transaction", enumID: .eventTransaction),
@@ -134,7 +145,8 @@ struct XrefModel {
         XrefItem(id: 10, refType: "smart_transaction_issue", description: "Missing Payment Method", enumID: .missingPaymentMethod),
         XrefItem(id: 11, refType: "smart_transaction_issue", description: "Missing Date", enumID: .missingDate),
         XrefItem(id: 12, refType: "smart_transaction_issue", description: "Missing Payment Method And Date", enumID: .missingPaymentMethodAndDate),
-        XrefItem(id: 13, refType: "smart_transaction_issue", description: "Funky Date", enumID: .funkyDate)
+        XrefItem(id: 13, refType: "smart_transaction_issue", description: "Funky Date", enumID: .funkyDate),
+        XrefItem(id: 53, refType: "smart_transaction_issue", description: "Missing Title", enumID: .missingTitle)
     ]
     
     static let openRecords: Array<XrefItem> = [
@@ -149,8 +161,7 @@ struct XrefModel {
         XrefItem(id: 21, refType: "location_type", description: "Event Transaction", enumID: .eventTransaction),
         XrefItem(id: 22, refType: "location_type", description: "Event Transaction Option", enumID: .eventTransactionOption)
     ]
-    
-    
+        
     static let repeatingTransactionTypes: Array<XrefItem> = [
         XrefItem(id: 23, refType: "repeating_transaction_type", description: "Regular", enumID: .regular),
         XrefItem(id: 24, refType: "repeating_transaction_type", description: "Payment", enumID: .payment),
@@ -201,50 +212,35 @@ struct XrefModel {
         XrefItem(id: 52, refType: "budget_type", description: "Category Group", enumID: .categoryGroup),
     ]
     
+    static let settingTypes: Array<XrefItem> = [
+        XrefItem(id: 54, refType: "setting", description: "Use whole numbers", enumID: .useWholeNumbers),
+        XrefItem(id: 55, refType: "setting", description: "Trim totals", enumID: .trimTotals),
+        XrefItem(id: 56, refType: "setting", description: "Low balance threshold", enumID: .lowBalanceThreshold),
+        XrefItem(id: 57, refType: "setting", description: "Payment method holder filter", enumID: .paymentMethodHolderFilter),
+        XrefItem(id: 58, refType: "setting", description: "Payment method sort order", enumID: .paymentMethodSortOrder),
+        XrefItem(id: 59, refType: "setting", description: "Transaction sort order", enumID: .transactionSortOrder),
+        XrefItem(id: 60, refType: "setting", description: "Category sort order", enumID: .categorySortOrder),
+        XrefItem(id: 61, refType: "setting", description: "Income color", enumID: .incomeColor),
+    ]
+    
     
     static func getItems(forRefType refType: RefType) -> Array<XrefItem> {
-        switch refType {
-        case .eventTransactionStatuses:
-            return eventTransactionStatuses
-            
-        case .relatedTransactionType:
-            return relatedTransactionTypes
-            
-        case .fileTypes:
-            return fileTypes
-            
-        case .eventInviteStatus:
-            return eventInviteStatuses
-            
-        case .smartTransactionIssues:
-            return smartTransactionIssues
-            
-        case .openRecords:
-            return openRecords
-            
-        case .locationTypes:
-            return locationTypes
-            
-        case .repeatingTransactionType:
-            return repeatingTransactionTypes
-            
-        case .categoryTypes:
-            return categoryTypes
-            
-        case .accountTypes:
-            return accountTypes
-            
-        case .paymentMethodUserOptions:
-            return paymentMethodUserOptions
-            
-        case .logoTypes:
-            return logoTypes
-            
-        case .paymentMethodHolderTypes:
-            return paymentMethodHolderTypes
-            
-        case .budgetTypes:
-            return budgetTypes
+        return switch refType {
+        case .eventTransactionStatuses: eventTransactionStatuses
+        case .relatedTransactionType: relatedTransactionTypes
+        case .fileTypes: fileTypes
+        case .eventInviteStatus: eventInviteStatuses
+        case .smartTransactionIssues: smartTransactionIssues
+        case .openRecords: openRecords
+        case .locationTypes: locationTypes
+        case .repeatingTransactionType: repeatingTransactionTypes
+        case .categoryTypes: categoryTypes
+        case .accountTypes: accountTypes
+        case .paymentMethodUserOptions: paymentMethodUserOptions
+        case .logoTypes: logoTypes
+        case .paymentMethodHolderTypes: paymentMethodHolderTypes
+        case .budgetTypes: budgetTypes
+        case .settingTypes: settingTypes
         }
     }
     

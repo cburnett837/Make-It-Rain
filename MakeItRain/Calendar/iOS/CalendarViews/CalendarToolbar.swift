@@ -335,7 +335,7 @@ struct CalendarToolbar: ToolbarContent {
         var balanceText: String {
             if let meth = calModel.sPayMethod {
                 if meth.isUnified {
-                    if meth.isDebit {
+                    if meth.accountType == .unifiedChecking {
                         return " \(funcModel.getPlaidDebitSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))"
                     } else {
                         return " \(funcModel.getPlaidCreditSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))"
@@ -395,6 +395,8 @@ struct CalendarToolbar: ToolbarContent {
             startingAmountSheetDismissed()
         } content: {
             PayMethodSheet(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all, showStartingAmountOption: true, showNoneOption: true)
+                /// Have to make the sheet bigger so the search bar doesn't fight with the `.safeAreaBar(edge: .top)`.
+                //.presentationSizing(.page)
                 //.navigationTransition(.zoom(sourceID: "paymentMethodButton", in: paymentMethodMenuButtonNamespace))
         }
         .sheet(isPresented: $calProps.showCategorySheet) {

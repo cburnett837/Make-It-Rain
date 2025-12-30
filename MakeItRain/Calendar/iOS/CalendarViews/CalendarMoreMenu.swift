@@ -38,11 +38,18 @@ struct CalendarMoreMenu: View {
                 settingsSheetButton
             }
         } label: {
-            Image(systemName: "ellipsis")
-                .schemeBasedForegroundStyle()
+            Label("More", systemImage: "ellipsis")
+            //.schemeBasedTint()
+            //.schemeBasedForegroundStyle()
+
+//            Label("More", systemImage: "ellipsis")
+//                .schemeBasedTint()
+            //Image(systemName: "ellipsis")
+                //.schemeBasedForegroundStyle()
                 //.symbolEffect(.rotate, options: SymbolEffectOptions.repeat(.continuous).speed(3), isActive: funcModel.isLoading)
-                .tint(.none)
+                //.tint(.none)
         }
+        .schemeBasedTint()
 //        .sheet(isPresented: $calProps.showDashboardSheet) {
 //            CalendarDashboard()
 //        }

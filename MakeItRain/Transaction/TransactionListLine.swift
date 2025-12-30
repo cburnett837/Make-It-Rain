@@ -28,6 +28,7 @@ struct TransactionListLine: View {
                 VStack(spacing: 2) {
                     HStack {
                         Text(trans.title)
+                            .lineLimit(1)
                         Spacer()
                         amount
                     }

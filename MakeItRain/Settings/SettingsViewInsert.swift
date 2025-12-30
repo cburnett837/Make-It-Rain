@@ -35,11 +35,22 @@ struct SettingsViewInsert: View {
     var withDividers: Bool = false
         
     var body: some View {
+        @Bindable var appSettings = AppSettings.shared
         Group {
             Section("Options") {
 //                if phoneLineItemDisplayItem != .both {
 //                    paymentMethodIndicatorToggle
 //                }
+                
+                Toggle(isOn: $appSettings.useWholeNumbers) {
+                    VStack(alignment: .leading) {
+                        Text("Only whole numbers (u)")
+                        Text("Round all dollar amounts and remove their decimals.")
+                            .foregroundStyle(.gray)
+                            .font(.footnote)
+                        
+                    }
+                }
 //
                 useWholeNumbersToggle
                 tightenUpEodTotalsToggle

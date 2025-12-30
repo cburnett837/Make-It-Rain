@@ -26,7 +26,7 @@ struct PaymentMethodChartDetailsSectionContainer<Content: View>: View {
             
         } footer: {
             VStack(alignment: .leading) {
-                if payMethod.isCredit {
+                if payMethod.isCreditOrUnified {
                     Text("Payments: \(vm.visiblePayments.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
                 } else {
                     Text("Income: \(vm.visibleIncome.currencyWithDecimals(useWholeNumbers ? 0 : 2))")

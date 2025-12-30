@@ -432,18 +432,34 @@ struct PayMethodSheet: View {
                     }
                 }
             }
-            .safeAreaBar(edge: .top, content: {
-                if showStartingAmountOption {
-                    pagePicker
-                        //.background(Color(uiColor: .systemGroupedBackground))
+            .if(AppState.shared.isIphone) {
+                $0.safeAreaBar(edge: .top) {
+                    if showStartingAmountOption {
+                        pagePicker
+                            //.background(Color(uiColor: .systemGroupedBackground))
+                    }
                 }
-            })
+            }
+            
             
                         
             .task { prepareView() }
             .onChange(of: paymentMethodFilterMode) { populateSections() }
             .searchable(text: $searchText, prompt: Text("Search"))
             .navigationTitle(paymentMethodSheetViewMode == .select ? "Accounts" : "Starting Amounts \(monthText)")
+            .if(AppState.shared.isIpad) {
+                $0.toolbarTitleMenu {
+                    Picker("", selection: $paymentMethodSheetViewMode) {
+                        Text("Accounts")
+                            .tag(WhichView.select)
+                        Text("Starting Amounts")
+                            .tag(WhichView.edit)
+                    }
+                    .labelsHidden()
+                }
+            }
+                
+            
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -452,10 +468,11 @@ struct PayMethodSheet: View {
                     ToolbarItem(placement: .bottomBar) { PayMethodFilterMenu() }
                 }
                 
-                
                 ToolbarSpacer(.flexible, placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar)
                 
-                DefaultToolbarItem(kind: .search, placement: .bottomBar)
+                //if AppState.shared.isIphone {
+                    DefaultToolbarItem(kind: .search, placement: .bottomBar)
+                //}
                 
                 ToolbarSpacer(.flexible, placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar)
                 ToolbarItem(placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar) { PayMethodSortMenu(sections: $sections) }
@@ -463,13 +480,24 @@ struct PayMethodSheet: View {
                 if AppState.shared.isIpad {
                     ToolbarSpacer(.flexible, placement: .topBarLeading)
                     ToolbarItem(placement: .topBarLeading) { PayMethodFilterMenu() }
-                }
                 
+//                    ToolbarItem(placement: .topBarTrailing) {
+//                        Picker("", selection: $paymentMethodSheetViewMode) {
+//                            Text("Accounts")
+//                                .tag(WhichView.select)
+//                            Text("Starting Amounts")
+//                                .tag(WhichView.edit)
+//                        }
+//                        .labelsHidden()
+//                        //.pickerStyle(.segmented)
+//                    }
+//                    ToolbarSpacer(.flexible, placement: .topBarTrailing)
+                }
                 ToolbarItem(placement: .topBarTrailing) { closeButton }
             }
             .onChange(of: searchText) { populateSections() }
             /// Update the sheet if viewing and something changes on another device.
-            .onChange(of: payModel.paymentMethods.filter { !$0.isHidden && !$0.isPrivate}.count) {
+            .onChange(of: payModel.paymentMethods.filter { !$0.isHidden && !$0.isPrivate }.count) {
                 populateSections()
             }
             #endif
@@ -535,9 +563,9 @@ struct PayMethodSheet: View {
     
     var pagePicker: some View {
         Picker("", selection: $paymentMethodSheetViewMode) {
-            Text("Select Account")
+            Text("Accounts")
                 .tag(WhichView.select)
-            Text("Edit Starting Amounts")
+            Text("Starting Amounts")
                 .tag(WhichView.edit)
         }
         .labelsHidden()

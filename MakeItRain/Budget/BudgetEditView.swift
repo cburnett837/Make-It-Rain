@@ -48,7 +48,8 @@ struct BudgetEditView: View {
     
     var totalExpenses: Double {
         transactions
-            .map { ($0.payMethod ?? CBPaymentMethod()).isCreditOrLoan ? $0.amount : $0.amount * -1 }
+            .filter { !$0.isPaymentDest }
+            .map { ($0.payMethod?.isCreditOrLoan ?? false) ? $0.amount : $0.amount * -1 }
             .reduce(0.0, +)
     }
     

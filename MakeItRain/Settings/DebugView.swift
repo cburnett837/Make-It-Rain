@@ -9,6 +9,8 @@ import SwiftUI
 import PDFKit
 
 struct DebugView: View {
+    @AppStorage("shouldWarmUpTransactionViewDuringSplash") var shouldWarmUpTransactionViewDuringSplash: Bool = false
+
     @Local(\.debugPrint) var debugPrint
 
     @Environment(CalendarModel.self) var calModel
@@ -36,6 +38,18 @@ struct DebugView: View {
             
             
             alertSection
+            
+            Section("Transaction View") {
+                Toggle(isOn: $shouldWarmUpTransactionViewDuringSplash) {
+                    Label {
+                        VStack(alignment: .leading) {
+                            Text("Warm during splash")
+                        }
+                    } icon: {
+                        Image(systemName: "cup.and.heat.waves.fill")
+                    }
+                }
+            }
             
             Section("Xcode") {
                 consolePrintToggle
@@ -334,12 +348,15 @@ struct DebugView: View {
 
 
 fileprivate struct CoreDataList: View {
+    @Environment(PayMethodModel.self) var payModel
     @Environment(\.dismiss) var dismiss
+    
     @State private var logos: Array<PersistentLogo> = []
     @State private var categoryGroups: Array<PersistentCategoryGroup> = []
     @State private var categories: Array<PersistentCategory> = []
     @State private var accounts: Array<PersistentPaymentMethod> = []
     @State private var keywords: Array<PersistentKeyword> = []
+    @State private var transactions: Array<TempTransaction> = []
     
     var body: some View {
         List {
@@ -348,6 +365,7 @@ fileprivate struct CoreDataList: View {
             NavigationLink("Accounts") { accountList }
             NavigationLink("Logos") { logoList }
             NavigationLink("Rules") { keywordsList }
+            NavigationLink("Transactions") { transList }
         }
         .task {
             let context = DataManager.shared.container.viewContext
@@ -356,6 +374,7 @@ fileprivate struct CoreDataList: View {
             if let categories = DataManager.shared.getMany(context: context, type: PersistentCategory.self) { self.categories = categories }
             if let accounts = DataManager.shared.getMany(context: context, type: PersistentPaymentMethod.self) { self.accounts = accounts }
             if let keywords = DataManager.shared.getMany(context: context, type: PersistentKeyword.self) { self.keywords = keywords }
+            if let trans = DataManager.shared.getMany(context: context, type: TempTransaction.self) { self.transactions = trans }
         }
         .navigationTitle("Local Cache")
         .toolbar {
@@ -398,25 +417,29 @@ fileprivate struct CoreDataList: View {
     
     var logoList: some View {
         List(logos) { logo in
-            HStack {
-                Label {
-                    VStack(alignment: .leading) {
-                        Text("ID: \(logo.id ?? "N/A")")
-                        Text("RelatedID: \(String(describing: logo.relatedID))")
-                        Text("RelatedTypeID: \(String(describing: logo.relatedTypeID))")
-                        Text("ServerUpdated: \(String(describing: logo.serverUpdatedDate?.string(to: .serverDateTime)))")
-                        Text("LocalUpdated: \(String(describing: logo.localUpdatedDate?.string(to: .serverDateTime)))")
+            Label {
+                VStack(alignment: .leading) {
+                    Text("ID: \(logo.id ?? "N/A")")
+                    Text("RelatedID: \(logo.relatedID ?? "N/A")")
+                    Text("RelatedTypeID: \(logo.relatedTypeID)")
+                    
+                    if logo.relatedTypeID == 42 {
+                        let methTitle = payModel.paymentMethods.first(where: { $0.id == logo.relatedID })?.title ?? "N/A"
+                        Text("Account Title: \(methTitle)")
                     }
-                    .font(.caption2)
-                } icon: {
-                    if let data = logo.photoData, let image = UIImage(data: data) {
-                        Image(uiImage: image)
-                            .resizable()
-                            .frame(width: 30, height: 30, alignment: .center)
-                            .clipShape(Circle())
-                    } else {
-                        Image(systemName: "circle.fill")
-                    }
+                    
+                    Text("ServerUpdated: \(logo.serverUpdatedDate?.string(to: .serverDateTime) ?? "N/A")")
+                    Text("LocalUpdated: \(logo.localUpdatedDate?.string(to: .serverDateTime) ?? "N/A")")
+                }
+                .font(.caption2)
+            } icon: {
+                if let data = logo.photoData, let image = UIImage(data: data) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .frame(width: 30, height: 30, alignment: .center)
+                        .clipShape(Circle())
+                } else {
+                    Image(systemName: "circle.fill")
                 }
             }
         }
@@ -426,17 +449,15 @@ fileprivate struct CoreDataList: View {
     
     var categoryList: some View {
         List(categories) { cat in
-            HStack {
-                VStack(alignment: .leading) {
-                    Text("ID: \(cat.id ?? "N/A")")
-                    Text("Title: \(String(describing: cat.title))")
-                    Text("Amount: \(cat.amount)")
-                    Text("Pending: \(cat.isPending ? "yes" : "no")")
-                    Text("Listorder: \(Int(cat.listOrder))")
-                    Text("Symbol: \(String(describing: cat.emoji))")
-                }
-                .font(.caption2)
+            VStack(alignment: .leading) {
+                Text("ID: \(cat.id ?? "N/A")")
+                Text("Title: \(cat.title ?? "N/A")")
+                Text("Amount: \(cat.amount)")
+                Text("Pending: \(cat.isPending ? "yes" : "no")")
+                Text("Listorder: \(Int(cat.listOrder))")
+                Text("Symbol: \(cat.emoji ?? "N/A")")
             }
+            .font(.caption2)
         }
         .navigationTitle("Categories Cache")
     }
@@ -444,15 +465,13 @@ fileprivate struct CoreDataList: View {
     
     var categoryGroupList: some View {
         List(categoryGroups) { group in
-            HStack {
-                VStack(alignment: .leading) {
-                    Text("ID: \(group.id ?? "N/A")")
-                    Text("Title: \(String(describing: group.title))")
-                    Text("Amount: \(group.amount)")
-                    Text("Pending: \(group.isPending ? "yes" : "no")")
-                }
-                .font(.caption2)
+            VStack(alignment: .leading) {
+                Text("ID: \(group.id ?? "N/A")")
+                Text("Title: \(group.title ?? "N/A")")
+                Text("Amount: \(group.amount)")
+                Text("Pending: \(group.isPending ? "yes" : "no")")
             }
+            .font(.caption2)
         }
         .navigationTitle("Category Groups Cache")
     }
@@ -460,33 +479,40 @@ fileprivate struct CoreDataList: View {
     
     var accountList: some View {
         List(accounts) { act in
-            HStack {
-                VStack(alignment: .leading) {
-                    Text("ID: \(act.id ?? "N/A")")
-                    Text("Title: \(String(describing: act.title))")
-                    Text("Limit: \(act.limit)")
-                    Text("Pending: \(act.isPending ? "yes" : "no")")
-                    Text("Listorder: \(Int(act.listOrder))")
-
-                }
-                .font(.caption2)
+            VStack(alignment: .leading) {
+                Text("ID: \(act.id ?? "N/A")")
+                Text("Title: \(act.title ?? "N/A")")
+                Text("Limit: \(act.limit)")
+                Text("Pending: \(act.isPending ? "yes" : "no")")
+                Text("Listorder: \(Int(act.listOrder))")
             }
+            .font(.caption2)
         }
         .navigationTitle("Accounts Cache")
     }
     
     var keywordsList: some View {
         List(keywords) { key in
-            HStack {
-                VStack(alignment: .leading) {
-                    Text("ID: \(key.id ?? "N/A")")
-                    Text("Title: \(String(describing: key.keyword))")
-                    Text("Pending: \(key.isPending ? "yes" : "no")")
-                    Text("Rename To: \(String(describing: key.renameTo))")
-                }
-                .font(.caption2)
+            VStack(alignment: .leading) {
+                Text("ID: \(key.id ?? "N/A")")
+                Text("Title: \(key.keyword ?? "N/A")")
+                Text("Pending: \(key.isPending ? "yes" : "no")")
+                Text("Rename To: \(key.renameTo ?? "N/A")")
             }
+            .font(.caption2)
         }
         .navigationTitle("Rules Cache")
+    }
+    
+    var transList: some View {
+        List(transactions) { trans in
+            VStack(alignment: .leading) {
+                Text("ID: \(trans.id ?? "N/A")")
+                Text("Title: \(trans.title ?? "N/A")")
+                Text("Amount: \(trans.amount)")
+            }
+            .font(.caption2)
+        }
+        .navigationTitle("Transactions Cache")
     }
 }

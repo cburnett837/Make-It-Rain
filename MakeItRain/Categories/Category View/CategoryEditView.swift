@@ -193,10 +193,14 @@ struct CategoryEditView: View {
     
     var categoryPagePhone: some View {
         StandardContainerWithToolbar(.list) {
-            Section("Title & Budget") {
+            Section {
                 titleRow
                 budgetRow
-            }
+            } header: {
+                Text("Title & Budget")
+            } footer: {
+                Text("Set a budget to use for each month.")
+            }            
                         
             Section("Details") {
                 typeRow

@@ -7,6 +7,11 @@
 
 import SwiftUI
 
+enum RepTransNavDestination: Hashable {
+    case titleColorMenu
+}
+
+
 struct RepeatingTransactionView: View {
     @Local(\.useWholeNumbers) var useWholeNumbers
     //@Local(\.colorTheme) var colorTheme
@@ -38,6 +43,7 @@ struct RepeatingTransactionView: View {
     @State private var showColorPicker = false
     @State private var selection = AttributedTextSelection()
     @State private var textCommands = TextViewCommands()
+    @State private var navPath = NavigationPath()
     
     var paymentMethodTitle: String {
         if repTransaction.repeatingTransactionType.enumID == .payment {
@@ -196,7 +202,7 @@ struct RepeatingTransactionView: View {
     #if os(iOS)
     @ViewBuilder
     var bodyPhone: some View {
-        NavigationStack {
+        NavigationStack(path: $navPath) {
             ScrollViewReader { scrollProxy in
                 StandardContainerWithToolbar(.list) {
                     Section {
@@ -212,11 +218,9 @@ struct RepeatingTransactionView: View {
                     Section {
                         includeRow
                     } footer: {
-                        Text("Choose if this transaction should be added the calendar when preparing a month.")
+                        Text("Choose if this transaction should be added to the calendar when preparing a month.")
                     }
 
-                    
-                    
                     Section {
                         payFromRow
                         if !isRegularTransaction { payToRow }
@@ -257,7 +261,7 @@ struct RepeatingTransactionView: View {
                     } header: {
                         Text("Repeating Schedule")
                     } footer: {
-                        Text("Select a combo of weekdays, months, and days to repeat the transaction. For example, selecting **Sunday**, **January**, and **15** will create this transaction on every Sunday in January, **and** on January 15th.")
+                        Text("Select a combo of weekdays, months, and days to repeat this transaction. For example, selecting **Sunday**, **January**, and **15** will create this transaction on every Sunday in January, **and** on January 15th.")
                     }
                     
                     //                Section {
@@ -269,6 +273,9 @@ struct RepeatingTransactionView: View {
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: RepTransNavDestination.self) { _ in
+                TitleColorList(color: $repTransaction.color, navPath: $navPath)
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { deleteButton }
                 ToolbarSpacer(.fixed, placement: .topBarLeading)
@@ -433,42 +440,64 @@ struct RepeatingTransactionView: View {
     
     
     var colorRow: some View {
-        HStack {
-            #if os(iOS)
-            //StandardColorPicker(color: $repTransaction.color)
-            Button {
-                showColorPicker = true
-            } label: {
-                HStack {
-                    Label {
-                        Text("Title Color")
-                            .schemeBasedForegroundStyle()
-                    } icon: {
-                        Image(systemName: "lightspectrum.horizontal")
-                            .foregroundStyle(.gray)
-                    }
-                    Spacer()
-                    //StandardColorPicker(color: $payMethod.color)
-                    Image(systemName: "circle.fill")
-                        .font(.system(size: 24))
-                        .foregroundStyle(repTransaction.color.gradient)
-                }
-            }
-            .colorPickerSheet(isPresented: $showColorPicker, selection: $repTransaction.color, supportsAlpha: false)
-            #else
-            Text("Title Color")
-            Spacer()
+        NavigationLink(value: RepTransNavDestination.titleColorMenu) {
             HStack {
-                ColorPicker("", selection: $repTransaction.color, supportsOpacity: false)
-                    .labelsHidden()
-                Capsule()
+                Label {
+                    Text("Title Color")
+                } icon: {
+                    //Image(systemName: "paintbrush")
+                    Image(systemName: "paintpalette")
+                        .symbolRenderingMode(.multicolor)
+                        //.foregroundStyle(trans.color)
+                        .foregroundStyle(.gray)
+                }
+                
+                Spacer()
+                Circle()
                     .fill(repTransaction.color)
-                    .onTapGesture {
-                        AppState.shared.showToast(title: "Color Picker", subtitle: "Click the circle to the left to change the color.", body: nil, symbol: "theatermask.and.paintbrush", symbolColor: repTransaction.color)
-                    }
+                    .frame(width: 25, height: 25)
+//                        Text(titleColorDescription)
+//                            .foregroundStyle(trans.color)
             }
-            #endif
         }
+        
+        
+//        HStack {
+//            #if os(iOS)
+//            //StandardColorPicker(color: $repTransaction.color)
+//            Button {
+//                showColorPicker = true
+//            } label: {
+//                HStack {
+//                    Label {
+//                        Text("Title Color")
+//                            .schemeBasedForegroundStyle()
+//                    } icon: {
+//                        Image(systemName: "lightspectrum.horizontal")
+//                            .foregroundStyle(.gray)
+//                    }
+//                    Spacer()
+//                    //StandardColorPicker(color: $payMethod.color)
+//                    Image(systemName: "circle.fill")
+//                        .font(.system(size: 24))
+//                        .foregroundStyle(repTransaction.color.gradient)
+//                }
+//            }
+//            .colorPickerSheet(isPresented: $showColorPicker, selection: $repTransaction.color, supportsAlpha: false)
+//            #else
+//            Text("Title Color")
+//            Spacer()
+//            HStack {
+//                ColorPicker("", selection: $repTransaction.color, supportsOpacity: false)
+//                    .labelsHidden()
+//                Capsule()
+//                    .fill(repTransaction.color)
+//                    .onTapGesture {
+//                        AppState.shared.showToast(title: "Color Picker", subtitle: "Click the circle to the left to change the color.", body: nil, symbol: "theatermask.and.paintbrush", symbolColor: repTransaction.color)
+//                    }
+//            }
+//            #endif
+//        }
     }
     
     

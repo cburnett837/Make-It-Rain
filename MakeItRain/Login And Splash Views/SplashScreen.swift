@@ -10,21 +10,33 @@ import SpriteKit
 
 @MainActor
 struct SplashScreen: View {
+    @AppStorage("shouldWarmUpTransactionViewDuringSplash") var shouldWarmUpTransactionViewDuringSplash: Bool = false
+
+    
     @Environment(CalendarModel.self) var calModel
 
     @State private var logoScale: Double = 1
     @State private var titleProgress: CGFloat = 0
     //@State private var hang = ""
     let timer = Timer.publish(every: 5, on: .main, in: .common).autoconnect()
+//    @State private var showLoadingSpinner = false
     @State private var showSlowLoadingButton = false
     @State private var warmUpTransactionView = false
 
     
     var body: some View {
         ZStack {
-            rainingDollars            
-            makeItRainLogo
-                .frame(maxHeight: .infinity, alignment: .center)
+            rainingDollars
+            
+//            VStack {
+                makeItRainLogo
+                    .frame(maxHeight: .infinity, alignment: .center)
+                
+//                ProgressView().tint(.none)
+//                    .opacity(showLoadingSpinner ? 1 : 0)
+//            }
+            
+            
         }
         .overlay {
             if showSlowLoadingButton {
@@ -47,8 +59,10 @@ struct SplashScreen: View {
             if warmUpTransactionView {
                 transactionWarmUpView
             }
+            
         }
     }
+    
     
     var transactionWarmUpView: some View {
         TransactionEditView(
@@ -63,6 +77,7 @@ struct SplashScreen: View {
         .allowsHitTesting(false)
     }
     
+    
     var rainingDollars: some View {
         EmitterView()
             .scaleEffect(1, anchor: .top)
@@ -72,6 +87,7 @@ struct SplashScreen: View {
             #endif
     }
     
+    
     var makeItRainLogo: some View {
         Text("Make It Rain")
             .scaleEffect(logoScale)
@@ -79,6 +95,7 @@ struct SplashScreen: View {
             .foregroundStyle(.primary)
             .textRenderer(TitleTextRenderer(progress: titleProgress))
     }
+    
     
     var offlineButton: some View {
         VStack {
@@ -123,42 +140,57 @@ struct SplashScreen: View {
     
     
     func startLogoAnimation() {
-//        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-//            warmUpTransactionView = true
-//        }
+        if shouldWarmUpTransactionViewDuringSplash {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                warmUpTransactionView = true
+            }
+        }
+
         withAnimation(.smooth(duration: 1.5, extraBounce: 0)) {
             titleProgress = 1
         } completion: {
-            Task { @MainActor in
-                var attempts = 0
-                let maxAttempts = 20
+            waitToShowMainApp()
+        }
+    }
+    
+    
+    func waitToShowMainApp() {
+        Task { @MainActor in
+            if shouldWarmUpTransactionViewDuringSplash {
+                /// Let the transaction view warm up
+                try? await Task.sleep(for: .milliseconds(1500))
+            }
+            
+            var attempts = 0
+            let maxAttempts = 120
+             /// Wait for up to a minute for the login to succeed.
+            while attempts < maxAttempts {
+                attempts += 1
+                
+                //print(AppState.shared.shouldShowSplash, AuthState.shared.isThinking, AuthState.shared.isLoggedIn, AuthState.shared.keychainCredentialsExist)
+                
+                if !AppState.shared.shouldShowSplash && !AuthState.shared.isThinking && (AuthState.shared.isLoggedIn || !AuthState.shared.keychainCredentialsExist) { break }
 
-                while attempts < maxAttempts {
-                    attempts += 1
-                    //print(!AppState.shared.shouldShowSplash && !AuthState.shared.isThinking && AuthState.shared.isLoggedIn)
-                    /// check exit condition
-                    if !AppState.shared.shouldShowSplash && !AuthState.shared.isThinking && AuthState.shared.isLoggedIn { break }
+                try? await Task.sleep(for: .milliseconds(500))
+            }
 
-                    try? await Task.sleep(for: .milliseconds(500))
+            let success = attempts < maxAttempts
+
+            if success {
+                #if os(iOS)
+                if AppState.shared.isIphone, !AppState.shared.showPaymentMethodNeededSheet {
+                    calModel.showMonth = true
                 }
+                #endif
 
-                /// success if we escaped early
-                let success = attempts < maxAttempts
+                /// Delay before hiding splash screen.
+                try? await Task.sleep(for: .milliseconds(500))
 
-                if success {
-                    #if os(iOS)
-                    if AppState.shared.isIphone, !AppState.shared.showPaymentMethodNeededSheet {
-                        calModel.showMonth = true
-                    }
-                    #endif
-
-                    // delay before hiding splash
-                    try? await Task.sleep(for: .milliseconds(500))
-
-                    withAnimation(.easeOut(duration: 1)) {
-                        AppState.shared.splashIsAnimating = false
-                    }
+                withAnimation(.easeOut(duration: 1)) {
+                    AppState.shared.splashIsAnimating = false
                 }
+            } else {
+                AppState.shared.showAlert("An error has occurred preparing the app. Please try again later.")
             }
         }
     }

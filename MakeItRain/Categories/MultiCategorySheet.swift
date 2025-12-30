@@ -122,14 +122,10 @@ import SwiftUI
 
 
 struct MultiCategorySheet: View {
+    @AppStorage("hiddenCategoriesSectionIsExpanded") private var storedIsHiddenSectionExpanded: Bool = false
+    @Local(\.categorySortMode) var categorySortMode
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
-    //@Local(\.colorTheme) var colorTheme
-    //@Local(\.lineItemIndicator) var lineItemIndicator
-    @Local(\.categorySortMode) var categorySortMode
-    //@Local(\.categoryIndicatorAsSymbol) var categoryIndicatorAsSymbol
-
-    
     @Environment(CalendarModel.self) private var calModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
@@ -149,6 +145,7 @@ struct MultiCategorySheet: View {
     @State private var showInfo = false
     @State private var editGroup: CBCategoryGroup?
     @State private var groupEditID: CBCategoryGroup.ID?
+    @State private var isHiddenSectionExpanded = false
     
     
     var filteredCategories: Array<CBCategory> {
@@ -339,9 +336,6 @@ struct MultiCategorySheet: View {
     }
     
     
-    @AppStorage("hiddenCategoriesSectionIsExpanded") private var storedIsHiddenSectionExpanded: Bool = false
-    @State private var isHiddenSectionExpanded = false
-    
     @ViewBuilder
     var hiddenCategoriesSections: some View {
         Section {
@@ -358,6 +352,7 @@ struct MultiCategorySheet: View {
             hiddenSectionHeader
         }
     }
+    
     
     @ViewBuilder
     var specialCategoriesSection: some View {
@@ -669,6 +664,7 @@ struct MultiCategorySheet: View {
         Button {
             withAnimation {
                 categories = categories.isEmpty ? catModel.categories : []
+                categoryGroup = []
                 //calModel.sCategoryGroupsForAnalysis
             }
         } label: {

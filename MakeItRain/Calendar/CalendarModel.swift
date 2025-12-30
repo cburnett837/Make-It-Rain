@@ -813,6 +813,10 @@ class CalendarModel {
                 && trans.intendedServerAction != .add
                 && trans.relatedTransactionType == XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction) {
                                         
+                    
+                    print("the paymethod is \(trans.payMethod?.title)")
+                    print("the deep paymethod is \(trans.deepCopy?.payMethod?.title)")
+                    
                     let trans2 = getTransaction(by: trans.relatedTransactionID!, from: .normalList)
                     trans.status = .inFlight
                     trans2.deepCopy(.create)
@@ -843,6 +847,13 @@ class CalendarModel {
                         trans2.amountString = (trans.amount * 1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
                     }
                     
+                    /// If we filter transactions by category or by payment method, and change it on the transaction, we need the line below to cause the transaction to disappear when closing it.
+                    /// The transaction filter function that provides the views with the transactions looks for both the transaction and it's deep copy. When changing a category for example, the trans will remain due to the deep copy still having the old reference.
+                    withAnimation {
+                        trans.deepCopy(.clear)
+                        trans2.deepCopy(.clear)
+                    }
+                    
                     /// Submit to the server.
                     await withTaskGroup(of: Void.self) { group in
                         group.addTask { saveResultToReturn = await self.submit(trans) }
@@ -852,7 +863,9 @@ class CalendarModel {
                     trans.actionBeforeSave = trans.action
                     /// If we filter transactions by category or by payment method, and change it on the transaction, we need the line below to cause the transaction to disappear when closing it.
                     /// The transaction filter function that provides the views with the transactions looks for both the transaction and it's deep copy. When changing a category for example, the trans will remain due to the deep copy still having the old reference.
-                    trans.deepCopy(.clear)
+                    withAnimation {
+                        trans.deepCopy(.clear)
+                    }
                     
                     saveResultToReturn = await submit(trans)
                     showToastsForTransactionSave(showSmartTransAlert: location == .smartList, trans: trans)
@@ -860,7 +873,7 @@ class CalendarModel {
                 
                 
                 if location == .smartList {
-                    tempTransactions.removeAll(where: {$0.id == trans.id})
+                    tempTransactions.removeAll(where: { $0.id == trans.id })
                 }
             }
             
@@ -1636,7 +1649,7 @@ class CalendarModel {
     func getDebitTransactions(from transactions: Array<CBTransaction>) -> Array<CBTransaction> {
         return transactions
             /// Only debit or cash accounts.
-            .filter { ($0.payMethod?.isDebit ?? false) }
+            .filter { ($0.payMethod?.isDebitOrCash ?? false) }
             /// Is not the origination transaction from the transfer utility.
             .filter { !$0.isTransferOrigin }
             /// Is not the destination transaction from the transfer utility.
@@ -1747,7 +1760,14 @@ class CalendarModel {
 //    }
                             
     func getIncome(from transactions: Array<CBTransaction>) -> Double {
-        return getCreditRefundsOrPerks(from: transactions) + getDebitIncome(from: transactions)
+        let refunds = getCreditRefundsOrPerks(from: transactions)
+        let debitIncome = getDebitIncome(from: transactions)
+        
+        print(refunds, debitIncome)
+        return refunds + debitIncome
+        
+        
+        //return getCreditRefundsOrPerks(from: transactions) + getDebitIncome(from: transactions)
     }
     
     func getSpend(from transactions: Array<CBTransaction>) -> Double {
@@ -2216,7 +2236,7 @@ class CalendarModel {
         month.days.forEach { day in
             let amounts = day.transactions
                 .filter {
-                    $0.payMethod?.accountType == .checking || $0.payMethod?.accountType == .cash
+                    ($0.payMethod?.isDebitOrCash ?? true)
                     && $0.active
                     && $0.factorInCalculations
                     && ($0.payMethod?.isPermitted ?? true)

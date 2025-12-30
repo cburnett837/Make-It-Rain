@@ -19,7 +19,7 @@ struct CivTransactionList: View {
     
     @Environment(CalendarModel.self) private var calModel
     
-    @Bindable var data: CivMonthlyData
+    //@Bindable var data: CivMonthlyData
     @Bindable var model: CivViewModel
         
     @State private var transEditID: String?
@@ -28,49 +28,56 @@ struct CivTransactionList: View {
 
 
     var body: some View {
-        theView
-            .searchable(text: $searchText, prompt: Text("Search"))
-            .navigationTitle("\(data.dataPoint.titleString)")
-            .navigationSubtitle("\(data.month.name) \(String(data.month.year))")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) { viewModeMenu }
-            }
-            .transactionEditSheetAndLogic(transEditID: $transEditID, selectedDay: $transDay)
+        //Text("Yep")
+        if let data = model.selectedMonth {
+            theView
+                .searchable(text: $searchText, prompt: Text("Search"))
+                .navigationTitle("\(data.dataPoint.titleString)")
+                .navigationSubtitle("\(data.month.name) \(String(data.month.year))")
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) { viewModeMenu }
+                }
+                .transactionEditSheetAndLogic(transEditID: $transEditID, selectedDay: $transDay)
+        } else {
+            Text("N/A")
+        }
     }
     
     @ViewBuilder
     var theView: some View {
-        if data.trans.isEmpty {
-        //if getTransactions(month: data.month).isEmpty {
-            ContentUnavailableView("No Transactions", systemImage: "rectangle.stack.slash.fill")
-        } else {
-            StandardContainerWithToolbar(.list) {
-                Section("Breakdown") {
+        if let data = model.selectedMonth {
+            if data.trans.isEmpty {
+                //if getTransactions(month: data.month).isEmpty {
+                ContentUnavailableView("No Transactions", systemImage: "rectangle.stack.slash.fill")
+            } else {
+                StandardContainerWithToolbar(.list) {
+                    Section("Breakdown") {
+                        
+                        switch data.dataPoint {
+                        case .moneyIn:
+                            breakdownLine(title: "Money In…", value: data.breakdown.moneyIn)
+                        case .cashOut:
+                            breakdownLine(title: "Cash out…", value: data.breakdown.cashOut * -1)
+                        case .totalSpending:
+                            breakdownLine(title: "Total spending…", value: data.breakdown.spending * -1)
+                        case .actualSpending:
+                            breakdownLine(title: "Actual spending…", value: data.breakdown.actualSpending * -1)
+                                .bold()
+                        case .all:
+                            breakdownLine(title: "Money In…", value: data.breakdown.moneyIn)
+                            breakdownLine(title: "Cash out…", value: data.breakdown.cashOut * -1)
+                            breakdownLine(title: "Total spending…", value: data.breakdown.spending * -1)
+                            breakdownLine(title: "Actual spending…", value: data.breakdown.actualSpending * -1)
+                                .bold()
+                        }
+                    }
                     
-                    switch data.dataPoint {
-                    case .moneyIn:
-                        breakdownLine(title: "Money In…", value: data.breakdown.moneyIn)
-                    case .cashOut:
-                        breakdownLine(title: "Cash out…", value: data.breakdown.cashOut * -1)
-                    case .totalSpending:
-                        breakdownLine(title: "Total spending…", value: data.breakdown.spending * -1)
-                    case .actualSpending:
-                        breakdownLine(title: "Actual spending…", value: data.breakdown.actualSpending * -1)
-                            .bold()
-                    case .all:
-                        breakdownLine(title: "Money In…", value: data.breakdown.moneyIn)
-                        breakdownLine(title: "Cash out…", value: data.breakdown.cashOut * -1)
-                        breakdownLine(title: "Total spending…", value: data.breakdown.spending * -1)
-                        breakdownLine(title: "Actual spending…", value: data.breakdown.actualSpending * -1)
-                            .bold()
-                    }                                        
-                }
-                
-                switch transactionListDisplayMode {
-                case .full:
-                    fullView(for: data.month)
-                case .condensed:
-                    condensedView(for: data.month)
+                    switch transactionListDisplayMode {
+                    case .full:
+                        fullView(for: data.month)
+                    case .condensed:
+                        condensedView(for: data.month)
+                    }
                 }
             }
         }
@@ -178,7 +185,7 @@ struct CivTransactionList: View {
         ForEach(trans) { trans in
             TransactionListLine(trans: trans, withDate: transactionListDisplayMode == .condensed)
                 .onTapGesture {
-                    let day = data.month.days.filter { $0.id == trans.dateComponents?.day }.first
+                    let day = model.selectedMonth!.month.days.filter { $0.id == trans.dateComponents?.day }.first
                     self.transDay = day
                     self.transEditID = trans.id
                 }
@@ -236,7 +243,7 @@ struct CivTransactionList: View {
     
     
     func getTransactions(month: CBMonth, day: CBDay? = nil) -> Array<CBTransaction> {
-        data.trans
+        model.selectedMonth!.trans
             .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
             .filter { transaction in
                 guard

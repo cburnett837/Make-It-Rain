@@ -724,7 +724,7 @@ class PayMethodViewModel {
         if viewByQuarter {
             result = method.breakdowns.filter { $0.date.year == selectedDate.year && $0.date.startOfQuarter.month == selectedDate.month }
             
-            startingAmounts = method.isCredit ? String(avg(\.startingAmounts)) : String(sum(\.startingAmounts))
+            startingAmounts = method.isCreditOrUnified ? String(avg(\.startingAmounts)) : String(sum(\.startingAmounts))
             
         } else {
             result = method.breakdowns.filter({ Calendar.current.isDate($0.date, equalTo: selectedDate, toGranularity: .month) })
@@ -855,7 +855,7 @@ class PayMethodViewModel {
         }
         
         
-        let startingAmounts: String = payMethod.isCredit ? String(avg(\.startingAmounts)) : String(sum(\.startingAmounts))
+        let startingAmounts: String = payMethod.isCreditOrUnified ? String(avg(\.startingAmounts)) : String(sum(\.startingAmounts))
 
         let summary = PayMethodMonthlyBreakdown(
             title: first.title,

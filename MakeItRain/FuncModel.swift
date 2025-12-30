@@ -884,6 +884,7 @@ class FuncModel {
                     || model.plaidTransactionsWithCount != nil
                     || model.plaidBalances != nil
                     || model.logos != nil
+                    || model.settings != nil
                     {
                         
                         #warning("This all needs to be fixed in regards to coredata. Right now, each update of the cache or delete ferom the cache uses its own context, and saves after each operation. If I used a single background context, when deleting a payment method via the long poll, the save operation will fail. It is recommended to perform all operations, and then call save at the end. But this will require some work to implement. 11/6/25")
@@ -921,6 +922,7 @@ class FuncModel {
                         }
                         
                         if let logos = model.logos { self.handleLongPollLogos(logos) }
+                        if let settings = model.settings { self.handleLongPollSettings(settings) }
                     }
                 } else {
                     //print("GOT UNNNNSUccessful long poll model with return time \(String(describing: model?.returnTime))")
@@ -1092,6 +1094,7 @@ class FuncModel {
                     withAnimation { payModel.upsert(payMethod) }
                 }
             }
+            
             if payMethod.isPermitted {
                 let _ = await payModel.updateCache(for: payMethod)
             } else {
@@ -1294,6 +1297,12 @@ class FuncModel {
         
         let _ = DataManager.shared.save(context: context)
     }
+    
+    
+    @MainActor private func handleLongPollSettings(_ settings: AppSettings) {
+        AppSettings.shared.setFromAnotherInstance(setting: settings)
+    }
+   
    
     
     @MainActor private func handleLongPollOpenRecords(_ openRecords: Array<CBOpenOrClosedRecord>) async {
@@ -1448,9 +1457,8 @@ class FuncModel {
     @MainActor
     func getPlaidDebitSums() -> Double {
         let debits = payModel.paymentMethods
-            .filter { $0.isDebit }
-            .filter { $0.isPermitted }
-            .filter { !$0.isHidden }
+            .filter { $0.accountType == .checking }
+            .filter { $0.isPermittedAndViewable }
             .filter {
                 switch LocalStorage.shared.paymentMethodFilterMode {
                 case .all:
@@ -1465,45 +1473,36 @@ class FuncModel {
                 }
             }
         
-        let debitIDs = debits
-            .map { $0.id }
+        let debitIDs = debits.map { $0.id }
         
-        //let cashAmount = 0.0
-        
-        var cashAmount: Double = 0.0
-        
-        let cashAccounts = debits.filter { $0.accountType == .cash }
-        for account in cashAccounts {
-            let amount: Double = calModel.calculateChecking(
-                for: calModel.sMonth,
-                using: account,
-                and: .giveMeEodAsOfToday
-            )
-            cashAmount += amount
-        }
-        
-        
-        
-//        let cashAmount = debits
-//            .filter { $0.accountType == .cash }
-//            .map { $0.amount }
-//            .reduce(0.0, +)
+        /// Code below works fine. 12/21/25
+//        var cashAmount: Double = 0.0
+//        let cashAccounts = debits.filter { $0.accountType == .cash }
+//        for account in cashAccounts {
+//            let amount: Double = calModel.calculateChecking(
+//                for: calModel.sMonth,
+//                using: account,
+//                and: .giveMeEodAsOfToday
+//            )
+//            cashAmount += amount
+//        }
         
         let plaidAmount = plaidModel.balances
             .filter { debitIDs.contains($0.payMethodID) }
             .map { $0.amount }
             .reduce(0.0, +)
         
-        return cashAmount + plaidAmount
+        /// Removing the cash option because it makes weird calculations if you withdrawl money from a checking account and the checking balance has not yet updated from plaid. 12/21/25
+        //return cashAmount + plaidAmount
+        return plaidAmount
     }
     
     
     @MainActor
     func getPlaidCreditSums() -> Double {
         let creditIDs = payModel.paymentMethods
-            .filter { $0.isCredit }
-            .filter { $0.isPermitted }
-            .filter { !$0.isHidden }
+            .filter { $0.isCreditOrLoan }
+            .filter { $0.isPermittedAndViewable }
             .filter {
                 switch LocalStorage.shared.paymentMethodFilterMode {
                 case .all:
@@ -1554,15 +1553,17 @@ class FuncModel {
         if /*trans == nil &&*/ calModel.sMonth.actualNum == AppState.shared.todayMonth && calModel.sMonth.year == AppState.shared.todayYear {
             var result: String? {
                 if meth.isUnified {
-                    if meth.isDebit {
+                    if meth.isDebitOrUnified {
                         return "\(self.getPlaidDebitSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))"
                     } else {
                         return "\(self.getPlaidCreditSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))"
                     }
-                } else if meth.accountType == .cash {
-                    let bal = calModel.calculateChecking(for: calModel.sMonth, using: meth, and: .giveMeEodAsOfToday)
-                    let balStr = bal.currencyWithDecimals(useWholeNumbers ? 0 : 2)
-                    return "\(balStr) (Manually)"
+                }
+                else if meth.accountType == .cash {
+                    return nil
+                    //let bal = calModel.calculateChecking(for: calModel.sMonth, using: meth, and: .giveMeEodAsOfToday)
+                    //let balStr = bal.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                    //return "\(balStr) (Manually)"
                     
                 } else if let balance = self.getPlaidBalance(matching: meth) {
                     return "\(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)) (\(Date().timeSince(balance.enteredDate)))"
