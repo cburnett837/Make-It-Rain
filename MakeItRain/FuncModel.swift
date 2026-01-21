@@ -199,6 +199,9 @@ class FuncModel {
                     //prev = calModel.months.filter { $0.num == (currentNavSelection.monthNum ?? 0) - 1 }.first!
                 }
                 
+                /// Download user settings.
+                await AppSettings.shared.fetch()
+                
                 /// Download viewing month.
                 await downloadViewingMonth(
                     viewingMonth,
@@ -232,6 +235,10 @@ class FuncModel {
                 /// Run this code if we come back from a sceneChange and are not viewing a month.
                 /// If we're not viewing a month, then we must be viewing an accessorial view, so download those first.
                 if NavDestination.justAccessorials.contains(currentNavSelection) {
+                    
+                    /// Download user settings.
+                    await AppSettings.shared.fetch()
+                    
                     /// Download other months and accessorials.
                     await downloadAccessorials(createNewStructs: createNewStructs)
                     
@@ -524,6 +531,8 @@ class FuncModel {
             group.addTask { await self.calModel.fetchSuggestedTitles() }
             /// Grab Logos.
             group.addTask { await self.fetchLogos() }
+            /// Grab Receipts.
+            group.addTask { await self.calModel.fetchReceiptsFromServer(funcModel: self) }
             /// Grab Categories.
             group.addTask { await self.catModel.fetchCategories() }
             /// Grab Category Groups.
@@ -577,6 +586,8 @@ class FuncModel {
             }
             /// Grab Transaction Title Suggestions.
             group.addTask { await self.calModel.fetchSuggestedTitles() }
+            /// Grab Receipts.
+            group.addTask { await self.calModel.fetchReceiptsFromServer(funcModel: self) }
             /// Grab Categories.
             group.addTask { await self.catModel.fetchCategories() }
             /// Grab Category Groups.
@@ -885,6 +896,7 @@ class FuncModel {
                     || model.plaidBalances != nil
                     || model.logos != nil
                     || model.settings != nil
+                    //|| model.receipts != nil
                     {
                         
                         #warning("This all needs to be fixed in regards to coredata. Right now, each update of the cache or delete ferom the cache uses its own context, and saves after each operation. If I used a single background context, when deleting a payment method via the long poll, the save operation will fail. It is recommended to perform all operations, and then call save at the end. But this will require some work to implement. 11/6/25")
@@ -923,6 +935,7 @@ class FuncModel {
                         
                         if let logos = model.logos { self.handleLongPollLogos(logos) }
                         if let settings = model.settings { self.handleLongPollSettings(settings) }
+                        //if let receipts = model.receipts { self.handleLongPollReceipts(receipts) }
                     }
                 } else {
                     //print("GOT UNNNNSUccessful long poll model with return time \(String(describing: model?.returnTime))")
@@ -1254,6 +1267,8 @@ class FuncModel {
     }
     
     
+    
+    
     @MainActor private func handleLongPollLogos(_ logos: Array<CBLogo>) {
         print("-- \(#function)")
         let context = DataManager.shared.createContext()
@@ -1279,14 +1294,13 @@ class FuncModel {
                 
                 changePaymentMethodLogoLocally(meth: meth, logoData: logoData)
                 
-                #warning("Need starting amonunts")
+                #warning("Need starting amounts")
             }
             
             if logo.relatedRecordType.enumID == .plaidBank {
                 if let bank = plaidModel.getBank(by: logo.relatedID) {
                     bank.logo = logoData
                 }
-                
             }
             
             if logo.relatedRecordType.enumID == .avatar {
@@ -1460,7 +1474,7 @@ class FuncModel {
             .filter { $0.accountType == .checking }
             .filter { $0.isPermittedAndViewable }
             .filter {
-                switch LocalStorage.shared.paymentMethodFilterMode {
+                switch AppSettings.shared.paymentMethodFilterMode {
                 case .all:
                     return true
                 case .justPrimary:
@@ -1504,7 +1518,7 @@ class FuncModel {
             .filter { $0.isCreditOrLoan }
             .filter { $0.isPermittedAndViewable }
             .filter {
-                switch LocalStorage.shared.paymentMethodFilterMode {
+                switch AppSettings.shared.paymentMethodFilterMode {
                 case .all:
                     return true                
                 case .justPrimary:
@@ -1549,28 +1563,28 @@ class FuncModel {
     
 
     @MainActor
-    func getPlaidBalancePrettyString(_ meth: CBPaymentMethod, useWholeNumbers: Bool) -> String? {
+    func getPlaidBalancePrettyString(_ meth: CBPaymentMethod) -> String? {
         if /*trans == nil &&*/ calModel.sMonth.actualNum == AppState.shared.todayMonth && calModel.sMonth.year == AppState.shared.todayYear {
             var result: String? {
                 if meth.isUnified {
                     if meth.isDebitOrUnified {
-                        return "\(self.getPlaidDebitSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))"
+                        return "\(self.getPlaidDebitSums().currencyWithDecimals())"
                     } else {
-                        return "\(self.getPlaidCreditSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))"
+                        return "\(self.getPlaidCreditSums().currencyWithDecimals())"
                     }
                 }
                 else if meth.accountType == .cash {
                     return nil
                     //let bal = calModel.calculateChecking(for: calModel.sMonth, using: meth, and: .giveMeEodAsOfToday)
-                    //let balStr = bal.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                    //let balStr = bal.currencyWithDecimals()
                     //return "\(balStr) (Manually)"
                     
                 } else if let balance = self.getPlaidBalance(matching: meth) {
-                    return "\(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)) (\(Date().timeSince(balance.enteredDate)))"
+                    return "\(balance.amount.currencyWithDecimals()) (\(Date().timeSince(balance.enteredDate)))"
                     
                 }
 //                else if let balance = plaidModel.balances.filter({ $0.payMethodID == meth.id }).first {
-//                    return "\(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)) (\(Date().timeSince(balance.enteredDate)))"
+//                    return "\(balance.amount.currencyWithDecimals()) (\(Date().timeSince(balance.enteredDate)))"
 //                    
 //                }
                 else {
@@ -1913,7 +1927,7 @@ class FuncModel {
     
     
     
-    
+    @discardableResult
     @MainActor
     func submitListOrders(items: Array<ListOrderUpdate>, for updateType: ListOrderUpdateType) async -> Bool {
         print("-- \(#function)")
@@ -2025,6 +2039,48 @@ class FuncModel {
             let _ = DataManager.shared.save(context: context)
         }
         
+    }
+    
+    
+    @discardableResult
+    func downloadFile(file: CBFile) async -> Data? {
+        let fileModel = FileRequestModel(path: "budget_app.\(file.fileType.rawValue).\(file.uuid).\(file.fileType.ext)")
+        let requestModel = RequestModel(requestType: "download_file", model: fileModel)
+        let result = await NetworkManager().downloadFile(requestModel: requestModel)
+        
+        switch result {
+        case .success(let data):
+            if let data = data {
+                
+                await ImageCache.shared.saveToCache(
+                    parentTypeId: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction).id,
+                    parentId: file.relatedID,
+                    id: file.id,
+                    data: data
+                )
+                
+                return data
+                
+//                #if os(iOS)
+//                    self.uiImage = UIImage(data: data)
+//                #else
+//                    self.nsImage = NSImage(data: data)
+//                #endif
+            }
+            
+            return nil
+            
+        case .failure(let error):
+            switch error {
+            case .taskCancelled:
+                print("\(#function) Task Cancelled")
+            default:
+                LogManager.error(error.localizedDescription)
+                AppState.shared.showAlert("There was a problem downloading the image.")
+            }
+            
+            return nil
+        }
     }
     
     

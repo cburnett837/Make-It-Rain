@@ -9,7 +9,7 @@
 import SwiftUI
 
 struct CatChartRawDataListLine: View {
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     @Environment(\.colorScheme) var colorScheme
     #if os(macOS)
     @Environment(\.openWindow) private var openWindow
@@ -49,7 +49,7 @@ struct CatChartRawDataListLine: View {
             case .budget: data.budget
             case .expensesMinusIncome: data.expensesMinusIncome
             }
-            Text(metricText.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+            Text(metricText.currencyWithDecimals())
         }
     }
     
@@ -64,7 +64,7 @@ struct CatChartRawDataListLine: View {
             case .budget: data.budget
             case .expensesMinusIncome: data.expensesMinusIncome
             }
-            Text(metricText.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+            Text(metricText.currencyWithDecimals())
         }
     }
     

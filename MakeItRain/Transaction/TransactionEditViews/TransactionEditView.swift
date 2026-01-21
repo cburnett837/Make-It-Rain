@@ -16,7 +16,8 @@ fileprivate let photoWidth: CGFloat = 125
 fileprivate let photoHeight: CGFloat = 200
 
 enum TitleSuggestionType: String {
-    case location, history
+    case location, history, byCategoryFrequency
+    
 }
 
 enum TransNavDestination: Hashable {
@@ -25,7 +26,7 @@ enum TransNavDestination: Hashable {
 
 struct TransactionEditView: View {
     @Local(\.lineItemIndicator) var lineItemIndicator
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     
     @AppStorage("shouldWarmUpTransactionViewDuringSplash") var shouldWarmUpTransactionViewDuringSplash: Bool = false
     @AppStorage("transactionTitleSuggestionType") var transactionTitleSuggestionType: TitleSuggestionType = .location
@@ -81,6 +82,7 @@ struct TransactionEditView: View {
     @State private var showHiddenEye = false
     @State private var showContent = false
     @State private var showExpensiveViews = false
+    @State private var suggestedCategories: Array<CBCategory> = []
     //@State private var selection = AttributedTextSelection()
     //@State private var textCommands = TextViewCommands()
 
@@ -238,8 +240,9 @@ struct TransactionEditView: View {
     @ViewBuilder
     func content(_ scrollProxy: ScrollViewProxy) -> some View {
         Section {
-            TevTitle(trans: trans, mapModel: mapModel, focusedField: $focusedField)
+            TevTitle(trans: trans, mapModel: mapModel, suggestedCategories: $suggestedCategories, focusedField: $focusedField)
             TevAmount(trans: trans, focusedField: $focusedField)
+            //TevDatePicker(trans: trans, day: day, focusedField: $focusedField)
         }
                 
         paymentMethodAndCategorySection
@@ -318,7 +321,7 @@ struct TransactionEditView: View {
             }
             
         case .logs:
-            TevLogSheet(title: trans.title, itemID: trans.id, logType: .transaction)
+            TevLogSheet(title: trans.title, itemID: trans.serverID, logType: .transaction)
                 .if(trans.christmasListGiftID != nil) {
                     $0
                     .scrollContentBackground(.hidden)
@@ -353,9 +356,112 @@ struct TransactionEditView: View {
     }
     
     
+    var topThreeMeths: Array<CBPaymentMethod>.SubSequence {
+        payModel.paymentMethods.sorted { $0.recentTransactionCount > $1.recentTransactionCount }.prefix(3)
+    }
+    
+    
+    @ViewBuilder
+    var categoryLine: some View {
+        if showExpensiveViews {
+            CategorySheetButtonPhone(category: $trans.category)
+                .listRowSeparator(suggestedCategories.isEmpty ? .automatic : .hidden)
+        } else {
+            ProgressView()
+                .frame(maxWidth: .infinity)
+                .tint(.none)
+        }
+    }
+    
+    
+    @ViewBuilder
+    var categorySuggestionLine: some View {
+        ScrollView(.horizontal) {
+            HStack {
+                ForEach(suggestedCategories) { cat in
+                    Button {
+                        trans.category = cat
+                        self.suggestedCategories.removeAll()
+                    } label: {
+                        Text("\(cat.title)?")
+                            .foregroundStyle(.gray)
+                            .font(.subheadline)
+                    }
+                    .padding(8)
+                    .background(Capsule().foregroundStyle(.thickMaterial))
+                }
+            }
+        }
+        .scrollIndicators(.hidden)
+    }
+    
+    
+    @ViewBuilder
+    var paymentMethodQuickPick: some View {
+        //if trans.action == .add {
+            HStack {
+                ScrollView(.horizontal) {
+                    HStack {
+//                            Label {
+//                                Text("")
+//                            } icon: {
+//                                AiAnimatedAliveSymbol(symbol: "brain", withGlow: false)
+//                                    .font(.title2)
+//                            }
+//                            .padding(.trailing, -16)
+                        
+                        ForEach(topThreeMeths) { meth in
+                            Button {
+                                trans.payMethod = meth
+                            } label: {
+                                HStack {
+//                                    BusinessLogo(config: .init(
+//                                        parent: meth,
+//                                        fallBackType: .customImage(.init(name: meth.fallbackImage, color: meth.color)),
+//                                        size: 20
+//                                    ))
+                                    
+                                    Text("\(meth.title)?")
+                                        .foregroundStyle(.gray)
+                                        .font(.subheadline)
+                                }
+                                
+                            }
+                            .padding(8)
+                            .background(Capsule().foregroundStyle(.thickMaterial))
+                        }
+                    }
+                }
+                .scrollIndicators(.hidden)
+            }
+            //.listRowInsets(EdgeInsets()) /// use without the brain, kill with
+            //.padding(.leading, -2) /// use with the brain, kill without
+            //.padding(.leading, -5) /// use without the brain, kill with
+            
+            
+//        } else {
+//            EmptyView()
+//        }
+    }
+    
+    
+    @ViewBuilder
     var paymentMethodAndCategorySection: some View {
+        if !suggestedCategories.isEmpty {
+            Section {
+                categoryLine
+            } footer: {
+                categorySuggestionLine
+            }
+        }
+        
         Section {
             if showExpensiveViews {
+                if suggestedCategories.isEmpty {
+                    categoryLine
+                }
+                
+                /// Main payment method picker.
                 PayMethodSheetButtonPhone(
                     text: accountLabelLingo,
                     logoFallBackType: .customImage(.init(
@@ -366,6 +472,7 @@ struct TransactionEditView: View {
                     whichPaymentMethods: .allExceptUnified
                 )
                 
+                /// Related payment method picker.
                 if let relatedID = trans.relatedTransactionID, let method = calModel.getTransaction(by: relatedID).payMethod {
                     PayMethodSheetButtonPhone(
                         text: secondaryAccountLabelLingo,
@@ -386,18 +493,13 @@ struct TransactionEditView: View {
                     .frame(maxWidth: .infinity)
                     .tint(.none)
             }
-            
-            if showExpensiveViews {
-                CategorySheetButtonPhone(category: $trans.category)
-            } else {
-                ProgressView()
-                    .frame(maxWidth: .infinity)
-                    .tint(.none)
-            }
+        } footer: {
+            paymentMethodQuickPick
         }
     }
     
     
+    @State private var showUseCurrentLocationButton = true
     var mapSection: some View {
         Section {
             if showExpensiveViews {
@@ -409,6 +511,40 @@ struct TransactionEditView: View {
                     addCurrentLocation: false
                 )
                 .listRowInsets(EdgeInsets())
+                .overlay {
+                    if trans.action == .add && showUseCurrentLocationButton {
+                        VStack {
+                            Button {
+                                mapModel.completions.removeAll()
+                                Task {
+                                    if let location = await mapModel.saveCurrentLocation(parentID: trans.id, parentType: XrefEnum.transaction) {
+                                        trans.upsert(location)
+                                    }
+                                }
+                                showUseCurrentLocationButton = false
+                            } label: {
+                                Image(systemName: "heart")
+//                                ZStack {
+//                                    Image(systemName: "heart")
+//                                        .font(.title)
+//                                    Image(systemName: "location.fill")
+//                                        .font(.caption2)
+//                                }
+                            }
+                            .clipShape(.circle)
+                            .buttonStyle(.glass)
+                            
+//                            Button("Use Current") {
+//                                
+//                            }
+//                            .buttonStyle(.glass)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                        .padding(.bottom, 5)
+                        .padding(.trailing, 5)
+                        
+                    }
+                }
             } else {
                 ProgressView()
                     .listRowInsets(EdgeInsets())
@@ -518,7 +654,7 @@ struct TransactionEditView: View {
                 
         /// Format the dollar amount.
         if trans.action != .add && trans.tempAction != .add {
-            trans.amountString = trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+            trans.amountString = trans.amount.currencyWithDecimals()
         }
                 
         /// Set a reference to the transactions ID so photos know where to go.

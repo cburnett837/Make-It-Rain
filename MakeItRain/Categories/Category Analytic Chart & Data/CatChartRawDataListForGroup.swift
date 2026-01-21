@@ -10,7 +10,7 @@ import SwiftUI
 import Charts
 
 struct CatChartRawDataListForGroup: View {
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     @Environment(CalendarModel.self) private var calModel
     @Environment(CategoryModel.self) private var catModel
     
@@ -36,8 +36,11 @@ struct CatChartRawDataListForGroup: View {
             }
         }
         .tint(Color.theme)
-        .navigationTitle("\(model.categoryGroup!.title) Data")
-        .navigationSubtitle("\(String(model.fetchYearStart)) - \(String(AppState.shared.todayYear))")
+        .navigationTitle(model.categoryGroup!.title)
+        .navigationSubtitle(model.displayedMetric.prettyValue)
+        
+        //.navigationTitle("\(model.categoryGroup!.title) \(model.displayedMetric.prettyValue)")
+        //.navigationSubtitle("\(String(model.fetchYearStart)) - \(String(AppState.shared.todayYear))")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -61,18 +64,19 @@ struct CatChartRawDataListForGroup: View {
         }
     }
     
+    
     @ViewBuilder
     func yearlySections(for year: Int, with data: Array<CategoryAnalyticData>) -> some View {
         ForEach(yearlyData) { yearly in
             Section(String(yearly.year)) {
                 ForEach(yearly.months) { monthly in
                     NavigationLink {
-                        monthlyCategories(monthlyData: monthly, year: year)
+                        monthlyCategories(monthlyData: monthly, year: yearly.year)
                     } label: {
                         HStack {
-                            Text("\(monthly.monthName) \(String(year))")
+                            Text("\(monthly.monthName) \(String(yearly.year))")
                             Spacer()
-                            //Text("\(monthly.expenses.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                            //Text("\(monthly.expenses.currencyWithDecimals())")
                             
                             let metricText = switch model.displayedMetric {
                             case .income: monthly.income
@@ -81,7 +85,7 @@ struct CatChartRawDataListForGroup: View {
                             case .expensesMinusIncome: monthly.expensesMinusIncome
                             }
                             
-                            Text(metricText.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                            Text(metricText.currencyWithDecimals())
                         }
                     }
                 }
@@ -110,8 +114,11 @@ struct CatChartRawDataListForGroup: View {
                 }
             }                        
         }
-        .navigationTitle("\(monthlyData.monthName) Data")
-        .navigationSubtitle(String(year))
+        .navigationTitle("\(monthlyData.monthName) \(String(year))")
+        .navigationSubtitle(model.displayedMetric.prettyValue)
+        
+        //.navigationTitle("\(monthlyData.monthName) \(model.displayedMetric.prettyValue)")
+        //.navigationSubtitle(String(year))
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -135,8 +142,8 @@ struct CatChartRawDataListForGroup: View {
                 }
                 
                 BarMark(
-                    x: .value("Category", data.category.title),
-                    y: .value("Amount", metricToDisplay),
+                    x: .value("Amount", metricToDisplay),
+                    y: .value("Category", data.category.title),                    
                 )
                 .foregroundStyle(data.category.color)
             }
@@ -196,7 +203,7 @@ struct CatChartRawDataListForGroup: View {
                                     .font(.subheadline)
                                 
                                 if metricToDisplay != 0 {
-                                    Text("\(metricToDisplay.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                                    Text("\(metricToDisplay.currencyWithDecimals())")
                                         .foregroundStyle(Color.secondary)
                                         .font(.caption2)
                                 } else {
@@ -204,7 +211,6 @@ struct CatChartRawDataListForGroup: View {
                                         .foregroundStyle(Color.secondary)
                                         .font(.caption2)
                                 }
-                            
                             }
                         }
                         .padding(.horizontal, 4)
@@ -242,7 +248,7 @@ struct CatChartRawDataListForGroup: View {
                 let data = data
                     .filter { $0.year == year && $0.date.month == month }
                     .sorted(by: {
-                        switch LocalStorage.shared.categorySortMode {
+                        switch AppSettings.shared.categorySortMode {
                         case .title:
                             return $0.category.title.lowercased() < $1.category.title.lowercased()
                         case .listOrder:

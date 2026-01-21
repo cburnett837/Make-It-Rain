@@ -110,7 +110,7 @@
 //    #endif
 //    @Local(\.transactionSortMode) var transactionSortMode
 //    @Local(\.categorySortMode) var categorySortMode
-//    @Local(\.useWholeNumbers) var useWholeNumbers
+//    
 //    //@Local(\.colorTheme) var colorTheme
 //
 //    @Environment(CalendarModel.self) private var calModel
@@ -483,7 +483,7 @@
 //        HStack {
 //            infoButtonLabel("Cumulative budget…")
 //            Spacer()
-//            Text(model.budget.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//            Text(model.budget.currencyWithDecimals())
 //                .contentTransition(.numericText())
 //        }
 //    }
@@ -492,7 +492,7 @@
 //        HStack {
 //            infoButtonLabel("Income…")
 //            Spacer()
-//            Text((model.income).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//            Text((model.income).currencyWithDecimals())
 //                .contentTransition(.numericText())
 //        }
 //    }
@@ -501,7 +501,7 @@
 //        HStack {
 //            infoButtonLabel("Cash out…")
 //            Spacer()
-//            Text((model.cashOut * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//            Text((model.cashOut * -1).currencyWithDecimals())
 //                .contentTransition(.numericText())
 //        }
 //    }
@@ -511,7 +511,7 @@
 //            infoButtonLabel("Total spending…")
 //                .bold()
 //            Spacer()
-//            Text((model.totalSpent * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//            Text((model.totalSpent * -1).currencyWithDecimals())
 //                .contentTransition(.numericText())
 //        }
 //    }
@@ -520,7 +520,7 @@
 //        HStack {
 //            infoButtonLabel("Spending minus payments…")
 //            Spacer()
-//            Text((model.spendMinusPayments * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//            Text((model.spendMinusPayments * -1).currencyWithDecimals())
 //                .contentTransition(.numericText())
 //        }
 //    }
@@ -531,7 +531,7 @@
 //            let isOver = amount < 0
 //            infoButtonLabel(isOver ? "You're over-budget by…" : "You're under-budget by…")
 //            Spacer()
-//            Text(abs(amount).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//            Text(abs(amount).currencyWithDecimals())
 //                .contentTransition(.numericText())
 //                .foregroundStyle(isOver ? .red : .green)
 //        }
@@ -679,11 +679,11 @@
 //    
 //    @ViewBuilder func sectionFooter(day: CBDay, dailyCount: Int, dailyTotal: Double) -> some View {
 //        HStack {
-//            Text("Cumulative Total: \((model.cumTotals.filter { $0.day == day.date!.day }.first?.total ?? 0.0).currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+//            Text("Cumulative Total: \((model.cumTotals.filter { $0.day == day.date!.day }.first?.total ?? 0.0).currencyWithDecimals())")
 //            
 //            Spacer()
 //            if dailyCount > 1 {
-//                Text(dailyTotal.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//                Text(dailyTotal.currencyWithDecimals())
 //            }
 //        }
 //    }
@@ -702,7 +702,7 @@
 //                    .foregroundStyle(metric.category.color)
 ////                    .annotation(position: .overlay, alignment: .center) {
 ////                        HStack {
-////                            Text(metric.budget.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+////                            Text(metric.budget.currencyWithDecimals())
 ////                                .font(.caption2)
 ////                            Spacer()
 ////                        }
@@ -715,7 +715,7 @@
 //                    .foregroundStyle(metric.category.color)
 ////                    .annotation(position: .overlay, alignment: .center) {
 ////                        HStack {
-////                            Text(metric.expenses.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+////                            Text(metric.expenses.currencyWithDecimals())
 ////                                .font(.caption2)
 ////
 ////                            Spacer()

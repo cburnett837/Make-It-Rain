@@ -10,7 +10,7 @@ import SwiftUI
 struct StartingAmountSheet: View {
     @Environment(\.layoutDirection) private var layoutDirection: LayoutDirection
     @Environment(\.dismiss) var dismiss
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     
     @Environment(CalendarModel.self) var calModel
     
@@ -102,7 +102,7 @@ struct StartingAmountSheet: View {
     
     
     struct StartingAmountLine: View {
-        @Local(\.useWholeNumbers) var useWholeNumbers
+        
         @Environment(\.layoutDirection) private var layoutDirection: LayoutDirection
         @Environment(CalendarModel.self) var calModel
         
@@ -130,7 +130,7 @@ struct StartingAmountSheet: View {
                                     let targetMonth = calModel.months.filter { $0.num == calModel.sMonth.num - 1 }.first!
                                     let _ = calModel.calculateTotal(for: targetMonth, using: payMethod)
                                     let eodTotal = targetMonth.days.last!.eodTotal
-                                    startingAmount.amountString = eodTotal.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                                    startingAmount.amountString = eodTotal.currencyWithDecimals()
                                 }
                             },
                             accessoryImage3: "plus.forwardslash.minus",
@@ -153,7 +153,7 @@ struct StartingAmountSheet: View {
                                     let targetMonth = calModel.months.filter { $0.num == calModel.sMonth.num - 1 }.first!
                                     let _ = calModel.calculateTotal(for: targetMonth, using: payMethod)
                                     let eodTotal = targetMonth.days.last!.eodTotal
-                                    startingAmount.amountString = eodTotal.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                                    startingAmount.amountString = eodTotal.currencyWithDecimals()
                                 }
                             }
                         }
@@ -180,7 +180,7 @@ struct StartingAmountSheet: View {
 //                            if startingAmount.amountString == "$" || startingAmount.amountString == "-$" {
 //                                startingAmount.amountString = ""
 //                            } else {
-//                                startingAmount.amountString = startingAmount.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+//                                startingAmount.amountString = startingAmount.amount.currencyWithDecimals()
 //                            }
 //                        }
 //                    }

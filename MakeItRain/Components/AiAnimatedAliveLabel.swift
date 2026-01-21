@@ -293,5 +293,6 @@ struct AiAnimatedAliveSymbol: View {
         Image(systemName: symbol)
             .foregroundStyle(gradient)
             .hueRotation(.degrees(hueShift))
+            //.font(.title)
     }
 }

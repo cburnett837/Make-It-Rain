@@ -316,7 +316,7 @@ struct PlaidTransactionOverlay: View {
     
     struct LineItem: View {
         //@Local(\.colorTheme) var colorTheme
-        @Local(\.useWholeNumbers) var useWholeNumbers
+        
 
         @Environment(CalendarModel.self) private var calModel
         @Environment(CategoryModel.self) private var catModel
@@ -342,7 +342,7 @@ struct PlaidTransactionOverlay: View {
                                 Text(trans.title.capitalized)
                                     .lineLimit(showExpandedTitle ? nil : 1)
                                 
-                                Text(trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                                Text(trans.amount.currencyWithDecimals())
                                     .foregroundStyle(.gray)
                                     .font(.footnote)
                                                                             

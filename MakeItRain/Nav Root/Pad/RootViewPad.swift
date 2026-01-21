@@ -88,7 +88,7 @@ struct RootViewPad: View {
                 PlaidTransactionOverlay(showInspector: $calProps.showInspector, navPath: $navPath)
                 
             case .multiSelectOptions:
-                MultiSelectTransactionOptionsSheet(showInspector: $calProps.showInspector)
+                MultiSelectTransactionOptionsSheet(showInspector: $calProps.showInspector, navPath: $navPath)
                 
             case .smartTransactionsWithIssues:
                 SmartTransactionsWithIssuesOverlay(showInspector: $calProps.showInspector)

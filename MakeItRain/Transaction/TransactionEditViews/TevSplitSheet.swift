@@ -17,7 +17,7 @@ struct TevSplitSheet: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     //@Local(\.colorTheme) var colorTheme
 
     
@@ -53,7 +53,7 @@ struct TevSplitSheet: View {
                 HStack{
                     Text("Original Total")
                     Spacer()
-                    Text(originalAmount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                    Text(originalAmount.currencyWithDecimals())
                 }
                      
                 TransactionLine(title: "Original Transaction", trans: trans, additionalTrans: $additionalTrans)
@@ -99,7 +99,7 @@ struct TevSplitSheet: View {
 //            VStack {
 //                VStack {
 //                    HStack {
-//                        Text("Original Total \(originalAmount.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+//                        Text("Original Total \(originalAmount.currencyWithDecimals())")
 //                        Spacer()
 //                    }
 //                    HStack {
@@ -140,7 +140,7 @@ struct TevSplitSheet: View {
         }
         .onChange(of: additionalTrans.map { $0.amount }) {
             let newAmount = originalAmount - $1.reduce(0, +)
-            trans.amountString = newAmount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+            trans.amountString = newAmount.currencyWithDecimals()
         }
     }
     
@@ -189,7 +189,7 @@ struct TevSplitSheet: View {
     
     var closeButton: some View {
         Button {
-            trans.amountString =  originalAmount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+            trans.amountString =  originalAmount.currencyWithDecimals()
             showSplitSheet = false
         } label: {
             //Image(systemName: isValidToSave ? "checkmark" : "xmark")
@@ -304,7 +304,7 @@ struct TevSplitSheet: View {
     
     
     struct AmountRow: View {
-        @Local(\.useWholeNumbers) var useWholeNumbers
+        
 
         @Bindable var trans: CBTransaction
         @FocusState private var focusedField: Int?

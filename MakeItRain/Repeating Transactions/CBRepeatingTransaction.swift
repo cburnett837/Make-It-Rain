@@ -285,8 +285,8 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         title = try container.decode(String.self, forKey: .title)
         
         let amount = try container.decode(Double.self, forKey: .amount)
-        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
-        self.amountString = amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        
+        self.amountString = amount.currencyWithDecimals()
         
         self.payMethod = try container.decode(CBPaymentMethod.self, forKey: .payment_method)
         self.payMethodPayTo = try container.decode(CBPaymentMethod?.self, forKey: .payment_method_pay_to)
@@ -432,8 +432,8 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         self.title = repTransaction.title
         self.color = repTransaction.color        
         
-        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
-        self.amountString = repTransaction.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        
+        self.amountString = repTransaction.amount.currencyWithDecimals()
         self.notes = repTransaction.notes
         self.payMethod = repTransaction.payMethod
         self.payMethodPayTo = repTransaction.payMethodPayTo

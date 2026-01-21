@@ -9,7 +9,7 @@ import SwiftUI
 
 struct StandardAmountTextField<T: CanEditAmount & Observation.Observable>: View {
     //@Local(\.colorTheme) var colorTheme
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     #if os(macOS)
     @Environment(CalendarModel.self) private var calModel
     #endif

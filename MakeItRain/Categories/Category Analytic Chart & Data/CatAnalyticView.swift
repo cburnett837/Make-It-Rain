@@ -9,7 +9,7 @@ import SwiftUI
 import Charts
 
 struct CatAnalyticView: View {
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     //@Local(\.colorTheme) var colorTheme
     @State private var chartVisibleYearCount: CategoryAnalyticChartRange = .year1
     //@AppStorage("monthlyCategoryAnalyticChartVisibleYearCount") var chartVisibleYearCount: CategoryAnalyticChartRange = .year1
@@ -97,7 +97,7 @@ struct CatAnalyticView: View {
                     
                     Spacer()
                     
-                    Text("\(model.visibleTotal.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                    Text("\(model.visibleTotal.currencyWithDecimals())")
                         .contentTransition(.numericText())
                 }
                                                 

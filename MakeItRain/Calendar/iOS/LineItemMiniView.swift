@@ -16,11 +16,8 @@ struct LineItemMiniView: View {
         
     @Bindable var trans: CBTransaction
     @Bindable var day: CBDay
-    var tightenUpEodTotals: Bool
     var lineItemIndicator: LineItemIndicator
     var phoneLineItemDisplayItem: PhoneLineItemDisplayItem
-    var incomeColor: String
-    var useWholeNumbers: Bool
             
     //@State private var transEditID: String?
     @State private var labelWidth: CGFloat = 20.0
@@ -29,9 +26,9 @@ struct LineItemMiniView: View {
     
     var amountColor: Color {
         if trans.payMethod?.accountType == .credit || trans.payMethod?.accountType == .loan {
-            trans.amount < 0 ? Color.fromName(incomeColor) : colorScheme == .dark ? .gray : .totalDarkGray
+            trans.amount < 0 ? AppSettings.shared.incomeColor : colorScheme == .dark ? .gray : .totalDarkGray
         } else {
-            trans.amount > 0 ? Color.fromName(incomeColor) : colorScheme == .dark ? .gray : .totalDarkGray
+            trans.amount > 0 ? AppSettings.shared.incomeColor : colorScheme == .dark ? .gray : .totalDarkGray
         }
     }
     
@@ -278,13 +275,13 @@ struct LineItemMiniView: View {
     
     var totalText: some View {
         Group {
-            if useWholeNumbers && tightenUpEodTotals {
+            if AppSettings.shared.useWholeNumbers && AppSettings.shared.tightenUpEodTotals {
                 Text(trans.amount.currencyWithDecimals(0).replacing("$", with: "").replacing(",", with: ""))
                 
-            } else if useWholeNumbers {
+            } else if AppSettings.shared.useWholeNumbers {
                 Text(trans.amount.currencyWithDecimals(0))
                 
-            } else if !useWholeNumbers && tightenUpEodTotals {
+            } else if !AppSettings.shared.useWholeNumbers && AppSettings.shared.tightenUpEodTotals {
                 Text(trans.amount.currencyWithDecimals(2).replacing("$", with: "").replacing(",", with: ""))
                 
             } else {
@@ -312,10 +309,22 @@ struct LineItemMiniView: View {
         //if calModel.editLock { return }
                         
         if calModel.isInMultiSelectMode {
+            
             if calModel.multiSelectTransactions.map({ $0.id }).contains(trans.id) {
                 calModel.multiSelectTransactions.removeAll { $0.id == trans.id }
+                
+                /// See if the transaction has a related record and remove it if so.
+                if let relatedId = trans.relatedTransactionID {
+                    calModel.multiSelectTransactions.removeAll { $0.id == relatedId }
+                }
             } else {
                 calModel.multiSelectTransactions.append(trans)
+                
+                /// See if the transaction has a related record and add it if so.
+                if let relatedId = trans.relatedTransactionID {
+                    let relatedTrans = calModel.getTransaction(by: relatedId)
+                    calModel.multiSelectTransactions.append(relatedTrans)
+                }
             }
         } else {
             //calModel.hilightTrans = trans

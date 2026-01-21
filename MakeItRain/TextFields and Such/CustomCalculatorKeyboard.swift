@@ -16,7 +16,7 @@ import SwiftUI
 
 #if os(iOS)
 struct CustomCalculatorKeyboard: View {
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     @Binding var text: String
     
     @State private var tokens: [CalcToken] = []
@@ -35,7 +35,7 @@ struct CustomCalculatorKeyboard: View {
             ForEach(1...3, id: \.self) { buttonView("\($0)") }
             buttonView(type: .subtract)
                 
-            useWholeNumbers ? buttonView(type: .posNeg) : buttonView(type: .decimalPoint)
+            AppSettings.shared.useWholeNumbers ? buttonView(type: .posNeg) : buttonView(type: .decimalPoint)
             buttonView("0")
             buttonView(type: .delete)
             buttonView(type: .add)
@@ -54,7 +54,8 @@ struct CustomCalculatorKeyboard: View {
             commitCurrentNumber()
 
             if let result = CalculatorEngine.evaluate(tokens: tokens) {
-                text = format(result)
+                text = result
+                //text = format(result)
                 tokens = [.number(result)]
             }
         }
@@ -71,8 +72,35 @@ struct CustomCalculatorKeyboard: View {
             case .delete:
                 if !currentNumber.isEmpty {
                     currentNumber.removeLast()
+                    
                 } else if !tokens.isEmpty {
-                    tokens.removeLast()
+                    /// If the token is a number
+                    if case .number(var num) = tokens.last {
+                        //var canRemove = true
+                        
+                        /// Check the last 2 of the number to see if it's a decimal and a number. Remove them accordingly
+                        //let lastTwo = num.suffix(2)
+                        num.removeLast()
+//                        if lastTwo.first == "." && lastTwo.last != "." {
+//                            num.removeLast()
+//                            num.removeLast(AppSettings.shared.useWholeNumbers ? 2 : 1)
+//                            canRemove = false
+//                        }
+//                        
+//                        if canRemove {
+//                            num.removeLast()
+//                        }
+                        
+                        if num.isEmpty {
+                            tokens.removeLast()
+                        } else {
+                            tokens[tokens.count - 1] = .number(num)
+                        }
+                                                
+                    } else {
+                        /// Remove the operation.
+                        tokens.removeLast()
+                    }
                 }
                 
             case .decimalPoint:
@@ -113,17 +141,20 @@ struct CustomCalculatorKeyboard: View {
     
     func commitCurrentNumber() {
         let process: String = currentNumber.replacing("$", with: "")
-        guard let value = Double(process) else { return }
-        tokens.append(.number(value))
+        guard let _ = Double(process) else { return }
+        //tokens.append(.number(value))
+        tokens.append(.number(process))
         currentNumber = ""
     }
 
     
     func updateText() {
+        //print(tokens)
         var display = tokens.map {
             switch $0 {
             case .number(let n):
-                return format(n)
+                return n
+                //return format(n)
                 
             case .op(let op):
                 return switch op {
@@ -134,7 +165,9 @@ struct CustomCalculatorKeyboard: View {
                 }
             }
         }.joined(separator: " ")
-
+        
+        //print("The display is \(display)")
+        
         if !currentNumber.isEmpty {
             display += display.isEmpty ? currentNumber : " \(currentNumber)"
         }
@@ -144,7 +177,7 @@ struct CustomCalculatorKeyboard: View {
 
     
     func format(_ value: Double) -> String {
-        useWholeNumbers ? String(Int(value)) : String(value)
+        AppSettings.shared.useWholeNumbers ? String(Int(value)) : String(value)
     }
 }
 
@@ -195,8 +228,9 @@ struct CustomCalculatorButtonStyle: ButtonStyle {
     }
 }
 
+
 enum CalcToken: Equatable {
-    case number(Double)
+    case number(String)
     case op(Operator)
 
     enum Operator {
@@ -204,25 +238,32 @@ enum CalcToken: Equatable {
     }
 }
 
+
 struct CalculatorEngine {
-    static func evaluate(tokens: [CalcToken]) -> Double? {
+    static func evaluate(tokens: [CalcToken]) -> String? {
+        /// `stack` will get replaced as the below loop runs
         var stack = tokens
 
         func apply(_ ops: [CalcToken.Operator]) {
             var index = 0
+            
+            /// Loop through each token.
             while index < stack.count {
                 guard
-                    case .op(let op) = stack[index],
-                    ops.contains(op),
-                    index > 0,
-                    index < stack.count - 1,
-                    case .number(let lhs) = stack[index - 1],
-                    case .number(let rhs) = stack[index + 1]
+                    case .op(let op) = stack[index], /// ...The current token is an operation (not a number).
+                    ops.contains(op), /// ...The current token is one of the passed in operations..
+                    index > 0, /// ...It's not the first loop.
+                    index < stack.count - 1, /// ...It's not the last loop.
+                    case .number(let lhsString) = stack[index - 1], /// ...The token before this loop is a number.
+                    case .number(let rhsString) = stack[index + 1], /// ...The token after this loop is a number.
+                    let lhs = Double(lhsString),
+                    let rhs = Double(rhsString)
                 else {
                     index += 1
                     continue
                 }
 
+                /// Perform the calculation.
                 let result: Double
                 switch op {
                 case .add:       result = lhs + rhs
@@ -230,17 +271,29 @@ struct CalculatorEngine {
                 case .multiply:  result = lhs * rhs
                 case .divide:    result = rhs == 0 ? 0 : lhs / rhs
                 }
-
-                stack.replaceSubrange((index - 1)...(index + 1), with: [.number(result)])
+                
+                
+                let finalResult = AppSettings.shared.useWholeNumbers ? String(Int(result)) : String(result)
+                
+                /// Replace both numbers adjacent of the operation, and the operation itself with the calculated number.
+                stack.replaceSubrange((index - 1)...(index + 1), with: [.number(finalResult)])
                 index = max(index - 1, 0)
             }
         }
-
+        
+        /// Perform order of operations (PEMDAS)
         apply([.multiply, .divide])
         apply([.add, .subtract])
 
+        /// At this point, the stack should just be the calculated number.
         if case .number(let value) = stack.first {
-            return value
+            
+            if value.first == "-" {
+                let returnValue = value.replacing("-", with: "")
+                return "-$\(returnValue)"
+            } else {
+                return "$\(value)"
+            }            
         }
         return nil
     }

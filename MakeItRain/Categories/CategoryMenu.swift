@@ -9,11 +9,8 @@ import SwiftUI
 
 struct CategoryMenu<Content: View>: View {
     @Local(\.lineItemIndicator) var lineItemIndicator
-    @Local(\.categorySortMode) var categorySortMode
-
     
     @Environment(CalendarModel.self) private var calModel
-    
     @Environment(CategoryModel.self) private var catModel
     
     @Binding var category: CBCategory?

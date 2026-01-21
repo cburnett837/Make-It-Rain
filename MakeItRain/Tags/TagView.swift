@@ -30,8 +30,10 @@ struct TagView: View {
         var returnTags: [CBTag] = []
         let allTags = calModel.tags.sorted(by: { $0.tag < $1.tag })
         let transTags = trans.tags
+        print(allTags)
         
         for each in allTags {
+            print(each.tag)
             tags.append(each)
             if !each.isHidden {
                 returnTags.append(each)
@@ -204,6 +206,7 @@ struct TagView: View {
         .focused($focusedField, equals: 0)
         
     }
+    
     
     var tagGrid: some View {
         TagLayout(alignment: .leading, spacing: 10) {

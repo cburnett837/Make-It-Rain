@@ -15,10 +15,7 @@ import SwiftUI
 
 struct PayMethodsTable: View {
     @Local(\.useBusinessLogos) var useBusinessLogos
-    @Local(\.useWholeNumbers) var useWholeNumbers
-    @Local(\.paymentMethodSortMode) var paymentMethodSortMode
-    @Local(\.paymentMethodFilterMode) var paymentMethodFilterMode
-    @AppStorage("paymentMethodTableColumnOrder") private var columnCustomization: TableColumnCustomization<CBPaymentMethod>    
+    @AppStorage("paymentMethodTableColumnOrder") private var columnCustomization: TableColumnCustomization<CBPaymentMethod>
     
     @Environment(\.dismiss) var dismiss
     @Environment(FuncModel.self) var funcModel
@@ -89,7 +86,7 @@ struct PayMethodsTable: View {
         /// Update when the user searches.
         hasher.combine(searchText)
         /// Update the sheet if viewing and something changes on another device.
-        hasher.combine(payModel.paymentMethods.filter { !$0.isHidden && !$0.isPrivate}.count)
+        hasher.combine(payModel.paymentMethods.filter { !$0.isHidden && !$0.isPrivate }.count)
         /// Update when a new payment method gets added or deleted.
         hasher.combine(payModel.paymentMethods.count)
         /// Update when the list order changes via long poll.
@@ -114,7 +111,6 @@ struct PayMethodsTable: View {
                         } else {
                             padList
                         }
-                        
                     }
                     #endif
                 } else {
@@ -133,11 +129,10 @@ struct PayMethodsTable: View {
             .id(payModel.fuckYouSwiftuiTableRefreshID)
             #endif
             .navigationBarBackButtonHidden(true)
-            .onChange(of: paymentMethodFilterMode) { populateSections() }
             .task {
                 defaultViewingMethod = payModel.paymentMethods.filter { $0.isViewingDefault }.first
                 defaultEditingMethod = payModel.paymentMethods.filter { $0.isEditingDefault }.first
-                /// NOTE: Sorting must be done here and not in the computed property. If done in the computed property, when reording, they get all messed up.
+                /// NOTE: Sorting must be done here and not in the computed property. If done in the computed property, when reordering, they get all messed up.
                 payModel.paymentMethods.sort(by: Helpers.paymentMethodSorter())
                 populateSections()
             }
@@ -159,10 +154,10 @@ struct PayMethodsTable: View {
                     $0.breakdownsRegardlessOfPaymentMethod.removeAll()
                 }
             }
+            .onChange(of: AppSettings.shared.paymentMethodFilterMode) { populateSections() }
+            .onChange(of: AppSettings.shared.paymentMethodSortMode) { populateSections() }
             .onChange(of: somethingChanged) { populateSections() }
-            .onChange(of: sortOrder) { _, sortOrder in
-                payModel.paymentMethods.sort(using: sortOrder)
-            }
+            .onChange(of: sortOrder) { payModel.paymentMethods.sort(using: $1) }
 //            .sheet(item: $editPaymentMethod, onDismiss: {
 //                paymentMethodEditID = nil
 //                payModel.determineIfUserIsRequiredToAddPaymentMethod()
@@ -198,7 +193,7 @@ struct PayMethodsTable: View {
                     #endif
             }
             .sheet(isPresented: $showDefaultEditingSheet, onDismiss: setDefaultEditingMethod) {
-                PayMethodSheet(payMethod: $defaultEditingMethod, whichPaymentMethods: .allExceptUnified)
+                PayMethodSheet(payMethod: $defaultEditingMethod, whichPaymentMethods: .allExceptUnified, showNoneOption: true)
                     #if os(macOS)
                     .frame(minWidth: 300, minHeight: 500)
                     .presentationSizing(.fitted)
@@ -272,7 +267,7 @@ struct PayMethodsTable: View {
             
             TableColumn("Limit", value: \.limit.specialDefaultIfNil) { meth in
                 if meth.accountType == .credit {
-                    Text(meth.limit?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-")
+                    Text(meth.limit?.currencyWithDecimals() ?? "-")
                 } else {
                     Text("-")
                 }
@@ -432,10 +427,11 @@ struct PayMethodsTable: View {
                 Section(section.kind.rawValue) {
                     ForEach(section.payMethods) { meth in
                         NavigationLink(value: meth) {
+                            //Text("\(String(meth.recentTransactionCount))")
                             line(for: meth)
                         }
                     }
-                    .if(paymentMethodSortMode == .listOrder) {
+                    .if(AppSettings.shared.paymentMethodSortMode == .listOrder) {
                         $0.onMove { indices, newOffset in
                             // Move within this section only
                             section.payMethods.move(fromOffsets: indices, toOffset: newOffset)
@@ -464,7 +460,7 @@ struct PayMethodsTable: View {
                     ForEach(section.payMethods) { meth in
                         line(for: meth)
                     }
-                    .if(paymentMethodSortMode == .listOrder) {
+                    .if(AppSettings.shared.paymentMethodSortMode == .listOrder) {
                         $0.onMove { indices, newOffset in
                             // Move within this section only
                             section.payMethods.move(fromOffsets: indices, toOffset: newOffset)
@@ -490,10 +486,10 @@ struct PayMethodsTable: View {
                         Spacer()
                         
                         if meth.isDebitOrCash {
-                            Text("\(funcModel.getPlaidDebitSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                            Text("\(funcModel.getPlaidDebitSums().currencyWithDecimals())")
                             
                         } else if meth.isCreditOrLoan {
-                            Text("\(funcModel.getPlaidCreditSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                            Text("\(funcModel.getPlaidCreditSums().currencyWithDecimals())")
                         }
                     }
                     
@@ -529,7 +525,7 @@ struct PayMethodsTable: View {
                         Spacer()
                         
                         if let balance = plaidModel.balances.filter({ $0.payMethodID == meth.id }).first {
-                            Text(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                            Text(balance.amount.currencyWithDecimals())
                         }
                     }
                     
@@ -739,19 +735,22 @@ struct PayMethodsTable: View {
     
     func setDefaultEditingMethod() {
         print("-- \(#function)")
-        if let defaultEditingMethod = defaultEditingMethod {
-            if let currentDefaultID = payModel.paymentMethods.filter({ $0.isEditingDefault }).first?.id {
-                if currentDefaultID != defaultEditingMethod.id {
-                    defaultEditingMethod.isEditingDefault = true
-                    Task { await payModel.setDefaultEditing(defaultEditingMethod) }
-                }
-            } else {
-                defaultEditingMethod.isEditingDefault = true
-                Task { await payModel.setDefaultEditing(defaultEditingMethod) }
-            }
-        } else {
-            print("not set")
-        }
+        Task { await payModel.setDefaultEditing(defaultViewingMethod) }
+        
+        
+//        if let defaultEditingMethod = defaultEditingMethod {
+//            if let currentDefaultID = payModel.paymentMethods.filter({ $0.isEditingDefault }).first?.id {
+//                if currentDefaultID != defaultEditingMethod.id {
+//                    defaultEditingMethod.isEditingDefault = true
+//                    Task { await payModel.setDefaultEditing(defaultEditingMethod) }
+//                }
+//            } else {
+//                defaultEditingMethod.isEditingDefault = true
+//                Task { await payModel.setDefaultEditing(defaultEditingMethod) }
+//            }
+//        } else {
+//            print("not set")
+//        }
     }
     
 //    func move(from source: IndexSet, to destination: Int) {
@@ -852,7 +851,7 @@ struct PayMethodsTable: View {
 //}
 //
 //struct CardView: View {
-//    @Local(\.useWholeNumbers) var useWholeNumbers
+//    
 //    
 //    var meth: CBPaymentMethod
 //    var body: some View {
@@ -884,7 +883,7 @@ struct PayMethodsTable: View {
 //                    
 //                    if meth.accountType == .credit {
 //                        Group {
-//                            Text("Limit of \(meth.limit?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-")")
+//                            Text("Limit of \(meth.limit?.currencyWithDecimals() ?? "-")")
 //                            Text("Due on the \(meth.dueDate?.withOrdinal() ?? "N/A")")
 //                            if meth.notifyOnDueDate {
 //                                let text = meth.notificationOffset == 0 ? "on day of" : (meth.notificationOffset == 1 ? "the day before" : "2 days before")

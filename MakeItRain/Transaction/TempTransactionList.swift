@@ -45,7 +45,7 @@ struct TempTransactionList: View {
                     ContentUnavailableView("Problem Connecting To Server", systemImage: "network.slash", description: Text("You can add transactions here, and they will attempt to sync the next time you open the app."))
                 } else {
                     List(filteredTransactions, selection: $transEditID) { trans in
-                        TransactionListLine(trans: trans, withDate: true)
+                        TransactionListLine(trans: trans, withDate: true) {}
                     }
                 }
             }

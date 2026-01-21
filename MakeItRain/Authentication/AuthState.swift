@@ -77,7 +77,7 @@ class AuthState {
                         
                         let userData = try JSONEncoder().encode(model.user)
                         UserDefaults.standard.set(userData, forKey: "user")
-                        AppSettings.shared.setFromAnotherInstance(setting: model.settings)
+                        //AppSettings.shared.setFromAnotherInstance(setting: model.settings)
                         AppState.shared.user = model.user
                         AppState.shared.accountUsers = model.accountUsers
                         AppState.shared.methsExist = model.hasPaymentMethodsExisiting

@@ -10,28 +10,26 @@ import SwiftUI
 import WebKit
 import PDFKit
 
-
-fileprivate let fileWidth: CGFloat = 125
-fileprivate let fileHeight: CGFloat = 250
-fileprivate let symbolWidth: CGFloat = 26
-
-
 struct CustomAsyncCsv: View {
     var file: CBFile
     var displayStyle: FileSectionDisplayStyle
+    var useDefaultFrame: Bool = true
     
     @State private var page = WebPage()
     
     var body: some View {
         Group {
             if page.isLoading {
-                LoadingPlaceholder(text: "Downloading…", displayStyle: displayStyle)
+                LoadingPlaceholder(text: "Downloading…", displayStyle: displayStyle, useDefaultFrame: useDefaultFrame)
             } else {
                 WebView(page)
             }
         }
-        .frame(width: fileWidth, height: fileHeight)
-        .clipShape(.rect(cornerRadius: 14))
+        .if(useDefaultFrame) {
+            $0
+            .frame(width: 125, height: 250)
+            .clipShape(.rect(cornerRadius: 14))
+        }
         .task {
             let requestModel = RequestModel(
                 requestType: "download_file",

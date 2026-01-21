@@ -10,13 +10,10 @@ import SwiftUI
 import WebKit
 import PDFKit
 
-fileprivate let fileWidth: CGFloat = 125
-fileprivate let fileHeight: CGFloat = 250
-fileprivate let symbolWidth: CGFloat = 26
-
 struct LoadingPlaceholder: View {
     let text: String
     var displayStyle: FileSectionDisplayStyle
+    var useDefaultFrame: Bool = true
     
     var body: some View {
         Group {
@@ -24,7 +21,11 @@ struct LoadingPlaceholder: View {
             case .standard:
                 RoundedRectangle(cornerRadius: 14)
                     .fill(Color.gray.opacity(0.1))
-                    .frame(width: fileWidth, height: fileHeight)
+                    .if(useDefaultFrame) {
+                        $0
+                        .frame(width: 125, height: 250)
+                    }
+                
             case .grid:
                 RoundedRectangle(cornerRadius: 14)
                     .fill(Color.gray.opacity(0.1))
@@ -32,11 +33,10 @@ struct LoadingPlaceholder: View {
             }
         }
         .overlay {
-            VStack {
-                ProgressView()
-                    .tint(.none)
+            ProgressView() {
                 Text(text)
             }
+            .tint(.none)
         }
     }
 }

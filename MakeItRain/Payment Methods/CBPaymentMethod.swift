@@ -39,7 +39,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     var active: Bool
     var action: PaymentMethodAction
     
-    var notificationOffset: Int? = 0
+    var notificationOffset: Int = 0
     var notifyOnDueDate: Bool = false
     var last4: String?
     var logo: Data?
@@ -95,6 +95,9 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     
     var maxEod: Double { Double(maxEodString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
     var maxEodString: String = ""
+    
+    
+    var recentTransactionCount: Int = 0
     
     
     // MARK: - View Helper Variables
@@ -212,8 +215,8 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         self.title = entity.title ?? ""
         self.dueDateString = String(entity.dueDate)
         
-        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
-        self.limitString = entity.limit.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        
+        self.limitString = entity.limit.currencyWithDecimals()
         
         self.accountType = AccountType(rawValue: Int(entity.accountType)) ?? .checking
         self.color = Color.fromHex(entity.hexCode) ?? .clear
@@ -262,6 +265,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         //self.logo = entity.logo?.photoData
         
         self.listOrder = Int(entity.listOrder)
+        self.recentTransactionCount = Int(entity.recentTransactionCount)
         
         
         /// Fetch the logo from core data and store it in the image cache.
@@ -301,7 +305,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     /// If the method goes from private to public, update the starting amount records so the long poll will push them to other users on the account.
     var viewingYear: Int?
     
-    enum CodingKeys: CodingKey { case id, uuid, title, due_date, limit, account_type_id, hex_code, is_viewing_default, is_editing_default, active, user_id, account_id, device_uuid, notification_offset, notify_on_due_date, last_4_digits, entered_by, updated_by, entered_date, updated_date, breakdowns, interest_rate, loan_duration, is_hidden, is_private, logo, list_order, viewing_year, holder_one, holder_two, holder_three, holder_four, holder_one_type_id, holder_two_type_id, holder_three_type_id, holder_four_type_id }
+    enum CodingKeys: CodingKey { case id, uuid, title, due_date, limit, account_type_id, hex_code, is_viewing_default, is_editing_default, active, user_id, account_id, device_uuid, notification_offset, notify_on_due_date, last_4_digits, entered_by, updated_by, entered_date, updated_date, breakdowns, interest_rate, loan_duration, is_hidden, is_private, logo, list_order, viewing_year, holder_one, holder_two, holder_three, holder_four, holder_one_type_id, holder_two_type_id, holder_three_type_id, holder_four_type_id, transaction_count }
     
     
     func encode(to encoder: Encoder) throws {
@@ -368,8 +372,8 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         self.dueDateString = String(dueDate ?? 0)
         
         let limit = try container.decode(Double?.self, forKey: .limit)
-        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
-        self.limitString = limit?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        
+        self.limitString = limit?.currencyWithDecimals()
         
         let accountType = try container.decode(Int.self, forKey: .account_type_id)
         self.accountType = AccountType(rawValue: accountType) ?? .checking
@@ -396,11 +400,19 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         let isActive = try container.decode(Int?.self, forKey: .active)
         self.active = isActive == 1
         
+//        let offset = try container.decode(Int?.self, forKey: .notification_offset)
+//        if offset == nil {
+//            self.notificationOffset = 0
+//        } else {
+//            self.notificationOffset = offset
+//        }
+        
+        
         let offset = try container.decode(Int?.self, forKey: .notification_offset)
-        if offset == nil {
-            self.notificationOffset = 0
-        } else {
+        if let offset {
             self.notificationOffset = offset
+        } else {
+            self.notificationOffset = 0
         }
         
         let notifyOnDueDate = try container.decode(Int?.self, forKey: .notify_on_due_date)
@@ -473,6 +485,8 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         
         
         listOrder = try container.decode(Int?.self, forKey: .list_order)
+        
+        recentTransactionCount = try container.decodeIfPresent(Int.self, forKey: .transaction_count) ?? 0
     }
     
     
@@ -592,8 +606,8 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         self.title = payMethod.title
         self.dueDateString = payMethod.dueDateString
         
-        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
-        self.limitString = payMethod.limit?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        
+        self.limitString = payMethod.limit?.currencyWithDecimals()
         
         self.accountType = payMethod.accountType
         self.color = payMethod.color
@@ -622,6 +636,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         self.holderTwoType = payMethod.holderTwoType
         self.holderThreeType = payMethod.holderThreeType
         self.holderFourType = payMethod.holderFourType
+        self.recentTransactionCount = payMethod.recentTransactionCount
     }
             
     

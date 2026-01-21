@@ -30,6 +30,7 @@ class AppState {
     
     var deviceUUID: String?
     var notificationToken: String?
+    var unreadToasts: Array<String> = []
     
     //var keyboardHeight: CGFloat = 0
     //var showKeyboardToolbar = false

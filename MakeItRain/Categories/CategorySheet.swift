@@ -10,12 +10,7 @@ import SwiftUI
 struct CategorySheet: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) private var colorScheme
-
-    //@Local(\.lineItemIndicator) var lineItemIndicator
-    @Local(\.categorySortMode) var categorySortMode
-    
-    @Environment(CalendarModel.self) private var calModel
-    
+    @Environment(CalendarModel.self) private var calModel    
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
     
@@ -87,9 +82,9 @@ struct CategorySheet: View {
                     ContentUnavailableView("No categories found", systemImage: "exclamationmark.magnifyingglass")
                 } else {
                     StandardContainerWithToolbar(.list) {
-                        if showMyCategories { yourCategoriesSection }
-                        if showHiddenCategories { hiddenCategoriesSections }
-                        if showSpecialCategories { specialCategoriesSections }
+                        if showMyCategories && !filteredCategories.isEmpty { yourCategoriesSection }
+                        if showHiddenCategories && !filteredHiddenCategories.isEmpty { hiddenCategoriesSections }
+                        if showSpecialCategories && !filteredSpecialCategories.isEmpty { specialCategoriesSections }
                         if searchText.isEmpty { noneSection }
                     }
                 }

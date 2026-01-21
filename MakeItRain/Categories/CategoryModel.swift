@@ -138,7 +138,12 @@ class CategoryModel {
                         }
                         /// Handle special categories (Like the christmas budget)
                         else {
-                            if let index = month.budgets.firstIndex(where: { $0.category?.id == category.id }) {
+                            //print("HERE!!!!")
+//                            if let index = month.budgets.firstIndex(where: { $0.category?.id == category.id }) {
+//                                calModel.appSuiteBudgets[index].category = category
+//                            }
+                            
+                            if let index = calModel.appSuiteBudgets.firstIndex(where: { $0.category?.id == category.id }) {
                                 calModel.appSuiteBudgets[index].category = category
                             }
                         }
@@ -319,6 +324,7 @@ class CategoryModel {
         //let action = "edit"
         let action = action.rawValue
         //let isPending = isPending
+        let isHidden = category.isHidden
         let typeID = Int64(category.type.id)
         let listOrder = Int64(category.listOrder ?? 0)
         let isNil = category.isNil
@@ -347,6 +353,7 @@ class CategoryModel {
             entity.emoji = emoji
             entity.action = action
             entity.isPending = isPending
+            entity.isHidden = isHidden
             entity.typeID = typeID
             entity.listOrder = listOrder
             entity.isNil = isNil
@@ -478,6 +485,7 @@ class CategoryModel {
                 emoji: cat.emoji ?? "",
                 action: cat.action.rawValue,
                 isPending: false,
+                isHidden: cat.isHidden,
                 typeID: Int64(cat.type.id),
                 listOrder: Int64(cat.listOrder ?? 0),
                 isNil: cat.isNil,
@@ -531,6 +539,7 @@ class CategoryModel {
                 catEntity.emoji = cat.emoji
                 catEntity.action = cat.action
                 catEntity.isPending = cat.isPending
+                catEntity.isHidden = cat.isHidden
                 catEntity.typeID = cat.typeID
                 catEntity.listOrder = cat.listOrder
                 catEntity.isNil = cat.isNil
@@ -1011,7 +1020,7 @@ class CategoryModel {
         var updates: Array<ListOrderUpdate> = []
         var index = 1
         
-        for category in self.categories.filter({ !$0.isNil }) {
+        for category in self.categories.filter({ !$0.isNil && $0.appSuiteKey == nil }) {
             print("New list order \(category.title) - \(index)")
                             
             category.listOrder = index

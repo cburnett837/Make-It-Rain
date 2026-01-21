@@ -14,7 +14,7 @@ import MapKit
 
 struct BabyTransEditView: View {
     @Local(\.lineItemIndicator) var lineItemIndicator
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     
     @AppStorage("transactionTitleSuggestionType") var transactionTitleSuggestionType: TitleSuggestionType = .location
 
@@ -279,7 +279,7 @@ struct BabyTransEditView: View {
                 
         /// Format the dollar amount.
         if trans.action != .add || trans.tempAction != .add {
-            trans.amountString = trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+            trans.amountString = trans.amount.currencyWithDecimals()
         }
                 
         /// Set a reference to the transactions ID so photos know where to go.

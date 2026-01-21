@@ -56,7 +56,7 @@ struct Helpers {
     }
     
     static func formatCurrency(focusValue: Int, oldFocus: Int?, newFocus: Int?, amountString: String?, amount: Double?) -> String? {
-        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
+        
         
         //let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
         
@@ -65,18 +65,18 @@ struct Helpers {
                 return ""
             } else {
                 //return amountString
-                return amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                return amount?.currencyWithDecimals()
             }
         } else {
             if oldFocus == focusValue && !(amountString ?? "").isEmpty {
                 if amountString == "$" || amountString == "-$" {
                     return ""
                 } else {
-                    return amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                    return amount?.currencyWithDecimals()
                 }
             } else {
                 //return amountString
-                return amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                return amount?.currencyWithDecimals()
             }
         }
     }
@@ -128,11 +128,12 @@ struct Helpers {
         heading = heading + "\n"
         
         /// File rows
-        let preparedRows = rows.map {
-            $0.joined(separator: ",")
+        let preparedRows = rows.map { row in
+            row.map { csvEscape($0) }.joined(separator: ",")
+            //$0.joined(separator: ",")
         }
         
-        // rows to string data
+        /// Rows to string data
         let stringData = heading + preparedRows.joined(separator: "\n")
         
         do {
@@ -140,7 +141,7 @@ struct Helpers {
             
             fileURL = path.appendingPathComponent("\(fileName).csv")
             
-            /// append string data to file
+            /// Append string data to file
             try stringData.write(to: fileURL, atomically: true , encoding: .utf8)
             
         } catch {
@@ -148,6 +149,16 @@ struct Helpers {
         }
         
         return fileURL
+    }
+    
+    private static func csvEscape(_ value: String) -> String {
+        var escaped = value.replacingOccurrences(of: "\"", with: "\"\"")
+
+        if escaped.contains(",") || escaped.contains("\n") || escaped.contains("\r") {
+            escaped = "\"\(escaped)\""
+        }
+
+        return escaped
     }
     
     
@@ -163,7 +174,7 @@ struct Helpers {
     
     static func categorySorter() -> (CBCategory, CBCategory) -> Bool {
         return {
-            switch LocalStorage.shared.categorySortMode {
+            switch AppSettings.shared.categorySortMode {
             case .title:
                 return $0.title.lowercased() < $1.title.lowercased()
             case .listOrder:
@@ -194,7 +205,7 @@ struct Helpers {
     static func budgetSorter() -> (CBBudget, CBBudget) -> Bool {
         //let sortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
         return {
-            switch LocalStorage.shared.categorySortMode {
+            switch AppSettings.shared.categorySortMode {
             case .title:
                 return ($0.category?.title ?? "").lowercased() < ($1.category?.title ?? "").lowercased()
             case .listOrder:
@@ -206,7 +217,7 @@ struct Helpers {
     static func paymentMethodSorter() -> (CBPaymentMethod, CBPaymentMethod) -> Bool {
         //let sortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "paymentMethodSortMode") ?? "")
         return {
-            switch LocalStorage.shared.paymentMethodSortMode {
+            switch AppSettings.shared.paymentMethodSortMode {
             case .title:
                 return $0.title.lowercased() < $1.title.lowercased()
             case .listOrder:
@@ -220,14 +231,14 @@ struct Helpers {
         //let categorySortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
         
         return {
-            if LocalStorage.shared.transactionSortMode == .title {
+            if AppSettings.shared.transactionSortMode == .title {
                 return $0.title < $1.title
                 
-            } else if LocalStorage.shared.transactionSortMode == .enteredDate {
+            } else if AppSettings.shared.transactionSortMode == .enteredDate {
                 return $0.enteredDate < $1.enteredDate
                 
             } else {                
-                switch LocalStorage.shared.categorySortMode {
+                switch AppSettings.shared.categorySortMode {
                 case .title:
                     return ($0.category?.title ?? "").lowercased() < ($1.category?.title ?? "").lowercased()
                 case .listOrder:

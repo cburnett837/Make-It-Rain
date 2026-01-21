@@ -25,7 +25,7 @@
 //        case year5 = 5
 //    }
 //    @Local(\.incomeColor) var incomeColor
-//    @Local(\.useWholeNumbers) var useWholeNumbers
+//    
 //    @AppStorage("selectedPaymentMethodTab") var selectedTab: DetailsOrInsights = .details
 //    @AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false
 //
@@ -279,7 +279,7 @@
 //                    Text(payMethod.title)
 //                    if let balance = plaidModel.balances.filter({ $0.payMethodID == payMethod.id }).first {
 //                        Divider()
-//                        Text(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//                        Text(balance.amount.currencyWithDecimals())
 //                    }
 //                }
 //                .font(.largeTitle)
@@ -368,7 +368,7 @@
 //                HStack {
 //                    VStack(alignment: .leading) {
 //                        if let balance = plaidModel.balances.filter({ $0.payMethodID == payMethod.id }).first {
-//                            Text(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//                            Text(balance.amount.currencyWithDecimals())
 //                                .bold()
 //                        }
 //                        
@@ -1308,7 +1308,7 @@
 //        
 //        payMethod.deepCopy(.create)
 //        /// Just for formatting.
-//        payMethod.limitString = payMethod.limit?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+//        payMethod.limitString = payMethod.limit?.currencyWithDecimals()
 //        payMethod.dueDateString = (payMethod.dueDate ?? 0).withOrdinal()
 //        payModel.upsert(payMethod)
 //        

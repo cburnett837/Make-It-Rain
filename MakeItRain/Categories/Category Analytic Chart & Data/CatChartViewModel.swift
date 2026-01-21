@@ -9,6 +9,13 @@
 import SwiftUI
 import Charts
 
+extension Date {
+    func monthKey(using calendar: Calendar = .current) -> Date {
+        calendar.date(from: calendar.dateComponents([.year, .month], from: self))!
+    }
+}
+
+
 @Observable
 class CatChartViewModel {
     var fetchYearStart = AppState.shared.todayYear - 10
@@ -67,7 +74,7 @@ class CatChartViewModel {
         return data
             .filter { years.contains($0.year) }
             .sorted(by: {
-                switch LocalStorage.shared.categorySortMode {
+                switch AppSettings.shared.categorySortMode {
                 case .title:
                     return $0.category.title.lowercased() > $1.category.title.lowercased()
                 case .listOrder:
@@ -158,16 +165,47 @@ class CatChartViewModel {
 //    }
     
     var average: Double {
-        displayData
-            .map {
-                switch displayedMetric {
-                case .income: $0.income
-                case .expenses: $0.expenses
-                case .budget: $0.budget
-                case .expensesMinusIncome: $0.expensesMinusIncome
+        if categoryGroup == nil {
+            return displayData
+                .map {
+                    let result = switch displayedMetric {
+                    case .income: $0.income
+                    case .expenses: $0.expenses
+                    case .budget: $0.budget
+                    case .expensesMinusIncome: $0.expensesMinusIncome
+                    }
+                    //print("The catChartViewModel average result raw metric is \($0.category.title) -- \($0.date) -- \(result)")
+                    return result
                 }
+                .average()
+        } else {
+            var monthlySums: [(month: Date, total: Double)] {
+                let grouped = Dictionary(grouping: displayData) { item in
+                    item.date.monthKey()
+                }
+
+                return grouped
+                    .map { month, items in
+                        let sum = items.reduce(0.0) { partial, item in
+                            let value = switch displayedMetric {
+                            case .income: item.income
+                            case .expenses: item.expenses
+                            case .budget: item.budget
+                            case .expensesMinusIncome: item.expensesMinusIncome
+                            }
+                            return partial + value
+                        }
+                        
+                        let result = (month: month, total: sum)
+                        //print("The monthly sum result is \(result)")
+                        return result
+                    }
+                    .sorted { $0.month < $1.month }
             }
-            .average()
+            
+            return monthlySums.map(\.total).average()
+        }
+        
     }
     
     

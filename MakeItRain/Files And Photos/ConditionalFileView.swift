@@ -10,7 +10,7 @@ import SwiftUI
 import WebKit
 import PDFKit
 
-struct ConditionalFileView<Placeholder: View, PhotoView: View>: View {
+struct ConditionalFileView<Placeholder: View, PhotoView: View, PdfView: View, CsvView: View>: View {
     @Environment(FileViewProps.self) var props
     #if os(macOS)
     @Environment(\.openURL) var openURL
@@ -26,6 +26,8 @@ struct ConditionalFileView<Placeholder: View, PhotoView: View>: View {
     
     @ViewBuilder var placeholderView: () -> Placeholder
     @ViewBuilder var photoView: () -> PhotoView
+    @ViewBuilder var pdfView: () -> PdfView
+    @ViewBuilder var csvView: () -> CsvView
     
     var body: some View {
         @Bindable var props = props
@@ -41,9 +43,11 @@ struct ConditionalFileView<Placeholder: View, PhotoView: View>: View {
                         photoView()
                         //FileImage(file: file, displayStyle: displayStyle)
                     case .pdf:
-                        CustomAsyncPdf(file: file, displayStyle: displayStyle)
+                        pdfView()
+                        //CustomAsyncPdf(file: file, displayStyle: displayStyle)
                     case .csv, .spreadsheet:
-                        CustomAsyncCsv(file: file, displayStyle: displayStyle)
+                        csvView()
+                        //CustomAsyncCsv(file: file, displayStyle: displayStyle)
                     }
                 }
                 

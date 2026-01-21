@@ -22,18 +22,7 @@ struct CategoryOverViewWrapperIpad: View {
 }
 
 struct CategoryOverView: View {
-    //@AppStorage("monthlyAnalyticChartVisibleYearCount") var chartVisibleYearCount: CategoryAnalyticChartRange = .year1
-    //@AppStorage("selectedCategoryTab") var selectedTab: DetailsOrInsights = .details
-    //@AppStorage("showAllCategoryChartData") var showAllChartData = false
-    
-    //@Local(\.incomeColor) var incomeColor
-    //@Local(\.useWholeNumbers) var useWholeNumbersz
-    //@AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false
-    @Environment(\.dismiss) var dismiss
-    //@Environment(\.dismiss) var dismiss
-    //@Environment(\.colorScheme) var colorScheme
-    //@Environment(CalendarModel.self) private var calModel
-    //@Environment(CategoryModel.self) private var catModel
+    @Environment(\.dismiss) var dismiss    
     @Environment(KeywordModel.self) private var keyModel
     
     @Bindable var calModel: CalendarModel
@@ -199,10 +188,7 @@ struct CategoryOverView: View {
 
 
 
-fileprivate struct TransactionList: View {
-    //@Local(\.transactionSortMode) var transactionSortMode
-    //@Local(\.categorySortMode) var categorySortMode
-    //@Local(\.useWholeNumbers) var useWholeNumbers
+fileprivate struct TransactionList: View {    
     @Environment(CalendarModel.self) private var calModel
     
     @Bindable var category: CBCategory
@@ -251,12 +237,11 @@ fileprivate struct TransactionList: View {
     @ViewBuilder
     func transLoop(with transactions: Array<CBTransaction>) -> some View {
         ForEach(transactions) { trans in
-            TransactionListLine(trans: trans, withDate: false)
-                .onTapGesture {
-                    let day = month?.days.filter { $0.id == trans.dateComponents?.day }.first
-                    self.transDay = day
-                    self.transEditID = trans.id
-                }
+            TransactionListLine(trans: trans) {
+                let day = month?.days.filter { $0.id == trans.dateComponents?.day }.first
+                self.transDay = day
+                self.transEditID = trans.id
+            }
         }
     }
     

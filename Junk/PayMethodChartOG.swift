@@ -281,15 +281,15 @@
 //                
 //                Group {
 //                    if payMethod.isCredit {
-//                        Text("Payments: \(visiblePayments.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+//                        Text("Payments: \(visiblePayments.currencyWithDecimals())")
 //                    } else {
-//                        Text("Income: \(visibleIncome.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+//                        Text("Income: \(visibleIncome.currencyWithDecimals())")
 //                    }
 //                }
 //                .foregroundStyle(.gray)
 //                .font(.subheadline)
 //                
-//                Text("Expenses: \(visibleExpenses.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+//                Text("Expenses: \(visibleExpenses.currencyWithDecimals())")
 //                    .foregroundStyle(.gray)
 //                    .font(.subheadline)
 //                                                
@@ -383,15 +383,15 @@
 //                            }
 //                            
 //                            if let expensesConfig = config.expensesConfig, showExpenses, expensesConfig.enabled {
-//                                Text(info.expenses.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//                                Text(info.expenses.currencyWithDecimals())
 //                            }
 //                            
 //                            if let startingAmountsConfig = config.startingAmountsConfig, showStartingAmounts, startingAmountsConfig.enabled {
-//                                Text(info.startingAmounts.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//                                Text(info.startingAmounts.currencyWithDecimals())
 //                            }
 //                            
 //                            if let profitLossConfig = config.profitLossConfig, showProfitLoss, profitLossConfig.enabled {
-//                                Text(info.profitLoss.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//                                Text(info.profitLoss.currencyWithDecimals())
 //                            }
 //                            
 //                            if let incomeConfig = config.incomeConfig, showIncome, incomeConfig.enabled {
@@ -410,25 +410,25 @@
 //                                }
 //                                
 //                                
-//                                Text(showMe.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//                                Text(showMe.currencyWithDecimals())
 //                            }
 //                            
 //                            if payMethod.isCredit {
 //                                if let paymentsConfig = config.paymentsConfig, showPayments, paymentsConfig.enabled {
-//                                    Text(info.payments.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//                                    Text(info.payments.currencyWithDecimals())
 //                                }
 //                            }
 //                            
 //                            if let monthEndConfig = config.monthEndConfig, showMonthEnd, monthEndConfig.enabled {
-//                                Text(info.monthEnd.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//                                Text(info.monthEnd.currencyWithDecimals())
 //                            }
 //                            
 //                            if let minEodConfig = config.minEodConfig, showMinEod, minEodConfig.enabled {
-//                                Text(info.minEod.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//                                Text(info.minEod.currencyWithDecimals())
 //                            }
 //                            
 //                            if let maxEodConfig = config.maxEodConfig, showMaxEod, maxEodConfig.enabled {
-//                                Text(info.maxEod.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//                                Text(info.maxEod.currencyWithDecimals())
 //                            }
 //                            
 //                        }
@@ -584,8 +584,8 @@
 //        //.chartForegroundStyleScale(data.map {$0.color})
 ////        .if(data.count == 1) {
 ////            $0.chartForegroundStyleScale([
-////                "Total: \((rawData.map { $0.income }.reduce(0.0, +).currencyWithDecimals(useWholeNumbers ? 0 : 2)))": config.color,
-////                "Average: \((rawData.map { $0.income }.average()).currencyWithDecimals(useWholeNumbers ? 0 : 2))": Color.gray
+////                "Total: \((rawData.map { $0.income }.reduce(0.0, +).currencyWithDecimals()))": config.color,
+////                "Average: \((rawData.map { $0.income }.average()).currencyWithDecimals())": Color.gray
 ////            ])
 ////        }
 //    }
@@ -769,8 +769,8 @@
 //                                Text(item.title)
 //                                    .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
 //                                
-////                                let total = item.breakdowns.map { $0.amount1 }.reduce(0.0, +).currencyWithDecimals(useWholeNumbers ? 0 : 2)
-////                                let average = item.breakdowns.map { $0.amount1 }.average().currencyWithDecimals(useWholeNumbers ? 0 : 2)
+////                                let total = item.breakdowns.map { $0.amount1 }.reduce(0.0, +).currencyWithDecimals()
+////                                let average = item.breakdowns.map { $0.amount1 }.average().currencyWithDecimals()
 ////                                
 ////                                Text("Total: \(total)")
 ////                                Text("Average: \(average)")
@@ -949,18 +949,18 @@
 //
 //fileprivate struct RawDataLineItem: View {
 //    @Local(\.incomeColor) var incomeColor
-//    @Local(\.useWholeNumbers) var useWholeNumbers
+//    
 //    var breakdown: PayMethodMonthlyBreakdown
 //    
 //    var body: some View {
 //        Group {
 //            Text(breakdown.date.string(to: .monthNameYear))
 //            
-//            Text(breakdown.income.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//            Text(breakdown.income.currencyWithDecimals())
 //                .foregroundStyle(.secondary)
 //                //.foregroundStyle(Color.fromName(incomeColor))
 //            
-//            Text(breakdown.expenses.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//            Text(breakdown.expenses.currencyWithDecimals())
 //                .foregroundStyle(.secondary)
 //                //.foregroundStyle(.red)
 //        }
@@ -1104,7 +1104,7 @@
 //
 //fileprivate struct BreakdownView: View {
 //    @Local(\.incomeColor) var incomeColor
-//    @Local(\.useWholeNumbers) var useWholeNumbers
+//    
 //    @Environment(PayMethodModel.self) private var payModel
 //    var payMethod: CBPaymentMethod
 //    var breakdowns: Breakdown
@@ -1159,7 +1159,7 @@
 //            
 //            Text(title)
 //            Spacer()
-//            Text(value.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//            Text(value.currencyWithDecimals())
 //        }
 //    }
 //}

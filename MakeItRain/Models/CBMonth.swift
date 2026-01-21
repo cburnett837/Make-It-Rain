@@ -46,7 +46,12 @@ extension [CBMonth] {
     }
     
     func getDay(by date: Date) -> CBDay? {
-        first(where: { $0.actualNum == date.month && $0.year == date.year })?.getDay(by: date)
+        
+        let targetMonth = first(where: { $0.actualNum == date.month && $0.year == date.year })
+        print("targetMonth is \(targetMonth)")
+        let targetDay = targetMonth?.getDay(by: date.day)
+        print("targetDay is \(targetDay)")
+        return targetDay
     }
     
     func getAdjacent(num: Int, direction: PrevNext) -> CBMonth? {

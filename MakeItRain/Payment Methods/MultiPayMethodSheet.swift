@@ -14,7 +14,6 @@ struct MultiPayMethodSheet: View {
     @Environment(PayMethodModel.self) private var payModel
     @Environment(PlaidModel.self) private var plaidModel
     @Local(\.useBusinessLogos) var useBusinessLogos
-    @Local(\.paymentMethodFilterMode) var paymentMethodFilterMode
 
     @Binding var payMethods: Array<CBPaymentMethod>
     
@@ -46,7 +45,7 @@ struct MultiPayMethodSheet: View {
             }
             
             .task { populateSections() }
-            .onChange(of: paymentMethodFilterMode) { populateSections() }
+            .onChange(of: AppSettings.shared.paymentMethodFilterMode) { populateSections() }
             .searchable(text: $searchText, prompt: "Search")
             .navigationTitle("Accounts")
             #if os(iOS)

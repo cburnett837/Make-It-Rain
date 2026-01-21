@@ -27,6 +27,7 @@ struct RootViewPhone: View {
     /// Using a navigation link instead of a button for the settings button the toolbar causes the icon to be a tiny bit wider than a normal button.
     /// So use a navPath so we can append to the path via the settings button.
     @State private var calendarNavPath = NavigationPath()
+    @State private var advancedSearchNavPath = NavigationPath()
     
     var body: some View {
         @Bindable var navManager = NavigationManager.shared
@@ -39,7 +40,9 @@ struct RootViewPhone: View {
             }
             
             Tab(NavDestination.categories.displayName, systemImage: NavDestination.categories.symbol, value: .categories) {
-                NavigationStack { CategoriesTable() }
+                NavigationStack {
+                    CategoriesTable()
+                }
             }
             
             Tab(NavDestination.paymentMethods.displayName, systemImage: NavDestination.paymentMethods.symbol, value: .paymentMethods) {
@@ -47,14 +50,18 @@ struct RootViewPhone: View {
                 PayMethodsTable()
             }
             
-            Tab(NavDestination.search.displayName, systemImage: NavDestination.search.symbol, value: .search, role: .search) {
-                NavigationStack { AdvancedSearchView() }
-            }
-            
             Tab(NavDestination.more.displayName, systemImage: NavDestination.more.symbol, value: .more) {
-                NavigationStack { moreTabList/*.toolbar(toolbarVisibility, for: .tabBar)*/ }
+                NavigationStack {
+                    moreTabList/*.toolbar(toolbarVisibility, for: .tabBar)*/
+                }
             }
             .badge(plaidModel.banksWithIssues.count)
+            
+            Tab(NavDestination.search.displayName, systemImage: NavDestination.search.symbol, value: .search, role: .search) {
+                NavigationStack(path: $advancedSearchNavPath) {
+                    AdvancedSearchView(navPath: $advancedSearchNavPath)
+                }
+            }
         }
 //        .onChange(of: sel) { oldValue, newValue in
 //            if oldValue == NavDestination.categories {

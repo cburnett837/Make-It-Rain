@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct PaymentMethodChartDetailsSectionContainer<Content: View>: View {
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     @Bindable var vm: PayMethodViewModel
     @Bindable var payMethod: CBPaymentMethod
     @ViewBuilder var theChart: Content
@@ -27,12 +27,12 @@ struct PaymentMethodChartDetailsSectionContainer<Content: View>: View {
         } footer: {
             VStack(alignment: .leading) {
                 if payMethod.isCreditOrUnified {
-                    Text("Payments: \(vm.visiblePayments.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                    Text("Payments: \(vm.visiblePayments.currencyWithDecimals())")
                 } else {
-                    Text("Income: \(vm.visibleIncome.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                    Text("Income: \(vm.visibleIncome.currencyWithDecimals())")
                 }
                 
-                Text("Expenses: \(vm.visibleExpenses.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                Text("Expenses: \(vm.visibleExpenses.currencyWithDecimals())")
             }
         }
     }

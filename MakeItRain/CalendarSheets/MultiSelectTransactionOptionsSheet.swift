@@ -9,6 +9,7 @@ import SwiftUI
 
 struct MultiSelectTransactionOptionsSheet: View {
     //@Local(\.colorTheme) var colorTheme
+    @Local(\.phoneLineItemDisplayItem) var phoneLineItemDisplayItem
     @Environment(\.colorScheme) private var colorScheme
     #if os(macOS)
     @Environment(\.dismiss) private var dismiss
@@ -26,9 +27,11 @@ struct MultiSelectTransactionOptionsSheet: View {
     @State private var showCategorySheet = false
     @State private var showDatePicker = false
     @State private var selectedCategory: CBCategory?
-    @State private var newDate: Date = Date()
         
     @Binding var showInspector: Bool
+    @Binding var navPath: NavigationPath
+
+    @State private var showDeleteAlert = false
     
     
     var body: some View {
@@ -88,7 +91,7 @@ struct MultiSelectTransactionOptionsSheet: View {
         Section {
             MultiTitleColorMenu(transactions: calModel.multiSelectTransactions, shouldSave: $shouldSave) { Text("Change title color") }
             changeCategoryButton
-            //changeDateButton
+            changeDateButton
             factorInCalculationsButton
             excludeFromCalculationsButton
         }
@@ -101,7 +104,7 @@ struct MultiSelectTransactionOptionsSheet: View {
             deleteButton
             MultiTitleColorMenu(transactions: calModel.multiSelectTransactions, shouldSave: $shouldSave) { Text("Change title color") }
             changeCategoryButton
-            //changeDateButton
+            changeDateButton
             factorInCalculationsButton
             excludeFromCalculationsButton
         }
@@ -182,6 +185,7 @@ struct MultiSelectTransactionOptionsSheet: View {
         }
     }
     
+    
     var excludeFromCalculationsButton: some View {
         Button {
             withAnimation {
@@ -233,78 +237,71 @@ struct MultiSelectTransactionOptionsSheet: View {
     
     var changeDateButton: some View {
         Button {
-            showDatePicker = true
+            navPath.append(CalendarNavDest.multiTransChangeDate)
+            shouldSave = false
         } label: {
             Text("Change date")
-        }
-        .sheet(isPresented: $showDatePicker, onDismiss: {
-            withAnimation {
-                //var transToEdit = calModel.multiSelectTransactions
-                
-                for trans in calModel.multiSelectTransactions {
-                    trans.action = .edit
-                    trans.intendedServerAction = .edit
-                    
-                    trans.date = newDate
-                    
-                    Task {
-                        await calModel.saveTransaction(id: trans.id)
-                    }
-                }
-            }
-            shouldSave = false
-        }) {
-            VStack {
-                Text("Change Date")
-                DatePicker("Choose Date", selection: $newDate)
-                Button("Change") {
-                    showDatePicker = false
-                }
-            }
         }
     }
     
     
     var deleteButton: some View {
         Button {
-            withAnimation {
-                var transToEdit = calModel.multiSelectTransactions
-                
-                for trans in calModel.multiSelectTransactions {
-                    trans.action = .delete
-                    trans.intendedServerAction = .delete
-                    
-                    //trans.active = false
-                    //calModel.performLineItemAnimations(for: trans)
-                    if trans.relatedTransactionID != nil && trans.relatedTransactionType?.enumID == .transaction {
-                        let trans2 = calModel.getTransaction(by: trans.relatedTransactionID!, from: .normalList)
-                        //trans2.deepCopy(.create)
-                        trans2.action = .delete
-                        trans2.intendedServerAction = .delete
-                        transToEdit.append(trans2)
-                    }
-                }
-                
-                Task {
-                    print("editing multiple transactions \(transToEdit)")
-                    
-                    await calModel.editMultiple(trans: transToEdit)
-                    calModel.multiSelectTransactions.removeAll()
-                }
-                
-                selectedCategory = nil
-            }
-            shouldSave = false
+            showDeleteAlert = true
         } label: {
             Text("Delete")
         }
         .tint(.red)
+        .confirmationDialog("Delete the selected transactions?", isPresented: $showDeleteAlert) {
+            Button("Yes", role: .destructive) {
+                withAnimation {
+                    var transToEdit = calModel.multiSelectTransactions
+                    
+                    for trans in calModel.multiSelectTransactions {
+                        trans.action = .delete
+                        trans.intendedServerAction = .delete
+                        
+                        //trans.active = false
+                        //calModel.performLineItemAnimations(for: trans)
+                        if trans.relatedTransactionID != nil && trans.relatedTransactionType?.enumID == .transaction {
+                            let trans2 = calModel.getTransaction(by: trans.relatedTransactionID!, from: .normalList)
+                            //trans2.deepCopy(.create)
+                            trans2.action = .delete
+                            trans2.intendedServerAction = .delete
+                            transToEdit.append(trans2)
+                        }
+                    }
+                    
+                    Task {
+                        print("editing multiple transactions \(transToEdit)")
+                        
+                        await calModel.editMultiple(trans: transToEdit)
+                        calModel.multiSelectTransactions.removeAll()
+                    }
+                    
+                    selectedCategory = nil
+                }
+                shouldSave = false
+            }
+            
+            Button("No", role: .close) {
+                showDeleteAlert = false
+            }
+        } message: {
+            Text("Delete the selected transactions?")
+        }
     }
     
-    
+        
     func closeSheet() {
         #if os(iOS)
             withAnimation {
+                if let ogDisplayMode = calProps.phoneLineItemDisplayItemWhenMultiSelectWasOpened {
+                    phoneLineItemDisplayItem = ogDisplayMode
+                    calProps.phoneLineItemDisplayItemWhenMultiSelectWasOpened = nil
+                }
+                
+                
                 if AppState.shared.isIphone {
                     calProps.bottomPanelContent = nil
                 } else {
@@ -339,5 +336,77 @@ struct MultiSelectTransactionOptionsSheet: View {
             /// Clean up & saving logic will be handled in the .onDisappear()
             dismiss()
         #endif
+    }
+}
+
+
+struct MultiSelectChangeDatePage: View {
+    @Environment(CalendarModel.self) private var calModel
+    @Binding var navPath: NavigationPath
+    
+    @State private var newDate: Date = Date()
+    
+    var body: some View {
+        VStack {
+            DatePicker("Choose Date", selection: $newDate, displayedComponents: [.date])
+                .datePickerStyle(.graphical)
+            Spacer()
+        }
+        .navigationTitle("Change Transaction Date")
+        .toolbar {
+            ToolbarItem(placement: .bottomBar) {
+                Button {
+                    changeDate()
+                } label: {
+                    Text("Change Date")
+                        .schemeBasedForegroundStyle()
+                }
+                .buttonStyle(.glassProminent)
+            }
+            
+            ToolbarSpacer()
+            
+            ToolbarItem(placement: .bottomBar) {
+                Button {
+                    navPath.removeLast()
+                } label: {
+                    Text("Cancel")
+                        .schemeBasedForegroundStyle()
+                }
+                .tint(.red)
+                .buttonStyle(.glassProminent)
+            }
+        }
+    }
+    
+    func changeDate() {
+        var processedIds: Array<String> = []
+        withAnimation {
+            //var transToEdit = calModel.multiSelectTransactions
+            let multiTransIds = calModel.multiSelectTransactions.map ({ $0.id })
+            
+            for trans in calModel.multiSelectTransactions {
+                /// Skip related transactions since they will be updated by `calModel.saveTransaction()` anyways.
+                if let relatedId = trans.relatedTransactionID,
+                   /// If the related transaction was already processed.
+                   processedIds.contains(relatedId),
+                   /// If the related transaction is in the multi select list. (It get added by default when you select a trans with a related Id).
+                   multiTransIds.contains(relatedId) {
+                    continue
+                }
+                /// Track the processed transactions so we can skip one's that are related if need be.
+                processedIds.append(trans.id)
+                
+                /// Create a deep copy so we can see if the date changed.
+                trans.deepCopy(.create)
+                trans.action = .edit
+                trans.intendedServerAction = .edit
+                trans.date = newDate
+                Task {
+                    await calModel.saveTransaction(id: trans.id)
+                }
+            }
+        }
+        navPath.removeLast()
     }
 }

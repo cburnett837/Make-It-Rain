@@ -10,7 +10,7 @@ import SwiftUI
 import Charts
 
 struct CatChart: View {
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     @Environment(\.colorScheme) var colorScheme
     @AppStorage("showAverageOnCategoryAnalyticChart") var showAverage: Bool = true
     @AppStorage("showBudgetOnCategoryAnalyticChart") var showBudget: Bool = true
@@ -40,7 +40,7 @@ struct CatChart: View {
     
 //    @ViewBuilder
 //    var customLegend: some View {
-//        let averageText = model.average.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+//        let averageText = model.average.currencyWithDecimals()
 //        
 //        HStack {
 //            Circle()
@@ -71,9 +71,9 @@ struct CatChart: View {
                     case .expensesMinusIncome: selectedMonth.map { $0.expensesMinusIncome}.reduce(0.0, +)
                     }
                     
-                    Text(metricText.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                    Text(metricText.currencyWithDecimals())
                         .bold()
-                    Text((selectedMonth.first?.budget ?? 0).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                    Text((selectedMonth.first?.budget ?? 0).currencyWithDecimals())
                         .bold()
                         .foregroundStyle(.secondary)
                     
@@ -213,7 +213,7 @@ struct CatChart: View {
                     .frame(height: 1)
                                             
                 HStack(spacing: 0) {
-                    let averageText = model.average.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                    let averageText = model.average.currencyWithDecimals()
                     
                     HStack(spacing: 5) {
                         Circle()
@@ -228,7 +228,7 @@ struct CatChart: View {
                     .padding(.trailing, 4)
                     
                     let cats = model.data.map { $0.category }.uniqued(on: \.id).sorted(by: {
-                        switch LocalStorage.shared.categorySortMode {
+                        switch AppSettings.shared.categorySortMode {
                         case .title:
                             return $0.title.lowercased() < $1.title.lowercased()
                         case .listOrder:

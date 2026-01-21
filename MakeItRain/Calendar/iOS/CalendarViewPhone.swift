@@ -18,7 +18,7 @@ fileprivate let BOTTOM_PANEL_HEIGHT: CGFloat = 260
 
 
 enum CalendarNavDest {
-    case categoryInsights, plaidRejectPage, budgets, dashboard, transactionList
+    case categoryInsights, plaidRejectPage, budgets, dashboard, transactionList, multiTransChangeDate
 }
 
 
@@ -27,9 +27,7 @@ struct CalendarViewPhone: View {
     @Local(\.updatedByOtherUserDisplayMode) var updatedByOtherUserDisplayMode
     @Local(\.phoneLineItemDisplayItem) var phoneLineItemDisplayItem
     @Local(\.lineItemIndicator) var lineItemIndicator
-    @Local(\.useWholeNumbers) var useWholeNumbers
-    @Local(\.threshold) var threshold
-    
+        
     //@Environment(\.safeAreaInsets) var safeAreaInsets
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarProps.self) var calProps
@@ -112,6 +110,8 @@ struct CalendarViewPhone: View {
                         TransactionListView(
                             showTransactionListSheet: $calProps.showTransactionListSheet
                         )
+                    case .multiTransChangeDate:
+                        MultiSelectChangeDatePage(navPath: $calProps.navPath)
                     }
                 }
                 .searchable(text: $calModel.searchText, prompt: searchPrompt)
@@ -341,7 +341,7 @@ struct CalendarViewPhone: View {
                     SmartTransactionsWithIssuesOverlay(showInspector: .constant(false))
                     
                 case .multiSelectOptions:
-                    MultiSelectTransactionOptionsSheet(showInspector: .constant(false))
+                    MultiSelectTransactionOptionsSheet(showInspector: .constant(false), navPath: $calProps.navPath)
                     
                 case .transactionList:
                     EmptyView()

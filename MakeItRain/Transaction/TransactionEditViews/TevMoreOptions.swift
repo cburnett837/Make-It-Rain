@@ -11,12 +11,17 @@ struct TevMoreOptions: View {
     @AppStorage("transactionTitleSuggestionType") var transactionTitleSuggestionType: TitleSuggestionType = .location
     @Environment(\.colorScheme) var colorScheme
     @Environment(CalendarModel.self) private var calModel
+    @Environment(FuncModel.self) private var funcModel
+    
     @Bindable var trans: CBTransaction
     @Binding var showSplitSheet: Bool
     var isTemp: Bool
     @Binding var navPath: NavigationPath
     @Binding var showBadgeBell: Bool
     @Binding var showHiddenEye: Bool
+    
+    @State private var showInvoiceGeneratorSheet = false
+
     
 //    var titleColorDescription: String {
 //        trans.color == .primary ? (colorScheme == .dark ? "White" : "Black") : trans.color.description.capitalized
@@ -73,7 +78,13 @@ struct TevMoreOptions: View {
             
             if !isTemp {
                 Section {
-                    //copyButton
+                    createInvoiceButton
+                } footer: {
+                    Text("Create a PDF invoice to either send or save.")
+                }
+                .disabled(trans.title.isEmpty)
+                
+                Section {
                     splitButton
                 } footer: {
                     Text("Split this transaction into multiple categories & amounts.")
@@ -145,6 +156,17 @@ struct TevMoreOptions: View {
     }
     
     
+    var createInvoiceButton: some View {
+        Button {
+            showInvoiceGeneratorSheet = true
+        } label: {
+            Text("Create PDF Invoice / Receipt")
+        }
+        .sheet(isPresented: $showInvoiceGeneratorSheet) {
+            PdfInvoiceCreatorSheet(trans: trans)
+        }
+    }
+    
     var copyButton: some View {
         Button {
             if trans.title.isEmpty {
@@ -172,7 +194,7 @@ struct TevMoreOptions: View {
 //            Label {
 //                Text("Copy Transaction")
 //            } icon: {
-//                Image(systemName: "doc.on.doc.fill")
+//                Image(systemName: "document.on.document")
 //            }
         }
     }
@@ -187,10 +209,11 @@ struct TevMoreOptions: View {
 //            Label {
 //                Text("Split Transaction")
 //            } icon: {
-//                Image(systemName: "plus.square.fill.on.square.fill")
+//                Image(systemName: "arrow.trianglehead.branch")
 //            }
         }
     }
+       
     
     //@State private var bellDisabled = false
     /// Use a dedicated state property instead of `trans.notifyOnDueDate` otherwise the animation will be funky. Not sure why.
@@ -296,4 +319,83 @@ struct TevMoreOptions: View {
         AppState.shared.showAlert(config: alertConfig)
     }
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+//    @State private var pdfUrl: URL?
+//    @State private var showFileMover = false
+//    
+//    @ViewBuilder
+//    var sendInvoiceButton: some View {
+//        if let pdfUrl {
+//            SendPdfView(pdfURL: pdfUrl)
+//        }
+//        
+//    }
+//    
+//    var createInvoiceButton: some View {
+//        Button("Create Invoice") {
+//            Task {
+//                await withTaskGroup(of: Void.self) { group in
+//                    if let files = trans.files?.filter({ $0.active }), !files.isEmpty, let firstFile = files.first {
+//                        group.addTask { await funcModel.downloadFile(file: firstFile) }
+//                    }
+//                }
+//                
+//                let fileUrl: URL? = try? PdfMaker.create(pageCount: 3, pageContent: { pageIndex in
+//                    InvoicePdfViewForSingleTransaction(pageIndex: pageIndex, trans: trans)
+//                })
+//                
+//                if let url = fileUrl {
+//                    self.pdfUrl = url
+//                    //showFileMover = true
+//                }
+//            }
+//        }
+//        .fileMover(isPresented: $showFileMover, file: pdfUrl) { result in
+//            print(result)
+//        }
+//        
+//    }
+    
+//    var fileUrl: URL? {
+//        
+//        //let pageCount = Int((PdfMaker.PageSize.a4().size.height - 120) / 80)
+//        //let chunkTransactions = calModel.justTransactions.chunked(into: pageCount)
+////        return try? PdfMaker.create(pageCount: chunkTransactions.count, pageContent: { pageIndex in
+////            InvoicePdfView(pageIndex: pageIndex, transactions: chunkTransactions[pageIndex])
+////        })
+//        
+//        return try? PdfMaker.create(pageCount: 3, pageContent: { pageIndex in
+//            InvoicePdfView(pageIndex: pageIndex, trans: trans)
+//        })
+//    }
 }
+
+//
+//struct InvoicePdfOptionsView: View {
+//    @Environment(ContactStoreManager.self) private var storeManager
+//
+//    var body: some View {
+//        List {
+//            Button("Select Contact") {
+//                
+//            }
+//        }
+//    }
+//}
+
+
+
+
+
+
+
+
+

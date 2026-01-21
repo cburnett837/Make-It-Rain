@@ -13,7 +13,7 @@ enum RepTransNavDestination: Hashable {
 
 
 struct RepeatingTransactionView: View {
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     //@Local(\.colorTheme) var colorTheme
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
@@ -103,7 +103,7 @@ struct RepeatingTransactionView: View {
             
             repTransaction.deepCopy(.create)
             /// Just for formatting.
-            repTransaction.amountString = repTransaction.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+            repTransaction.amountString = repTransaction.amount.currencyWithDecimals()
             repModel.upsert(repTransaction)
                         
             #if os(macOS)

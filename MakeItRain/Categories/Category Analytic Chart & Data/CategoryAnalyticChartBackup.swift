@@ -116,7 +116,7 @@
 //
 //
 //struct CategoryAnalyticChart<Content: View>: View {
-//    @Local(\.useWholeNumbers) var useWholeNumbers
+//    
 //    //@Local(\.colorTheme) var colorTheme
 //    @AppStorage("monthlyAnalyticChartVisibleYearCount") var chartVisibleYearCount: CategoryAnalyticChartRange = .year1
 //    @AppStorage("showAverageOnCategoryAnalyticChart") var showAverage: Bool = true
@@ -292,9 +292,9 @@
 ////                }
 ////            }
 ////            .reduce(0.0, +)
-////            .currencyWithDecimals(useWholeNumbers ? 0 : 2)
+////            .currencyWithDecimals()
 ////
-////        let averageText = average.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+////        let averageText = average.currencyWithDecimals()
 ////
 ////        return [
 ////            "Total: \(totalText)": config.color,
@@ -304,7 +304,7 @@
 //    
 //    @ViewBuilder
 //    var customLegend: some View {
-//        let averageText = average.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+//        let averageText = average.currencyWithDecimals()
 //        
 //        HStack {
 //            Circle()
@@ -414,9 +414,9 @@
 //                    case .expensesMinusIncome: selectedMonth.expensesMinusIncome
 //                    }
 //                    
-//                    Text(metricText.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//                    Text(metricText.currencyWithDecimals())
 //                        .bold()
-//                    Text(selectedMonth.budget.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//                    Text(selectedMonth.budget.currencyWithDecimals())
 //                        .bold()
 //                        .foregroundStyle(.secondary)
 //                    
@@ -451,7 +451,7 @@
 //                    
 //                    Spacer()
 //                    
-//                    Text("\(visibleTotal.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+//                    Text("\(visibleTotal.currencyWithDecimals())")
 //                        .contentTransition(.numericText())
 //                }
 //                                                
@@ -686,7 +686,7 @@
 ////
 ////
 ////struct CategoryAnalyticChartOG<Content: View>: View {
-////    @Local(\.useWholeNumbers) var useWholeNumbers
+////    
 ////    //@Local(\.colorTheme) var colorTheme
 ////    @AppStorage("monthlyAnalyticChartVisibleYearCount") var chartVisibleYearCount: CategoryAnalyticChartRange = .year1
 ////    @AppStorage("showAverageOnCategoryAnalyticChart") var showAverage: Bool = true
@@ -863,7 +863,7 @@
 ////                    .font(.title3)
 ////                    .bold()
 ////
-////                Text("\(visibleTotal.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+////                Text("\(visibleTotal.currencyWithDecimals())")
 ////
 ////                HStack(spacing: 5) {
 ////                    Text(visibleDateRangeForHeader.lowerBound.string(to: .monthNameYear))
@@ -1034,9 +1034,9 @@
 ////        }
 ////        .chartLegend(position: .top, alignment: .leading)
 ////        .chartForegroundStyleScale([
-////            //"Total: \((data.map { $0.expenses }.reduce(0.0, +).currencyWithDecimals(useWholeNumbers ? 0 : 2)))": config.color,
-////            "Total: \((data.map { $0.expenses }.reduce(0.0, +).currencyWithDecimals(useWholeNumbers ? 0 : 2)))": Color.theme,
-////            "Average: \((data.map { $0.expenses }.average()).currencyWithDecimals(useWholeNumbers ? 0 : 2))": Color.gray
+////            //"Total: \((data.map { $0.expenses }.reduce(0.0, +).currencyWithDecimals()))": config.color,
+////            "Total: \((data.map { $0.expenses }.reduce(0.0, +).currencyWithDecimals()))": Color.theme,
+////            "Average: \((data.map { $0.expenses }.average()).currencyWithDecimals())": Color.gray
 ////        ])
 ////        .padding(.bottom, 10)
 ////    }

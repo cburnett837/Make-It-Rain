@@ -50,8 +50,8 @@ struct TevAmount: View {
                         disableDown: true,
                         accessoryImage3: useCalculator ? "numbers" : "square.grid.4x3.fill",
                         accessoryFunc3: { changeView() },
-                        accessoryImage4: "plus.forwardslash.minus",
-                        accessoryFunc4: { Helpers.plusMinus($trans.amountString) }
+                        accessoryImage4: useCalculator ? nil : "plus.forwardslash.minus",
+                        accessoryFunc4: useCalculator ? nil : { Helpers.plusMinus($trans.amountString) }
                     )
                 })
                 .uiTag(1)

@@ -8,11 +8,7 @@
 import SwiftUI
 import Charts
 
-struct BudgetEditView: View {
-    @Local(\.transactionSortMode) var transactionSortMode
-    @Local(\.categorySortMode) var categorySortMode
-    @Local(\.useWholeNumbers) var useWholeNumbers
-    //@Local(\.colorTheme) var colorTheme
+struct BudgetEditView: View {    
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) var dismiss
     @Bindable var budget: CBBudget
@@ -100,7 +96,7 @@ struct BudgetEditView: View {
         .task {
             budget.deepCopy(.create)
             /// Just for formatting.
-            budget.amountString = budget.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+            budget.amountString = budget.amount.currencyWithDecimals()
             prepareData()
         }
     
@@ -112,13 +108,13 @@ struct BudgetEditView: View {
         Chart {
             BarMark(
                 x: .value("Amount", budget.amount),
-                y: .value("Key", "Budget \(budget.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                y: .value("Key", "Budget \(budget.amount.currencyWithDecimals())")
             )
             .foregroundStyle(budget.category?.color ?? .gray)
         
             BarMark(
                 x: .value("Amount", totalExpenses),
-                y: .value("Key", "Expenses \(totalExpenses.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                y: .value("Key", "Expenses \(totalExpenses.currencyWithDecimals())")
             )
             .foregroundStyle(.gray)
         }
@@ -193,11 +189,10 @@ struct BudgetEditView: View {
             if doesHaveTransactions {
                 Section {
                     ForEach(getTransactions(for: day)) { trans in
-                        TransactionListLine(trans: trans)
-                            .onTapGesture {
-                                self.transDay = day
-                                self.transEditID = trans.id
-                            }
+                        TransactionListLine(trans: trans) {
+                            self.transDay = day
+                            self.transEditID = trans.id
+                        }                            
                     }
                 } header: {
                     if let date = day.date, date.isToday {
@@ -288,7 +283,7 @@ struct BudgetEditView: View {
     
     
     struct SectionFooter: View {
-        @Local(\.useWholeNumbers) var useWholeNumbers
+        
         var day: CBDay
         var dailyCount: Int
         var dailyTotal: Double
@@ -296,11 +291,11 @@ struct BudgetEditView: View {
                 
         var body: some View {
             HStack {
-                Text("Cumulative Total: \((cumTotals.filter { $0.day == day.date!.day }.first?.total ?? 0.0).currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                Text("Cumulative Total: \((cumTotals.filter { $0.day == day.date!.day }.first?.total ?? 0.0).currencyWithDecimals())")
                 
                 Spacer()
                 if dailyCount > 1 {
-                    Text(dailyTotal.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                    Text(dailyTotal.currencyWithDecimals())
                 }
             }
         }

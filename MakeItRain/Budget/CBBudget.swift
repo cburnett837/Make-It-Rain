@@ -112,11 +112,11 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
         year = try container.decode(Int.self, forKey: .year)
                 
         let amount = try container.decode(Double.self, forKey: .amount)
-        self.amountString = amount.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
+        self.amountString = amount.currencyWithDecimals()
         
         /// Amount 2 is only for fetching the analytics in the category sheet.
         let amount2 = try container.decodeIfPresent(Double.self, forKey: .amount2)
-        self.amountString2 = amount2?.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2) ?? ""
+        self.amountString2 = amount2?.currencyWithDecimals() ?? ""
         
         let isActive = try container.decode(Int?.self, forKey: .active)
         self.active = isActive == 1 ? true : false
@@ -195,8 +195,8 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
         self.month = budget.month
         self.year = budget.year
                 
-        self.amountString = budget.amount.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
-        self.amountString2 = budget.amount2.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
+        self.amountString = budget.amount.currencyWithDecimals()
+        self.amountString2 = budget.amount2.currencyWithDecimals()
         
         self.category = budget.category
         self.categoryGroup = budget.categoryGroup
@@ -323,11 +323,11 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
 //        year = try container.decode(Int.self, forKey: .year)
 //                
 //        let amount = try container.decode(Double.self, forKey: .amount)
-//        self.amountString = amount.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
+//        self.amountString = amount.currencyWithDecimals()
 //        
 //        /// Amount 2 is only for fetching the analytics in the category sheet.
 //        let amount2 = try container.decodeIfPresent(Double.self, forKey: .amount2)
-//        self.amountString2 = amount2?.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2) ?? ""
+//        self.amountString2 = amount2?.currencyWithDecimals() ?? ""
 //        
 //        let isActive = try container.decode(Int?.self, forKey: .active)
 //        self.active = isActive == 1 ? true : false
@@ -403,8 +403,8 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
 //        self.month = budget.month
 //        self.year = budget.year
 //                
-//        self.amountString = budget.amount.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
-//        self.amountString2 = budget.amount2.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
+//        self.amountString = budget.amount.currencyWithDecimals()
+//        self.amountString2 = budget.amount2.currencyWithDecimals()
 //        
 //        self.group = budget.group
 //        self.active = budget.active
@@ -447,7 +447,7 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
 //    required init(from decoder: Decoder) throws {
 //        let container = try decoder.container(keyedBy: CodingKeys.self)
 //        let amount = try container.decode(Double.self, forKey: .amount)
-//        self.amountString = amount.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
+//        self.amountString = amount.currencyWithDecimals()
 //    }
 //}
 

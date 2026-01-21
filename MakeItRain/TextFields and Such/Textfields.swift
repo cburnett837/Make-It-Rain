@@ -987,49 +987,49 @@ struct UITextFieldWrapper</*Keyboard: View, */Toolbar: View>: UIViewRepresentabl
         DispatchQueue.main.async {
             textField.text = text
             
-            textField.placeholder = placeholder
-            textField.font = font
-            textField.textColor = textColor
-            textField.tintColor = tint
-            if let textAlignment { textField.textAlignment = textAlignment }
-            textField.textContentType = contentType
-            textField.autocorrectionType = autoCorrection
-            textField.autocapitalizationType = autocapitalizationType
-            //textField.keyboardType = keyboardType
-            if case .system(let systemType) = keyboardType {
-                textField.keyboardType = systemType
-            } else if case .custom(let customType) = keyboardType {
-                switch customType {
-                case .numpad:
-                    let keyboardView = CustomDecimalKeyboard(text: $text)
-                    let inputController = UIHostingController(rootView: keyboardView)
-                    inputController.view.backgroundColor = .clear
-                    inputController.view.frame = .init(origin: .zero, size: inputController.view.intrinsicContentSize)
-                    textField.inputView = inputController.view
-                    textField.inputAssistantItem.leadingBarButtonGroups = []
-                    textField.inputAssistantItem.trailingBarButtonGroups = []
-                case .calculator:
-                    let keyboardView = CustomCalculatorKeyboard(text: $text)
-                    let inputController = UIHostingController(rootView: keyboardView)
-                    inputController.view.backgroundColor = .clear
-                    inputController.view.frame = .init(origin: .zero, size: inputController.view.intrinsicContentSize)
-                    textField.inputView = inputController.view
-                    textField.inputAssistantItem.leadingBarButtonGroups = []
-                    textField.inputAssistantItem.trailingBarButtonGroups = []
-                }
-            }
-            textField.returnKeyType = returnKeyType
-            textField.isSecureTextEntry = isSecure
-            textField.clearsOnBeginEditing = clearsOnBeginEditing
-            if let clearButtonMode { textField.clearButtonMode = clearButtonMode }
-            textField.isUserInteractionEnabled = isUserInteractionEnabled
-            if let tag { textField.tag = tag }
-            
-            
-            textField.delegate = context.coordinator
-            textField.setContentHuggingPriority(.defaultHigh, for: .vertical)
-            textField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-            textField.addTarget(context.coordinator, action: #selector(Coordinator.textFieldDidChange(_:)), for: .editingChanged)
+//            textField.placeholder = placeholder
+//            textField.font = font
+//            textField.textColor = textColor
+//            textField.tintColor = tint
+//            if let textAlignment { textField.textAlignment = textAlignment }
+//            textField.textContentType = contentType
+//            textField.autocorrectionType = autoCorrection
+//            textField.autocapitalizationType = autocapitalizationType
+//            //textField.keyboardType = keyboardType
+//            if case .system(let systemType) = keyboardType {
+//                textField.keyboardType = systemType
+//            } else if case .custom(let customType) = keyboardType {
+//                switch customType {
+//                case .numpad:
+//                    let keyboardView = CustomDecimalKeyboard(text: $text)
+//                    let inputController = UIHostingController(rootView: keyboardView)
+//                    inputController.view.backgroundColor = .clear
+//                    inputController.view.frame = .init(origin: .zero, size: inputController.view.intrinsicContentSize)
+//                    textField.inputView = inputController.view
+//                    textField.inputAssistantItem.leadingBarButtonGroups = []
+//                    textField.inputAssistantItem.trailingBarButtonGroups = []
+//                case .calculator:
+//                    let keyboardView = CustomCalculatorKeyboard(text: $text)
+//                    let inputController = UIHostingController(rootView: keyboardView)
+//                    inputController.view.backgroundColor = .clear
+//                    inputController.view.frame = .init(origin: .zero, size: inputController.view.intrinsicContentSize)
+//                    textField.inputView = inputController.view
+//                    textField.inputAssistantItem.leadingBarButtonGroups = []
+//                    textField.inputAssistantItem.trailingBarButtonGroups = []
+//                }
+//            }
+//            textField.returnKeyType = returnKeyType
+//            textField.isSecureTextEntry = isSecure
+//            textField.clearsOnBeginEditing = clearsOnBeginEditing
+//            if let clearButtonMode { textField.clearButtonMode = clearButtonMode }
+//            textField.isUserInteractionEnabled = isUserInteractionEnabled
+//            if let tag { textField.tag = tag }
+//            
+//            
+//            textField.delegate = context.coordinator
+//            textField.setContentHuggingPriority(.defaultHigh, for: .vertical)
+//            textField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+//            textField.addTarget(context.coordinator, action: #selector(Coordinator.textFieldDidChange(_:)), for: .editingChanged)
             
             
             //updateAccessory(for: textField, context: context)
@@ -1115,14 +1115,11 @@ struct UITextFieldWrapper</*Keyboard: View, */Toolbar: View>: UIViewRepresentabl
             let updatedText = currentText.replacingCharacters(in: stringRange, with: string)
 
             // make sure the result is under 16 characters
-            
             if let maxLength = maxLength {
                 return updatedText.count <= maxLength
             } else {
                 return true
             }
-            
-            
         }
         
         
@@ -1354,7 +1351,7 @@ extension UITextFieldWrapper {
 
     func uiTint(_ accentColor: UIColor?) -> UITextFieldWrapper {
         var view = self
-        view.tint = tint
+        view.tint = accentColor
         return view
     }
 

@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct CalendarMonthLabel: View {
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     @Environment(\.colorScheme) var colorScheme
     @Environment(CalendarProps.self) private var calProps
     @Environment(CalendarModel.self) private var calModel
@@ -119,7 +119,7 @@ struct CalendarMonthLabel: View {
                     if isCurrentMonth {
                         //currentBalanceView
                         if let meth = calModel.sPayMethod,
-                            let balance = funcModel.getPlaidBalancePrettyString(meth, useWholeNumbers: useWholeNumbers) {
+                            let balance = funcModel.getPlaidBalancePrettyString(meth) {
                             Text(balance)
                                 .font(.callout)
                                 .foregroundStyle(.gray)
@@ -146,10 +146,10 @@ struct CalendarMonthLabel: View {
 //        if let meth = calModel.sPayMethod {
 //            if meth.isUnified {
 //                if meth.isDebit {
-//                    sumLine("\(funcModel.getPlaidDebitSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+//                    sumLine("\(funcModel.getPlaidDebitSums().currencyWithDecimals())")
 //                    
 //                } else {
-//                    sumLine("\(funcModel.getPlaidCreditSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+//                    sumLine("\(funcModel.getPlaidCreditSums().currencyWithDecimals())")
 //                }
 //            } else {
 //                if meth.accountType == .cash {
@@ -159,10 +159,10 @@ struct CalendarMonthLabel: View {
 //                        and: .giveMeEodAsOfToday
 //                    )
 //                    
-//                    sumLine("\(cashBal.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+//                    sumLine("\(cashBal.currencyWithDecimals())")
 //                    
 //                } else if let balance = funcModel.getPlaidBalance(matching: calModel.sPayMethod) {
-//                    sumLine("\(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)) (\(calProps.timeSinceLastBalanceUpdate))")
+//                    sumLine("\(balance.amount.currencyWithDecimals()) (\(calProps.timeSinceLastBalanceUpdate))")
 //                }
 //                
 //            }
@@ -191,7 +191,7 @@ struct CalendarMonthLabel: View {
                 && !$0.isUnified
             }
             .filter {
-                switch LocalStorage.shared.paymentMethodFilterMode {
+                switch AppSettings.shared.paymentMethodFilterMode {
                 case .all:
                     return true
                 case .justPrimary:
@@ -212,7 +212,7 @@ struct CalendarMonthLabel: View {
                     ))
                     VStack(alignment: .leading) {
                         Text(meth.title)
-                        Text(funcModel.getPlaidBalancePrettyString(meth, useWholeNumbers: useWholeNumbers) ?? "N/A")
+                        Text(funcModel.getPlaidBalancePrettyString(meth) ?? "N/A")
                             .foregroundStyle(.gray)
                             .font(.caption)
                     }

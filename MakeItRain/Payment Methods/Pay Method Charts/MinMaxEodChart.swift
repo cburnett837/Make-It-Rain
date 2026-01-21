@@ -33,9 +33,6 @@ struct MinMaxEodChartWidget: View {
 
 
 struct MinMaxEodChartDetails: View {
-    @Local(\.useWholeNumbers) var useWholeNumbers
-    @Local(\.threshold) var threshold
-
     @AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false
     @Environment(\.colorScheme) var colorScheme
     
@@ -103,20 +100,20 @@ struct MinMaxEodChartDetails: View {
                             Text(info.title)
                         }
                         
-                        Text(info.minEod.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                            .foregroundStyle(info.minEod < threshold ? .orange : .secondary)
+                        Text(info.minEod.currencyWithDecimals())
+                            .foregroundStyle(info.minEod < AppSettings.shared.lowBalanceThreshold ? .orange : .secondary)
                         
-                        Text(info.maxEod.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                            .foregroundStyle(info.maxEod < threshold ? .orange : .secondary)
+                        Text(info.maxEod.currencyWithDecimals())
+                            .foregroundStyle(info.maxEod < AppSettings.shared.lowBalanceThreshold ? .orange : .secondary)
                     }
                 }
             } summary: {
                 let breakdown = vm.breakdownForMethod(method: vm.mainPayMethod, on: selectedDate)
-                Text(breakdown.minEod.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                    .foregroundStyle(breakdown.minEod < threshold ? .orange : .secondary)
+                Text(breakdown.minEod.currencyWithDecimals())
+                    .foregroundStyle(breakdown.minEod < AppSettings.shared.lowBalanceThreshold ? .orange : .secondary)
                 
-                Text(breakdown.maxEod.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                    .foregroundStyle(breakdown.maxEod < threshold ? .orange : .secondary)
+                Text(breakdown.maxEod.currencyWithDecimals())
+                    .foregroundStyle(breakdown.maxEod < AppSettings.shared.lowBalanceThreshold ? .orange : .secondary)
             }
         } else {
             Text("Drag across the chart to see details")
@@ -127,8 +124,6 @@ struct MinMaxEodChartDetails: View {
 
 
 struct MinMaxEodChart: View {
-    @Local(\.threshold) var threshold
-    @Local(\.useWholeNumbers) var useWholeNumbers
     @AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false
 
     @Bindable var vm: PayMethodViewModel
@@ -168,10 +163,10 @@ struct MinMaxEodChart: View {
     
     @ChartContentBuilder
     func minMaxLine(_ breakdown: PayMethodMonthlyBreakdown) -> some ChartContent {
-        let startColor: Color = breakdown.minEod < threshold ? .orange : .green
+        let startColor: Color = breakdown.minEod < AppSettings.shared.lowBalanceThreshold ? .orange : .green
         let min = breakdown.minEod
         let max = breakdown.maxEod
-        let positionForNewColor: Double? = vm.getGradientPosition(for: .minMaxEod, flipAt: threshold, min: min, max: max)
+        let positionForNewColor: Double? = vm.getGradientPosition(for: .minMaxEod, flipAt: AppSettings.shared.lowBalanceThreshold, min: min, max: max)
         let gradient = Gradient(
             stops: [
                 .init(color: startColor, location: 0),

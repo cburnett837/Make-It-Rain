@@ -10,7 +10,7 @@ import SwiftUI
 struct RepeatingTransactionsTable: View {
     @Environment(\.dismiss) var dismiss
     
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     #if os(macOS)
     @AppStorage("repeatingTransactionsTableColumnOrder") private var columnCustomization: TableColumnCustomization<CBRepeatingTransaction>
     #endif
@@ -133,7 +133,7 @@ struct RepeatingTransactionsTable: View {
             .customizationID("title")
             
             TableColumn("Amount", value: \.amount) { repTrans in
-                Text(repTrans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                Text(repTrans.amount.currencyWithDecimals())
             }
             .customizationID("amount")
             
@@ -197,7 +197,7 @@ struct RepeatingTransactionsTable: View {
                     HStack {
                         Text(repTrans.title)
                         Spacer()
-                        Text(repTrans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                        Text(repTrans.amount.currencyWithDecimals())
                             //.foregroundStyle(.gray)
                             //.font(.caption)
                     }

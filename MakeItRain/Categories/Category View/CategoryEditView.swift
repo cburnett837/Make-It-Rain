@@ -10,7 +10,7 @@ import Charts
 
 
 struct CategoryEditView: View {
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
     #if os(macOS)
@@ -94,7 +94,7 @@ struct CategoryEditView: View {
                 }
             } else {
                 if $0 == 1 {
-                    category.amountString = category.amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                    category.amountString = category.amount?.currencyWithDecimals()
                 }
             }
         }
@@ -511,7 +511,7 @@ struct CategoryEditView: View {
     func prepareView() async {
         category.deepCopy(.create)
         /// Just for formatting.
-        category.amountString = category.amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        category.amountString = category.amount?.currencyWithDecimals()
         catModel.upsert(category)
         
         #if os(macOS)

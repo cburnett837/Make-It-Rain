@@ -13,12 +13,7 @@ struct PayMethodDashboard: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
     @Environment(PayMethodModel.self) private var payModel
-
-    @Local(\.incomeColor) var incomeColor
-    @Local(\.useWholeNumbers) var useWholeNumbers
-    //@Local(\.colorTheme) var colorTheme
-    @Local(\.threshold) var threshold
-    
+        
     @AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false
     @AppStorage("showAllCategoryChartData") private var showAllChartData = false
         
@@ -285,11 +280,11 @@ struct PayMethodDashboard: View {
 //                    Spacer()
 //                    
 //                    if payMethod.isCredit {
-//                        Text("Payments: \(vm.visiblePayments.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+//                        Text("Payments: \(vm.visiblePayments.currencyWithDecimals())")
 //                            .foregroundStyle(.gray)
 //                            .font(.subheadline)
 //                    } else {
-//                        Text("Income: \(vm.visibleIncome.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+//                        Text("Income: \(vm.visibleIncome.currencyWithDecimals())")
 //                            .foregroundStyle(.gray)
 //                            .font(.subheadline)
 //                    }
@@ -300,7 +295,7 @@ struct PayMethodDashboard: View {
 //                                        
 //                    Spacer()
 //                    
-//                    Text("Expenses: \(vm.visibleExpenses.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+//                    Text("Expenses: \(vm.visibleExpenses.currencyWithDecimals())")
 //                }
 //                .foregroundStyle(.gray)
 //                .font(.subheadline)
@@ -557,11 +552,8 @@ struct PayMethodDashboardOG: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
     @Environment(PayMethodModel.self) private var payModel
-
-    @Local(\.incomeColor) var incomeColor
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     //@Local(\.colorTheme) var colorTheme
-    @Local(\.threshold) var threshold
     
     @AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false
     @AppStorage("showAllCategoryChartData") private var showAllChartData = false
@@ -712,11 +704,11 @@ struct PayMethodDashboardOG: View {
                     Spacer()
                     
                     if payMethod.isCreditOrUnified {
-                        Text("Payments: \(vm.visiblePayments.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                        Text("Payments: \(vm.visiblePayments.currencyWithDecimals())")
                             .foregroundStyle(.gray)
                             .font(.subheadline)
                     } else {
-                        Text("Income: \(vm.visibleIncome.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                        Text("Income: \(vm.visibleIncome.currencyWithDecimals())")
                             .foregroundStyle(.gray)
                             .font(.subheadline)
                     }
@@ -727,7 +719,7 @@ struct PayMethodDashboardOG: View {
                                         
                     Spacer()
                     
-                    Text("Expenses: \(vm.visibleExpenses.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                    Text("Expenses: \(vm.visibleExpenses.currencyWithDecimals())")
                 }
                 .foregroundStyle(.gray)
                 .font(.subheadline)
@@ -1017,19 +1009,16 @@ struct PayMethodDashboardOG: View {
 
 
 fileprivate struct RawDataLineItem: View {
-    @Local(\.incomeColor) var incomeColor
-    @Local(\.useWholeNumbers) var useWholeNumbers
     var breakdown: PayMethodMonthlyBreakdown
     
     var body: some View {
         Group {
             Text(breakdown.date.string(to: .monthNameYear))
             
-            Text(breakdown.income.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+            Text(breakdown.income.currencyWithDecimals())
                 .foregroundStyle(.secondary)
-                //.foregroundStyle(Color.fromName(incomeColor))
             
-            Text(breakdown.expenses.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+            Text(breakdown.expenses.currencyWithDecimals())
                 .foregroundStyle(.secondary)
                 //.foregroundStyle(.red)
         }
@@ -1041,8 +1030,6 @@ fileprivate struct RawDataLineItem: View {
 
 
 fileprivate struct BreakdownView: View {
-    @Local(\.incomeColor) var incomeColor
-    @Local(\.useWholeNumbers) var useWholeNumbers
     @Environment(PayMethodModel.self) private var payModel
     var payMethod: CBPaymentMethod
     var breakdowns: Breakdown
@@ -1055,7 +1042,7 @@ fileprivate struct BreakdownView: View {
                         lineItem(title: "Expenses", value: down.expenses, color: .red)
                         lineItem(title: "Starting Balance", value: down.startingAmounts, color: .orange)
                         lineItem(title: "Free Cash Flow", value: down.profitLoss, color: .green)
-                        lineItem(title: "Income", value: down.income, color: Color.fromName(incomeColor))
+                        lineItem(title: "Income", value: down.income, color: AppSettings.shared.incomeColor)
                         if payMethod.accountType == .unifiedCredit {
                             lineItem(title: "Payments", value: down.payments, color: .green)
                         }
@@ -1097,7 +1084,7 @@ fileprivate struct BreakdownView: View {
             
             Text(title)
             Spacer()
-            Text(value.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+            Text(value.currencyWithDecimals())
         }
     }
 }

@@ -49,7 +49,7 @@ struct TransactionAmountRow<Content: View>: View {
                     Helpers.plusMinus($amountString)
                 } label: {
                     Text(amountTypeLingo)
-                        .font(.subheadline)
+                        .font(.body)
                         .schemeBasedForegroundStyle()
                 }
                 /// Prevent the button from making the list row bigger

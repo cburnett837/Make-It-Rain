@@ -31,9 +31,7 @@ struct CategoryInsightsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.appearsActive) var appearsActive
     #endif
-    @Local(\.transactionSortMode) var transactionSortMode
-    @Local(\.categorySortMode) var categorySortMode
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     //@Local(\.colorTheme) var colorTheme
     @Environment(CalendarProps.self) private var calProps
     @Environment(CalendarModel.self) private var calModel
@@ -123,20 +121,24 @@ struct CategoryInsightsView: View {
                 StandardContainerWithToolbar(.list) {
                     detailSection
                     Section {
-                        CivBudgetCompareChart(model: model)
-                        CivChartLegend(model: model)
+                        VStack {
+                            CivBudgetCompareChart(model: model)
+                            CivChartLegend(model: model)
+                        }
                     }
                     
-                    Section {
-                        HStack {
-                            CivActualSpendingByCategoryPieChart(model: model)
-                            CivActualSpendingByCategoryBarChart(model: model)
-                        }
-                    } header: {
-                        VStack(alignment: .leading) {
-                            Text("Actual Spending")
-                            Text("(Summary)")
-                                .font(.footnote)
+                    if calModel.sCategoriesForAnalysis.count > 1 {
+                        Section {
+                            HStack {
+                                CivActualSpendingByCategoryPieChart(model: model)
+                                CivActualSpendingByCategoryBarChart(model: model)
+                            }
+                        } header: {
+                            VStack(alignment: .leading) {
+                                Text("Actual Spending")
+                                Text("(Summary)")
+                                    .font(.footnote)
+                            }
                         }
                     }
                                                    
@@ -249,6 +251,8 @@ struct CategoryInsightsView: View {
         #endif
     }
     
+    @AppStorage("CategoryInsightsOnlyUntilToday") private var onlyUpUntilToday = false
+    
     // MARK: - Detail Section
     @ViewBuilder
     var detailSection: some View {
@@ -334,6 +338,15 @@ struct CategoryInsightsView: View {
             } footer: {
                 Text(categoryFilterTitle)
             }
+            
+            Section {
+                Toggle(isOn: $onlyUpUntilToday) {
+                    Text("Up until today only")
+                }
+                .onChange(of: onlyUpUntilToday) {
+                    prepareData()
+                }
+            }
         }
     }
     
@@ -352,7 +365,7 @@ struct CategoryInsightsView: View {
         HStack {
             infoButtonLabel("Cumulative budget…")
             Spacer()
-            Text(model.budget.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+            Text(model.budget.currencyWithDecimals())
                 .contentTransition(.numericText())
         }
     }
@@ -364,7 +377,7 @@ struct CategoryInsightsView: View {
             HStack {
                 infoButtonLabel("Money in…")
                 Spacer()
-                Text((model.income).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                Text((model.income).currencyWithDecimals())
                     .contentTransition(.numericText())
             }
         } action: {
@@ -379,7 +392,7 @@ struct CategoryInsightsView: View {
             HStack {
                 infoButtonLabel("Cash out…")
                 Spacer()
-                Text((model.cashOut * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                Text((model.cashOut * -1).currencyWithDecimals())
                     .contentTransition(.numericText())
             }
         } action: {
@@ -394,7 +407,7 @@ struct CategoryInsightsView: View {
             HStack {
                 infoButtonLabel("Total spending…")
                 Spacer()
-                Text((model.totalSpent * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                Text((model.totalSpent * -1).currencyWithDecimals())
                     .contentTransition(.numericText())
             }
         } action: {
@@ -408,7 +421,7 @@ struct CategoryInsightsView: View {
             infoButtonLabel("Actual spending…")
                 .bold()
             Spacer()
-            Text((model.spendMinusIncome * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+            Text((model.spendMinusIncome * -1).currencyWithDecimals())
                 .contentTransition(.numericText())
                 .bold()
         }
@@ -419,7 +432,7 @@ struct CategoryInsightsView: View {
         HStack {
             infoButtonLabel("Spending minus payments…")
             Spacer()
-            Text((model.spendMinusPayments * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+            Text((model.spendMinusPayments * -1).currencyWithDecimals())
                 .contentTransition(.numericText())
         }
     }
@@ -431,7 +444,7 @@ struct CategoryInsightsView: View {
             let isOver = amount < 0
             infoButtonLabel(isOver ? "You're over-budget by…" : "You're under-budget by…")
             Spacer()
-            Text(abs(amount).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+            Text(abs(amount).currencyWithDecimals())
                 .contentTransition(.numericText())
                 .foregroundStyle(isOver ? .red : .green)
         }
@@ -487,7 +500,7 @@ struct CategoryInsightsView: View {
                     CivFakeNavLink {
                         VStack(alignment: .leading) {
                             Text("\(month.name) \(String(month.year))")
-                            Text("\(abs(cost).currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                            Text("\(abs(cost).currencyWithDecimals())")
                                 .foregroundStyle(.gray)
                                 .contentTransition(.numericText())
                         }
@@ -497,8 +510,6 @@ struct CategoryInsightsView: View {
                         setAll(for: month, shouldNavigate: true)
                     }
                 }
-                
-                
             }
         } header: {
             sectionHeader("Transactions")
@@ -768,7 +779,7 @@ struct CategoryInsightsView: View {
         //model.startDelayedLoadingSpinnerTimer()
 
         self.refreshTask = Task {
-            for await update in prepareDataForRealStream() {
+            for await update in prepareDataForRealStream(onlyUpUntilToday: onlyUpUntilToday) {
                 switch update {
                 case .started:
                     model.progress = 0
@@ -875,7 +886,18 @@ struct CategoryInsightsView: View {
     func setMoneyIn(shouldNavigate: Bool) {
         model.selectedDataPoint = .moneyIn
         model.monthsForAnalysis.forEach { month in
-            let monthlyTrans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
+            let monthlyTrans = model.transactions.filter {
+                $0.dateComponents?.month == month.actualNum
+                && $0.dateComponents?.year == month.year
+                && (onlyUpUntilToday ?
+                    (
+                        ($0.dateComponents?.month == AppState.shared.todayMonth && $0.dateComponents?.year == AppState.shared.todayYear)
+                        ? ($0.dateComponents?.day ?? 0) <= AppState.shared.todayDay
+                        : true
+                    )
+                    : true
+                )
+            }
             let transactions = calModel.getIncomeTransactions(from: monthlyTrans)
             let moneyIn = calModel.getIncome(from: monthlyTrans)
             let cashOut = calModel.getDebitSpend(from: monthlyTrans)
@@ -884,7 +906,31 @@ struct CategoryInsightsView: View {
             
             //let overallTotalSpend = calModel.getSpend(from: model.transactions)
             let breakdown = CivBreakdownData(moneyIn: moneyIn, cashOut: cashOut, spending: totalSpend, actualSpending: actualSpend)
-            let data = CivMonthlyData(dataPoint: .moneyIn, month: month, trans: transactions, breakdown: breakdown)
+            
+            let catData = calModel.sCategoriesForAnalysis.map { cat in
+                let monthlyTrans = model.transactions.filter {
+                    $0.dateComponents?.month == month.actualNum
+                    && $0.dateComponents?.year == month.year
+                    && (onlyUpUntilToday ?
+                        (
+                            ($0.dateComponents?.month == AppState.shared.todayMonth && $0.dateComponents?.year == AppState.shared.todayYear)
+                            ? ($0.dateComponents?.day ?? 0) <= AppState.shared.todayDay
+                            : true
+                        )
+                        : true
+                    )
+                    && $0.category?.id == cat.id
+                }
+                //let transactions = calModel.getIncomeTransactions(from: monthlyTrans)
+                let moneyIn = calModel.getIncome(from: monthlyTrans)
+                let cashOut = calModel.getDebitSpend(from: monthlyTrans)
+                let totalSpend = calModel.getSpend(from: monthlyTrans)
+                let actualSpend = calModel.getSpendMinusIncome(from: monthlyTrans)
+                
+                return CivBreakdownData(category: cat, moneyIn: moneyIn, cashOut: cashOut, spending: totalSpend, actualSpending: actualSpend)
+            }
+            
+            let data = CivMonthlyData(dataPoint: .moneyIn, month: month, trans: transactions, breakdown: breakdown, dataByCategory: catData)
             process(data: data)
         }
         if shouldNavigate {
@@ -897,7 +943,18 @@ struct CategoryInsightsView: View {
     func setCashOut(shouldNavigate: Bool) {
         model.selectedDataPoint = .cashOut
         model.monthsForAnalysis.forEach { month in
-            let monthlyTrans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
+            let monthlyTrans = model.transactions.filter {
+                $0.dateComponents?.month == month.actualNum
+                && $0.dateComponents?.year == month.year
+                && (onlyUpUntilToday ?
+                    (
+                        ($0.dateComponents?.month == AppState.shared.todayMonth && $0.dateComponents?.year == AppState.shared.todayYear)
+                        ? ($0.dateComponents?.day ?? 0) <= AppState.shared.todayDay
+                        : true
+                    )
+                    : true
+                )
+            }
             let trans = calModel.getDebitSpendTransactions(from: monthlyTrans)
             let moneyIn = calModel.getIncome(from: monthlyTrans)
             let cashOut = calModel.getDebitSpend(from: monthlyTrans)
@@ -906,7 +963,31 @@ struct CategoryInsightsView: View {
             
             //let overallTotalSpend = calModel.getSpend(from: model.transactions)
             let breakdown = CivBreakdownData(moneyIn: moneyIn, cashOut: cashOut, spending: totalSpend, actualSpending: actualSpend)
-            let data = CivMonthlyData(dataPoint: .cashOut, month: month, trans: trans, breakdown: breakdown)
+            
+            let catData = calModel.sCategoriesForAnalysis.map { cat in
+                let monthlyTrans = model.transactions.filter {
+                    $0.dateComponents?.month == month.actualNum
+                    && $0.dateComponents?.year == month.year
+                    && (onlyUpUntilToday ?
+                        (
+                            ($0.dateComponents?.month == AppState.shared.todayMonth && $0.dateComponents?.year == AppState.shared.todayYear)
+                            ? ($0.dateComponents?.day ?? 0) <= AppState.shared.todayDay
+                            : true
+                        )
+                        : true
+                    )
+                    && $0.category?.id == cat.id
+                }
+                //let trans = calModel.getDebitSpendTransactions(from: monthlyTrans)
+                let moneyIn = calModel.getIncome(from: monthlyTrans)
+                let cashOut = calModel.getDebitSpend(from: monthlyTrans)
+                let totalSpend = calModel.getSpend(from: monthlyTrans)
+                let actualSpend = calModel.getSpendMinusIncome(from: monthlyTrans)
+                
+                return CivBreakdownData(category: cat, moneyIn: moneyIn, cashOut: cashOut, spending: totalSpend, actualSpending: actualSpend)
+            }
+            
+            let data = CivMonthlyData(dataPoint: .cashOut, month: month, trans: trans, breakdown: breakdown, dataByCategory: catData)
             process(data: data)
         }
         if shouldNavigate {
@@ -919,7 +1000,18 @@ struct CategoryInsightsView: View {
     func setTotalSpending(shouldNavigate: Bool) {
         model.selectedDataPoint = .totalSpending
         model.monthsForAnalysis.forEach { month in
-            let monthlyTrans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
+            let monthlyTrans = model.transactions.filter {
+                $0.dateComponents?.month == month.actualNum
+                && $0.dateComponents?.year == month.year
+                && (onlyUpUntilToday ?
+                    (
+                        ($0.dateComponents?.month == AppState.shared.todayMonth && $0.dateComponents?.year == AppState.shared.todayYear)
+                        ? ($0.dateComponents?.day ?? 0) <= AppState.shared.todayDay
+                        : true
+                    )
+                    : true
+                )
+            }
             let trans = calModel.getSpendTransactions(from: monthlyTrans)
             let moneyIn = calModel.getIncome(from: monthlyTrans)
             let cashOut = calModel.getDebitSpend(from: monthlyTrans)
@@ -928,7 +1020,31 @@ struct CategoryInsightsView: View {
             
             //let overallTotalSpend = calModel.getSpend(from: model.transactions)
             let breakdown = CivBreakdownData(moneyIn: moneyIn, cashOut: cashOut, spending: totalSpend, actualSpending: actualSpend)
-            let data = CivMonthlyData(dataPoint: .totalSpending, month: month, trans: trans, breakdown: breakdown)
+            
+            let catData = calModel.sCategoriesForAnalysis.map { cat in
+                let monthlyTrans = model.transactions.filter {
+                    $0.dateComponents?.month == month.actualNum
+                    && $0.dateComponents?.year == month.year
+                    && (onlyUpUntilToday ?
+                        (
+                            ($0.dateComponents?.month == AppState.shared.todayMonth && $0.dateComponents?.year == AppState.shared.todayYear)
+                            ? ($0.dateComponents?.day ?? 0) <= AppState.shared.todayDay
+                            : true
+                        )
+                        : true
+                    )
+                    && $0.category?.id == cat.id
+                }
+                //let trans = calModel.getSpendTransactions(from: monthlyTrans)
+                let moneyIn = calModel.getIncome(from: monthlyTrans)
+                let cashOut = calModel.getDebitSpend(from: monthlyTrans)
+                let totalSpend = calModel.getSpend(from: monthlyTrans)
+                let actualSpend = calModel.getSpendMinusIncome(from: monthlyTrans)
+                
+                return CivBreakdownData(category: cat, moneyIn: moneyIn, cashOut: cashOut, spending: totalSpend, actualSpending: actualSpend)
+            }
+            
+            let data = CivMonthlyData(dataPoint: .totalSpending, month: month, trans: trans, breakdown: breakdown, dataByCategory: catData)
             process(data: data)
         }
         if shouldNavigate {
@@ -940,7 +1056,18 @@ struct CategoryInsightsView: View {
     func setActualSpending(shouldNavigate: Bool) {
         model.selectedDataPoint = .actualSpending
         model.monthsForAnalysis.forEach { month in
-            let monthlyTrans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
+            let monthlyTrans = model.transactions.filter {
+                $0.dateComponents?.month == month.actualNum
+                && $0.dateComponents?.year == month.year
+                && (onlyUpUntilToday ?
+                    (
+                        ($0.dateComponents?.month == AppState.shared.todayMonth && $0.dateComponents?.year == AppState.shared.todayYear)
+                        ? ($0.dateComponents?.day ?? 0) <= AppState.shared.todayDay
+                        : true
+                    )
+                    : true
+                )
+            }
             let trans = calModel.getSpendTransactions(from: monthlyTrans)
             let moneyIn = calModel.getIncome(from: monthlyTrans)
             let cashOut = calModel.getDebitSpend(from: monthlyTrans)
@@ -949,7 +1076,31 @@ struct CategoryInsightsView: View {
             
             //let overallTotalSpend = calModel.getSpend(from: model.transactions)
             let breakdown = CivBreakdownData(moneyIn: moneyIn, cashOut: cashOut, spending: totalSpend, actualSpending: actualSpend)
-            let data = CivMonthlyData(dataPoint: .actualSpending, month: month, trans: trans, breakdown: breakdown)
+            
+            let catData = calModel.sCategoriesForAnalysis.map { cat in
+                let monthlyTrans = model.transactions.filter {
+                    $0.dateComponents?.month == month.actualNum
+                    && $0.dateComponents?.year == month.year
+                    && (onlyUpUntilToday ?
+                        (
+                            ($0.dateComponents?.month == AppState.shared.todayMonth && $0.dateComponents?.year == AppState.shared.todayYear)
+                            ? ($0.dateComponents?.day ?? 0) <= AppState.shared.todayDay
+                            : true
+                        )
+                        : true
+                    )
+                    && $0.category?.id == cat.id
+                }
+                //let trans = calModel.getSpendTransactions(from: monthlyTrans)
+                let moneyIn = calModel.getIncome(from: monthlyTrans)
+                let cashOut = calModel.getDebitSpend(from: monthlyTrans)
+                let totalSpend = calModel.getSpend(from: monthlyTrans)
+                let actualSpend = calModel.getSpendMinusIncome(from: monthlyTrans)
+                
+                return CivBreakdownData(category: cat, moneyIn: moneyIn, cashOut: cashOut, spending: totalSpend, actualSpending: actualSpend)
+            }
+            
+            let data = CivMonthlyData(dataPoint: .actualSpending, month: month, trans: trans, breakdown: breakdown, dataByCategory: catData)
             process(data: data)
         }
         if shouldNavigate {
@@ -961,7 +1112,18 @@ struct CategoryInsightsView: View {
     /// This is called by both the user and the long poll. User action will cause navigation. Long poll will not.
     func setAll(for month: CBMonth, shouldNavigate: Bool) {
         model.selectedDataPoint = .all
-        let monthlyTrans = model.transactions.filter { $0.dateComponents?.month == month.actualNum && $0.dateComponents?.year == month.year }
+        let monthlyTrans = model.transactions.filter {
+            $0.dateComponents?.month == month.actualNum
+            && $0.dateComponents?.year == month.year
+            && (onlyUpUntilToday ?
+                (
+                    ($0.dateComponents?.month == AppState.shared.todayMonth && $0.dateComponents?.year == AppState.shared.todayYear)
+                    ? ($0.dateComponents?.day ?? 0) <= AppState.shared.todayDay
+                    : true
+                )
+                : true
+            )
+        }
         let moneyIn = calModel.getIncome(from: monthlyTrans)
         let cashOut = calModel.getDebitSpend(from: monthlyTrans)
         let totalSpend = calModel.getSpend(from: monthlyTrans)
@@ -969,7 +1131,32 @@ struct CategoryInsightsView: View {
         
         //let overallTotalSpend = calModel.getSpend(from: model.transactions)
         let breakdown = CivBreakdownData(moneyIn: moneyIn, cashOut: cashOut, spending: totalSpend, actualSpending: actualSpend)
-        let data = CivMonthlyData(dataPoint: .all, month: month, trans: model.transactions, breakdown: breakdown)
+        
+        let catData = calModel.sCategoriesForAnalysis.map { cat in
+            let monthlyTrans = model.transactions.filter {
+                $0.dateComponents?.month == month.actualNum
+                && $0.dateComponents?.year == month.year
+                && (onlyUpUntilToday ?
+                    (
+                        ($0.dateComponents?.month == AppState.shared.todayMonth && $0.dateComponents?.year == AppState.shared.todayYear)
+                        ? ($0.dateComponents?.day ?? 0) <= AppState.shared.todayDay
+                        : true
+                    )
+                    : true
+                )
+                && $0.category?.id == cat.id
+            }
+            let moneyIn = calModel.getIncome(from: monthlyTrans)
+            let cashOut = calModel.getDebitSpend(from: monthlyTrans)
+            let totalSpend = calModel.getSpend(from: monthlyTrans)
+            let actualSpend = calModel.getSpendMinusIncome(from: monthlyTrans)
+            
+            print("\(cat.title): \(actualSpend)")
+            
+            return CivBreakdownData(category: cat, moneyIn: moneyIn, cashOut: cashOut, spending: totalSpend, actualSpending: actualSpend)
+        }
+        
+        let data = CivMonthlyData(dataPoint: .all, month: month, trans: model.transactions, breakdown: breakdown, dataByCategory: catData)
         print("Process!!")
         process(data: data, forceToTransactionList: true)
         
@@ -1011,6 +1198,7 @@ struct CategoryInsightsView: View {
                     target.month = data.month
                     target.dataPoint = data.dataPoint
                     target.breakdown = data.breakdown
+                    target.dataByCategory = data.dataByCategory
                     var activeIds: Array<String> = []
                     
                     for trans in data.trans {
@@ -1044,12 +1232,21 @@ struct CategoryInsightsView: View {
     }
     
     
-    func prepareDataForRealStream() -> AsyncStream<DataPreparationProgress> {
+    func prepareDataForRealStream(onlyUpUntilToday: Bool) -> AsyncStream<DataPreparationProgress> {
         AsyncStream { continuation in
             Task.detached(priority: .userInitiated) { [calModel, model] in
                 continuation.yield(.started)
                 
-                let transactions = await calModel.getTransactions(months: model.monthsForAnalysis, cats: calModel.sCategoriesForAnalysis)
+                let transactions = await calModel
+                    .getTransactions(months: model.monthsForAnalysis, cats: calModel.sCategoriesForAnalysis)
+                    .filter { trans in
+                        if onlyUpUntilToday {
+                            return (trans.date ?? Date()) <= Date()
+                        } else {
+                            return true
+                        }
+                    }
+                
                 let income = await calModel.getIncome(from: transactions)
                 let totalSpent = await calModel.getSpend(from: transactions)
                 let debitSpend = await calModel.getDebitSpend(from: transactions)

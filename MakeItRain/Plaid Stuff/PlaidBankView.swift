@@ -14,7 +14,7 @@ struct PlaidBankView: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(PlaidModel.self) private var plaidModel
     @Environment(PayMethodModel.self) private var payModel
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     
     @Bindable var bank: CBPlaidBank
     
@@ -232,7 +232,7 @@ struct PlaidBankView: View {
                 
                 Spacer()
                 
-                Text(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                Text(balance.amount.currencyWithDecimals())
             }
             .foregroundStyle(.gray)
             .font(.caption)

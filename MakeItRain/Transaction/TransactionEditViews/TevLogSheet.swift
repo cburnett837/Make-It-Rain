@@ -32,6 +32,8 @@ struct TevLogSheet: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
+    @Environment(PayMethodModel.self) private var payModel
+    @Environment(CategoryModel.self) private var catModel
 
     var title: String
     let itemID: String
@@ -76,12 +78,7 @@ struct TevLogSheet: View {
                     Button {
                         restoreLog(from: log)
                     } label: {
-                        LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
-                            Text(LogField.pretty(for: log.field) ?? "N/A")
-                            Text(log.old ?? "-")
-                            Text(log.new ?? "-")
-                        }
-                        .font(.caption2)
+                        logLine(for: log)
                     }
                     .buttonStyle(.plain)
                     
@@ -107,6 +104,61 @@ struct TevLogSheet: View {
         .listSectionSpacing(50)
         #endif
     }
+    
+    
+    @ViewBuilder
+    func logLine(for log: CBLog) -> some View {
+        LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
+            Text(LogField.pretty(for: log.field) ?? "N/A")
+            
+            if log.field == .amount {
+                if let old = log.old, let oldDouble = Double(old) {
+                    Text("\(oldDouble.currencyWithDecimals())")
+                }
+                if let new = log.new, let newDouble = Double(new) {
+                    Text("\(newDouble.currencyWithDecimals())")
+                }
+                
+            } else if log.field == .payMethod {
+                if let old = log.old {
+                    let meth = payModel.getPaymentMethod(by: old)
+                    HStack {
+                        BusinessLogo(config: .init(parent: meth, fallBackType: .color, size: 20))
+                        Text(meth.title)
+                    }
+                }
+                if let new = log.new {
+                    let meth = payModel.getPaymentMethod(by: new)
+                    HStack {
+                        BusinessLogo(config: .init(parent: meth, fallBackType: .color, size: 20))
+                        Text(meth.title)
+                    }
+                }
+                
+            } else if log.field == .category {
+                if let old = log.old {
+                    let cat = catModel.getCategory(by: old)
+                    StandardCategoryLabel(cat: cat, labelWidth: 20, showCheckmarkCondition: false)
+                }
+                if let new = log.new {
+                    let cat = catModel.getCategory(by: new)
+                    StandardCategoryLabel(cat: cat, labelWidth: 20, showCheckmarkCondition: false)
+                }
+                
+            } else {
+                if let old = log.old {
+                    Text(old.isEmpty ? "[Nothing]" : old)
+                        .foregroundStyle(old.isEmpty ? .gray : .primary)
+                }
+                if let new = log.new {
+                    Text(new.isEmpty ? "[Nothing]" : new)
+                        .foregroundStyle(new.isEmpty ? .gray : .primary)
+                }
+            }
+        }
+        .font(.caption2)
+    }
+    
     
     func restoreLog(from log: CBLog) {
         switch log.logType {

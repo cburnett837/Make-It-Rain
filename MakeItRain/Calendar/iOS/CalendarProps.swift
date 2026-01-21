@@ -54,4 +54,6 @@ class CalendarProps {
     
     var timeSinceLastBalanceUpdate: String = ""
     //var lastBalanceUpdateTimer: Timer?
+    
+    var phoneLineItemDisplayItemWhenMultiSelectWasOpened: PhoneLineItemDisplayItem?
 }

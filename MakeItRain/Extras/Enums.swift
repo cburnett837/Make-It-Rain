@@ -15,7 +15,7 @@ enum InAppAlertPreference {
 }
 
 enum WhereToLookForTransaction {
-    case normalList, tempList, searchResultList, /*eventList,*/ smartList
+    case normalList, tempList, searchResultList, /*eventList,*/ smartList, receiptsList
 }
 
 enum TransactionSaveActionToProcess {
@@ -203,22 +203,22 @@ public enum TransactionSortMode: String, CaseIterable {
 }
 
 enum TransactionListDisplayMode: String, CaseIterable {
-    case full, condensed
+    case byDay, byCategory, singleList
     
     static func fromString(_ theString: String) -> Self {
         switch theString {
-        case "full": return .full
-        case "condensed": return .condensed
-        default: return .condensed
+        case "byDay": return .byDay
+        case "byCategory": return .byCategory
+        case "singleList": return .singleList
+        default: return .singleList
         }
     }
     
     var prettyValue: String {
         switch self {
-        case .full:
-            "Full"
-        case .condensed:
-            "Condensed"
+        case .byDay: "By Day"
+        case .byCategory: "By Category"
+        case .singleList: "List"
         }
     }
 }

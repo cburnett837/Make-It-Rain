@@ -8,7 +8,6 @@
 import SwiftUI
 
 struct CategoryGroupEditView: View {
-    @Local(\.categorySortMode) var categorySortMode
     @Environment(\.layoutDirection) private var layoutDirection: LayoutDirection
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme

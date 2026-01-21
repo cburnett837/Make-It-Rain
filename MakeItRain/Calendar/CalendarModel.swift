@@ -58,7 +58,7 @@ class CalendarModel {
     
     var isInMultiSelectMode = false
     var multiSelectTransactions: Array<CBTransaction> = []
-    
+    var currentReceiptId: CBTransaction.ID?
     
     
     
@@ -81,6 +81,7 @@ class CalendarModel {
     ]
     var tempTransactions: [CBTransaction] = []
     var searchedTransactions: [CBTransaction] = []
+    var receiptTransactions: [CBTransaction] = []
     var tags: Array<CBTag> = []
     var suggestedTitles: Array<CBSuggestedTitle> = []
 
@@ -227,8 +228,8 @@ class CalendarModel {
         //let transactionSortMode = TransactionSortMode.fromString(UserDefaults.standard.string(forKey: "transactionSortMode") ?? "")
         //let categorySortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
         
-        let transactionSortMode = LocalStorage.shared.transactionSortMode
-        let categorySortMode = LocalStorage.shared.categorySortMode
+        let transactionSortMode = AppSettings.shared.transactionSortMode
+        let categorySortMode = AppSettings.shared.categorySortMode
         
         /// This will look at both the transaction, and its deepCopy.
         /// The reason being - in case we change a transction category or payment method from what is currently being viewed. This will allow the transaction sheet to remain on screen until we close it, at which point the save function will clear the deepCopy.
@@ -290,27 +291,90 @@ class CalendarModel {
                     }
                 }
             }
-            /// Filter by payment method
             .filter { trans in
-                if sPayMethod?.accountType == .unifiedChecking {
-                    return ([AccountType.checking, AccountType.cash].contains { trans.payMethodTypesInCurrentAndDeepCopy.contains($0) } || (trans.action == .add && trans.payMethod == nil))
-                    && !trans.hasHiddenMethodInCurrentOrDeepCopy
-                    && trans.isPermitted
-                    
-                } else if sPayMethod?.accountType == .unifiedCredit {
-                    return ([AccountType.credit, AccountType.loan].contains { trans.payMethodTypesInCurrentAndDeepCopy.contains($0) } || (trans.action == .add && trans.payMethod == nil))
-                    && !trans.hasHiddenMethodInCurrentOrDeepCopy
-                    && trans.isPermitted
-                    
-                } else if sPayMethod == nil {
-                    return !trans.hasHiddenMethodInCurrentOrDeepCopy && trans.isPermitted
-                    
-                } else {
-                    return (sPayMethod?.id == trans.payMethod?.id || sPayMethod?.id == trans.deepCopy?.payMethod?.id)
-                    && !trans.hasHiddenMethodInCurrentOrDeepCopy
-                    && trans.isPermitted
+                var passesPaymentMethodFilter: Bool {
+                    if sPayMethod?.accountType == .unifiedChecking {
+                        return ([AccountType.checking, .cash].contains { trans.payMethodTypesInCurrentAndDeepCopy.contains($0) } || (trans.action == .add && trans.payMethod == nil))
+                        && !trans.hasHiddenMethodInCurrentOrDeepCopy
+                        && trans.isPermitted
+
+                    } else if sPayMethod?.accountType == .unifiedCredit {
+                        return ([AccountType.credit, .loan].contains { trans.payMethodTypesInCurrentAndDeepCopy.contains($0) } || (trans.action == .add && trans.payMethod == nil))
+                        && !trans.hasHiddenMethodInCurrentOrDeepCopy
+                        && trans.isPermitted
+
+                    } else if sPayMethod == nil {
+                        return !trans.hasHiddenMethodInCurrentOrDeepCopy && trans.isPermitted
+
+                    } else {
+                        return (sPayMethod?.id == trans.payMethod?.id || sPayMethod?.id == trans.deepCopy?.payMethod?.id)
+                        && !trans.hasHiddenMethodInCurrentOrDeepCopy
+                        && trans.isPermitted
+                    }
                 }
+                
+                var passesHolderFilter: Bool {
+                    switch AppSettings.shared.paymentMethodFilterMode {
+                    case .all:
+                        return true
+
+                    case .justPrimary:
+                        return trans.payMethod?.holderOne?.id == AppState.shared.user?.id || trans.deepCopy?.payMethod?.holderOne?.id == AppState.shared.user?.id
+
+                    case .primaryAndSecondary:
+                        let userId = AppState.shared.user?.id
+                        return
+                            trans.payMethod?.holderOne?.id == userId
+                            || trans.deepCopy?.payMethod?.holderOne?.id == userId
+                            || trans.payMethod?.holderTwo?.id == userId
+                            || trans.deepCopy?.payMethod?.holderTwo?.id == userId
+                            || trans.payMethod?.holderThree?.id == userId
+                            || trans.deepCopy?.payMethod?.holderThree?.id == userId
+                            || trans.payMethod?.holderFour?.id == userId
+                            || trans.deepCopy?.payMethod?.holderFour?.id == userId
+                    }
+                }
+
+                
+                return passesPaymentMethodFilter && passesHolderFilter
             }
+        
+        
+        
+//            /// Filter by payment method
+//            .filter { trans in
+//                if sPayMethod?.accountType == .unifiedChecking {
+//                    return ([AccountType.checking, AccountType.cash].contains { trans.payMethodTypesInCurrentAndDeepCopy.contains($0) } || (trans.action == .add && trans.payMethod == nil))
+//                    && !trans.hasHiddenMethodInCurrentOrDeepCopy
+//                    && trans.isPermitted
+//                    
+//                } else if sPayMethod?.accountType == .unifiedCredit {
+//                    return ([AccountType.credit, AccountType.loan].contains { trans.payMethodTypesInCurrentAndDeepCopy.contains($0) } || (trans.action == .add && trans.payMethod == nil))
+//                    && !trans.hasHiddenMethodInCurrentOrDeepCopy
+//                    && trans.isPermitted
+//                    
+//                } else if sPayMethod == nil {
+//                    return !trans.hasHiddenMethodInCurrentOrDeepCopy && trans.isPermitted
+//                    
+//                } else {
+//                    return (sPayMethod?.id == trans.payMethod?.id || sPayMethod?.id == trans.deepCopy?.payMethod?.id)
+//                    && !trans.hasHiddenMethodInCurrentOrDeepCopy
+//                    && trans.isPermitted
+//                }
+//            }
+//            .filter { trans in
+//                switch AppSettings.shared.paymentMethodFilterMode {
+//                case .all:
+//                    return true
+//                case .justPrimary:
+//                    return trans.payMethod?.holderOne?.id == AppState.shared.user?.id || trans.deepCopy?.payMethod?.holderOne?.id == AppState.shared.user?.id
+//                case .primaryAndSecondary:
+//                    return trans.payMethod?.holderOne?.id == AppState.shared.user?.id || trans.deepCopy?.payMethod?.holderOne?.id == AppState.shared.user?.id
+//                    || trans.payMethod?.holderTwo?.id == AppState.shared.user?.id || trans.deepCopy?.payMethod?.holderTwo?.id == AppState.shared.user?.id
+//                    || trans.payMethod?.holderThree?.id == AppState.shared.user?.id || trans.deepCopy?.payMethod?.holderThree?.id == AppState.shared.user?.id
+//                    || trans.payMethod?.holderFour?.id == AppState.shared.user?.id || trans.deepCopy?.payMethod?.holderFour?.id == AppState.shared.user?.id
+//                }
+//            }
             /// Sort by transaction enteredDate or title, or by category (title or list order). User preference.
             .sorted {
                 if transactionSortMode == .title {
@@ -447,6 +511,22 @@ class CalendarModel {
                 }
             }
             
+            /// Check if transaction is in the search results
+            if let index = self.searchedTransactions.firstIndex(where: {$0.id == incomingTrans.id}) {
+                searchedTransactions[index].setFromAnotherInstance(transaction: incomingTrans)
+                searchedTransactions[index].deepCopy?.setFromAnotherInstance(transaction: incomingTrans)
+            }
+            
+            /// Check if transaction is in the receipts list
+            if let index = self.receiptTransactions.firstIndex(where: {$0.id == incomingTrans.id}) {
+                receiptTransactions[index].setFromAnotherInstance(transaction: incomingTrans)
+                receiptTransactions[index].deepCopy?.setFromAnotherInstance(transaction: incomingTrans)
+            } else {
+                if let files = incomingTrans.files, !files.isEmpty {
+                    receiptTransactions.insert(incomingTrans, at: 0)
+                }
+            }
+            
             /// Check if the transaction exists locally.
             var dateChanged = false
             var exists = false
@@ -574,6 +654,7 @@ class CalendarModel {
         if newPendingSmartTransactionCount > pendingSmartTransactionCount {
             AppState.shared.showToast(title: "Smart Transaction Issues", subtitle: "\(newPendingSmartTransactionCount) require attention", body: "", symbol: "exclamationmark.triangle", symbolColor: .orange)
         }
+                        
     }
           
     
@@ -582,6 +663,7 @@ class CalendarModel {
             case .normalList:           justTransactions
             case .tempList, .smartList: tempTransactions
             case .searchResultList:     searchedTransactions
+            case .receiptsList:         receiptTransactions
         }
         #warning("ServerID")
         
@@ -593,14 +675,43 @@ class CalendarModel {
     
     
     private func changeDate(_ trans: CBTransaction) {
-        guard let (oldDate, newDate) = trans.getDateChanges(), let oldDate, let newDate else { return }
-        guard let oldDay = months.getDay(by: oldDate), oldDay.isExisting(trans) else { return }
+        print("-- \(#function)")
+        guard let (oldDate, newDate) = trans.getDateChanges(), let oldDate, let newDate else {
+            //let (oldDate, newDate) = trans.getDateChanges() ?? (Date(), Date())
+            //print("-- \(#function) NOPE!!!! - \(trans.id)");
+            //print("-- \(#function) oldDate \(oldDate)")
+            //print("-- \(#function) newDate \(newDate)")
+            return
+        }
+        
+        guard let oldDay = months.getDay(by: oldDate) else {
+            print("\(#function) -- Old day is not existing")
+            return
+        }
+        
+        guard oldDay.isExisting(trans) else {
+            print("\(#function) -- trans does not exist in old day \(String(describing: oldDay.date))")
+            return
+        }
+                
         withAnimation { oldDay.remove(trans) }
 
-        guard newDate.year == oldDate.year else { return }
+//        guard newDate.year == oldDate.year
+//        || (newDate.year == self.sYear + 1 && newDate.month == 12)
+//        || (newDate.year == self.sYear - 1 && newDate.month == 1) else {
+//            return
+//        }
         
-        guard let newDay = months.getDay(by: newDate) else { return }
-        withAnimation { newDay.upsert(trans) }
+        //print(newDate, oldDate)
+        
+        guard let newDay = months.getDay(by: newDate) else {
+            print("\(#function) -- could not find new day")
+            return
+        }
+        withAnimation {
+            print("\(#function) -- upserting to new day \(String(describing: newDay.date))")
+            newDay.upsert(trans)
+        }
     }
     
     
@@ -730,7 +841,7 @@ class CalendarModel {
     @discardableResult
     @MainActor
     func saveTransaction(id: String, /*day: CBDay? = nil,*/ location: WhereToLookForTransaction = .normalList) async -> Bool {
-        cleanTags()
+        //cleanTags()
                 
         let trans = getTransaction(by: id, from: location)
         print("-- \(#function) id: \(id) - looking in \(location) - \(trans.title) - \(trans.id)")
@@ -777,6 +888,7 @@ class CalendarModel {
             
             /// Move the transaction if applicable.
             if trans.dateChanged() {
+                print("Date check 1")
                 changeDate(trans)
             }
             
@@ -814,8 +926,8 @@ class CalendarModel {
                 && trans.relatedTransactionType == XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction) {
                                         
                     
-                    print("the paymethod is \(trans.payMethod?.title)")
-                    print("the deep paymethod is \(trans.deepCopy?.payMethod?.title)")
+                    //print("the paymethod is \(trans.payMethod?.title)")
+                    //print("the deep paymethod is \(trans.deepCopy?.payMethod?.title)")
                     
                     let trans2 = getTransaction(by: trans.relatedTransactionID!, from: .normalList)
                     trans.status = .inFlight
@@ -828,23 +940,23 @@ class CalendarModel {
                     
                     /// Update the linked date.
                     if trans.dateChanged() {
+                        print("Date check 2")
                         trans2.date = trans.date
                         changeDate(trans2)
                     }
                     
                     /// Update the dollar amounts accordingly.
-                    let useWholeNumbers = LocalStorage.shared.useWholeNumbers
                     if trans.payMethod?.accountType != .credit && trans.payMethod?.accountType != .loan {
                         if trans2.payMethod?.accountType == .credit || trans2.payMethod?.accountType == .loan {
-                            trans2.amountString = (trans.amount * 1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                            trans2.amountString = (trans.amount * 1).currencyWithDecimals()
                         } else {
-                            trans2.amountString = (trans.amount * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                            trans2.amountString = (trans.amount * -1).currencyWithDecimals()
                         }
                         
                     } else if trans2.payMethod?.accountType == .credit || trans2.payMethod?.accountType == .loan {
-                        trans2.amountString = (trans.amount * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                        trans2.amountString = (trans.amount * -1).currencyWithDecimals()
                     } else {
-                        trans2.amountString = (trans.amount * 1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                        trans2.amountString = (trans.amount * 1).currencyWithDecimals()
                     }
                     
                     /// If we filter transactions by category or by payment method, and change it on the transaction, we need the line below to cause the transaction to disappear when closing it.
@@ -1491,18 +1603,52 @@ class CalendarModel {
             if let trans = self.getCopyOfTransaction() {
                 trans.date = day.date!
                                                 
-                if !isUnifiedPayMethod {
-                    trans.payMethod = self.sPayMethod!
+                if !isUnifiedPayMethod, let method = self.sPayMethod {
+                    trans.payMethod = method
                 } else {
                     #warning("Prompt the user to select a payment method if pasting on a unified view.")
                 }
                 
                 day.upsert(trans)
-                self.dragTarget = nil
-                Task {
-                    await self.saveTransaction(id: trans.id/*, day: day*/)
-                }
                 
+                if let relatedId = trans.relatedTransactionID {
+                    let relatedTrans = self.getTransaction(by: relatedId)
+                    
+                    let trans2 = CBTransaction(uuid: UUID().uuidString)
+                    trans2.title = relatedTrans.title
+                    trans2.amountString = relatedTrans.amountString
+                    trans2.date = day.date!
+                    trans2.payMethod = relatedTrans.payMethod
+                    trans2.category = relatedTrans.category
+                    trans2.notes = relatedTrans.notes
+                    trans2.factorInCalculations = relatedTrans.factorInCalculations
+                    trans2.action = .add
+                    trans2.color = relatedTrans.color
+                    trans2.tags = relatedTrans.tags
+                    trans2.notifyOnDueDate = relatedTrans.notifyOnDueDate
+                    trans2.relatedTransactionID = trans.id
+                    trans2.relatedTransactionType = relatedTrans.relatedTransactionType
+                    trans2.christmasListStatus = relatedTrans.christmasListStatus
+                    trans2.christmasListGiftID = relatedTrans.christmasListGiftID
+                    trans2.status = .editing
+                    
+                    trans.relatedTransactionID = trans2.id
+                    
+                    day.upsert(trans2)
+                    
+                    
+                    Task {
+                        await self.addMultiple(trans: [trans, trans2], budgets: [], isTransfer: false)
+                    }
+                    
+                } else {
+                    Task {
+                        await self.saveTransaction(id: trans.id/*, day: day*/)
+                    }
+                    
+                }
+                                
+                self.dragTarget = nil
                 self.transactionToCopy = nil
             }
         }
@@ -1545,11 +1691,67 @@ class CalendarModel {
             trans.color = transactionToCopy.color
             trans.tags = transactionToCopy.tags
             trans.notifyOnDueDate = transactionToCopy.notifyOnDueDate
+            trans.relatedTransactionID = transactionToCopy.relatedTransactionID
+            trans.relatedTransactionType = transactionToCopy.relatedTransactionType
+            trans.christmasListStatus = transactionToCopy.christmasListStatus
+            trans.christmasListGiftID = transactionToCopy.christmasListGiftID
             return trans
         }
         return nil
     }
         
+    
+    
+    
+    @MainActor
+    func fetchReceiptsFromServer(funcModel: FuncModel) async {
+        let fetchModel = GenericUserInfoModel()
+        
+        let model = RequestModel(requestType: "fetch_receipts", model: fetchModel)
+        typealias ResultResponse = Result<Array<CBTransaction>?, AppError>
+        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+        
+        switch await result {
+        case .success(let model):
+            if let model {
+                if self.receiptTransactions.isEmpty {
+                    for trans in model {
+                        self.receiptTransactions.append(trans)
+                    }
+                    
+                    await withTaskGroup(of: Void.self) { group in
+                        for trans in self.receiptTransactions.prefix(3) {
+                            if let files = trans.files?.filter({ $0.active }), !files.isEmpty, let firstFile = files.first {
+                                group.addTask {
+                                    await funcModel.downloadFile(file: firstFile)
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    for trans in model {
+                        if let index = self.receiptTransactions.firstIndex(where: { $0.id == trans.id }) {
+                            self.receiptTransactions[index].setFromAnotherInstance(transaction: trans)
+                        } else {
+                            self.receiptTransactions.insert(trans, at: 0)
+                        }
+                    }
+                }
+                
+                currentReceiptId = model.first?.id
+            }
+                
+        case .failure (let error):
+            switch error {
+            case .taskCancelled:
+                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
+                print("receiptView fetchFromServer Server Task Cancelled")
+            default:
+                LogManager.error(error.localizedDescription)
+                AppState.shared.showAlert("There was a problem trying to fetch fit transactions.")
+            }
+        }
+    }
     
     
     
@@ -1621,12 +1823,21 @@ class CalendarModel {
         
         /// Only transactions related to the passed in payment method. (If applicable).
         if let meth = meth {
-            trans = trans.filter { $0.payMethod?.id == meth.id }
+            
+            if meth.isUnifiedDebit {
+                trans = trans.filter { guard let meth = $0.payMethod else { return false }; return meth.isDebitOrCash }
+            } else if meth.isUnifiedCredit {
+                trans = trans.filter { guard let meth = $0.payMethod else { return false }; return meth.isCreditOrLoan }
+            } else {
+                trans = trans.filter { $0.payMethod?.id == meth.id }
+            }
+            
+            
         }
         
         /// Only transactions related to the passed in categories. (If applicable).
         if let cats = cats {
-            let catIds = cats.map{ $0.id }
+            let catIds = cats.map { $0.id }
             
             trans = trans.filter {
                 catIds.contains($0.categoryIdsInCurrentAndDeepCopy[0] ?? "") || catIds.contains($0.categoryIdsInCurrentAndDeepCopy[1] ?? "")
@@ -2146,14 +2357,14 @@ class CalendarModel {
     }
     
     
-    func cleanTags() {
-        tags.forEach { tag in
-            let count = justTransactions.filter { $0.tags.contains(tag) }.count
-            if count == 0 {
-                tags.removeAll(where: { $0 == tag })
-            }
-        }
-    }
+//    func cleanTags() {
+//        tags.forEach { tag in
+//            let count = justTransactions.filter { $0.tags.contains(tag) }.count
+//            if count == 0 {
+//                tags.removeAll(where: { $0 == tag })
+//            }
+//        }
+//    }
     
     
     
@@ -2175,7 +2386,7 @@ class CalendarModel {
             .filter { $0.payMethod.isPermitted }
             .filter { !$0.payMethod.isHidden }
             .filter {
-                switch LocalStorage.shared.paymentMethodFilterMode {
+                switch AppSettings.shared.paymentMethodFilterMode {
                 case .all:
                     return true
                 case .justPrimary:
@@ -2194,14 +2405,14 @@ class CalendarModel {
                                 
         let index = month.startingAmounts.firstIndex(where: { $0.payMethod.accountType == unifiedAccountType })
         if let index {
-            let useWholeNumbers = LocalStorage.shared.useWholeNumbers
-            month.startingAmounts[index].amountString = startingBalance.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+            month.startingAmounts[index].amountString = startingBalance.currencyWithDecimals()
         }
         
         return startingBalance
     }
                 
     
+    @discardableResult
     func calculateTotal(for month: CBMonth, using paymentMethod: CBPaymentMethod? = nil, and doWhat: DoWhatWhenCalculating = .updateEod) -> Double {
         var theMethod: CBPaymentMethod?
         if paymentMethod == nil {
@@ -2243,7 +2454,7 @@ class CalendarModel {
                     && !($0.payMethod?.isHidden ?? true)
                 }
                 .filter {
-                    switch LocalStorage.shared.paymentMethodFilterMode {
+                    switch AppSettings.shared.paymentMethodFilterMode {
                     case .all:
                         return true
                     case .justPrimary:
@@ -2293,7 +2504,7 @@ class CalendarModel {
                 .filter { $0.isPermitted }
                 .filter { !$0.isHidden }
                 .filter {
-                    switch LocalStorage.shared.paymentMethodFilterMode {
+                    switch AppSettings.shared.paymentMethodFilterMode {
                     case .all:
                         return true
                     case .justPrimary:
@@ -2324,7 +2535,7 @@ class CalendarModel {
                     && !($0.payMethod?.isHidden ?? true)
                 }
                 .filter {
-                    switch LocalStorage.shared.paymentMethodFilterMode {
+                    switch AppSettings.shared.paymentMethodFilterMode {
                     case .all:
                         return true
                     case .justPrimary:
@@ -2386,7 +2597,7 @@ class CalendarModel {
                         && !($0.payMethod?.isHidden ?? true)
                     }
                     .filter {
-                        switch LocalStorage.shared.paymentMethodFilterMode {
+                        switch AppSettings.shared.paymentMethodFilterMode {
                         case .all:
                             return true
                         case .justPrimary:
@@ -2442,7 +2653,7 @@ class CalendarModel {
                     && !($0.payMethod?.isHidden ?? true)
                 }
                 .filter {
-                    switch LocalStorage.shared.paymentMethodFilterMode {
+                    switch AppSettings.shared.paymentMethodFilterMode {
                     case .all:
                         return true
                     case .justPrimary:
@@ -2488,7 +2699,7 @@ class CalendarModel {
                     && (self.categoryFilterWasSetByCategoryPage ? self.sCategories.map({ $0.id }).contains($0.category?.id) : true)
                 }
                 .filter {
-                    switch LocalStorage.shared.paymentMethodFilterMode {
+                    switch AppSettings.shared.paymentMethodFilterMode {
                     case .all:
                         return true
                     case .justPrimary:
@@ -2529,6 +2740,32 @@ class CalendarModel {
     
     
     // MARK: - Helpers
+    
+    func startingAmountSheetDismissed() {
+        self.calculateTotal(for: self.sMonth)
+        
+        /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
+        /// So we use the ``DataChangeTriggers`` class to send a notification to the view to tell it to recalculate.
+        DataChangeTriggers.shared.viewDidChange(.calendar)
+        
+        Task {
+            await withTaskGroup(of: Void.self) { group in
+                let starts = self.sMonth.startingAmounts.filter { !$0.payMethod.isUnified }
+                for start in starts {
+                    if start.hasChanges() {
+                        group.addTask {
+                            await self.submit(start)
+                        }
+                    } else {
+                        //print("No Starting amount Changes for \(start.payMethod.title)")
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    
     func prepareForRefresh() {
         months.forEach { month in
             month.days.removeAll()
@@ -2922,6 +3159,17 @@ extension CalendarModel: FileUploadCompletedDelegate {
             }
         }
         
+        /// Update the temp transactions if they are in the search list and you update them like normal. (I don't think this would be very common though).
+        if let index = receiptTransactions.firstIndex(where: { $0.id == recordID }) {
+            let trans = receiptTransactions[index]
+            
+            if let _ = trans.files {
+                trans.files!.append(picture)
+            } else {
+                trans.files = [picture]
+            }
+        }
+        
         
         
 //        if let targetMonth = months.filter { $0.actualNum == date.month && $0.year == date.year }.first {
@@ -2972,6 +3220,13 @@ extension CalendarModel: FileUploadCompletedDelegate {
                 trans.files?[index].isPlaceholder = false
             }
         }
+        
+        /// Update the receipt transactions if they are in the search list and you update them like normal. (I don't think this would be very common though).
+        if let trans = receiptTransactions.filter({ $0.id == recordID }).first {
+            if let index = trans.files?.firstIndex(where: { $0.uuid == uuid }) {
+                trans.files?[index].isPlaceholder = false
+            }
+        }
     }
         
     
@@ -3002,6 +3257,13 @@ extension CalendarModel: FileUploadCompletedDelegate {
         
         /// Update the temp transactions if they are in the search list and you update them like normal. (I don't think this would be very common though).
         if let trans = tempTransactions.filter({ $0.id == recordID }).first {
+            if let index = trans.files?.firstIndex(where: { $0.uuid == uuid }) {
+                trans.files?[index].active = false
+            }
+        }
+        
+        /// Update the receipt transactions if they are in the search list and you update them like normal. (I don't think this would be very common though).
+        if let trans = receiptTransactions.filter({ $0.id == recordID }).first {
             if let index = trans.files?.firstIndex(where: { $0.uuid == uuid }) {
                 trans.files?[index].active = false
             }
@@ -3041,6 +3303,13 @@ extension CalendarModel: FileUploadCompletedDelegate {
             
             /// Update the temp transactions if they are in the search list and you update them like normal. (I don't think this would be very common though).
             if let trans = tempTransactions.filter({ $0.id == file.relatedID }).first {
+                //if let _ = trans.files?.firstIndex(where: { $0.id == file.id }) {
+                    trans.files?.removeAll { $0.id == file.id || $0.uuid == file.uuid }
+                //}
+            }
+                        
+            /// Update the receipt transactions if they are in the search list and you update them like normal. (I don't think this would be very common though).
+            if let trans = receiptTransactions.filter({ $0.id == file.relatedID }).first {
                 //if let _ = trans.files?.firstIndex(where: { $0.id == file.id }) {
                     trans.files?.removeAll { $0.id == file.id || $0.uuid == file.uuid }
                 //}

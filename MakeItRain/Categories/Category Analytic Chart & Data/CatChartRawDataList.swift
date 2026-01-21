@@ -30,8 +30,9 @@ struct CatChartRawDataList: View {
             }
         }
         .tint(Color.theme)
-        .navigationTitle("\(model.category!.title) Data")
-        .navigationSubtitle("\(String(model.fetchYearStart)) - \(String(AppState.shared.todayYear))")
+        .navigationTitle(model.category!.title)
+        .navigationSubtitle(model.displayedMetric.prettyValue)
+        //.navigationSubtitle("\(String(model.fetchYearStart)) - \(String(AppState.shared.todayYear))")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -42,11 +43,11 @@ struct CatChartRawDataList: View {
         #endif
         .onChange(of: calModel.showMonth) {
             if !$1 && $0 {
-                Task { await model.fetchHistory(setChartAsNew: false) }
+                model.fetchHistory(setChartAsNew: false)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .updateCategoryAnalytics, object: nil)) { _ in
-            Task { await model.fetchHistory(setChartAsNew: false) }
+            model.fetchHistory(setChartAsNew: false)
         }
     }
     

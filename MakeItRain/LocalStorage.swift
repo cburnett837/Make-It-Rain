@@ -59,25 +59,25 @@ public class LocalStorage {
     
     
     // MARK: - Local Variables
-    public var threshold: Double {
-        get { get(\.threshold, key: "threshold", default: 500.00) }
-        set { set(\.threshold, key: "threshold", new: newValue) }
-    }
+//    public var threshold: Double {
+//        get { get(\.threshold, key: "threshold", default: 500.00) }
+//        set { set(\.threshold, key: "threshold", new: newValue) }
+//    }
     
     public var colorTheme: String {
         get { get(\.colorTheme, key: "colorTheme", default: Color.blue.description) }
         set { set(\.colorTheme, key: "colorTheme", new: newValue) }
     }
     
-    public var useWholeNumbers: Bool {
-        get { get(\.useWholeNumbers, key: "useWholeNumbers", default: false) }
-        set { set(\.useWholeNumbers, key: "useWholeNumbers", new: newValue) }
-    }
+//    public var useWholeNumbers: Bool {
+//        get { get(\.useWholeNumbers, key: "useWholeNumbers", default: false) }
+//        set { set(\.useWholeNumbers, key: "useWholeNumbers", new: newValue) }
+//    }
     
-    public var incomeColor: String {
-        get { get(\.incomeColor, key: "incomeColor", default: Color.blue.description) }
-        set { set(\.incomeColor, key: "incomeColor", new: newValue) }
-    }
+//    public var incomeColor: String {
+//        get { get(\.incomeColor, key: "incomeColor", default: Color.blue.description) }
+//        set { set(\.incomeColor, key: "incomeColor", new: newValue) }
+//    }
     
     public var useBusinessLogos: Bool {
         get { get(\.useBusinessLogos, key: "useBusinessLogos", default: true) }
@@ -115,28 +115,28 @@ public class LocalStorage {
     }
     
     //@AppStorage("categorySortMode") var categorySortMode: SortMode = .title
-    public var categorySortMode: SortMode {
-        get { SortMode.fromString(get(\.categorySortMode.rawValue, key: "categorySortMode", default: SortMode.title.rawValue)) }
-        set { set(\.categorySortMode.rawValue, key: "categorySortMode", new: newValue.rawValue) }
-    }
+//    public var categorySortMode: SortMode {
+//        get { SortMode.fromString(get(\.categorySortMode.rawValue, key: "categorySortMode", default: SortMode.title.rawValue)) }
+//        set { set(\.categorySortMode.rawValue, key: "categorySortMode", new: newValue.rawValue) }
+//    }
     
     //@AppStorage("paymentMethodSortMode") var paymentMethodSortMode: SortMode = .title
-    public var paymentMethodSortMode: SortMode {
-        get { SortMode.fromString(get(\.paymentMethodSortMode.rawValue, key: "paymentMethodSortMode", default: SortMode.title.rawValue)) }
-        set { set(\.paymentMethodSortMode.rawValue, key: "paymentMethodSortMode", new: newValue.rawValue) }
-    }
+//    public var paymentMethodSortMode: SortMode {
+//        get { SortMode.fromString(get(\.paymentMethodSortMode.rawValue, key: "paymentMethodSortMode", default: SortMode.title.rawValue)) }
+//        set { set(\.paymentMethodSortMode.rawValue, key: "paymentMethodSortMode", new: newValue.rawValue) }
+//    }
     
     //@AppStorage("transactionSortMode") var transactionSortMode: TransactionSortMode = .title
-    public var transactionSortMode: TransactionSortMode {
-        get { TransactionSortMode.fromString(get(\.transactionSortMode.rawValue, key: "transactionSortMode", default: TransactionSortMode.title.rawValue)) }
-        set { set(\.transactionSortMode.rawValue, key: "transactionSortMode", new: newValue.rawValue) }
-    }
+//    public var transactionSortMode: TransactionSortMode {
+//        get { TransactionSortMode.fromString(get(\.transactionSortMode.rawValue, key: "transactionSortMode", default: TransactionSortMode.title.rawValue)) }
+//        set { set(\.transactionSortMode.rawValue, key: "transactionSortMode", new: newValue.rawValue) }
+//    }
     
     //@AppStorage("tightenUpEodTotals") var tightenUpEodTotals = true
-    public var tightenUpEodTotals: Bool {
-        get { get(\.tightenUpEodTotals, key: "tightenUpEodTotals", default: true) }
-        set { set(\.tightenUpEodTotals, key: "tightenUpEodTotals", new: newValue) }
-    }
+//    public var tightenUpEodTotals: Bool {
+//        get { get(\.tightenUpEodTotals, key: "tightenUpEodTotals", default: true) }
+//        set { set(\.tightenUpEodTotals, key: "tightenUpEodTotals", new: newValue) }
+//    }
         
     //@AppStorage("debugPrint") var debugPrint = false
     public var debugPrint: Bool {
@@ -180,11 +180,11 @@ public class LocalStorage {
         set { set(\.creditEodView.rawValue, key: "creditEodView", new: newValue.rawValue) }
     }
     
-    //@AppStorage("paymentMethodSheetFilterMode") private var paymentMethodSheetFilterMode: PaymentMethodFilterMode = .justPrimary
-    public var paymentMethodFilterMode: PaymentMethodFilterMode {
-        get { PaymentMethodFilterMode.fromString(get(\.paymentMethodFilterMode.rawValue, key: "paymentMethodFilterMode", default: PaymentMethodFilterMode.all.rawValue)) }
-        set { set(\.paymentMethodFilterMode.rawValue, key: "paymentMethodFilterMode", new: newValue.rawValue) }
-    }
+//    //@AppStorage("paymentMethodSheetFilterMode") private var paymentMethodSheetFilterMode: PaymentMethodFilterMode = .justPrimary
+//    public var paymentMethodFilterMode: PaymentMethodFilterMode {
+//        get { PaymentMethodFilterMode.fromString(get(\.paymentMethodFilterMode.rawValue, key: "paymentMethodFilterMode", default: PaymentMethodFilterMode.all.rawValue)) }
+//        set { set(\.paymentMethodFilterMode.rawValue, key: "paymentMethodFilterMode", new: newValue.rawValue) }
+//    }
 
     
         

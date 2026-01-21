@@ -8,8 +8,6 @@
 import SwiftUI
 #if os(macOS)
 struct DayViewMac: View {
-    @Local(\.useWholeNumbers) var useWholeNumbers
-    @Local(\.threshold) var threshold
     @Local(\.alignWeekdayNamesLeft) var alignWeekdayNamesLeft
     
     @Environment(CalendarModel.self) private var calModel
@@ -38,7 +36,7 @@ struct DayViewMac: View {
     @State private var showTransferSheet = false
     
     var eodColor: Color {
-        if day.eodTotal > threshold {
+        if day.eodTotal > AppSettings.shared.lowBalanceThreshold {
             return .gray
         } else if day.eodTotal < 0 {
             return .red
@@ -90,7 +88,7 @@ struct DayViewMac: View {
                         Spacer()
                         //eodView(eodAmount: day.eodTotal)                                                                        
                                                 
-                        Text(day.eodTotal.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                        Text(day.eodTotal.currencyWithDecimals())
                             .font(.title3)
                             .foregroundColor(eodColor)
                             .padding(.trailing, 2)
@@ -295,7 +293,7 @@ struct DayViewMac: View {
         if calModel.sPayMethod?.accountType == .credit || calModel.sPayMethod?.accountType == .loan {
             switch creditEodView {
             case .availableCredit:
-                return "Credit available out of limit of \(calModel.sPayMethod?.limit?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-")"
+                return "Credit available out of limit of \(calModel.sPayMethod?.limit?.currencyWithDecimals() ?? "-")"
             case .remainingBalance:
                 return "Remaining balance before hitting $0.00"
             }
@@ -311,7 +309,7 @@ struct DayViewMac: View {
                     .reduce(0.0, +)
                 
                 
-                return "Credit available out of limit of \(cumulativeLimits.currencyWithDecimals(useWholeNumbers ? 0 : 2))"
+                return "Credit available out of limit of \(cumulativeLimits.currencyWithDecimals())"
             case .remainingBalance:
                 return "Remaining balance before hitting $0.00"
             }

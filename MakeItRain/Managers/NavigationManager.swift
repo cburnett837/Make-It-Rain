@@ -151,7 +151,7 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
         case .debug:                    "ladybug"
         case .plaid:                    "building.columns"
         case .placeholderMonth:         ""
-        case .toasts:                   "bell.badge"
+        case .toasts:                   "bell"
         case .calendar:                 "calendar"
         case .more:                     "ellipsis"
         case .recentReceipts:           "receipt"
@@ -201,8 +201,8 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
         case .keywords:
             KeywordsTable()
             
-        case .search:
-            AdvancedSearchView()
+//        case .search:
+//            AdvancedSearchView()
             
         case .analytics:
             Text("analytics")

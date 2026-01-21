@@ -346,7 +346,8 @@ enum DateFormat {
     monthNameYear,
     monthDayShortYear,
     swiftDefault,
-    datePickerDateOnlyDefault
+    datePickerDateOnlyDefault,
+    invoiceDate
 }
 
 func getDateFormat(_ format: DateFormat) -> String {
@@ -366,5 +367,6 @@ func getDateFormat(_ format: DateFormat) -> String {
     case .monthDayShortYear:            return "MM/dd/yy"
     case .swiftDefault:                 return "y-MM-dd H:mm:ss z"
     case .datePickerDateOnlyDefault:    return "MMM dd, yyyy"
+    case .invoiceDate:                  return "MM-dd-y"
     }
 }

@@ -9,7 +9,7 @@ import SwiftUI
 
 #if os(iOS)
 struct CustomDecimalKeyboard: View {
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     @Binding var text: String
     
     let columns = Array(repeating: GridItem(spacing: 6), count: 3)
@@ -17,7 +17,7 @@ struct CustomDecimalKeyboard: View {
     var body: some View {
         LazyVGrid(columns: columns, spacing: 6) {
             ForEach(1...9, id: \.self) { buttonView("\($0)") }
-            useWholeNumbers ? buttonView(type: .posNeg) : buttonView(type: .decimalPoint)
+            AppSettings.shared.useWholeNumbers ? buttonView(type: .posNeg) : buttonView(type: .decimalPoint)
             buttonView("0")
             buttonView(type: .delete)
         }

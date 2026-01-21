@@ -93,13 +93,15 @@ class CivMonthlyData: Hashable, Identifiable {
     var month: CBMonth
     var trans: [CBTransaction]
     var breakdown: CivBreakdownData
+    var dataByCategory: [CivBreakdownData]
     
-    init(id: UUID = UUID(), dataPoint: CivDataPoint, month: CBMonth, trans: [CBTransaction], breakdown: CivBreakdownData) {
+    init(id: UUID = UUID(), dataPoint: CivDataPoint, month: CBMonth, trans: [CBTransaction], breakdown: CivBreakdownData, dataByCategory: [CivBreakdownData]) {
         self.id = id
         self.dataPoint = dataPoint
         self.month = month
         self.trans = trans
         self.breakdown = breakdown
+        self.dataByCategory = dataByCategory
     }
     
     static func == (lhs: CivMonthlyData, rhs: CivMonthlyData) -> Bool {
@@ -114,6 +116,7 @@ class CivMonthlyData: Hashable, Identifiable {
 
 struct CivBreakdownData: Identifiable {
     var id = UUID()
+    var category: CBCategory?
     var moneyIn: Double
     var cashOut: Double
     var spending: Double

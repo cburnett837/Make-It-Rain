@@ -58,8 +58,7 @@ class CBCategoryGroup: Codable, Identifiable, Hashable, Equatable {
         self.active = true
         self.action = CategoryGroupAction.fromString(entity.action!)
         
-        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
-        self.amountString = entity.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        self.amountString = entity.amount.currencyWithDecimals()
         //#warning("remove this when Laura installs")
         
         self.enteredBy = AppState.shared.getUserBy(id: Int(entity.enteredByID)) ?? AppState.shared.user!
@@ -106,8 +105,7 @@ class CBCategoryGroup: Codable, Identifiable, Hashable, Equatable {
         title = try container.decode(String.self, forKey: .title)
         
         let amount = try container.decode(Double?.self, forKey: .amount)
-        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
-        self.amountString = amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        self.amountString = amount?.currencyWithDecimals()
                 
         self.categories = try container.decode(Array<CBCategory>.self, forKey: .categories)
         
@@ -178,8 +176,7 @@ class CBCategoryGroup: Codable, Identifiable, Hashable, Equatable {
     
     func setFromAnotherInstance(group: CBCategoryGroup) {
         self.title = group.title
-        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
-        self.amountString = group.amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        self.amountString = group.amount?.currencyWithDecimals()
         self.categories = group.categories
         self.active = group.active
     }

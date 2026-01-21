@@ -8,6 +8,7 @@
 import SwiftUI
 #if os(iOS)
 struct CalendarMoreMenu: View {
+    @Local(\.phoneLineItemDisplayItem) var phoneLineItemDisplayItem
     @Environment(\.colorScheme) var colorScheme
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarProps.self) private var calProps
@@ -31,6 +32,7 @@ struct CalendarMoreMenu: View {
             
             Section("Tools") {
                 multiSelectButton
+                exportCsvButton
             }
             
             Section("More") {
@@ -133,10 +135,18 @@ struct CalendarMoreMenu: View {
             Label("Trans List", systemImage: "list.bullet")
         }
     }
-    
-    
+                
+
     var multiSelectButton: some View {
         Button {
+            
+            if phoneLineItemDisplayItem != .both {
+                calProps.phoneLineItemDisplayItemWhenMultiSelectWasOpened = phoneLineItemDisplayItem
+                withAnimation {
+                    phoneLineItemDisplayItem = .both
+                }
+            }
+            
             calModel.sCategoriesForAnalysis.removeAll()
             calModel.multiSelectTransactions.removeAll()
             
@@ -178,6 +188,23 @@ struct CalendarMoreMenu: View {
             }
         }
         .disabled(funcModel.isLoading)
+    }
+    
+    
+    @ViewBuilder
+    var exportCsvButton: some View {
+        let rows = calModel.sMonth
+            .justTransactions
+            .filter { $0.active && $0.isPermitted }
+            .map { $0.convertToCsvRecord() }
+        
+        ExportCsvButton(
+            fileName: "Transactions-\(calModel.sMonth.name)-\(calModel.sYear).csv",
+            headers: CBTransaction.getCsvHeaders(),
+            rows: rows
+        ) {
+            Label("Export CSV", systemImage: "tablecells")
+        }
     }
     
     

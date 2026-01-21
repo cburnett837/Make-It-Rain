@@ -40,8 +40,8 @@ class CBPlaidBalance: Decodable, Identifiable, Equatable, Hashable {
         }
         
         let amount = try container.decode(Double.self, forKey: .amount)
-        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
-        self.amountString = amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        
+        self.amountString = amount.currencyWithDecimals()
         
         let enteredDate = try container.decode(String?.self, forKey: .entered_date)
         if let enteredDate {

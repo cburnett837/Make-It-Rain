@@ -141,6 +141,7 @@ class PayMethodModel {
         let holderTwoTypeID = Int64(payMethod.holderTwoType?.id ?? 0)
         let holderThreeTypeID = Int64(payMethod.holderThreeType?.id ?? 0)
         let holderFourTypeID = Int64(payMethod.holderFourType?.id ?? 0)
+        let recentTransactionCount = Int64(payMethod.recentTransactionCount)
         
         
         
@@ -178,6 +179,7 @@ class PayMethodModel {
                 entity.updatedDate = updatedDate
                 
                 entity.listOrder = listOrder
+                entity.recentTransactionCount = recentTransactionCount
                 
                 entity.holderOneID = holderOneID
                 entity.holderTwoID = holderTwoID
@@ -262,6 +264,7 @@ class PayMethodModel {
                         let enteredDate = payMethod.enteredDate
                         let updatedDate = payMethod.updatedDate
                         let listOrder = Int64(payMethod.listOrder ?? 0)
+                        let recentTransactionCount = Int64(payMethod.recentTransactionCount)
                         
                         let holderOneID = Int64(payMethod.holderOne?.id ?? 0)
                         let holderTwoID = Int64(payMethod.holderTwo?.id ?? 0)
@@ -322,6 +325,7 @@ class PayMethodModel {
                                 entity.updatedDate = updatedDate
                                 
                                 entity.listOrder = listOrder
+                                entity.recentTransactionCount = recentTransactionCount
                                 
                                 entity.holderOneID = holderOneID
                                 entity.holderTwoID = holderTwoID
@@ -406,6 +410,7 @@ class PayMethodModel {
         let updatedDate = payMethod.updatedDate
         
         let listOrder = Int64(payMethod.listOrder ?? 0)
+        let recentTransactionCount = Int64(payMethod.recentTransactionCount)
         
         let holderOneID = Int64(payMethod.holderOne?.id ?? 0)
         let holderTwoID = Int64(payMethod.holderTwo?.id ?? 0)
@@ -450,6 +455,7 @@ class PayMethodModel {
                 entity.enteredDate = enteredDate
                 entity.updatedDate = updatedDate
                 entity.listOrder = listOrder
+                entity.recentTransactionCount = recentTransactionCount
                 
                 entity.holderOneID = holderOneID
                 entity.holderTwoID = holderTwoID
@@ -712,7 +718,7 @@ class PayMethodModel {
     
     
     @MainActor
-    func setDefaultEditing(_ payMethod: CBPaymentMethod) async {
+    func setDefaultEditing(_ payMethod: CBPaymentMethod?) async {
         print("-- \(#function)")
         
         /// Allow more time to save if the user enters the background.
@@ -722,12 +728,22 @@ class PayMethodModel {
         
         //LoadingManager.shared.startDelayedSpinner()
         LogManager.log()
+        
+        for each in paymentMethods {
+            each.isEditingDefault = false
+        }
+        
+        for each in paymentMethods {
+            if each.id == payMethod?.id {
+                each.isEditingDefault = true
+            }
+        }
                                 
-        paymentMethods = paymentMethods.map({
-            let optionItem = $0
-            $0.isEditingDefault = $0.id == payMethod.id
-            return optionItem
-        })
+//        paymentMethods = paymentMethods.map({
+//            let optionItem = $0
+//            $0.isEditingDefault = $0.id == payMethod.id
+//            return optionItem
+//        })
         
         let methInfos = await MainActor.run {
             self.paymentMethods.map { (id: $0.id, isEditingDefault: $0.isEditingDefault) }
@@ -746,9 +762,12 @@ class PayMethodModel {
             
             let _ = DataManager.shared.save(context: context)
         }
+        
+        let submitModel = IdSubmitModel(id: payMethod?.id)
+
                               
         /// Networking
-        let model = RequestModel(requestType: "set_default_editing_payment_method", model: payMethod)
+        let model = RequestModel(requestType: "set_default_editing_payment_method", model: submitModel)
         
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
@@ -845,25 +864,41 @@ class PayMethodModel {
         print("-- \(#function)")
         /// If you close the payment method edit page, and the data is not valid, hide all the other views.
         if AppState.shared.methsExist
-        && paymentMethods.filter({ !$0.isUnified }).isEmpty {
-            AppState.shared.methsExist = false
-            AppState.shared.showPaymentMethodNeededSheet = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: {
-                #if os(iOS)
-                //NavigationManager.shared.navPath = []
-                NavigationManager.shared.selection = nil
-                #else
-                NavigationManager.shared.selection = nil
-                #endif
+        && paymentMethods
+            /// User must have at least 1 account that they are listed as the primary holder on
+            .filter ({ meth in
+                return meth.holderOne?.id == AppState.shared.user?.id
+//                switch AppSettings.shared.paymentMethodFilterMode {
+//                case .all:
+//                    return true
+//                case .justPrimary:
+//                    return meth.holderOne?.id == AppState.shared.user?.id
+//                case .primaryAndSecondary:
+//                    return meth.holderOne?.id == AppState.shared.user?.id
+//                    || meth.holderTwo?.id == AppState.shared.user?.id
+//                    || meth.holderThree?.id == AppState.shared.user?.id
+//                    || meth.holderFour?.id == AppState.shared.user?.id
+//                }
             })
-            
-        } else {
-            /// If you close the payment method edit page, and the data was valid, show all the other views.
-            if !AppState.shared.methsExist
-            && !paymentMethods.filter({ !$0.isUnified }).isEmpty {
-                AppState.shared.methsExist = true
+            .filter({ !$0.isUnified }).isEmpty {
+                AppState.shared.methsExist = false
+                AppState.shared.showPaymentMethodNeededSheet = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: {
+                    #if os(iOS)
+                    //NavigationManager.shared.navPath = []
+                    NavigationManager.shared.selection = nil
+                    #else
+                    NavigationManager.shared.selection = nil
+                    #endif
+                })
+                
+            } else {
+                /// If you close the payment method edit page, and the data was valid, show all the other views.
+                if !AppState.shared.methsExist
+                && !paymentMethods.filter({ !$0.isUnified }).isEmpty {
+                    AppState.shared.methsExist = true
+                }
             }
-        }
     }
     
     
@@ -923,7 +958,7 @@ class PayMethodModel {
                         && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
                     }
                     .filter {
-                        switch LocalStorage.shared.paymentMethodFilterMode {
+                        switch AppSettings.shared.paymentMethodFilterMode {
                         case .all:
                             return true
                         case .justPrimary:
@@ -947,7 +982,7 @@ class PayMethodModel {
                         && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
                     }
                     .filter {
-                        switch LocalStorage.shared.paymentMethodFilterMode {
+                        switch AppSettings.shared.paymentMethodFilterMode {
                         case .all:
                             return true
                         case .justPrimary:
@@ -972,7 +1007,7 @@ class PayMethodModel {
                         && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
                     }
                     .filter {
-                        switch LocalStorage.shared.paymentMethodFilterMode {
+                        switch AppSettings.shared.paymentMethodFilterMode {
                         case .all:
                             return true
                         case .justPrimary:
@@ -1001,7 +1036,7 @@ class PayMethodModel {
                         && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
                     }
                     .filter {
-                        switch LocalStorage.shared.paymentMethodFilterMode {
+                        switch AppSettings.shared.paymentMethodFilterMode {
                         case .all:
                             return true
                         case .justPrimary:
@@ -1025,7 +1060,7 @@ class PayMethodModel {
                         && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
                     }
                     .filter {
-                        switch LocalStorage.shared.paymentMethodFilterMode {
+                        switch AppSettings.shared.paymentMethodFilterMode {
                         case .all:
                             return true
                         case .justPrimary:
@@ -1050,7 +1085,7 @@ class PayMethodModel {
                         && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
                     }
                     .filter {
-                        switch LocalStorage.shared.paymentMethodFilterMode {
+                        switch AppSettings.shared.paymentMethodFilterMode {
                         case .all:
                             return true
                         case .justPrimary:
@@ -1080,7 +1115,7 @@ class PayMethodModel {
                             && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
                         }
                         .filter {
-                            switch LocalStorage.shared.paymentMethodFilterMode {
+                            switch AppSettings.shared.paymentMethodFilterMode {
                             case .all:
                                 return true
                             case .justPrimary:
@@ -1108,7 +1143,7 @@ class PayMethodModel {
                             && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
                         }
                         .filter {
-                            switch LocalStorage.shared.paymentMethodFilterMode {
+                            switch AppSettings.shared.paymentMethodFilterMode {
                             case .all:
                                 return true
                             case .justPrimary:
@@ -1137,7 +1172,7 @@ class PayMethodModel {
                             && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
                         }
                         .filter {
-                            switch LocalStorage.shared.paymentMethodFilterMode {
+                            switch AppSettings.shared.paymentMethodFilterMode {
                             case .all:
                                 return true
                             case .justPrimary:
@@ -1169,7 +1204,7 @@ class PayMethodModel {
                         && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
                     }
                     .filter {
-                        switch LocalStorage.shared.paymentMethodFilterMode {
+                        switch AppSettings.shared.paymentMethodFilterMode {
                         case .all:
                             return true
                         case .justPrimary:
@@ -1193,7 +1228,7 @@ class PayMethodModel {
                         && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
                     }
                     .filter {
-                        switch LocalStorage.shared.paymentMethodFilterMode {
+                        switch AppSettings.shared.paymentMethodFilterMode {
                         case .all:
                             return true
                         case .justPrimary:
@@ -1217,7 +1252,7 @@ class PayMethodModel {
                         && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
                     }
                     .filter {
-                        switch LocalStorage.shared.paymentMethodFilterMode {
+                        switch AppSettings.shared.paymentMethodFilterMode {
                         case .all:
                             return true
                         case .justPrimary:

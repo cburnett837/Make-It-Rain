@@ -96,8 +96,13 @@ extension AppState {
             //}
         }
         
-        let context = DataManager.shared.container.viewContext
+        
         let id = UUID().uuidString
+        
+        AppState.shared.unreadToasts.append(id)
+        
+        let context = DataManager.shared.container.viewContext
+        
         if let perToast = DataManager.shared.getOne(context: context, type: PersistentToast.self, predicate: .byId(.string(id)), createIfNotFound: true) {
             perToast.id = id
             perToast.title = title

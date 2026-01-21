@@ -10,12 +10,8 @@ import SwiftUI
 import Charts
 
 struct CivTransactionList: View {
-    @AppStorage("transactionListDisplayMode") var transactionListDisplayMode: TransactionListDisplayMode = .condensed
+    @AppStorage("transactionListDisplayMode") var transactionListDisplayMode: TransactionListDisplayMode = .singleList
     @AppStorage("transactionListDisplayModeShowEmptyDaysInFull") var transactionListDisplayModeShowEmptyDaysInFull: Bool = false
-    
-    @Local(\.transactionSortMode) var transactionSortMode
-    @Local(\.categorySortMode) var categorySortMode
-    @Local(\.useWholeNumbers) var useWholeNumbers
     
     @Environment(CalendarModel.self) private var calModel
     
@@ -32,6 +28,7 @@ struct CivTransactionList: View {
         if let data = model.selectedMonth {
             theView
                 .searchable(text: $searchText, prompt: Text("Search"))
+                .searchPresentationToolbarBehavior(.avoidHidingContent)
                 .navigationTitle("\(data.dataPoint.titleString)")
                 .navigationSubtitle("\(data.month.name) \(String(data.month.year))")
                 .toolbar {
@@ -51,32 +48,83 @@ struct CivTransactionList: View {
                 ContentUnavailableView("No Transactions", systemImage: "rectangle.stack.slash.fill")
             } else {
                 StandardContainerWithToolbar(.list) {
-                    Section("Breakdown") {
+                    if model.monthsForAnalysis.count > 1 {
+                        Section("Breakdown") {
+                            
+                            switch data.dataPoint {
+                            case .moneyIn:
+                                breakdownLine(title: "Money In…", value: data.breakdown.moneyIn)
+                            case .cashOut:
+                                breakdownLine(title: "Cash out…", value: data.breakdown.cashOut * -1)
+                            case .totalSpending:
+                                breakdownLine(title: "Total spending…", value: data.breakdown.spending * -1)
+                            case .actualSpending:
+                                breakdownLine(title: "Actual spending…", value: data.breakdown.actualSpending * -1)
+                                    .bold()
+                            case .all:
+                                breakdownLine(title: "Money In…", value: data.breakdown.moneyIn)
+                                breakdownLine(title: "Cash out…", value: data.breakdown.cashOut * -1)
+                                breakdownLine(title: "Total spending…", value: data.breakdown.spending * -1)
+                                breakdownLine(title: "Actual spending…", value: data.breakdown.actualSpending * -1)
+                                    .bold()
+                            }
+                        }
                         
-                        switch data.dataPoint {
-                        case .moneyIn:
-                            breakdownLine(title: "Money In…", value: data.breakdown.moneyIn)
-                        case .cashOut:
-                            breakdownLine(title: "Cash out…", value: data.breakdown.cashOut * -1)
-                        case .totalSpending:
-                            breakdownLine(title: "Total spending…", value: data.breakdown.spending * -1)
-                        case .actualSpending:
-                            breakdownLine(title: "Actual spending…", value: data.breakdown.actualSpending * -1)
-                                .bold()
-                        case .all:
-                            breakdownLine(title: "Money In…", value: data.breakdown.moneyIn)
-                            breakdownLine(title: "Cash out…", value: data.breakdown.cashOut * -1)
-                            breakdownLine(title: "Total spending…", value: data.breakdown.spending * -1)
-                            breakdownLine(title: "Actual spending…", value: data.breakdown.actualSpending * -1)
-                                .bold()
+                        Section("By Category") {
+                            ForEach(data.dataByCategory) { catData in
+                                if let category = catData.category {
+                                    HStack {
+                                        StandardCategoryLabel(cat: category, labelWidth: 30, showCheckmarkCondition: false)
+                                        
+                                        let metricText = switch data.dataPoint {
+                                        case .moneyIn: catData.moneyIn
+                                        case .cashOut: catData.cashOut
+                                        case .totalSpending: catData.spending * -1
+                                        case .actualSpending: catData.actualSpending * -1
+                                        case .all: catData.actualSpending * -1
+                                        }
+                                        
+                                        Text(metricText.currencyWithDecimals())
+                                    }
+                                }
+                                
+                                
+                                
+                                //CatChartRawDataListLine(category: data.category, data: data, labelType: .category, model: model)
+                            }
+                        }
+                        
+                        Section {
+                            HStack {
+                                monthlyCategoriesPieChart(monthlyData: data)
+                                monthlyCategoriesBarChart(monthlyData: data)
+                            }
+                            
                         }
                     }
                     
+                    
                     switch transactionListDisplayMode {
-                    case .full:
+                    case .byDay:
                         fullView(for: data.month)
-                    case .condensed:
+                    case .singleList:
                         condensedView(for: data.month)
+                    case .byCategory:
+                        let trans = getTransactions(month: data.month)
+                        ForEach(calModel.sCategoriesForAnalysis) { cat in
+                            
+                            Section(cat.title) {
+                                let filteredTrans = trans.filter { $0.category?.id == cat.id }
+                                
+                                ForEach(filteredTrans) { trans in
+                                    TransactionListLine(trans: trans, withDate: true) {
+                                        let day = model.selectedMonth!.month.days.filter { $0.id == trans.dateComponents?.day }.first
+                                        self.transDay = day
+                                        self.transEditID = trans.id
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -89,8 +137,89 @@ struct CivTransactionList: View {
         HStack {
             Text(title)
             Spacer()
-            Text("\(value.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+            Text("\(value.currencyWithDecimals())")
                 //.foregroundStyle(.gray)
+        }
+    }
+    
+    
+    @ViewBuilder
+    func monthlyCategories(monthlyData: CivMonthlyData, year: Int) -> some View {
+        List {
+            Section {
+                HStack {
+                    monthlyCategoriesPieChart(monthlyData: monthlyData)
+                    monthlyCategoriesBarChart(monthlyData: monthlyData)
+                }
+                
+            }
+            
+//            Section {
+//                monthlyCategoriesPieChart(monthlyData: monthlyData)
+//            }
+        
+//            Section("Data") {
+//                ForEach(monthlyData.dataByCategory) { data in
+//                    //CatChartRawDataListLine(category: data.category, data: data, labelType: .category, model: model)
+//                }
+//            }
+        }
+        //.navigationTitle("\(monthlyData.monthName) Data")
+        .navigationSubtitle(String(year))
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)        
+        #endif
+    }
+    
+    
+    @ViewBuilder
+    func monthlyCategoriesBarChart(monthlyData: CivMonthlyData) -> some View {
+        Chart {
+            ForEach(monthlyData.dataByCategory) { catData in
+                if let category = catData.category {
+                    let metricText = switch monthlyData.dataPoint {
+                    case .moneyIn: catData.moneyIn
+                    case .cashOut: catData.cashOut
+                    case .totalSpending: catData.spending * -1
+                    case .actualSpending: catData.actualSpending * -1
+                    case .all: catData.actualSpending * -1
+                    }
+                    
+                    BarMark(
+                        x: .value("Amount", metricText),
+                        y: .value("Category", category.title),
+                    )
+                    .foregroundStyle(category.color)
+                }
+            }
+        }
+        .frame(minHeight: 150)
+    }
+    
+    
+    @ViewBuilder
+    func monthlyCategoriesPieChart(monthlyData: CivMonthlyData) -> some View {
+        HStack {
+            Chart {
+                ForEach(monthlyData.dataByCategory) { catData in
+                    if let category = catData.category {
+                        let metricText = switch monthlyData.dataPoint {
+                        case .moneyIn: (catData.moneyIn < 0) ? 0 : (catData.moneyIn)
+                        case .cashOut: (catData.cashOut < 0) ? 0 : (catData.cashOut)
+                        case .totalSpending: (catData.spending * -1 < 0) ? 0 : (catData.spending * -1)
+                        case .actualSpending: (catData.actualSpending * -1 < 0) ? 0 : (catData.actualSpending * -1)
+                        case .all: (catData.actualSpending * -1 < 0) ? 0 : (catData.actualSpending * -1)
+                        }
+                        
+                        SectorMark(angle: .value("Amount", metricText), innerRadius: .ratio(0.4), angularInset: 1.0)
+                            .cornerRadius(2)
+                            .foregroundStyle(category.color)
+                    }
+                }
+            }
+            .frame(minHeight: 150)
+            
+            //chartLegend(monthlyData: monthlyData)
         }
     }
     
@@ -114,7 +243,7 @@ struct CivTransactionList: View {
                         }
                     }
                     
-                    if opt == .full && transactionListDisplayMode == .full {
+                    if opt == .byDay && transactionListDisplayMode == .byDay {
                         Menu("Show empty days") {
                             emptyDayButton(show: true)
                             emptyDayButton(show: false)
@@ -123,7 +252,7 @@ struct CivTransactionList: View {
                 }
             }
         } label: {
-            Image(systemName: "line.3.horizontal")
+            Image(systemName: "line.3.horizontal.decrease")
                 .schemeBasedForegroundStyle()
         }
     }
@@ -183,12 +312,11 @@ struct CivTransactionList: View {
     @ViewBuilder
     func transLoop(trans: Array<CBTransaction>) -> some View {
         ForEach(trans) { trans in
-            TransactionListLine(trans: trans, withDate: transactionListDisplayMode == .condensed)
-                .onTapGesture {
-                    let day = model.selectedMonth!.month.days.filter { $0.id == trans.dateComponents?.day }.first
-                    self.transDay = day
-                    self.transEditID = trans.id
-                }
+            TransactionListLine(trans: trans, withDate: transactionListDisplayMode == .singleList) {
+                let day = model.selectedMonth!.month.days.filter { $0.id == trans.dateComponents?.day }.first
+                self.transDay = day
+                self.transEditID = trans.id
+            }                
         }
     }
     
@@ -232,11 +360,11 @@ struct CivTransactionList: View {
     @ViewBuilder
     func sectionFooter(day: CBDay, dailyCount: Int, dailyTotal: Double) -> some View {
         HStack {
-//            Text("Cumulative Total: \((model.cumTotals.filter { $0.day == day.date!.day }.first?.total ?? 0.0).currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+//            Text("Cumulative Total: \((model.cumTotals.filter { $0.day == day.date!.day }.first?.total ?? 0.0).currencyWithDecimals())")
 //            
             Spacer()
             if dailyCount > 1 {
-                Text(dailyTotal.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                Text(dailyTotal.currencyWithDecimals())
             }
         }
     }
@@ -261,15 +389,15 @@ struct CivTransactionList: View {
                 return true
             }
             .sorted {
-                if transactionListDisplayMode == .full {
-                    if transactionSortMode == .title {
+                if transactionListDisplayMode == .byDay {
+                    if AppSettings.shared.transactionSortMode == .title {
                         return $0.title < $1.title
                         
-                    } else if transactionSortMode == .enteredDate {
+                    } else if AppSettings.shared.transactionSortMode == .enteredDate {
                         return $0.enteredDate < $1.enteredDate
                         
                     } else {
-                        if categorySortMode == .title {
+                        if AppSettings.shared.categorySortMode == .title {
                             return ($0.category?.title ?? "").lowercased() < ($1.category?.title ?? "").lowercased()
                         } else {
                             return $0.category?.listOrder ?? 10000000000 < $1.category?.listOrder ?? 10000000000

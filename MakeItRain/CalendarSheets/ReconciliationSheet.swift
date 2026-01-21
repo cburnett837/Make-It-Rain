@@ -9,7 +9,7 @@
 //
 //struct ReconciliationSheet: View {
 //    //@Local(\.colorTheme) var colorTheme
-//    @Local(\.useWholeNumbers) var useWholeNumbers
+//    
 //    @Environment(\.colorScheme) var colorScheme
 //    @Environment(\.dismiss) var dismiss
 //    @Environment(CalendarModel.self) private var calModel
@@ -158,9 +158,9 @@
 //            trans.date = date
 //                                    
 //            if account?.accountType == .credit || account?.accountType == .loan {
-//                trans.amountString = (amount * 1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
+//                trans.amountString = (amount * 1).currencyWithDecimals()
 //            } else {
-//                trans.amountString = (amount * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
+//                trans.amountString = (amount * -1).currencyWithDecimals()
 //            }
 //            
 //            trans.payMethod = account

@@ -36,22 +36,17 @@ class SettingsModel {
 
 struct SettingsView: View {
     @Local(\.alignWeekdayNamesLeft) var alignWeekdayNamesLeft
-    @Local(\.categorySortMode) var categorySortMode
     @Local(\.colorTheme) var colorTheme
     @Local(\.debugPrint) var debugPrint
-    @Local(\.incomeColor) var incomeColor
     @Local(\.lineItemIndicator) var lineItemIndicator
     @Local(\.phoneLineItemDisplayItem) var phoneLineItemDisplayItem
     @Local(\.showHashTagsOnLineItems) var showHashTagsOnLineItems
     @Local(\.showIndividualLoadingSpinner) var showIndividualLoadingSpinner
     @Local(\.showPaymentMethodIndicator) var showPaymentMethodIndicator
     @Local(\.startInFullScreen) var startInFullScreen
-    @Local(\.threshold) var threshold
-    @Local(\.tightenUpEodTotals) var tightenUpEodTotals
-    @Local(\.transactionSortMode) var transactionSortMode
     @Local(\.updatedByOtherUserDisplayMode) var updatedByOtherUserDisplayMode
     @Local(\.userColorScheme) var userColorScheme
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
@@ -310,8 +305,7 @@ struct SettingsView: View {
             Label {
                 nameAndEmail
             } icon: {
-                Image(systemName: "person.crop.circle")
-                    .foregroundStyle(.gray)
+                UserAvatar(user: user)
             }
         }
         .focusable(false)
@@ -456,21 +450,21 @@ struct SettingsView: View {
     
     
     func resetAllSettings() {
-        useWholeNumbers = false
+        AppSettings.shared.useWholeNumbers = false
         colorTheme = Color.green.description
         showIndividualLoadingSpinner = false
-        threshold = 500.00
+        AppSettings.shared.lowBalanceThreshold = 500.00
         debugPrint = false
         startInFullScreen = false
         alignWeekdayNamesLeft = true
         showPaymentMethodIndicator = false
-        incomeColor = Color.blue.description
-        tightenUpEodTotals = true
+        AppSettings.shared.incomeColor = .blue
+        AppSettings.shared.tightenUpEodTotals = true
         phoneLineItemDisplayItem = .both
         lineItemIndicator = .emoji
         updatedByOtherUserDisplayMode = .full
-        categorySortMode = .title
-        transactionSortMode = .title
+        AppSettings.shared.categorySortMode = .title
+        AppSettings.shared.transactionSortMode = .title
         showHashTagsOnLineItems = true
     }
     

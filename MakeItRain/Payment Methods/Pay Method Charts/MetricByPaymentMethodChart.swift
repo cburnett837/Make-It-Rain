@@ -76,7 +76,7 @@ struct MetricByPaymentMethodChartWidget: View {
 
 
 struct MetricByPaymentMethodChartDetails: View {
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     @AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false
     @Environment(\.colorScheme) var colorScheme
 
@@ -150,13 +150,13 @@ struct MetricByPaymentMethodChartDetails: View {
                         
                         switch model.metric {
                         case .expenses:
-                            Text(info.expenses.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                            Text(info.expenses.currencyWithDecimals())
                         case .income:
-                            Text(info.income.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                            Text(info.income.currencyWithDecimals())
                         case .startingAmounts:
-                            Text(info.startingAmounts.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                            Text(info.startingAmounts.currencyWithDecimals())
                         case .payments:
-                            Text(info.payments.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                            Text(info.payments.currencyWithDecimals())
                         }
                     }
                     .minimumScaleFactor(0.5)
@@ -166,13 +166,13 @@ struct MetricByPaymentMethodChartDetails: View {
                 let breakdown = vm.breakdownForMethod(method: vm.mainPayMethod, on: selectedDate)
                 switch model.metric {
                 case .expenses:
-                    Text(breakdown.expenses.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                    Text(breakdown.expenses.currencyWithDecimals())
                 case .income:
-                    Text(breakdown.income.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                    Text(breakdown.income.currencyWithDecimals())
                 case .startingAmounts:
-                    Text(breakdown.startingAmounts.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                    Text(breakdown.startingAmounts.currencyWithDecimals())
                 case .payments:
-                    Text(breakdown.payments.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                    Text(breakdown.payments.currencyWithDecimals())
                 }
             }
         } else {
@@ -185,7 +185,7 @@ struct MetricByPaymentMethodChartDetails: View {
 
 
 struct MetricByPaymentMethodChart: View {
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     @AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false
 
     @Bindable var vm: PayMethodViewModel

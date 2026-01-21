@@ -14,7 +14,7 @@
 //    //@Local(\.colorTheme) var colorTheme
 //    @AppStorage("calendarChartMode") var chartMode = CalendarChartModel.verticalBar
 //    @AppStorage("viewMode") var viewMode = CalendarViewMode.scrollable
-//    @Local(\.useWholeNumbers) var useWholeNumbers
+//    
 //    @Local(\.categorySortMode) var categorySortMode
 //    
 //    @Environment(CalendarModel.self) private var calModel
@@ -194,7 +194,7 @@
 //    
 //    struct TableHeader: View {
 //        @AppStorage("threshold") var threshold = "500.0"
-//        @Local(\.useWholeNumbers) var useWholeNumbers
+//        
 //        @Environment(CalendarModel.self) private var calModel
 //    
 //                
@@ -229,16 +229,16 @@
 //                        
 //        var body: some View {
 //            HStack(alignment: .center) {
-//                Text("Income: \(income.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+//                Text("Income: \(income.currencyWithDecimals())")
 //                    //.padding(.leading, 16)
 //                                                                                
-//                Text("Expenses: \(abs(expenses).currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+//                Text("Expenses: \(abs(expenses).currencyWithDecimals())")
 //                    .padding(.leading, 16)
 //                
 //                (
 //                    Text("Available Funds: ")
 //                    +
-//                    Text((income - abs(expenses)).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//                    Text((income - abs(expenses)).currencyWithDecimals())
 //                    .foregroundStyle(remainingFundsTotal)
 //                )
 //                .padding(.leading, 16)
@@ -249,7 +249,7 @@
 //    
 //    struct TheTable: View {
 //        @AppStorage("viewMode") var viewMode = CalendarViewMode.scrollable
-//        @Local(\.useWholeNumbers) var useWholeNumbers
+//        
 //        @AppStorage("threshold") var threshold = "500.0"
 //        @Environment(CalendarModel.self) private var calModel
 //        
@@ -290,7 +290,7 @@
 //                            .map { $0.amount }
 //                            .reduce(0.0, +)
 //                                                                
-//                        Text(abs(expenses).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//                        Text(abs(expenses).currencyWithDecimals())
 //                    }
 //                    
 //                    TableColumn("Income") { budget in
@@ -300,7 +300,7 @@
 //                            .map { $0.amount }
 //                            .reduce(0.0, +)
 //                                                                
-//                        Text(abs(income).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//                        Text(abs(income).currencyWithDecimals())
 //                    }
 //                    
 //                    
@@ -319,7 +319,7 @@
 //                                                
 //                        let overUnder = budget.amount + (expenses + income)
 //                        
-//                        Text(abs(overUnder).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//                        Text(abs(overUnder).currencyWithDecimals())
 //                            .foregroundStyle(overUnder < 0 ? .red : (overUnder > budget.amount ? .green : .primary) )
 //                    }
 //                } rows: {
@@ -351,7 +351,7 @@
 //    #if os(iOS)
 //    struct TheList: View {
 //        @AppStorage("viewMode") var viewMode = CalendarViewMode.scrollable
-//        @Local(\.useWholeNumbers) var useWholeNumbers
+//        
 //        @AppStorage("threshold") var threshold = "500.0"
 //        @Environment(CalendarModel.self) private var calModel
 //    
@@ -420,17 +420,17 @@
 //                HStack {
 //                    VStack(alignment: .leading, spacing: 2) {
 //                        Text("Income")
-//                        Text(income.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//                        Text(income.currencyWithDecimals())
 //                    }
 //                    
 //                    VStack(alignment: .leading, spacing: 2) {
 //                        Text("Expenses")
-//                        Text(abs(expenses).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//                        Text(abs(expenses).currencyWithDecimals())
 //                    }
 //                    
 //                    VStack(alignment: .leading, spacing: 2) {
 //                        Text("Available Funds")
-//                        Text((income - abs(expenses)).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//                        Text((income - abs(expenses)).currencyWithDecimals())
 //                            .foregroundStyle(remainingFundsTotal)
 //                    }
 //                    Spacer()
@@ -491,12 +491,12 @@
 //                            .reduce(0.0, +)
 //                        
 //                        
-//                        Text(budget.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-//                        Text(abs(expenses).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//                        Text(budget.amount.currencyWithDecimals())
+//                        Text(abs(expenses).currencyWithDecimals())
 //                        
 //                        let overUnder = budget.amount + (expenses + income)
 //                        
-//                        Text(abs(overUnder).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//                        Text(abs(overUnder).currencyWithDecimals())
 //                            .foregroundStyle(overUnder < 0 ? .red : (overUnder > budget.amount ? .green : .primary) )
 //                    }
 //                    .font(.caption2)
@@ -537,7 +537,7 @@
 ////                            HStack {
 ////                                Text("Budget:")
 ////                                Spacer()
-////                                Text(budget.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+////                                Text(budget.amount.currencyWithDecimals())
 ////                            }
 ////                            .foregroundStyle(.gray)
 ////                            .font(.caption)
@@ -552,7 +552,7 @@
 ////                                    .map { $0.amount }
 ////                                    .reduce(0.0, +)
 ////
-////                                Text(abs(expenses).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+////                                Text(abs(expenses).currencyWithDecimals())
 ////                            }
 ////                            .foregroundStyle(.gray)
 ////                            .font(.caption)
@@ -567,7 +567,7 @@
 ////                                    .map { $0.amount }
 ////                                    .reduce(0.0, +)
 ////
-////                                Text(abs(income).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+////                                Text(abs(income).currencyWithDecimals())
 ////                            }
 ////                            .foregroundStyle(.gray)
 ////                            .font(.caption)
@@ -591,7 +591,7 @@
 ////
 ////                                let overUnder = budget.amount + (expenses + income)
 ////
-////                                Text(abs(overUnder).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+////                                Text(abs(overUnder).currencyWithDecimals())
 ////                                    .foregroundStyle(overUnder < 0 ? .red : (overUnder > budget.amount ? .green : .primary) )
 ////                            }
 ////                            .foregroundStyle(.gray)

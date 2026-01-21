@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ReminderPicker: View {
     var title = "Reminder"
-    @Binding var notificationOffset: Int?
+    @Binding var notificationOffset: Int
     
     var body: some View {
         HStack {

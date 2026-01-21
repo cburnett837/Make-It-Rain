@@ -54,9 +54,15 @@ struct CalendarNavGridHeader: View {
                 }
                 
             } label: {
-                Image(systemName: "bell.badge")
+                Image(systemName: "bell")
                     .schemeBasedForegroundStyle()
             }
+            .if(AppState.shared.unreadToasts.count > 0) {
+                $0
+                .id(AppState.shared.unreadToasts.count)
+                .badge(AppState.shared.unreadToasts.count)
+            }
+            
         }
         
         ToolbarItem(placement: .topBarTrailing) {

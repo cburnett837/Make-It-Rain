@@ -158,6 +158,10 @@ struct StandardFileSection: View {
                         LoadingPlaceholder(text: "Uploading…", displayStyle: displayStyle)
                     }, photoView: {
                         FileImage(file: file, displayStyle: displayStyle)
+                    }, pdfView: {
+                        CustomAsyncPdf(file: file, displayStyle: displayStyle)
+                    }, csvView: {
+                        CustomAsyncCsv(file: file, displayStyle: displayStyle)
                     }
                 )
             }
@@ -178,6 +182,10 @@ struct StandardFileSection: View {
                         LoadingPlaceholder(text: "Uploading…", displayStyle: displayStyle)
                     }, photoView: {
                         FileImage(file: file, displayStyle: displayStyle)
+                    }, pdfView: {
+                        CustomAsyncPdf(file: file, displayStyle: displayStyle)
+                    }, csvView: {
+                        CustomAsyncCsv(file: file, displayStyle: displayStyle)
                     }
                 )
             }

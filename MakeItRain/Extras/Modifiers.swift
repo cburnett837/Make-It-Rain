@@ -174,9 +174,9 @@ struct FormatCurrencyLiveAndOnUnFocus: ViewModifier {
     
     func body(content: Content) -> some View {
         content
-            .onChange(of: amountString) {
-                Helpers.liveFormatCurrency(oldValue: $0, newValue: $1, text: $amountStringBinding)
-            }
+//            .onChange(of: amountString) {
+//                Helpers.liveFormatCurrency(oldValue: $0, newValue: $1, text: $amountStringBinding)
+//            }
             .onChange(of: focusedField) {
                 //print("Formatting \(focusValue)")
                 
@@ -203,8 +203,8 @@ struct FormatCurrencyLiveAndOnUnFocus: ViewModifier {
                     } else {
                         /// When I click submit, the amount and amountString aren't updated with the new value that the Binding contains.
                         let localAmount = Double(amountStringBinding.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
-                        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
-                        amountStringBinding = localAmount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                        
+                        amountStringBinding = localAmount.currencyWithDecimals()
                     }
                 } else {
                     amountStringBinding = amountString ?? ""
@@ -218,7 +218,7 @@ struct FormatCurrencyLiveAndOnUnFocus: ViewModifier {
 
 
 struct CalculateAndFormatCurrencyLiveAndOnUnFocus: ViewModifier {
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
 
     var focusValue: Int
     var focusedField: Int?
@@ -261,7 +261,8 @@ struct CalculateAndFormatCurrencyLiveAndOnUnFocus: ViewModifier {
                     commitCurrentNumber()
 
                     if let result = CalculatorEngine.evaluate(tokens: tokens) {
-                        amountStringBinding = format(result)
+                        amountStringBinding = result
+                        //amountStringBinding = format(result)
                         tokens = [.number(result)]
                     }
                 }
@@ -274,8 +275,8 @@ struct CalculateAndFormatCurrencyLiveAndOnUnFocus: ViewModifier {
                     } else {
                         /// When I click submit, the amount and amountString aren't updated with the new value that the Binding contains.
                         let localAmount = Double(amountStringBinding.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
-                        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
-                        amountStringBinding = localAmount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                        
+                        amountStringBinding = localAmount.currencyWithDecimals()
                     }
                 } else {
                     amountStringBinding = amountString ?? ""
@@ -286,13 +287,13 @@ struct CalculateAndFormatCurrencyLiveAndOnUnFocus: ViewModifier {
     
     func commitCurrentNumber() {
         let process: String = currentNumber.replacing("$", with: "")
-        guard let value = Double(process) else { return }
-        tokens.append(.number(value))
+        guard let _ = Double(process) else { return }
+        tokens.append(.number(process))
         currentNumber = ""
     }
     
     func format(_ value: Double) -> String {
-        useWholeNumbers ? String(Int(value)) : String(value)
+        AppSettings.shared.useWholeNumbers ? String(Int(value)) : String(value)
     }
 }
 

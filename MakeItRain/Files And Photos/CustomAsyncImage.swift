@@ -11,6 +11,7 @@ import WebKit
 import PDFKit
 
 struct CustomAsyncImage<Content: View, Placeholder: View>: View {
+    @Environment(FuncModel.self) var funcModel
     #if os(iOS)
     @State private var uiImage: UIImage?
     #else
@@ -44,36 +45,13 @@ struct CustomAsyncImage<Content: View, Placeholder: View>: View {
     }
     
     func getImage() async {
-        let fileModel = FileRequestModel(path: "budget_app.\(file.fileType.rawValue).\(file.uuid).\(file.fileType.ext)")
-        let requestModel = RequestModel(requestType: "download_file", model: fileModel)
-        let result = await NetworkManager().downloadFile(requestModel: requestModel)
         
-        switch result {
-        case .success(let data):
-            if let data = data {
-                
-                await ImageCache.shared.saveToCache(
-                    parentTypeId: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction).id,
-                    parentId: file.relatedID,
-                    id: file.id,
-                    data: data
-                )
-                
-                #if os(iOS)
-                    self.uiImage = UIImage(data: data)
-                #else
-                    self.nsImage = NSImage(data: data)
-                #endif
-            }
-            
-        case .failure(let error):
-            switch error {
-            case .taskCancelled:
-                print("\(#function) Task Cancelled")
-            default:
-                LogManager.error(error.localizedDescription)
-                AppState.shared.showAlert("There was a problem downloading the image.")
-            }
+        if let data = await funcModel.downloadFile(file: file) {
+            #if os(iOS)
+                self.uiImage = UIImage(data: data)
+            #else
+                self.nsImage = NSImage(data: data)
+            #endif
         }
     }
 }

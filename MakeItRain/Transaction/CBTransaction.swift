@@ -115,7 +115,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     var duplicateFileRecordsOnDb: Bool = false
     var tags: Array<CBTag>
     
-    var notificationOffset: Int? = 0
+    var notificationOffset: Int = 0
     var notifyOnDueDate: Bool = false
     
     var isFromCoreData = false
@@ -251,7 +251,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         self.serverID = entity.id ?? ""
         self.title = entity.title ?? ""
         
-        self.amountString = entity.amount.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
+        self.amountString = entity.amount.currencyWithDecimals()
         
         //self.category = CBCategory(from: entity)guard let entity = DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(entity.payMethodID ?? "0")), createIfNotFound: true) else { return }
         //self.payMethod = CBPaymentMethod(from: entity)
@@ -496,7 +496,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         self.title = try container.decode(String.self, forKey: .title)
         
         let amount = try container.decode(Double.self, forKey: .amount)
-        self.amountString = amount.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
+        self.amountString = amount.currencyWithDecimals()
         
         self.payMethod = try container.decode(CBPaymentMethod?.self, forKey: .payment_method)
         self.category = try container.decode(CBCategory?.self, forKey: .category)
@@ -546,11 +546,16 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         //self.notificationOffset = try container.decode(Int?.self, forKey: .notification_offset)
         
         let offset = try container.decode(Int?.self, forKey: .notification_offset)
-        if offset == nil {
-            self.notificationOffset = 0
-        } else {
+        if let offset {
             self.notificationOffset = offset
+        } else {
+            self.notificationOffset = 0
         }
+//        if offset == nil {
+//            self.notificationOffset = 0
+//        } else {
+//            self.notificationOffset = offset
+//        }
         
         
         let notifyOnDueDate = try container.decode(Int?.self, forKey: .notify_on_due_date)
@@ -968,7 +973,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     
     func log(field: LogField, old: String?, new: String?, groupID: String) {
         print("Change \(field) - \(String(describing: old)) --> \(String(describing: new))")
-        let log = CBLog(itemID: self.id, logType: .transaction, field: field, old: old, new: new, groupID: groupID)
+        let log = CBLog(itemID: self.serverID, logType: .transaction, field: field, old: old, new: new, groupID: groupID)
         self.logs.append(log)
     }
     
@@ -1004,6 +1009,9 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
             copy.wasAddedFromPopulate = self.wasAddedFromPopulate
             copy.files = self.files
             copy.christmasListStatus = self.christmasListStatus
+            copy.relatedTransactionID = self.relatedTransactionID
+            copy.relatedTransactionType = self.relatedTransactionType
+            copy.repID = self.repID
             //copy.action = self.action
             self.deepCopy = copy
             
@@ -1034,6 +1042,9 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
                 self.wasAddedFromPopulate = deepCopy.wasAddedFromPopulate
                 self.files = deepCopy.files
                 self.christmasListStatus = deepCopy.christmasListStatus
+                self.relatedTransactionID = deepCopy.relatedTransactionID
+                self.relatedTransactionType = deepCopy.relatedTransactionType
+                self.repID = deepCopy.repID
                 //self.action = deepCopy.action
             }
             
@@ -1059,14 +1070,18 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
             deepCopy?.locations = []
             deepCopy?.wasAddedFromPopulate = false
             deepCopy?.christmasListStatus = nil
+            deepCopy?.relatedTransactionID = nil
+            deepCopy?.relatedTransactionType = nil
+            deepCopy?.repID = nil
         }
     }
+    
     
     func setFromAnotherInstance(transaction: CBTransaction) {
         self.serverID = transaction.serverID
         self.uuid = transaction.uuid
         self.title = transaction.title
-        self.amountString = transaction.amount.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
+        self.amountString = transaction.amount.currencyWithDecimals()
         self.payMethod = transaction.payMethod
         self.category = transaction.category
         self.date = transaction.date
@@ -1098,6 +1113,64 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         self.wasAddedFromPopulate = transaction.wasAddedFromPopulate
         self.christmasListGiftID = transaction.christmasListGiftID
         self.christmasListStatus = transaction.christmasListStatus
+    }
+    
+    static func getCsvHeaders() -> [String] {
+        return [
+            "Title",
+            "Amount",
+            "Date",
+            "Payment Method",
+            "Category",
+            "Notes",
+            "Include in Calculations",
+            "Entered By",
+            "Updated By",
+            "Date Entered",
+            "Date Updated",
+            "Locations",
+            "Tags",
+            "Tracking Number",
+            "Order Number",
+            "URL",
+            "Is Payment Origin",
+            "Is Payment Destination",
+            "Is Transfer Origin",
+            "Is Transfer Destination"
+        ]
+    }
+    
+    func convertToCsvRecord() -> [String] {
+        var amount: Double
+        if let meth = payMethod {
+            amount = meth.isCreditOrUnified ? self.amount * -1 : self.amount
+        } else {
+            amount = self.amount
+        }
+    
+        return [
+            title,
+            String(amount),
+            prettyDate ?? "",
+            payMethod?.title ?? "",
+            category?.title ?? "",
+            String(notes.characters),//.replacing("\n", with: "-").replacing(",", with: "-"),
+            //String(notes.characters).replacing("\n", with: "-").replacing(",", with: "-"),
+            factorInCalculations ? "true" : "false",
+            enteredBy.name,
+            updatedBy.name,
+            enteredDate.string(to: .monthDayShortYear),
+            updatedDate.string(to: .monthDayShortYear),
+            locations.map { $0.title }.joined(separator: "/"),
+            tags.map { $0.tag }.joined(separator: "/"),
+            trackingNumber,
+            orderNumber,
+            url,
+            isPaymentOrigin ? "true" : "false",
+            isPaymentDest ? "true" : "false",
+            isTransferOrigin ? "true" : "false",
+            isTransferDest ? "true" : "false"
+        ]
     }
     
 

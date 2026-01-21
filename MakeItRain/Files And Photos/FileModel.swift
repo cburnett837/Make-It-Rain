@@ -158,7 +158,7 @@ class FileModel {
     
     func uploadFile(with data: Data, fileType: FileType, delegate: FileUploadCompletedDelegate) -> AsyncStream<FileUploadProgress> {
         AsyncStream { continuation in
-            delegate.alertUploadingSmartReceiptIfApplicable()
+            //delegate.alertUploadingSmartReceiptIfApplicable()
             
             /// Capture the set variable because if you start uploading a file on a trans, and switch to another trans before the upload completes, you will change the fileTransactionID before the async task completes.
             let fileParent = self.fileParent

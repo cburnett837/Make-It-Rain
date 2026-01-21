@@ -9,7 +9,7 @@ import SwiftUI
 
 #if os(iOS)
 struct CalendarToolbar: ToolbarContent {
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     //@Local(\.colorTheme) var colorTheme
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
@@ -85,7 +85,7 @@ struct CalendarToolbar: ToolbarContent {
                             .glassEffectID("paymentMethodButton", in: plaidButtonNamespace)
                     }
                 }
-                .matchedTransitionSource(id: "paymentMethodButton", in: paymentMethodMenuButtonNamespace)
+                //.matchedTransitionSource(id: "paymentMethodButton", in: paymentMethodMenuButtonNamespace)
             //}
             
             
@@ -328,7 +328,8 @@ struct CalendarToolbar: ToolbarContent {
     }
     
     
-    @ViewBuilder var payMethodButtonAndMenu: some View {
+    @ViewBuilder
+    var payMethodButtonAndMenu: some View {
         @Bindable var calProps = calProps
         @Bindable var calModel = calModel
         
@@ -336,13 +337,13 @@ struct CalendarToolbar: ToolbarContent {
             if let meth = calModel.sPayMethod {
                 if meth.isUnified {
                     if meth.accountType == .unifiedChecking {
-                        return " \(funcModel.getPlaidDebitSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))"
+                        return " \(funcModel.getPlaidDebitSums().currencyWithDecimals())"
                     } else {
-                        return " \(funcModel.getPlaidCreditSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))"
+                        return " \(funcModel.getPlaidCreditSums().currencyWithDecimals())"
                     }
                 } else {
                     if let balance = funcModel.getPlaidBalance(matching: calModel.sPayMethod) {
-                        return " \(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)) (\(calProps.timeSinceLastBalanceUpdate))"
+                        return " \(balance.amount.currencyWithDecimals()) (\(calProps.timeSinceLastBalanceUpdate))"
                     }
                 }
             }
@@ -392,12 +393,14 @@ struct CalendarToolbar: ToolbarContent {
         }
         .sheet(isPresented: $calProps.showPayMethodSheet) {
             //TouchAndHoldMonthToFilterCategoriesTip.didTouchMonthName.sendDonation()
-            startingAmountSheetDismissed()
+            calModel.startingAmountSheetDismissed()
         } content: {
             PayMethodSheet(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all, showStartingAmountOption: true, showNoneOption: true)
+                //#if os(iOS)
+                //.navigationTransition(.zoom(sourceID: "paymentMethodButton", in: paymentMethodMenuButtonNamespace))
+                //#endif
                 /// Have to make the sheet bigger so the search bar doesn't fight with the `.safeAreaBar(edge: .top)`.
                 //.presentationSizing(.page)
-                //.navigationTransition(.zoom(sourceID: "paymentMethodButton", in: paymentMethodMenuButtonNamespace))
         }
         .sheet(isPresented: $calProps.showCategorySheet) {
             MultiCategorySheet(categories: $calModel.sCategories, categoryGroup: .constant([]))
@@ -421,29 +424,6 @@ struct CalendarToolbar: ToolbarContent {
 //                .navigationTransition(.zoom(sourceID: "myButton", in: paymentMethodMenuButtonNamespace))
 //        }
 //    }
-//    
-    
-    func startingAmountSheetDismissed() {
-        let _ = calModel.calculateTotal(for: calModel.sMonth)
-        
-        /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
-        /// So we use the ``DataChangeTriggers`` class to send a notification to the view to tell it to recalculate.
-        DataChangeTriggers.shared.viewDidChange(.calendar)
-        
-        Task {
-            await withTaskGroup(of: Void.self) { group in
-                let starts = calModel.sMonth.startingAmounts.filter { !$0.payMethod.isUnified }
-                for start in starts {
-                    if start.hasChanges() {
-                        group.addTask {
-                            await calModel.submit(start)
-                        }
-                    } else {
-                        //print("No Starting amount Changes for \(start.payMethod.title)")
-                    }
-                }
-            }
-        }
-    }
+//
 }
 #endif

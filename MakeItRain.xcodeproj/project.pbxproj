@@ -101,6 +101,7 @@
 		FD4BABCA2D94EE1600384AB3 /* CBOpenOrClosedRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD4BABC92D94EE1300384AB3 /* CBOpenOrClosedRecord.swift */; };
 		FD4BABD02D95F9EE00384AB3 /* LinkPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD4BABCF2D95F9EE00384AB3 /* LinkPreviewView.swift */; };
 		FD4BABE12D9AD8B800384AB3 /* ToolbarLongPollButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD4BABE02D9AD8B800384AB3 /* ToolbarLongPollButton.swift */; };
+		FD502A862F17D892003BBF87 /* GenericUserInfoModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD502A852F17D892003BBF87 /* GenericUserInfoModel.swift */; };
 		FD5563FC2EF1D40000830102 /* CustomCalculatorKeyboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD5563FB2EF1D3F800830102 /* CustomCalculatorKeyboard.swift */; };
 		FD5564002EF32F6A00830102 /* TevTrackingNumberView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD5563FF2EF32F6A00830102 /* TevTrackingNumberView.swift */; };
 		FD5E53662EF9990F0059BA6F /* PhotoTakeAndSelectButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD5E53652EF9990F0059BA6F /* PhotoTakeAndSelectButtons.swift */; };
@@ -145,6 +146,15 @@
 		FD83716C2DEDE3660099C6F3 /* TransactionListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD83716B2DEDE3660099C6F3 /* TransactionListView.swift */; };
 		FD83716E2DEDEBEA0099C6F3 /* NewTransactionMenuButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD83716D2DEDEBEA0099C6F3 /* NewTransactionMenuButton.swift */; };
 		FD83FACA2E6F786D002A394D /* PlaygroundButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD83FAC92E6F786D002A394D /* PlaygroundButton.swift */; };
+		FD8F145C2F1ECE1B0098CC49 /* ContactManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD8F145B2F1ECE1B0098CC49 /* ContactManager.swift */; };
+		FD8F145F2F1ECEB00098CC49 /* PdfInvoiceViewForSingleTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD8F145E2F1ECEB00098CC49 /* PdfInvoiceViewForSingleTransaction.swift */; };
+		FD8F14612F1ECEB70098CC49 /* PdfMaker.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD8F14602F1ECEB70098CC49 /* PdfMaker.swift */; };
+		FD8F14632F1ECED20098CC49 /* PdfInvoiceViewForMultipleTransactions.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD8F14622F1ECED20098CC49 /* PdfInvoiceViewForMultipleTransactions.swift */; };
+		FD8F14652F1ECF0C0098CC49 /* PdfInvoiceCreatorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD8F14642F1ECF0C0098CC49 /* PdfInvoiceCreatorSheet.swift */; };
+		FD8F14672F1ED4B00098CC49 /* ContactPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD8F14662F1ED4B00098CC49 /* ContactPickerView.swift */; };
+		FD8F14692F1ED4B60098CC49 /* MessageComposerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD8F14682F1ED4B60098CC49 /* MessageComposerView.swift */; };
+		FD8F146B2F2024350098CC49 /* PdfInvoiceCreatorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD8F146A2F2024350098CC49 /* PdfInvoiceCreatorModel.swift */; };
+		FD8F146D2F2024770098CC49 /* PdfInvoiceCreatorMessagingUnavailableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD8F146C2F2024770098CC49 /* PdfInvoiceCreatorMessagingUnavailableView.swift */; };
 		FD9D52FB2DAECE1D008CD1BA /* StandardTitleTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9D52FA2DAECE1D008CD1BA /* StandardTitleTextField.swift */; };
 		FD9D52FD2DAED743008CD1BA /* Protocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9D52FC2DAED743008CD1BA /* Protocols.swift */; };
 		FD9D52FF2DAED8E8008CD1BA /* StandardAmountTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9D52FE2DAED8E8008CD1BA /* StandardAmountTextField.swift */; };
@@ -490,6 +500,7 @@
 		FD4BABC92D94EE1300384AB3 /* CBOpenOrClosedRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBOpenOrClosedRecord.swift; sourceTree = "<group>"; };
 		FD4BABCF2D95F9EE00384AB3 /* LinkPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkPreviewView.swift; sourceTree = "<group>"; };
 		FD4BABE02D9AD8B800384AB3 /* ToolbarLongPollButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolbarLongPollButton.swift; sourceTree = "<group>"; };
+		FD502A852F17D892003BBF87 /* GenericUserInfoModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenericUserInfoModel.swift; sourceTree = "<group>"; };
 		FD5563FB2EF1D3F800830102 /* CustomCalculatorKeyboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomCalculatorKeyboard.swift; sourceTree = "<group>"; };
 		FD5563FF2EF32F6A00830102 /* TevTrackingNumberView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TevTrackingNumberView.swift; sourceTree = "<group>"; };
 		FD5E53652EF9990F0059BA6F /* PhotoTakeAndSelectButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoTakeAndSelectButtons.swift; sourceTree = "<group>"; };
@@ -537,6 +548,15 @@
 		FD83716D2DEDEBEA0099C6F3 /* NewTransactionMenuButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTransactionMenuButton.swift; sourceTree = "<group>"; };
 		FD83FAC92E6F786D002A394D /* PlaygroundButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaygroundButton.swift; sourceTree = "<group>"; };
 		FD8DFA7C2CFB8C100056EE39 /* PersistentModel2.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = PersistentModel2.xcdatamodel; sourceTree = "<group>"; };
+		FD8F145B2F1ECE1B0098CC49 /* ContactManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactManager.swift; sourceTree = "<group>"; };
+		FD8F145E2F1ECEB00098CC49 /* PdfInvoiceViewForSingleTransaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PdfInvoiceViewForSingleTransaction.swift; sourceTree = "<group>"; };
+		FD8F14602F1ECEB70098CC49 /* PdfMaker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PdfMaker.swift; sourceTree = "<group>"; };
+		FD8F14622F1ECED20098CC49 /* PdfInvoiceViewForMultipleTransactions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PdfInvoiceViewForMultipleTransactions.swift; sourceTree = "<group>"; };
+		FD8F14642F1ECF0C0098CC49 /* PdfInvoiceCreatorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PdfInvoiceCreatorSheet.swift; sourceTree = "<group>"; };
+		FD8F14662F1ED4B00098CC49 /* ContactPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactPickerView.swift; sourceTree = "<group>"; };
+		FD8F14682F1ED4B60098CC49 /* MessageComposerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageComposerView.swift; sourceTree = "<group>"; };
+		FD8F146A2F2024350098CC49 /* PdfInvoiceCreatorModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PdfInvoiceCreatorModel.swift; sourceTree = "<group>"; };
+		FD8F146C2F2024770098CC49 /* PdfInvoiceCreatorMessagingUnavailableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PdfInvoiceCreatorMessagingUnavailableView.swift; sourceTree = "<group>"; };
 		FD9D52FA2DAECE1D008CD1BA /* StandardTitleTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandardTitleTextField.swift; sourceTree = "<group>"; };
 		FD9D52FC2DAED743008CD1BA /* Protocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Protocols.swift; sourceTree = "<group>"; };
 		FD9D52FE2DAED8E8008CD1BA /* StandardAmountTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandardAmountTextField.swift; sourceTree = "<group>"; };
@@ -1039,6 +1059,21 @@
 			path = Mac;
 			sourceTree = "<group>";
 		};
+		FD8F145D2F1ECEA90098CC49 /* Pdf */ = {
+			isa = PBXGroup;
+			children = (
+				FD8F14642F1ECF0C0098CC49 /* PdfInvoiceCreatorSheet.swift */,
+				FD8F146A2F2024350098CC49 /* PdfInvoiceCreatorModel.swift */,
+				FD8F146C2F2024770098CC49 /* PdfInvoiceCreatorMessagingUnavailableView.swift */,
+				FD8F14622F1ECED20098CC49 /* PdfInvoiceViewForMultipleTransactions.swift */,
+				FD8F145E2F1ECEB00098CC49 /* PdfInvoiceViewForSingleTransaction.swift */,
+				FD8F14602F1ECEB70098CC49 /* PdfMaker.swift */,
+				FD8F14682F1ED4B60098CC49 /* MessageComposerView.swift */,
+				FD8F14662F1ED4B00098CC49 /* ContactPickerView.swift */,
+			);
+			path = Pdf;
+			sourceTree = "<group>";
+		};
 		FDA172592EF596EC00C113F2 /* CategoryInsightViews */ = {
 			isa = PBXGroup;
 			children = (
@@ -1274,6 +1309,7 @@
 		FDC26D832D3E86D500B0A97C /* Managers */ = {
 			isa = PBXGroup;
 			children = (
+				FD8F145B2F1ECE1B0098CC49 /* ContactManager.swift */,
 				FDC26DB42D3E86D500B0A97C /* DataManager.swift */,
 				FDC26DCD2D3E86D500B0A97C /* LoadingManager.swift */,
 				FDD6CDE02DA97BC8002B00E5 /* LocationManager.swift */,
@@ -1322,6 +1358,7 @@
 				FD09FF4C2D9C310900795C28 /* TransactionAndStartingAmountModel.swift */,
 				FD6674AE2EAFDC50000F2E90 /* UpdateLogoModel.swift */,
 				FD7DDEA62F02BEE500753E53 /* IdSubmitModel.swift */,
+				FD502A852F17D892003BBF87 /* GenericUserInfoModel.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -1449,6 +1486,7 @@
 				FDD6CDE22DA97C29002B00E5 /* Map */,
 				FDC26D842D3E86D500B0A97C /* Models */,
 				FDC26D852D3E86D500B0A97C /* Payment Methods */,
+				FD8F145D2F1ECEA90098CC49 /* Pdf */,
 				FD49F8B22DDE32DF00A563C8 /* Plaid Stuff */,
 				FDC26D872D3E86D500B0A97C /* Repeating Transactions */,
 				FDD577FA2DC1357B00C0B197 /* Settings */,
@@ -1717,6 +1755,7 @@
 				FDA1725B2EF596FC00C113F2 /* CivMonthMiddleMan.swift in Sources */,
 				FDC26E1D2D3E86D500B0A97C /* TagView.swift in Sources */,
 				FDC26E1E2D3E86D500B0A97C /* MultiYearSheet.swift in Sources */,
+				FD8F14632F1ECED20098CC49 /* PdfInvoiceViewForMultipleTransactions.swift in Sources */,
 				FDC26E1F2D3E86D500B0A97C /* CBMonth.swift in Sources */,
 				FD0DB2B52DD62F7500475334 /* PayMethodChartModels.swift in Sources */,
 				FDC26E202D3E86D500B0A97C /* TransactionEditView.swift in Sources */,
@@ -1802,6 +1841,7 @@
 				FD174D552EDB77A000A01F67 /* SnowyBackground.swift in Sources */,
 				FD174D562EDB77A000A01F67 /* SnowScene.swift in Sources */,
 				FD06F6BA2DEA4D2800753490 /* LittleBottomSheetContainer.swift in Sources */,
+				FD8F145C2F1ECE1B0098CC49 /* ContactManager.swift in Sources */,
 				FD678EED2DBC2E8A00D6BC5E /* CategoryGroupEditView.swift in Sources */,
 				FD07E24E2D68B5BE00024B11 /* DayOverview.swift in Sources */,
 				FD174C242ED53E1900A01F67 /* Extensions+UiDevice.swift in Sources */,
@@ -1831,6 +1871,7 @@
 				FDB066D12D4D40C40060568B /* UIDatePicker.swift in Sources */,
 				FDC26E462D3E86D500B0A97C /* Toasts.swift in Sources */,
 				FD07E28F2D72137800024B11 /* PayMethodRequiredView.swift in Sources */,
+				FD8F14672F1ED4B00098CC49 /* ContactPickerView.swift in Sources */,
 				FD09FF572D9C314300795C28 /* ParentChildIdModel.swift in Sources */,
 				FD2F25B42EE9C99C00E18F99 /* CatChartRawDataList.swift in Sources */,
 				FDEE4D342EB0FFE300F16EEB /* PayMethodSortMenu.swift in Sources */,
@@ -1843,6 +1884,8 @@
 				FDFBC4602DE67FAA006DE685 /* CBPlaidTransaction.swift in Sources */,
 				FDA1725F2EF5970C00C113F2 /* CivFakeNavLink.swift in Sources */,
 				FDC26E482D3E86D500B0A97C /* CalendarViewPhone.swift in Sources */,
+				FD502A862F17D892003BBF87 /* GenericUserInfoModel.swift in Sources */,
+				FD8F146D2F2024770098CC49 /* PdfInvoiceCreatorMessagingUnavailableView.swift in Sources */,
 				FD43EA202EEB19E00004477B /* CatChartRawDataListForGroup.swift in Sources */,
 				FDC26E492D3E86D500B0A97C /* Helpers.swift in Sources */,
 				FD76DA472EA40994002E30DA /* StandardCategoryLabel.swift in Sources */,
@@ -1880,6 +1923,8 @@
 				FD174C382ED540DA00A01F67 /* Extensions+UserDefaults.swift in Sources */,
 				FD49F8892DD77CBD00A563C8 /* PayMethodViewModelOG.swift in Sources */,
 				FDA172672EF5974B00C113F2 /* CivDataPoint.swift in Sources */,
+				FD8F14652F1ECF0C0098CC49 /* PdfInvoiceCreatorSheet.swift in Sources */,
+				FD8F146B2F2024350098CC49 /* PdfInvoiceCreatorModel.swift in Sources */,
 				FDBA69D02DEE29A6007FB0CB /* MinMaxEodChart.swift in Sources */,
 				FD6674B12EAFF35F000F2E90 /* CBLogo.swift in Sources */,
 				FDC26E582D3E86D500B0A97C /* MultiCategorySheet.swift in Sources */,
@@ -1921,6 +1966,7 @@
 				FDC26E662D3E86D500B0A97C /* CategorySheet.swift in Sources */,
 				FDC26E672D3E86D500B0A97C /* RootView.swift in Sources */,
 				FDC26E692D3E86D500B0A97C /* TagModel.swift in Sources */,
+				FD8F14612F1ECEB70098CC49 /* PdfMaker.swift in Sources */,
 				FD7F77232E900A4C0087F229 /* CalendarViewPhoneBackup.swift in Sources */,
 				FD09FF662D9D769400795C28 /* StandardNoteTextEditor.swift in Sources */,
 				FD07B2E72EA970BA00901601 /* CustomDecimalKeyboard.swift in Sources */,
@@ -1954,6 +2000,7 @@
 				FD06F6B62DEA34B800753490 /* ChartIncomeOptionMenu.swift in Sources */,
 				FDC26E752D3E86D500B0A97C /* Extensions.swift in Sources */,
 				FDC26E762D3E86D500B0A97C /* LongPollModel.swift in Sources */,
+				FD8F145F2F1ECEB00098CC49 /* PdfInvoiceViewForSingleTransaction.swift in Sources */,
 				FD618F4C2EE7320000D97C86 /* CategoryGroupOverView.swift in Sources */,
 				FD7DDEA72F02BEE500753E53 /* IdSubmitModel.swift in Sources */,
 				FD25FF3F2E97EA560079E001 /* PaymentMethodChartDisplayYearPicker.swift in Sources */,
@@ -1989,6 +2036,7 @@
 				FDA8FA442EB2947100D7C29B /* NavLinkPhone.swift in Sources */,
 				FD46D3E82EC632610039D4D4 /* PayMethodViewOG.swift in Sources */,
 				FD2F25BC2EE9E5ED00E18F99 /* CatChartRefreshButton.swift in Sources */,
+				FD8F14692F1ED4B60098CC49 /* MessageComposerView.swift in Sources */,
 				FDC26E812D3E86D500B0A97C /* CBUser.swift in Sources */,
 				FD7F770A2E8D87E20087F229 /* PlaidSyncInfoSheet.swift in Sources */,
 				FDC26E822D3E86D500B0A97C /* PayMethodSheetButton.swift in Sources */,
@@ -2185,9 +2233,10 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Take photos for transactions";
+				INFOPLIST_KEY_NSContactsUsageDescription = "Select contacts to be able to send them invoices";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Secure your transactions";
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Get Location";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Get Location";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Access location to find businesses around you to save to your transactions.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Access location to find businesses around you to save to your transactions.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Access photos to be able to upload pictures of receipts";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = NO;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = NO;
@@ -2250,9 +2299,10 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Take photos for transactions";
+				INFOPLIST_KEY_NSContactsUsageDescription = "Select contacts to be able to send them invoices";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Secure your transactions";
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Get Location";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Get Location";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Access location to find businesses around you to save to your transactions.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Access location to find businesses around you to save to your transactions.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Access photos to be able to upload pictures of receipts";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = NO;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = NO;

@@ -22,7 +22,7 @@ enum RefType {
     case logoTypes
     case paymentMethodHolderTypes
     case budgetTypes
-    case settingTypes
+//    case settingTypes
 }
 
 enum XrefEnum: String {
@@ -88,14 +88,14 @@ enum XrefEnum: String {
     case categoryGroup
     
     /// For Settings
-    case useWholeNumbers
-    case trimTotals
-    case lowBalanceThreshold
-    case paymentMethodHolderFilter
-    case paymentMethodSortOrder
-    case transactionSortOrder
-    case categorySortOrder
-    case incomeColor
+//    case useWholeNumbers
+//    case trimTotals
+//    case lowBalanceThreshold
+//    case paymentMethodHolderFilter
+//    case paymentMethodSortOrder
+//    case transactionSortOrder
+//    case categorySortOrder
+//    case incomeColor
 }
 
 struct XrefItem: Identifiable, Equatable, Hashable {
@@ -212,16 +212,16 @@ struct XrefModel {
         XrefItem(id: 52, refType: "budget_type", description: "Category Group", enumID: .categoryGroup),
     ]
     
-    static let settingTypes: Array<XrefItem> = [
-        XrefItem(id: 54, refType: "setting", description: "Use whole numbers", enumID: .useWholeNumbers),
-        XrefItem(id: 55, refType: "setting", description: "Trim totals", enumID: .trimTotals),
-        XrefItem(id: 56, refType: "setting", description: "Low balance threshold", enumID: .lowBalanceThreshold),
-        XrefItem(id: 57, refType: "setting", description: "Payment method holder filter", enumID: .paymentMethodHolderFilter),
-        XrefItem(id: 58, refType: "setting", description: "Payment method sort order", enumID: .paymentMethodSortOrder),
-        XrefItem(id: 59, refType: "setting", description: "Transaction sort order", enumID: .transactionSortOrder),
-        XrefItem(id: 60, refType: "setting", description: "Category sort order", enumID: .categorySortOrder),
-        XrefItem(id: 61, refType: "setting", description: "Income color", enumID: .incomeColor),
-    ]
+//    static let settingTypes: Array<XrefItem> = [
+//        XrefItem(id: 54, refType: "setting", description: "Use whole numbers", enumID: .useWholeNumbers),
+//        XrefItem(id: 55, refType: "setting", description: "Trim totals", enumID: .trimTotals),
+//        XrefItem(id: 56, refType: "setting", description: "Low balance threshold", enumID: .lowBalanceThreshold),
+//        XrefItem(id: 57, refType: "setting", description: "Payment method holder filter", enumID: .paymentMethodHolderFilter),
+//        XrefItem(id: 58, refType: "setting", description: "Payment method sort order", enumID: .paymentMethodSortOrder),
+//        XrefItem(id: 59, refType: "setting", description: "Transaction sort order", enumID: .transactionSortOrder),
+//        XrefItem(id: 60, refType: "setting", description: "Category sort order", enumID: .categorySortOrder),
+//        XrefItem(id: 61, refType: "setting", description: "Income color", enumID: .incomeColor),
+//    ]
     
     
     static func getItems(forRefType refType: RefType) -> Array<XrefItem> {
@@ -240,7 +240,7 @@ struct XrefModel {
         case .logoTypes: logoTypes
         case .paymentMethodHolderTypes: paymentMethodHolderTypes
         case .budgetTypes: budgetTypes
-        case .settingTypes: settingTypes
+//        case .settingTypes: settingTypes
         }
     }
     

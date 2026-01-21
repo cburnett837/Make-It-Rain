@@ -445,7 +445,8 @@ extension MapModel: MKLocalSearchCompleterDelegate {
 
 
 
-extension MKLocalSearchCompletion {
+extension MKLocalSearchCompletion: @retroactive Identifiable {
+    public var id: MKLocalSearchCompletion { self }
     
     /**
      Each `MKLocalSearchCompletion` contains a title and a subtitle, as well as ranges describing what part of the title or

@@ -10,7 +10,7 @@ import SwiftUI
 struct TransferSheet: View {
     private enum TransferType { case cashAdvance, deposit, payment, transfer, savings, withdrawal }
     
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
@@ -328,9 +328,9 @@ struct TransferSheet: View {
             fromTrans.date = date
                                     
             if transfer.from?.accountType == .credit || transfer.from?.accountType == .loan {
-                fromTrans.amountString = (transfer.amount * 1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                fromTrans.amountString = (transfer.amount * 1).currencyWithDecimals()
             } else {
-                fromTrans.amountString = (transfer.amount * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                fromTrans.amountString = (transfer.amount * -1).currencyWithDecimals()
             }
             
             fromTrans.payMethod = transfer.from
@@ -345,9 +345,9 @@ struct TransferSheet: View {
             toTrans.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
             
             if transfer.to?.accountType == .credit || transfer.to?.accountType == .loan {
-                toTrans.amountString = (transfer.amount * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                toTrans.amountString = (transfer.amount * -1).currencyWithDecimals()
             } else {
-                toTrans.amountString = (transfer.amount * 1).currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                toTrans.amountString = (transfer.amount * 1).currencyWithDecimals()
             }
             
             toTrans.payMethod = transfer.to

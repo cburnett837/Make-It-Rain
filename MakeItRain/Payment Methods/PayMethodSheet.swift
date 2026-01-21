@@ -11,7 +11,7 @@ import SwiftUI
 //struct PayMethodSheetLite: View {
 //    private enum WhichView: String { case select, edit }
 //    @AppStorage("paymentMethodSheetViewMode") private var paymentMethodSheetViewMode: WhichView = .select
-//    @Local(\.useWholeNumbers) var useWholeNumbers
+//    
 //    @Local(\.useBusinessLogos) var useBusinessLogos
 //
 //    @Environment(\.layoutDirection) private var layoutDirection: LayoutDirection
@@ -194,17 +194,17 @@ import SwiftUI
 //    @ViewBuilder func plaidBalance(_ meth: CBPaymentMethod) -> some View {
 //        if meth.isUnified {
 //            if meth.isDebit {
-//                Text("\(funcModel.getPlaidDebitSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+//                Text("\(funcModel.getPlaidDebitSums().currencyWithDecimals())")
 //                    .foregroundStyle(.gray)
 //                    .font(.caption)
 //            } else {
-//                Text("\(funcModel.getPlaidCreditSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+//                Text("\(funcModel.getPlaidCreditSums().currencyWithDecimals())")
 //                    .foregroundStyle(.gray)
 //                    .font(.caption)
 //            }
 //        } else {
 //            if let balance = plaidModel.balances.filter({ $0.payMethodID == meth.id }).first {
-//                Text("\(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)) (\(Date().timeSince(balance.enteredDate)))")
+//                Text("\(balance.amount.currencyWithDecimals()) (\(Date().timeSince(balance.enteredDate)))")
 //                    .foregroundStyle(.gray)
 //                    .font(.caption)
 //            }
@@ -290,9 +290,7 @@ public enum PaymentMethodFilterMode: String, CaseIterable {
 struct PayMethodSheet: View {
     private enum WhichView: String { case select, edit }
         
-    @AppStorage("paymentMethodSheetViewMode") private var paymentMethodSheetViewMode: WhichView = .select
-    @Local(\.paymentMethodFilterMode) var paymentMethodFilterMode
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    @AppStorage("paymentMethodSheetViewMode") private var paymentMethodSheetViewMode: WhichView = .select    
     @Local(\.useBusinessLogos) var useBusinessLogos
 
     @Environment(\.layoutDirection) private var layoutDirection: LayoutDirection
@@ -439,12 +437,9 @@ struct PayMethodSheet: View {
                             //.background(Color(uiColor: .systemGroupedBackground))
                     }
                 }
-            }
-            
-            
-                        
+            }                                                
             .task { prepareView() }
-            .onChange(of: paymentMethodFilterMode) { populateSections() }
+            .onChange(of: AppSettings.shared.paymentMethodFilterMode) { populateSections() }
             .searchable(text: $searchText, prompt: Text("Search"))
             .navigationTitle(paymentMethodSheetViewMode == .select ? "Accounts" : "Starting Amounts \(monthText)")
             .if(AppState.shared.isIpad) {
@@ -586,7 +581,7 @@ struct PayMethodSheet: View {
                     if showStartingAmountOption
                         && AppState.shared.todayMonth == calModel.sMonth.actualNum
                         && AppState.shared.todayYear == calModel.sMonth.year {
-                        Text(funcModel.getPlaidBalancePrettyString(meth, useWholeNumbers: useWholeNumbers) ?? "N/A")
+                        Text(funcModel.getPlaidBalancePrettyString(meth) ?? "N/A")
                             .foregroundStyle(.gray)
                             .font(.caption)
                     }
@@ -631,17 +626,17 @@ struct PayMethodSheet: View {
 //            var result: String? {
 //                if meth.isUnified {
 //                    if meth.isDebit {
-//                        return "\(funcModel.getPlaidDebitSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))"
+//                        return "\(funcModel.getPlaidDebitSums().currencyWithDecimals())"
 //                    } else {
-//                        return "\(funcModel.getPlaidCreditSums().currencyWithDecimals(useWholeNumbers ? 0 : 2))"
+//                        return "\(funcModel.getPlaidCreditSums().currencyWithDecimals())"
 //                    }
 //                } else if meth.accountType == .cash {
 //                    let bal = calModel.calculateChecking(for: calModel.sMonth, using: meth, and: .giveMeEodAsOfToday)
-//                    let balStr = bal.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+//                    let balStr = bal.currencyWithDecimals()
 //                    return "\(balStr) (Manually)"
 //                    
 //                } else if let balance = plaidModel.balances.filter({ $0.payMethodID == meth.id }).first {
-//                    return "\(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)) (\(Date().timeSince(balance.enteredDate)))"
+//                    return "\(balance.amount.currencyWithDecimals()) (\(Date().timeSince(balance.enteredDate)))"
 //                }
 //                
 //                return nil
@@ -823,7 +818,7 @@ struct PayMethodSheet: View {
 
 
 fileprivate struct StartingAmountLine: View {
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     @Environment(\.layoutDirection) private var layoutDirection: LayoutDirection
     @Environment(CalendarModel.self) var calModel
     @Environment(PayMethodModel.self) var payModel
@@ -857,7 +852,7 @@ fileprivate struct StartingAmountLine: View {
             Group {
                 #if os(iOS)
                 if payMethod.isUnified {
-                    Text(startingAmount.amountString.isEmpty ? (useWholeNumbers ? "$0" : "$0.00") : startingAmount.amountString)
+                    Text(startingAmount.amountString.isEmpty ? (AppSettings.shared.useWholeNumbers ? "$0" : "$0.00") : startingAmount.amountString)
                         .foregroundStyle(.secondary)
                 } else {
                     iPhoneTextField
@@ -876,7 +871,7 @@ fileprivate struct StartingAmountLine: View {
                 amount: startingAmount.amount
             )
             .task {
-                startingAmount.amountString = startingAmount.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                startingAmount.amountString = startingAmount.amount.currencyWithDecimals()
             }
         }
     }
@@ -912,7 +907,7 @@ fileprivate struct StartingAmountLine: View {
                         let targetMonth = calModel.months.filter { $0.num == calModel.sMonth.num - 1 }.first!
                         let _ = calModel.calculateTotal(for: targetMonth, using: payMethod)
                         let eodTotal = targetMonth.days.last!.eodTotal
-                        startingAmount.amountString = eodTotal.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                        startingAmount.amountString = eodTotal.currencyWithDecimals()
                     }
                 }
             }
@@ -924,7 +919,7 @@ fileprivate struct StartingAmountLine: View {
             let targetMonth = calModel.months.filter { $0.num == calModel.sMonth.num - 1 }.first!            
             let eod = calModel.calculateTotal(for: targetMonth, using: payMethod, and: .giveMeLastDayEod)
             let eodTotal = eod//targetMonth.days.last!.eodTotal
-            startingAmount.amountString = eodTotal.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+            startingAmount.amountString = eodTotal.currencyWithDecimals()
         }
     }
 }

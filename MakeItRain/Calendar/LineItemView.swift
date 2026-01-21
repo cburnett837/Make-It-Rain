@@ -10,9 +10,7 @@ import SwiftUI
 struct LineItemView: View {
     //@Local(\.colorTheme) var colorTheme
     #warning("These local properties should be moved up the view hierarchy to improve performance")
-    @Local(\.incomeColor) var incomeColor
     @Local(\.updatedByOtherUserDisplayMode) var updatedByOtherUserDisplayMode
-    @Local(\.useWholeNumbers) var useWholeNumbers
     @Local(\.lineItemIndicator) var lineItemIndicator
     //@AppStorage("macCategoryDisplayMode") var macCategoryDisplayMode: MacCategoryDisplayMode = .emoji
     @Local(\.showHashTagsOnLineItems) var showHashTagsOnLineItems
@@ -38,9 +36,9 @@ struct LineItemView: View {
     
     var amountColor: Color {
         if trans.payMethod?.accountType == .credit || trans.payMethod?.accountType == .loan {
-            trans.amount < 0 ? Color.fromName(incomeColor) : .gray
+            trans.amount < 0 ? AppSettings.shared.incomeColor : .gray
         } else {
-            trans.amount > 0 ? Color.fromName(incomeColor) : .gray
+            trans.amount > 0 ? AppSettings.shared.incomeColor : .gray
         }
     }
         
@@ -241,7 +239,7 @@ struct LineItemView: View {
     
     
     var totalView: some View {
-        Text(trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+        Text(trans.amount.currencyWithDecimals())
             .foregroundStyle(amountColor)
             .lineLimit(1)
     }

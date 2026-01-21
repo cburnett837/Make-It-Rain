@@ -17,7 +17,7 @@
 //    @Environment(\.dismiss) var dismiss
 //    
 //    //@Local(\.colorTheme) var colorTheme
-//    @Local(\.useWholeNumbers) var useWholeNumbers
+//    
 //    @Local(\.threshold) var threshold
 //    
 //    @Local(\.lineItemIndicator) var lineItemIndicator
@@ -1332,7 +1332,7 @@
 ////                                    .font(.caption)
 ////                                    .alignmentGuide(.circleAndTitle) { $0[VerticalAlignment.center] }
 ////
-////                                Text(amount.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+////                                Text(amount.amount.currencyWithDecimals())
 ////                                    .font(.caption)
 ////                            }
 ////                        }
@@ -1404,7 +1404,7 @@
 //                                        .filter { !$0.isHidden }
 //                                        .map { $0.id }
 //                                    let sum = plaidModel.balances.filter { debitIDs.contains($0.payMethodID) }.map { $0.amount }.reduce(0.0, +)
-//                                    Text("\(sum.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+//                                    Text("\(sum.currencyWithDecimals())")
 //                                        .font(.callout)
 //                                        .foregroundStyle(.gray)
 //                                        .lineLimit(1)
@@ -1417,7 +1417,7 @@
 //                                        .map { $0.id }
 //                                    
 //                                    let sum = plaidModel.balances.filter { creditIDs.contains($0.payMethodID) }.map { $0.amount }.reduce(0.0, +)
-//                                    Text("\(sum.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+//                                    Text("\(sum.currencyWithDecimals())")
 //                                        .font(.callout)
 //                                        .foregroundStyle(.gray)
 //                                        .lineLimit(1)
@@ -1425,7 +1425,7 @@
 //                                
 //                            } else {
 //                                //                    if let balance = plaidModel.balances.filter({ $0.payMethodID == calModel.sPayMethod?.id }).first {
-//                                //                        Text("\(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)), \(balance.lastTimeICheckedPlaidSyncedDate?.string(to: .monthDayHrMinAmPm) ?? "N/A")")
+//                                //                        Text("\(balance.amount.currencyWithDecimals()), \(balance.lastTimeICheckedPlaidSyncedDate?.string(to: .monthDayHrMinAmPm) ?? "N/A")")
 //                                //                            .font(.callout)
 //                                //                            .foregroundStyle(.gray)
 //                                //                            .lineLimit(1)
@@ -1449,7 +1449,7 @@
 //                                    }
 //                                })
 //                                .first {
-//                                    Text("\(balance.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)) (\(timeSinceLastBalanceUpdate))")
+//                                    Text("\(balance.amount.currencyWithDecimals()) (\(timeSinceLastBalanceUpdate))")
 //                                        .font(.callout)
 //                                        .foregroundStyle(.gray)
 //                                        .lineLimit(1)

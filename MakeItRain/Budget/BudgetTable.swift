@@ -7,13 +7,28 @@
 
 import SwiftUI
 
+struct VariableSizeCircularStyle: GaugeStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        ZStack {
+            Circle()
+                .stroke(.primary.opacity(0.5), lineWidth: 4)
+            Circle()
+                .trim(to: configuration.value)
+                .stroke(.primary, style: .init(lineWidth: 4, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            configuration.currentValueLabel
+        }
+    }
+}
+
+extension GaugeStyle where Self == VariableSizeCircularStyle {
+    static var variableSizeCircular: VariableSizeCircularStyle { .init() }
+}
+
 struct BudgetTable: View {
-    @Local(\.categorySortMode) var categorySortMode
-    @Local(\.useWholeNumbers) var useWholeNumbers
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
     @Environment(CategoryModel.self) private var catModel
-
     
     @State private var budgetEditID: CBBudget.ID?
     @State private var editBudget: CBBudget?
@@ -107,7 +122,7 @@ struct BudgetTable: View {
                                 Text(cat.title)
                                 
                                 Spacer()
-                                Text(budget.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                                Text(budget.amount.currencyWithDecimals())
                             }
                             .contentShape(Rectangle())
                             .onTapGesture {
@@ -224,7 +239,7 @@ struct BudgetTable: View {
                         Text(group.title)
                         
                         Spacer()
-                        Text(budget.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                        Text(budget.amount.currencyWithDecimals())
                     }
                     .contentShape(Rectangle())
                     .onTapGesture {
@@ -238,6 +253,20 @@ struct BudgetTable: View {
                 if let cat = budget.category {
                     HStack {
                         //StandardCategoryLabel(cat: cat, labelWidth: labelWidth, showCheckmarkCondition: false)
+//                        let expenses = getExpenseAmount(for: cat)
+//                        let display = expenses == 0 ? 0 : (expenses * -1)
+//                        
+//                        Gauge(value: display, in: 0...budget.amount) {
+//                            Text("hey")
+//                        }
+//                        .gaugeStyle(.variableSizeCircular)
+//                        .foregroundStyle(cat.color)
+//                        .frame(width: 30, height: 30)
+                        
+//                        .gaugeStyle(.accessoryCircularCapacity)
+//                        .tint(cat.color)
+//                        .scaleEffect(0.5)
+
                         
                         ChartCircleDot(
                             budget: budget.amount,
@@ -248,7 +277,7 @@ struct BudgetTable: View {
                         Text(cat.title)
                         
                         Spacer()
-                        Text(budget.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                        Text(budget.amount.currencyWithDecimals())
                     }
                     .contentShape(Rectangle())
                     .onTapGesture {

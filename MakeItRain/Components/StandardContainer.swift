@@ -69,22 +69,25 @@ struct StandardContainer<Content: View, Content2: View, Content3: View, Content4
         #if os(macOS)
         .padding(.bottom, 10)
         #endif
-        
     }
     
     
     var listContent: some View {
         Group {
             if contentType == .plainWithSelection || contentType == .insetListWithSelection {
-                List(selection: $selectionID) { content }
-                    .if(contentType == .plainWithSelection) {
-                        $0.listStyle(.plain)
-                    }
+                List(selection: $selectionID) {
+                    content
+                }
+                .if(contentType == .plainWithSelection) {
+                    $0.listStyle(.plain)
+                }
             } else {
-                List { content }
-                    .if(contentType == .plainList) {
-                        $0.listStyle(.plain)
-                    }
+                List {
+                    content
+                }
+                .if(contentType == .plainList) {
+                    $0.listStyle(.plain)
+                }
             }
         }
         .scrollDismissesKeyboard(scrollDismissesKeyboard)

@@ -11,12 +11,13 @@ struct AdvancedSearchView: View {
     @Environment(\.dismiss) var dismiss
     @AppStorage("advancedSearchFilterIsExpanded") private var storedFilterIsExpanded: Bool = true
     @State private var filterIsExpanded: Bool = true
-    //@Local(\.colorTheme) var colorTheme
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    //@Local(\.colorTheme) var colorTheme    
     
     @Environment(CalendarModel.self) var calModel
     @Environment(PayMethodModel.self) var payModel
     @Environment(CategoryModel.self) var catModel
+    
+    @Binding var navPath: NavigationPath
     
     
     @State private var searchModel = AdvancedSearchModel()
@@ -34,7 +35,7 @@ struct AdvancedSearchView: View {
     @State private var fuckYouSwiftuiTableRefreshID: UUID = UUID()
     
     @Namespace var namespace
-
+    
     
     @FocusState private var focusedField: Int?
     
@@ -104,6 +105,18 @@ struct AdvancedSearchView: View {
         }
     }
     
+    var dateFilterTitle: String {
+        if searchModel.cutOffDate == nil && searchModel.beginDate == nil && searchModel.endDate == nil {
+            return ""
+        } else if searchModel.cutOffDate != nil {
+            return searchModel.cutOffDate!.string(to: .monthDayShortYear)
+            
+        } else if searchModel.beginDate != nil && searchModel.endDate != nil {
+            return "\(searchModel.beginDate!.string(to: .monthDayShortYear)) …to… \(searchModel.endDate!.string(to: .monthDayShortYear))"
+        }
+        return ""
+    }
+    
     var filterCount: Int {
         return (
             searchModel.categories.count
@@ -112,9 +125,10 @@ struct AdvancedSearchView: View {
             + searchModel.years.count
             + (searchModel.amountType == .all ? 0 : 1)
             + (searchModel.includeExcluded ? 0 : 1)
+            + (searchModel.onlyWithPhotos ? 1 : 0)
+            + ((searchModel.cutOffDate != nil || (searchModel.beginDate != nil && searchModel.endDate != nil)) ? 1 : 0)
         )
     }
-    
     
 //    var searchPrompt: String {
 //        focusedField == 0 ? "Search Terms (Separate by comma)" : "Search"
@@ -129,7 +143,10 @@ struct AdvancedSearchView: View {
             #endif
         }
         #if os(iOS)
-        .navigationTitle("Search")
+        .navigationTitle("Transaction Search")
+        .navigationDestination(for: String.self, destination: { dest in
+            DatePickerPage(searchModel: searchModel, navPath: $navPath)
+        })
         //.navigationBarTitleDisplayMode(.inline)
         #endif
         .id(fuckYouSwiftuiTableRefreshID)
@@ -263,9 +280,9 @@ struct AdvancedSearchView: View {
                 TableColumn("Amount") { trans in
                     Group {
                         if trans.payMethod?.accountType == .credit || trans.payMethod?.accountType == .loan {
-                            Text((trans.amount * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                            Text((trans.amount * -1).currencyWithDecimals())
                         } else {
-                            Text(trans.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                            Text(trans.amount.currencyWithDecimals())
                         }
                     }
                 }
@@ -314,13 +331,22 @@ struct AdvancedSearchView: View {
             .schemeBasedForegroundStyle()
     }
     
-    
+
+    @ViewBuilder
     var phoneList: some View {
+        
+        @Bindable var photoModel = FileModel.shared
+
         List {
             Section {
                 HStack {
                     searchTextField
-                    addSearchTermButton
+                    HStack {
+                        addSearchTermButton
+                        convertToTagButton
+                    }
+                    .fixedSize(horizontal: true, vertical: true)
+                    
                 }
                 
                 if !searchModel.searchTerms.isEmpty {
@@ -330,7 +356,7 @@ struct AdvancedSearchView: View {
                 Button("Search", action: search)
                     .disabled(!searchModel.isValid())
             } footer: {
-                Text("Search by transaction titles, or tags. Prepend a tag with #. Touch the plus to add multiple search terms.")
+                Text("Search by transaction titles, or tags. Touch # to turn the current search term into a tag. Touch + to add the current search term to the search list.")
             }
             
             filterSections
@@ -345,11 +371,9 @@ struct AdvancedSearchView: View {
                         ContentUnavailableView("No Transactions", systemImage: "square.stack.3d.up.slash.fill", description: Text("Choose some filters above and/or enter a search term."))
                     } else {
                         ForEach(calModel.searchedTransactions) { trans in
-                            TransactionListLine(trans: trans, withDate: true, withTags: true)
-                                .onTapGesture {
-                                    //self.transDay = day
-                                    self.transEditID = trans.id
-                                }
+                            TransactionListLine(trans: trans, withDate: true, withTags: true, withPhotos: true) {
+                                self.transEditID = trans.id
+                            }
                         }
                     }
                 }
@@ -406,6 +430,19 @@ struct AdvancedSearchView: View {
             addSearchTerm()
         } label: {
             Image(systemName: "plus")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .disabled(searchModel.newSearchTerm.isEmpty)
+    }
+    
+    
+    var convertToTagButton: some View {
+        Button {
+            prependHashtag()
+        } label: {
+            Image(systemName: "number")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .buttonStyle(.borderedProminent)
         .disabled(searchModel.newSearchTerm.isEmpty)
@@ -434,26 +471,65 @@ struct AdvancedSearchView: View {
     }
             
     
+    @ViewBuilder
     var filterSections: some View {
         Section {
             if filterIsExpanded {
                 FilterLine(title: "Categories", value: categoryFilterTitle, showSheet: $showCategorySheet)
                 FilterLine(title: "Accounts", value: payMethodFilterTitle, showSheet: $showPayMethodSheet)
-                FilterLine(title: "Months", value: monthFilterTitle, showSheet: $showMonthSheet)
-                FilterLine(title: "Years", value: yearFilterTitle, showSheet: $showYearSheet)
-                amountTypePicker
-                excludedToggle
             } else {
-                Text(filterCount == 0 ? "No filters applied" : "\(filterCount) filter\(filterCount == 1 ? "" : "s") applied")
-                    .foregroundStyle(filterCount == 0 ? .gray : .primary)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        withAnimation { filterIsExpanded.toggle() }
-                    }
+                Section {
+                    Text(filterCount == 0 ? "No filters applied" : "\(filterCount) filter\(filterCount == 1 ? "" : "s") applied")
+                        .foregroundStyle(filterCount == 0 ? .gray : .primary)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation { filterIsExpanded.toggle() }
+                        }
+                }
             }
         } header: {
             filterSectionHeader
         }
+        .listSectionSpacing(5)
+        
+        if filterIsExpanded {
+            Section {
+                if searchModel.cutOffDate == nil && searchModel.beginDate == nil && searchModel.endDate == nil {
+                    FilterLine(title: "Months", value: monthFilterTitle, showSheet: $showMonthSheet)
+                    FilterLine(title: "Years", value: yearFilterTitle, showSheet: $showYearSheet)
+                }
+                    
+                cutOffDatePickerAndTypePicker
+            }
+            .listSectionSpacing(5)
+            
+            Section {
+                amountTypePicker
+                excludedToggle
+                onlyWithPhotosToggle
+            }
+            .listSectionSpacing(5)
+        }
+//        Section {
+//            if filterIsExpanded {
+//                FilterLine(title: "Categories", value: categoryFilterTitle, showSheet: $showCategorySheet)
+//                FilterLine(title: "Accounts", value: payMethodFilterTitle, showSheet: $showPayMethodSheet)
+//                FilterLine(title: "Months", value: monthFilterTitle, showSheet: $showMonthSheet)
+//                FilterLine(title: "Years", value: yearFilterTitle, showSheet: $showYearSheet)
+//                amountTypePicker
+//                excludedToggle
+//                onlyWithPhotosToggle
+//            } else {
+//                Text(filterCount == 0 ? "No filters applied" : "\(filterCount) filter\(filterCount == 1 ? "" : "s") applied")
+//                    .foregroundStyle(filterCount == 0 ? .gray : .primary)
+//                    .contentShape(Rectangle())
+//                    .onTapGesture {
+//                        withAnimation { filterIsExpanded.toggle() }
+//                    }
+//            }
+//        } header: {
+//            filterSectionHeader
+//        }
     }
     
     
@@ -485,7 +561,7 @@ struct AdvancedSearchView: View {
             HStack {
                 Text("Total:")
                 Spacer()
-                Text(sum.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                Text(sum.currencyWithDecimals())
             }
         }
     }
@@ -495,13 +571,18 @@ struct AdvancedSearchView: View {
         HStack {
             Text("Transactions")
             Spacer()
-            clearResultsButton
-            sortButton
+            HStack {
+                transactionExportCsvButton
+                transactionClearResultsButton
+                transactionSortButton
+            }
+            .fixedSize(horizontal: true, vertical: false)
+            
         }
     }
     
     
-    var sortButton: some View {
+    var transactionSortButton: some View {
         Button {
             withAnimation {
                 if sortOrder == .forward {
@@ -514,31 +595,58 @@ struct AdvancedSearchView: View {
             }
         } label: {
             Image(systemName: "arrow.up")
+                .frame(maxHeight: .infinity)
                 .rotationEffect(.degrees(sortOrder == .forward ? 0 : 180))
         }
-        .buttonStyle(.glassProminent)
+        .buttonStyle(.borderedProminent)
     }
     
     
-    var clearResultsButton: some View {
-        Button("Clear") {
+    var transactionClearResultsButton: some View {
+        Button {
             withAnimation {
                 calModel.searchedTransactions.removeAll()
             }
+        } label: {
+            Text("Clear")
+                //.schemeBasedForegroundStyle()
+                .frame(maxHeight: .infinity)
+                .opacity(isSearching ? 0 : 1)
+                .overlay {
+                    ProgressView()
+                        .opacity(isSearching ? 1 : 0)
+                        .tint(.none)
+                }
         }
-        .schemeBasedForegroundStyle()
-        .opacity(isSearching ? 0 : 1)
-        .overlay {
-            ProgressView()
-                .opacity(isSearching ? 1 : 0)
-                .tint(.none)
-        }
-        .buttonStyle(.glassProminent)
+        .buttonStyle(.borderedProminent)
         .disabled(calModel.searchedTransactions.isEmpty)
+        
     }
     
     
+    var transactionExportCsvButton: some View {
+        let rows = calModel.searchedTransactions
+            .filter { $0.active && $0.isPermitted }
+            .map { $0.convertToCsvRecord() }
+        
+        func generateCsv() -> URL {
+            return Helpers.generateCsv(
+                fileName: "Search-Results-\(AppState.shared.todayMonth)-\(AppState.shared.todayDay)-\(AppState.shared.todayYear).csv",
+                headers: CBTransaction.getCsvHeaders(),
+                rows: rows
+            )
+        }
+            
+        return ShareLink(item: generateCsv()) {
+            Text("CSV")
+                .frame(maxHeight: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .font(.subheadline)
+        .disabled(calModel.searchedTransactions.isEmpty)
+    }
     
+        
     var amountTypePicker: some View {
         Picker(selection: $searchModel.amountType) {
             ForEach(AmountType.allCases) {
@@ -550,14 +658,48 @@ struct AdvancedSearchView: View {
         }
     }
     
+    
     var excludedToggle: some View {
         Toggle(isOn: $searchModel.includeExcluded) {
-            Text("Excluded Transactions")
+            Text("Include Ignored")
+        }
+    }
+    
+    
+    var onlyWithPhotosToggle: some View {
+        Toggle(isOn: $searchModel.onlyWithPhotos) {
+            Text("Only with Photos/Files")
+        }
+    }
+    
+    
+    @ViewBuilder
+    var cutOffDatePickerAndTypePicker: some View {
+        Button {
+            searchModel.months.removeAll()
+            searchModel.years.removeAll()
+            navPath.append("Date_picker")
+        } label: {
+            HStack {
+                Text("Date Range")
+                    .schemeBasedForegroundStyle()
+                Spacer()
+                
+                HStack(spacing: 4) {
+                    
+                    Text(dateFilterTitle)
+                        .schemeBasedForegroundStyle()
+                    
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(.gray)
+                }
+            }
         }
     }
     
     
     
+    // MARK: - Functions
     func prependHashtag() {
         //if !searchModel.newSearchTerm.isEmpty {
             searchModel.newSearchTerm = "#" + searchModel.newSearchTerm
@@ -599,6 +741,7 @@ struct AdvancedSearchView: View {
         if !exists { searchModel.searchTerms.append(cleanTerm) }
     }
     
+    
     func resetForm() {
         withAnimation {
             calModel.searchedTransactions.removeAll()
@@ -607,7 +750,14 @@ struct AdvancedSearchView: View {
             searchModel.months.removeAll()
             searchModel.years.removeAll()
             searchModel.searchTerms.removeAll()
+            searchModel.includeExcluded = true
+            searchModel.amountType = .all
+            searchModel.onlyWithPhotos = false
             searchModel.newSearchTerm = ""
+            searchModel.cutOffDate = nil
+            searchModel.cutOffDateType = .on
+            searchModel.beginDate = nil
+            searchModel.endDate = nil
         }
     }
     
@@ -671,5 +821,119 @@ fileprivate struct FilterLine: View {
                 }
             }
         }
+    }
+}
+
+
+fileprivate struct DatePickerPage: View {
+    @Bindable var searchModel: AdvancedSearchModel
+    @Binding var navPath: NavigationPath
+    @State private var dateRangeType: DateRangeType? = nil
+    
+    enum DateRangeType {
+        case single, range
+    }
+            
+    var body: some View {
+        List {
+            if let dateRangeType {
+                switch dateRangeType {
+                case .single:
+                    singleDateSection
+                case .range:
+                    dateRangeSection
+                }
+            }
+                        
+            Section("Options") {
+                optionButtons
+            }
+        }
+        .navigationTitle("Search Date Filter")
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            if searchModel.beginDate != nil && searchModel.endDate != nil {
+                dateRangeType = .range
+            } else if searchModel.cutOffDate != nil {
+                dateRangeType = .single
+            }
+        }
+    }
+    
+    
+    @ViewBuilder
+    var optionButtons: some View {
+        Button("Search a Date Range") {
+            searchModel.cutOffDate = nil
+            searchModel.beginDate = Date()
+            searchModel.endDate = Date()
+            dateRangeType = .range
+        }
+        .disabled(dateRangeType == .range)
+        
+        Button("Search a Specific Date") {
+            searchModel.cutOffDate = Date()
+            searchModel.beginDate = nil
+            searchModel.endDate = nil
+            dateRangeType = .single
+        }
+        .disabled(dateRangeType == .single)
+        
+        Button("Clear Date Filter") {
+            searchModel.cutOffDate = nil
+            searchModel.beginDate = nil
+            searchModel.endDate = nil
+            dateRangeType = nil
+            navPath.removeLast()
+        }
+        .disabled(dateRangeType == nil)
+        .tint(.red)
+    }
+        
+    
+    var singleDateSection: some View {
+        Section {
+            HStack {
+                cutOffDateTypePicker
+                DatePicker("", selection: $searchModel.cutOffDate ?? Date(), displayedComponents: [.date])
+                    .labelsHidden()
+            }
+        } header: {
+            Text("Single Date")
+        } footer: {
+            Text("Only search for transactions that come before, on, or after this date.")
+        }
+    }
+    
+    
+    var dateRangeSection: some View {
+        Section {
+            HStack {
+                DatePicker("", selection: $searchModel.beginDate ?? Date(), displayedComponents: [.date])
+                    .labelsHidden()
+                
+                Text("…to…")
+                    .frame(maxWidth: .infinity)
+                
+                DatePicker("", selection: $searchModel.endDate ?? Date(), displayedComponents: [.date])
+                    .labelsHidden()
+            }
+        } header: {
+            Text("Date Range")
+        } footer: {
+            Text("Only search for transactions that fall within this date range.")
+        }
+    }
+    
+    
+    var cutOffDateTypePicker: some View {
+        Picker("", selection: $searchModel.cutOffDateType) {
+            ForEach(BeforeAfterOrOn.allCases, id: \.self) {
+                Text($0.rawValue.capitalized)
+                    .tag($0)
+            }
+        }
+        .labelsHidden()
+        .pickerStyle(.segmented)
     }
 }

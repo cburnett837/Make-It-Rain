@@ -81,13 +81,13 @@ class CategoryAnalysisResponseModel: Decodable, Identifiable {
         year = try container.decode(Int.self, forKey: .year)
                 
         let expenses = try container.decode(Double.self, forKey: .expenses)
-        self.expensesString = expenses.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
+        self.expensesString = expenses.currencyWithDecimals()
                 
         let income = try container.decode(Double.self, forKey: .income)
-        self.incomeString = income.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
+        self.incomeString = income.currencyWithDecimals()
         
         let budget = try container.decode(Double.self, forKey: .budget)
-        self.budgetString = budget.currencyWithDecimals(LocalStorage.shared.useWholeNumbers ? 0 : 2)
+        self.budgetString = budget.currencyWithDecimals()
     }
 }
 

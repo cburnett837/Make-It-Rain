@@ -123,7 +123,6 @@ import SwiftUI
 
 struct MultiCategorySheet: View {
     @AppStorage("hiddenCategoriesSectionIsExpanded") private var storedIsHiddenSectionExpanded: Bool = false
-    @Local(\.categorySortMode) var categorySortMode
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel

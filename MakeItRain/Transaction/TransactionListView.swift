@@ -21,9 +21,7 @@ struct TransactionListView: View {
     #if os(macOS)
     @Environment(\.dismiss) var dismiss
     #endif
-    @Local(\.transactionSortMode) var transactionSortMode
-    @Local(\.categorySortMode) var categorySortMode
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     //@Local(\.colorTheme) var colorTheme
     @Environment(\.colorScheme) private var colorScheme
     @Environment(CalendarProps.self) private var calProps    
@@ -86,7 +84,8 @@ struct TransactionListView: View {
             //.onAppear { scrollToTodayOnAppearOfScrollView(scrollProxy) }
         }
         .searchable(text: $searchText, prompt: Text("Search"))
-        .navigationTitle("\(calModel.sMonth.name) \(String(calModel.sYear))")
+        .searchPresentationToolbarBehavior(.avoidHidingContent)
+        .navigationTitle("\(calModel.sMonth.name) \(String(calModel.sMonth.year))")
         .navigationSubtitle(calModel.sPayMethod?.title ?? "N/A")
         //.background(Color(.systemBackground)) // force matching
         #if os(iOS)
@@ -98,7 +97,14 @@ struct TransactionListView: View {
                 NewTransactionMenuButton(transEditID: $transEditID, showTransferSheet: $showTransferSheet, showPhotosPicker: $showPhotosPicker, showCamera: $showCamera)
             }
             if AppState.shared.isIpad {
+                ToolbarItem(placement: .topBarTrailing) { paymentMethodButton }
+                ToolbarSpacer(.flexible, placement: .topBarTrailing)
                 ToolbarItem(placement: .topBarTrailing) { closeButton }
+            } else {
+                ToolbarItem(placement: .topBarTrailing) {
+                    paymentMethodButton
+                        //.matchedTransitionSource(id: "myButton", in: paymentMethodMenuButtonNamespace)
+                }
             }
         }
         #endif
@@ -118,12 +124,12 @@ struct TransactionListView: View {
         )
         .transactionEditSheetAndLogic(transEditID: $transEditID, selectedDay: $transDay)
         .sheet(isPresented: $showPaymentMethodSheet) {
-            
+            calModel.startingAmountSheetDismissed()
         } content: {
-            PayMethodSheet(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all, showStartingAmountOption: false)
-                #if os(iOS)
-                .navigationTransition(.zoom(sourceID: "myButton", in: paymentMethodMenuButtonNamespace))
-                #endif
+            PayMethodSheet(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all, showStartingAmountOption: true, showNoneOption: true)
+                //#if os(iOS)
+                //.navigationTransition(.zoom(sourceID: "myButton", in: paymentMethodMenuButtonNamespace))
+                //#endif
         }
     }
     
@@ -268,111 +274,135 @@ fileprivate struct DayChunk: View {
     @State private var dailyTotal: Double = 0.0
     @State private var dailyCount: Int = 0
     
-    var body: some View {
-        Section {
-            if doesHaveTransactions {
-                ForEach(filteredTrans) { trans in
-                //ForEach(getTransactions(for: day)) { trans in
-                    TransactionListLine(trans: trans)
-                        .onTapGesture {
-                            self.transDay = day
-                            self.transEditID = trans.id
-                        }
+    var eodColor: Color {
+//        if day.eodTotal > AppSettings.shared.lowBalanceThreshold {
+//            return .gray
+//        } else if day.eodTotal < 0 {
+//            return .red
+//        } else {
+//            return .orange
+//        }
+        
+        if let meth = calModel.sPayMethod {
+            if meth.isCreditOrLoan {
+                let limit = meth.limit ?? 0
+                let thresh = limit - AppSettings.shared.lowBalanceThreshold
+                
+                if day.eodTotal < thresh {
+                    return .gray
+                } else if day.eodTotal > limit {
+                    return .red
+                } else {
+                    return .orange
                 }
+                
             } else {
-                if searchText.isEmpty {
+                if day.eodTotal > AppSettings.shared.lowBalanceThreshold {
+                    return .gray
+                } else if day.eodTotal < 0 {
+                    return .red
+                } else {
+                    return .orange
+                }
+            }
+        } else {
+            if day.eodTotal > 0 {
+                return AppSettings.shared.incomeColor
+            } else {
+                return .gray
+            }
+        }
+    }
+    
+    var body: some View {
+        Group {
+            if doesHaveTransactions {
+                theSection {
+                    transLoop
+                }
+            } else if searchText.isEmpty {
+                theSection {
                     Text("No Transactions")
                         .foregroundStyle(.gray)
                 }
-                
-            }
-        } header: {
-            if let date = day.date, date.isToday {
-                HStack {
-                    Text("TODAY")
-                        .foregroundStyle(Color.theme)
-                    VStack {
-                        Divider()
-                            .overlay(Color.theme)
-                    }
-                }
-            } else {
-                Text(day.date?.string(to: .monthDayShortYear) ?? "")
-            }
-            
-        } footer: {
-            if doesHaveTransactions {
-                SectionFooter(day: day, dailyCount: dailyCount, dailyTotal: dailyTotal, cumTotals: cumTotals)
             }
         }
         .id(day.id)
-        .onChange(of: searchText, initial: true) { old, new in
-            self.filteredTrans = calModel.getTransactions(day: day.id)
-                .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(new) }
-            
-            self.doesHaveTransactions = filteredTrans
-                .filter { $0.dateComponents?.day == day.date?.day }
-                .count > 0
-            
-            self.dailyTotal = filteredTrans
-                .filter { $0.dateComponents?.day == day.date?.day }
-                .filter { $0.factorInCalculations }
-                .map { ($0.payMethod?.isCreditOrLoan ?? false) ? $0.amount * -1 : $0.amount }
-                .reduce(0.0, +)
-            
-            self.dailyCount = filteredTrans
-                .filter { $0.dateComponents?.day == day.date?.day }
-                .count
-        }
-//        .task {
-//            self.filteredTrans = calModel.getTransactions(day: day.id)
-//            
-//            self.doesHaveTransactions = filteredTrans
-//                .filter { $0.dateComponents?.day == day.date?.day }
-//                .count > 0
-//            
-//            self.dailyTotal = filteredTrans
-//                .filter { $0.dateComponents?.day == day.date?.day }
-//                .filter { $0.factorInCalculations }
-//                .map { ($0.payMethod?.isCreditOrLoan ?? false) ? $0.amount * -1 : $0.amount }
-//                .reduce(0.0, +)
-//            
-//            self.dailyCount = filteredTrans
-//                .filter { $0.dateComponents?.day == day.date?.day }
-//                .count
-//        }
+        .onChange(of: searchText, initial: true) { prepareTransactions(searchText: $1) }
+        .onChange(of: calModel.sPayMethod) { prepareTransactions(searchText: searchText) }
     }
     
     
-    struct SectionFooter: View {
-        @Local(\.useWholeNumbers) var useWholeNumbers
-        @Local(\.threshold) var threshold
-
-        var day: CBDay
-        var dailyCount: Int
-        var dailyTotal: Double
-        var cumTotals: [TransListCumTotal]
-        
-        private var eodColor: Color {
-            if day.eodTotal > threshold {
-                return .gray
-            } else if day.eodTotal < 0 {
-                return .red
-            } else {
-                return .orange
-            }
+    @ViewBuilder
+    func theSection<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        Section {
+            content()
+        } header: {
+            sectionHeader
+        } footer: {
+            sectionFooter
         }
-                
-        var body: some View {
+    }
+    
+    
+    @ViewBuilder
+    var transLoop: some View {
+        ForEach(filteredTrans) { trans in
+            TransactionListLine(trans: trans, onTap: {
+                self.transDay = day
+                self.transEditID = trans.id
+            })                
+        }
+    }
+    
+    
+    @ViewBuilder
+    var sectionHeader: some View {
+        if let date = day.date, date.isToday {
             HStack {
-                Text("EOD: \(day.eodTotal.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
-                    .foregroundStyle(eodColor)
-                
-                Spacer()
-                if dailyCount > 1 {
-                    Text(dailyTotal.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                Text("TODAY")
+                    .foregroundStyle(Color.theme)
+                VStack {
+                    Divider()
+                        .overlay(Color.theme)
                 }
             }
+        } else {
+            Text(day.date?.string(to: .monthDayShortYear) ?? "")
         }
+    }
+    
+    
+    @ViewBuilder
+    var sectionFooter: some View {
+        HStack {
+            Text("\(calModel.sPayMethod == nil ? "Spending:" : "EOD:") \(day.eodTotal.currencyWithDecimals())")
+                .foregroundStyle(eodColor)
+            
+            Spacer()
+            if dailyCount > 1 {
+                Text(dailyTotal.currencyWithDecimals())
+            }
+        }
+    }
+    
+    
+    func prepareTransactions(searchText: String) {
+        self.filteredTrans = calModel.getTransactions(day: day.id, meth: calModel.sPayMethod)
+            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+        
+        self.doesHaveTransactions = filteredTrans
+            .filter { $0.dateComponents?.day == day.date?.day }
+            .count > 0
+        
+        self.dailyTotal = filteredTrans
+            .filter { $0.dateComponents?.day == day.date?.day }
+            .filter { $0.factorInCalculations }
+            .map { ($0.payMethod?.isCreditOrLoan ?? false) ? $0.amount * -1 : $0.amount }
+            .reduce(0.0, +)
+        
+        self.dailyCount = filteredTrans
+            .filter { $0.dateComponents?.day == day.date?.day }
+            .count
     }
 }

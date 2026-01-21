@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct BudgetBreakdownView: View {
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     @Environment(CalendarModel.self) private var calModel
     
     let columnGrid = Array(repeating: GridItem(.flexible(), spacing: 0), count: 5)
@@ -67,14 +67,14 @@ struct BudgetBreakdownView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         
-                        Text(metric.budgetForCategory.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                        Text(metric.budgetForCategory.currencyWithDecimals())
                             
-                        Text((metric.expenses == 0 ? 0 : metric.expenses * -1 - metric.income).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                        Text((metric.expenses == 0 ? 0 : metric.expenses * -1 - metric.income).currencyWithDecimals())
                                                     
-                        Text(metric.income.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                        Text(metric.income.currencyWithDecimals())
                                                     
                         let overUnder = (metric.budgetForCategory ?? 0) + (metric.expenses + metric.income)
-                        Text(abs(overUnder).currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                        Text(abs(overUnder).currencyWithDecimals())
                             .foregroundStyle(overUnder < 0 ? .red : .green)
                             //.frame(maxWidth: .infinity, alignment: .leading)
                     }

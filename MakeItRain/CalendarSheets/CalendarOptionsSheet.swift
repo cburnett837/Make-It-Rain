@@ -9,8 +9,6 @@ import SwiftUI
 
 #if os(iOS)
 struct CalendarOptionsSheet: View {
-    @Local(\.tightenUpEodTotals) var tightenUpEodTotals
-    @Local(\.useWholeNumbers) var useWholeNumbers
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
     @Environment(FuncModel.self) var funcModel
@@ -109,13 +107,13 @@ struct CalendarOptionsSheet: View {
 //                                                                                                
 //                let sMeth: CBPaymentMethod? = calModel.sPayMethod
 //                
-//                let creditLimit = Text(sMeth?.limit?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "0.0")
+//                let creditLimit = Text(sMeth?.limit?.currencyWithDecimals() ?? "0.0")
 //                                                        
 //                let doubleCreditLimits = payModel.paymentMethods.filter { $0.accountType == .credit }.map { $0.limit ?? 0.0 }.reduce(0.0, +)
-//                let allCreditLimits = Text(doubleCreditLimits.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//                let allCreditLimits = Text(doubleCreditLimits.currencyWithDecimals())
 //                
 //                let doubleStartingAmounts = calModel.sMonth.startingAmounts.filter { $0.payMethod.id == sMeth?.id }.first?.amount
-//                let allStartingAmounts = doubleStartingAmounts?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+//                let allStartingAmounts = doubleStartingAmounts?.currencyWithDecimals()
 //                
 //                let amountFieldTitle: String = calModel.sPayMethod?.accountType == .credit ? "Current Balance" : "Starting Amount"
 //                //let bindingText: Binding<String> = $calModel.sMonth.startingAmounts.filter { $0.payMethod.id == sMeth?.id }.first?.amountString ?? .constant(CBStartingAmount().amountString)
@@ -288,10 +286,6 @@ struct CalendarOptionsSheet: View {
 
 struct CalendarOptionsSheetOG: View {
     @Environment(\.dismiss) var dismiss
-    
-    @Local(\.useWholeNumbers) var useWholeNumbers
-    @Local(\.tightenUpEodTotals) var tightenUpEodTotals
-
     @Environment(FuncModel.self) var funcModel
     //@Environment(RootViewModelPhone.self) var vm
     @Environment(CalendarModel.self) var calModel
@@ -414,13 +408,13 @@ struct CalendarOptionsSheetOG: View {
 //
 //                let sMeth: CBPaymentMethod? = calModel.sPayMethod
 //
-//                let creditLimit = Text(sMeth?.limit?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "0.0")
+//                let creditLimit = Text(sMeth?.limit?.currencyWithDecimals() ?? "0.0")
 //
 //                let doubleCreditLimits = payModel.paymentMethods.filter { $0.accountType == .credit }.map { $0.limit ?? 0.0 }.reduce(0.0, +)
-//                let allCreditLimits = Text(doubleCreditLimits.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+//                let allCreditLimits = Text(doubleCreditLimits.currencyWithDecimals())
 //
 //                let doubleStartingAmounts = calModel.sMonth.startingAmounts.filter { $0.payMethod.id == sMeth?.id }.first?.amount
-//                let allStartingAmounts = doubleStartingAmounts?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+//                let allStartingAmounts = doubleStartingAmounts?.currencyWithDecimals()
 //
 //                let amountFieldTitle: String = calModel.sPayMethod?.accountType == .credit ? "Current Balance" : "Starting Amount"
 //                //let bindingText: Binding<String> = $calModel.sMonth.startingAmounts.filter { $0.payMethod.id == sMeth?.id }.first?.amountString ?? .constant(CBStartingAmount().amountString)

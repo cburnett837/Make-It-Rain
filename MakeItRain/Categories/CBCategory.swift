@@ -31,7 +31,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
     var enteredDate: Date
     var updatedDate: Date
     var isNil: Bool = false
-    var topTitles: [String] = []
+    var topTitles: [CBSuggestedTitle] = []
     
     var isIncome: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .income) }
     var isPayment: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .payment) }
@@ -87,8 +87,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         self.active = true
         self.action = CategoryAction.fromString(entity.action!)
         
-        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
-        self.amountString = entity.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        self.amountString = entity.amount.currencyWithDecimals()
         //#warning("remove this when Laura installs")
         //self.type = XrefModel.getItem(from: .categoryTypes, byID: Int(entity.typeID) == 0 ? 27 : Int(entity.typeID))
         self.type = XrefModel.getItem(from: .categoryTypes, byID: Int(entity.typeID))
@@ -140,8 +139,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
 //        self.active = true
 //        self.action = CategoryAction.fromString(entity.action!)
 //        
-//        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
-//        self.amountString = entity.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+//        self.amountString = entity.amount.currencyWithDecimals()
 //    }
     
     func encode(to encoder: Encoder) throws {
@@ -180,8 +178,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         title = try container.decode(String.self, forKey: .title)
         
         let amount = try container.decode(Double?.self, forKey: .amount)
-        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
-        self.amountString = amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        self.amountString = amount?.currencyWithDecimals()
         
         //let colorDescription = try container.decode(String?.self, forKey: .hex_code)
         //self.color = Color.fromName(colorDescription ?? "white")
@@ -235,7 +232,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         }
         
         
-        self.topTitles = try container.decodeIfPresent(Array<String>.self, forKey: .top_titles) ?? []
+        self.topTitles = try container.decodeIfPresent(Array<CBSuggestedTitle>.self, forKey: .top_titles) ?? []
         
         let isHidden = try container.decode(Int?.self, forKey: .is_hidden)
         self.isHidden = isHidden == 1
@@ -311,8 +308,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
     func setFromAnotherInstance(category: CBCategory) {
         self.title = category.title
         
-        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
-        self.amountString = category.amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        self.amountString = category.amount?.currencyWithDecimals()
         
         self.color = category.color
         self.emoji = category.emoji

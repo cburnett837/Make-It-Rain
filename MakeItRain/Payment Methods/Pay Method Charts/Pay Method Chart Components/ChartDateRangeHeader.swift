@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ChartDateRangeHeader: View {
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     @Bindable var vm: PayMethodViewModel
     @Bindable var payMethod: CBPaymentMethod
     
@@ -31,11 +31,11 @@ struct ChartDateRangeHeader: View {
                     Spacer()
                     
                     if payMethod.isCreditOrUnified {
-                        Text("Payments: \(vm.visiblePayments.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                        Text("Payments: \(vm.visiblePayments.currencyWithDecimals())")
                             .foregroundStyle(.gray)
                             .font(.subheadline)
                     } else {
-                        Text("Income: \(vm.visibleIncome.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                        Text("Income: \(vm.visibleIncome.currencyWithDecimals())")
                             .foregroundStyle(.gray)
                             .font(.subheadline)
                     }
@@ -48,7 +48,7 @@ struct ChartDateRangeHeader: View {
                                         
                     Spacer()
                     
-                    Text("Expenses: \(vm.visibleExpenses.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                    Text("Expenses: \(vm.visibleExpenses.currencyWithDecimals())")
                 }
                 .foregroundStyle(.gray)
                 .font(.subheadline)

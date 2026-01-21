@@ -59,8 +59,8 @@ class CBFitTransaction: Codable, Identifiable {
         self.category = try container.decode(CBCategory?.self, forKey: .category)
         
         let amount = try container.decode(String.self, forKey: .amount)
-        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
-        self.amountString = (Double(amount) ?? 0.0).currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        
+        self.amountString = (Double(amount) ?? 0.0).currencyWithDecimals()
         
         let date = try container.decode(String?.self, forKey: .date)
         if let date {

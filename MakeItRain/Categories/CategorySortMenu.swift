@@ -12,7 +12,6 @@ enum SortMenuDisplayStyle {
 }
 
 struct CategorySortMenu: View {
-    @Local(\.categorySortMode) var categorySortMode
     @Environment(CategoryModel.self) private var catModel
     @Environment(CalendarModel.self) private var calModel
     var displayStyle: SortMenuDisplayStyle = .standalone
@@ -30,7 +29,7 @@ struct CategorySortMenu: View {
             }
         }
         .onAppear {
-            switch categorySortMode {
+            switch AppSettings.shared.categorySortMode {
             case .title:
                 isAlpha = true
             case .listOrder:
@@ -40,16 +39,19 @@ struct CategorySortMenu: View {
         .onChange(of: isAlpha) {
             if $1 {
                 isCustom = false
-                categorySortMode = .title
+                AppSettings.shared.categorySortMode = .title
                 performSort()
             }
         }
         .onChange(of: isCustom) {
             if $1 {
                 isAlpha = false
-                categorySortMode = .listOrder
+                AppSettings.shared.categorySortMode = .listOrder
                 performSort()
             }
+        }
+        .onChange(of: AppSettings.shared.categorySortMode) { oldValue, newValue in
+            AppSettings.shared.sendToServer(setting: .init(settingId: 60, setting: newValue.rawValue))
         }
     }
     

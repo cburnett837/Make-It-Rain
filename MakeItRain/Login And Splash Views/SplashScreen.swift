@@ -178,7 +178,9 @@ struct SplashScreen: View {
 
             if success {
                 #if os(iOS)
-                if AppState.shared.isIphone, !AppState.shared.showPaymentMethodNeededSheet {
+                if AppState.shared.isIphone,
+                AuthState.shared.isLoggedIn,
+                !AppState.shared.showPaymentMethodNeededSheet {
                     calModel.showMonth = true
                 }
                 #endif

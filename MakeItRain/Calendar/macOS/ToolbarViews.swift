@@ -10,7 +10,7 @@ import SwiftUI
 #if os(macOS)
 
 struct CalendarToolbarLeading: View {
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     //@AppStorage("showAccountOnUnifiedView") var showAccountOnUnifiedView = false
     
     @Environment(FuncModel.self) var funcModel
@@ -290,7 +290,7 @@ struct CalendarToolbarLeading: View {
 //                }
                 showStartingAmountsSheet = true
             } label: {
-                Text(calModel.sMonth.startingAmounts.filter { $0.payMethod.id == sMeth?.id }.first?.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "0.0")
+                Text(calModel.sMonth.startingAmounts.filter { $0.payMethod.id == sMeth?.id }.first?.amount.currencyWithDecimals() ?? "0.0")
                     .contentShape(Rectangle())
                     .frame(width: 100)
                     .padding(6)
@@ -361,13 +361,13 @@ struct CalendarToolbarLeading: View {
     
     
     struct StaticAmountText: View {
-        @Local(\.useWholeNumbers) var useWholeNumbers
+        
 
         let amount: Double?
         let alertText: String
                 
         var body: some View {
-            Text(amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "0.0")
+            Text(amount?.currencyWithDecimals() ?? "0.0")
                 .padding(6)
                 .foregroundStyle(.gray)
                 .toolbarBorder()

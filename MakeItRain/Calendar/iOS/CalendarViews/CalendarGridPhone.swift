@@ -17,11 +17,8 @@ extension Array {
 
 #if os(iOS)
 struct CalendarGridPhone: View {
-    @Local(\.tightenUpEodTotals) var tightenUpEodTotals
     @Local(\.lineItemIndicator) var lineItemIndicator
     @Local(\.phoneLineItemDisplayItem) var phoneLineItemDisplayItem
-    @Local(\.incomeColor) var incomeColor
-    @Local(\.useWholeNumbers) var useWholeNumbers
     
     @Environment(CalendarModel.self) private var calModel
     @Environment(CalendarProps.self) private var calProps
@@ -64,12 +61,9 @@ struct CalendarGridPhone: View {
                                 ForEach(week) { day in
                                     VStack(spacing: 0) {
                                         DayViewPhone(
-                                            day: day,
-                                            tightenUpEodTotals: tightenUpEodTotals,
+                                            day: day,                                            
                                             lineItemIndicator: lineItemIndicator,
                                             phoneLineItemDisplayItem: phoneLineItemDisplayItem,
-                                            incomeColor: incomeColor,
-                                            useWholeNumbers: useWholeNumbers
                                         )
                                         
                                         if week != weeks.last {

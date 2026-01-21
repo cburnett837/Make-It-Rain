@@ -9,18 +9,13 @@ import SwiftUI
 
 struct SettingsViewInsert: View {
     @Local(\.categoryIndicatorAsSymbol) var categoryIndicatorAsSymbol
-    @Local(\.categorySortMode) var categorySortMode
     @Local(\.creditEodView) var creditEodView
-    @Local(\.incomeColor) var incomeColor
     @Local(\.lineItemIndicator) var lineItemIndicator
     @Local(\.phoneLineItemDisplayItem) var phoneLineItemDisplayItem
     @Local(\.showHashTagsOnLineItems) var showHashTagsOnLineItems
     @Local(\.showPaymentMethodIndicator) var showPaymentMethodIndicator
-    @Local(\.threshold) var threshold
-    @Local(\.tightenUpEodTotals) var tightenUpEodTotals
-    @Local(\.transactionSortMode) var transactionSortMode
     @Local(\.updatedByOtherUserDisplayMode) var updatedByOtherUserDisplayMode
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     @Local(\.useBusinessLogos) var useBusinessLogos
     
     @Environment(\.colorScheme) var colorScheme
@@ -38,20 +33,6 @@ struct SettingsViewInsert: View {
         @Bindable var appSettings = AppSettings.shared
         Group {
             Section("Options") {
-//                if phoneLineItemDisplayItem != .both {
-//                    paymentMethodIndicatorToggle
-//                }
-                
-                Toggle(isOn: $appSettings.useWholeNumbers) {
-                    VStack(alignment: .leading) {
-                        Text("Only whole numbers (u)")
-                        Text("Round all dollar amounts and remove their decimals.")
-                            .foregroundStyle(.gray)
-                            .font(.footnote)
-                        
-                    }
-                }
-//
                 useWholeNumbersToggle
                 tightenUpEodTotalsToggle
                 showShowHashTagToggle
@@ -129,33 +110,41 @@ struct SettingsViewInsert: View {
             Section {
                 VStack(alignment: .leading) {
                     Group {
-                        #if os(iOS)
-                        UITextFieldWrapper(placeholder: "Amount", text: $thresholdString, toolbar: {
-                            KeyboardToolbarView(focusedField: $focusedField, removeNavButtons: true)
-                        })
-                        .uiClearButtonMode(.whileEditing)
-                        .uiTag(1)
-                        //.uiKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
-                        .uiKeyboardType(.custom(.numpad))
-                        /// Format the amount field
+                        HStack {
+                            Image(systemName: "cloud")
+                            #if os(iOS)
+                            UITextFieldWrapper(placeholder: "Amount", text: $thresholdString, toolbar: {
+                                KeyboardToolbarView(focusedField: $focusedField, removeNavButtons: true)
+                            })
+                            .uiClearButtonMode(.whileEditing)
+                            .uiTag(1)
+                            //.uiKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
+                            .uiKeyboardType(.custom(.numpad))
+                            /// Format the amount field
 
-                        #else
-                        TextField("Amount", text: $thresholdString)
-                            .textFieldStyle(.roundedBorder)
-                        #endif
+                            #else
+                            TextField("Amount", text: $thresholdString)
+                                .textFieldStyle(.roundedBorder)
+                            #endif
+                        }                        
                     }
                     .focused($focusedField, equals: 1)
                     .onChange(of: thresholdString) {
-                        threshold = Double($1.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+                        AppSettings.shared.lowBalanceThreshold = Double($1.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
                         Helpers.liveFormatCurrency(oldValue: $0, newValue: $1, text: $thresholdString)
                     }
                     .onChange(of: focusedField) {
-                        if let string = Helpers.formatCurrency(focusValue: 1, oldFocus: $0, newFocus: $1, amountString: thresholdString, amount: threshold) {
+                        
+                        if $0 == 1 && $1 != 1 {
+                            AppSettings.shared.sendToServer(setting: .init(settingId: 56, setting: String(AppSettings.shared.lowBalanceThreshold)))
+                        }
+                        
+                        if let string = Helpers.formatCurrency(focusValue: 1, oldFocus: $0, newFocus: $1, amountString: thresholdString, amount: AppSettings.shared.lowBalanceThreshold) {
                             thresholdString = string
                         }
                     }
                     .task {
-                        thresholdString = threshold.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+                        thresholdString = AppSettings.shared.lowBalanceThreshold.currencyWithDecimals()
                     }
                     
                 }
@@ -163,14 +152,14 @@ struct SettingsViewInsert: View {
                 Text("Low Balance Threshold")
             } footer: {
                 Group {
-                    let text1 = Text("Any EOD total under \(threshold.currencyWithDecimals(useWholeNumbers ? 0 : 2)) will be hilighted in ")
+                    let text1 = Text("Any EOD total under \(AppSettings.shared.lowBalanceThreshold.currencyWithDecimals()) will be hilighted in ")
                         .foregroundStyle(.gray)
                         .font(.footnote)
                     let text2 = Text("orange")
                         .foregroundStyle(.orange)
                         .font(.footnote)
                     let text3 = Text(".")
-                    let text4 = Text(" Any EOD total under \(0.currencyWithDecimals(useWholeNumbers ? 0 : 2)) will be hilighted in ")
+                    let text4 = Text(" Any EOD total under \(0.currencyWithDecimals()) will be hilighted in ")
                         .foregroundStyle(.gray)
                         .font(.footnote)
                     let text5 = Text("red")
@@ -179,14 +168,14 @@ struct SettingsViewInsert: View {
                     
                     Text("\(text1)\(text2)\(text3)\(text4)\(text5)")
                     
-//                    Text("Any EOD total under \(threshold.currencyWithDecimals(useWholeNumbers ? 0 : 2)) will be hilighted in ")
+//                    Text("Any EOD total under \(threshold.currencyWithDecimals()) will be hilighted in ")
 //                        .foregroundStyle(.gray)
 //                        .font(.footnote)
 //                    + Text("orange")
 //                        .foregroundStyle(.orange)
 //                        .font(.footnote)
 //                    + Text(".")
-//                    + Text(" Any EOD total under \(0.currencyWithDecimals(useWholeNumbers ? 0 : 2)) will be hilighted in ")
+//                    + Text(" Any EOD total under \(0.currencyWithDecimals()) will be hilighted in ")
 //                        .foregroundStyle(.gray)
 //                        .font(.footnote)
 //                    + Text("red")
@@ -237,15 +226,24 @@ struct SettingsViewInsert: View {
         }
     }
     
+    @ViewBuilder
     var useWholeNumbersToggle: some View {
-        Toggle(isOn: $useWholeNumbers) {
+        @Bindable var appSettings = AppSettings.shared
+        Toggle(isOn: $appSettings.useWholeNumbers) {
             VStack(alignment: .leading) {
-                Text("Only whole numbers")
+                HStack {
+                    Image(systemName: "cloud")
+                    Text("Only whole numbers")
+                }
+                
                 Text("Round all dollar amounts and remove their decimals.")
                     .foregroundStyle(.gray)
                     .font(.footnote)
                 
             }
+        }
+        .onChange(of: appSettings.useWholeNumbers) { oldValue, newValue in
+            appSettings.sendToServer(setting: .init(settingId: 54, setting: newValue ? "1" : "0"))
         }
     }
     
@@ -261,16 +259,22 @@ struct SettingsViewInsert: View {
         
     }
     
+    @ViewBuilder
     var tightenUpEodTotalsToggle: some View {
-        Group {
-            Toggle(isOn: $tightenUpEodTotals) {
-                VStack(alignment: .leading) {
+        @Bindable var appSettings = AppSettings.shared
+        Toggle(isOn: $appSettings.tightenUpEodTotals) {
+            VStack(alignment: .leading) {
+                HStack {
+                    Image(systemName: "cloud")
                     Text("Trim totals")
-                    Text("Remove dollar signs and commas from totals.")
-                        .foregroundStyle(.gray)
-                        .font(.footnote)
                 }
+                Text("Remove dollar signs and commas from totals.")
+                    .foregroundStyle(.gray)
+                    .font(.footnote)
             }
+        }
+        .onChange(of: appSettings.tightenUpEodTotals) { oldValue, newValue in
+            appSettings.sendToServer(setting: .init(settingId: 55, setting: newValue ? "1" : "0"))
         }
     }
     
@@ -403,14 +407,16 @@ struct SettingsViewInsert: View {
     }
             
     
+    @ViewBuilder
     var incomeColorPicker: some View {
+        @Bindable var appSettings = AppSettings.shared
         /// Wrap in a menu so we can style the colors properly.
         Menu {
             /// Using a picker so we get the checkmark on the selected item.
-            Picker("", selection: $incomeColor) {
+            Picker("", selection: $appSettings.incomeColor) {
                 ForEach(AppState.shared.colorMenuOptions, id: \.self) { color in
                     Button {
-                        incomeColor = color.description
+                        appSettings.incomeColor = color
                     } label: {
                         HStack {
                             Text(color.description.capitalized)
@@ -427,17 +433,21 @@ struct SettingsViewInsert: View {
             
         } label: {
             HStack {
+                Image(systemName: "cloud")
+                    .schemeBasedForegroundStyle()
                 Text("Income color")
                     .schemeBasedForegroundStyle()
                 Spacer()
                 HStack(spacing: 4) {
-                    Text(incomeColor.capitalized)
+                    Text(appSettings.incomeColor.description.capitalized)
                     Image(systemName: "chevron.up.chevron.down")
                         .font(.footnote)
                 }
-                .foregroundStyle(Color.fromName(incomeColor))
+                .foregroundStyle(appSettings.incomeColor)
             }
-            
+        }
+        .onChange(of: appSettings.incomeColor) { oldValue, newValue in
+            AppSettings.shared.sendToServer(setting: .init(settingId: 61, setting: newValue.description))
         }
     }
     
@@ -516,37 +526,50 @@ struct SettingsViewInsert: View {
     #endif
     
     
+    @ViewBuilder
     var sortingOptions: some View {
+        @Bindable var appSettings = AppSettings.shared
         Section {
-            SettingsMenuPickerContainer(title: "Sort transactions by…", selectedTitle: transactionSortMode.prettyValue) {
-                Picker("", selection: $transactionSortMode) {
-                    ForEach(TransactionSortMode.allCases, id: \.self) { opt in
-                        Text(opt.prettyValue)
-                            .tag(opt)
+            HStack {
+                Image(systemName: "cloud")
+                SettingsMenuPickerContainer(title: "Sort transactions by…", selectedTitle: appSettings.transactionSortMode.prettyValue) {
+                    Picker("", selection: $appSettings.transactionSortMode) {
+                        ForEach(TransactionSortMode.allCases, id: \.self) { opt in
+                            Text(opt.prettyValue)
+                                .tag(opt)
+                        }
+                    }
+                    .onChange(of: appSettings.transactionSortMode) { oldValue, newValue in
+                        appSettings.sendToServer(setting: .init(settingId: 59, setting: newValue.rawValue))
+
                     }
                 }
             }
             
             
             
-            if transactionSortMode == .category {
-                SettingsMenuPickerContainer(title: "Sort categories by…", selectedTitle: categorySortMode.prettyValue) {
-                    Picker("", selection: $categorySortMode) {
-                        ForEach(SortMode.allCases, id: \.self) { opt in
-                            Text(opt.prettyValue)
-                                .tag(opt)
+            
+            if appSettings.transactionSortMode == .category {
+                HStack {
+                    Image(systemName: "cloud")
+                    SettingsMenuPickerContainer(title: "Sort categories by…", selectedTitle: appSettings.categorySortMode.prettyValue) {
+                        Picker("", selection: $appSettings.categorySortMode) {
+                            ForEach(SortMode.allCases, id: \.self) { opt in
+                                Text(opt.prettyValue)
+                                    .tag(opt)
+                            }
                         }
-                    }
-                    /// Only needed if we change the sort order from the settings modal, while on the category page in macOS
-                    #if os(macOS)
-                    .onChange(of: categorySortMode) { oldValue, newValue in
-                        catModel.categories.sort {
-                            categorySortMode == .title
-                            ? ($0.title).lowercased() < ($1.title).lowercased()
-                            : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
+                        /// Only needed if we change the sort order from the settings modal, while on the category page in macOS
+                        #if os(macOS)
+                        .onChange(of: appSettings.categorySortMode) { oldValue, newValue in
+                            catModel.categories.sort {
+                                appSettings.categorySortMode == .title
+                                ? ($0.title).lowercased() < ($1.title).lowercased()
+                                : $0.listOrder ?? 1000000000 < $1.listOrder ?? 1000000000
+                            }
                         }
+                        #endif
                     }
-                    #endif
                 }
             }
             
@@ -566,7 +589,7 @@ struct SettingsViewInsert: View {
 //    @Environment(\.colorScheme) var colorScheme
 //    //@Local(\.colorTheme) var colorTheme
 //    @Local(\.updatedByOtherUserDisplayMode) var updatedByOtherUserDisplayMode
-//    @Local(\.useWholeNumbers) var useWholeNumbers
+//    
 //    @Local(\.tightenUpEodTotals) var tightenUpEodTotals
 //    @AppStorage("threshold") var threshold = "500.0"
 //    @Local(\.lineItemIndicator) var lineItemIndicator

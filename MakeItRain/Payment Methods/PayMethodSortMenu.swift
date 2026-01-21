@@ -8,7 +8,6 @@
 import SwiftUI
 
 struct PayMethodSortMenu: View {
-    @Local(\.paymentMethodSortMode) var paymentMethodSortMode
     @Environment(PayMethodModel.self) private var payModel
 
     @Binding var sections: Array<PaySection>
@@ -25,18 +24,21 @@ struct PayMethodSortMenu: View {
                 //.schemeBasedForegroundStyle()
         }
         .schemeBasedTint()
+        .onChange(of: AppSettings.shared.paymentMethodSortMode) { oldValue, newValue in
+            AppSettings.shared.sendToServer(setting: .init(settingId: 58, setting: newValue.rawValue))
+        }
     }
     
     
     var titleButton: some View {
         Button {
-            paymentMethodSortMode = .title
+            AppSettings.shared.paymentMethodSortMode = .title
             performSort()
         } label: {
             Label {
                 Text("Alphabetically")
             } icon: {
-                Image(systemName: paymentMethodSortMode == .title ? "checkmark" : "textformat.abc")
+                Image(systemName: AppSettings.shared.paymentMethodSortMode == .title ? "checkmark" : "textformat.abc")
             }
         }
     }
@@ -44,13 +46,13 @@ struct PayMethodSortMenu: View {
     
     var listOrderButton: some View {
         Button {
-            paymentMethodSortMode = .listOrder
+            AppSettings.shared.paymentMethodSortMode = .listOrder
             performSort()
         } label: {
             Label {
                 Text("Custom")
             } icon: {
-                Image(systemName: paymentMethodSortMode == .listOrder ? "checkmark" : "list.bullet")
+                Image(systemName: AppSettings.shared.paymentMethodSortMode == .listOrder ? "checkmark" : "list.bullet")
             }
         }
     }

@@ -10,7 +10,7 @@
 //import Charts
 //
 //struct CategoryViewOG: View {
-//    @Local(\.useWholeNumbers) var useWholeNumbers
+//    
 //    //@Local(\.colorTheme) var colorTheme
 //    @AppStorage("chartVisibleYearCount") var chartVisibleYearCount: CategoryAnalyticChartRange = .year1
 //    @AppStorage("selectedCategoryTab") var selectedCategoryTab: String = "details"
@@ -245,7 +245,7 @@
 //                }
 //            } else {
 //                if $0 == 1 {
-//                    category.amountString = category.amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+//                    category.amountString = category.amount?.currencyWithDecimals()
 //                }
 //            }
 //        }
@@ -481,7 +481,7 @@
 //                    .font(.title3)
 //                    .bold()
 //                
-//                Text("\(visibleTotal.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+//                Text("\(visibleTotal.currencyWithDecimals())")
 //                
 //                HStack(spacing: 5) {
 //                    Text(visibleDateRangeForHeader.lowerBound.string(to: .monthNameYear))
@@ -666,9 +666,9 @@
 //        }
 //        .chartLegend(position: .top, alignment: .leading)
 //        .chartForegroundStyleScale([
-//            "Total: \((data.map { $0.expenses }.reduce(0.0, +).currencyWithDecimals(useWholeNumbers ? 0 : 2)))": category.color,
+//            "Total: \((data.map { $0.expenses }.reduce(0.0, +).currencyWithDecimals()))": category.color,
 //            
-//            "Average: \((data.map { $0.expenses }.average()).currencyWithDecimals(useWholeNumbers ? 0 : 2))": Color.gray
+//            "Average: \((data.map { $0.expenses }.average()).currencyWithDecimals())": Color.gray
 //        ])
 //        .padding(.bottom, 10)
 //    }
@@ -899,7 +899,7 @@
 //    func prepareCategoryView() async {
 //        category.deepCopy(.create)
 //        /// Just for formatting.
-//        category.amountString = category.amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+//        category.amountString = category.amount?.currencyWithDecimals()
 //        catModel.upsert(category)
 //        
 //        #if os(macOS)

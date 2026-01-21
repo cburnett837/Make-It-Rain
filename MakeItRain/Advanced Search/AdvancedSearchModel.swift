@@ -8,6 +8,10 @@
 
 import SwiftUI
 
+enum BeforeAfterOrOn: String, CaseIterable {
+    case before, on, after
+}
+
 @Observable
 class AdvancedSearchModel: Encodable {
     var payMethods: Array<CBPaymentMethod> = []
@@ -18,9 +22,14 @@ class AdvancedSearchModel: Encodable {
     var newSearchTerm: String = ""
     var amountType: AmountType = .all
     var includeExcluded: Bool = true
+    var onlyWithPhotos: Bool = false
+    var cutOffDate: Date? = nil
+    var cutOffDateType: BeforeAfterOrOn = .on
+    var beginDate: Date? = nil
+    var endDate: Date? = nil
 
     
-    enum CodingKeys: CodingKey { case payment_methods, categories, months, years, amount_type, include_excluded, search_terms, user_id, account_id, device_uuid }
+    enum CodingKeys: CodingKey { case payment_methods, categories, months, years, amount_type, include_excluded, only_with_photos, search_terms, user_id, account_id, device_uuid, cut_off_date, cut_off_date_type, begin_date, end_date }
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -30,10 +39,15 @@ class AdvancedSearchModel: Encodable {
         try container.encode(years, forKey: .years)
         try container.encode(amountType.rawValue, forKey: .amount_type)
         try container.encode(includeExcluded ? 1 : 0, forKey: .include_excluded)
+        try container.encode(onlyWithPhotos ? 1 : 0, forKey: .only_with_photos)
         try container.encode(searchTerms, forKey: .search_terms)
         try container.encode(AppState.shared.user?.id, forKey: .user_id)
         try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
         try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
+        try container.encode(cutOffDate?.string(to: .serverDate), forKey: .cut_off_date)
+        try container.encode(cutOffDateType.rawValue, forKey: .cut_off_date_type)
+        try container.encode(beginDate?.string(to: .serverDate), forKey: .begin_date)
+        try container.encode(endDate?.string(to: .serverDate), forKey: .end_date)
     }
     
     func isValid() -> Bool {
@@ -42,7 +56,10 @@ class AdvancedSearchModel: Encodable {
         && months.isEmpty
         && years.isEmpty
         && searchTerms.isEmpty
-        && newSearchTerm.isEmpty {
+        && newSearchTerm.isEmpty
+        && cutOffDate == nil
+        && beginDate == nil
+        && endDate == nil {
             return false
         }
         return true

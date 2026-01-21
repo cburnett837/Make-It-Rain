@@ -64,8 +64,8 @@ class CBStartingAmount: Codable, Identifiable, Hashable, Equatable {
         }
         let amount = try container.decode(Double.self, forKey: .amount)
         //self.amountString = "$\(amount)"
-        let useWholeNumbers = LocalStorage.shared.useWholeNumbers
-        self.amountString = amount.currencyWithDecimals(useWholeNumbers ? 0 : 2)
+        
+        self.amountString = amount.currencyWithDecimals()
         
         month = try container.decode(Int.self, forKey: .month)
         year = try container.decode(Int.self, forKey: .year)

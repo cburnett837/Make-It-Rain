@@ -10,7 +10,7 @@ import SwiftUI
 import Charts
 
 struct CivMonthMiddleMan: View {
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     @Environment(CalendarProps.self) private var calProps
 
     var monthlyData: [CivMonthlyData]
@@ -114,19 +114,19 @@ struct CivMonthMiddleMan: View {
                 
                 switch monthlyData.dataPoint {
                 case .moneyIn:
-                    Text("\(monthlyData.breakdown.moneyIn.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                    Text("\(monthlyData.breakdown.moneyIn.currencyWithDecimals())")
                         .foregroundStyle(.gray)
                         .contentTransition(.numericText())
                 case .cashOut:
-                    Text("\(monthlyData.breakdown.cashOut.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                    Text("\(monthlyData.breakdown.cashOut.currencyWithDecimals())")
                         .foregroundStyle(.gray)
                         .contentTransition(.numericText())
                 case .totalSpending:
-                    Text("\(monthlyData.breakdown.spending.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                    Text("\(monthlyData.breakdown.spending.currencyWithDecimals())")
                         .foregroundStyle(.gray)
                         .contentTransition(.numericText())
                 case .actualSpending:
-                    Text("\(monthlyData.breakdown.actualSpending.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                    Text("\(monthlyData.breakdown.actualSpending.currencyWithDecimals())")
                         .foregroundStyle(.gray)
                         .contentTransition(.numericText())
                     

@@ -164,10 +164,7 @@ struct CategoryGroupOverView: View {
 
 
 
-fileprivate struct TransactionList: View {
-    //@Local(\.transactionSortMode) var transactionSortMode
-    //@Local(\.categorySortMode) var categorySortMode
-    //@Local(\.useWholeNumbers) var useWholeNumbers
+fileprivate struct TransactionList: View {    
     @Environment(CalendarModel.self) private var calModel
     
     @Bindable var group: CBCategoryGroup
@@ -216,12 +213,11 @@ fileprivate struct TransactionList: View {
     @ViewBuilder
     func transLoop(with transactions: Array<CBTransaction>) -> some View {
         ForEach(transactions) { trans in
-            TransactionListLine(trans: trans, withDate: false)
-                .onTapGesture {
-                    let day = month?.days.filter { $0.id == trans.dateComponents?.day }.first
-                    self.transDay = day
-                    self.transEditID = trans.id
-                }
+            TransactionListLine(trans: trans) {
+                let day = month?.days.filter { $0.id == trans.dateComponents?.day }.first
+                self.transDay = day
+                self.transEditID = trans.id
+            }
         }
     }
     

@@ -26,20 +26,31 @@ struct BreakdownExportCsvButton:  View {
     }
     
     var body: some View {
-        ExportCsvButton(fileName: "Breakdown-\(calModel.sMonth.name)-\(calModel.sYear).csv", headers: ["Category", "Budget", "Expenses", "Income", "Variance"], rows: rows)
+        ExportCsvButton(fileName: "Breakdown-\(calModel.sMonth.name)-\(calModel.sYear).csv", headers: ["Category", "Budget", "Expenses", "Income", "Variance"], rows: rows) {
+            Label("Export CSV", systemImage: "tablecells")
+        }
     }
     
     
 }
 
-struct ExportCsvButton: View {
+struct ExportCsvButton<Content: View>: View {
     var fileName: String
     var headers: [String]
     var rows: [[String]]
+    //var showSymbol: Bool = false
+    @ViewBuilder var label: Content
+    
     var body: some View {
         ShareLink(item: generateCsv()) {
-            Text("Export CSV")
-            //Label("Export CSV", systemImage: "tablecells")
+            label
+//            if showSymbol {
+//                Label("Export CSV", systemImage: "tablecells")
+//            } else {
+//                Text("Export CSV")
+//            }
+            
+            
         }
         .buttonStyle(.borderedProminent)
         .font(.subheadline)

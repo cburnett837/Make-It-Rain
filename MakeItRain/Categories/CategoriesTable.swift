@@ -11,8 +11,6 @@ import Algorithms
 struct CategoriesTable: View {
     @Environment(\.colorScheme) var colorScheme
     
-    @Local(\.useWholeNumbers) var useWholeNumbers
-    @Local(\.categorySortMode) var categorySortMode
     @Local(\.categoryIndicatorAsSymbol) var categoryIndicatorAsSymbol
 
     @Environment(FuncModel.self) var funcModel
@@ -156,7 +154,9 @@ struct CategoriesTable: View {
                 .presentationSizing(.fitted)
             }
             #endif
-            
+            .onChange(of: AppSettings.shared.categorySortMode) {
+                catModel.categories.sort(by: Helpers.categorySorter())
+            }
             .onChange(of: sortOrder) { _, sortOrder in
                 catModel.categories.sort(using: sortOrder)
             }
@@ -217,7 +217,7 @@ struct CategoriesTable: View {
                     .toolbarBorder()
                     .help("This will defined the order of categories on transactions and within the category selection sheets")
                 
-                if categorySortMode == .listOrder {
+                if AppSettings.shared.categorySortMode == .listOrder {
                     Button("Reorder") {
                         showReorderList = true
                     }
@@ -259,7 +259,7 @@ struct CategoriesTable: View {
             .customizationID("title")
             
             TableColumn("Budget", value: \.amount.specialDefaultIfNil) { cat in
-                Text(cat.amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-")
+                Text(cat.amount?.currencyWithDecimals() ?? "-")
             }
             .customizationID("budget")
             
@@ -344,7 +344,7 @@ struct CategoriesTable: View {
                     line(for: cat)
                 }
             }
-            .if(categorySortMode == .listOrder) {
+            .if(AppSettings.shared.categorySortMode == .listOrder) {
                 $0.onMove(perform: move)
             }
         }
@@ -413,7 +413,7 @@ struct CategoriesTable: View {
                     if cat.isHidden { Image(systemName: "eye.slash") }
                     
                     Spacer()
-                    Text(cat.amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-")
+                    Text(cat.amount?.currencyWithDecimals() ?? "-")
                 }
             }
         } icon: {
@@ -470,7 +470,7 @@ struct CategoriesTable: View {
                 HStack {
                     Text(group.title)
                     Spacer()
-                    Text(group.amount?.currencyWithDecimals(useWholeNumbers ? 0 : 2) ?? "-")
+                    Text(group.amount?.currencyWithDecimals() ?? "-")
                 }
             }
         } icon: {
@@ -565,14 +565,22 @@ struct CategoriesTable: View {
     func move(from source: IndexSet, to destination: Int) {
         /// Create an index map of non-nil items.
         let filteredIndices = catModel.categories.enumerated()
-            .filter { !$0.element.isNil }
+            .filter { !$0.element.isNil && $0.element.appSuiteKey == nil }
             .map { $0.offset }
 
+        print(filteredIndices)
+        
         /// Convert filtered indices to original indices.
-        guard let sourceInFiltered = source.first, sourceInFiltered < filteredIndices.count, destination <= filteredIndices.count else { return }
+        guard let
+                sourceInFiltered = source.first,
+                sourceInFiltered < filteredIndices.count,
+                destination <= filteredIndices.count
+        else {
+            return
+        }
 
         let ogSourceIndex = filteredIndices[sourceInFiltered]
-        let ogDestIndex = destination == filteredIndices.count ? catModel.categories.count : filteredIndices[destination]
+        let ogDestIndex = destination == filteredIndices.count ? catModel.categories.filter { !$0.isNil && $0.appSuiteKey == nil }.count : filteredIndices[destination]
 
         /// Mutate the original array.
         catModel.categories.move(fromOffsets: IndexSet(integer: ogSourceIndex), toOffset: ogDestIndex)

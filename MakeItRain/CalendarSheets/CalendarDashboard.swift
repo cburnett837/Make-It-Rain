@@ -15,9 +15,7 @@ struct CalendarDashboard: View {
     //@Local(\.colorTheme) var colorTheme
     @AppStorage("calendarChartMode") var chartMode = CalendarChartModel.verticalBar
     @AppStorage("viewMode") var viewMode = CalendarViewMode.scrollable
-    @Local(\.useWholeNumbers) var useWholeNumbers
-    @Local(\.categorySortMode) var categorySortMode
-    
+        
     @Environment(CalendarProps.self) private var calProps    
     @Environment(CalendarModel.self) private var calModel
     @Environment(CategoryModel.self) private var catModel
@@ -227,7 +225,7 @@ struct CalendarDashboard: View {
     }
     
     struct NetWorthChangeView: View {
-        @Local(\.useWholeNumbers) var useWholeNumbers
+        
         @Environment(DataChangeTriggers.self) var dataChangeTriggers
         @Environment(CalendarModel.self) private var calModel
         
@@ -242,11 +240,11 @@ struct CalendarDashboard: View {
                 Text(startingAmount.payMethod.title)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 
-                Text(startingAmount.amount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                Text(startingAmount.amount.currencyWithDecimals())
                 
-                Text("\(eom.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                Text("\(eom.currencyWithDecimals())")
                 
-                Text("\(change.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                Text("\(change.currencyWithDecimals())")
                     .foregroundStyle(isBeneficial ? Color.red : Color.green)
                 
                 Text("\(percentage.decimals(1))%")
@@ -276,7 +274,7 @@ struct CalendarDashboard: View {
     
     
     struct AllAccountsNetWorthChangeView: View {
-        @Local(\.useWholeNumbers) var useWholeNumbers
+        
         @Environment(DataChangeTriggers.self) var dataChangeTriggers
         @Environment(CalendarModel.self) private var calModel
         
@@ -291,11 +289,11 @@ struct CalendarDashboard: View {
                 Text("All Accounts")
                     .frame(maxWidth: .infinity, alignment: .leading)
                 
-                Text(startingAmount.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                Text(startingAmount.currencyWithDecimals())
                 
-                Text("\(eom.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                Text("\(eom.currencyWithDecimals())")
                 
-                Text("\(change.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                Text("\(change.currencyWithDecimals())")
                     .foregroundStyle(isBeneficial ? Color.red : Color.green)
                 
                 Text("\(percentage.decimals(1))%")
@@ -500,7 +498,9 @@ struct CalendarDashboard: View {
             
             return [$0.category.title, String(budget), String(expense), String(income), String(overUnder2)]
         }
-        return ExportCsvButton(fileName: "Breakdown-\(calModel.sMonth.name)-\(calModel.sYear).csv", headers: ["Category", "Budget", "Expenses", "Income", "Variance"], rows: rows)
+        return ExportCsvButton(fileName: "Breakdown-\(calModel.sMonth.name)-\(calModel.sYear).csv", headers: ["Category", "Budget", "Expenses", "Income", "Variance"], rows: rows) {
+            Label("Export CSV", systemImage: "tablecells")
+        }
     }
             
     
@@ -508,8 +508,8 @@ struct CalendarDashboard: View {
     var barSection: some View {
         VStack {
             ForEach(relevantData) { item in
-                //let expenses = String(item.expensesMinusIncome.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                //let budget = String(item.budget.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                //let expenses = String(item.expensesMinusIncome.currencyWithDecimals())
+                //let budget = String(item.budget.currencyWithDecimals())
                 VStack(spacing: 0) {
                     Label {
                         Text(item.category.title)
@@ -615,11 +615,11 @@ struct CalendarDashboard: View {
             .font(.headline)
             
             Divider()
-            Text("Budget: \(selectedData!.budgetForCategory.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+            Text("Budget: \(selectedData!.budgetForCategory.currencyWithDecimals())")
                 .bold()
-            Text("Income: \(selectedData!.income.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+            Text("Income: \(selectedData!.income.currencyWithDecimals())")
                 .bold()
-            Text("Expenses: \((selectedData!.expenses * -1).currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+            Text("Expenses: \((selectedData!.expenses * -1).currencyWithDecimals())")
                 .bold()
         }
         .foregroundStyle(.white)
@@ -665,7 +665,7 @@ struct CalendarDashboard: View {
                                         .font(.subheadline)
                                     
                                     if item.expenses != 0 {
-                                        Text("\(item.expensesMinusIncome.currencyWithDecimals(useWholeNumbers ? 0 : 2))")
+                                        Text("\(item.expensesMinusIncome.currencyWithDecimals())")
                                             .foregroundStyle(Color.secondary)
                                             .font(.caption2)
                                     } else {

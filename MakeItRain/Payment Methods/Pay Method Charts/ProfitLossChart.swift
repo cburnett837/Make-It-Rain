@@ -34,7 +34,7 @@ struct ProfitLossChartWidget: View {
 
 
 struct ProfitLossChartDetails: View {
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     @AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false
     @Environment(\.colorScheme) var colorScheme
     
@@ -109,10 +109,10 @@ struct ProfitLossChartDetails: View {
                             Text(breakdown.title)
                         }
                         
-                        Text(breakdown.startingAmounts.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                        Text(breakdown.monthEnd.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                        Text(breakdown.startingAmounts.currencyWithDecimals())
+                        Text(breakdown.monthEnd.currencyWithDecimals())
                         
-                        Text(breakdown.profitLoss.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                        Text(breakdown.profitLoss.currencyWithDecimals())
                             .foregroundStyle(breakdown.profitLoss < 0 ? . red : .green)
                         
                         Text("\(breakdown.profitLossPercentage.decimals(1))%")
@@ -121,9 +121,9 @@ struct ProfitLossChartDetails: View {
                 }
             } summary: {
                 let breakdown = vm.breakdownForMethod(method: vm.mainPayMethod, on: selectedDate)
-                Text(breakdown.startingAmounts.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                Text(breakdown.monthEnd.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                Text(breakdown.profitLoss.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                Text(breakdown.startingAmounts.currencyWithDecimals())
+                Text(breakdown.monthEnd.currencyWithDecimals())
+                Text(breakdown.profitLoss.currencyWithDecimals())
                     .foregroundStyle(breakdown.profitLoss < 0 ? . red : .green)
                 Text("\(breakdown.profitLossPercentage.decimals(1))%")
                     .foregroundStyle(breakdown.profitLossPercentage < 0 ? . red : .green)
@@ -138,9 +138,6 @@ struct ProfitLossChartDetails: View {
 
 
 struct ProfitLossChart: View {
-    @Local(\.useWholeNumbers) var useWholeNumbers
-    @Local(\.threshold) var threshold
-    
     @AppStorage(LocalKeys.Charts.ProfitLoss.metrics) private var metrics: MetricStyle = .summary
     @AppStorage(LocalKeys.Charts.ProfitLoss.style) private var style: DisplayStyle = .amount
     @AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false

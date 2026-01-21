@@ -9,10 +9,7 @@ import SwiftUI
 
 #if os(iOS)
 struct DayViewPhone: View {
-    //@Local(\.incomeColor) var incomeColor
     @Local(\.updatedByOtherUserDisplayMode) var updatedByOtherUserDisplayMode
-    //@Local(\.useWholeNumbers) var useWholeNumbers
-    @Local(\.threshold) var threshold
     
     @Environment(\.colorScheme) var colorScheme
     @Environment(CalendarProps.self) private var calProps
@@ -25,7 +22,7 @@ struct DayViewPhone: View {
         if let meth = calModel.sPayMethod {
             if meth.isCreditOrLoan {
                 let limit = meth.limit ?? 0
-                let thresh = limit - threshold
+                let thresh = limit - AppSettings.shared.lowBalanceThreshold
                 
                 if day.eodTotal < thresh {
                     return .gray
@@ -36,7 +33,7 @@ struct DayViewPhone: View {
                 }
                 
             } else {
-                if day.eodTotal > threshold {
+                if day.eodTotal > AppSettings.shared.lowBalanceThreshold {
                     return .gray
                 } else if day.eodTotal < 0 {
                     return .red
@@ -46,7 +43,7 @@ struct DayViewPhone: View {
             }
         } else {
             if day.eodTotal > 0 {
-                return Color.fromName(incomeColor)
+                return AppSettings.shared.incomeColor
             } else {
                 return .gray
             }
@@ -67,11 +64,8 @@ struct DayViewPhone: View {
     //@Binding var overviewDay: CBDay?
     //@Binding var bottomPanelContent: BottomPanelContent?
     
-    var tightenUpEodTotals: Bool
     var lineItemIndicator: LineItemIndicator
     var phoneLineItemDisplayItem: PhoneLineItemDisplayItem
-    var incomeColor: String
-    var useWholeNumbers: Bool
     
     @State private var showDropActions = false
     @State private var showDailyActions = false
@@ -310,7 +304,6 @@ struct DayViewPhone: View {
 //                LineItemMiniView(
 //                    trans: trans,
 //                    day: day,
-//                    tightenUpEodTotals: tightenUpEodTotals,
 //                    lineItemIndicator: lineItemIndicator,
 //                    phoneLineItemDisplayItem: phoneLineItemDisplayItem
 //                )
@@ -327,11 +320,8 @@ struct DayViewPhone: View {
         LineItemMiniView(
             trans: trans,
             day: day,
-            tightenUpEodTotals: tightenUpEodTotals,
             lineItemIndicator: lineItemIndicator,
             phoneLineItemDisplayItem: phoneLineItemDisplayItem,
-            incomeColor: incomeColor,
-            useWholeNumbers: useWholeNumbers
         )
     }
     
@@ -413,13 +403,13 @@ struct DayViewPhone: View {
     
     var eodText: some View {
         Group {
-            if useWholeNumbers && tightenUpEodTotals {
+            if AppSettings.shared.useWholeNumbers && AppSettings.shared.tightenUpEodTotals {
                 Text("\(String(format: "%.00f", day.eodTotal).replacing("$", with: "").replacing(",", with: ""))")
                 
-            } else if useWholeNumbers {
+            } else if AppSettings.shared.useWholeNumbers {
                 Text(day.eodTotal.currencyWithDecimals(0))
                 
-            } else if !useWholeNumbers && tightenUpEodTotals {
+            } else if !AppSettings.shared.useWholeNumbers && AppSettings.shared.tightenUpEodTotals {
                 Text(day.eodTotal.currencyWithDecimals(2).replacing("$", with: "").replacing(",", with: ""))
                 
             } else {

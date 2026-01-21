@@ -34,7 +34,7 @@ struct IncomeExpenseChartWidget: View {
 
 
 struct IncomeAndExpenseChartDetails: View {
-    @Local(\.useWholeNumbers) var useWholeNumbers
+    
     @AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false
     @Environment(\.colorScheme) var colorScheme
     
@@ -116,12 +116,12 @@ struct IncomeAndExpenseChartDetails: View {
                             Text(breakdown.title)
                         }
                         
-                        Text(vm.getIncomeText(for: breakdown).currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                        Text(breakdown.expenses.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                        Text(breakdown.startingAmounts.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                        Text(vm.getIncomeText(for: breakdown).currencyWithDecimals())
+                        Text(breakdown.expenses.currencyWithDecimals())
+                        Text(breakdown.startingAmounts.currencyWithDecimals())
                         
                         if payMethod.isCreditOrUnified {
-                            Text(breakdown.payments.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                            Text(breakdown.payments.currencyWithDecimals())
                         }
                     }
                     .minimumScaleFactor(0.5)
@@ -129,12 +129,12 @@ struct IncomeAndExpenseChartDetails: View {
                 }
             } summary: {
                 let breakdown = vm.breakdownForMethod(method: vm.mainPayMethod, on: selectedDate)
-                Text(vm.getIncomeText(for: breakdown).currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                Text(breakdown.expenses.currencyWithDecimals(useWholeNumbers ? 0 : 2))
-                Text(breakdown.startingAmounts.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                Text(vm.getIncomeText(for: breakdown).currencyWithDecimals())
+                Text(breakdown.expenses.currencyWithDecimals())
+                Text(breakdown.startingAmounts.currencyWithDecimals())
                                             
                 if payMethod.isCreditOrUnified {
-                    Text(breakdown.payments.currencyWithDecimals(useWholeNumbers ? 0 : 2))
+                    Text(breakdown.payments.currencyWithDecimals())
                 }
             }
         } else {
@@ -148,10 +148,6 @@ struct IncomeAndExpenseChartDetails: View {
 
 struct IncomeExpenseChart: View {
     @Environment(\.dismiss) var dismiss
-    @Local(\.incomeColor) var incomeColor
-    //@Local(\.colorTheme) var colorTheme
-    @Local(\.useWholeNumbers) var useWholeNumbers
-    //@Local(\.showOverviewDataPerMethodOnUnifiedChart) var showOverviewDataPerMethodOnUnifiedChart
     @AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false
     @AppStorage(LocalKeys.Charts.IncomeExpense.showExpenses) var showExpenses: Bool = true
     @AppStorage(LocalKeys.Charts.IncomeExpense.showIncome) var showIncome: Bool = true
