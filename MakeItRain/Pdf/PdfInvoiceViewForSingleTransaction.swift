@@ -45,10 +45,16 @@ struct PdfInvoiceViewForSingleTransaction: View {
                         if let contact = contact {
                             Text("ISSUED TO:")
                                 .bold()
-                            Text(CNContactFormatter().string(from: contact) ?? "N/A")
+                            Text(contact.formattedName)
                         }
                     }
                     .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.top] })
+                    
+                    VStack(alignment: .leading) {
+                        Text("ISSUED BY:")
+                            .bold()
+                        Text(AppState.shared.user?.name ?? "N/A")
+                    }
                 }
                 
                 Spacer()
@@ -81,6 +87,9 @@ struct PdfInvoiceViewForSingleTransaction: View {
                     Text("Amount")
                         .frame(maxWidth: .infinity, alignment: .leading)
                     
+                    Text("Date")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
                     if !trans.locations.isEmpty {
                         Text("Location")
                     }
@@ -92,6 +101,9 @@ struct PdfInvoiceViewForSingleTransaction: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     
                     Text(amount.currencyWithDecimals())
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    Text(trans.date?.string(to: .monthDayShortYear) ?? "N/A")
                         .frame(maxWidth: .infinity, alignment: .leading)
                     
                     if !trans.locations.isEmpty {

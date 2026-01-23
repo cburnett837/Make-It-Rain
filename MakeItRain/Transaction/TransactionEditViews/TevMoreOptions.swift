@@ -15,12 +15,13 @@ struct TevMoreOptions: View {
     
     @Bindable var trans: CBTransaction
     @Binding var showSplitSheet: Bool
+    @Binding var showInvoiceGeneratorSheet: Bool
     var isTemp: Bool
     @Binding var navPath: NavigationPath
     @Binding var showBadgeBell: Bool
     @Binding var showHiddenEye: Bool
     
-    @State private var showInvoiceGeneratorSheet = false
+    //@State private var showInvoiceGeneratorSheet = false
 
     
 //    var titleColorDescription: String {
@@ -158,13 +159,18 @@ struct TevMoreOptions: View {
     
     var createInvoiceButton: some View {
         Button {
+            //navPath.removeLast()
             showInvoiceGeneratorSheet = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                navPath.removeLast()
+            }
+            //showSplitSheet = true
         } label: {
             Text("Create PDF Invoice / Receipt")
         }
-        .sheet(isPresented: $showInvoiceGeneratorSheet) {
-            PdfInvoiceCreatorSheet(trans: trans)
-        }
+//        .sheet(isPresented: $showInvoiceGeneratorSheet) {
+//            PdfInvoiceCreatorSheet(trans: trans)
+//        }
     }
     
     var copyButton: some View {
@@ -201,8 +207,12 @@ struct TevMoreOptions: View {
     
     var splitButton: some View {
         Button {
-            navPath.removeLast()
+            //navPath.removeLast()
             showSplitSheet = true
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                navPath.removeLast()
+            }
             
         } label: {
             Text("Split Transaction")

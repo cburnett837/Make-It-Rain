@@ -10,6 +10,10 @@ import Foundation
 import UIKit
 #endif
 
+enum CloseAction {
+    case save, cancel
+}
+
 enum InAppAlertPreference {
     case alert, toast
 }

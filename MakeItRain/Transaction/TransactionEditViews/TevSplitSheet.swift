@@ -62,6 +62,10 @@ struct TevSplitSheet: View {
                     TransactionLine(trans: newTrans, additionalTrans: $additionalTrans, showRemoveButton: true)
                 }
                 
+                Button(action: addTrans) {
+                    Text("Add Transaction")
+                }
+                
                 //splitButton
             }
             #if os(iOS)
@@ -251,7 +255,7 @@ struct TevSplitSheet: View {
                         withAnimation { additionalTrans.removeAll(where: { $0.id == trans.id }) }
                     }
                     #if os(iOS)
-                    .buttonStyle(.glassProminent)
+                    .buttonStyle(.borderedProminent)
                     #endif
                     .tint(.red)
                 }

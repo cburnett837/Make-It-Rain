@@ -154,7 +154,8 @@
 		FD8F14672F1ED4B00098CC49 /* ContactPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD8F14662F1ED4B00098CC49 /* ContactPickerView.swift */; };
 		FD8F14692F1ED4B60098CC49 /* MessageComposerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD8F14682F1ED4B60098CC49 /* MessageComposerView.swift */; };
 		FD8F146B2F2024350098CC49 /* PdfInvoiceCreatorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD8F146A2F2024350098CC49 /* PdfInvoiceCreatorModel.swift */; };
-		FD8F146D2F2024770098CC49 /* PdfInvoiceCreatorMessagingUnavailableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD8F146C2F2024770098CC49 /* PdfInvoiceCreatorMessagingUnavailableView.swift */; };
+		FD8F146D2F2024770098CC49 /* ThereWasAProblemFullScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD8F146C2F2024770098CC49 /* ThereWasAProblemFullScreenView.swift */; };
+		FD8F154D2F225AFB0098CC49 /* PDFKitRepresentedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD8F154C2F225AFB0098CC49 /* PDFKitRepresentedView.swift */; };
 		FD9D52FB2DAECE1D008CD1BA /* StandardTitleTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9D52FA2DAECE1D008CD1BA /* StandardTitleTextField.swift */; };
 		FD9D52FD2DAED743008CD1BA /* Protocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9D52FC2DAED743008CD1BA /* Protocols.swift */; };
 		FD9D52FF2DAED8E8008CD1BA /* StandardAmountTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9D52FE2DAED8E8008CD1BA /* StandardAmountTextField.swift */; };
@@ -556,7 +557,8 @@
 		FD8F14662F1ED4B00098CC49 /* ContactPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactPickerView.swift; sourceTree = "<group>"; };
 		FD8F14682F1ED4B60098CC49 /* MessageComposerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageComposerView.swift; sourceTree = "<group>"; };
 		FD8F146A2F2024350098CC49 /* PdfInvoiceCreatorModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PdfInvoiceCreatorModel.swift; sourceTree = "<group>"; };
-		FD8F146C2F2024770098CC49 /* PdfInvoiceCreatorMessagingUnavailableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PdfInvoiceCreatorMessagingUnavailableView.swift; sourceTree = "<group>"; };
+		FD8F146C2F2024770098CC49 /* ThereWasAProblemFullScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThereWasAProblemFullScreenView.swift; sourceTree = "<group>"; };
+		FD8F154C2F225AFB0098CC49 /* PDFKitRepresentedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFKitRepresentedView.swift; sourceTree = "<group>"; };
 		FD9D52FA2DAECE1D008CD1BA /* StandardTitleTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandardTitleTextField.swift; sourceTree = "<group>"; };
 		FD9D52FC2DAED743008CD1BA /* Protocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Protocols.swift; sourceTree = "<group>"; };
 		FD9D52FE2DAED8E8008CD1BA /* StandardAmountTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandardAmountTextField.swift; sourceTree = "<group>"; };
@@ -1062,9 +1064,9 @@
 		FD8F145D2F1ECEA90098CC49 /* Pdf */ = {
 			isa = PBXGroup;
 			children = (
+				FD8F154C2F225AFB0098CC49 /* PDFKitRepresentedView.swift */,
 				FD8F14642F1ECF0C0098CC49 /* PdfInvoiceCreatorSheet.swift */,
 				FD8F146A2F2024350098CC49 /* PdfInvoiceCreatorModel.swift */,
-				FD8F146C2F2024770098CC49 /* PdfInvoiceCreatorMessagingUnavailableView.swift */,
 				FD8F14622F1ECED20098CC49 /* PdfInvoiceViewForMultipleTransactions.swift */,
 				FD8F145E2F1ECEB00098CC49 /* PdfInvoiceViewForSingleTransaction.swift */,
 				FD8F14602F1ECEB70098CC49 /* PdfMaker.swift */,
@@ -1270,6 +1272,7 @@
 				FD737B202D806B9A00B6A97B /* StandardRectangle.swift */,
 				FDC26DFF2D3E86D500B0A97C /* SymbolPicker.swift */,
 				FD09FF692D9D88BC00795C28 /* TextWithCircleBackground.swift */,
+				FD8F146C2F2024770098CC49 /* ThereWasAProblemFullScreenView.swift */,
 				FDC26E062D3E86D500B0A97C /* TitleColorMenu.swift */,
 				FD174D4C2ED8755D00A01F67 /* UserAvatar.swift */,
 				FDECFACC2EBF15C9004DC491 /* Toolbar Components */,
@@ -1885,7 +1888,7 @@
 				FDA1725F2EF5970C00C113F2 /* CivFakeNavLink.swift in Sources */,
 				FDC26E482D3E86D500B0A97C /* CalendarViewPhone.swift in Sources */,
 				FD502A862F17D892003BBF87 /* GenericUserInfoModel.swift in Sources */,
-				FD8F146D2F2024770098CC49 /* PdfInvoiceCreatorMessagingUnavailableView.swift in Sources */,
+				FD8F146D2F2024770098CC49 /* ThereWasAProblemFullScreenView.swift in Sources */,
 				FD43EA202EEB19E00004477B /* CatChartRawDataListForGroup.swift in Sources */,
 				FDC26E492D3E86D500B0A97C /* Helpers.swift in Sources */,
 				FD76DA472EA40994002E30DA /* StandardCategoryLabel.swift in Sources */,
@@ -2027,6 +2030,7 @@
 				FDA172562EF459FE00C113F2 /* TevHashtags.swift in Sources */,
 				FD5563FC2EF1D40000830102 /* CustomCalculatorKeyboard.swift in Sources */,
 				FDC26E7E2D3E86D500B0A97C /* CategoryModel.swift in Sources */,
+				FD8F154D2F225AFB0098CC49 /* PDFKitRepresentedView.swift in Sources */,
 				FD3DFD132EE0CDA9002C2051 /* CategoryOverView.swift in Sources */,
 				FDAECC5D2DCE399E00C6EDA5 /* ExportCsvButton.swift in Sources */,
 				FDC26E7F2D3E86D500B0A97C /* DayContextMenu.swift in Sources */,

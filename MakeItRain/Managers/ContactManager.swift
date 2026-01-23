@@ -28,6 +28,7 @@ final class ContactStoreManager {
         self.authorizationStatus = .notDetermined
         self.keysToFetch = [
             CNContactFormatter.descriptorForRequiredKeys(for: .fullName),
+            CNContactEmailAddressesKey as any CNKeyDescriptor,
             CNContactImageDataKey as any CNKeyDescriptor,
             CNContactImageDataAvailableKey as any CNKeyDescriptor,
             CNContactThumbnailImageDataKey as any CNKeyDescriptor
@@ -149,17 +150,28 @@ final class ContactStoreManager {
 //}
 //
 //
-//extension CNContact {
-//    /// The formatted name of a contact.
-//    var formattedName: String {
-//        CNContactFormatter().string(from: self) ?? "Unknown contact"
+extension CNContact {
+    /// The formatted name of a contact.
+    var formattedName: String {
+        CNContactFormatter().string(from: self) ?? "Unknown contact"
+    }
+    
+    /// The contact name's initials.
+    var initials: String {
+        String(self.givenName.prefix(1) + self.familyName.prefix(1))
+    }
+    
+//    var cbUser: CBUser {
+//        let user = CBUser()
+//        user.id = 1000
+//        user.name = self.formattedName
+//        user.initials = self.initials
+//        user.email = self.emailAddresses.first?.value as? String ?? "no-email@example.com"
+//        user.avatar = self.thumbnailImageData
+//        
+//        return user
 //    }
-//    
-//    /// The contact name's initials.
-//    var initials: String {
-//        String(self.givenName.prefix(1) + self.familyName.prefix(1))
-//    }
-//    
+    
 //    var contact: Contact {
 //        Contact(
 //            id: self.id.uuidString,
@@ -170,5 +182,5 @@ final class ContactStoreManager {
 //            thumbNail: self.thumbnailImageData
 //        )
 //    }
-//}
+}
 

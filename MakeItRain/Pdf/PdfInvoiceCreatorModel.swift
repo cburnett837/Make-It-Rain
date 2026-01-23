@@ -16,29 +16,54 @@ class PdfInvoiceCreatorModel {
         case invoice, receipt
     }
     var trans: CBTransaction?
-    var date: Date = Date()
+    var title: String = ""
     var amountString: String = ""
+    var date: Date = Date()
+    var recipient: String = ""
+    var contactSearchResults: [CNContact] = []
+    private let store = CNContactStore()
     
-    var selectedPhone: String?
+    //var selectedPhone: String?
     var selectedContact: CNContact?
     var selectedReceipt: CBFile?
     var pdfUrl: URL?
     var invoiceType: InvoiceType = .invoice
-
+        
+    
     var canSendTextAndAttachments: Bool {
         MFMessageComposeViewController.canSendText() && MFMessageComposeViewController.canSendAttachments()
     }
+    
     
     var amount: Double {
         Double(amountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
     }
     
+    
     var messagePlaceholder: String {
         let contactString = contactName.isEmpty ? "" : " \(contactName)"
+        //let lingoLower = invoiceTypeLingo.lowercased()
         let lingo = invoiceType == .invoice ? "an invoice" : "a receipt"
         let title = trans?.title ?? "N/A"
         let date = trans?.date?.string(to: .monthDayShortYear) ?? "N/A"
         return "Hey\(contactString), here is \(lingo) for \(title) from \(date)"
+    }
+    
+    
+    var cantSendMessageReason: LocalizedStringKey {
+        if let contact = selectedContact, contact.phoneNumbers.first?.value == nil {
+            return "**\(contactName)** does not have a phone number associated with them."
+            
+        } else if pdfUrl == nil {
+            return "There was a problem generating the PDF."
+            
+        } else if !MFMessageComposeViewController.canSendText() {
+            return "This device is not capable of sending text messages."
+            
+        } else if !MFMessageComposeViewController.canSendAttachments() {
+            return "This device is not capable of sending attachments."
+        }
+        return "An unknown error occured."
     }
     
     
@@ -49,9 +74,11 @@ class PdfInvoiceCreatorModel {
         }
     }
     
+    
     var fileName: String {
         return "\(invoiceTypeLingo)-\(trans?.title ?? "")-\(trans?.date?.string(to: .invoiceDate) ?? "N/A")"
     }
+    
     
     var contactName: String {
         if let name = selectedContact?.givenName { return "\(name)" }
@@ -61,10 +88,17 @@ class PdfInvoiceCreatorModel {
     
     func prepareSelf(trans: CBTransaction) {
         self.trans = trans
+        
+        self.title = trans.title
+        
         let properAmount = trans.amount < 0 ? trans.amount * -1 : trans.amount
         self.amountString = properAmount.currencyWithDecimals()
-        if let date = trans.date { self.date = date }
+        
+//        if let date = trans.date {
+//            self.date = date
+//        }
     }
+    
     
     func createInvoice() async {
         if let trans = trans {
@@ -85,6 +119,32 @@ class PdfInvoiceCreatorModel {
             if let url = fileUrl {
                 self.pdfUrl = url
             }
+        }
+    }
+    
+
+    func liveSearchContacts() {
+        guard !recipient.isEmpty else {
+            contactSearchResults = []
+            return
+        }
+
+        let predicate = CNContact.predicateForContacts(matchingName: recipient)
+        let keys: [CNKeyDescriptor] = [
+            CNContactGivenNameKey as CNKeyDescriptor,
+            CNContactFamilyNameKey as CNKeyDescriptor,
+            CNContactPhoneNumbersKey as CNKeyDescriptor,
+            CNContactEmailAddressesKey as CNKeyDescriptor,
+            CNContactFormatter.descriptorForRequiredKeys(for: .fullName),
+            CNContactImageDataKey as any CNKeyDescriptor,
+            CNContactImageDataAvailableKey as any CNKeyDescriptor,
+            CNContactThumbnailImageDataKey as any CNKeyDescriptor
+        ]
+
+        do {
+            contactSearchResults = try store.unifiedContacts(matching: predicate, keysToFetch: keys)
+        } catch {
+            print("Contact search failed:", error)
         }
     }
 }

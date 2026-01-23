@@ -8,175 +8,6 @@
 import SwiftUI
 import MessageUI
 import Contacts
-//
-//struct CreatePdfInvoiceButton: View {
-//    @Environment(CalendarModel.self) private var calModel
-//    @Environment(FuncModel.self) private var funcModel
-//
-//    var trans: CBTransaction
-////    
-////    @State private var contactManager = ContactStoreManager()
-////    @State private var showContactPicker = false
-////    @State private var selectedPhone: String?
-////    @State private var selectedContact: CNContact?
-////    @State private var selectedReceipt: CBFile?
-////    
-////    @State private var showMessageComposer = false
-////    @State private var pdfUrl: URL?
-////    @State private var showFileMover = false
-////    @State private var showReceiptPicker = false
-////    
-////    @State private var isGeneratingInvoiceToSend = false
-////    @State private var isGeneratingInvoiceToSave = false
-//    
-//    @State private var showInvoiceGeneratorSheet = false
-//    
-////    var fileName: String {
-////        "Invoice-\(trans.title)-\(trans.date?.string(to: .invoiceDate) ?? "N/A")"
-////    }
-////    
-////    var contactName: String {
-////        if let name = selectedContact?.givenName { return " \(name)" }
-////        return ""
-////    }
-////    
-////    var messagePlaceholder: String {
-////        "Hey\(contactName), here is an invoice for \(trans.title) from \(trans.date?.string(to: .monthDayShortYear) ?? "N/A")"
-////    }
-//    
-//    
-//    var body: some View {
-//        generateInvoiceButton
-////        sendInvoiceButton
-////        createInvoiceButton
-////            .sheet(isPresented: $showReceiptPicker, onDismiss: {
-////                Task {
-////                    await createInvoice()
-////                    
-////                    if isGeneratingInvoiceToSend == true {
-////                        showMessageComposer = true
-////                    } else {
-////                        showFileMover = true
-////                    }
-////                }
-////            }) {
-////                if let files = trans.files {
-////                    ReceiptPicker(selectedReceipt: $selectedReceipt, files: files)
-////                    //Text("hey")
-////                }
-////            }
-//    }
-//    
-//    
-//    var generateInvoiceButton: some View {
-//        Button {
-//            showInvoiceGeneratorSheet = true
-//        } label: {
-//            Text("Generate Invoice")
-//        }
-//        .sheet(isPresented: $showInvoiceGeneratorSheet) {
-//            InvoiceCreatorSheet(trans: trans)
-//        }
-//    }
-//    
-////    var sendInvoiceButton: some View {
-////        Button {
-////            Task {
-////                isGeneratingInvoiceToSend = true
-////                await contactManager.fetchContacts()
-////                showContactPicker = true
-////            }
-////        } label: {
-////            HStack {
-////                Label("Send Invoice", systemImage: "arrow.up.message")
-////                //Text("Send Invoice To Contact")
-////                Spacer()
-////                if isGeneratingInvoiceToSend {
-////                    ProgressView()
-////                        .tint(.none)
-////                }
-////            }
-////        }
-////        .sheet(isPresented: $showContactPicker) {
-////            ContactPickerView { contact in
-////                selectedPhone = contact.phoneNumbers.first?.value.stringValue
-////                selectedContact = contact
-////                showContactPicker = false
-////                showReceiptPicker = true
-////                
-//////                Task {
-//////                    await createInvoice()
-//////                    showMessageComposer = true
-//////                }
-////            }
-////        }
-////        .sheet(isPresented: $showMessageComposer, onDismiss: {
-////            isGeneratingInvoiceToSend = false
-////            selectedReceipt = nil
-////        }) {
-////            if let phone = selectedPhone,
-////            let pdfUrl = pdfUrl,
-////            MFMessageComposeViewController.canSendText(),
-////            MFMessageComposeViewController.canSendAttachments() {
-////                MessageComposerView(
-////                    phoneNumber: phone,
-////                    messageBody: messagePlaceholder,
-////                    pdfURL: pdfUrl
-////                )
-////            } else {
-////                Text("Messaging is not available.")
-////            }
-////        }
-////    }
-////            
-////    
-////    var createInvoiceButton: some View {
-////        Button {
-////            Task {
-////                isGeneratingInvoiceToSave = true
-////                showReceiptPicker = true
-////            }
-////        } label: {
-////            HStack {
-////                Label("Save Invoice", systemImage: "arrow.down.document")
-//////                Text("Save Invoice To Files")
-////                Spacer()
-////                if isGeneratingInvoiceToSave {
-////                    ProgressView()
-////                        .tint(.none)
-////                }
-////            }
-////        }
-////        .fileMover(isPresented: $showFileMover, file: pdfUrl, onCompletion: { _ in
-////            isGeneratingInvoiceToSave = false
-////            selectedReceipt = nil
-////        }, onCancellation: {
-////            isGeneratingInvoiceToSave = false
-////            selectedReceipt = nil
-////        })
-////    }
-////    
-////    
-////    func createInvoice() async {
-////        await withTaskGroup(of: Void.self) { group in
-////            if let files = trans.files?.filter({ $0.active }), !files.isEmpty, let firstFile = files.first {
-////                group.addTask { await funcModel.downloadFile(file: firstFile) }
-////            }
-////        }
-////        
-////        let fileUrl: URL? = try? PdfMaker.create(pageCount: 1, fileName: fileName) { pageIndex in
-////            InvoicePdfViewForSingleTransaction(
-////                pageIndex: pageIndex,
-////                trans: trans,
-////                contact: selectedContact,
-////                receipt: selectedReceipt
-////            )
-////        }
-////        
-////        if let url = fileUrl { self.pdfUrl = url }
-////    }
-//}
-
 
 struct PdfInvoiceCreatorSheet: View {
     @Environment(\.dismiss) var dismiss
@@ -191,25 +22,31 @@ struct PdfInvoiceCreatorSheet: View {
     @State private var showContactPicker = false
     @State private var showMessageComposer = false
     @State private var showFileMover = false
+    @State private var showPdfPreview = false
     
     @FocusState private var focusedField: Int?
     
     @State private var isGeneratingToSend = false
     @State private var isGeneratingToSave = false
+    @State private var isGeneratingToPreview = false
     
     let threeColumnGrid = Array(repeating: GridItem(.flexible(), spacing: 5, alignment: .top), count: 3)
     
     var body: some View {
         NavigationStack {
             List {
-                Section {
-                    amountRowPhone
-                    dateRow
-                } header: {
-                    Text("Amount & Date")
+                Section("Recipient") {
+                    recipRow
                 }
                 
-                Section("PDF Type") {
+//                Section("PDF Type") {
+//                    invoiceTypePicker
+//                }
+                
+                Section("Details") {
+                    titleRow
+                    amountRow
+                    dateRow
                     invoiceTypePicker
                 }
                 
@@ -219,12 +56,13 @@ struct PdfInvoiceCreatorSheet: View {
                     } header: {
                         Text("Optional Images")
                     } footer: {
-                        Text("Select an image to include on the \(model.invoiceTypeLingo.lowercased()). You can only select one.")
+                        Text("Select an image to include on the \(model.invoiceTypeLingo.lowercased()).")
                     }
                 }
                 
                 Section {
                     sendInvoiceButton
+                    previewInvoiceButton
                     saveInvoiceButton
                 }
             }
@@ -243,22 +81,167 @@ struct PdfInvoiceCreatorSheet: View {
             }
             .task {
                 model.prepareSelf(trans: trans)
+                /// Check to make sure we have contact access. If not, it will take us through the access flow.
+                await contactManager.fetchContacts()
+                focusedField = 0
             }
         }
     }
     
     
     var invoiceTypePicker: some View {
-        Picker("", selection: $model.invoiceType) {
+        Picker(selection: $model.invoiceType) {
             ForEach(PdfInvoiceCreatorModel.InvoiceType.allCases, id: \.self) {
                 Text($0.rawValue.capitalized)
             }
+        } label: {
+            Label {
+                Text("PDF Type")
+            } icon: {
+                Image(systemName: "document")
+                    .foregroundStyle(.gray)
+            }
+
+            //Label("PDF Type", systemImage: "document")
         }
-        .pickerStyle(.segmented)
-        .labelsHidden()
+
+        
+//        Picker("", selection: $model.invoiceType) {
+//            ForEach(PdfInvoiceCreatorModel.InvoiceType.allCases, id: \.self) {
+//                Text($0.rawValue.capitalized)
+//            }
+//        }
+//        .pickerStyle(.segmented)
+//        .labelsHidden()
     }
     
-    var amountRowPhone: some View {
+    
+    @State private var blockContactSuggestions = false
+    @ViewBuilder
+    var recipRow: some View {
+        VStack {
+            HStack(spacing: 10) {
+                ContactAvatar(contact: model.selectedContact)
+                
+//                Label {
+//                    Text("")
+//                } icon: {
+//                    Image(systemName: "person.circle")
+//                        .foregroundStyle(.gray)
+//                }
+                
+                recipTextField
+                    .onChange(of: model.recipient) { old, new in
+                        //print("Changed \(new)")
+                        if blockContactSuggestions {
+                            blockContactSuggestions = false
+                            model.contactSearchResults.removeAll()
+                            
+                        } else if new.isEmpty {
+                            model.selectedContact = nil
+                            model.contactSearchResults.removeAll()
+                            //model.selectedPhone = nil
+                            
+                        } else {
+                            model.liveSearchContacts()
+                        }
+                    }
+                    .onChange(of: focusedField) {
+                        if $1 != 0 {
+                            model.contactSearchResults.removeAll()
+                        }
+                    }
+            }
+        }
+        
+        ForEach(model.contactSearchResults) { contact in
+            Button {
+                blockContactSuggestions = true
+                model.recipient = contact.formattedName
+                //model.selectedPhone = contact.phoneNumbers.first?.value.stringValue
+                model.selectedContact = contact
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    focusedField = nil
+                }
+                
+            } label: {
+                HStack(spacing: 10) {
+                    ContactAvatar(contact: contact)
+                    Text(contact.formattedName)
+                }
+            }
+        }
+    }
+    
+    
+    @ViewBuilder
+    var recipTextField: some View {
+        Group {
+            #if os(iOS)
+            UITextFieldWrapper(placeholder: "Who is the \(model.invoiceTypeLingo.lowercased()) for?", text: $model.recipient, onSubmit: {
+                focusedField = 1
+            }, toolbar: {
+                KeyboardToolbarView(focusedField: $focusedField, disableUp: true)
+            })
+            .uiTag(0)
+            .uiClearButtonMode(.whileEditing)
+            .uiStartCursorAtEnd(true)
+            .uiTextAlignment(.left)
+            .uiReturnKeyType(.next)
+            .uiAutoCorrectionDisabled(true)
+            //.uiTextColor(UIColor(trans.color))
+            #else
+            StandardTextField("Title", text: $trans.recipient, focusedField: $focusedField, focusValue: 0)
+                .onSubmit { focusedField = 1 }
+            #endif
+        }
+        .focused($focusedField, equals: 0)
+    }
+    
+    
+    
+    @ViewBuilder
+    var titleRow: some View {
+        VStack {
+            HStack(spacing: 0) {
+                Label {
+                    Text("")
+                } icon: {
+                    Image(systemName: "t.circle")
+                        .foregroundStyle(.gray)
+                }
+                
+                titleTextField
+            }
+        }
+    }
+    
+    
+    @ViewBuilder
+    var titleTextField: some View {
+        Group {
+            #if os(iOS)
+            UITextFieldWrapper(placeholder: "What is the \(model.invoiceTypeLingo.lowercased()) for?", text: $model.title, onSubmit: {
+                focusedField = 2
+            }, toolbar: {
+                KeyboardToolbarView(focusedField: $focusedField, disableUp: true)
+            })
+            .uiTag(1)
+            .uiClearButtonMode(.whileEditing)
+            .uiStartCursorAtEnd(true)
+            .uiTextAlignment(.left)
+            .uiReturnKeyType(.next)
+            //.uiTextColor(UIColor(trans.color))
+            #else
+            StandardTextField("Title", text: $trans.title, focusedField: $focusedField, focusValue: 0)
+                .onSubmit { focusedField = 2 }
+            #endif
+        }
+        .focused($focusedField, equals: 1)
+    }
+    
+    
+    var amountRow: some View {
         HStack(spacing: 0) {
             Label {
                 Text("")
@@ -272,7 +255,7 @@ struct PdfInvoiceCreatorSheet: View {
                 UITextFieldWrapper(placeholder: "\(model.invoiceTypeLingo) Amount", text: $model.amountString, toolbar: {
                     KeyboardToolbarView(focusedField: $focusedField, removeNavButtons: true)
                 })
-                .uiTag(1)
+                .uiTag(2)
                 .uiClearButtonMode(.whileEditing)
                 .uiStartCursorAtEnd(true)
                 .uiTextAlignment(.left)
@@ -284,9 +267,9 @@ struct PdfInvoiceCreatorSheet: View {
                 StandardTextField("Amount", text: $transfer.amountString, focusedField: $focusedField, focusValue: 1)
                 #endif
             }
-            .focused($focusedField, equals: 1)
+            .focused($focusedField, equals: 2)
             .formatCurrencyLiveAndOnUnFocus(
-                focusValue: 1,
+                focusValue: 2,
                 focusedField: focusedField,
                 amountString: model.amountString,
                 amountStringBinding: $model.amountString,
@@ -301,7 +284,7 @@ struct PdfInvoiceCreatorSheet: View {
     var dateRow: some View {
         HStack(spacing: 0) {
             Label {
-                Text("Date")
+                Text("\(model.invoiceTypeLingo) Date")
             } icon: {
                 Image(systemName: "calendar")
                     .foregroundColor(.gray)
@@ -401,14 +384,24 @@ struct PdfInvoiceCreatorSheet: View {
             /// - The contact picker sheet's onDismiss will create the invoice and open the messaging view.
             /// - When the messaging view closes, it will close the invoice creation sheet.
             isGeneratingToSend = true
+            
+//            if model.selectedContact == nil {
+//                showContactPicker = true
+//            } else {
+//                Task {
+//                    await model.createInvoice()
+//                    showMessageComposer = true
+//                }
+//            }
+            
             Task {
-                /// Check to make sure we have contact access. If not, it will take us through the access flow.
-                await contactManager.fetchContacts()
-                showContactPicker = true
+                await model.createInvoice()
+                showMessageComposer = true
             }
+            
         } label: {
             HStack {
-                Text("Send")
+                Text("Send via Messages")
                 Spacer()
                 if isGeneratingToSend {
                     ProgressView()
@@ -416,30 +409,30 @@ struct PdfInvoiceCreatorSheet: View {
                 }
             }
         }
-        .sheet(isPresented: $showContactPicker, onDismiss: {
-            /// When the contact picker is dismissed, create the invoice and show the messaging view.
-            /// If a contact was selected, it will populate the messaging to-field. If not, the to field will be focused so the user can enter a phone number.
-            Task {
-                await model.createInvoice()
-                showMessageComposer = true
-                isGeneratingToSend = false
-            }
-        }) {
-            /// When you touch a contact, it will be passed into this closure and will be set in the model.
-            ContactPickerView { contact in
-                model.selectedPhone = contact.phoneNumbers.first?.value.stringValue
-                model.selectedContact = contact
-            }
-        }
+//        .sheet(isPresented: $showContactPicker, onDismiss: {
+//            /// When the contact picker is dismissed, create the invoice and show the messaging view.
+//            /// If a contact was selected, it will populate the messaging to-field. If not, the to field will be focused so the user can enter a phone number.
+//            Task {
+//                await model.createInvoice()
+//                showMessageComposer = true
+//            }
+//        }) {
+//            /// When you touch a contact, it will be passed into this closure and will be set in the model.
+//            ContactPickerView { contact in
+//                model.selectedPhone = contact.phoneNumbers.first?.value.stringValue
+//                model.selectedContact = contact
+//            }
+//        }
         .sheet(isPresented: $showMessageComposer, onDismiss: {
             /// When done sending the text, dismiss the invoice creator sheet.
             isGeneratingToSend = false
-            dismiss()
+            //dismiss()
         }) {
             if let pdfUrl = model.pdfUrl, model.canSendTextAndAttachments {
-                MessageComposerView(phoneNumber: model.selectedPhone, messageBody: model.messagePlaceholder, pdfURL: pdfUrl)
+                let phoneNumber = model.selectedContact?.phoneNumbers.first?.value.stringValue
+                MessageComposerView(phoneNumber: phoneNumber, messageBody: model.messagePlaceholder, pdfURL: pdfUrl)
             } else {
-                PdfInvoiceCreatorMessagingUnavailableView(model: model)
+                ThereWasAProblemFullScreenView(title: "Messaging Error", text: model.cantSendMessageReason)
             }
         }
     }
@@ -454,7 +447,7 @@ struct PdfInvoiceCreatorSheet: View {
             }
         } label: {
             HStack {
-                Text("Save")
+                Text("Save to Files")
                 Spacer()
                 if isGeneratingToSave {
                     ProgressView()
@@ -467,7 +460,32 @@ struct PdfInvoiceCreatorSheet: View {
             dismiss()
         }, onCancellation: {
             isGeneratingToSave = false
-            dismiss()
+            //dismiss()
+        })
+    }
+    
+    
+    var previewInvoiceButton: some View {
+        Button {
+            Task {
+                isGeneratingToPreview = true
+                await model.createInvoice()
+                showPdfPreview = true
+            }
+        } label: {
+            HStack {
+                Text("Preview & Share")
+                Spacer()
+                if isGeneratingToPreview {
+                    ProgressView()
+                        .tint(.none)
+                }
+            }
+        }
+        .sheet(isPresented: $showPdfPreview, onDismiss: {
+            isGeneratingToPreview = false
+        }, content: {
+            PdfInvoicePreview(model: model)
         })
     }
 }
@@ -475,100 +493,53 @@ struct PdfInvoiceCreatorSheet: View {
 
 
 
+struct PdfInvoicePreview: View {
+    @Environment(\.dismiss) var dismiss
+    
+    var model: PdfInvoiceCreatorModel
+    
+    var body: some View {
+        NavigationStack {
+            if let url = model.pdfUrl {
+                PDFKitRepresentedView(url: url)
+                    .navigationTitle("\(model.invoiceTypeLingo) Preview")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) { shareLink }
+                        ToolbarItem(placement: .topBarTrailing) { closeButton }
+                    }
+            } else {
+                ThereWasAProblemFullScreenView(
+                    title: "\(model.invoiceTypeLingo) Problem",
+                    text: "There was a problem trying to generate the \(model.invoiceTypeLingo.lowercased())"
+                )
+            }
+        }
+    }
 
+    @ViewBuilder
+    var shareLink: some View {
+        if let url = model.pdfUrl {
+            ShareLink(
+                item: url,
+                subject: Text("\(model.invoiceTypeLingo) from \(AppState.shared.user?.name ?? "N/A")"),
+                message: Text(model.messagePlaceholder)
+            ) {
+                Image(systemName: "square.and.arrow.up")
+            }
+//            ShareLink(item: url) {
+//                Image(systemName: "square.and.arrow.up")
+//            }
+            .schemeBasedForegroundStyle()
+        }
+    }
 
-
-
-//
-//struct ReceiptPicker: View {
-//    @Environment(\.dismiss) var dismiss
-//    @Environment(CalendarModel.self) private var calModel
-//    @Binding var selectedReceipt: CBFile?
-//    var files: [CBFile]
-//    
-//    @State private var props = FileViewProps()
-//    
-//    let threeColumnGrid = Array(repeating: GridItem(.flexible(), spacing: 5, alignment: .top), count: 3)
-//    
-//    var body: some View {
-//        NavigationStack {
-//            ScrollView {
-//                LazyVGrid(columns: threeColumnGrid, spacing: 5) {
-//                    ForEach(files) { file in
-//                        
-//                        ZStack {
-//                            if file.isPlaceholder {
-//                                LoadingPlaceholder(text: "Uploading…", displayStyle: .grid)
-//                            } else {
-//                                fileView(file: file)
-//                            }
-//                        }
-//                        .overlay {
-//                            checkmarkView(file: file)
-//                        }
-//                        .contentShape(.rect)
-//                        .onTapGesture {
-//                            print("tapped")
-//                            selectedReceipt = file
-//                            dismiss()
-//                        }
-//                    }
-//                }
-//                //.contentMargins(20, for: .scrollContent)
-//                //.padding()
-//            }
-//            .scenePadding()
-//            .environment(props)
-//            .navigationTitle("Select Receipt")
-//            .navigationSubtitle("Select the receipt you'd like to add to the invoice.")
-//            .toolbar {
-//                ToolbarItem(placement: .topBarTrailing) {
-//                    Button {
-//                        dismiss()
-//                    } label: {
-//                        Image(systemName: "xmark")
-//                            .schemeBasedForegroundStyle()
-//                    }
-//                }
-//            }
-//        }
-//    }
-//    
-//    @ViewBuilder
-//    func checkmarkView(file: CBFile) -> some View {
-//        HStack {
-//            Spacer()
-//            VStack {
-//                Spacer()
-//                if selectedReceipt?.id == file.id {
-//                    Image(systemName: "checkmark.circle")
-//                }
-//            }
-//        }
-//        .padding(5)
-//    }
-//    
-//    
-//    @ViewBuilder
-//    func fileView(file: CBFile) -> some View {
-//        switch file.fileType {
-//        case .photo:
-//            CustomAsyncImage(file: file) { image in
-//                image
-//                    .resizable()
-//                    .frame(width: 125, height: 250)
-//                    .aspectRatio(contentMode: .fit)
-//                    .clipShape(.rect(cornerRadius: 6))
-//            } placeholder: {
-//                RoundedRectangle(cornerRadius: 6)
-//                    .fill(.ultraThickMaterial)
-//                    .frame(width: 125, height: 250)
-//                    .overlay(ProgressView().tint(.none))
-//            }
-//        case .pdf:
-//            CustomAsyncPdf(file: file, displayStyle: .grid)
-//        case .csv, .spreadsheet:
-//            CustomAsyncCsv(file: file, displayStyle: .grid)
-//        }
-//    }
-//}
+    var closeButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "xmark")
+                .schemeBasedForegroundStyle()
+        }
+    }
+}

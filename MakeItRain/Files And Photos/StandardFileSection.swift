@@ -453,27 +453,3 @@ struct StandardFileSection: View {
 //        }
 //    }
 }
-
-
-
-
-
-
-import PDFKit
-
-struct PDFKitRepresentedView: UIViewRepresentable {
-    let pdfData: Data
-
-    func makeUIView(context: Context) -> PDFView {
-        let pdfView = PDFView()
-        pdfView.document = PDFDocument(data: pdfData)
-        pdfView.autoScales = true // Adjusts the PDF to fit the view
-        pdfView.isUserInteractionEnabled = false
-        return pdfView
-    }
-
-    func updateUIView(_ uiView: PDFView, context: Context) {
-        // Update the view if needed, e.g., if pdfData changes
-        uiView.document = PDFDocument(data: pdfData)
-    }
-}

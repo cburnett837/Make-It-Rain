@@ -986,8 +986,7 @@ struct UITextFieldWrapper</*Keyboard: View, */Toolbar: View>: UIViewRepresentabl
         #warning("This threw up a purple error (accessing from background thread) if DispatchQueue.main.async was not used")
         DispatchQueue.main.async {
             textField.text = text
-            
-//            textField.placeholder = placeholder
+            textField.placeholder = placeholder
 //            textField.font = font
 //            textField.textColor = textColor
 //            textField.tintColor = tint

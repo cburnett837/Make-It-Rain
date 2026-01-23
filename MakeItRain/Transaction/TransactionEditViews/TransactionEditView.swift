@@ -70,6 +70,8 @@ struct TransactionEditView: View {
     @State private var showPhotosPicker: Bool = false
     //@State private var showTopTitles: Bool = false
     @State private var showSplitSheet = false
+    @State private var showInvoiceGeneratorSheet = false
+
     //@State private var titleChangedTask: Task<Void, Error>?
     //@State private var amountChangedTask: Task<Void, Error>?
     @State private var showUndoRedoAlert = false
@@ -207,6 +209,7 @@ struct TransactionEditView: View {
         }
         .alert("Please change the selected account by right-clicking on the line item from the main view.", isPresented: $showPaymentMethodChangeAlert) { Button("OK") {} }
         .sheet(isPresented: $showSplitSheet) { TevSplitSheet(trans: trans, showSplitSheet: $showSplitSheet) }
+        .sheet(isPresented: $showInvoiceGeneratorSheet) { PdfInvoiceCreatorSheet(trans: trans) }
         .environment(mapModel)
 //        /// Check what color the save button should be.
 //        .onChange(of: transactionValuesChanged) { checkIfTransactionIsValidToSave() }
@@ -309,6 +312,7 @@ struct TransactionEditView: View {
             TevMoreOptions(
                 trans: trans,
                 showSplitSheet: $showSplitSheet,
+                showInvoiceGeneratorSheet: $showInvoiceGeneratorSheet,
                 isTemp: isTemp,
                 navPath: $navPath,
                 showBadgeBell: $showBadgeBell,
