@@ -106,6 +106,7 @@
 		FD5564002EF32F6A00830102 /* TevTrackingNumberView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD5563FF2EF32F6A00830102 /* TevTrackingNumberView.swift */; };
 		FD5E53662EF9990F0059BA6F /* PhotoTakeAndSelectButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD5E53652EF9990F0059BA6F /* PhotoTakeAndSelectButtons.swift */; };
 		FD5E53682EF9A4730059BA6F /* PhotoWebPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD5E53672EF9A4730059BA6F /* PhotoWebPreview.swift */; };
+		FD6168ED2F33B33800FDA64D /* Keys.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD6168EC2F33B33800FDA64D /* Keys.swift */; };
 		FD618F4A2EE728E800D97C86 /* LogoPickerRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD618F492EE728E800D97C86 /* LogoPickerRow.swift */; };
 		FD618F4C2EE7320000D97C86 /* CategoryGroupOverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD618F4B2EE7320000D97C86 /* CategoryGroupOverView.swift */; };
 		FD6674AB2EAFC14C000F2E90 /* BusinessLogo.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD6674AA2EAFC14C000F2E90 /* BusinessLogo.swift */; };
@@ -222,7 +223,6 @@
 		FDC26E182D3E86D500B0A97C /* PreferenceKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DE82D3E86D500B0A97C /* PreferenceKeys.swift */; };
 		FDC26E192D3E86D500B0A97C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26D8D2D3E86D500B0A97C /* AppDelegate.swift */; };
 		FDC26E1A2D3E86D500B0A97C /* LabeledRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DC92D3E86D500B0A97C /* LabeledRow.swift */; };
-		FDC26E1B2D3E86D500B0A97C /* Keys.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DC52D3E86D500B0A97C /* Keys.swift */; };
 		FDC26E1C2D3E86D500B0A97C /* LoadingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DCD2D3E86D500B0A97C /* LoadingManager.swift */; };
 		FDC26E1D2D3E86D500B0A97C /* TagView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26E032D3E86D500B0A97C /* TagView.swift */; };
 		FDC26E1E2D3E86D500B0A97C /* MultiYearSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DD92D3E86D500B0A97C /* MultiYearSheet.swift */; };
@@ -506,6 +506,7 @@
 		FD5563FF2EF32F6A00830102 /* TevTrackingNumberView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TevTrackingNumberView.swift; sourceTree = "<group>"; };
 		FD5E53652EF9990F0059BA6F /* PhotoTakeAndSelectButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoTakeAndSelectButtons.swift; sourceTree = "<group>"; };
 		FD5E53672EF9A4730059BA6F /* PhotoWebPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoWebPreview.swift; sourceTree = "<group>"; };
+		FD6168EC2F33B33800FDA64D /* Keys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keys.swift; sourceTree = "<group>"; };
 		FD618F492EE728E800D97C86 /* LogoPickerRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogoPickerRow.swift; sourceTree = "<group>"; };
 		FD618F4B2EE7320000D97C86 /* CategoryGroupOverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryGroupOverView.swift; sourceTree = "<group>"; };
 		FD6674AA2EAFC14C000F2E90 /* BusinessLogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BusinessLogo.swift; sourceTree = "<group>"; };
@@ -666,7 +667,6 @@
 		FDC26DC22D3E86D500B0A97C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		FDC26DC32D3E86D500B0A97C /* KeyboardToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardToolbar.swift; sourceTree = "<group>"; };
 		FDC26DC42D3E86D500B0A97C /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
-		FDC26DC52D3E86D500B0A97C /* Keys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keys.swift; sourceTree = "<group>"; };
 		FDC26DC62D3E86D500B0A97C /* KeywordModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeywordModel.swift; sourceTree = "<group>"; };
 		FDC26DC72D3E86D500B0A97C /* KeywordsTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeywordsTable.swift; sourceTree = "<group>"; };
 		FDC26DC82D3E86D500B0A97C /* KeywordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeywordView.swift; sourceTree = "<group>"; };
@@ -1289,7 +1289,7 @@
 				FDC26D962D3E86D500B0A97C /* ButtonStyles.swift */,
 				FDC26DBA2D3E86D500B0A97C /* Enums.swift */,
 				FDC26DC12D3E86D500B0A97C /* Helpers.swift */,
-				FDC26DC52D3E86D500B0A97C /* Keys.swift */,
+				FD6168EC2F33B33800FDA64D /* Keys.swift */,
 				FDC26DD52D3E86D500B0A97C /* Modifiers.swift */,
 				FDC26DE82D3E86D500B0A97C /* PreferenceKeys.swift */,
 				FD9D52FC2DAED743008CD1BA /* Protocols.swift */,
@@ -1752,7 +1752,6 @@
 				FDC26E192D3E86D500B0A97C /* AppDelegate.swift in Sources */,
 				FDBA69D52DEE2C60007FB0CB /* ChartOptionMenu.swift in Sources */,
 				FDC26E1A2D3E86D500B0A97C /* LabeledRow.swift in Sources */,
-				FDC26E1B2D3E86D500B0A97C /* Keys.swift in Sources */,
 				FD6674AF2EAFDC50000F2E90 /* UpdateLogoModel.swift in Sources */,
 				FDC26E1C2D3E86D500B0A97C /* LoadingManager.swift in Sources */,
 				FDA1725B2EF596FC00C113F2 /* CivMonthMiddleMan.swift in Sources */,
@@ -1764,6 +1763,7 @@
 				FDC26E202D3E86D500B0A97C /* TransactionEditView.swift in Sources */,
 				FDFBC45E2DDF6017006DE685 /* CBPlaidAccount.swift in Sources */,
 				FD3DFD0D2EDFDBF7002C2051 /* TevTitle.swift in Sources */,
+				FD6168ED2F33B33800FDA64D /* Keys.swift in Sources */,
 				FDC26E212D3E86D500B0A97C /* RepeatingTransactionModel.swift in Sources */,
 				FDC26E222D3E86D500B0A97C /* RepeatingTransactionView.swift in Sources */,
 				FD06F6AE2DE8B2E000753490 /* CBPlaidBalance.swift in Sources */,
