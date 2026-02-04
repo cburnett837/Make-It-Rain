@@ -233,7 +233,6 @@ struct DayViewPhone: View {
     }
     
     
-    
     var copyAndPasteButton: some View {
         Button {
             calModel.pasteTransaction(to: day)
