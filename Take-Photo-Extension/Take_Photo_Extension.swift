@@ -98,7 +98,7 @@ struct TakePhotoControlIntent: AppIntent, WidgetConfigurationIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult & OpensIntent {
-        return .result(opensIntent: OpenURLIntent(URL(string: "https://codyburnett.com/plaid_redirect/plaid-redirect.html?action=take_photo")!))
+        return .result(opensIntent: OpenURLIntent(URL(string: "redirect-url")!))
     }
 }
 

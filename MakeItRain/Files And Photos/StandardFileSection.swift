@@ -369,7 +369,6 @@ struct StandardFileSection: View {
             }
 
 //            AsyncImage(
-//                //url: URL(string: "http://www.codyburnett.com:8677/budget_app.photo.\(fileture.path).jpg"),
 //                url: URL(string: "https://\(Keys.baseURL):8676/files/budget_app.photo.\(file.uuid).jpg"),
 //                content: { image in
 //                    image
