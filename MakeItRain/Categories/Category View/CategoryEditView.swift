@@ -48,7 +48,7 @@ struct CategoryEditView: View {
     var body: some View {
         //let _ = Self._printChanges()
         Group {
-        #if os(iOS)
+            #if os(iOS)
             NavigationStack {
                 categoryPagePhone
                     .background(Color(.systemBackground))
@@ -73,11 +73,29 @@ struct CategoryEditView: View {
                     }
             }
             #else
-            VStack {
-                categoryPagePhone
-                .frame(maxHeight: .infinity)
+            Form {
+                categoryPageMac
+            }
+            .formStyle(.grouped)
+            .navigationTitle(title)
+            .toolbar {
+                ToolbarItemGroup(placement: .destructiveAction) {
+                    HStack {
+                        EnteredByAndUpdatedByView(
+                            enteredBy: category.enteredBy,
+                            updatedBy: category.updatedBy,
+                            enteredDate: category.enteredDate,
+                            updatedDate: category.updatedDate
+                        )
+                    }
+                }
                 
-                //fakeMacTabBar
+                ToolbarItemGroup(placement: .confirmationAction) {
+                    HStack {
+                        deleteButton
+                        AnimatedCloseButton(isValidToSave: isValidToSave, color: category.color, closeButton: closeButton)
+                    }
+                }
             }
             #endif
         }
@@ -107,86 +125,38 @@ struct CategoryEditView: View {
                 #endif
         }
     }
-    
-    
-    
-    #if os(iOS)
-//    @ToolbarContentBuilder
-//    func phoneToolbar() -> some ToolbarContent {
-//        
-//        
-//        ToolbarItemGroup(placement: .topBarTrailing) {
-//            //HStack(spacing: 20) {
-//                deleteButton
-//            //ToolbarSpacer(.fixed)
-//                Button {
-//                    closeSheet()
-//                } label: {
-//                    Image(systemName: "xmark")
-//                }
-//            //}
-//        }
-//    }
-    #endif
-
-    
-    
-//    var fakeMacTabBar: some View {
-//        HStack(spacing: 0) {
-//            Rectangle()
-//                .fill(.clear)
-//                .frame(height: 50)
-//                .contentShape(Rectangle())
-//                .overlay {
-//                    Label("Details", systemImage: "list.bullet")
-//                        .foregroundStyle(selectedTab == .details ? category.color : .gray)
-//                }
-//                .onTapGesture {
-//                    selectedTab = .details
-//                }
-//            Rectangle()
-//                .fill(.clear)
-//                .frame(height: 50)
-//                .contentShape(Rectangle())
-//                .overlay {
-//                    Label("Insights", systemImage: "chart.xyaxis.line")
-//                        .foregroundStyle(selectedTab == .insights ? category.color : .gray)
-//                }
-//                .onTapGesture {
-//                    selectedTab = .insights
-//                }
-//        }
-//        //.fixedSize(horizontal: false, vertical: true)
-//        .frame(height: 50)
-//    }
-    
-    
-    
-    
+       
     // MARK: - Category Edit Page Views
+    @ViewBuilder
     var categoryPageMac: some View {
-        StandardContainer {
+        Section {
             titleRow
             budgetRow
-            StandardDivider()
-            
-            typeRow
-            StandardDivider()
-            
-            Section {
-                isHiddenRow
-            } footer: {
-                Text("Hide this category from **my** menus. (This will not delete any data).")
+        } header: {
+            Text("Title & Budget")
+        } footer: {
+            HStack {
+                Text("Set a budget to use for each month.")
+                    .foregroundStyle(.secondary)
+                Spacer()
             }
             
-            colorRow
-            StandardDivider()
-            
+        }
+                    
+        Section("Details") {
+            typeRow
             symbolRow
-            StandardDivider()
-            
-        } header: {
-            SheetHeader(title: title, close: { closeSheet() }, view3: { deleteButton })
+            colorRow
+        }
+         
+        Section {
+            isHiddenRow
+        } footer: {
+            HStack {
+                Text("Hide this category from **my** menus. (This will not delete any data).")
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
         }
     }
     
@@ -221,7 +191,6 @@ struct CategoryEditView: View {
     
     
     var titleRow: some View {
-        #if os(iOS)
         HStack(spacing: 0) {
             Label {
                 Text("")
@@ -229,6 +198,7 @@ struct CategoryEditView: View {
                 Image(systemName: "t.circle")
                     .foregroundStyle(.gray)
             }
+            #if os(iOS)
             
             UITextFieldWrapper(placeholder: "Title", text: $category.title, onSubmit: {
                 focusedField = 1
@@ -242,20 +212,22 @@ struct CategoryEditView: View {
             .uiReturnKeyType(.next)
             //.uiFont(UIFont.systemFont(ofSize: 24.0))
             //.uiTextColor(.secondaryLabel)
+            
+            #else
+            LabeledContent("") {
+                TextField("", text: $category.title, prompt: Text("Title")
+                    .foregroundColor(.gray)
+                    .font(.system(size: 14, weight: .light))
+                )
+            }
+            .labelsHidden()
+            #endif
         }
         .focused($focusedField, equals: 0)
-        
-        #else
-        LabeledRow("Name", labelWidth) {
-            StandardTextField("Title", text: $category.title, focusedField: $focusedField, focusValue: 0)
-                .onSubmit { focusedField = 1 }
-        }
-        #endif
     }
        
     
     var budgetRow: some View {
-        #if os(iOS)
         HStack(spacing: 0) {
             Label {
                 Text("")
@@ -263,8 +235,9 @@ struct CategoryEditView: View {
                 Image(systemName: "chart.pie")
                     .foregroundStyle(.gray)
             }
+            #if os(iOS)
             
-            UITextFieldWrapper(placeholder: "Monthly Amount", text: $category.amountString ?? "", toolbar: {
+            UITextFieldWrapper(placeholder: "Monthly Budget", text: $category.amountString ?? "", toolbar: {
                 KeyboardToolbarView(focusedField: $focusedField, accessoryImage3: "plus.forwardslash.minus", accessoryFunc3: {
                     Helpers.plusMinus($category.amountString ?? "")
                 })
@@ -277,20 +250,22 @@ struct CategoryEditView: View {
             //.uiKeyboardType(.decimalPad)
             .uiKeyboardType(.custom(.numpad))
             //.uiTextColor(.secondaryLabel)
+            
+            #else
+            LabeledContent("") {
+                TextField("", text: $category.amountString ?? "", prompt: Text("Monthly Budget")
+                    .foregroundColor(.gray)
+                    .font(.system(size: 14, weight: .light))
+                )
+            }
+            .labelsHidden()
+            #endif
         }
         .focused($focusedField, equals: 1)
-        
-        #else
-        LabeledRow("Budget", labelWidth) {
-            StandardTextField("Monthly Amount", text: $category.amountString ?? "", focusedField: $focusedField, focusValue: 1)
-        }
-        #endif
     }
     
         
     var typeRow: some View {
-        #if os(iOS)
-        
         Picker(selection: $category.type) {
             Text("Expense")
                 .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .expense))
@@ -310,44 +285,10 @@ struct CategoryEditView: View {
         }
         .pickerStyle(.menu)
         .tint(.secondary)
-
-        
-        
-//        Picker("Category Type", selection: $category.type) {
-//            Text("Expense")
-//                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .expense))
-//            Text("Income")
-//                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .income))
-//            Text("Payment")
-//                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .payment))
-//            Text("Savings")
-//                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .savings))
-//        }
-//        .pickerStyle(.menu)
-//        .tint(.secondary)
-        
-        #else
-        LabeledRow("Type", labelWidth) {
-            Picker("", selection: $category.type) {
-                Text("Expense")
-                    .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .expense))
-                Text("Income")
-                    .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .income))
-                Text("Payment")
-                    .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .payment))
-                Text("Savings")
-                    .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .savings))
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-        }
-        #endif
-        
     }
     
     
     var isHiddenRow: some View {
-        #if os(iOS)
         Toggle(isOn: $category.isHidden.animation()) {
             Label {
                 Text("Mark as Hidden")
@@ -358,43 +299,21 @@ struct CategoryEditView: View {
             }
         }
         .tint(category.color == .primary ? Color.theme : category.color)
-        
-        #else
-        LabeledRow("Hidden", labelWidth) {
-            Toggle(isOn: $category.isHidden.animation()) {
-                Text("Mark as Hidden")
-            }
-        } subContent: {
-            Text("Hide this category from view (This will not delete any data).")
-        }
-        #endif
-        
     }
     
-    
+    #if os(macOS)
     var colorRow: some View {
-        #if os(iOS)
-        HStack {
-            Text("Color")
-            Spacer()
-            StandardColorPicker(color: $category.color)
-        }
-        
-        #else
-        LabeledRow("Color", labelWidth) {
-            HStack {
-                ColorPicker("", selection: $category.color, supportsOpacity: false)
-                    .labelsHidden()
-                Capsule()
-                    .fill(category.color)
-                    .frame(height: 30)
-                    .onTapGesture {
-                        AppState.shared.showToast(title: "Color Picker", subtitle: "Touch the circle to the left to change the color.", body: nil, symbol: category.emoji ?? "theatermask.and.paintbrush", symbolColor: category.color)
-                    }
+        ColorPicker(selection: $category.color, supportsOpacity: false) {
+            Label {
+                Text("Color")
+                    .schemeBasedForegroundStyle()
+            } icon: {
+                Image(systemName: "lightspectrum.horizontal")
+                    .foregroundStyle(.gray)
             }
         }
-        #endif
     }
+    #endif
       
     
     var symbolRow: some View {
@@ -427,34 +346,24 @@ struct CategoryEditView: View {
         }
         .colorPickerSheet(isPresented: $showColorPicker, selection: $category.color, supportsAlpha: false)
 
-        
-        
-//        Button {
-//            showSymbolPicker = true
-//        } label: {
-//            HStack {
-//                Text("Symbol")
-//                    .schemeBasedForegroundStyle()
-//                Spacer()
-//                Image(systemName: category.emoji ?? "questionmark.circle.fill")
-//                    .font(.system(size: 24))
-//                    .foregroundStyle(category.color.gradient)
-//                //Spacer()
-//            }
-//        }
-        
         #else
-        LabeledRow("Symbol", labelWidth) {
-            HStack {
-                Image(systemName: category.emoji ?? "questionmark.circle.fill")
-                    .font(.system(size: 100))
-                    .foregroundStyle(category.color.gradient)
-                Spacer()
+        HStack {
+            Label {
+                Text("Symbol")
+                    .schemeBasedForegroundStyle()
+            } icon: {
+                Image(systemName: "tree")
+                    .foregroundStyle(.gray)
             }
-            .contentShape(Rectangle())
-            .onTapGesture {
-                showSymbolPicker = true
-            }
+                            
+            Spacer()
+            Image(systemName: category.emoji ?? "questionmark.circle.fill")
+                .font(.system(size: 24))
+                .foregroundStyle(category.color.gradient)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            showSymbolPicker = true
         }
         #endif
     }
@@ -475,7 +384,13 @@ struct CategoryEditView: View {
             showDeleteAlert = true
         } label: {
             Image(systemName: "trash")
+            #if os(macOS)
+                .foregroundStyle(.red)
+            #endif
         }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
         .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
         .tint(.none)
         .confirmationDialog("Delete \"\(category.title)\"?", isPresented: $showDeleteAlert, actions: {

@@ -107,8 +107,11 @@ struct CustomAlert: View {
     @ViewBuilder
     var glassBackground: some View {
         RoundedRectangle(cornerRadius: 24)
-            .opacity(0)
+            #if os(macOS)
+            .fill(.thinMaterial)
+            #endif
             #if os(iOS)
+            .opacity(0)
             .glassEffect(.regular, in: .rect(cornerRadius: 24))
             #endif
             .padding(.top, 40)
@@ -236,7 +239,11 @@ struct AlertConfig {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
             }
+            #if os(iOS)
             .buttonStyle(.bordered)
+            #else
+            .buttonStyle(.roundMacButton)
+            #endif
             .opacity(showSpinner ? 0 : 1)
             .overlay(ProgressView().opacity(showSpinner ? 1 : 0))
             .disabled(showSpinner)

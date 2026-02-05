@@ -381,7 +381,7 @@
 //        }
 //        
 //        Section {
-//            PayMethodSheetButtonPhone(
+//            PayMethodSheetButton(
 //                text: "Account",
 //                logoFallBackType: .customImage(.init(
 //                    name: trans.payMethod?.fallbackImage,
@@ -391,7 +391,7 @@
 //                whichPaymentMethods: .allExceptUnified
 //            )
 //            
-//            CategorySheetButtonPhone(category: $trans.category)
+//            CategorySheetButton(category: $trans.category)
 //        }
 //        
 //        ruleSuggestionButton

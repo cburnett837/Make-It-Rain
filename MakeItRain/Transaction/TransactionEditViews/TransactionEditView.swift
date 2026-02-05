@@ -85,6 +85,7 @@ struct TransactionEditView: View {
     @State private var showContent = false
     @State private var showExpensiveViews = false
     @State private var suggestedCategories: Array<CBCategory> = []
+    @State private var shouldDismissOnMac: Bool = false
     //@State private var selection = AttributedTextSelection()
     //@State private var textCommands = TextViewCommands()
 
@@ -179,9 +180,16 @@ struct TransactionEditView: View {
         NavigationStack(path: $navPath) {
             if showContent {
                 ScrollViewReader { scrollProxy in
+                    #if os(iOS)
                     StandardContainerWithToolbar(.list) {
                         content(scrollProxy)
                     }
+                    #else
+                    Form {
+                        content(scrollProxy)
+                    }
+                    .formStyle(.grouped)
+                    #endif
                 }
                 .navigationTitle(title)
                 .if(trans.relatedTransactionID != nil || trans.christmasListGiftID != nil) { $0.navigationSubtitle(linkedLingo!) }
@@ -215,7 +223,15 @@ struct TransactionEditView: View {
         .environment(mapModel)
 //        /// Check what color the save button should be.
 //        .onChange(of: transactionValuesChanged) { checkIfTransactionIsValidToSave() }
-                                
+                   
+        #if os(macOS)
+        .onChange(of: shouldDismissOnMac) {
+            if $1 {
+                dismiss()
+            }
+        }
+        #endif
+        
         #if os(iOS)
         /// Prompt for undo/redo on shake.
         .onShake {
@@ -248,9 +264,17 @@ struct TransactionEditView: View {
     @ViewBuilder
     func content(_ scrollProxy: ScrollViewProxy) -> some View {
         Section {
-            TevTitle(trans: trans, mapModel: mapModel, suggestedCategories: $suggestedCategories, focusedField: $focusedField)
-            TevAmount(trans: trans, focusedField: $focusedField)
-            //TevDatePicker(trans: trans, day: day, focusedField: $focusedField)
+            TevTitle(
+                trans: trans,
+                mapModel: mapModel,
+                suggestedCategories: $suggestedCategories,
+                focusedField: $focusedField
+            )
+            
+            TevAmount(
+                trans: trans,
+                focusedField: $focusedField
+            )
         }
                 
         paymentMethodAndCategorySection
@@ -264,7 +288,11 @@ struct TransactionEditView: View {
         }
         
         Section {
-            TevDatePicker(trans: trans, day: day, focusedField: $focusedField)
+            TevDatePicker(
+                trans: trans,
+                day: day,
+                focusedField: $focusedField
+            )
         }
         
         if !isTemp {
@@ -370,7 +398,8 @@ struct TransactionEditView: View {
             //transEditID: $transEditID,
             isTemp: isTemp,
             showExpensiveViews: showExpensiveViews,
-            focusedField: $focusedField
+            focusedField: $focusedField,
+            shouldDismissOnMac: $shouldDismissOnMac
         )
     }
     
@@ -382,18 +411,19 @@ struct TransactionEditView: View {
     
     @ViewBuilder
     var categoryLine: some View {
+        #if os(iOS)
         if showExpensiveViews {
-            #if os(iOS)
-            CategorySheetButtonPhone(category: $trans.category)
+            CategorySheetButton(category: $trans.category)
                 .listRowSeparator(suggestedCategories.isEmpty ? .automatic : .hidden)
-            #else
-            CategorySheetButtonMac(category: $trans.category)
-            #endif
         } else {
             ProgressView()
                 .frame(maxWidth: .infinity)
                 .tint(.none)
         }
+        #else
+        CategorySheetButton(category: $trans.category)
+        #endif
+        
     }
     
     
@@ -450,8 +480,12 @@ struct TransactionEditView: View {
                                 }
                                 
                             }
+                            #if os(iOS)
                             .padding(8)
                             .background(Capsule().foregroundStyle(.thickMaterial))
+                            #else
+                            .buttonStyle(.roundMacButton(horizontalPadding: 10))
+                            #endif
                         }
                     }
                 }
@@ -484,9 +518,9 @@ struct TransactionEditView: View {
                     categoryLine
                 }
                 
-                #if os(iOS)
+                
                 /// Main payment method picker.
-                PayMethodSheetButtonPhone(
+                PayMethodSheetButton(
                     text: accountLabelLingo,
                     logoFallBackType: .customImage(.init(
                         name: trans.payMethod?.fallbackImage,
@@ -498,11 +532,11 @@ struct TransactionEditView: View {
                 
                 /// Related payment method picker.
                 if let relatedID = trans.relatedTransactionID, let method = calModel.getTransaction(by: relatedID).payMethod {
-                    PayMethodSheetButtonPhone(
+                    PayMethodSheetButton(
                         text: secondaryAccountLabelLingo,
                         logoFallBackType: .customImage(.init(
                             name: method.fallbackImage,
-                            color: method.color
+                            color: method.color,
                         )),
                         isDisabled: true,
                         payMethod: .constant(method),
@@ -512,9 +546,6 @@ struct TransactionEditView: View {
                         AppState.shared.showAlert("To change this, please edit the related transaction instead.")
                     }
                 }
-                #else
-                PayMethodSheetButtonMac(payMethod: $trans.payMethod, whichPaymentMethods: .allExceptUnified)
-                #endif
             } else {
                 ProgressView()
                     .frame(maxWidth: .infinity)

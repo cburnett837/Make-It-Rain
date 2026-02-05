@@ -35,6 +35,7 @@ extension MakeItRainApp {
                 .environment(payModel)
                 .environment(plaidModel)
                 .environment(catModel)
+                .environment(keyModel)
                 .environment(calProps)
                 .environment(dataChangeTriggers)
         }

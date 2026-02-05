@@ -27,5 +27,8 @@ struct CatChartRefreshButton: View {
         .tint(.none)
         .symbolEffect(.rotate, options: SymbolEffectOptions.repeat(.continuous).speed(3), isActive: model.isLoadingHistory)
         .symbolEffect(.rotate, options: SymbolEffectOptions.repeat(.continuous).speed(3), isActive: model.isLoadingMoreHistory)
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
     }
 }

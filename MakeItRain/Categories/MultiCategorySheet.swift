@@ -269,12 +269,13 @@ struct MultiCategorySheet: View {
                     }
                 }
             }
-            
-            .searchable(text: $searchText, prompt: Text("Search"))
             .navigationTitle("Categories")
             #if os(iOS)
+            .searchable(text: $searchText, prompt: Text("Search"))
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .topBarLeading) { selectButton }
                 DefaultToolbarItem(kind: .search, placement: .bottomBar)
                                 
@@ -283,12 +284,21 @@ struct MultiCategorySheet: View {
                 if AppState.shared.isIpad {
                     ToolbarSpacer(.fixed, placement: .topBarTrailing)
                 }
-                                
-//                ToolbarSpacer(.flexible, placement: .bottomBar)
-//                ToolbarItem(placement: .bottomBar) { CategorySortMenu() }
                 ToolbarItem(placement: .topBarTrailing) { closeButton }
+                #else
+                ToolbarItemGroup(placement: .destructiveAction) {
+                    HStack {
+                        selectButton
+                    }
+                }
+                ToolbarItemGroup(placement: .confirmationAction) {
+                    HStack {
+                        CategorySortMenu()
+                        closeButton
+                    }
+                }
+                #endif
             }
-            #endif
         }
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
         
@@ -600,6 +610,9 @@ struct MultiCategorySheet: View {
             Image(systemName: "xmark")
                 .schemeBasedForegroundStyle()
         }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
         //.buttonStyle(.glassProminent)
         //.tint(confirmButtonTint)
         //.background(confirmButtonTint)
@@ -672,6 +685,9 @@ struct MultiCategorySheet: View {
             //Image(systemName: categories.isEmpty ? "checkmark.rectangle.stack" : "checklist.checked")
                 .schemeBasedForegroundStyle()
         }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton(horizontalPadding: 10))
+        #endif
     }
     
     

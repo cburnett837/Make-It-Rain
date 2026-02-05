@@ -15,7 +15,8 @@ struct CalendarToolbarLeading: View {
     
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
-    
+    @Environment(CalendarProps.self) private var calProps
+
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(RepeatingTransactionModel.self) private var repModel
@@ -25,9 +26,6 @@ struct CalendarToolbarLeading: View {
     @State private var showStartingAmountsSheet = false
     @State private var showCategorySheet = false
     @State private var showPayMethodSheet = false
-    
-    
-    @Binding var transEditID: String?
     
     var focusedField: FocusState<Int?>.Binding
     //@FocusState var focusedField: Int?
@@ -109,13 +107,13 @@ struct CalendarToolbarLeading: View {
     
     var addNewTransactionButton: some View {
         Button {
-            transEditID = UUID().uuidString
+            calProps.transEditID = UUID().uuidString
             //NavigationManager.shared.selection = prev
         } label: {
             Image(systemName: "plus")
                 .frame(width: 25)
         }
-        .disabled(transEditID != nil)
+        .disabled(calProps.transEditID != nil)
         .toolbarBorder()
         .help("Add a new transaction to today.")
     }
@@ -238,7 +236,7 @@ struct CalendarToolbarLeading: View {
                 //.frame(width: 150)
             }
             .toolbarBorder()
-            .popover(isPresented: $showCategorySheet) {
+            .sheet(isPresented: $showCategorySheet) {
                 MultiCategorySheet(categories: $calModel.sCategories, categoryGroup: $calModel.sCategoryGroupsForAnalysis)
                     .frame(minWidth: 300, minHeight: 500)
                     .presentationSizing(.fitted)
@@ -256,21 +254,31 @@ struct CalendarToolbarLeading: View {
                 showPayMethodSheet = true
             } label: {
                 HStack {
-                    Image(systemName: "circle.fill")
-                        .if(calModel.sPayMethod?.isUnified ?? false) {
-                            $0.foregroundStyle(AngularGradient(gradient: Gradient(colors: [.red, .yellow, .green, .blue, .purple, .red]), center: .center))
-                        }
-                        .if((calModel.sPayMethod?.isUnified ?? false == false)) {
-                            $0.foregroundStyle((calModel.sPayMethod?.isUnified ?? false ? .white : calModel.sPayMethod?.color) ?? .white, .primary, .secondary)
-                        }
+                    
+                    BusinessLogo(config: .init(
+                        parent: calModel.sPayMethod,
+                        fallBackType: .customImage(.init(
+                            name: calModel.sPayMethod?.fallbackImage,
+                            color: calModel.sPayMethod?.color
+                        )),
+                        size: 20
+                    ))
+//                    
+//                    Image(systemName: "circle.fill")
+//                        .if(calModel.sPayMethod?.isUnified ?? false) {
+//                            $0.foregroundStyle(AngularGradient(gradient: Gradient(colors: [.red, .yellow, .green, .blue, .purple, .red]), center: .center))
+//                        }
+//                        .if((calModel.sPayMethod?.isUnified ?? false == false)) {
+//                            $0.foregroundStyle((calModel.sPayMethod?.isUnified ?? false ? .white : calModel.sPayMethod?.color) ?? .white, .primary, .secondary)
+//                        }
                     Text(calModel.sPayMethod?.title ?? "Select Payment Method")
                 }
                 
                     //.frame(width: 100)
             }
             .toolbarBorder()
-            .popover(isPresented: $showPayMethodSheet) {
-                PayMethodSheet(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all)
+            .sheet(isPresented: $showPayMethodSheet) {
+                PayMethodSheet(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all, showNoneOption: true)
                     .frame(minWidth: 300, minHeight: 500)
 //                    .presentationSizing(.fitted)
             }
@@ -297,7 +305,7 @@ struct CalendarToolbarLeading: View {
                     .foregroundStyle(.gray)
             }
             .toolbarBorder()
-            .popover(isPresented: $showStartingAmountsSheet) {
+            .sheet(isPresented: $showStartingAmountsSheet) {
                 StartingAmountSheet()
                     .frame(minWidth: 300, minHeight: 500)
                     .presentationSizing(.fitted)

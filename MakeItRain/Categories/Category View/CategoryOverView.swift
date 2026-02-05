@@ -114,6 +114,24 @@ struct CategoryOverView: View {
                 ToolbarSpacer(.fixed, placement: .topBarTrailing)
                 ToolbarItem(placement: .topBarTrailing) { closeButton }
             }
+            #else
+            ToolbarItemGroup(placement: .destructiveAction) {
+                HStack {
+                    CatChartRefreshButton(model: model)
+                }
+            }
+            
+            ToolbarItemGroup(placement: .confirmationAction) {
+                HStack {
+                    Button("Edit") {
+                        categoryEditID = category.id
+                    }
+                    .schemeBasedForegroundStyle()
+                    .buttonStyle(.roundMacButton(horizontalPadding: 10))
+                    
+                    closeButton
+                }
+            }
             #endif
         }
         .onChange(of: categoryEditID) { oldValue, newValue in
@@ -146,8 +164,8 @@ struct CategoryOverView: View {
         }) { cat in
             CategoryEditView(category: cat, editID: $categoryEditID)
                 #if os(macOS)
-                .frame(minWidth: 500, minHeight: 700)
-                .presentationSizing(.fitted)
+                //.frame(minWidth: 500, minHeight: 700)
+                .presentationSizing(.page)
                 #else
                 //.presentationSizing(.page) // big sheet
                 //.presentationSizing(.fitted) // small sheet - resizable - doesn't work on iOS
@@ -177,6 +195,9 @@ struct CategoryOverView: View {
             Image(systemName: "xmark")
                 .schemeBasedForegroundStyle()
         }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
     }
     
     

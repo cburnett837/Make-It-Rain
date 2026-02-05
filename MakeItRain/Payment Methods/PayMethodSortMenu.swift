@@ -17,10 +17,16 @@ struct PayMethodSortMenu: View {
                 listOrderButton
             }
         } label: {
+            #if os(iOS)
             Label("Sort Order", systemImage: "arrow.up.arrow.down")
-            ////Image(systemName: "arrow.up.arrow.down")
-                //.schemeBasedForegroundStyle()
+            #else
+            Image(systemName: "arrow.up.arrow.down")
+                .schemeBasedForegroundStyle()
+            #endif            
         }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
         .schemeBasedTint()
 //        .onChange(of: AppSettings.shared.paymentMethodSortMode) { oldValue, newValue in
 //            AppSettings.shared.sendToServer(setting: .init(settingId: 58, setting: newValue.rawValue))

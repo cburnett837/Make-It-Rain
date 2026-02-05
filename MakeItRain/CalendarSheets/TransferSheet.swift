@@ -113,17 +113,17 @@ struct TransferSheet: View {
     var bodyMac: some View {
         StandardContainer {
             LabeledRow("From", labelWidth) {
-                PayMethodSheetButtonMac(payMethod: $transfer.from, whichPaymentMethods: .allExceptUnified)
+                PayMethodSheetButton(text: "From", payMethod: $transfer.from, whichPaymentMethods: .allExceptUnified)
             }
             
             LabeledRow("To", labelWidth) {
-                PayMethodSheetButtonMac(payMethod: $transfer.to, whichPaymentMethods: .allExceptUnified)
+                PayMethodSheetButton(text: "To", payMethod: $transfer.to, whichPaymentMethods: .allExceptUnified)
             }
             
             StandardDivider()
             
             LabeledRow("Category", labelWidth) {
-                CategorySheetButtonMac(category: $transfer.category)
+                CategorySheetButton(category: $transfer.category)
             }
             
             StandardDivider()
@@ -172,21 +172,21 @@ struct TransferSheet: View {
             }
             
             Section {
-                PayMethodSheetButtonPhone(
+                PayMethodSheetButton(
                     text: "From",
                     logoFallBackType: .customImage(.init(name: transfer.from?.fallbackImage, color: transfer.from?.color)),
                     payMethod: $transfer.from,
                     whichPaymentMethods: .allExceptUnified
                 )
                 
-                PayMethodSheetButtonPhone(
+                PayMethodSheetButton(
                     text: "To",
                     logoFallBackType: .customImage(.init(name: transfer.to?.fallbackImage, color: transfer.to?.color)),
                     payMethod: $transfer.to,
                     whichPaymentMethods: .allExceptUnified
                 )
                 
-                CategorySheetButtonPhone(category: $transfer.category)
+                CategorySheetButton(category: $transfer.category)
             }
                         
                

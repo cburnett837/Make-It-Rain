@@ -75,7 +75,7 @@
 //        HStack {
 //            Text("From")
 //            Spacer()
-//            //PayMethodSheetButtonPhone(payMethod: $account, whichPaymentMethods: .allExceptUnified)
+//            //PayMethodSheetButton(payMethod: $account, whichPaymentMethods: .allExceptUnified)
 //        }
 //    }
 //    

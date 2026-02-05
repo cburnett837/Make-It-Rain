@@ -158,6 +158,16 @@ struct PayMethodDashboard: View {
                     closeButton
                 }
             }
+            #else
+            ToolbarItemGroup(placement: .destructiveAction) {
+                PaymentMethodChartStyleMenu(vm: vm)
+                refreshButton
+                    .schemeBasedForegroundStyle()
+            }
+            
+            ToolbarItemGroup(placement: .confirmationAction) {
+                closeButton
+            }
             #endif
         }
         .onChange(of: navPath) {
@@ -229,6 +239,9 @@ struct PayMethodDashboard: View {
             Image(systemName: "xmark")
                 .schemeBasedForegroundStyle()
         }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
     }
     
     
@@ -395,6 +408,9 @@ struct PayMethodDashboard: View {
         } label: {
             Image(systemName: "arrow.triangle.2.circlepath")
         }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
     }
     
     func refreshCharts() {

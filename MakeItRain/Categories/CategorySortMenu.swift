@@ -21,12 +21,16 @@ struct CategorySortMenu: View {
     
     var body: some View {
         Group {
+            #if os(iOS)
             switch displayStyle {
             case .inlineWithMenu:
                 content
             case .standalone:
                 theMenu
             }
+            #else
+            theMenu
+            #endif
         }
         .onAppear {
             switch AppSettings.shared.categorySortMode {
@@ -62,6 +66,10 @@ struct CategorySortMenu: View {
             Image(systemName: "arrow.up.arrow.down")
                 .schemeBasedForegroundStyle()
         }
+        #if os(macOS)
+        .schemeBasedForegroundStyle()
+        .buttonStyle(.roundMacButton)
+        #endif
     }
     
     var content: some View {

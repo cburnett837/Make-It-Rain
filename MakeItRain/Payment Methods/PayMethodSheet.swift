@@ -86,8 +86,9 @@ struct PayMethodSheet: View {
             #if os(iOS)
             .searchable(text: $searchText, prompt: Text("Search"))
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
-                
+                #if os(iOS)
                 ToolbarItem(placement: .title) {
                     if showStartingAmountOption {
                         Picker("", selection: $paymentMethodSheetViewMode) {
@@ -134,8 +135,38 @@ struct PayMethodSheet: View {
 //                    ToolbarSpacer(.flexible, placement: .topBarTrailing)
                 }
                 ToolbarItem(placement: .topBarTrailing) { closeButton }
+                #else
+                ToolbarItem(placement: .primaryAction) {
+                    if showStartingAmountOption {
+                        Picker("", selection: $paymentMethodSheetViewMode) {
+                            Text("Accounts")
+                                .tag(WhichView.select)
+                            Text("Amounts")
+                                .tag(WhichView.edit)
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.segmented)
+                    } else {
+                        Text("Accounts")
+                    }
+                }
+                
+                ToolbarItemGroup(placement: .destructiveAction) {
+                    HStack {
+                        moreMenu
+                        PayMethodFilterMenu()
+                    }
+                    
+                }
+                
+                ToolbarItemGroup(placement: .confirmationAction) {
+                    HStack {
+                        PayMethodSortMenu()
+                        closeButton
+                    }
+                }
+                #endif
             }
-            #endif
         }
         #if os(iOS)
         .background(Color(uiColor: .systemGroupedBackground))
@@ -171,6 +202,9 @@ struct PayMethodSheet: View {
             Image(systemName: "ellipsis")
                 .schemeBasedForegroundStyle()
         }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
     }
     
     
@@ -241,6 +275,9 @@ struct PayMethodSheet: View {
                     parent: meth,
                     fallBackType: meth.isUnified ? .gradient : .color
                 ))
+                #if os(macOS)
+                .padding(.trailing, 10)
+                #endif
             }
                                             
             Spacer()
@@ -295,6 +332,9 @@ struct PayMethodSheet: View {
             Image(systemName: "xmark")
                 .schemeBasedForegroundStyle()
         }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
     }
     
     

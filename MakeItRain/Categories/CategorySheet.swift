@@ -90,31 +90,33 @@ struct CategorySheet: View {
                 }
             }
             //.scrollEdgeEffectStyle(.hard, for: .all)
-            .searchable(text: $searchText, prompt: Text("Search"))
-            #if os(iOS)
             .navigationTitle("Select Category")
+            #if os(iOS)
+            .searchable(text: $searchText, prompt: Text("Search"))
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
+                #if os(iOS)
                 DefaultToolbarItem(kind: .search, placement: .bottomBar)
-                
                 ToolbarSpacer(.flexible, placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar)
                 ToolbarItem(placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar) { CategorySortMenu() }
-                
                 ToolbarItem(placement: .topBarTrailing) { closeButton }
+                #else
+                ToolbarItem(placement: .destructiveAction) { CategorySortMenu() }
+                ToolbarItem(placement: .confirmationAction) { closeButton }
+                #endif
             }
-            #endif
+            
         }
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
         .sheet(item: $editCategory, onDismiss: {
             categoryEditID = nil
         }, content: { cat in
             CategoryEditView(category: cat, editID: $categoryEditID)
-            //#if os(iOS)
-            //.presentationDetents([.medium, .large])
-            //#endif
-            #if os(macOS)
-                .frame(maxWidth: 300)
-            #endif
+                #if os(macOS)
+                .presentationSizing(.page)
+                //.frame(minWidth: 300, maxWidth: 300)
+                #endif
         })
         
         .onChange(of: categoryEditID) { oldValue, newValue in
@@ -229,6 +231,9 @@ struct CategorySheet: View {
             Image(systemName: "xmark")
                 .schemeBasedForegroundStyle()
         }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
     }
     
     

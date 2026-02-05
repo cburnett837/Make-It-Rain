@@ -110,16 +110,19 @@ struct TevTitle: View {
                         .foregroundStyle(.gray)
                 }
                 
-                titleTextField
+                /// Wrap in LabeledContent since the mac sheet is in a form. Using LabeledContent will push thre text to the leading edge,
+                LabeledContent {
+                    titleTextField
+                } label: {
+                    EmptyView()
+                }
+                .labelsHidden()
             }
             .overlay {
                 Color.red
                     .frame(height: 2)
                     .opacity(trans.factorInCalculations ? 0 : 1)
             }
-            
-//            suggestionsRow
-//                .padding(.bottom, -7)
         }
         .listRowSeparator(shouldShowSuggestions ? .hidden : .automatic)
         
@@ -143,8 +146,11 @@ struct TevTitle: View {
             .uiReturnKeyType(.next)
             .uiTextColor(UIColor(trans.color))
             #else
-            StandardTextField("Title", text: $trans.title, focusedField: focusedField.projectedValue, focusValue: 0)
-                .onSubmit { focusedField.wrappedValue = 1 }
+            TextField("", text: $trans.title, prompt: Text("Title")
+                .foregroundColor(.gray)
+                .font(.system(size: 14, weight: .light))
+            )
+            .onSubmit { focusedField.wrappedValue = 1 }
             #endif
         }
         .focused(focusedField.projectedValue, equals: 0)
@@ -247,8 +253,12 @@ struct TevTitle: View {
                             .foregroundStyle(.gray)
                             .font(.subheadline)
                     }
+                    #if os(iOS)
                     .padding(8)
                     .background(Capsule().foregroundStyle(.thickMaterial))
+                    #else
+                    .buttonStyle(.roundMacButton(horizontalPadding: 10))
+                    #endif
                 }
                 
                 if localTitleSuggestionType == .history {
@@ -307,8 +317,12 @@ struct TevTitle: View {
                     .foregroundStyle(.gray)
             }
         }
+        #if os(iOS)
         .padding(8)
         .background(Capsule().foregroundStyle(.thickMaterial))
+        #else
+        .buttonStyle(.roundMacButton(horizontalPadding: 10))
+        #endif
     }
     
     
@@ -324,8 +338,12 @@ struct TevTitle: View {
             .foregroundStyle(Color.theme)
             .font(.subheadline)
         }
+        #if os(iOS)
         .padding(8)
         .background(Capsule().foregroundStyle(.thickMaterial))
+        #else
+        .buttonStyle(.roundMacButton(horizontalPadding: 10))
+        #endif
     }
     
     

@@ -12,6 +12,6 @@ import SwiftUI
 struct Take_Photo_ExtensionBundle: WidgetBundle {
     var body: some Widget {
         Take_Photo_Extension()
-        Take_Photo_Control_Widget()
+        //Take_Photo_Control_Widget()
     }
 }

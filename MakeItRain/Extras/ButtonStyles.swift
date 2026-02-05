@@ -21,7 +21,10 @@ extension ButtonStyle where Self == CodyGrowingWithHoverButtonStyle {
     internal static var codyGrowingWithHover: CodyGrowingWithHoverButtonStyle { CodyGrowingWithHoverButtonStyle() }
 }
 extension ButtonStyle where Self == SheetHeaderButtonStyle {
-    internal static var sheetHeader: SheetHeaderButtonStyle { SheetHeaderButtonStyle() }
+    internal static var roundMacButton: SheetHeaderButtonStyle { SheetHeaderButtonStyle(horizontalPadding: 0) }
+}
+extension ButtonStyle where Self == SheetHeaderButtonStyle {
+    internal static func roundMacButton(horizontalPadding: CGFloat = 0) -> SheetHeaderButtonStyle { SheetHeaderButtonStyle(horizontalPadding: horizontalPadding) }
 }
 extension ButtonStyle where Self == AlertButtonStyle {
     internal static var codyAlert: AlertButtonStyle { AlertButtonStyle() }
@@ -84,17 +87,19 @@ struct CodyGrowingWithHoverButtonStyle: ButtonStyle {
 struct SheetHeaderButtonStyle: ButtonStyle {
     @Environment(\.colorScheme) var colorScheme
     @State private var buttonColor: Color = Color(.tertiarySystemFill)
+    var horizontalPadding: CGFloat
     
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             #if os(macOS)
             .buttonStyle(.plain)
             .foregroundStyle(.gray)
-            .imageScale(.small)
+            .imageScale(.large)
             .frame(minWidth: 30, minHeight: 30)
             .foregroundStyle(.gray)
+            .padding(.horizontal, horizontalPadding)
             .background(configuration.isPressed ? Color(.darkGray) : buttonColor)
-            .clipShape(Circle())
+            .clipShape(Capsule())
             #else
             .frame(minWidth: 30, minHeight: 30)
             #endif

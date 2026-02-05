@@ -10,7 +10,7 @@ import SwiftUI
 struct SheetHeaderPlaceHolderButton: View {
     var body: some View {
         Button { } label: { Text("") }
-            .buttonStyle(.sheetHeader)
+            .buttonStyle(.roundMacButton)
             .opacity(0)
     }
 }
@@ -44,14 +44,14 @@ struct SheetHeader<Content: View, Content2: View, Content3: View>: View {
     private func slot<V: View>(_ build: () -> V?) -> some View {
         if let v = build(), !(v is EmptyView) {
             v
-                .buttonStyle(.sheetHeader)
+                .buttonStyle(.roundMacButton)
                 .padding(7)
                 #if os(iOS)
                 .glassEffect(.regular.interactive())
                 #endif
         } else {
             SheetHeaderPlaceHolderButton()
-                .buttonStyle(.sheetHeader)
+                .buttonStyle(.roundMacButton)
                 .padding(7)
         }
     }
@@ -94,7 +94,7 @@ struct SheetHeader<Content: View, Content2: View, Content3: View>: View {
                 } label: {
                     Image(systemName: "xmark")
                 }
-                .buttonStyle(.sheetHeader)
+                .buttonStyle(.roundMacButton)
                 .padding(7)
                 #if os(iOS)
                 .glassEffect(.regular.interactive())

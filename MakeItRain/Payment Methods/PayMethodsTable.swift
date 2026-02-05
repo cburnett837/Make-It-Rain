@@ -179,20 +179,24 @@ struct PayMethodsTable: View {
                 payModel.determineIfUserIsRequiredToAddPaymentMethod()
             }) { meth in
                 PayMethodOverViewWrapperIpad(payMethod: meth)
+                    #if os(macOS)
+                    .frame(minWidth: 300, minHeight: 500)
+                    .presentationSizing(.page)
+                    #endif
                     //.presentationSizing(.page)
             }
             .sheet(isPresented: $showDefaultViewingSheet, onDismiss: setDefaultViewingMethod) {
                 PayMethodSheet(payMethod: $defaultViewingMethod, whichPaymentMethods: .all, showNoneOption: true)
                     #if os(macOS)
                     .frame(minWidth: 300, minHeight: 500)
-                    .presentationSizing(.fitted)
+                    .presentationSizing(.page)
                     #endif
             }
             .sheet(isPresented: $showDefaultEditingSheet, onDismiss: setDefaultEditingMethod) {
                 PayMethodSheet(payMethod: $defaultEditingMethod, whichPaymentMethods: .allExceptUnified, showNoneOption: true)
                     #if os(macOS)
                     .frame(minWidth: 300, minHeight: 500)
-                    .presentationSizing(.fitted)
+                    .presentationSizing(.page)
                     #endif
             }
         }

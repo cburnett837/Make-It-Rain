@@ -15,8 +15,7 @@ struct TevToolbar: ToolbarContent {
     var isTemp: Bool
     var showExpensiveViews: Bool
     var focusedField: FocusState<Int?>.Binding
-    
-
+    @Binding var shouldDismissOnMac: Bool
     
     @State private var isValidToSave = false
     @State private var showDeleteAlert = false
@@ -76,31 +75,30 @@ struct TevToolbar: ToolbarContent {
         #else
         ToolbarItemGroup(placement: .destructiveAction) {
             HStack {
-                deleteButton
-                moreMenu
+                NavigationLink(value: TransNavDestination.logs) {
+                    EnteredByAndUpdatedByView(
+                        enteredBy: trans.enteredBy,
+                        updatedBy: trans.updatedBy,
+                        enteredDate: trans.enteredDate,
+                        updatedDate: trans.updatedDate
+                    )
+                }
+                .buttonStyle(.roundMacButton(horizontalPadding: 5))
             }
         }
         
         ToolbarItemGroup(placement: .confirmationAction) {
-            AnimatedCloseButton(isValidToSave: isValidToSave, closeButton: closeButton)
-                /// Check what color the save button should be.
-                .onChange(of: transactionValuesChanged) { checkIfTransactionIsValidToSave() }
-        }
-        
-        ToolbarItem(placement: .confirmationAction) {
             HStack {
-                EnteredByAndUpdatedByView(
-                    enteredBy: trans.enteredBy,
-                    updatedBy: trans.updatedBy,
-                    enteredDate: trans.enteredDate,
-                    updatedDate: trans.updatedDate
-                )
+                
+                deleteButton
+                moreMenu
                 
                 AnimatedCloseButton(isValidToSave: isValidToSave, closeButton: closeButton)
                     /// Check what color the save button should be.
                     .onChange(of: transactionValuesChanged) { checkIfTransactionIsValidToSave() }
             }
         }
+                
         #endif
     }
     
@@ -123,6 +121,9 @@ struct TevToolbar: ToolbarContent {
             Image(systemName: "ellipsis")
                 .schemeBasedForegroundStyle()
         }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
     }
         
     
@@ -131,7 +132,13 @@ struct TevToolbar: ToolbarContent {
             showDeleteAlert = true
         } label: {
             Image(systemName: "trash")
+                #if os(macOS)
+                    .foregroundStyle(.red)
+                #endif
         }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
         .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
         .tint(.none)
         .confirmationDialog("Delete \"\(trans.title)\"?", isPresented: $showDeleteAlert) {
@@ -140,6 +147,7 @@ struct TevToolbar: ToolbarContent {
             DeleteYesButton(
                 trans: trans,
                 //transEditID: $transEditID,
+                shouldDismissOnMac: $shouldDismissOnMac,
                 isTemp: isTemp,
                 christmasListDeletePeference: .delete
             )
@@ -148,6 +156,7 @@ struct TevToolbar: ToolbarContent {
                 DeleteYesButton(
                     trans: trans,
                     //transEditID: $transEditID,
+                    shouldDismissOnMac: $shouldDismissOnMac,
                     isTemp: isTemp,
                     christmasListDeletePeference: .resetStatusToIdea
                 )
@@ -208,7 +217,11 @@ struct TevToolbar: ToolbarContent {
         } else {
             focusedField.wrappedValue = nil
             //transEditID = nil
+            #if os(iOS)
             dismiss()
+            #else
+            shouldDismissOnMac = true
+            #endif
         }
     }
     
@@ -218,6 +231,7 @@ struct TevToolbar: ToolbarContent {
     
         @Environment(\.dismiss) var dismiss
         @Bindable var trans: CBTransaction
+        @Binding var shouldDismissOnMac: Bool
         //@Binding var transEditID: String?
         var isTemp: Bool
         var christmasListDeletePeference: ChristmasListDeletePreference
@@ -242,7 +256,11 @@ struct TevToolbar: ToolbarContent {
         
         func delete() {
             if isTemp {
+                #if os(iOS)
                 dismiss()
+                #else
+                shouldDismissOnMac = true
+                #endif
                 calModel.tempTransactions.removeAll { $0.id == trans.id }
                 //let _ = DataManager.shared.delete(type: TempTransaction.self, predicate: .byId(.string(trans.id)))
                 
@@ -261,7 +279,11 @@ struct TevToolbar: ToolbarContent {
                 //transEditID = nil
                 trans.christmasListDeletePreference = christmasListDeletePeference
                 trans.action = .delete
+                #if os(iOS)
                 dismiss()
+                #else
+                shouldDismissOnMac = true
+                #endif
                 
                 //calModel.saveTransaction(id: trans.id, day: day)
             }

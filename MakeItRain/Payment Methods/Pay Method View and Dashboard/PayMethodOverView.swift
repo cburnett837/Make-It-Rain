@@ -137,11 +137,9 @@ struct PayMethodOverView: View {
             detailPage
                 #if os(iOS)
                 .background(Color(uiColor: .systemGroupedBackground))
-                #endif
-                .navigationTitle("Account Details")
-                #if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)
                 #endif
+                .navigationTitle("Account Details")
                 .navigationDestination(for: String.self) { _ in chartPage }
                 .toolbar {
                     #if os(iOS)
@@ -157,6 +155,17 @@ struct PayMethodOverView: View {
                         ToolbarItem(placement: .topBarTrailing) { closeButton }
                     }
                     #else
+                    ToolbarItemGroup(placement: .confirmationAction) {
+                        HStack {
+                            Button("Edit") {
+                                paymentMethodEditID = payMethod.id
+                            }
+                            .schemeBasedForegroundStyle()
+                            .buttonStyle(.roundMacButton(horizontalPadding: 10))
+                            
+                            closeButton
+                        }
+                    }
                     #endif
                 }
         }
@@ -492,6 +501,9 @@ struct PayMethodOverView: View {
             Image(systemName: "xmark")
                 .schemeBasedForegroundStyle()
         }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
     }
     
     
@@ -526,7 +538,7 @@ struct PayMethodOverView: View {
             let needsUpdates = calModel.transactionsUpdatesExistAfter(fetchHistoryTime)
             if payMethod.breakdownsRegardlessOfPaymentMethod.isEmpty || needsUpdates || AppState.shared.isIpad {
                 fetchHistoryTime = Date()
-                await viewModel.fetchHistory(for: payMethod, payModel: payModel, setChartAsNew: true)
+                viewModel.fetchHistory(for: payMethod, payModel: payModel, setChartAsNew: true)
             }
         }
         

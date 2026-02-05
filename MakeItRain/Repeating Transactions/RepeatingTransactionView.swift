@@ -134,12 +134,12 @@ struct RepeatingTransactionView: View {
             StandardDivider()
                                     
             LabeledRow(paymentMethodTitle, labelWidth) {
-                PayMethodSheetButtonMac(payMethod: $repTransaction.payMethod, whichPaymentMethods: .allExceptUnified)
+                PayMethodSheetButton(text: paymentMethodTitle, payMethod: $repTransaction.payMethod, whichPaymentMethods: .allExceptUnified)
             }
                         
             if !isRegularTransaction {
                 LabeledRow(paymentMethod2Title, labelWidth) {
-                    PayMethodSheetButtonMac(payMethod: $repTransaction.payMethodPayTo, whichPaymentMethods: .allExceptUnified)
+                    PayMethodSheetButton(text: paymentMethod2Title, payMethod: $repTransaction.payMethodPayTo, whichPaymentMethods: .allExceptUnified)
                 }
             }
             
@@ -159,7 +159,7 @@ struct RepeatingTransactionView: View {
             StandardDivider()
                                     
             LabeledRow("Category", labelWidth) {
-                CategorySheetButtonMac(category: $repTransaction.category)
+                CategorySheetButton(category: $repTransaction.category)
             }
             
             StandardDivider()
@@ -228,7 +228,7 @@ struct RepeatingTransactionView: View {
                     }
                     
                     Section("Additional Details") {
-                        CategorySheetButtonPhone(category: $repTransaction.category)
+                        CategorySheetButton(category: $repTransaction.category)
                         colorRow
                     }
                     
@@ -399,7 +399,7 @@ struct RepeatingTransactionView: View {
     
     #if os(iOS)
     var payFromRow: some View {
-        PayMethodSheetButtonPhone(
+        PayMethodSheetButton(
             text: "Pay From",
             logoFallBackType:.customImage(.init(name: repTransaction.payMethod?.fallbackImage, color: repTransaction.color)),
             payMethod: $repTransaction.payMethod,
@@ -409,7 +409,7 @@ struct RepeatingTransactionView: View {
     
     
     var payToRow: some View {
-        PayMethodSheetButtonPhone(
+        PayMethodSheetButton(
             text: "Pay To",
             logoFallBackType:.customImage(.init(name: repTransaction.payMethodPayTo?.fallbackImage, color: repTransaction.color)),
             payMethod: $repTransaction.payMethodPayTo,

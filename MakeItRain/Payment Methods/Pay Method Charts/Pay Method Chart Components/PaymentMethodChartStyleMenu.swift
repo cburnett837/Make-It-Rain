@@ -44,5 +44,8 @@ struct PaymentMethodChartStyleMenu: View {
             Image(systemName: "line.3.horizontal.decrease")
                 .schemeBasedForegroundStyle()
         }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
     }
 }

@@ -14,7 +14,7 @@ struct CalendarViewMac: View {
     @AppStorage("viewMode") var viewMode = CalendarViewMode.scrollable
     //@Local(\.colorTheme) var colorTheme
     @Local(\.alignWeekdayNamesLeft) var alignWeekdayNamesLeft
-    
+    @Environment(CalendarProps.self) private var calProps
     @Environment(CalendarModel.self) private var calModel
     @Environment(FuncModel.self) private var funcModel
         
@@ -43,7 +43,7 @@ struct CalendarViewMac: View {
     @FocusState private var focusedField: Int?
     @State private var isHoveringOnSlider: Bool = false
     
-    @State private var selectedDay: CBDay?
+    //@State private var selectedDay: CBDay?
     @State private var transEditID: String?
     @State private var editTrans: CBTransaction?
     
@@ -54,6 +54,8 @@ struct CalendarViewMac: View {
 
     
     var body: some View {
+        @Bindable var calProps = calProps
+        
         calendarView
             .padding(viewMode == .split ? .horizontal : .horizontal, 15)
             .if(viewMode == .split) {
@@ -73,18 +75,18 @@ struct CalendarViewMac: View {
                 calModel.setSelectedMonthFromNavigation(navID: enumID, calculateStartingAndEod: true)
                 
                 let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
-                selectedDay = targetDay
+                calProps.selectedDay = targetDay
             }
             .onChange(of: calModel.sMonth) {
                 let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
-                selectedDay = targetDay
+                calProps.selectedDay = targetDay
             }
             .onPreferenceChange(ViewWidthKey.self) { extraViewsWidth = $0 }
             //.onPreferenceChange(MaxSizePreferenceKey.self) { maxHeaderHeight = max(maxHeaderHeight, $0) }
                     
             .toolbar {
                 ToolbarItem(placement: .navigation) {
-                    CalendarToolbarLeading(transEditID: $transEditID, focusedField: $focusedField, enumID: enumID, isInWindow: isInWindow)
+                    CalendarToolbarLeading(focusedField: $focusedField, enumID: enumID, isInWindow: isInWindow)
                         //.opacity(LoadingManager.shared.showInitiallyLoadingSpinner ? 0 : 1)
                         .focusSection()
                 }
@@ -103,26 +105,6 @@ struct CalendarViewMac: View {
             .onReceive(AppState.shared.currentDateTimer) { input in
                 let _ = AppState.shared.setNow()
             }
-    //        .searchable(text: $searchText) {
-    //            let relevantTransactionTitles: Array<String> = calModel
-    //                .sMonth
-    //                .justTransactions
-    //                .filter { $0.payMethod?.id == calModel.sPayMethod?.id }
-    //                .compactMap { $0.title }
-    //                .uniqued()
-    //                .filter { $0.lowercased().contains(searchText.lowercased()) }
-    //
-    //            ForEach(relevantTransactionTitles, id: \.self) { title in
-    //                Text(title)
-    //                    .searchCompletion(title)
-    //            }
-    //        }
-    //        .searchScopes($searchWhat) {
-    //            Text("Transaction Title")
-    //                .tag(CalendarSearchWhat.titles)
-    //            Text("Tag")
-    //                .tag(CalendarSearchWhat.tags)
-    //        }
             .tint(Color.theme)
             .calendarLoadingSpinner(id: enumID, text: "Loading \(enumID.displayName)…")
             /// This is here in case you want to cancel the dragging transaction - this will unhilight the last hilighted day.
@@ -138,45 +120,14 @@ struct CalendarViewMac: View {
                 //calModel.hilightTrans = nil
                 focusedField = nil
             }
-            .onChange(of: transEditID) { oldValue, newValue in
-                print(".onChange(of: transEditID)")
-                /// When `newValue` is false, save to the server. We have to use this because `.popover(isPresented:)` has no onDismiss option.
-                if oldValue != nil && newValue == nil {
-//                        calModel.saveTransaction(id: oldValue!, day: day, eventModel: eventModel)
-//
-//                        /// Keep the model clean, and show alert for a photo that may be taking a long time to upload.
-//                        calModel.pictureTransactionID = nil
-                } else {
-                    editTrans = calModel.getTransaction(by: transEditID!, from: .normalList)
-                }
-            }
-                       
-            /// This onChange is needed because you can close the popover without actually clicking the close button.
-            /// `popover()` has no `onDismiss()` option, so I need somewhere to do cleanup.
-            .onChange(of: editTrans) { oldValue, newValue in
-                print(".onChange(of: editTrans)")
-                if oldValue == nil && newValue != nil {
-                    focusedField = nil
-                }
-                
-                if oldValue != nil && newValue == nil {
-                    
-                    /// Copy the selected day as it was when the transaction was being edited.
-                    let transSelectedDay = selectedDay
-                    
-                    /// Set the selected day back to today so the plus button will target it.
-                    let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
-                    selectedDay = targetDay
-                    
-                    let id = oldValue!.id
-                    Task {
-                        await calModel.saveTransaction(id: id/*, day: transSelectedDay!*/)
-    //                        calModel.pictureTransactionID = nil
-                        FileModel.shared.fileParent = nil
-                    }
-                    
-                }
-            }
+            .transactionEditSheetAndLogic(
+                transEditID: $calProps.transEditID,
+                selectedDay: $calProps.selectedDay,
+                overviewDay: $calProps.overviewDay,
+                findTransactionWhere: $calProps.findTransactionWhere,
+                presentTip: true,
+                resetSelectedDayOnClose: true,
+            )
         
     }
     
@@ -247,10 +198,11 @@ struct CalendarViewMac: View {
     var dayGrid: some View {
         Group {
             @Bindable var calModel = calModel
+            @Bindable var calProps = calProps
             GeometryReader { geo in
                 LazyVGrid(columns: sevenColumnGrid, spacing: 0) {
                     ForEach($calModel.sMonth.days) { $day in
-                        DayViewMac(transEditID: $transEditID, editTrans: $editTrans, selectedDay: $selectedDay, day: $day, cellHeight: geo.size.height / divideBy, focusedField: _focusedField)
+                        DayViewMac(transEditID: $transEditID, editTrans: $editTrans, selectedDay: $calProps.selectedDay, day: $day, cellHeight: geo.size.height / divideBy, focusedField: _focusedField)
                             //.border(Color(.gray))
                             .overlay {
                                 Rectangle().stroke(Color(.gray), lineWidth: 1)

@@ -40,14 +40,20 @@ struct PopulateMonthOptionsSheet: View {
                 paymentMethodSection
                 budgetSection
             }
-            #if os(iOS)
+            
             .navigationTitle("Populate Options")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .topBarTrailing) { closeButton }
                 ToolbarItem(placement: .bottomBar) { populateButton }
+                #else
+                ToolbarItem(placement: .destructiveAction) { populateButton }
+                ToolbarItem(placement: .confirmationAction) { closeButton }
+                #endif
             }
-            #endif
         }
         .task {
             payModel.paymentMethods
@@ -105,14 +111,19 @@ struct PopulateMonthOptionsSheet: View {
     var populateButton: some View {
         Button {
             dismiss()
-            calModel.populate(options: model, repTransactions: repModel.repTransactions, categories: catModel.categories, categoryGroups: catModel.categoryGroups)
+            calModel.populate(
+                options: model,
+                repTransactions: repModel.repTransactions,
+                categories: catModel.categories,
+                categoryGroups: catModel.categoryGroups
+            )
         } label: {
             Text("Populate")
                 .schemeBasedForegroundStyle()
         }
         #if os(macOS)
         .foregroundStyle(Color.theme)
-        .buttonStyle(.codyStandardWithHover)
+        .buttonStyle(.roundMacButton(horizontalPadding: 10))
         #else
         .tint(Color.theme)
         .buttonStyle(.glassProminent)
@@ -127,5 +138,9 @@ struct PopulateMonthOptionsSheet: View {
             Image(systemName: "xmark")
                 .schemeBasedForegroundStyle()
         }
+        #if os(macOS)
+        .foregroundStyle(Color.theme)
+        .buttonStyle(.roundMacButton)
+        #endif
     }
 }

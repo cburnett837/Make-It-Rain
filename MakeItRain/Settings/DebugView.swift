@@ -26,9 +26,9 @@ struct DebugView: View {
             
             //CustomCalculatorKeyboard(text: $text)
             
-            #if os(iOS)
-            customNumPad
-            #endif
+//            #if os(iOS)
+//            customNumPad
+//            #endif
             
             Section {
                 printAllBudgetsButton

@@ -20,8 +20,16 @@ struct PayMethodFilterMenu: View {
             .pickerStyle(.inline)
             .labelsHidden()
         } label: {
+            #if os(iOS)
             Label("Filter", systemImage: "line.3.horizontal.decrease")
+            #else
+            Image(systemName: "line.3.horizontal.decrease")
+                .schemeBasedForegroundStyle()
+            #endif
         }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
         .schemeBasedTint()
         .onChange(of: appSettings.paymentMethodFilterMode) { oldValue, newValue in
             appSettings.sendToServer(setting: .init(settingId: 57, setting: appSettings.paymentMethodFilterMode.rawValue))

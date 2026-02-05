@@ -15,8 +15,10 @@ struct TevDatePicker: View {
 
     var body: some View {
         datePickerRow
+            #if os(iOS)
             .listRowInsets(EdgeInsets())
             .padding(.horizontal, 16)
+            #endif
         
         if (trans.isSmartTransaction ?? false) &&
             (trans.smartTransactionIssue?.enumID == .missingDate
@@ -25,8 +27,10 @@ struct TevDatePicker: View {
             && !(trans.smartTransactionIsAcknowledged ?? true) {
             
             dateFixerRow
+                #if os(iOS)
                 .listRowInsets(EdgeInsets())
                 .padding(.horizontal, 16)
+                #endif
         }
     }
     
@@ -52,17 +56,12 @@ struct TevDatePicker: View {
                 
             } else {
                 #if os(iOS)
-//                UIKitDatePicker(date: $trans.date, alignment: .trailing) // Have to use because of reformatting issue
-//                    .frame(height: 40)
-                
                 DatePicker("", selection: $trans.date ?? Date(), displayedComponents: [.date])
                     .frame(maxWidth: .infinity, alignment: .trailing)
                     .labelsHidden()
-                
-                
                 #else
                 DatePicker("", selection: $trans.date ?? Date(), displayedComponents: [.date])
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
                     .labelsHidden()
                 #endif
             }

@@ -183,12 +183,16 @@ struct SymbolPicker: View {
             }
             #if os(iOS)
             .searchable(text: $searchText, prompt: "Search")
-            .navigationTitle("Symbols")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) { closeButton }
-            }
             #endif
+            .navigationTitle("Symbols")
+            .toolbar {
+                #if os(iOS)
+                ToolbarItem(placement: .topBarTrailing) { closeButton }
+                #else
+                ToolbarItem(placement: .confirmationAction) { closeButton }
+                #endif
+            }
         }
     }
     
@@ -258,5 +262,8 @@ struct SymbolPicker: View {
             Image(systemName: "xmark")
                 .schemeBasedForegroundStyle()
         }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
     }
 }

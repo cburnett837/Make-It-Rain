@@ -26,8 +26,22 @@ struct TevAmount: View {
                 .frame(height: 2)
                 .opacity(trans.factorInCalculations ? 0 : 1)
         }
-        .onChange(of: useCalculator) { persistentUseCalculator = $1 }
         .task { useCalculator = persistentUseCalculator }
+        .onChange(of: useCalculator) { persistentUseCalculator = $1 }
+        .onChange(of: focusedField.wrappedValue) {
+            guard let meth = trans.payMethod else { return }
+            if $1 == 1 && trans.amountString.isEmpty && meth.isDebitOrCash {
+                trans.amountString = "-"
+            }
+        }
+        /// Keep the amount in sync with the payment method at the time the payment method was changed.
+        .onChange(of: trans.payMethod) { oldMeth, newMeth in
+            if let oldMeth, let newMeth {
+                if (oldMeth.isDebitOrCash && newMeth.isCreditOrLoan) || (oldMeth.isCreditOrLoan && newMeth.isDebitOrCash) {
+                    Helpers.plusMinus($trans.amountString)
+                }
+            }
+        }
     }
     
     
@@ -41,106 +55,50 @@ struct TevAmount: View {
                     .foregroundStyle(.gray)
             }
             
-            Group {
-                #if os(iOS)
-                
-                UITextFieldWrapper(placeholder: "Amount", text: $trans.amountString, toolbar: {
-                    KeyboardToolbarView(
-                        focusedField: focusedField.projectedValue,
-                        disableDown: true,
-                        accessoryImage3: useCalculator ? "numbers" : "square.grid.4x3.fill",
-                        accessoryFunc3: { changeView() },
-                        accessoryImage4: useCalculator ? nil : "plus.forwardslash.minus",
-                        accessoryFunc4: useCalculator ? nil : { Helpers.plusMinus($trans.amountString) }
-                    )
-                })
-                .uiTag(1)
-                .uiClearButtonMode(.whileEditing)
-                .uiStartCursorAtEnd(true)
-                .uiTextAlignment(.left)
-                .uiKeyboardType(useCalculator ? .custom(.calculator) : .custom(.numpad))
-                
-                
-                
-//                if useCalculator {
-//                    UITextFieldWrapper(placeholder: "Amount", text: $trans.amountString, toolbar: {
-//                        KeyboardToolbarView(
-//                            focusedField: focusedField.projectedValue,
-//                            disableDown: true,
-//                            accessoryImage3: "numbers",
-//                            accessoryFunc3: { changeView() },
-//                            accessoryImage4: "plus.forwardslash.minus",
-//                            accessoryFunc4: { Helpers.plusMinus($trans.amountString) }
-//                        )
-//                    })
-//                    .uiTag(1)
-//                    .uiClearButtonMode(.whileEditing)
-//                    .uiStartCursorAtEnd(true)
-//                    .uiTextAlignment(.left)
-//                    .uiKeyboardType(.custom(.calculator))
-//                } else {
-//                    UITextFieldWrapper(placeholder: "Amount", text: $trans.amountString, toolbar: {
-//                        KeyboardToolbarView(
-//                            focusedField: focusedField.projectedValue,
-//                            disableDown: true,
-//                            accessoryImage3: "square.grid.4x3.fill",
-//                            accessoryFunc3: { changeView() },
-//                            accessoryImage4: "plus.forwardslash.minus",
-//                            accessoryFunc4: { Helpers.plusMinus($trans.amountString) }
-//                        )
-//                    })
-//                    .uiTag(1)
-//                    .uiClearButtonMode(.whileEditing)
-//                    .uiStartCursorAtEnd(true)
-//                    .uiTextAlignment(.left)
-//                    .uiKeyboardType(.custom(.numpad))
-//                }
-                
-                #else
-                StandardTextField("Amount", text: $trans.amountString, focusedField: focusedField.projectedValue, focusValue: 1)
-                #endif
+            /// Wrap in LabeledContent since the mac sheet is in a form. Using LabeledContent will push the text to the leading edge,
+            LabeledContent {
+                amountTextField
+            } label: {
+                EmptyView()
             }
-            .focused(focusedField.projectedValue, equals: 1)
-            .formatCurrencyLiveAndOnUnFocus(
-                focusValue: 1,
-                focusedField: focusedField.wrappedValue,
-                amountString: trans.amountString,
-                amountStringBinding: $trans.amountString,
-                amount: trans.amount
-            )
-//            .calculateAndFormatCurrencyLiveAndOnUnFocus(
-//                focusValue: 1,
-//                focusedField: focusedField.wrappedValue,
-//                amountString: trans.amountString,
-//                amountStringBinding: $trans.amountString,
-//                amount: trans.amount
-//            )
-            .onChange(of: focusedField.wrappedValue) {
-                guard let meth = trans.payMethod else { return }
-                if $1 == 1 && trans.amountString.isEmpty && meth.isDebitOrCash {
-                    trans.amountString = "-"
-                }
-                
-                
-//                if newValue == 1 {
-//                    Helpers.formatCurrency(
-//                        focusValue: focusValue,
-//                        oldFocus: oldValue,
-//                        newFocus: newValue,
-//                        amountString: amountStringBinding,
-//                        amount: amount
-//                    )
-//                }
-            }
-            /// Keep the amount in sync with the payment method at the time the payment method was changed.
-            .onChange(of: trans.payMethod) { oldMeth, newMeth in
-                if let oldMeth, let newMeth {
-                    if (oldMeth.isDebitOrCash && newMeth.isCreditOrLoan) || (oldMeth.isCreditOrLoan && newMeth.isDebitOrCash) {
-                        Helpers.plusMinus($trans.amountString)
-                    }
-                }
-            }
+            .labelsHidden()
         }
+    }
+    
+    
+    var amountTextField: some View {
+        Group {
+            #if os(iOS)
+            UITextFieldWrapper(placeholder: "Amount", text: $trans.amountString, toolbar: {
+                KeyboardToolbarView(
+                    focusedField: focusedField.projectedValue,
+                    disableDown: true,
+                    accessoryImage3: useCalculator ? "numbers" : "square.grid.4x3.fill",
+                    accessoryFunc3: { changeView() },
+                    accessoryImage4: useCalculator ? nil : "plus.forwardslash.minus",
+                    accessoryFunc4: useCalculator ? nil : { Helpers.plusMinus($trans.amountString) }
+                )
+            })
+            .uiTag(1)
+            .uiClearButtonMode(.whileEditing)
+            .uiStartCursorAtEnd(true)
+            .uiTextAlignment(.left)
+            .uiKeyboardType(useCalculator ? .custom(.calculator) : .custom(.numpad))
+            #else
+            TextField("", text: $trans.amountString, prompt: Text("Amount")
+                .foregroundColor(.gray)
+                .font(.system(size: 14, weight: .light))
+            )
+            #endif
+        }
+        .focused(focusedField.projectedValue, equals: 1)
+        .formatCurrencyLiveAndOnUnFocus(
+            focusValue: 1,
+            focusedField: focusedField.wrappedValue,
+            amountString: trans.amountString,
+            amountStringBinding: $trans.amountString,
+            amount: trans.amount
+        )
     }
     
     
@@ -149,7 +107,6 @@ struct TevAmount: View {
         useCalculator.toggle()
         DispatchQueue.main.async/*After(deadline: .now() + 0.2)*/ {
             focusedField.wrappedValue = 1
-        }
-        
+        }        
     }
 }

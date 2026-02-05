@@ -71,8 +71,6 @@ struct EnteredByAndUpdatedByView: View {
 //        }
         //.frame(maxWidth: .infinity)
         .frame(maxWidth: .infinity, alignment: .center)
-        #if os(macOS)
-        .padding(.bottom, 12)        
-        #endif
+        
     }
 }

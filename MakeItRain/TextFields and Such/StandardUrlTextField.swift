@@ -38,20 +38,13 @@ struct StandardUrlTextField: View {
                     .uiTextAlignment(.right)
                     .uiAutoCorrectionDisabled(true)
                     .uiKeyboardType(.system(.URL))
-
-    //                    StandardUITextField("URL", text: $url, onSubmit: {
-    //                        focusedField.wrappedValue = nil
-    //                    }, toolbar: {
-    //                        KeyboardToolbarView(focusedField: focusedField.projectedValue)
-    //                    })
-    //                    .cbClearButtonMode(.whileEditing)
-    //                    .cbFocused(focusedField, equals: focusID)
-    //                    .cbAutoCorrectionDisabled(true)
-    //                    .cbKeyboardType(.URL)
                     #else
-                    StandardTextField("URL", text: $url, focusedField: focusedField.projectedValue, focusValue: focusID)
-                        .autocorrectionDisabled(true)
-                        .onSubmit { focusedField.wrappedValue = nil }
+                    TextField("", text: $url, prompt: Text("https://www.google.com")
+                        .foregroundColor(.gray)
+                        .font(.system(size: 14, weight: .light))
+                    )
+                    .autocorrectionDisabled(true)
+                    .onSubmit { focusedField.wrappedValue = nil }
                     #endif
                     
                     #if os(macOS)

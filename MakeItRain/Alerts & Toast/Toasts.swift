@@ -155,7 +155,10 @@ struct ToastView: View {
         .padding(.horizontal, 15)
         #if os(iOS)
         .glassEffect(in: .rect(cornerRadius: 24))        
+        #else
+        .background(.thinMaterial, in: .rect(cornerRadius: 24))
         #endif
+        .padding(.top, 40)
         //.sensoryFeedback(.warning, trigger: buzz) { $1 }
         .scenePadding(.horizontal)
         .frame(maxWidth: .infinity, alignment: .center)

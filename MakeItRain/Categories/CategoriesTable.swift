@@ -132,6 +132,9 @@ struct CategoriesTable: View {
                 }
             }) { cat in
                 CategoryOverViewWrapperIpad(category: cat, calModel: calModel, catModel: catModel)
+                    #if os(macOS)
+                    .presentationSizing(.page)
+                    #endif
 
 //                CategoryView(category: cat, editID: $categoryEditID)
 //                    #if os(macOS)

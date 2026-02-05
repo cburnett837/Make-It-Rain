@@ -111,9 +111,12 @@ struct TevTrackingAndOrder: View {
                 .uiReturnKeyType(.next)
                 .uiAutoCorrectionDisabled(true)
                 #else
-                StandardTextField("Order Number", text: $orderNumber, focusedField: focusedField.projectedValue, focusValue: 3)
-                    .autocorrectionDisabled(true)
-                    .onSubmit { focusedField.wrappedValue = 4 }
+                TextField("", text: $orderNumber, prompt: Text("ABC123")
+                    .foregroundColor(.gray)
+                    .font(.system(size: 14, weight: .light))
+                )
+                .autocorrectionDisabled(true)
+                .onSubmit { focusedField.wrappedValue = 4 }
                 #endif
             }
             .focused(focusedField, equals: 3)

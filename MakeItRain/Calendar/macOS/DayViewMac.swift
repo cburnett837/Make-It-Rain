@@ -15,6 +15,7 @@ struct DayViewMac: View {
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
+    @Environment(CalendarProps.self) private var calProps
     
     
     //@State private var transEditID: String?
@@ -113,33 +114,33 @@ struct DayViewMac: View {
                 }
                                 
                 /// This `.popover(item: $transEditID) & .onChange(of: transEditID)` are used for adding new transactions. They also exists in ``LineItemViewMac``, which are used to edit existing transactions.
-                .popover(item: $localEditTrans) { trans in
-                    TransactionEditView(trans: trans, day: day, isTemp: false)
-                        .frame(minWidth: 320)
-                }
-//                .transactionEditSheetAndLogic(
-//                    calModel: calModel,
-//                    transEditID: $transEditID,
-//                    editTrans: $editTrans,
-//                    selectedDay: .constant(nil),
-//                    findTransactionWhere: .normalList
-//                )
-                
-                /// When the edit trans is set, set a local copy to trigger the popover.
-                /// Have to use the "global & local" idea otherwise a popover for every day will try and open when you create a new transactions.
-                .onChange(of: editTrans) {
-                    if $1 != nil && selectedDay?.date == day.date {
-                        localEditTrans = $1
-                    }
-                }
-                
-                /// When the popover closes, clear the global variables, which will trigger the saving and cleanup of the trans.
-                .onChange(of: localEditTrans) {
-                    if $1 == nil {
-                        editTrans = nil
-                        transEditID = nil
-                    }
-                }
+//                .popover(item: $localEditTrans) { trans in
+//                    TransactionEditView(trans: trans, day: day, isTemp: false)
+//                        .frame(minWidth: 320)
+//                }
+////                .transactionEditSheetAndLogic(
+////                    calModel: calModel,
+////                    transEditID: $transEditID,
+////                    editTrans: $editTrans,
+////                    selectedDay: .constant(nil),
+////                    findTransactionWhere: .normalList
+////                )
+//                
+//                /// When the edit trans is set, set a local copy to trigger the popover.
+//                /// Have to use the "global & local" idea otherwise a popover for every day will try and open when you create a new transactions.
+//                .onChange(of: editTrans) {
+//                    if $1 != nil && selectedDay?.date == day.date {
+//                        localEditTrans = $1
+//                    }
+//                }
+//                
+//                /// When the popover closes, clear the global variables, which will trigger the saving and cleanup of the trans.
+//                .onChange(of: localEditTrans) {
+//                    if $1 == nil {
+//                        editTrans = nil
+//                        transEditID = nil
+//                    }
+//                }
                 
                 
                 
@@ -231,12 +232,13 @@ struct DayViewMac: View {
     var contextMenu: some View {
         VStack {
             Button("New Transaction") {
-                transEditID = UUID().uuidString
                 selectedDay = day
+                calProps.transEditID = UUID().uuidString
             }
             
             Button("New Transfer / Payment") {
-                showTransferSheet = true
+                selectedDay = day
+                calProps.showTransferSheet = true
             }
             
             Button {

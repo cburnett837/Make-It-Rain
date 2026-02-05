@@ -52,11 +52,13 @@ struct TransactionAmountRow<Content: View>: View {
                         .font(.body)
                         .schemeBasedForegroundStyle()
                 }
+                #if os(iOS)
                 /// Prevent the button from making the list row bigger
                 .padding(.vertical, -10)
                 .buttonStyle(.borderedProminent)
-                #if os(iOS)
                 .tint(Color(uiColor: .quaternarySystemFill))
+                #else
+                .buttonStyle(.roundMacButton(horizontalPadding: 10))
                 #endif
                 //.disabled(amountString.isEmpty)
             }
@@ -64,7 +66,5 @@ struct TransactionAmountRow<Content: View>: View {
         .if(!isCalculator) {
             $0.validate(amountString, rules: .regex(.currency, "The field contains invalid characters"))
         }
-        
-        
     }
 }

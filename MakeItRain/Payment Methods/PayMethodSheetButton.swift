@@ -7,14 +7,7 @@
 
 import SwiftUI
 
-//
-//struct LogoInfo {
-//    //var include: Bool
-//    var fallBackType: LogoFallBackType
-//}
-
-#if os(iOS)
-struct PayMethodSheetButtonPhone: View {
+struct PayMethodSheetButton: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(PlaidModel.self) private var plaidModel
     
@@ -65,47 +58,26 @@ struct PayMethodSheetButtonPhone: View {
                     
                 }
                 .tint(.none)
+                #if os(iOS)
                 .foregroundStyle(Color(.secondaryLabel))
+                #else
+                .foregroundStyle(.secondary)
+                #endif
             }
         }
+        #if os(macOS)
+        .buttonStyle(.plain)
+        #endif
         .disabled(isDisabled)
         .contentShape(Rectangle())
         .focusable(false)
         .onHover { payMethodMenuColor = $0 ? Color(.systemFill) : Color(.tertiarySystemFill) }
         .sheet(isPresented: $showPayMethodSheet) {
             PayMethodSheet(payMethod: $payMethod, whichPaymentMethods: whichPaymentMethods)
-        }
-    }
-}
-#endif
-
-
-#if os(macOS)
-struct PayMethodSheetButtonMac: View {
-    @State private var showPayMethodSheet = false
-    @State private var payMethodMenuColor: Color = Color(.tertiarySystemFill)
-    
-    @Binding var payMethod: CBPaymentMethod?
-    var trans: CBTransaction? = nil
-    var saveOnChange: Bool = false
-    let whichPaymentMethods: ApplicablePaymentMethods
-    
-    var body: some View {
-        StandardRectangle(fill: payMethodMenuColor) {
-            MenuOrListButton(title: payMethod?.title, alternateTitle: "Select Account")
-        }
-        .contentShape(Rectangle())
-        //.padding(.leading, 2)
-        .focusable(false)
-        .onTapGesture {
-            showPayMethodSheet = true
-        }
-        .onHover { payMethodMenuColor = $0 ? Color(.systemFill) : Color(.tertiarySystemFill) }
-        .sheet(isPresented: $showPayMethodSheet) {
-            PayMethodSheet(payMethod: $payMethod, whichPaymentMethods: whichPaymentMethods)
+                #if os(macOS)
                 .frame(minWidth: 300, minHeight: 500)
                 .presentationSizing(.fitted)
+                #endif
         }
     }
 }
-#endif

@@ -199,17 +199,6 @@ fileprivate struct TransactionEditSheetAndLogic: ViewModifier {
         return content
             .onChange(of: transEditID) { transEditIdChanged(oldValue: $0, newValue: $1) }
             .sensoryFeedback(.selection, trigger: transEditID) { $1 != nil }
-            #if os(macOS)
-            .popover(item: $editTrans, arrowEdge: .trailing) { trans in
-                TransactionEditView(
-                    trans: trans,
-                    //transEditID: $transEditID,
-                    day: selectedDay!,
-                    isTemp: false
-                )
-                    .frame(minWidth: 320, minHeight: 320)
-            }
-            #else
             .sheet(item: $editTrans) { trans in
                 TransactionEditView(
                     trans: trans,
@@ -218,6 +207,10 @@ fileprivate struct TransactionEditSheetAndLogic: ViewModifier {
                     isTemp: false,
                     transLocation: findTransactionWhere
                 )
+                #if os(macOS)
+                .presentationSizing(.page)
+                .frame(minWidth: 320, minHeight: 320)
+                #endif
                 //#warning("produces a race condition when swiping to close and opening another trans too quickly. Causes transDays to be nil and crashes the app.")
                 /// needed to prevent the view from being incorrect.
                 .id(trans.id)
@@ -226,7 +219,6 @@ fileprivate struct TransactionEditSheetAndLogic: ViewModifier {
                     transEditID = nil
                 }
             }
-            #endif
         }
     
 

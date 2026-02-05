@@ -27,9 +27,15 @@ struct AnimatedCloseButton<CloseButton: View>: View {
                     .buttonStyle(.glassProminent)
                     #endif
                     .transition(.scale.combined(with: .opacity))
+                    #if os(macOS)
+                    .buttonStyle(.roundMacButton)
+                    #endif
             } else {
                 closeButton
                     .transition(.scale.combined(with: .opacity))
+                    #if os(macOS)
+                    .buttonStyle(.roundMacButton)
+                    #endif
             }
         }
         .animation(.easeInOut(duration: 0.25), value: isValidToSave)
