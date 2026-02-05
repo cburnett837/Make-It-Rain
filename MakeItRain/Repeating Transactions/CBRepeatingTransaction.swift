@@ -47,6 +47,7 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
     var enteredDate: Date
     var updatedDate: Date
     var include: Bool
+    var factorInCalculations: Bool
     
     var repeatingTransactionType: XrefItem = XrefModel.getItem(from: .repeatingTransactionType, byEnumID: .regular)
 
@@ -68,6 +69,7 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         self.enteredDate = Date()
         self.updatedDate = Date()
         self.include = true
+        self.factorInCalculations = true
         self.when = [
             CBRepeatingTransactionWhen(when: "sunday", displayTitle: "Sun", whenType: .weekday),
             CBRepeatingTransactionWhen(when: "monday", displayTitle: "Mon", whenType: .weekday),
@@ -139,6 +141,7 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         self.enteredDate = Date()
         self.updatedDate = Date()
         self.include = true
+        self.factorInCalculations = true
         self.when = [
             CBRepeatingTransactionWhen(when: "sunday", displayTitle: "Sun", whenType: .weekday),
             CBRepeatingTransactionWhen(when: "monday", displayTitle: "Mon", whenType: .weekday),
@@ -193,7 +196,7 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         ]
     }
         
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, title_hex_code, payment_method, payment_method_pay_to, category, active, user_id, account_id, device_uuid, when, sunday, monday, tuesday, wednesday, thursday, friday, saturday, january, february, march, april, may, june, july, august, september, october, november, december, day1, day2, day3, day4, day5, day6, day7, day8, day9, day10, day11, day12, day13, day14, day15, day16, day17, day18, day19, day20, day21, day22, day23, day24, day25, day26, day27, day28, day29, day30, day31, entered_by, updated_by, entered_date, updated_date, repeating_transaction_type_id, notes, include }
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, title_hex_code, payment_method, payment_method_pay_to, category, active, user_id, account_id, device_uuid, when, sunday, monday, tuesday, wednesday, thursday, friday, saturday, january, february, march, april, may, june, july, august, september, october, november, december, day1, day2, day3, day4, day5, day6, day7, day8, day9, day10, day11, day12, day13, day14, day15, day16, day17, day18, day19, day20, day21, day22, day23, day24, day25, day26, day27, day28, day29, day30, day31, entered_by, updated_by, entered_date, updated_date, repeating_transaction_type_id, notes, include, factor_in_calculations }
     
     
     func encode(to encoder: Encoder) throws {
@@ -208,6 +211,7 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         try container.encode(payMethodPayTo, forKey: .payment_method_pay_to)
         try container.encode(category, forKey: .category)
         try container.encode(include ? 1 : 0, forKey: .include)
+        try container.encode(factorInCalculations ? 1 : 0, forKey: .factor_in_calculations)
         //try container.encode(notes, forKey: .notes)
         
         let data = try JSONEncoder().encode(notes)
@@ -329,6 +333,9 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         let shouldInclude = try container.decode(Int?.self, forKey: .include)
         self.include = shouldInclude == 1
         
+        let factorInCalculations = try container.decode(Int?.self, forKey: .factor_in_calculations)
+        self.factorInCalculations = factorInCalculations == 1
+        
         action = .edit
         
         enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
@@ -373,6 +380,7 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
             && self.category?.id == deepCopy.category?.id
             && self.notes == deepCopy.notes
             && self.include == deepCopy.include
+            && self.factorInCalculations == deepCopy.factorInCalculations
             && self.repeatingTransactionType == deepCopy.repeatingTransactionType
             && self.when == deepCopy.when {
                 return false
@@ -397,6 +405,7 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
             copy.category = self.category
             copy.notes = self.notes
             copy.include = self.include
+            copy.factorInCalculations = self.factorInCalculations
             copy.repeatingTransactionType = self.repeatingTransactionType
             copy.when = self.when.map {
                 $0.deepCopy(.create)
@@ -418,6 +427,7 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
                 self.category = deepCopy.category
                 self.notes = deepCopy.notes
                 self.include = deepCopy.include
+                self.factorInCalculations = deepCopy.factorInCalculations
                 self.when = deepCopy.when
                 self.active = deepCopy.active
                 self.repeatingTransactionType = deepCopy.repeatingTransactionType
@@ -444,6 +454,7 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         self.enteredBy = repTransaction.enteredBy
         self.updatedBy = repTransaction.updatedBy
         self.include = repTransaction.include
+        self.factorInCalculations = repTransaction.factorInCalculations
     }
     
     
@@ -459,6 +470,7 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         && lhs.category?.id == rhs.category?.id
         && lhs.repeatingTransactionType == rhs.repeatingTransactionType
         && lhs.include == rhs.include
+        && lhs.factorInCalculations == rhs.factorInCalculations
         && lhs.when == rhs.when {
             return true
         }

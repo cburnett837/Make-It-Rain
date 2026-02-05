@@ -74,6 +74,14 @@ struct TevLogSheet: View {
     var content: some View {
         ForEach(logGroups) { group in
             Section {
+                LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
+                    Text("What Field")
+                    Text("Old")
+                    Text("New")
+                }
+                .bold()
+                .font(.headline)
+                
                 ForEach(group.logs) { log in
                     Button {
                         restoreLog(from: log)
@@ -84,25 +92,12 @@ struct TevLogSheet: View {
                     
                 }
             } header: {
-                VStack(alignment: .leading, spacing: 0) {
-                    LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
-                        Text("What Field")
-                        Text("Old")
-                        Text("New")
-                    }
-                    .font(.caption2)
-                    .bold()
-                }
-            } footer: {
                 HStack {
                     UserAvatar(user: group.enteredBy)
-                    Text("\(group.enteredBy.initials) - \(group.enteredDate.string(to: .monthDayShortYear)) - \(group.enteredDate.string(to: .timeAmPm))")
+                    Text("\(group.enteredDate.string(to: .monthDayShortYear)) - \(group.enteredDate.string(to: .timeAmPm))")
                 }
             }
         }
-        #if os(iOS)
-        .listSectionSpacing(50)
-        #endif
     }
     
     
@@ -110,6 +105,7 @@ struct TevLogSheet: View {
     func logLine(for log: CBLog) -> some View {
         LazyVGrid(columns: columnGrid, alignment: .leading, spacing: 10) {
             Text(LogField.pretty(for: log.field) ?? "N/A")
+                .bold()
             
             if log.field == .amount {
                 if let old = log.old, let oldDouble = Double(old) {
@@ -126,23 +122,37 @@ struct TevLogSheet: View {
                         BusinessLogo(config: .init(parent: meth, fallBackType: .color, size: 20))
                         Text(meth.title)
                     }
+                } else {
+                    Text("[Nothing]")
+                        .foregroundStyle(.gray)
                 }
+                
                 if let new = log.new {
                     let meth = payModel.getPaymentMethod(by: new)
                     HStack {
                         BusinessLogo(config: .init(parent: meth, fallBackType: .color, size: 20))
                         Text(meth.title)
                     }
+                } else {
+                    Text("[Nothing]")
+                        .foregroundStyle(.gray)
                 }
                 
             } else if log.field == .category {
                 if let old = log.old {
                     let cat = catModel.getCategory(by: old)
                     StandardCategoryLabel(cat: cat, labelWidth: 20, showCheckmarkCondition: false)
+                } else {
+                    Text("[Nothing]")
+                        .foregroundStyle(.gray)
                 }
+                
                 if let new = log.new {
                     let cat = catModel.getCategory(by: new)
                     StandardCategoryLabel(cat: cat, labelWidth: 20, showCheckmarkCondition: false)
+                } else {
+                    Text("[Nothing]")
+                        .foregroundStyle(.gray)
                 }
                 
             } else {
@@ -150,6 +160,7 @@ struct TevLogSheet: View {
                     Text(old.isEmpty ? "[Nothing]" : old)
                         .foregroundStyle(old.isEmpty ? .gray : .primary)
                 }
+                
                 if let new = log.new {
                     Text(new.isEmpty ? "[Nothing]" : new)
                         .foregroundStyle(new.isEmpty ? .gray : .primary)

@@ -858,14 +858,15 @@ class CalendarModel {
         if trans.isSmartTransaction ?? false {
             trans.smartTransactionIsAcknowledged = true
         }
-        
-        /// Go update the normal transaction list if changing that transaction via the smart list (temp list) or search result list.
-        if location == .smartList || location == .searchResultList {
-            self.handleTransactions([trans], refreshTechnique: nil)
-        }
+                
         
         if transactionIsValid(trans: trans/*, day: day*/) {
             print("✅ Trans is valid to save")
+            
+            /// Go update the normal transaction list if changing that transaction via the smart list (temp list) or search result list.
+            if location == .smartList || location == .searchResultList {
+                self.handleTransactions([trans], refreshTechnique: nil)
+            }
                                     
             var saveResultToReturn: Bool = false
             /// Set the updated by user and date.
@@ -2869,56 +2870,7 @@ class CalendarModel {
                                     let addedTrans = targetDay.transactions.filter { $0.repID == repID }.first
                                     if addedTrans == nil {
                                         if repTrans.repeatingTransactionType.enumID != XrefEnum.regular {
-                                            let fromTrans = CBTransaction(
-                                                repTrans: repTrans,
-                                                date: targetDay.date!,
-                                                payMethod: repTrans.payMethod,
-                                                amountString: repTrans.amountString
-                                            )
-                                            
-                                            let toTrans = CBTransaction(
-                                                repTrans: repTrans,
-                                                date: targetDay.date!,
-                                                payMethod: repTrans.payMethodPayTo,
-                                                amountString: repTrans.amountString
-                                            )
-                                            
-                                            
-                                            fromTrans.relatedTransactionID = toTrans.id
-                                            fromTrans.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
-                                                                                                                                    
-                                            if repTrans.repeatingTransactionType.enumID == XrefEnum.payment {
-                                                fromTrans.title = "Payment to \(repTrans.payMethodPayTo?.title ?? "")"
-                                                fromTrans.isPaymentOrigin = true
-                                            } else {
-                                                fromTrans.title = "Transfer to \(repTrans.payMethodPayTo?.title ?? "")"
-                                                fromTrans.isTransferOrigin = true
-                                            }
-                                            
-                                            toTrans.relatedTransactionID = fromTrans.id
-                                            toTrans.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
-                                            
-                                            
-                                            if repTrans.repeatingTransactionType.enumID == XrefEnum.payment {
-                                                toTrans.title = "Payment from \(repTrans.payMethod?.title ?? "")"
-                                                toTrans.isPaymentDest = true
-                                            } else {
-                                                toTrans.title = "Transfer from \(repTrans.payMethod?.title ?? "")"
-                                                toTrans.isTransferDest = true
-                                            }
-                                                                                        
-                                            if fromTrans.isExpense && repTrans.repeatingTransactionType.enumID != XrefEnum.payment {
-                                                toTrans.amountString = toTrans.amountString.replacing("-", with: "")
-                                            }
-                                            
-                                            
-                                            targetDay.transactions.append(fromTrans)
-                                            repTransToServer.append(fromTrans)
-                                            
-                                            targetDay.transactions.append(toTrans)
-                                            repTransToServer.append(toTrans)
-                                            
-                                            
+                                            processThing(repTrans: repTrans, targetDay: targetDay, repTransToServer: &repTransToServer)
                                         } else {
                                             let newTrans = CBTransaction(
                                                 repTrans: repTrans,
@@ -2928,23 +2880,27 @@ class CalendarModel {
                                             )
                                             targetDay.transactions.append(newTrans)
                                             repTransToServer.append(newTrans)
-                                        }
-                                        
-                                        
+                                        }                                                                                
                                     }
                                 } else {
                                     /// If the day can't be found above, the transaction exists on a day that this month doesn't have (like having a date of the 31st in February).
                                     /// Add to the last day of the month.
                                     if Int(when.when.replacing("day", with: "")) ?? 0 > targetMonth.dayCount {
-                                        if let targetDay = targetMonth.days.last {
-                                            let newTrans = CBTransaction(
-                                                repTrans: repTrans,
-                                                date: targetDay.date!,
-                                                payMethod: repTrans.payMethod,
-                                                amountString: repTrans.amountString
-                                            )
-                                            targetDay.transactions.append(newTrans)
-                                            repTransToServer.append(newTrans)
+                                        if repTrans.repeatingTransactionType.enumID == XrefEnum.regular {
+                                            if let targetDay = targetMonth.days.last {
+                                                let newTrans = CBTransaction(
+                                                    repTrans: repTrans,
+                                                    date: targetDay.date!,
+                                                    payMethod: repTrans.payMethod,
+                                                    amountString: repTrans.amountString
+                                                )
+                                                targetDay.transactions.append(newTrans)
+                                                repTransToServer.append(newTrans)
+                                            }
+                                        } else {
+                                            if let targetDay = targetMonth.days.last {
+                                                processThing(repTrans: repTrans, targetDay: targetDay, repTransToServer: &repTransToServer)
+                                            }
                                         }
                                     }
                                 }
@@ -3015,6 +2971,59 @@ class CalendarModel {
         
         Task {
             await addMultiple(trans: repTransToServer, budgets: budgetsToServer, isTransfer: false)
+        }
+        
+        
+        
+        func processThing(repTrans: CBRepeatingTransaction, targetDay: CBDay, repTransToServer: inout [CBTransaction]) {
+            let fromTrans = CBTransaction(
+                repTrans: repTrans,
+                date: targetDay.date!,
+                payMethod: repTrans.payMethod,
+                amountString: repTrans.amountString
+            )
+            
+            let toTrans = CBTransaction(
+                repTrans: repTrans,
+                date: targetDay.date!,
+                payMethod: repTrans.payMethodPayTo,
+                amountString: repTrans.amountString
+            )
+            
+            
+            fromTrans.relatedTransactionID = toTrans.id
+            fromTrans.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
+                                                                                                    
+            if repTrans.repeatingTransactionType.enumID == XrefEnum.payment {
+                fromTrans.title = "Payment to \(repTrans.payMethodPayTo?.title ?? "")"
+                fromTrans.isPaymentOrigin = true
+            } else {
+                fromTrans.title = "Transfer to \(repTrans.payMethodPayTo?.title ?? "")"
+                fromTrans.isTransferOrigin = true
+            }
+            
+            toTrans.relatedTransactionID = fromTrans.id
+            toTrans.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
+            
+            
+            if repTrans.repeatingTransactionType.enumID == XrefEnum.payment {
+                toTrans.title = "Payment from \(repTrans.payMethod?.title ?? "")"
+                toTrans.isPaymentDest = true
+            } else {
+                toTrans.title = "Transfer from \(repTrans.payMethod?.title ?? "")"
+                toTrans.isTransferDest = true
+            }
+                                                        
+            if fromTrans.isExpense && repTrans.repeatingTransactionType.enumID != XrefEnum.payment {
+                toTrans.amountString = toTrans.amountString.replacing("-", with: "")
+            }
+            
+            
+            targetDay.transactions.append(fromTrans)
+            repTransToServer.append(fromTrans)
+            
+            targetDay.transactions.append(toTrans)
+            repTransToServer.append(toTrans)
         }
     }
     

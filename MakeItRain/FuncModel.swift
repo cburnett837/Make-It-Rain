@@ -649,26 +649,13 @@ class FuncModel {
             payModel.paymentMethods.sort(by: Helpers.paymentMethodSorter())
             
             /// Prepopulate the payment method sections to avoid flash on first viewing.
-            payModel.sections = payModel.getApplicablePayMethods(
-                type: .all,
-                calModel: calModel,
-                plaidModel: plaidModel,
-                searchText: .constant(""),
-                includeHidden: true
-            )
-                                                                    
-//            let sortedMeths = mainObjects
-//                .sorted { ($0.title ?? "").lowercased() < ($1.title ?? "").lowercased() }
-//
-//            for meth in sortedMeths {
-//                if setDefaultPayMethod && meth.isViewingDefault {
-//                    calModel.sPayMethod = CBPaymentMethod(entity: meth)
-//                }
-//                
-//                if let id = meth.id, !payModel.paymentMethods.contains(where: { $0.id == id }) {
-//                    payModel.paymentMethods.append(CBPaymentMethod(entity: meth))
-//                }
-//            }
+//            payModel.sections = payModel.getApplicablePayMethods(
+//                type: .all,
+//                calModel: calModel,
+//                plaidModel: plaidModel,
+//                searchText: .constant(""),
+//                includeHidden: true
+//            )
         }
     }
         

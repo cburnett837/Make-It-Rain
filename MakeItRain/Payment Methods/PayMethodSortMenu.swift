@@ -10,8 +10,6 @@ import SwiftUI
 struct PayMethodSortMenu: View {
     @Environment(PayMethodModel.self) private var payModel
 
-    @Binding var sections: Array<PaySection>
-
     var body: some View {
         Menu {
             Section("Choose Sort Order") {
@@ -24,16 +22,16 @@ struct PayMethodSortMenu: View {
                 //.schemeBasedForegroundStyle()
         }
         .schemeBasedTint()
-        .onChange(of: AppSettings.shared.paymentMethodSortMode) { oldValue, newValue in
-            AppSettings.shared.sendToServer(setting: .init(settingId: 58, setting: newValue.rawValue))
-        }
+//        .onChange(of: AppSettings.shared.paymentMethodSortMode) { oldValue, newValue in
+//            AppSettings.shared.sendToServer(setting: .init(settingId: 58, setting: newValue.rawValue))
+//        }
     }
     
     
     var titleButton: some View {
         Button {
             AppSettings.shared.paymentMethodSortMode = .title
-            performSort()
+            //performSort()
         } label: {
             Label {
                 Text("Alphabetically")
@@ -47,7 +45,7 @@ struct PayMethodSortMenu: View {
     var listOrderButton: some View {
         Button {
             AppSettings.shared.paymentMethodSortMode = .listOrder
-            performSort()
+            //performSort()
         } label: {
             Label {
                 Text("Custom")
@@ -58,15 +56,15 @@ struct PayMethodSortMenu: View {
     }
     
     func performSort() {
-        withAnimation {
-            #if os(macOS)
-            //sortOrder = [KeyPathComparator(\CBPaymentMethod.title)]
-            #else
-            for i in sections.indices {
-                sections[i].payMethods.sort(by: Helpers.paymentMethodSorter())
-            }
-            payModel.paymentMethods.sort(by: Helpers.paymentMethodSorter())
-            #endif
-        }
+//        withAnimation {
+//            #if os(macOS)
+//            //sortOrder = [KeyPathComparator(\CBPaymentMethod.title)]
+//            #else
+//            for i in sections.indices {
+//                sections[i].payMethods.sort(by: Helpers.paymentMethodSorter())
+//            }
+//            payModel.paymentMethods.sort(by: Helpers.paymentMethodSorter())
+//            #endif
+//        }
     }
 }

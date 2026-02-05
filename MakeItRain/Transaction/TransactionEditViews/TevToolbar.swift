@@ -11,7 +11,7 @@ struct TevToolbar: ToolbarContent {
     @Environment(\.dismiss) var dismiss // <--- NO NICE THAT ONE WITH SHEETS IN A SHEET. BEWARE!.
 
     var trans: CBTransaction
-    @Binding var transEditID: String?
+    //@Binding var transEditID: String?
     var isTemp: Bool
     var showExpensiveViews: Bool
     var focusedField: FocusState<Int?>.Binding
@@ -109,7 +109,7 @@ struct TevToolbar: ToolbarContent {
             /// By moving the dismiss variable into a seperate view, it doesn't affect the photo sheet anymore.
             DeleteYesButton(
                 trans: trans,
-                transEditID: $transEditID,
+                //transEditID: $transEditID,
                 isTemp: isTemp,
                 christmasListDeletePeference: .delete
             )
@@ -117,7 +117,7 @@ struct TevToolbar: ToolbarContent {
             if trans.christmasListGiftID != nil {
                 DeleteYesButton(
                     trans: trans,
-                    transEditID: $transEditID,
+                    //transEditID: $transEditID,
                     isTemp: isTemp,
                     christmasListDeletePeference: .resetStatusToIdea
                 )
@@ -182,7 +182,7 @@ struct TevToolbar: ToolbarContent {
     
         @Environment(\.dismiss) var dismiss
         @Bindable var trans: CBTransaction
-        @Binding var transEditID: String?
+        //@Binding var transEditID: String?
         var isTemp: Bool
         var christmasListDeletePeference: ChristmasListDeletePreference
         

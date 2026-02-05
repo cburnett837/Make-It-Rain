@@ -203,7 +203,7 @@ fileprivate struct TransactionEditSheetAndLogic: ViewModifier {
             .popover(item: $editTrans, arrowEdge: .trailing) { trans in
                 TransactionEditView(
                     trans: trans,
-                    transEditID: $transEditID,
+                    //transEditID: $transEditID,
                     day: selectedDay!,
                     isTemp: false
                 )
@@ -213,7 +213,7 @@ fileprivate struct TransactionEditSheetAndLogic: ViewModifier {
             .sheet(item: $editTrans) { trans in
                 TransactionEditView(
                     trans: trans,
-                    transEditID: $transEditID,
+                    //transEditID: $transEditID,
                     day: selectedDay!,
                     isTemp: false,
                     transLocation: findTransactionWhere

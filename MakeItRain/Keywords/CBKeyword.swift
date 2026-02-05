@@ -23,6 +23,7 @@ class CBKeyword: Codable, Identifiable {
     var enteredDate: Date
     var updatedDate: Date
     var renameTo: String?
+    var isIgnoredSuggestion: Bool = false
     
     
     /// For deep copies
@@ -80,6 +81,7 @@ class CBKeyword: Codable, Identifiable {
         self.updatedBy = AppState.shared.getUserBy(id: Int(entity.updatedByID)) ?? AppState.shared.user!
         self.enteredDate = entity.enteredDate ?? Date()
         self.updatedDate = entity.updatedDate ?? Date()
+        self.isIgnoredSuggestion = entity.isIgnoredSuggestion
     }
     
 //    init(entity: TempKeyword) {
@@ -98,7 +100,7 @@ class CBKeyword: Codable, Identifiable {
 //    }
 //    
     
-    enum CodingKeys: CodingKey { case id, uuid, keyword, trigger_type, category, category_id, active, user_id, account_id, device_uuid, entered_by, updated_by, entered_date, updated_date, rename_to }
+    enum CodingKeys: CodingKey { case id, uuid, keyword, trigger_type, category, category_id, active, user_id, account_id, device_uuid, entered_by, updated_by, entered_date, updated_date, rename_to, is_ignored_suggestion }
     
     
     func encode(to encoder: Encoder) throws {
@@ -109,6 +111,7 @@ class CBKeyword: Codable, Identifiable {
         try container.encode(triggerType.rawValue, forKey: .trigger_type)
         try container.encode(category, forKey: .category)
         try container.encode(renameTo, forKey: .rename_to)
+        try container.encode(isIgnoredSuggestion ? 1 : 0, forKey: .is_ignored_suggestion)
         //try container.encode(category?.id, forKey: .category_id)
         try container.encode(active ? 1 : 0, forKey: .active)
         try container.encode(AppState.shared.user?.id, forKey: .user_id)
@@ -139,7 +142,10 @@ class CBKeyword: Codable, Identifiable {
         self.renameTo = try container.decode(String?.self, forKey: .rename_to)
         
         let isActive = try container.decode(Int?.self, forKey: .active)
-        self.active = isActive == 1 ? true : false
+        self.active = isActive == 1
+        
+        let isIgnoredSuggestion = try container.decode(Int?.self, forKey: .is_ignored_suggestion)
+        self.isIgnoredSuggestion = isIgnoredSuggestion == 1
         
         action = .edit
         
@@ -172,6 +178,7 @@ class CBKeyword: Codable, Identifiable {
             if self.keyword == deepCopy.keyword
             && self.triggerType == deepCopy.triggerType
             && self.renameTo == deepCopy.renameTo
+            && self.isIgnoredSuggestion == deepCopy.isIgnoredSuggestion
             && self.category == deepCopy.category {
                 return false
             }
@@ -191,6 +198,7 @@ class CBKeyword: Codable, Identifiable {
             copy.triggerType = self.triggerType
             copy.category = self.category
             copy.renameTo = self.renameTo
+            copy.isIgnoredSuggestion = self.isIgnoredSuggestion
             copy.active = self.active
             //copy.action = self.action
             self.deepCopy = copy
@@ -202,6 +210,7 @@ class CBKeyword: Codable, Identifiable {
                 self.triggerType = deepCopy.triggerType
                 self.category = deepCopy.category
                 self.renameTo = deepCopy.renameTo
+                self.isIgnoredSuggestion = deepCopy.isIgnoredSuggestion
                 self.active = deepCopy.active
                 //self.action = deepCopy.action
             }
@@ -216,6 +225,7 @@ class CBKeyword: Codable, Identifiable {
         self.triggerType = keyword.triggerType
         self.category = keyword.category
         self.renameTo = keyword.renameTo
+        self.isIgnoredSuggestion = keyword.isIgnoredSuggestion
         self.active = keyword.active
         
         self.enteredBy = keyword.enteredBy
@@ -237,6 +247,7 @@ extension CBKeyword: Equatable, Hashable {
         && lhs.triggerType == rhs.triggerType
         && lhs.category == rhs.category
         && lhs.renameTo == rhs.renameTo
+        && lhs.isIgnoredSuggestion == rhs.isIgnoredSuggestion
         && lhs.active == rhs.active {
             return true
         }

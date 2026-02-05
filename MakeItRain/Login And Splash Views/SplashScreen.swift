@@ -67,7 +67,6 @@ struct SplashScreen: View {
     var transactionWarmUpView: some View {
         TransactionEditView(
             trans: CBTransaction(),
-            transEditID: .constant("0"),
             day: CBDay(date: Date()),
             isTemp: false,
             transLocation: .searchResultList,

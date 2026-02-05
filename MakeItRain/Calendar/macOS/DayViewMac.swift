@@ -114,7 +114,7 @@ struct DayViewMac: View {
                                 
                 /// This `.popover(item: $transEditID) & .onChange(of: transEditID)` are used for adding new transactions. They also exists in ``LineItemViewMac``, which are used to edit existing transactions.
                 .popover(item: $localEditTrans) { trans in
-                    TransactionEditView(trans: trans, transEditID: $transEditID, day: day, isTemp: false)
+                    TransactionEditView(trans: trans, day: day, isTemp: false)
                         .frame(minWidth: 320)
                 }
 //                .transactionEditSheetAndLogic(

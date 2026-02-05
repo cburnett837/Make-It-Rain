@@ -8,8 +8,8 @@
 import SwiftUI
 
 struct PayMethodRemoveOption: Identifiable, Encodable {
-    var id: String
-    var title: String
+    var id: String {return meth.id}
+    var meth: CBPaymentMethod
     var transactions: Bool
     var startingAmount: Bool
         
@@ -90,7 +90,7 @@ struct ResetMonthOptionSheet: View {
             payModel.paymentMethods
                 .filter { $0.accountType != .unifiedChecking && $0.accountType != .unifiedCredit }
                 .forEach {
-                model.paymentMethods.append(PayMethodRemoveOption(id: $0.id, title: $0.title, transactions: true, startingAmount: true))
+                model.paymentMethods.append(PayMethodRemoveOption(meth: $0, transactions: true, startingAmount: true))
             }
         }
         .alert("Reset \(calModel.sMonth.prettyName)", isPresented: $showResetMonthAlert) {
@@ -106,40 +106,82 @@ struct ResetMonthOptionSheet: View {
     }
     
     var paymentMethodSection: some View {
-        ForEach($model.paymentMethods) { $meth in
-            Section(meth.title) {
-                #if os(macOS)
-                Toggle(isOn: $meth.transactions) { Text("Transactions") }
-                Toggle(isOn: $meth.startingAmount) { Text("Starting Amount") }
-                #else
+        ForEach($model.paymentMethods) { $opt in
+            Section {
                 Button {
-                    meth.transactions.toggle()
+                    opt.transactions.toggle()
                 } label: {
                     HStack {
-                        Image(systemName: meth.transactions ? "checkmark.circle.fill" : "circle")
-                            .contentTransition(.symbolEffect(.replace))
-                            .foregroundStyle(Color.accentColor)
-                        Text("Transactions")
+                        Text("Reset Transactions")
                             .schemeBasedForegroundStyle()
                         Spacer()
+                        
+                        if opt.transactions {
+                            Image(systemName: "checkmark")
+                                .schemeBasedForegroundStyle()
+                        }
                     }
                 }
                 
                 Button {
-                    meth.startingAmount.toggle()
+                    opt.startingAmount.toggle()
                 } label: {
                     HStack {
-                        Image(systemName: meth.startingAmount ? "checkmark.circle.fill" : "circle")
-                            .contentTransition(.symbolEffect(.replace))
-                            .foregroundStyle(Color.accentColor)
-                        Text("Starting Amount")
+                        Text("Reset Starting Amount")
                             .schemeBasedForegroundStyle()
                         Spacer()
                         
+                        if opt.startingAmount {
+                            Image(systemName: "checkmark")
+                                .schemeBasedForegroundStyle()
+                        }
                     }
                 }
-                #endif
+                
+            } header: {
+                HStack {
+                    BusinessLogo(config: .init(
+                        parent: opt.meth,
+                        fallBackType: opt.meth.isUnified ? .gradient : .color
+                    ))
+                    
+                    Text(opt.meth.title)
+                }
             }
+
+//            Section(meth.title) {
+//                #if os(macOS)
+//                Toggle(isOn: $meth.transactions) { Text("Transactions") }
+//                Toggle(isOn: $meth.startingAmount) { Text("Starting Amount") }
+//                #else
+//                Button {
+//                    meth.transactions.toggle()
+//                } label: {
+//                    HStack {
+//                        Image(systemName: meth.transactions ? "checkmark.circle.fill" : "circle")
+//                            .contentTransition(.symbolEffect(.replace))
+//                            .foregroundStyle(Color.accentColor)
+//                        Text("Transactions")
+//                            .schemeBasedForegroundStyle()
+//                        Spacer()
+//                    }
+//                }
+//                
+//                Button {
+//                    meth.startingAmount.toggle()
+//                } label: {
+//                    HStack {
+//                        Image(systemName: meth.startingAmount ? "checkmark.circle.fill" : "circle")
+//                            .contentTransition(.symbolEffect(.replace))
+//                            .foregroundStyle(Color.accentColor)
+//                        Text("Starting Amount")
+//                            .schemeBasedForegroundStyle()
+//                        Spacer()
+//                        
+//                    }
+//                }
+//                #endif
+//            }
         }
     }
     
@@ -152,12 +194,13 @@ struct ResetMonthOptionSheet: View {
                 model.budget.toggle()
             } label: {
                 HStack {
-                    Image(systemName: model.budget ? "checkmark.circle.fill" : "circle")
-                        .contentTransition(.symbolEffect(.replace))
-                        .foregroundStyle(Color.accentColor)
-                    Text("Budget")
+                    Text("Reset Budget")
                         .schemeBasedForegroundStyle()
                     Spacer()
+                    if model.budget {
+                        Image(systemName: "checkmark")
+                            .schemeBasedForegroundStyle()
+                    }
                 }
             }
             #endif
@@ -173,12 +216,13 @@ struct ResetMonthOptionSheet: View {
                 model.hasBeenPopulated.toggle()
             } label: {
                 HStack {
-                    Image(systemName: model.hasBeenPopulated ? "checkmark.circle.fill" : "circle")
-                        .contentTransition(.symbolEffect(.replace))
-                        .foregroundStyle(Color.accentColor)
-                    Text("Populated Status")
+                    Text("Reset Populated Status")
                         .schemeBasedForegroundStyle()
                     Spacer()
+                    if model.hasBeenPopulated {
+                        Image(systemName: "checkmark")
+                            .schemeBasedForegroundStyle()
+                    }
                 }
             }
             #endif

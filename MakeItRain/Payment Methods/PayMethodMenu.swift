@@ -7,45 +7,6 @@
 
 import SwiftUI
 
-enum PaymentMethodSection: String {
-    case combined = "Combined"
-    case debit = "Debit"
-    case credit = "Credit"
-    case other = "Other"
-    case none = ""
-}
-
-enum ApplicablePaymentMethods {
-    case all, allExceptUnified, basedOnSelected, remainingAvailbleForPlaid
-}
-
-@Observable
-class PaySection: Identifiable {
-    let id = UUID()
-    let kind: PaymentMethodSection
-    var payMethods: [CBPaymentMethod]
-    
-    init(kind: PaymentMethodSection, payMethods: [CBPaymentMethod]) {
-        self.kind = kind
-        self.payMethods = payMethods
-    }
-    
-    func doesExist(_ meth: CBPaymentMethod) -> Bool {
-        return !payMethods.filter { $0.id == meth.id }.isEmpty
-    }
-    
-    func upsert(_ payMethod: CBPaymentMethod) {
-        if !doesExist(payMethod) {
-            payMethods.append(payMethod)
-        }
-    }
-    
-    func getIndex(for payMethod: CBPaymentMethod) -> Int? {
-        return payMethods.firstIndex(where: { $0.id == payMethod.id })
-    }
-}
-
-
 struct PayMethodMenu<Content: View>: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(CalendarModel.self) private var calModel
@@ -60,6 +21,7 @@ struct PayMethodMenu<Content: View>: View {
     let whichPaymentMethods: ApplicablePaymentMethods
     let menuItemOnly: Bool
     @ViewBuilder let content: Content
+    let theSections: [PaymentMethodSection] = [.debit, .credit, .other]
     
     
     init(payMethod: Binding<CBPaymentMethod?>, whichPaymentMethods: ApplicablePaymentMethods, menuItemsOnly: Bool = false, @ViewBuilder content: () -> Content) {
@@ -81,9 +43,7 @@ struct PayMethodMenu<Content: View>: View {
         self.menuItemOnly = menuItemsOnly
     }
     
-    
-    
-    
+            
     var body: some View {
         if menuItemOnly {
             menuItems
@@ -95,93 +55,31 @@ struct PayMethodMenu<Content: View>: View {
                     .foregroundStyle((payMethod?.title ?? "").isEmpty ? .gray : .primary)
             }
         }
-        
     }
-    
+        
     
     @ViewBuilder
     var menuItems: some View {
-        let sections = payModel.getApplicablePayMethods(
-            type: whichPaymentMethods,
-            calModel: calModel,
-            plaidModel: plaidModel,
-            searchText: .constant("")
-        )
-        
-        ForEach(sections) { section in
-            if !section.payMethods.isEmpty {
-                Section(section.kind.rawValue) {
-                    ForEach(section.payMethods.sorted { $0.title.lowercased() < $1.title.lowercased() }) { meth in
-                        Button {
-                            payMethod = meth
-                            if calcAndSaveOnChange && trans != nil {
-                                //trans!.updatedBy = AppState.shared.user!
-                                //let _ = calModel.calculateTotal(for: calModel.sMonth)
-                                //Task { await calModel.submit(trans!) }
-                                Task {
-                                    await calModel.saveTransaction(id: trans!.id)
-                                }
+        ForEach(theSections) { section in
+            Section(section.rawValue) {
+                ForEach(payModel.getMethodsFor(section: section, type: .all)) { meth in
+                    Button {
+                        payMethod = meth
+                        if calcAndSaveOnChange && trans != nil {
+                            Task {
+                                await calModel.saveTransaction(id: trans!.id)
                             }
-                        } label: {
-                            HStack {
-                                
-                                //Image(meth.accountType == .checking ? "boa" : "boa")
-                                    //.resizable()
-                                    //.frame(maxWidth: 30, maxHeight: 30)
-                                
-                                Image(systemName: payMethod?.id == meth.id ? "checkmark" : "circle.fill")
-                                    .tint(meth.isUnified ? (colorScheme == .dark ? .white : .black) : meth.color)
-                                    //.foregroundStyle(meth.isUnified ? (colorScheme == .dark ? .white : .black) : meth.color, .primary, .secondary)
-                                Text(meth.title)
-                            }
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: payMethod?.id == meth.id ? "checkmark" : "circle.fill")
+                                .tint(meth.isUnified ? (colorScheme == .dark ? .white : .black) : meth.color)
+                                //.foregroundStyle(meth.isUnified ? (colorScheme == .dark ? .white : .black) : meth.color, .primary, .secondary)
+                            Text(meth.title)
                         }
                     }
                 }
             }
         }
     }
-    
-//    func getApplicablePayMethods(type: ApplicablePaymentMethods) -> Array<PaySection> {
-//        
-//        switch type {
-//        case .all:
-//            return [
-//                PaySection(kind: .combined, payMethods: payModel.paymentMethods.filter { $0.accountType == .unifiedCredit || $0.accountType == .unifiedChecking }),
-//                PaySection(kind: .debit, payMethods: payModel.paymentMethods.filter { $0.accountType == .checking }),
-//                PaySection(kind: .credit, payMethods: payModel.paymentMethods.filter { $0.accountType == .credit || $0.accountType == .loan }),
-//                PaySection(kind: .other, payMethods: payModel.paymentMethods.filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking, .loan].contains($0.accountType) })
-//            ]
-//            
-//        case .allExceptUnified:
-//            return [
-//                PaySection(kind: .debit, payMethods: payModel.paymentMethods.filter { $0.accountType == .checking }),
-//                PaySection(kind: .credit, payMethods: payModel.paymentMethods.filter { $0.accountType == .credit || $0.accountType == .loan }),
-//                PaySection(kind: .other, payMethods: payModel.paymentMethods.filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking, .loan].contains($0.accountType) })
-//            ]
-//            
-//        case .basedOnSelected:
-//            if calModel.sPayMethod?.accountType == .unifiedChecking {
-//                return [PaySection(kind: .debit, payMethods: payModel.paymentMethods.filter { $0.accountType == .checking })]
-//    
-//            } else if calModel.sPayMethod?.accountType == .unifiedCredit {
-//                return [PaySection(kind: .credit, payMethods: payModel.paymentMethods.filter { $0.accountType == .credit || $0.accountType == .loan })]
-//    
-//            } else {
-//                return [PaySection(kind: .other, payMethods: payModel.paymentMethods.filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking, .loan].contains($0.accountType) })]
-//            }
-//            
-//        case .remainingAvailbleForPlaid:
-//            #if os(iOS)
-//            let taken: Array<String> = plaidModel.banks.flatMap ({ $0.accounts.compactMap({ $0.paymentMethodID }) })
-//            return [
-//                PaySection(kind: .debit, payMethods: payModel.paymentMethods.filter { $0.accountType == .checking && !taken.contains($0.id) }),
-//                PaySection(kind: .credit, payMethods: payModel.paymentMethods.filter { ($0.accountType == .credit || $0.accountType == .loan) && !taken.contains($0.id) }),
-//                PaySection(kind: .other, payMethods: payModel.paymentMethods.filter { ![.unifiedCredit, .unifiedChecking, .credit, .checking, .loan].contains($0.accountType) && !taken.contains($0.id)  })
-//            ]
-//            #else
-//            return []
-//            #endif
-//            
-//        }
-//    }
 }

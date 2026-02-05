@@ -26,7 +26,20 @@ struct KeywordsTable: View {
     
     var filteredKeywords: [CBKeyword] {
         keyModel.keywords
-            .filter { searchText.isEmpty ? !$0.keyword.isEmpty : $0.keyword.localizedCaseInsensitiveContains(searchText) }
+            .filter {
+                (searchText.isEmpty ? !$0.keyword.isEmpty : $0.keyword.localizedCaseInsensitiveContains(searchText))
+                && !$0.isIgnoredSuggestion
+            }
+            //.sorted { $0.keyword.lowercased() < $1.keyword.lowercased() }
+    }
+    
+    
+    var filteredIgnoredKeywords: [CBKeyword] {
+        keyModel.keywords
+            .filter {
+                (searchText.isEmpty ? !$0.keyword.isEmpty : $0.keyword.localizedCaseInsensitiveContains(searchText))
+                && $0.isIgnoredSuggestion
+            }
             //.sorted { $0.keyword.lowercased() < $1.keyword.lowercased() }
     }
     
@@ -168,15 +181,33 @@ struct KeywordsTable: View {
     }
     
     var phoneList: some View {
-        List(filteredKeywords, selection: $keywordEditID) { key in
-            HStack(alignment: .center) {
-                Text(key.keyword)
-                Spacer()
-                Text(key.category?.title ?? "-")
-                    .foregroundStyle(.gray)
-                    .font(.caption)
+        List(selection: $keywordEditID) {
+            Section("My Rules") {
+                ForEach(filteredKeywords) { key in
+                    HStack(alignment: .center) {
+                        Text(key.keyword)
+                        Spacer()
+                        Text(key.category?.title ?? "-")
+                            .foregroundStyle(.gray)
+                            .font(.caption)
+                    }
+                }
             }
+            
+            Section("Ignored Suggestions") {
+                ForEach(filteredIgnoredKeywords) { key in
+                    HStack(alignment: .center) {
+                        Text(key.keyword)
+                        Spacer()
+                        Text(key.category?.title ?? "-")
+                            .foregroundStyle(.gray)
+                            .font(.caption)
+                    }
+                }
+            }
+            
         }
+        
         .listStyle(.plain)
     }
     #endif

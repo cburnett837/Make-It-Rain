@@ -103,14 +103,10 @@ struct PayMethodsTable: View {
                     #if os(macOS)
                     macTable
                     #else
-                    if payModel.sections.flatMap({ $0.payMethods }).isEmpty {
-                        ContentUnavailableView("No accounts found", systemImage: "exclamationmark.magnifyingglass")
+                    if AppState.shared.isIphone {
+                        phoneList
                     } else {
-                        if AppState.shared.isIphone {
-                            phoneList
-                        } else {
-                            padList
-                        }
+                        padList
                     }
                     #endif
                 } else {
@@ -134,7 +130,7 @@ struct PayMethodsTable: View {
                 defaultEditingMethod = payModel.paymentMethods.filter { $0.isEditingDefault }.first
                 /// NOTE: Sorting must be done here and not in the computed property. If done in the computed property, when reordering, they get all messed up.
                 payModel.paymentMethods.sort(by: Helpers.paymentMethodSorter())
-                populateSections()
+                //populateSections()
             }
             .navigationDestination(for: CBPaymentMethod.self) { meth in
                 PayMethodOverView(payMethod: meth, navPath: $navPath)
@@ -154,9 +150,9 @@ struct PayMethodsTable: View {
                     $0.breakdownsRegardlessOfPaymentMethod.removeAll()
                 }
             }
-            .onChange(of: AppSettings.shared.paymentMethodFilterMode) { populateSections() }
-            .onChange(of: AppSettings.shared.paymentMethodSortMode) { populateSections() }
-            .onChange(of: somethingChanged) { populateSections() }
+            //.onChange(of: AppSettings.shared.paymentMethodFilterMode) { populateSections() }
+            //.onChange(of: AppSettings.shared.paymentMethodSortMode) { populateSections() }
+            //.onChange(of: somethingChanged) { populateSections() }
             .onChange(of: sortOrder) { payModel.paymentMethods.sort(using: $1) }
 //            .sheet(item: $editPaymentMethod, onDismiss: {
 //                paymentMethodEditID = nil
@@ -346,8 +342,8 @@ struct PayMethodsTable: View {
             
             
             ForEach(payModel.sections) { section in
-                Section(section.kind.rawValue) {
-                    ForEach(section.payMethods) { meth in
+                Section(section.rawValue) {
+                    ForEach(paymodel.getMethodsFor(section: section, type: .all, sText: searchText, includeHidden: true)) { meth in
                         TableRow(meth)
                     }
                 }
@@ -384,7 +380,7 @@ struct PayMethodsTable: View {
         ToolbarItem(placement: .topBarLeading) {
             Menu {
                 PayMethodFilterMenu()
-                PayMethodSortMenu(sections: $payModel.sections)
+                PayMethodSortMenu()
                 //moreMenu
                 
                 Section("Default Viewing Account") {
@@ -423,28 +419,66 @@ struct PayMethodsTable: View {
         @Bindable var payModel = payModel
         
         List {
-            ForEach($payModel.sections) { $section in
-                Section(section.kind.rawValue) {
-                    ForEach(section.payMethods) { meth in
-                        NavigationLink(value: meth) {
-                            //Text("\(String(meth.recentTransactionCount))")
-                            line(for: meth)
+            ForEach(payModel.sections) { section in
+                Section(section.rawValue) {
+                    ForEach(methodsBinding(for: section)) { meth in
+                        NavigationLink(value: meth.wrappedValue) {
+                            line(for: meth.wrappedValue)
                         }
                     }
                     .if(AppSettings.shared.paymentMethodSortMode == .listOrder) {
                         $0.onMove { indices, newOffset in
-                            // Move within this section only
-                            section.payMethods.move(fromOffsets: indices, toOffset: newOffset)
+                            methodsBinding(for: section)
+                                .wrappedValue
+                                .move(fromOffsets: indices, toOffset: newOffset)
+                            
                             Task {
-                                let listOrderUpdates = await payModel.setListOrders(sections: payModel.sections, calModel: calModel)
-                                let _ = await funcModel.submitListOrders(items: listOrderUpdates, for: .paymentMethods)
+                                let updates = await payModel.setListOrders(calModel: calModel)
+                                await funcModel.submitListOrders(items: updates, for: .paymentMethods)
                             }
                         }
                     }
                 }
             }
+            
+//            ForEach(payModel.sections) { section in
+//                Section(section.rawValue) {
+//                    ForEach(payModel.getMethodsFor(section: section, type: .all, sText: searchText, includeHidden: true)) { meth in
+//                        NavigationLink(value: meth) {
+//                            line(for: meth)
+//                        }
+//                    }
+//                    .if(AppSettings.shared.paymentMethodSortMode == .listOrder) {
+//                        $0.onMove { indices, newOffset in
+//                            payModel.paymentMethods.move(fromOffsets: indices, toOffset: newOffset)
+//                            Task {
+//                                let listOrderUpdates = await payModel.setListOrders(calModel: calModel)
+//                                let _ = await funcModel.submitListOrders(items: listOrderUpdates, for: .paymentMethods)
+//                            }
+//                        }
+//                    }
+//                }
+//            }
         }
         .listStyle(.plain)
+    }
+    
+    func methodsBinding(for section: PaymentMethodSection) -> Binding<[CBPaymentMethod]> {
+        Binding(
+            get: {
+                payModel.getMethodsFor(section: section, type: .all, sText: searchText, includeHidden: true)
+                //payModel.paymentMethods
+//                    .filter { $0.sectionType == section }
+//                    .sorted { $0.listOrder ?? 0 < $1.listOrder ?? 0 }
+            },
+            set: { newValue in
+                for (index, method) in newValue.enumerated() {
+                    if let globalIndex = payModel.paymentMethods.firstIndex(where: { $0.id == method.id }) {
+                        payModel.paymentMethods[globalIndex].listOrder = index
+                    }
+                }
+            }
+        )
     }
     
     
@@ -454,26 +488,26 @@ struct PayMethodsTable: View {
     var padList: some View {
         @Bindable var payModel = payModel
         
-        List(selection: $paymentMethodEditID) {
-            ForEach($payModel.sections) { $section in
-                Section(section.kind.rawValue) {
-                    ForEach(section.payMethods) { meth in
-                        line(for: meth)
-                    }
-                    .if(AppSettings.shared.paymentMethodSortMode == .listOrder) {
-                        $0.onMove { indices, newOffset in
-                            // Move within this section only
-                            section.payMethods.move(fromOffsets: indices, toOffset: newOffset)
-                            Task {
-                                let listOrderUpdates = await payModel.setListOrders(sections: payModel.sections, calModel: calModel)
-                                let _ = await funcModel.submitListOrders(items: listOrderUpdates, for: .paymentMethods)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        .listStyle(.plain)
+//        List(selection: $paymentMethodEditID) {
+//            ForEach($payModel.sections) { $section in
+//                Section(section.kind.rawValue) {
+//                    ForEach(section.payMethods) { meth in
+//                        line(for: meth)
+//                    }
+//                    .if(AppSettings.shared.paymentMethodSortMode == .listOrder) {
+//                        $0.onMove { indices, newOffset in
+//                            // Move within this section only
+//                            section.payMethods.move(fromOffsets: indices, toOffset: newOffset)
+//                            Task {
+//                                let listOrderUpdates = await payModel.setListOrders(sections: payModel.sections, calModel: calModel)
+//                                let _ = await funcModel.submitListOrders(items: listOrderUpdates, for: .paymentMethods)
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//        .listStyle(.plain)
     }
     
     
@@ -668,48 +702,48 @@ struct PayMethodsTable: View {
     }
     
     
-    func populateSections() {
-        let newSections = payModel.getApplicablePayMethods(
-            type: .all,
-            calModel: calModel,
-            plaidModel: plaidModel,
-            searchText: $searchText,
-            includeHidden: true
-        )
-        
-        /// Use this to allow the animations to work when adding or removing a payment method.
-        for newSection in newSections {
-            if let index = payModel.sections.firstIndex(where: { $0.kind == newSection.kind }) {
-                
-                let oldSection = payModel.sections[index]
-                
-                for meth in newSection.payMethods {
-                    if oldSection.doesExist(meth) {
-                        if let index = oldSection.getIndex(for: meth) {
-                            oldSection.payMethods[index].setFromAnotherInstance(payMethod: meth)
-                        }
-                    } else {
-                        withAnimation {
-                            oldSection.upsert(meth)
-                        }
-                    }
-                }
-                                                        
-                for meth in oldSection.payMethods {
-                    if !newSection.doesExist(meth) {
-                        withAnimation {
-                            oldSection.payMethods.removeAll { $0.id == meth.id }
-                        }
-                    }
-                }
-                
-                withAnimation {
-                    oldSection.payMethods.sort(by: Helpers.paymentMethodSorter())
-                }
-            }
-        }
-    
-    }
+//    func populateSections() {
+//        let newSections = payModel.getApplicablePayMethods(
+//            type: .all,
+//            calModel: calModel,
+//            plaidModel: plaidModel,
+//            searchText: $searchText,
+//            includeHidden: true
+//        )
+//        
+//        /// Use this to allow the animations to work when adding or removing a payment method.
+//        for newSection in newSections {
+//            if let index = payModel.sections.firstIndex(where: { $0.kind == newSection.kind }) {
+//                
+//                let oldSection = payModel.sections[index]
+//                
+//                for meth in newSection.payMethods {
+//                    if oldSection.doesExist(meth) {
+//                        if let index = oldSection.getIndex(for: meth) {
+//                            oldSection.payMethods[index].setFromAnotherInstance(payMethod: meth)
+//                        }
+//                    } else {
+//                        withAnimation {
+//                            oldSection.upsert(meth)
+//                        }
+//                    }
+//                }
+//                                                        
+//                for meth in oldSection.payMethods {
+//                    if !newSection.doesExist(meth) {
+//                        withAnimation {
+//                            oldSection.payMethods.removeAll { $0.id == meth.id }
+//                        }
+//                    }
+//                }
+//                
+//                withAnimation {
+//                    oldSection.payMethods.sort(by: Helpers.paymentMethodSorter())
+//                }
+//            }
+//        }
+//    
+//    }
     
     
     func setDefaultViewingMethod() {

@@ -109,6 +109,7 @@ class PdfInvoiceCreatorModel {
                     pageIndex: pageIndex,
                     trans: trans,
                     contact: selectedContact,
+                    title: title,
                     amount: properAmount,
                     date: date,
                     receipt: selectedReceipt,

@@ -13,6 +13,7 @@ struct PdfInvoiceViewForSingleTransaction: View {
     var pageIndex: Int
     var trans: CBTransaction
     var contact: CNContact?
+    var title: String
     var amount: Double
     var date: Date
     var receipt: CBFile?
@@ -97,7 +98,7 @@ struct PdfInvoiceViewForSingleTransaction: View {
                 .bold()
                 
                 GridRow(alignment: .top) {
-                    Text(trans.title)
+                    Text(title)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     
                     Text(amount.currencyWithDecimals())

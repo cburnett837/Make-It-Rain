@@ -107,6 +107,7 @@
 		FD5E53662EF9990F0059BA6F /* PhotoTakeAndSelectButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD5E53652EF9990F0059BA6F /* PhotoTakeAndSelectButtons.swift */; };
 		FD5E53682EF9A4730059BA6F /* PhotoWebPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD5E53672EF9A4730059BA6F /* PhotoWebPreview.swift */; };
 		FD6168F52F33B78400FDA64D /* Keys.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD6168F42F33B78400FDA64D /* Keys.swift */; };
+		FD61690D2F33E3FD00FDA64D /* PaySection.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD61690C2F33E3FD00FDA64D /* PaySection.swift */; };
 		FD618F4A2EE728E800D97C86 /* LogoPickerRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD618F492EE728E800D97C86 /* LogoPickerRow.swift */; };
 		FD618F4C2EE7320000D97C86 /* CategoryGroupOverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD618F4B2EE7320000D97C86 /* CategoryGroupOverView.swift */; };
 		FD6674AB2EAFC14C000F2E90 /* BusinessLogo.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD6674AA2EAFC14C000F2E90 /* BusinessLogo.swift */; };
@@ -507,6 +508,7 @@
 		FD5E53652EF9990F0059BA6F /* PhotoTakeAndSelectButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoTakeAndSelectButtons.swift; sourceTree = "<group>"; };
 		FD5E53672EF9A4730059BA6F /* PhotoWebPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoWebPreview.swift; sourceTree = "<group>"; };
 		FD6168F42F33B78400FDA64D /* Keys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keys.swift; sourceTree = "<group>"; };
+		FD61690C2F33E3FD00FDA64D /* PaySection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaySection.swift; sourceTree = "<group>"; };
 		FD618F492EE728E800D97C86 /* LogoPickerRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogoPickerRow.swift; sourceTree = "<group>"; };
 		FD618F4B2EE7320000D97C86 /* CategoryGroupOverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryGroupOverView.swift; sourceTree = "<group>"; };
 		FD6674AA2EAFC14C000F2E90 /* BusinessLogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BusinessLogo.swift; sourceTree = "<group>"; };
@@ -1377,6 +1379,7 @@
 				FDC26DD82D3E86D500B0A97C /* MultiPayMethodSheet.swift */,
 				FD174D4E2ED8822000A01F67 /* PayMethodFilterMenu.swift */,
 				FDC26DE42D3E86D500B0A97C /* PayMethodModel.swift */,
+				FD61690C2F33E3FD00FDA64D /* PaySection.swift */,
 				FDC26DE52D3E86D500B0A97C /* PayMethodsTable.swift */,
 				FDC26DE12D3E86D500B0A97C /* PayMethodMenu.swift */,
 				FD07E28E2D72137800024B11 /* PayMethodRequiredView.swift */,
@@ -2048,6 +2051,7 @@
 				FDC26E842D3E86D500B0A97C /* NavLinkMac.swift in Sources */,
 				FD83716E2DEDEBEA0099C6F3 /* NewTransactionMenuButton.swift in Sources */,
 				FD07E28D2D7210EC00024B11 /* AlertStuff.swift in Sources */,
+				FD61690D2F33E3FD00FDA64D /* PaySection.swift in Sources */,
 				FD174D3D2ED739AA00A01F67 /* CustomImageAndCameraPicker.swift in Sources */,
 				FDC26E852D3E86D500B0A97C /* CategoryMenu.swift in Sources */,
 				FD09FF532D9C313600795C28 /* ResultCompleteModel.swift in Sources */,

@@ -21,34 +21,17 @@ struct MultiPayMethodSheet: View {
     
     @FocusState private var focusedField: Int?
     @State private var searchText = ""
+    let theSections: [PaymentMethodSection] = [.debit, .credit, .other]
     
-    @State private var sections: Array<PaySection> = []
-//    var filteredSections: Array<PaySection> {
-//        if searchText.isEmpty {
-//            return sections
-//        } else {
-//            return sections
-//                .filter { !$0.payMethods.filter { $0.title.localizedCaseInsensitiveContains(searchText) }.isEmpty }
-//        }
-//    }
     
     var body: some View {
         NavigationStack {
-            Group {
-                if sections.flatMap({ $0.payMethods }).isEmpty && !searchText.isEmpty {
-                    ContentUnavailableView("No accounts found", systemImage: "exclamationmark.magnifyingglass")
-                } else {
-                    StandardContainerWithToolbar(.list) {
-                        content
-                    }
-                }
+            StandardContainerWithToolbar(.list) {
+                content
             }
-            
-            .task { populateSections() }
-            .onChange(of: AppSettings.shared.paymentMethodFilterMode) { populateSections() }
-            .searchable(text: $searchText, prompt: "Search")
             .navigationTitle("Accounts")
             #if os(iOS)
+            .searchable(text: $searchText, prompt: "Search")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { selectButton }
@@ -58,18 +41,13 @@ struct MultiPayMethodSheet: View {
                 DefaultToolbarItem(kind: .search, placement: .bottomBar)
                 
                 ToolbarSpacer(.flexible, placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar)
-                ToolbarItem(placement: AppState.shared.isIpad ? .topBarTrailing : .bottomBar) { PayMethodSortMenu(sections: $sections) }
+                ToolbarItem(placement: AppState.shared.isIpad ? .topBarTrailing : .bottomBar) { PayMethodSortMenu() }
                 
                 if AppState.shared.isIpad {
                     ToolbarSpacer(.fixed, placement: .topBarTrailing)
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) { closeButton }
-            }
-            .onChange(of: searchText) { populateSections() }
-            /// Update the sheet if viewing and something changes on another device.
-            .onChange(of: payModel.paymentMethods.filter { !$0.isHidden && !$0.isPrivate }.count) {
-                populateSections()
             }
             #endif
         }
@@ -78,48 +56,20 @@ struct MultiPayMethodSheet: View {
     
     @ViewBuilder
     var content: some View {
-        if sections.isEmpty {
-            ContentUnavailableView("No accounts found", systemImage: "exclamationmark.magnifyingglass")
-        } else {
-            ForEach(sections) { section in
-                if !section.payMethods.isEmpty {
-                    Section(section.kind.rawValue) {
-                        ForEach(section.payMethods) { meth in
-                            methLine(meth)
-                                .onTapGesture {
-                                    selectPaymentMethod(meth)
-                                }
+        ForEach(payModel.sections) { section in
+            Section(section.rawValue) {
+                ForEach(payModel.getMethodsFor(
+                    section: section,
+                    
+                    type: .allExceptUnified,
+                    sText: searchText
+                )) { meth in
+                    methLine(meth)
+                        .onTapGesture {
+                            selectPaymentMethod(meth)
                         }
-                    }
                 }
             }
-            
-            
-//            ForEach(filteredSections) { section in
-//                if !section.payMethods.isEmpty {
-//                    Section(section.kind.rawValue) {
-//                        ForEach(searchText.isEmpty ? section.payMethods : section.payMethods.filter { $0.title.localizedCaseInsensitiveContains(searchText) }) { meth in
-//                            HStack {
-//                                Image(systemName: "circle.fill")
-//                                    .if(meth.isUnified) {
-//                                        $0.foregroundStyle(AngularGradient(gradient: Gradient(colors: [.red, .yellow, .green, .blue, .purple, .red]), center: .center))
-//                                    }
-//                                    .if(!meth.isUnified) {
-//                                        $0.foregroundStyle(meth.isUnified ? (colorScheme == .dark ? .white : .black) : meth.color, .primary, .secondary)
-//                                    }
-//                                Text(meth.title)
-//                                //.bold(meth.isUnified)
-//                                Spacer()
-//                                
-//                                Image(systemName: "checkmark")
-//                                    .opacity(payMethods.contains(meth) ? 1 : 0)
-//                            }
-//                            .contentShape(Rectangle())
-//                            .onTapGesture { selectPaymentMethod(meth) }
-//                        }
-//                    }
-//                }
-//            }
         }
     }
     
@@ -149,24 +99,14 @@ struct MultiPayMethodSheet: View {
     }
     
     
-//    var selectButton: some View {
-//        Button {
-//            withAnimation {
-//                categories = categories.isEmpty ? catModel.categories : []
-//            }
-//        } label: {
-//            //Image(systemName: categories.isEmpty ? "checklist.checked" : "checklist.unchecked")
-//            Text(categories.isEmpty ? "Select All" : "Deselect All")
-//            //Image(systemName: categories.isEmpty ? "checkmark.rectangle.stack" : "checklist.checked")
-//                .schemeBasedForegroundStyle()
-//        }
-//    }
     
     var useBusinessLogosToggle: some View {
         Toggle(isOn: $useBusinessLogos) {
             Text("Use Business Logos")
         }
     }
+    
+    
     var moreMenu: some View {
         Menu {
             useBusinessLogosToggle
@@ -205,15 +145,5 @@ struct MultiPayMethodSheet: View {
         } else {
             payMethods.append(payMethod)
         }
-    }
-    
-    func populateSections() {
-        sections = payModel.getApplicablePayMethods(
-            type: .allExceptUnified,
-            calModel: calModel,
-            plaidModel: plaidModel,
-            searchText: $searchText,
-            includeHidden: includeHidden
-        )
     }
 }

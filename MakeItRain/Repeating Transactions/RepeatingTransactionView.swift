@@ -214,12 +214,6 @@ struct RepeatingTransactionView: View {
                     } header: {
                         Text("Title & Amount")
                     }
-                    
-                    Section {
-                        includeRow
-                    } footer: {
-                        Text("Choose if this transaction should be added to the calendar when preparing a month.")
-                    }
 
                     Section {
                         payFromRow
@@ -235,6 +229,19 @@ struct RepeatingTransactionView: View {
                         CategorySheetButtonPhone(category: $repTransaction.category)
                         colorRow
                     }
+                    
+                    Section {
+                        includeRow
+                    } footer: {
+                        Text("Choose if this transaction should be added to the calendar when preparing a month.")
+                    }
+                    
+                    Section {
+                        factorInCalculationsRow
+                    } footer: {
+                        Text("Choose if this transaction should be included in the calculations for the month.")
+                    }
+                    
                     
                     Section {
                         VStack(alignment: .leading) {
@@ -508,7 +515,19 @@ struct RepeatingTransactionView: View {
                 .foregroundStyle(.gray)
             
             Toggle(isOn: $repTransaction.include) {
-                Text("Include")
+                Text("Add to Calendar")
+            }
+        }
+    }
+    
+    
+    var factorInCalculationsRow: some View {
+        HStack {
+            Image(systemName: "checkmark")
+                .foregroundStyle(.gray)
+            
+            Toggle(isOn: $repTransaction.factorInCalculations) {
+                Text("Include in Calculations")
             }
         }
     }

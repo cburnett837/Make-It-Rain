@@ -321,7 +321,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         self.locations = []
         self.wasAddedFromPopulate = true
         self.notes = repTrans.notes
-        
+        self.factorInCalculations = repTrans.factorInCalculations
         self.isPaymentOrigin = false
         self.isPaymentDest = false
         self.isTransferOrigin = false

@@ -43,7 +43,7 @@ struct TransactionEditView: View {
     @Environment(KeywordModel.self) private var keyModel
     
     @Bindable var trans: CBTransaction
-    @Binding var transEditID: String?
+    //@Binding var transEditID: String?
     @Bindable var day: CBDay
     
     var isTemp: Bool
@@ -240,6 +240,9 @@ struct TransactionEditView: View {
     
     
 
+    @State private var shouldSuggestAddingNewRule = false
+    @State private var existingRuleCount: Int = 0
+    
     @ViewBuilder
     func content(_ scrollProxy: ScrollViewProxy) -> some View {
         Section {
@@ -251,7 +254,11 @@ struct TransactionEditView: View {
         paymentMethodAndCategorySection
         
         if showExpensiveViews {
-            TevRuleSuggestionButton(trans: trans)
+            TevRuleSuggestionButton(
+                trans: trans,
+                shouldSuggestAddingNewRule: $shouldSuggestAddingNewRule,
+                existingCount: existingRuleCount
+            )
         }
         
         Section {
@@ -352,7 +359,7 @@ struct TransactionEditView: View {
     var toolbar: some ToolbarContent {
         TevToolbar(
             trans: trans,
-            transEditID: $transEditID,
+            //transEditID: $transEditID,
             isTemp: isTemp,
             showExpensiveViews: showExpensiveViews,
             focusedField: $focusedField
@@ -752,6 +759,7 @@ struct TransactionEditView: View {
         /// These are just to control the animations in the options sheet. The are here so we don't see the option sheet "set up its state" when the view appears.
         if !trans.factorInCalculations { showHiddenEye = true }
         if trans.notifyOnDueDate { showBadgeBell = true }
+        determineIfShouldSuggestAddingNewRule()
     }
     
     
@@ -810,6 +818,35 @@ struct TransactionEditView: View {
                     calModel.transactionViewHasBeenWarmedUp = true
                 }
             }
+        }
+    }
+    
+    
+    func determineIfShouldSuggestAddingNewRule() {
+        
+        guard keyModel.keywords.filter({ $0.isIgnoredSuggestion && $0.keyword == trans.title && $0.category?.id == trans.category?.id }).isEmpty else { return }
+        
+        let existingCount = calModel.justTransactions
+            .filter {
+                $0.title.localizedCaseInsensitiveContains(trans.title)
+                && $0.category?.id == trans.category!.id
+            }
+            .count
+        
+        let comboExists = existingCount >= 3 && !trans.wasAddedFromPopulate
+        
+        let ruleDoesNotExist = keyModel
+            .keywords
+            .filter {
+                $0.keyword.localizedCaseInsensitiveContains(trans.title)
+                && $0.category?.id == trans.category!.id
+                && !$0.isIgnoredSuggestion
+            }
+            .isEmpty
+        
+        if comboExists && ruleDoesNotExist {
+            self.existingRuleCount = existingCount
+            shouldSuggestAddingNewRule = true
         }
     }
 }

@@ -98,7 +98,15 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     
     
     var recentTransactionCount: Int = 0
-    
+    var sectionType: PaymentMethodSection {
+        if self.isDebitOrCash || self.isUnifiedDebit {
+            return .debit
+        } else if self.isCreditOrLoan || self.isUnifiedCredit{
+            return .credit
+        } else {
+            return .other
+        }
+    }
     
     // MARK: - View Helper Variables
     var isPermitted: Bool {

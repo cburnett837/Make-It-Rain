@@ -87,6 +87,7 @@ class KeywordModel {
         let updatedByID = Int64(keyword.updatedBy.id)
         let enteredDate = keyword.enteredDate
         let updatedDate = keyword.updatedDate
+        let isIgnoredSuggestion = keyword.isIgnoredSuggestion
                         
         let context = DataManager.shared.createContext()
         return await context.perform {
@@ -114,6 +115,7 @@ class KeywordModel {
                 entity.action = "edit"
                 entity.isPending = false
                 entity.renameTo = renameTo
+                entity.isIgnoredSuggestion = isIgnoredSuggestion
                 
                 entity.enteredByID = enteredByID
                 entity.updatedByID = updatedByID
@@ -395,6 +397,7 @@ class KeywordModel {
         let theKeyword = keyword.keyword
         let categoryID = keyword.category?.id
         let renameTo = keyword.renameTo
+        let isIgnoredSuggestion = keyword.isIgnoredSuggestion
         let triggerType = keyword.triggerType.rawValue
         let action = keyword.action
         let enteredByID = Int64(keyword.enteredBy.id)
@@ -410,6 +413,7 @@ class KeywordModel {
                 entity.id = keywordID
                 entity.keyword = theKeyword
                 entity.renameTo = renameTo
+                entity.isIgnoredSuggestion = isIgnoredSuggestion
                 entity.triggerType = triggerType
                 entity.action = action.rawValue
                 entity.isPending = true

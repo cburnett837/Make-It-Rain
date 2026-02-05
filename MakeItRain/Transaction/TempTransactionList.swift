@@ -59,7 +59,7 @@ struct TempTransactionList: View {
         .task { await prepareView() }
         .toast()
         .sheet(item: $editTrans) { trans in
-            TransactionEditView(trans: trans, transEditID: $transEditID, day: selectedDay!, isTemp: true)
+            TransactionEditView(trans: trans, day: selectedDay!, isTemp: true)
                 .onDisappear { transEditID = nil }
         }
         .onChange(of: transEditID) { oldId, newId in

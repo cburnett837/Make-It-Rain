@@ -11,27 +11,12 @@ struct TevRuleSuggestionButton: View {
     @Environment(CalendarModel.self) private var calModel
     @Environment(KeywordModel.self) private var keyModel
     var trans: CBTransaction
+    @Binding var shouldSuggestAddingNewRule: Bool
+    var existingCount: Int
     
     var body: some View {
         if trans.category != nil && !(trans.category?.isNil ?? false) {
-            let existingCount = calModel.justTransactions
-                .filter {
-                    $0.title.localizedCaseInsensitiveContains(trans.title)
-                    && $0.category?.id == trans.category!.id
-                }
-                .count
-            
-            let comboExists = existingCount >= 3 && !trans.wasAddedFromPopulate
-            
-            let ruleDoesNotExist = keyModel
-                .keywords
-                .filter {
-                    $0.keyword.localizedCaseInsensitiveContains(trans.title)
-                    && $0.category?.id == trans.category!.id
-                }
-                .isEmpty
-            
-            if comboExists && ruleDoesNotExist {
+            if shouldSuggestAddingNewRule {
                 Section {
                     Button {
                         createRule()
@@ -42,6 +27,13 @@ struct TevRuleSuggestionButton: View {
                         
                         AiAnimatedAliveLabel("Create New Rule", systemImage: "brain", withGlow: true)
                     }
+                    
+                    Button {
+                        ignoreSuggestion()
+                    } label: {
+                        Text("Ignore Suggestion")
+                    }
+                    
                 } footer: {
                     let message: LocalizedStringKey = "**\(trans.title)** was categorized as **\(trans.category!.title)** at least \(existingCount) times this year. Consider creating a rule to auto-categorize in the future."
                     
@@ -67,6 +59,19 @@ struct TevRuleSuggestionButton: View {
         }
         
         Task { await keyModel.submit(keyword) }
+    }
+    
+    func ignoreSuggestion() {
+        shouldSuggestAddingNewRule = false
+        Task {
+            let ignore = CBKeyword()
+            ignore.keyword = trans.title
+            ignore.category = trans.category!
+            ignore.isIgnoredSuggestion = true
+            keyModel.upsert(ignore)
+            let _ = await keyModel.submit(ignore)
+            
+        }
     }
 }
 
