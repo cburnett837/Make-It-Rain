@@ -157,7 +157,7 @@ struct ToolbarBorder: ViewModifier {
         
             .overlay(
                 RoundedRectangle(cornerRadius: 6)
-                    .stroke(Color(uiColor: .darkGray), lineWidth: 0.5)
+                    .stroke(Color(.darkGray), lineWidth: 0.5)
             )
     }
 }
@@ -215,7 +215,7 @@ struct FormatCurrencyLiveAndOnUnFocus: ViewModifier {
 }
 
 
-
+#if os(iOS)
 
 struct CalculateAndFormatCurrencyLiveAndOnUnFocus: ViewModifier {
     
@@ -297,7 +297,7 @@ struct CalculateAndFormatCurrencyLiveAndOnUnFocus: ViewModifier {
     }
 }
 
-
+#endif
 //
 //#if os(macOS)
 //struct AccessoryWindow: ViewModifier {

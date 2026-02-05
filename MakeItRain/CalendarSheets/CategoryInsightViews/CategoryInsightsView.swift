@@ -174,9 +174,11 @@ struct CategoryInsightsView: View {
                 }
             }
         }
+        #if os(iOS)
         .safeAreaBar(edge: .top) {
             CivCalculatingProgressView(model: model)
         }
+        #endif
         .navigationTitle("Insights")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
@@ -195,8 +197,9 @@ struct CategoryInsightsView: View {
                 }
             }
         }
+        #if os(iOS)
         .background(Color(.systemBackground)) // force matching
-            
+        #endif
         .task { prepareView() }
         /// Needed for the inspector on iPad.
         .onChange(of: showAnalysisSheet) {
@@ -325,7 +328,9 @@ struct CategoryInsightsView: View {
                     showInfoButton
                 }
             }
+            #if os(iOS)
             .listSectionSpacing(5)
+            #endif
             
             Section {
                 incomeRow
@@ -521,6 +526,7 @@ struct CategoryInsightsView: View {
     // MARK: - Toolbar Views
     @ToolbarContentBuilder
     var toolbar: some ToolbarContent {
+        #if os(iOS)
         if AppState.shared.isIpad {
             ToolbarItem(placement: .topBarLeading) { showCategorySheetButton }
             ToolbarSpacer(.fixed, placement: .topBarLeading)
@@ -544,6 +550,9 @@ struct CategoryInsightsView: View {
         if !calModel.sCategoriesForAnalysis.isEmpty {
             ToolbarItem(placement: .bottomBar) { showCalendarButton }
         }
+        #else
+        ToolbarItem(placement: .confirmationAction) { closeButton }
+        #endif
     }
     
     

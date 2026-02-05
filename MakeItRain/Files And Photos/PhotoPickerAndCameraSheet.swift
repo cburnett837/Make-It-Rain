@@ -9,6 +9,7 @@
 import Foundation
 import SwiftUI
 
+#if os(iOS)
 extension View {
     func photoPickerAndCameraSheet(
         fileUploadCompletedDelegate: FileUploadCompletedDelegate,
@@ -26,8 +27,9 @@ extension View {
         ))
     }
 }
+#endif
 
-
+#if os(iOS)
 struct PhotoPickerAndCameraSheet: ViewModifier {
     var fileUploadCompletedDelegate: FileUploadCompletedDelegate
     var parentType: XrefEnum
@@ -111,3 +113,4 @@ struct PhotoPickerAndCameraSheet: ViewModifier {
             
     }
 }
+#endif

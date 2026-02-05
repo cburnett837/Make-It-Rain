@@ -133,7 +133,9 @@ struct TransactionListLine: View {
                     .foregroundStyle(.gray)
                     .font(.caption)
                     .padding(4)
+                    #if os(iOS)
                     .background(Color(.systemGray4))
+                    #endif
                     .cornerRadius(6)
                     .overlay { ExcludeFromTotalsLine(trans: trans) }
             }
@@ -167,9 +169,13 @@ struct TransactionListLine: View {
                                 .overlay(ProgressView().tint(.none))
                         }
                     }, pdfView: {
+                        #if os(iOS)
                         CustomAsyncPdf(file: file, displayStyle: .standard)
+                        #endif
                     }, csvView: {
+                        #if os(iOS)
                         CustomAsyncCsv(file: file, displayStyle: .standard)
+                        #endif
                     }
                 )
             }

@@ -185,7 +185,9 @@ struct TransactionEditView: View {
                 }
                 .navigationTitle(title)
                 .if(trans.relatedTransactionID != nil || trans.christmasListGiftID != nil) { $0.navigationSubtitle(linkedLingo!) }
+                #if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)
+                #endif
                 .toolbar { toolbar }
                 .navigationDestination(for: TransNavDestination.self) { determineNavDest(for: $0) }
                 .scrollContentBackground(trans.christmasListGiftID == nil ? .visible : .hidden)
@@ -297,6 +299,7 @@ struct TransactionEditView: View {
             fileSection
         }
         
+        #if os(iOS)
         if showExpensiveViews {
             StandardUITextEditor(text: $trans.notes, focusedField: _focusedField, focusID: 2, scrollProxy: scrollProxy)
         } else {
@@ -305,6 +308,7 @@ struct TransactionEditView: View {
                 .frame(height: 100)
                 .tint(.none)
         }
+        #endif
     }
     
     
@@ -348,7 +352,11 @@ struct TransactionEditView: View {
                     .background(SnowyBackground(blurred: true, withSnow: true))
                 }
         case .tracking:
+            #if os(iOS)
             TevTrackingNumberView(trackingNumber: $trans.trackingNumber)
+            #else
+            Text("Not available on this platform")
+            #endif
             
         case .tags:
             TagView(trans: trans)
@@ -375,8 +383,12 @@ struct TransactionEditView: View {
     @ViewBuilder
     var categoryLine: some View {
         if showExpensiveViews {
+            #if os(iOS)
             CategorySheetButtonPhone(category: $trans.category)
                 .listRowSeparator(suggestedCategories.isEmpty ? .automatic : .hidden)
+            #else
+            CategorySheetButtonMac(category: $trans.category)
+            #endif
         } else {
             ProgressView()
                 .frame(maxWidth: .infinity)
@@ -472,6 +484,7 @@ struct TransactionEditView: View {
                     categoryLine
                 }
                 
+                #if os(iOS)
                 /// Main payment method picker.
                 PayMethodSheetButtonPhone(
                     text: accountLabelLingo,
@@ -499,6 +512,9 @@ struct TransactionEditView: View {
                         AppState.shared.showAlert("To change this, please edit the related transaction instead.")
                     }
                 }
+                #else
+                PayMethodSheetButtonMac(payMethod: $trans.payMethod, whichPaymentMethods: .allExceptUnified)
+                #endif
             } else {
                 ProgressView()
                     .frame(maxWidth: .infinity)
@@ -543,7 +559,9 @@ struct TransactionEditView: View {
 //                                }
                             }
                             .clipShape(.circle)
+                            #if os(iOS)
                             .buttonStyle(.glass)
+                            #endif
                             
 //                            Button("Use Current") {
 //                                

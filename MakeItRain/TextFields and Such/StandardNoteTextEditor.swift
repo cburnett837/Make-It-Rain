@@ -14,6 +14,7 @@ final class TextViewCommands {
     //var applyColor: ((UIColor) -> Void)?
 }
 
+#if os(iOS)
 struct StandardNoteTextEditor: View {
     @Environment(\.fontResolutionContext) var fontResolutionContext
     
@@ -484,3 +485,5 @@ extension UITextView {
 //        }
 //    }
 }
+
+#endif

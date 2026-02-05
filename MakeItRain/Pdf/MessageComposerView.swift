@@ -9,7 +9,9 @@
 import SwiftUI
 import ContactsUI
 import Contacts
+#if os(iOS)
 import MessageUI
+
 
 struct MessageComposerView: UIViewControllerRepresentable {
     let phoneNumber: String?
@@ -93,3 +95,4 @@ struct MailComposerView: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: MFMailComposeViewController, context: Context) {}
 }
+#endif

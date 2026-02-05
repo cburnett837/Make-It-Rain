@@ -83,6 +83,7 @@ struct RecentReceiptsView: View {
         .listStyle(.plain)
         .navigationTitle("Receipts")
         .toolbar { toolbar }
+        #if os(iOS)
         .photoPickerAndCameraSheet(
             fileUploadCompletedDelegate: calModel,
             parentType: .transaction,
@@ -90,6 +91,7 @@ struct RecentReceiptsView: View {
             showPhotosPicker: $showPhotosPicker,
             showCamera: $showCamera
         )
+        #endif
         .transactionEditSheetAndLogic(
             transEditID: $transEditID,
             selectedDay: $transDay,
@@ -106,6 +108,7 @@ struct RecentReceiptsView: View {
     
     @ToolbarContentBuilder
     var toolbar: some ToolbarContent {
+        #if os(iOS)
         ToolbarItem(placement: .topBarLeading) {
             Menu {
                 Picker("", selection: $receiptViewMode) {
@@ -137,6 +140,24 @@ struct RecentReceiptsView: View {
                     .schemeBasedForegroundStyle()
             }
         }
+        #else
+        ToolbarItem(placement: .confirmationAction) {
+            Menu {
+                Picker("", selection: $receiptViewMode) {
+                    ForEach(ReceiptViewMode.allCases, id: \.self) { opt in
+                        Text(opt.prettyString)
+                            .tag(opt)
+                    }
+                }
+                .labelsHidden()
+            } label: {
+                Image(systemName: "line.3.horizontal")
+                    /// This is needed to fix the liquid glass bug.
+                    .allowsHitTesting(false)
+                    .schemeBasedForegroundStyle()
+            }
+        }
+        #endif
     }
     
     
@@ -181,7 +202,11 @@ struct RecentReceiptsView: View {
                 }
             }
         }
+        #if os(iOS)
         .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
+        #else
+        .searchable(text: $searchText)
+        #endif
     }
     
    
@@ -257,16 +282,20 @@ struct RecentReceiptsView: View {
                             }
                             
                         }, pdfView: {
+                            #if os(iOS)
                             CustomAsyncPdf(file: firstFile, displayStyle: .standard, useDefaultFrame: false)
                                 .scaledToFill()
                                 .frame(width: imageGeo.size.width, height: imageGeo.size.height)
                                 .clipShape(.rect(cornerRadius: 15))
+                            #endif
                             
                         }, csvView: {
+                            #if os(iOS)
                             CustomAsyncCsv(file: firstFile, displayStyle: .standard, useDefaultFrame: false)
                                 .scaledToFill()
                                 .frame(width: imageGeo.size.width, height: imageGeo.size.height)
                                 .clipShape(.rect(cornerRadius: 15))
+                            #endif
                         }
                     )
                 } else {
@@ -286,7 +315,9 @@ struct RecentReceiptsView: View {
         .padding(20)
         .background {
             RoundedRectangle(cornerRadius: 15)
+                #if os(iOS)
                 .fill(Color(.secondarySystemBackground))
+                #endif
         }
     }
            

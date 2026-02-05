@@ -155,7 +155,7 @@ struct CategoryGroupEditView: View {
         
         #else
         LabeledRow("Budget", labelWidth) {
-            StandardTextField("Monthly Amount", text: $category.amountString ?? "", focusedField: $focusedField, focusValue: 1)
+            StandardTextField("Monthly Amount", text: $group.amountString ?? "", focusedField: $focusedField, focusValue: 1)
         }
         #endif
     }

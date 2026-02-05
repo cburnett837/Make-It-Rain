@@ -142,7 +142,7 @@ struct LogoSearchPage<T: CanHandleLogo & Observation.Observable>: View {
         .uiKeyboardType(.system(.URL))
         .uiAutoCorrectionDisabled(true)
         #else
-        StandardTextField("Title", text: $trans.title, focusedField: $focusedField, focusValue: 0)
+        StandardTextField("bankofamerica.com", text: $searchText, focusedField: $focusedField, focusValue: 0)
             .onSubmit { focusedField = 1 }
         #endif
     }

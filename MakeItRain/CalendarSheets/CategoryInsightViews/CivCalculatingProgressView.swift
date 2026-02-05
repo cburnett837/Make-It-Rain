@@ -14,7 +14,9 @@ struct CivCalculatingProgressView: View {
 
     var body: some View {
         ProgressView(value: model.progress)
+            #if os(iOS)
             .background(Color(.systemBackground))
+            #endif
             .opacity(model.showLoadingSpinner ? 1 : 0)
             .scenePadding(.horizontal)
     }

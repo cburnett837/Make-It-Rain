@@ -106,7 +106,7 @@ struct StandardFileSection: View {
         .sheet(item: $selectedFile) { file in
             PhotoWebPreview(file: file)
         }
-        #endif
+        
         .photoPickerAndCameraSheet(
             fileUploadCompletedDelegate: fileUploadCompletedDelegate,
             parentType: parentType,
@@ -121,6 +121,7 @@ struct StandardFileSection: View {
         ) {
             handleFileSelection(result: $0)
         }
+        #endif
         .environment(props)
         .onPreferenceChange(MaxSymbolHeightPreferenceKey.self) { symbolHeight = max(symbolHeight, $0) }
     }
@@ -159,9 +160,13 @@ struct StandardFileSection: View {
                     }, photoView: {
                         FileImage(file: file, displayStyle: displayStyle)
                     }, pdfView: {
+                        #if os(iOS)
                         CustomAsyncPdf(file: file, displayStyle: displayStyle)
+                        #endif
                     }, csvView: {
+                        #if os(iOS)
                         CustomAsyncCsv(file: file, displayStyle: displayStyle)
+                        #endif
                     }
                 )
             }
@@ -183,9 +188,13 @@ struct StandardFileSection: View {
                     }, photoView: {
                         FileImage(file: file, displayStyle: displayStyle)
                     }, pdfView: {
+                        #if os(iOS)
                         CustomAsyncPdf(file: file, displayStyle: displayStyle)
+                        #endif
                     }, csvView: {
+                        #if os(iOS)
                         CustomAsyncCsv(file: file, displayStyle: displayStyle)
+                        #endif
                     }
                 )
             }
@@ -419,8 +428,8 @@ struct StandardFileSection: View {
                     .buttonStyle(.plain)
 
                     Button {
-                        props.deletePic = file
-                        props.showDeletePicAlert = true
+                        props.deleteFile = file
+                        props.showDeleteFileAlert = true
                     } label: {
                         Image(systemName: "trash")
                             .foregroundStyle(.red)
@@ -436,8 +445,8 @@ struct StandardFileSection: View {
             }
             .padding(.top, 4)
 
-            .opacity(props.isDeletingPic && file.id == props.deletePic?.id ? 0 : 1)
-            .disabled(props.isDeletingPic && file.id != props.deletePic?.id)
+            .opacity(props.isDeletingFile && file.id == props.deleteFile?.id ? 0 : 1)
+            .disabled(props.isDeletingFile && file.id != props.deleteFile?.id)
         }
     }
     #endif

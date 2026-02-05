@@ -42,17 +42,17 @@ struct LogoPickerRow<T: CanHandleLogo & Observation.Observable>: View {
         }
         
         #else
-        LabeledRow("Color", labelWidth) {
-            HStack {
-                ColorPicker("", selection: $payMethod.color, supportsOpacity: false)
-                    .labelsHidden()
-                Capsule()
-                    .fill(payMethod.color)
-                    .onTapGesture {
-                        AppState.shared.showToast(title: "Color Picker", subtitle: "Click the circle to the left to change the color.", body: nil, symbol: "theatermask.and.paintbrush", symbolColor: payMethod.color)
-                    }
-            }
-        }
+//        LabeledRow("Color", labelWidth) {
+//            HStack {
+//                ColorPicker("", selection: $payMethod.color, supportsOpacity: false)
+//                    .labelsHidden()
+//                Capsule()
+//                    .fill(payMethod.color)
+//                    .onTapGesture {
+//                        AppState.shared.showToast(title: "Color Picker", subtitle: "Click the circle to the left to change the color.", body: nil, symbol: "theatermask.and.paintbrush", symbolColor: payMethod.color)
+//                    }
+//            }
+//        }
         #endif
     }
     

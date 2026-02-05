@@ -143,8 +143,8 @@ struct TevTitle: View {
             .uiReturnKeyType(.next)
             .uiTextColor(UIColor(trans.color))
             #else
-            StandardTextField("Title", text: $trans.title, focusedField: $focusedField, focusValue: 0)
-                .onSubmit { focusedField = 1 }
+            StandardTextField("Title", text: $trans.title, focusedField: focusedField.projectedValue, focusValue: 0)
+                .onSubmit { focusedField.wrappedValue = 1 }
             #endif
         }
         .focused(focusedField.projectedValue, equals: 0)

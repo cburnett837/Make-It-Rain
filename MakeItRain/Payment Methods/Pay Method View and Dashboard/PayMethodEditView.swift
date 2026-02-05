@@ -96,7 +96,11 @@ struct PayMethodEditView: View {
                     if selectedTab == .details {
                         editPageMac
                     } else {
+                        #if os(iOS)
                         chartPage
+                        #else
+                        Text("Not ready yet")
+                        #endif
                     }
                 }
                 .frame(maxHeight: .infinity)
@@ -113,6 +117,7 @@ struct PayMethodEditView: View {
     
     @ToolbarContentBuilder
     var toolbar: some ToolbarContent {
+        #if os(iOS)
         ToolbarItem(placement: .topBarLeading) {
             if !payMethod.isUnified {
                 deleteButton
@@ -137,6 +142,12 @@ struct PayMethodEditView: View {
             EnteredByAndUpdatedByView(enteredBy: payMethod.enteredBy, updatedBy: payMethod.updatedBy, enteredDate: payMethod.enteredDate, updatedDate: payMethod.updatedDate)
         }
         .sharedBackgroundVisibility(.hidden)
+        #else
+        
+        ToolbarItem(placement: .confirmationAction) {
+            AnimatedCloseButton(isValidToSave: isValidToSave, closeButton: closeButton)
+        }
+        #endif
 
     }
     
@@ -894,7 +905,11 @@ struct PayMethodEditView: View {
         .tint(.none)
         .confirmationDialog("Delete \"\(payMethod.title)\"?", isPresented: $showDeleteAlert, actions: {
             Button("Yes", role: .destructive, action: deletePaymentMethod)
+            #if os(iOS)
             Button("No", role: .close) { showDeleteAlert = false }
+            #else
+            Button("No") { showDeleteAlert = false }
+            #endif
         }, message: {
             #if os(iOS)
             Text("Delete \"\(payMethod.title)\"?\nThis will also delete all associated transactions and event transactions.")

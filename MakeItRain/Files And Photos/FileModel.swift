@@ -110,6 +110,12 @@ class FileModel {
     func prepareDataFromUIImage(image: UIImage) -> Data? {
         return image.jpegData(compressionQuality: compressionQuality)
     }
+    #else
+    func prepareDataFromNSImage(image: NSImage) -> Data? {
+        return nil
+        #warning("FIX")
+        //return image.jpegData(compressionQuality: compressionQuality)
+    }
     #endif
     
        

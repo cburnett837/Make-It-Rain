@@ -116,7 +116,7 @@ struct RootView: View {
         calModel.sMonth = CBMonth(num: 100000)
         //calModel.hilightTrans = nil
         
-        if let selection = navManager.selection {
+        if let selection = NavigationManager.shared.selection {
             if NavDestination.justMonths.contains(selection) {
                 Task {
                     let targetMonth = calModel.months.filter { $0.enumID == selection }.first
@@ -214,8 +214,11 @@ struct RootView: View {
     
     
     // MARK: - LifeCycle Functions
+    
     func sceneBecameActive() {
+        #if os(iOS)
         AppState.shared.scenePhase = .active
+        #endif
         AppState.shared.startNewNowTimer()
         
         if funcModel.refreshTask == nil {
@@ -232,14 +235,16 @@ struct RootView: View {
     }
     
     func sceneBecameBackground() {
+        #if os(iOS)
         AppState.shared.scenePhase = .background
+        #endif
         AppState.shared.cancelNowTimer()
         funcModel.longPollTask?.cancel()
         funcModel.longPollTask = nil
         funcModel.refreshTask?.cancel()
         funcModel.refreshTask = nil
     }
-    
+
     
 //    #if os(iOS)
 //    func handleIosSceneChange(_ old: ScenePhase, _ new: ScenePhase) {

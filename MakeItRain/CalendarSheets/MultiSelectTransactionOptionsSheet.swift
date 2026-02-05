@@ -64,7 +64,7 @@ struct MultiSelectTransactionOptionsSheet: View {
                 withAnimation {
                     calModel.isInMultiSelectMode = false
                     calModel.sCategoriesForAnalysis.removeAll()
-                    calModel.sCategoryGroupForAnalysis = nil
+                    calModel.sCategoryGroupsForAnalysis.removeAll()
                     //calModel.sCategoryGroupsForAnalysis.removeAll()
                     
                     if shouldSave {
@@ -283,10 +283,15 @@ struct MultiSelectTransactionOptionsSheet: View {
                 }
                 shouldSave = false
             }
-            
+            #if os(iOS)
             Button("No", role: .close) {
                 showDeleteAlert = false
             }
+            #else
+            Button("No") {
+                showDeleteAlert = false
+            }
+            #endif
         } message: {
             Text("Delete the selected transactions?")
         }
@@ -354,6 +359,7 @@ struct MultiSelectChangeDatePage: View {
         }
         .navigationTitle("Change Transaction Date")
         .toolbar {
+            #if os(iOS)
             ToolbarItem(placement: .bottomBar) {
                 Button {
                     changeDate()
@@ -376,6 +382,17 @@ struct MultiSelectChangeDatePage: View {
                 .tint(.red)
                 .buttonStyle(.glassProminent)
             }
+            #else
+            ToolbarItem(placement: .confirmationAction) {
+                Button {
+                    navPath.removeLast()
+                } label: {
+                    Text("Cancel")
+                        .schemeBasedForegroundStyle()
+                }
+                .tint(.red)
+            }
+            #endif
         }
     }
     

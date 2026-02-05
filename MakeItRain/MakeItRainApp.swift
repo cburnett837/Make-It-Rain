@@ -37,20 +37,20 @@ struct MakeItRainApp: App {
     @State private var undoManager = UndodoManager.shared
     @State private var openRecordManager = OpenRecordManager.shared
     
-    @State private var funcModel: FuncModel
-    @State private var calModel: CalendarModel
-    @State private var payModel: PayMethodModel
-    @State private var catModel: CategoryModel
-    @State private var keyModel: KeywordModel
-    @State private var repModel: RepeatingTransactionModel
-    @State private var plaidModel: PlaidModel
+    @State var funcModel: FuncModel
+    @State var calModel: CalendarModel
+    @State var payModel: PayMethodModel
+    @State var catModel: CategoryModel
+    @State var keyModel: KeywordModel
+    @State var repModel: RepeatingTransactionModel
+    @State var plaidModel: PlaidModel
     
     @State private var photoModel = FileModel.shared
     @State private var locationManager = LocationManager.shared
-    @State private var dataChangeTriggers = DataChangeTriggers.shared
+    @State var dataChangeTriggers = DataChangeTriggers.shared
     //@State private var mapModel = MapModel()
     
-    @State private var calProps = CalendarProps()
+    @State var calProps = CalendarProps()
     
     @State private var showCamera = false
     
@@ -184,6 +184,7 @@ struct MakeItRainApp: App {
         insightsWindow
         multiSelectWindow
         monthlyPlaceholderWindow
+        settingsWindow
         #endif
     }
     

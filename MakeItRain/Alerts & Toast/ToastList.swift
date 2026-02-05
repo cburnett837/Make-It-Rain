@@ -41,6 +41,7 @@ struct ToastList: View {
         }
         .navigationTitle("Notifications")
         .toolbar {
+            #if os(iOS)
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     showDeleteAlert = true
@@ -56,6 +57,7 @@ struct ToastList: View {
                     Text("Clear All Notifications")
                 }
             }
+            #endif
         }
         .onDisappear {
             AppState.shared.unreadToasts.removeAll()

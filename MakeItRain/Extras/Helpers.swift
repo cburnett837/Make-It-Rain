@@ -285,8 +285,13 @@ struct Helpers {
         let mutable = NSMutableAttributedString(attributedString: bridged)
         let fullRange = NSRange(location: 0, length: mutable.length)
 
+        #if os(iOS)
         mutable.addAttribute(.font, value: UIFont.preferredFont(forTextStyle: .body), range: fullRange)
         mutable.addAttribute(.foregroundColor, value: UIColor.label, range: fullRange)
+        #else
+        mutable.addAttribute(.font, value: NSFont.preferredFont(forTextStyle: .body), range: fullRange)
+        mutable.addAttribute(.foregroundColor, value: NSColor.textColor, range: fullRange)
+        #endif
 
         return mutable
     }

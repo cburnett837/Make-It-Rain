@@ -144,13 +144,14 @@ struct BudgetTable: View {
             if AppState.shared.isIpad {
                 ToolbarItem(placement: .topBarTrailing) { closeButton }
             }
+            DefaultToolbarItem(kind: .search, placement: .bottomBar)
+            ToolbarSpacer(.flexible, placement: .bottomBar)
+            ToolbarItem(placement: .bottomBar) { CategorySortMenu() }
             #else
             ToolbarItem(placement: .primaryAction) { closeButton }
             #endif
             
-            DefaultToolbarItem(kind: .search, placement: .bottomBar)
-            ToolbarSpacer(.flexible, placement: .bottomBar)
-            ToolbarItem(placement: .bottomBar) { CategorySortMenu() }
+            
         }
         .onChange(of: budgetEditID) { oldValue, newValue in
             if let newValue {

@@ -138,20 +138,20 @@ struct DebugView: View {
     }
     
     
-    var customNumPad: some View {
-        Section {
-            UITextFieldWrapper(placeholder: "Demo", text: $text, toolbar: {
-                KeyboardToolbarView(
-                    focusedField: $focusedField,
-                    accessoryImage3: "plus.forwardslash.minus",
-                    accessoryFunc3: {
-                        Helpers.plusMinus($text)
-                    })
-            })
-            .uiKeyboardType(.custom(.calculator))
-            .focused($focusedField, equals: 0)
-        }
-    }
+//    var customNumPad: some View {
+//        Section {
+//            UITextFieldWrapper(placeholder: "Demo", text: $text, toolbar: {
+//                KeyboardToolbarView(
+//                    focusedField: $focusedField,
+//                    accessoryImage3: "plus.forwardslash.minus",
+//                    accessoryFunc3: {
+//                        Helpers.plusMinus($text)
+//                    })
+//            })
+//            .uiKeyboardType(.custom(.calculator))
+//            .focused($focusedField, equals: 0)
+//        }
+//    }
     
     
     var alertSection: some View {
@@ -378,9 +378,15 @@ fileprivate struct CoreDataList: View {
         }
         .navigationTitle("Local Cache")
         .toolbar {
+            #if os(iOS)
             ToolbarItem(placement: .topBarTrailing) {
                 dumpCoreDataButton
             }
+            #else
+            ToolbarItem(placement: .confirmationAction) {
+                dumpCoreDataButton
+            }
+            #endif
         }
     }
     
@@ -408,7 +414,11 @@ fileprivate struct CoreDataList: View {
                 
                 dismiss()
             }
+            #if os(iOS)
             Button("Cancel", role: .close) {}
+            #else
+            Button("Cancel") {}
+            #endif
         } message: {
             Text("Clear Cache?\nThis will only clear your local storage and not the data on the server. Local storage will be re-populated the next time you refresh.")
         }
@@ -433,6 +443,7 @@ fileprivate struct CoreDataList: View {
                 }
                 .font(.caption2)
             } icon: {
+                #if os(iOS)
                 if let data = logo.photoData, let image = UIImage(data: data) {
                     Image(uiImage: image)
                         .resizable()
@@ -441,6 +452,16 @@ fileprivate struct CoreDataList: View {
                 } else {
                     Image(systemName: "circle.fill")
                 }
+                #else
+                if let data = logo.photoData, let image = NSImage(data: data) {
+                    Image(nsImage: image)
+                        .resizable()
+                        .frame(width: 30, height: 30, alignment: .center)
+                        .clipShape(Circle())
+                } else {
+                    Image(systemName: "circle.fill")
+                }
+                #endif
             }
         }
         .navigationTitle("Logos Cache")

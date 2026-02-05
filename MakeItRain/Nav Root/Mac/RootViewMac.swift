@@ -61,7 +61,6 @@ struct RootViewMac: View {
                         NavLinkMac(destination: .paymentMethods, title: "Accounts", image: "creditcard")
                         
                         if AppState.shared.methsExist {
-                            NavLinkMac(destination: .events, title: "Events", image: "beach.umbrella")
                             NavLinkMac(destination: .repeatingTransactions, title: "Reoccuring Transactions", image: "repeat")
                             NavLinkMac(destination: .keywords, title: "Rules", image: "textformat.abc.dottedunderline")
                             
@@ -119,13 +118,10 @@ struct RootViewMac: View {
                 KeywordsTable()
                 
             case .search:
-                AdvancedSearchView()
+                AdvancedSearchView(navPath: .constant(NavigationPath()))
                 
             case .analytics:
                 Text("Analytics")
-                
-            case .events:
-                EventsTable()
                 
             case .settings:
                 Text("Settings")
@@ -137,6 +133,18 @@ struct RootViewMac: View {
                 EmptyView()
                 
             case .none, .placeholderMonth:
+                Text("Invalid Selection")
+                
+            case .calendar:
+                Text("Invalid Selection")
+                
+            case .toasts:
+                Text("Invalid Selection")
+                
+            case .more:
+                Text("Invalid Selection")
+                
+            case .recentReceipts:
                 Text("Invalid Selection")
             }
         }

@@ -10,6 +10,7 @@ import SwiftUI
 import WebKit
 import PDFKit
 
+#if os(iOS)
 struct CustomAsyncCsv: View {
     var file: CBFile
     var displayStyle: FileSectionDisplayStyle
@@ -54,5 +55,6 @@ struct CustomAsyncCsv: View {
 //            ))
 //            .frame(width: fileWidth, height: fileHeight)
 //            .clipShape(.rect(cornerRadius: 14))
-        }
     }
+}
+#endif

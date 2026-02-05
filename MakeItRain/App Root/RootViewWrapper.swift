@@ -52,7 +52,7 @@ struct RootViewWrapper<Content: View>: View {
             }
             #else
             .overlay {
-                AlertAndToastLayerView()
+                AlertAndToastLayerView(showCamera: .constant(false))
                     .environment(funcModel)
                     .environment(calModel)
                     .environment(payModel)

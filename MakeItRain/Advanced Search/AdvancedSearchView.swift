@@ -147,10 +147,11 @@ struct AdvancedSearchView: View {
         .navigationDestination(for: String.self, destination: { dest in
             DatePickerPage(searchModel: searchModel, navPath: $navPath)
         })
+        .onShake { resetForm() }
         //.navigationBarTitleDisplayMode(.inline)
         #endif
         .id(fuckYouSwiftuiTableRefreshID)
-        .onShake { resetForm() }
+        
 //        .searchable(text: $searchTerm, prompt: searchPrompt)
 //        .searchFocused($focusedField, equals: 0)
 //        .searchPresentationToolbarBehavior(.avoidHidingContent)
@@ -490,7 +491,9 @@ struct AdvancedSearchView: View {
         } header: {
             filterSectionHeader
         }
+        #if os(iOS)
         .listSectionSpacing(5)
+        #endif
         
         if filterIsExpanded {
             Section {
@@ -501,14 +504,18 @@ struct AdvancedSearchView: View {
                     
                 cutOffDatePickerAndTypePicker
             }
+            #if os(iOS)
             .listSectionSpacing(5)
+            #endif
             
             Section {
                 amountTypePicker
                 excludedToggle
                 onlyWithPhotosToggle
             }
+            #if os(iOS)
             .listSectionSpacing(5)
+            #endif
         }
 //        Section {
 //            if filterIsExpanded {
@@ -850,7 +857,9 @@ fileprivate struct DatePickerPage: View {
             }
         }
         .navigationTitle("Search Date Filter")
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
         .task {
             if searchModel.beginDate != nil && searchModel.endDate != nil {
                 dateRangeType = .range

@@ -8,6 +8,7 @@
 
 import SwiftUI
 
+#if os(iOS)
 struct PdfInvoiceViewForMultipleTransactions: View {
     var pageIndex: Int
     var trans: CBTransaction
@@ -73,3 +74,4 @@ struct PdfInvoiceViewForMultipleTransactions: View {
         .frame(height: 80, alignment: .top)
     }
 }
+#endif

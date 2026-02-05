@@ -78,7 +78,11 @@ struct SettingsView: View {
         .tint(Color.theme)
         .alert("Reset All Settings?", isPresented: $showResetAllSettingsAlert) {
             Button("Reset", role: .destructive, action: resetAllSettings)
+            #if os(iOS)
             Button("No", role: .close) { showResetAllSettingsAlert = false }
+            #else
+            Button("No") { showResetAllSettingsAlert = false }
+            #endif
         }
         #if os(iOS)
         .navigationTitle("Settings")
@@ -172,7 +176,11 @@ struct SettingsView: View {
     }
     
     @State private var showCamera: Bool = false
+    #if os(iOS)
     @State private var selectedAvatar: UIImage?
+    #else
+    @State private var selectedAvatar: NSImage?
+    #endif
     @State private var showPhotosPicker: Bool = false
     //@State private var imagesFromLibrary: Array<PhotosPickerItem> = []
     #if os(iOS)
@@ -205,9 +213,11 @@ struct SettingsView: View {
                     }
                 }
             }
+            #if os(iOS)
             .sheet(isPresented: $showPhotosPicker) {
                 CustomImageAndCameraPicker(imageSourceType: .photoLibrary, selectedImage: $selectedAvatar)
             }
+            #endif
                                     
 //            UserAvatar(user: AppState.shared.user!)
 //                .onTapGesture {
@@ -233,11 +243,19 @@ struct SettingsView: View {
         /// Upload the picture from the selectedt photos when the photo picker sheet closes.
         .onChange(of: showPhotosPicker) {
             if !$1 {
+                #if os(iOS)
                 if let image = selectedAvatar, let avatarData = FileModel.shared.prepareDataFromUIImage(image: image) {
                     changeAvatarAndSendToServer(avatarData: avatarData)
                 } else {
                     changeAvatarAndSendToServer(avatarData: nil)
                 }
+                #else
+                if let image = selectedAvatar, let avatarData = FileModel.shared.prepareDataFromNSImage(image: image) {
+                    changeAvatarAndSendToServer(avatarData: avatarData)
+                } else {
+                    changeAvatarAndSendToServer(avatarData: nil)
+                }
+                #endif
             }
         }
     }

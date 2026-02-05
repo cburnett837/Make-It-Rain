@@ -9,6 +9,7 @@
 import SwiftUI
 import Contacts
 
+#if os(iOS)
 struct PdfInvoiceViewForSingleTransaction: View {
     var pageIndex: Int
     var trans: CBTransaction
@@ -138,3 +139,4 @@ struct PdfInvoiceViewForSingleTransaction: View {
         .environment(\.colorScheme, .light)
     }
 }
+#endif

@@ -24,21 +24,25 @@ extension View {
         }
     }
     
+    #if os(iOS)
     @ViewBuilder func viewExtractor(result: @escaping (UIView) -> ()) -> some View {
         self
             .background(ViewExtractorHelper(result: result))
             .compositingGroup()
     }
+    #endif
     
     func formatCurrencyLiveAndOnUnFocus(focusValue: Int, focusedField: Int?, amountString: String?, amountStringBinding: Binding<String>, amount: Double?) -> some View {
         /// This will format the text with a $ or a -$ on the front when typing, and then fully format the text with decimals, and commas when unfocusing the textfield, or when clicking enter (macOS).
         modifier(FormatCurrencyLiveAndOnUnFocus(focusValue: focusValue, focusedField: focusedField, amountString: amountString, amountStringBinding: amountStringBinding, amount: amount))
     }
     
+    #if os(iOS)
     func calculateAndFormatCurrencyLiveAndOnUnFocus(focusValue: Int, focusedField: Int?, amountString: String?, amountStringBinding: Binding<String>, amount: Double?) -> some View {
         /// This will format the text with a $ or a -$ on the front when typing, and then fully format the text with decimals, and commas when unfocusing the textfield, or when clicking enter (macOS).
         modifier(CalculateAndFormatCurrencyLiveAndOnUnFocus(focusValue: focusValue, focusedField: focusedField, amountString: amountString, amountStringBinding: amountStringBinding, amount: amount))
     }
+    #endif
     
         
     func toast() -> some View {

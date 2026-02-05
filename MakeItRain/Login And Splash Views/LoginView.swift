@@ -80,6 +80,7 @@ struct LoginView: View {
                 Image(systemName: "person")
                     .foregroundStyle(.gray)
                 
+                #if os(iOS)
                 UITextFieldWrapper(placeholder: "Email", text: $email, toolbar: {
                     KeyboardToolbarView(focusedField: $focusedField)
                 })
@@ -90,6 +91,9 @@ struct LoginView: View {
                 .uiKeyboardType(.system(.emailAddress))
                 .uiAutoCapitalizationType(.none)
                 .focused($focusedField, equals: 0)
+                #else
+                TextField("Email", text: $email)
+                #endif
             }
             .frame(width: 250)
                                                                         
@@ -105,6 +109,7 @@ struct LoginView: View {
                 Image(systemName: "lock")
                     .foregroundStyle(.gray)
                 
+                #if os(iOS)
                 UITextFieldWrapper(placeholder: "Password", text: $password, onSubmit: {
                     focusedField = nil
                     attemptingLogin = true
@@ -120,6 +125,9 @@ struct LoginView: View {
                 .uiAutoCapitalizationType(.none)
                 .uiIsSecure(true)
                 .focused($focusedField, equals: 1)
+                #else
+                TextField("Email", text: $password)
+                #endif
             }
             .frame(width: 250)
                                 

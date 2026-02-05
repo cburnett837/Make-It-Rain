@@ -183,7 +183,7 @@
 		FDA8FA482EB5334100D7C29B /* TevMoreOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA8FA472EB5334100D7C29B /* TevMoreOptions.swift */; };
 		FDA8FA652EB91EA100D7C29B /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FD6D7ECA2D667B4A0026D39D /* WidgetKit.framework */; };
 		FDA8FA662EB91EA100D7C29B /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FD6D7ECC2D667B4A0026D39D /* SwiftUI.framework */; };
-		FDA8FA712EB91EA200D7C29B /* Take-Photo-ExtensionExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = FDA8FA642EB91EA100D7C29B /* Take-Photo-ExtensionExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		FDA8FA712EB91EA200D7C29B /* Take-Photo-ExtensionExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = FDA8FA642EB91EA100D7C29B /* Take-Photo-ExtensionExtension.appex */; platformFilters = (ios, xros, ); settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		FDA8FA7D2EBA7C6200D7C29B /* PDFKitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA8FA7C2EBA7C6200D7C29B /* PDFKitView.swift */; };
 		FDA8FA7F2EBAAC3B00D7C29B /* PhotoPickerAndCameraSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA8FA7E2EBAAC3B00D7C29B /* PhotoPickerAndCameraSheet.swift */; };
 		FDA8FA812EBAAC5900D7C29B /* TransactionEditSheetAndLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA8FA802EBAAC5900D7C29B /* TransactionEditSheetAndLogic.swift */; };
@@ -2090,6 +2090,10 @@
 /* Begin PBXTargetDependency section */
 		FDA8FA702EB91EA200D7C29B /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
+			platformFilters = (
+				ios,
+				xros,
+			);
 			target = FDA8FA632EB91EA100D7C29B /* Take-Photo-ExtensionExtension */;
 			targetProxy = FDA8FA6F2EB91EA200D7C29B /* PBXContainerItemProxy */;
 		};

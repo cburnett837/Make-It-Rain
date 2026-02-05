@@ -82,6 +82,7 @@ struct AlertAndToastLayerView: View {
                         .accessibilityIdentifier("UniversalAlertContent")
                 }
             }
+            #if os(iOS)
             .photoPickerAndCameraSheet(
                 fileUploadCompletedDelegate: calModel,
                 parentType: .transaction,
@@ -89,6 +90,7 @@ struct AlertAndToastLayerView: View {
                 showPhotosPicker: .constant(false),
                 showCamera: $showCamera
             )
+            #endif
             /// Toasts.
             .toast()
     }

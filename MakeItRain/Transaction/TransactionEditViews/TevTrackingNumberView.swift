@@ -9,6 +9,7 @@ import SwiftUI
 import WebKit
 import UniformTypeIdentifiers
 
+#if os(iOS)
 
 struct TevTrackingNumberView: View {
     @Binding var trackingNumber: String
@@ -322,3 +323,4 @@ func detectCarrier(from trackingNumber: String) -> ShippingCarrier? {
         ) != nil
     }
 }
+#endif

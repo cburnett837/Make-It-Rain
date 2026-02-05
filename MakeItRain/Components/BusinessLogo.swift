@@ -34,7 +34,11 @@ struct BusinessLogo: View {
         config.size ?? (useBusinessLogos ? 30 : 22)
     }
         
+    #if os(iOS)
     @State private var logo: UIImage?
+    #else
+    @State private var logo: NSImage?
+    #endif
     
 //    var logo: UIImage? {
 //        if let logoData = config.parent?.logo, let image = UIImage(data: logoData) {
@@ -90,6 +94,7 @@ struct BusinessLogo: View {
     }
     
     
+    #if os(iOS)
     @ViewBuilder
     func logoImage(_ image: UIImage) -> some View {
         Image(uiImage: image)
@@ -97,6 +102,15 @@ struct BusinessLogo: View {
             .frame(width: theLogoSize, height: theLogoSize, alignment: .center)
             .clipShape(Circle())
     }
+    #else
+    @ViewBuilder
+    func logoImage(_ image: NSImage) -> some View {
+        Image(nsImage: image)
+            .resizable()
+            .frame(width: theLogoSize, height: theLogoSize, alignment: .center)
+            .clipShape(Circle())
+    }
+    #endif
     
     
     @ViewBuilder
@@ -108,6 +122,7 @@ struct BusinessLogo: View {
             .foregroundStyle(backgroundColor(parent: config.parent))
     }
     
+    #if os(iOS)
     
     func prepareLogo(data: Data?) {
         if let cachedImage = ImageCache.shared.loadFromCache(
@@ -134,6 +149,33 @@ struct BusinessLogo: View {
             self.logo = nil
         }
     }
+    #else
+    func prepareLogo(data: Data?) {
+        if let cachedImage = ImageCache.shared.loadFromCache(
+            parentTypeId: config.parent?.logoParentType.id,
+            parentId: config.parent?.id,
+            id: config.parent?.id
+        ) {
+            //print("Found cached image for \(config.parent?.logoParentType.id ?? 0)_\(config.parent?.id ?? "unknown")")
+            self.logo = cachedImage
+            
+        } else if let logoData = config.parent?.logo, let image = NSImage(data: logoData) {
+            //print("need to cache image for \(config.parent?.logoParentType.id ?? 0)_\(config.parent?.id ?? "unknown")")
+            self.logo = image
+            Task.detached {
+                await ImageCache.shared.saveToCache(
+                    parentTypeId: config.parent?.logoParentType.id,
+                    parentId: config.parent?.id,
+                    id: config.parent?.id,
+                    data: logoData
+                )
+            }
+            
+        } else {
+            self.logo = nil
+        }
+    }
+    #endif
     
     
     func backgroundColor(parent: (any CanHandleLogo & Observation.Observable)?) -> some ShapeStyle {

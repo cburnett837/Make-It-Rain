@@ -72,9 +72,11 @@ class NetworkManager {
                 let httpResponse = response as? HTTPURLResponse
                 
                 /// Only retain the time if the app is in the foreground. This prevents the time from updating if something is in flight in the background, and a change happens from another device.
+                #if os(iOS)
                 if retainTime && AppState.shared.scenePhase == .active {
                     AppState.shared.lastNetworkTime = .now
                 }
+                #endif
                 
                 if httpResponse?.statusCode == 401 {
                     await AuthState.shared.serverAccessRevoked()
@@ -165,9 +167,11 @@ class NetworkManager {
                 //print(httpResponse?.statusCode)
                 
                 /// Only retain the time if the app is in the foreground. This prevents the time from updating if something is in flight in the background, and a change happens from another device.
-                if retainTime && AppState.shared.scenePhase == .active {
-                    AppState.shared.lastNetworkTime = .now
-                }
+                    #if os(iOS)
+                    if retainTime && AppState.shared.scenePhase == .active {
+                        AppState.shared.lastNetworkTime = .now
+                    }
+                    #endif
                 
                 if httpResponse?.statusCode == 401 {
                     await AuthState.shared.serverAccessRevoked()

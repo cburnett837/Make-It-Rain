@@ -7,7 +7,9 @@
 
 
 import SwiftUI
+#if os(iOS)
 import MessageUI
+#endif
 import Contacts
 
 @Observable
@@ -31,7 +33,11 @@ class PdfInvoiceCreatorModel {
         
     
     var canSendTextAndAttachments: Bool {
+        #if os(iOS)
         MFMessageComposeViewController.canSendText() && MFMessageComposeViewController.canSendAttachments()
+        #else
+        return false
+        #endif
     }
     
     
@@ -51,6 +57,7 @@ class PdfInvoiceCreatorModel {
     
     
     var cantSendMessageReason: LocalizedStringKey {
+        #if os(iOS)
         if let contact = selectedContact, contact.phoneNumbers.first?.value == nil {
             return "**\(contactName)** does not have a phone number associated with them."
             
@@ -64,6 +71,9 @@ class PdfInvoiceCreatorModel {
             return "This device is not capable of sending attachments."
         }
         return "An unknown error occured."
+        #else
+        return "Not available on Mac."
+        #endif
     }
     
     
@@ -104,6 +114,7 @@ class PdfInvoiceCreatorModel {
         if let trans = trans {
             let properAmount = amount < 0 ? amount * -1 : amount
             
+            #if os(iOS)
             let fileUrl: URL? = try? await PdfMaker.create(pageCount: 1, fileName: fileName) { pageIndex in
                 PdfInvoiceViewForSingleTransaction(
                     pageIndex: pageIndex,
@@ -120,6 +131,7 @@ class PdfInvoiceCreatorModel {
             if let url = fileUrl {
                 self.pdfUrl = url
             }
+            #endif
         }
     }
     

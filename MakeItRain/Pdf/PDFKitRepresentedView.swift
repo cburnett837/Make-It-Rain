@@ -7,7 +7,7 @@
 
 import SwiftUI
 import PDFKit
-
+#if os(iOS)
 struct PDFKitRepresentedView: UIViewRepresentable {
     @Environment(\.colorScheme) var colorScheme
 
@@ -47,3 +47,4 @@ struct PDFKitRepresentedView: UIViewRepresentable {
         }
     }
 }
+#endif

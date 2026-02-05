@@ -137,7 +137,9 @@ struct PayMethodSheet: View {
             }
             #endif
         }
+        #if os(iOS)
         .background(Color(uiColor: .systemGroupedBackground))
+        #endif
         //.background(Color(.systemBackground))
     }
     
@@ -211,7 +213,9 @@ struct PayMethodSheet: View {
         .pickerStyle(.segmented)
         .scenePadding(.horizontal)
         //.padding(.bottom, 5)
+        #if os(iOS)
         .background(Color(uiColor: .systemGroupedBackground))
+        #endif
         //.background(Color(.systemBackground)) // force matching
     }
     

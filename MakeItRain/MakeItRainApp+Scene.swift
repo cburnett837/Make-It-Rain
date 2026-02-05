@@ -44,18 +44,19 @@ extension MakeItRainApp {
     @SceneBuilder
     var insightsWindow: some Scene {
         Window("Category Analysis", id: "analysisSheet") {
-            CategoryInsightsSheet(showAnalysisSheet: .constant(true))
-                .frame(minWidth: 300, minHeight: 500)
-                .environment(funcModel)
-                .environment(calModel)
-                .environment(payModel)
-                .environment(catModel)
-                .environment(keyModel)
-                .environment(repModel)
-                .environment(plaidModel)
-                .environment(calProps)
-                .environment(dataChangeTriggers)
-                //.environment(mapModel)
+            Text("not ready yet")
+//            CategoryInsightsSheet(showAnalysisSheet: .constant(true))
+//                .frame(minWidth: 300, minHeight: 500)
+//                .environment(funcModel)
+//                .environment(calModel)
+//                .environment(payModel)
+//                .environment(catModel)
+//                .environment(keyModel)
+//                .environment(repModel)
+//                .environment(plaidModel)
+//                .environment(calProps)
+//                .environment(dataChangeTriggers)
+//                //.environment(mapModel)
         }
         .auxilaryWindow()
     }
@@ -63,7 +64,7 @@ extension MakeItRainApp {
     @SceneBuilder
     var multiSelectWindow: some Scene {
         Window("Multi-Select", id: "multiSelectSheet") {
-            MultiSelectTransactionOptionsSheet(showInspector: .constant(true))
+            MultiSelectTransactionOptionsSheet(showInspector: .constant(true), navPath: .constant(NavigationPath()))
                 .frame(minHeight: 500)
                 .frame(width: 250)
                 .environment(funcModel)

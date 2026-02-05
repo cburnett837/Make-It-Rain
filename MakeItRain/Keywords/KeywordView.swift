@@ -188,7 +188,9 @@ struct KeywordView: View {
         if showCategorySection {
             Section {
                 HStack {
+                    #if os(iOS)
                     CategorySheetButtonWithNoSymbol(category: $keyword.category, alignment: .leading)
+                    #endif
                     Spacer()
                     removeCategoryConditionButton
                 }
@@ -294,8 +296,11 @@ struct KeywordView: View {
                     //await keyModel.delete(keyword, andSubmit: true)
                 //}
             }
-            
+            #if os(iOS)
             Button("No", role: .close) { showDeleteAlert = false }
+            #else
+            Button("No") { showDeleteAlert = false }
+            #endif
         }, message: {
             #if os(iOS)
             Text("Delete \"\(keyword.keyword)\"?")

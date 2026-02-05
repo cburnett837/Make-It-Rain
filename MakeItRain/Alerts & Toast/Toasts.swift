@@ -82,7 +82,9 @@ extension AppState {
     ) {
         withAnimation(.bouncy) {
             //DispatchQueue.main.async {
+            #if os(iOS)
             Helpers.buzzPhone(.success)
+            #endif
             self.toast = Toast(
                 header: title,
                 title: subtitle,

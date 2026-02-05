@@ -128,7 +128,11 @@ struct LineItemView: View {
                     await calModel.saveTransaction(id: trans.id/*, day: day*/)
                 }
             }
+            #if os(iOS)
             Button("No", role: .close) { showDeleteAlert = false }
+            #else
+            Button("No") { showDeleteAlert = false }
+            #endif
         } message: {
             #if os(iOS)
             Text("Delete \"\(trans.title)\"?")
@@ -345,7 +349,9 @@ struct LineItemView: View {
                 //EmptyView()
                 Image(systemName: "circle", variableValue: 0.8)
                     .symbolRenderingMode(.palette)
+                    #if os(iOS)
                     .symbolVariableValueMode(.draw)
+                    #endif
                     .foregroundStyle(Color.primary, Color.gray)
                     .symbolEffect(.rotate, options: .repeat(.continuous).speed(8))
 
@@ -353,19 +359,25 @@ struct LineItemView: View {
                 Image(systemName: "checkmark.circle")
                     .symbolRenderingMode(.palette)
                     .foregroundStyle(Color.primary, Color.green.gradient)
+                    #if os(iOS)
                     .transition(.symbolEffect(.drawOn.individually))
+                    #endif
 
             case .saveFail:
                 Image(systemName: "exclamationmark.triangle")
                     .symbolRenderingMode(.palette)
                     .foregroundStyle(Color.primary, Color.orange.gradient)
+                    #if os(iOS)
                     .transition(.symbolEffect(.drawOn.individually))
+                    #endif
                 
             case .deleteSucceess:
                 Image(systemName: "trash.circle")
                     .symbolRenderingMode(.palette)
                     .foregroundStyle(Color.primary, Color.red.gradient)
+                    #if os(iOS)
                     .transition(.symbolEffect(.drawOn.individually))
+                    #endif
             }
         }
         .contentTransition(.symbolEffect(.replace))

@@ -7,8 +7,6 @@
 
 
 import SwiftUI
-import MessageUI
-import Contacts
 
 struct ThereWasAProblemFullScreenView: View {
     @Environment(\.dismiss) var dismiss
@@ -39,7 +37,9 @@ struct ThereWasAProblemFullScreenView: View {
                 Text("Close")
                     .schemeBasedForegroundStyle()
             }
+            #if os(iOS)
             .buttonStyle(.glassProminent)
+            #endif
         }
         .scenePadding()
     }

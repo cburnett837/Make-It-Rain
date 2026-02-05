@@ -169,9 +169,12 @@ struct CalendarViewMac: View {
                     selectedDay = targetDay
                     
                     let id = oldValue!.id
-                    calModel.saveTransaction(id: id/*, day: transSelectedDay!*/)
-//                        calModel.pictureTransactionID = nil
-                    FileModel.shared.fileParent = nil
+                    Task {
+                        await calModel.saveTransaction(id: id/*, day: transSelectedDay!*/)
+    //                        calModel.pictureTransactionID = nil
+                        FileModel.shared.fileParent = nil
+                    }
+                    
                 }
             }
         
@@ -203,8 +206,9 @@ struct CalendarViewMac: View {
                     .padding(.bottom, 5)
             }
                                 
+            let weekdaysNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
             LazyVGrid(columns: sevenColumnGrid, spacing: 0) {
-                ForEach(calModel.weekdaysNames, id: \.self) { name in
+                ForEach(weekdaysNames, id: \.self) { name in
                     HStack {
                         if !alignWeekdayNamesLeft {
                             Spacer()

@@ -213,7 +213,7 @@ struct CategoriesTable: View {
                 ToolbarNowButton()
                 ToolbarRefreshButton()
                     .toolbarBorder()
-                sortMenu
+                CategorySortMenu(displayStyle: .inlineWithMenu)
                     .toolbarBorder()
                     .help("This will defined the order of categories on transactions and within the category selection sheets")
                 

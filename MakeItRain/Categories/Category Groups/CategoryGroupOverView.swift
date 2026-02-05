@@ -85,9 +85,12 @@ struct CategoryGroupOverView: View {
             }
         }
         .navigationTitle(group.title)
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
         .task { await prepareView() }
         .toolbar {
+            #if os(iOS)
             ToolbarItem(placement: .topBarLeading) {
                 CatChartRefreshButton(model: model)
             }
@@ -103,6 +106,7 @@ struct CategoryGroupOverView: View {
                 ToolbarSpacer(.fixed, placement: .topBarTrailing)
                 ToolbarItem(placement: .topBarTrailing) { closeButton }
             }
+            #endif
         }
         .refreshable {
             model.fetchHistoryTime = Date()

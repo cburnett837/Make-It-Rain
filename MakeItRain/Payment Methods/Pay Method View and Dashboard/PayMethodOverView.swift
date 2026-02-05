@@ -82,7 +82,11 @@ struct PayMethodOverView: View {
     
     var cardColor: Color {
         if payMethod.isUnified {
+            #if os(iOS)
             colorScheme == .dark ? Color(.systemGray2) : Color(.white)
+            #else
+            Color(.white)
+            #endif
         } else {
             payMethod.color
         }
@@ -92,7 +96,9 @@ struct PayMethodOverView: View {
     var body: some View {
         /// This page just handles whether we should go directly to the charts (For a unified account), or display the details page.
         coordinatorPage
+            #if os(iOS)
             .background(Color(.systemBackground)) // force matching
+            #endif
             .task { await prepareView() }
             .sheet(item: $editPaymentMethod, onDismiss: {
                 paymentMethodEditID = nil
@@ -129,11 +135,16 @@ struct PayMethodOverView: View {
             chartPage
         } else {
             detailPage
+                #if os(iOS)
                 .background(Color(uiColor: .systemGroupedBackground))
+                #endif
                 .navigationTitle("Account Details")
+                #if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)
+                #endif
                 .navigationDestination(for: String.self) { _ in chartPage }
                 .toolbar {
+                    #if os(iOS)
                     ToolbarItem(placement: .topBarTrailing) {
                         Button("Edit") {
                             paymentMethodEditID = payMethod.id
@@ -145,6 +156,8 @@ struct PayMethodOverView: View {
                         ToolbarSpacer(.fixed, placement: .topBarTrailing)
                         ToolbarItem(placement: .topBarTrailing) { closeButton }
                     }
+                    #else
+                    #endif
                 }
         }
     }
@@ -323,7 +336,9 @@ struct PayMethodOverView: View {
                     }
                 }
                 .schemeBasedForegroundStyle()
+                #if os(iOS)
                 .buttonStyle(.glass)
+                #endif
             }
             .padding(14)
             .frame(maxWidth: .infinity)
@@ -383,7 +398,9 @@ struct PayMethodOverView: View {
             if editKeychainDetails {
                 TextField("Card Number", text: $keychainCardNumber ?? "")
                     .textFieldStyle(.roundedBorder)
+                    #if os(iOS)
                     .keyboardType(.numberPad)
+                    #endif
             } else {
                 HStack {
                     Text("NUM:")
@@ -409,10 +426,14 @@ struct PayMethodOverView: View {
             if editKeychainDetails {
                 TextField("Expiration Month", text: $keychainExpirationMonth ?? "")
                     .textFieldStyle(.roundedBorder)
+                    #if os(iOS)
                     .keyboardType(.numberPad)
+                    #endif
                 TextField("Expiration Year", text: $keychainExpirationYear ?? "")
                     .textFieldStyle(.roundedBorder)
+                    #if os(iOS)
                     .keyboardType(.numberPad)
+                    #endif
             } else {
                 HStack {
                     Text("EXP:")
@@ -441,7 +462,9 @@ struct PayMethodOverView: View {
             if editKeychainDetails {
                 TextField("Security Code", text: $keychainSecurityCode ?? "")
                     .textFieldStyle(.roundedBorder)
+                    #if os(iOS)
                     .keyboardType(.numberPad)
+                    #endif
             } else {
                 HStack {
                     Text("CVV:")

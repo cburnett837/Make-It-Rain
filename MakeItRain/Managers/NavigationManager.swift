@@ -214,7 +214,11 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
             DebugView()
             
         case .plaid:
+            #if os(iOS)
             PlaidTable()
+            #else
+            Text("Plaid table")
+            #endif
             
         case .toasts:
             ToastList()

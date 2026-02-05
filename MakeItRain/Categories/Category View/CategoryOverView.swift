@@ -89,13 +89,16 @@ struct CategoryOverView: View {
             .background(SnowyBackground(blurred: true, withSnow: true))
         }
         .navigationTitle(category.title)
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
         .task { await prepareView() }
         .refreshable {
             model.fetchHistoryTime = Date()
             model.fetchHistory(setChartAsNew: true)
         }
         .toolbar {
+            #if os(iOS)
             ToolbarItem(placement: .topBarLeading) {
                 CatChartRefreshButton(model: model)
             }
@@ -111,6 +114,7 @@ struct CategoryOverView: View {
                 ToolbarSpacer(.fixed, placement: .topBarTrailing)
                 ToolbarItem(placement: .topBarTrailing) { closeButton }
             }
+            #endif
         }
         .onChange(of: categoryEditID) { oldValue, newValue in
             if let newValue {

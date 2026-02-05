@@ -79,7 +79,7 @@ struct CategorySortMenu: View {
     func performSort() {
         withAnimation {
             #if os(macOS)
-            sortOrder = [KeyPathComparator(\CBCategory.title)]
+            //sortOrder = [KeyPathComparator(\CBCategory.title)]
             #else
             catModel.categories.sort(by: Helpers.categorySorter())
             calModel.months.forEach { $0.budgets.sort(by: Helpers.budgetSorter()) }

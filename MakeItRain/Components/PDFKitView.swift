@@ -9,6 +9,7 @@
 import SwiftUI
 import PDFKit
 
+#if os(iOS)
 struct PDFKitView: UIViewRepresentable {
     let url: URL
 
@@ -24,3 +25,4 @@ struct PDFKitView: UIViewRepresentable {
         uiView.document = PDFDocument(url: self.url)
     }
 }
+#endif

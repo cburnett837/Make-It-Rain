@@ -6,7 +6,9 @@
 //
 
 import SwiftUI
+#if os(iOS)
 import MessageUI
+#endif
 import Contacts
 
 struct PdfInvoiceCreatorSheet: View {
@@ -70,6 +72,7 @@ struct PdfInvoiceCreatorSheet: View {
             .navigationTitle("Create PDF \(model.invoiceTypeLingo)")
             //.navigationSubtitle("Create a PDF invoice to either send or save.")
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         dismiss()
@@ -78,6 +81,16 @@ struct PdfInvoiceCreatorSheet: View {
                             .schemeBasedForegroundStyle()
                     }
                 }
+                #else
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .schemeBasedForegroundStyle()
+                    }
+                }
+                #endif
             }
             .task {
                 model.prepareSelf(trans: trans)
@@ -191,7 +204,7 @@ struct PdfInvoiceCreatorSheet: View {
             .uiAutoCorrectionDisabled(true)
             //.uiTextColor(UIColor(trans.color))
             #else
-            StandardTextField("Title", text: $trans.recipient, focusedField: $focusedField, focusValue: 0)
+            StandardTextField("Title", text: $model.recipient, focusedField: $focusedField, focusValue: 0)
                 .onSubmit { focusedField = 1 }
             #endif
         }
@@ -233,7 +246,7 @@ struct PdfInvoiceCreatorSheet: View {
             .uiReturnKeyType(.next)
             //.uiTextColor(UIColor(trans.color))
             #else
-            StandardTextField("Title", text: $trans.title, focusedField: $focusedField, focusValue: 0)
+            StandardTextField("Title", text: $model.title, focusedField: $focusedField, focusValue: 0)
                 .onSubmit { focusedField = 2 }
             #endif
         }
@@ -264,7 +277,7 @@ struct PdfInvoiceCreatorSheet: View {
                 //.uiTextColor(.secondaryLabel)
                 //.uiTextAlignment(.right)
                 #else
-                StandardTextField("Amount", text: $transfer.amountString, focusedField: $focusedField, focusValue: 1)
+                StandardTextField("Amount", text: $model.amountString, focusedField: $focusedField, focusValue: 1)
                 #endif
             }
             .focused($focusedField, equals: 2)
@@ -369,9 +382,17 @@ struct PdfInvoiceCreatorSheet: View {
                     .overlay(ProgressView().tint(.none))
             }
         case .pdf:
+            #if os(iOS)
             CustomAsyncPdf(file: file, displayStyle: .grid)
+            #else
+            Text("Not ready yet")
+            #endif
         case .csv, .spreadsheet:
+            #if os(iOS)
             CustomAsyncCsv(file: file, displayStyle: .grid)
+            #else
+            Text("Not ready yet")
+            #endif
         }
     }
             
@@ -430,7 +451,9 @@ struct PdfInvoiceCreatorSheet: View {
         }) {
             if let pdfUrl = model.pdfUrl, model.canSendTextAndAttachments {
                 let phoneNumber = model.selectedContact?.phoneNumbers.first?.value.stringValue
+                #if os(iOS)
                 MessageComposerView(phoneNumber: phoneNumber, messageBody: model.messagePlaceholder, pdfURL: pdfUrl)
+                #endif
             } else {
                 ThereWasAProblemFullScreenView(title: "Messaging Error", text: model.cantSendMessageReason)
             }
@@ -501,6 +524,7 @@ struct PdfInvoicePreview: View {
     var body: some View {
         NavigationStack {
             if let url = model.pdfUrl {
+                #if os(iOS)
                 PDFKitRepresentedView(url: url)
                     .navigationTitle("\(model.invoiceTypeLingo) Preview")
                     .navigationBarTitleDisplayMode(.inline)
@@ -508,6 +532,9 @@ struct PdfInvoicePreview: View {
                         ToolbarItem(placement: .topBarLeading) { shareLink }
                         ToolbarItem(placement: .topBarTrailing) { closeButton }
                     }
+                #else
+                Text("Not ready yet")
+                #endif
             } else {
                 ThereWasAProblemFullScreenView(
                     title: "\(model.invoiceTypeLingo) Problem",

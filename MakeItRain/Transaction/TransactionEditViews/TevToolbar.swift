@@ -44,6 +44,7 @@ struct TevToolbar: ToolbarContent {
 
     
     var body: some ToolbarContent {
+        #if os(iOS)
         ToolbarItem(placement: .topBarLeading) { deleteButton }
         ToolbarSpacer(.fixed, placement: .topBarLeading)
         ToolbarItem(placement: .topBarLeading) {
@@ -72,6 +73,35 @@ struct TevToolbar: ToolbarContent {
             }
             //.sharedBackgroundVisibility(.hidden)
         }
+        #else
+        ToolbarItemGroup(placement: .destructiveAction) {
+            HStack {
+                deleteButton
+                moreMenu
+            }
+        }
+        
+        ToolbarItemGroup(placement: .confirmationAction) {
+            AnimatedCloseButton(isValidToSave: isValidToSave, closeButton: closeButton)
+                /// Check what color the save button should be.
+                .onChange(of: transactionValuesChanged) { checkIfTransactionIsValidToSave() }
+        }
+        
+        ToolbarItem(placement: .confirmationAction) {
+            HStack {
+                EnteredByAndUpdatedByView(
+                    enteredBy: trans.enteredBy,
+                    updatedBy: trans.updatedBy,
+                    enteredDate: trans.enteredDate,
+                    updatedDate: trans.updatedDate
+                )
+                
+                AnimatedCloseButton(isValidToSave: isValidToSave, closeButton: closeButton)
+                    /// Check what color the save button should be.
+                    .onChange(of: transactionValuesChanged) { checkIfTransactionIsValidToSave() }
+            }
+        }
+        #endif
     }
     
     
@@ -123,9 +153,15 @@ struct TevToolbar: ToolbarContent {
                 )
             }
             
+            #if os(iOS)
             Button("No", role: .close) {
                 showDeleteAlert = false
             }
+            #else
+            Button("No") {
+                showDeleteAlert = false
+            }
+            #endif
         } message: {
             Text("Delete \"\(trans.title)\"?")
         }

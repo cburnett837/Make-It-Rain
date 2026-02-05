@@ -115,6 +115,7 @@ struct TransactionListView: View {
         .sheet(isPresented: $showTransferSheet) {
             TransferSheet(defaultDate: transDay?.date ?? Date())
         }
+        #if os(iOS)
         .photoPickerAndCameraSheet(
             fileUploadCompletedDelegate: calModel,
             parentType: .transaction,
@@ -122,6 +123,7 @@ struct TransactionListView: View {
             showPhotosPicker: $showPhotosPicker,
             showCamera: $showCamera
         )
+        #endif
         .transactionEditSheetAndLogic(transEditID: $transEditID, selectedDay: $transDay)
         .sheet(isPresented: $showPaymentMethodSheet) {
             calModel.startingAmountSheetDismissed()

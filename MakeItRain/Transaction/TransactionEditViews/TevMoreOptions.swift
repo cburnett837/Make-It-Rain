@@ -316,8 +316,10 @@ struct TevMoreOptions: View {
         let openSettingsButton = AlertConfig.AlertButton(
             closeOnFunction: true,
             config: .init(text: "Open Settings", function: {
+                #if os(iOS)
                 let settingsAppURL = URL(string: UIApplication.openSettingsURLString)!
                 UIApplication.shared.open(settingsAppURL, options: [:], completionHandler: nil)
+                #endif
             })
         )
         

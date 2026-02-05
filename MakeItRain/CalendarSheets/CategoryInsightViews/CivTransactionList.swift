@@ -32,7 +32,11 @@ struct CivTransactionList: View {
                 .navigationTitle("\(data.dataPoint.titleString)")
                 .navigationSubtitle("\(data.month.name) \(String(data.month.year))")
                 .toolbar {
+                    #if os(iOS)
                     ToolbarItem(placement: .topBarTrailing) { viewModeMenu }
+                    #else
+                    ToolbarItem(placement: .confirmationAction) { viewModeMenu }
+                    #endif
                 }
                 .transactionEditSheetAndLogic(transEditID: $transEditID, selectedDay: $transDay)
         } else {

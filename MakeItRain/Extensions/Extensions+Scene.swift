@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 #if os(macOS)
 extension Scene {

@@ -7,6 +7,7 @@
 
 
 import SwiftUI
+#if os(iOS)
 
 @MainActor
 struct PdfMaker {
@@ -56,3 +57,4 @@ struct PdfMaker {
         static func usLetter() -> Self { .init(width: 612, height: 792) }
     }
 }
+#endif

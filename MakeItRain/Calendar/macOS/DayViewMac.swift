@@ -78,7 +78,7 @@ struct DayViewMac: View {
                     ScrollView(showsIndicators: true) {
                         VStack(spacing: 0) {
                             ForEach(filteredTrans) { trans in
-                                LineItemView(trans: trans, day: day, focusedField: _focusedField)
+                                LineItemView(trans: trans, day: day)
                             }
                         }
                     }

@@ -97,7 +97,7 @@ struct TevAmount: View {
 //                }
                 
                 #else
-                StandardTextField("Amount", text: $trans.amountString, focusedField: $focusedField, focusValue: 1)
+                StandardTextField("Amount", text: $trans.amountString, focusedField: focusedField.projectedValue, focusValue: 1)
                 #endif
             }
             .focused(focusedField.projectedValue, equals: 1)

@@ -41,7 +41,9 @@ struct RepeatingTransactionView: View {
     @State private var showPayMethodSheet = false
     @State private var showCategorySheet = false
     @State private var showColorPicker = false
+    #if os(iOS)
     @State private var selection = AttributedTextSelection()
+    #endif
     @State private var textCommands = TextViewCommands()
     @State private var navPath = NavigationPath()
     
@@ -395,7 +397,7 @@ struct RepeatingTransactionView: View {
         }
     }
     
-    
+    #if os(iOS)
     var payFromRow: some View {
         PayMethodSheetButtonPhone(
             text: "Pay From",
@@ -414,6 +416,7 @@ struct RepeatingTransactionView: View {
             whichPaymentMethods: .allExceptUnified
         )
     }
+    #endif
     
     
     var typeRow: some View {
@@ -570,8 +573,11 @@ struct RepeatingTransactionView: View {
                     //await repModel.delete(repTransaction, andSubmit: true)
                 //}
             }
-            
+            #if os(iOS)
             Button("No", role: .close) { showDeleteAlert = false }
+            #else
+            Button("No") { showDeleteAlert = false }
+            #endif
         }, message: {
             #if os(iOS)
             Text("Delete \"\(repTransaction.title)\"?")

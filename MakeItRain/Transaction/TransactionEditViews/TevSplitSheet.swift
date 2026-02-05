@@ -244,7 +244,11 @@ struct TevSplitSheet: View {
                 TransactionAmountRow(amountTypeLingo: trans.amountTypeLingo, amountString: $trans.amountString) {
                     AmountRow(trans: trans)
                 }
+                #if os(iOS)
                 CategorySheetButtonPhone(category: $trans.category)
+                #else
+                CategorySheetButtonMac(category: $trans.category)
+                #endif
             } header: {
                 if let title = title {
                     Text(title)

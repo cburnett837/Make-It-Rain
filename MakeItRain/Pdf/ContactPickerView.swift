@@ -9,8 +9,8 @@
 import SwiftUI
 import ContactsUI
 import Contacts
-import MessageUI
 
+#if os(iOS)
 struct ContactPickerView: UIViewControllerRepresentable {
     var onSelect: (CNContact) -> Void
 
@@ -39,3 +39,4 @@ struct ContactPickerView: UIViewControllerRepresentable {
         }
     }
 }
+#endif

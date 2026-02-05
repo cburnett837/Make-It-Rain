@@ -280,21 +280,21 @@ struct PayMethodsTable: View {
             }
             .customizationID("dueDate")
             
-            TableColumn("Reminder", value: \.notificationOffset.specialDefaultIfNil) { meth in
-                if meth.accountType == .credit || meth.accountType == .loan {
-                    if meth.notifyOnDueDate {
-                        Label {
-                            let text = meth.notificationOffset == 0 ? "On day of" : (meth.notificationOffset == 1 ? "The day before" : "2 days before")
-                            Text(text)
-                        } icon: {
-                            Image(systemName: "alarm")
-                        }
-                    }
-                } else {
-                    Text("-")
-                }
-            }
-            .customizationID("reminder")
+//            TableColumn("Reminder", value: \.notificationOffset.specialDefaultIfNil) { meth in
+//                if meth.accountType == .credit || meth.accountType == .loan {
+//                    if meth.notifyOnDueDate {
+//                        Label {
+//                            let text = meth.notificationOffset == 0 ? "On day of" : (meth.notificationOffset == 1 ? "The day before" : "2 days before")
+//                            Text(text)
+//                        } icon: {
+//                            Image(systemName: "alarm")
+//                        }
+//                    }
+//                } else {
+//                    Text("-")
+//                }
+//            }
+//            .customizationID("reminder")
             
             TableColumn("Viewing (default)") { meth in
                 if meth.isViewingDefault {
@@ -343,7 +343,7 @@ struct PayMethodsTable: View {
             
             ForEach(payModel.sections) { section in
                 Section(section.rawValue) {
-                    ForEach(paymodel.getMethodsFor(section: section, type: .all, sText: searchText, includeHidden: true)) { meth in
+                    ForEach(payModel.getMethodsFor(section: section, type: .all, sText: searchText, includeHidden: true)) { meth in
                         TableRow(meth)
                     }
                 }
@@ -606,18 +606,15 @@ struct PayMethodsTable: View {
         .tint(.none)
         
     }
-   
+
+    #endif
+    
     var useBusinessLogosToggle: some View {
         Toggle(isOn: $useBusinessLogos) {
             Text("Use Business Logos")
         }
     }
     
-    
-    
-    
-    
-    #endif
     
     
     var moreMenu: some View {

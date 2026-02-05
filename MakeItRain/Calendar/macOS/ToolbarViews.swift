@@ -239,7 +239,7 @@ struct CalendarToolbarLeading: View {
             }
             .toolbarBorder()
             .popover(isPresented: $showCategorySheet) {
-                MultiCategorySheet(categories: $calModel.sCategories)
+                MultiCategorySheet(categories: $calModel.sCategories, categoryGroup: $calModel.sCategoryGroupsForAnalysis)
                     .frame(minWidth: 300, minHeight: 500)
                     .presentationSizing(.fitted)
                 //CategorySheet(category: $calModel.sCategory)

@@ -53,7 +53,7 @@ struct ConditionalFileView<Placeholder: View, PhotoView: View, PdfView: View, Cs
                 
                 #if os(macOS)
                 if props.hoverFile == file {
-                    FileButtons(file: file)
+                    //FileButtons(file: file)
                 }
                 #endif
             }
@@ -101,10 +101,17 @@ struct ConditionalFileView<Placeholder: View, PhotoView: View, PdfView: View, Cs
             Button("Yes", role: .destructive) {
                 deleteFile(fileType: .photo)
             }
+            #if os(iOS)
             Button("No", role: .close) {
                 props.hoverFile = nil
                 props.deleteFile = nil
             }
+            #else
+            Button("No") {
+                props.hoverFile = nil
+                props.deleteFile = nil
+            }
+            #endif
         } message: {
             Text("Delete this \(file.fileType.rawValue)?")
         }

@@ -12,7 +12,7 @@ enum ImageSourceType: String, Identifiable {
     case camera
     case photoLibrary
 }
-
+#if os(iOS)
 struct CustomImageAndCameraPicker: UIViewControllerRepresentable {
     @Environment(\.dismiss) var dismiss
     let imageSourceType: ImageSourceType
@@ -65,3 +65,4 @@ struct CustomImageAndCameraPicker: UIViewControllerRepresentable {
         }
     }
 }
+#endif

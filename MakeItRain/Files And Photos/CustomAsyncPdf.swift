@@ -10,7 +10,7 @@ import SwiftUI
 import WebKit
 import PDFKit
 
-
+#if os(iOS)
 struct CustomAsyncPdf: View {
     var file: CBFile
     var displayStyle: FileSectionDisplayStyle
@@ -46,3 +46,4 @@ struct CustomAsyncPdf: View {
         }
     }
 }
+#endif

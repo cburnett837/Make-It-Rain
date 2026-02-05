@@ -26,7 +26,9 @@ struct CustomAlert: View {
                 .frame(width: 65, height: 65)
                 .background {
                     Circle()
+                        #if os(iOS)
                         .stroke(config.logoStrokeColor ?? Color(uiColor: .systemBackground), lineWidth: 8)
+                        #endif
                 }
             } else if case let .customImage(imageConfig) = config.logo?.fallBackType {
                 symbolImage(name: imageConfig?.name, color: imageConfig?.color)
