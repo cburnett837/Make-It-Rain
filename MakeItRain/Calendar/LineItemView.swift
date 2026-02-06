@@ -42,30 +42,30 @@ struct LineItemView: View {
         }
     }
         
-    var subTextPadding: Double {
-        if lineItemIndicator == .dot {
-            if calModel.isUnifiedPayMethod && showPaymentMethodIndicator {
-                return 22
-            } else {
-                return 12
-            }
-        } else {
-            if lineItemIndicator == .emoji {
-                if calModel.isUnifiedPayMethod && showPaymentMethodIndicator {
-                    return 30
-                } else {
-                    return 20
-                }
-            } else { //categoryIndicator = .none
-                if calModel.isUnifiedPayMethod && showPaymentMethodIndicator {
-                    return 12
-                } else {
-                    return 12
-                }
-            }
-            
-        }
-    }
+//    var subTextPadding: Double {
+//        if lineItemIndicator == .dot {
+//            if calModel.isUnifiedPayMethod && showPaymentMethodIndicator {
+//                return 22
+//            } else {
+//                return 12
+//            }
+//        } else {
+//            if lineItemIndicator == .emoji {
+//                if calModel.isUnifiedPayMethod && showPaymentMethodIndicator {
+//                    return 30
+//                } else {
+//                    return 20
+//                }
+//            } else { //categoryIndicator = .none
+//                if calModel.isUnifiedPayMethod && showPaymentMethodIndicator {
+//                    return 12
+//                } else {
+//                    return 12
+//                }
+//            }
+//            
+//        }
+//    }
     
     var lineColor: Color {
         if calModel.isInMultiSelectMode {
@@ -91,26 +91,60 @@ struct LineItemView: View {
     var body: some View {
         @Bindable var calProps = calProps
         //let _ = Self._printChanges()
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 0) {
-                categoryIndicator
-                titleView
-                totalView
-            }
-            .overlay { ExcludeFromTotalsLine(trans: trans) }
-                                                
+        
+        HStack(alignment: lineItemIndicator == .dot ? .center : .circleAndTitle, spacing: 2) {
+            categoryIndicator
+                .if(lineItemIndicator != .dot) {
+                    $0.alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                }
+                
             VStack(alignment: .leading, spacing: 2) {
-                hashTagView
-                notificationView
-                updatedByOtherUserView
+                HStack(spacing: 0) {
+                    titleView
+                    totalView
+                }
+                .if(lineItemIndicator != .dot) {
+                    $0.alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                }
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    hashTagView
+                    notificationView
+                    updatedByOtherUserView
+                }
             }
-            .padding(.leading, subTextPadding)
         }
+        .overlay { ExcludeFromTotalsLine(trans: trans) }
+                
+//        VStack(alignment: .customHorizontalAlignment, spacing: 2) {
+//            HStack(spacing: 0) {
+//                categoryIndicator
+//                HStack(spacing: 0) {
+//                    titleView
+//                    totalView
+//                }
+//                .alignmentGuide(.customHorizontalAlignment, computeValue: { $0[HorizontalAlignment.leading] })
+//                
+//            }
+//            .overlay { ExcludeFromTotalsLine(trans: trans) }
+//                                                
+//            VStack(alignment: .leading, spacing: 2) {
+//                hashTagView
+//                notificationView
+//                updatedByOtherUserView
+//            }
+//            .alignmentGuide(.customHorizontalAlignment, computeValue: { $0[HorizontalAlignment.leading] })
+//            //.padding(.leading, subTextPadding)
+//        }
         .opacity(opacity)
         .transition(.scale)
         .overlay(alignment: .center) { overlayView }
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
+        #if os(iOS)
         .padding(.leading, isOnCalendarView ? 8 : 0)
+        #else
+        .padding(.leading, isOnCalendarView ? 4 : 0)
+        #endif
         #if os(iOS)
         .padding(.trailing, isOnCalendarView ? 8 : 0)
         .padding(.vertical, isOnCalendarView ? 4 : 0)
@@ -201,15 +235,22 @@ struct LineItemView: View {
     
     var categoryIndicator: some View {
         HStack(spacing: 0) {
-            /// Show the payment method on unified view/
-            if calModel.isUnifiedPayMethod && showPaymentMethodIndicator {
+            /// Show the payment method on unified view or when no payment method is selected.
+            if (calModel.isUnifiedPayMethod || calModel.sPayMethod == nil) && showPaymentMethodIndicator {
                 CircleDot(color: trans.payMethod?.color, width: 10)
             }
                                                     
             /// Show the category color dot or symbol
             if lineItemIndicator == .dot {
-                CircleDot(color: trans.category?.color, width: 10)
+                
+                Capsule()
+                    .fill(trans.category?.color ?? .primary)
+                    .frame(width: 4)
+                    .padding(.vertical, 2)
                     .padding(.trailing, 2)
+                
+//                CircleDot(color: trans.category?.color, width: 10)
+//                    .padding(.trailing, 2)
             } else {
                 if let emoji = trans.category?.emoji {
                     Image(systemName: emoji)
@@ -249,41 +290,58 @@ struct LineItemView: View {
     }
     
     
+    @ViewBuilder
     var hashTagView: some View {
-        Group {
-            if showHashTagsOnLineItems {
-                if !trans.tags.isEmpty {
-                    #if os(macOS)
-                    ScrollView(.horizontal) {
-                        HStack(spacing: 4) {
-                            ForEach(trans.tags) { tag in
-                                Text("#\(tag.tag)")
-                                    .foregroundStyle(.gray)
-                                    .bold()
-                                    .font(.caption)
-                            }
-                        }
+        if showHashTagsOnLineItems {
+            if !trans.tags.isEmpty {
+                
+                
+                TagLayout(alignment: .leading, spacing: 5) {
+                    ForEach(trans.tags) { tag in
+                        Text("#\(tag.tag)")
+                            .foregroundStyle(.gray)
+                            .font(.caption)
+                            .padding(4)
+                            #if os(iOS)
+                            .background(Color(.systemGray4))
+                            #else
+                            .background(Color(.tertiarySystemFill))
+                            #endif
+                            .cornerRadius(6)
                     }
-                    .scrollIndicators(.never)
-                    .overlay { ExcludeFromTotalsLine(trans: trans) }
-                    #else
-                    TagLayout(alignment: .leading, spacing: 5) {
-                        ForEach(trans.tags) { tag in
-                            Text("#\(tag.tag)")
-                                //.foregroundStyle(Color.theme)
-//                                .foregroundStyle(.gray)
-//                                .bold()
-//                                .font(.caption)
-                            
-                                .foregroundStyle(.gray)
-                                .font(.caption)
-                                .padding(4)
-                                .background(Color(.systemGray4))
-                                .cornerRadius(6)
-                        }
-                    }
-                    #endif
                 }
+                //.frame(maxWidth: 50)
+                
+//                    #if os(macOS)
+//                    ScrollView(.horizontal) {
+//                        HStack(spacing: 4) {
+//                            ForEach(trans.tags) { tag in
+//                                Text("#\(tag.tag)")
+//                                    .foregroundStyle(.gray)
+//                                    .bold()
+//                                    .font(.caption)
+//                            }
+//                        }
+//                    }
+//                    .scrollIndicators(.never)
+//                    .overlay { ExcludeFromTotalsLine(trans: trans) }
+//                    #else
+//                    TagLayout(alignment: .leading, spacing: 5) {
+//                        ForEach(trans.tags) { tag in
+//                            Text("#\(tag.tag)")
+//                                //.foregroundStyle(Color.theme)
+////                                .foregroundStyle(.gray)
+////                                .bold()
+////                                .font(.caption)
+//
+//                                .foregroundStyle(.gray)
+//                                .font(.caption)
+//                                .padding(4)
+//                                .background(Color(.systemGray4))
+//                                .cornerRadius(6)
+//                        }
+//                    }
+//                    #endif
             }
         }
     }

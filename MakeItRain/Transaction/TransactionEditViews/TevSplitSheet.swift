@@ -68,10 +68,12 @@ struct TevSplitSheet: View {
                 
                 //splitButton
             }
-            #if os(iOS)
             .navigationTitle("Split Transaction")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .topBarLeading) { addTransButton }
                 ToolbarItem(placement: .topBarTrailing) {
                     if isValidToSave {
@@ -96,8 +98,21 @@ struct TevSplitSheet: View {
                             .disabled(true)
                     }
                 }
+                #else
+                ToolbarItemGroup(placement: .destructiveAction) {
+                    HStack {
+                        addTransButton
+                        splitButton
+                            .disabled(!isValidToSave)
+                    }
+                }
+                ToolbarItemGroup(placement: .confirmationAction) {
+                    HStack {
+                        closeButton
+                    }
+                }
+                #endif
             }
-            #endif
         }
 //        StandardContainer {
 //            VStack {
@@ -168,6 +183,9 @@ struct TevSplitSheet: View {
             Image(systemName: "plus")
                 .schemeBasedForegroundStyle()
         }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
     }
     
     
@@ -188,6 +206,9 @@ struct TevSplitSheet: View {
             Text("Perform Split")
                 .schemeBasedForegroundStyle()
         }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton(horizontalPadding: 10))
+        #endif
     }
     
     
@@ -200,6 +221,9 @@ struct TevSplitSheet: View {
             Image(systemName: "xmark")
                 .schemeBasedForegroundStyle()
         }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
         //#if os(iOS)
         //.buttonStyle(.glassProminent)
         //#endif

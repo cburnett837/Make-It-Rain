@@ -29,82 +29,117 @@ struct TevMoreOptions: View {
 //    }
         
     var body: some View {
+        #if os(iOS)
         StandardContainerWithToolbar(.list) {
-            Section {
-                NavigationLink(value: TransNavDestination.titleColorMenu) {
-                    HStack {
-                        Label {
-                            Text("Title Color")
-                        } icon: {
-                            //Image(systemName: "paintbrush")
-                            Image(systemName: "paintpalette")
-                                .symbolRenderingMode(.multicolor)
-                                //.foregroundStyle(trans.color)
-                                .foregroundStyle(.gray)
-                        }
-                        
-                        Spacer()
-                        Circle()
-                            .fill(trans.color)
-                            .frame(width: 25, height: 25)
-//                        Text(titleColorDescription)
-//                            .foregroundStyle(trans.color)
+            content
+        }
+        .navigationTitle("Transaction Options")
+        #else
+        Form {
+            content
+        }
+        .navigationTitle("Transaction Options")
+        .formStyle(.grouped)
+        #endif
+    }
+    
+    
+    @ViewBuilder
+    var content: some View {
+        Section {
+            NavigationLink(value: TransNavDestination.titleColorMenu) {
+                HStack {
+                    Label {
+                        Text("Title Color")
+                    } icon: {
+                        //Image(systemName: "paintbrush")
+                        Image(systemName: "paintpalette")
+                            .symbolRenderingMode(.multicolor)
+                            //.foregroundStyle(trans.color)
+                            .foregroundStyle(.gray)
                     }
                     
+                    Spacer()
+                    Circle()
+                        .fill(trans.color)
+                        .frame(width: 25, height: 25)
+//                        Text(titleColorDescription)
+//                            .foregroundStyle(trans.color)
+                }
+                
+            }
+        }
+        
+        Section {
+            factorInCalculationsToggleRow
+        } footer: {
+            Text("Choose if this transaction should be included in calculations and analytics.")
+                #if os(macOS)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                #endif
+        }
+        
+        if !isTemp {
+            Section {
+                notificationButton
+                if trans.notifyOnDueDate {
+                    ReminderPicker(title: "for…", notificationOffset: $trans.notificationOffset)
+                }
+            } footer: {
+                if trans.notifyOnDueDate {
+                    Text("You will be notified around 9:00 AM.")
+                        #if os(macOS)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        #endif
+                        //.foregroundStyle(.gray)
+                        //.font(.caption)
+                        //.multilineTextAlignment(.leading)
                 }
             }
+        }
+        
+        
+        if !isTemp {
+            Section {
+                createInvoiceButton
+            } footer: {
+                Text("Create a PDF invoice to either send or save.")
+                    #if os(macOS)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    #endif
+            }
+            .disabled(trans.title.isEmpty)
             
             Section {
-                factorInCalculationsToggleRow
+                splitButton
             } footer: {
-                Text("Choose if this transaction should be included in calculations and analytics.")
+                Text("Split this transaction into multiple categories & amounts.")
+                    #if os(macOS)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    #endif
             }
+            .disabled(trans.title.isEmpty)
             
-            if !isTemp {
-                Section {
-                    notificationButton
-                    if trans.notifyOnDueDate {
-                        ReminderPicker(title: "for…", notificationOffset: $trans.notificationOffset)
-                    }
-                } footer: {
-                    if trans.notifyOnDueDate {
-                        Text("You will be notified around 9:00 AM.")
-                            //.foregroundStyle(.gray)
-                            //.font(.caption)
-                            //.multilineTextAlignment(.leading)
-                    }
-                }
+            Section {
+                copyButton
+                //splitButton
+            } footer: {
+                Text("Touch and hold on a day to paste.")
+                    #if os(macOS)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    #endif
             }
-            
-            
-            if !isTemp {
-                Section {
-                    createInvoiceButton
-                } footer: {
-                    Text("Create a PDF invoice to either send or save.")
-                }
-                .disabled(trans.title.isEmpty)
-                
-                Section {
-                    splitButton
-                } footer: {
-                    Text("Split this transaction into multiple categories & amounts.")
-                }
-                .disabled(trans.title.isEmpty)
-                
-                Section {
-                    copyButton
-                    //splitButton
-                } footer: {
-                    Text("Touch and hold on a day to paste.")
-                }
-                .disabled(trans.title.isEmpty)
-            }
-            
-            titleAutoFillSuggestions
+            .disabled(trans.title.isEmpty)
         }
-        .navigationTitle("Transaction Options")        
+        
+        titleAutoFillSuggestions
     }
+    
     
     var titleAutoFillSuggestions: some View {
         Section {
@@ -132,6 +167,11 @@ struct TevMoreOptions: View {
         } footer: {
             let description: LocalizedStringKey = "When entering a title, choose how suggestions are made.\n**History** will search your past transactions.\n**Locations** will search nearby businesses."
             Text(description)
+                #if os(macOS)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .multilineTextAlignment(.leading)
+                #endif
         }
         .onChange(of: transactionTitleSuggestionType) {
             if $1 == .location

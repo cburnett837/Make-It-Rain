@@ -218,8 +218,18 @@ struct TransactionEditView: View {
             }
         }
         .alert("Please change the selected account by right-clicking on the line item from the main view.", isPresented: $showPaymentMethodChangeAlert) { Button("OK") {} }
-        .sheet(isPresented: $showSplitSheet) { TevSplitSheet(trans: trans, showSplitSheet: $showSplitSheet) }
-        .sheet(isPresented: $showInvoiceGeneratorSheet) { PdfInvoiceCreatorSheet(trans: trans) }
+        .sheet(isPresented: $showSplitSheet) {
+            TevSplitSheet(trans: trans, showSplitSheet: $showSplitSheet)
+                #if os(macOS)
+                .presentationSizing(.page)
+                #endif
+        }
+        .sheet(isPresented: $showInvoiceGeneratorSheet) {
+            PdfInvoiceCreatorSheet(trans: trans)
+                #if os(macOS)
+                .presentationSizing(.page)
+                #endif
+        }
         .environment(mapModel)
 //        /// Check what color the save button should be.
 //        .onChange(of: transactionValuesChanged) { checkIfTransactionIsValidToSave() }
