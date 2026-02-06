@@ -51,19 +51,19 @@ struct RootViewWrapper<Content: View>: View {
                 TempTransactionList()
             }
             #else
-            .overlay {
-                AlertAndToastLayerView(showCamera: .constant(false))
-                    .environment(funcModel)
-                    .environment(calModel)
-                    .environment(payModel)
-                    .environment(catModel)
-                    .environment(keyModel)
-                    .environment(repModel)
-                    .environment(plaidModel)
-                    .environment(calProps)
-                    .environment(dataChangeTriggers)
-                    //.environment(mapModel)
-            }
+//            .overlay {
+//                AlertAndToastLayerView(showCamera: .constant(false))
+//                    .environment(funcModel)
+//                    .environment(calModel)
+//                    .environment(payModel)
+//                    .environment(catModel)
+//                    .environment(keyModel)
+//                    .environment(repModel)
+//                    .environment(plaidModel)
+//                    .environment(calProps)
+//                    .environment(dataChangeTriggers)
+//                    //.environment(mapModel)
+//            }
             .sheet(isPresented: $appState.showPaymentMethodNeededSheet, onDismiss: funcModel.downloadInitial) {
                 PayMethodRequiredView()
                     .padding()

@@ -9,7 +9,7 @@
 import Foundation
 import SwiftUI
 
-#if os(iOS)
+
 extension View {
     func photoPickerAndCameraSheet(
         fileUploadCompletedDelegate: FileUploadCompletedDelegate,
@@ -27,9 +27,7 @@ extension View {
         ))
     }
 }
-#endif
 
-#if os(iOS)
 struct PhotoPickerAndCameraSheet: ViewModifier {
     var fileUploadCompletedDelegate: FileUploadCompletedDelegate
     var parentType: XrefEnum
@@ -47,9 +45,13 @@ struct PhotoPickerAndCameraSheet: ViewModifier {
         @Bindable var photoModel = FileModel.shared
         
         return content
+            #if os(iOS)
             .sheet(isPresented: $showPhotosPicker) {
                 CustomImageAndCameraPicker(imageSourceType: .photoLibrary, selectedImage: $photoModel.imageFromCamera)
             }
+            #else
+            .photosPicker(isPresented: $showPhotosPicker, selection: $photoModel.imagesFromLibrary)
+            #endif
 //            .if(allowMultiSelection) {
 //                $0.photosPicker(
 //                    isPresented: $showPhotosPicker,
@@ -84,6 +86,7 @@ struct PhotoPickerAndCameraSheet: ViewModifier {
 //                }
                 
                 if !$1 {
+                    #if os(iOS)
                     if FileModel.shared.imageFromCamera == nil {
                         fileUploadCompletedDelegate.cleanUpPhotoVariables()
                     } else {
@@ -92,6 +95,16 @@ struct PhotoPickerAndCameraSheet: ViewModifier {
                             parentType: parentTypeXr
                         )
                     }
+                    #else
+                    if FileModel.shared.imagesFromLibrary.isEmpty {
+                        fileUploadCompletedDelegate.cleanUpPhotoVariables()
+                    } else {
+                        FileModel.shared.uploadPicturesFromLibrary(
+                            delegate: fileUploadCompletedDelegate,
+                            parentType: parentTypeXr
+                        )
+                    }
+                    #endif
                 }
             }
             #if os(iOS)
@@ -113,4 +126,4 @@ struct PhotoPickerAndCameraSheet: ViewModifier {
             
     }
 }
-#endif
+

@@ -10,8 +10,7 @@ import SwiftUI
 #if os(macOS)
 struct ToolbarNowButton: View {
     @Environment(CalendarModel.self) private var calModel
-    
-    
+        
     var body: some View {
         @Bindable var navManager = NavigationManager.shared
         Button("Now") {

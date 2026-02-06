@@ -39,6 +39,7 @@ class AppDelegateMac: NSObject, NSApplicationDelegate, NSWindowDelegate {
 //    }
     //replyToApplicationShouldTerminate()
     
+    
     func applicationDidFinishLaunching(_ notification: Notification) {
         PHPhotoLibrary.requestAuthorization(for: .readWrite) { [unowned self] (status) in
             DispatchQueue.main.async { [unowned self] in
@@ -50,17 +51,45 @@ class AppDelegateMac: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // Display connected / disconnected
 //        NotificationCenter.default.addObserver(self, selector: #selector(displayConfigurationChanged), name: NSApplication.didChangeScreenParametersNotification, object: nil)
                 
-        // System sleep / wakeup
+        /// System sleep / wakeup
         let center = NSWorkspace.shared.notificationCenter
         center.addObserver(self, selector: #selector(systemDidWake), name: NSWorkspace.didWakeNotification, object: nil)
         center.addObserver(self, selector: #selector(systemWillSleep), name: NSWorkspace.willSleepNotification, object: nil)
-
-        // Screensaver starts
+        /// Screensaver starts
         DistributedNotificationCenter.default().addObserver(self, selector: #selector(screenIsLocked), name: Notification.Name("com.apple.screenIsLocked"), object: nil)
-        // Screensaver ends
+        /// Screensaver ends
         DistributedNotificationCenter.default().addObserver(self, selector: #selector(screenIsUnlocked), name: Notification.Name("com.apple.screenIsUnlocked"), object: nil)
         
     }
+    
+    
+    func windowDidMove(_ notification: Notification) {
+        guard let mainWindow = notification.object as? NSWindow, mainWindow.identifier?.rawValue == "mainWindow" else { return }
+        guard let overlayWindow = NSApplication.shared.windows.first(where: { $0.identifier?.rawValue == MacAlertAndToastOverlay.id }) else { return }
+        overlayWindow.setFrameOrigin(mainWindow.frame.origin)
+    }
+    
+    
+    func windowDidResize(_ notification: Notification) {
+        guard let mainWindow = notification.object as? NSWindow, mainWindow.identifier?.rawValue == "mainWindow" else { return }
+        guard let overlayWindow = NSApplication.shared.windows.first(where: { $0.identifier?.rawValue == MacAlertAndToastOverlay.id }) else { return }
+        //overlayWindow.setFrameOrigin(mainWindow.frame.origin)
+        
+        overlayWindow.contentMinSize = mainWindow.frame.size
+        overlayWindow.contentMaxSize = mainWindow.frame.size
+        overlayWindow.setFrame(mainWindow.frame, display: true, animate: false)
+    }
+    
+    
+    func windowWillClose(_ notification: Notification) {
+        guard let closingWindow = notification.object as? NSWindow, closingWindow.identifier?.rawValue == "mainWindow" else { return }
+        NSApplication.shared.windows.forEach { window in
+            if window != closingWindow {
+                window.close()
+            }
+        }
+    }
+    
     
     func application(_ application: NSApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         let tokenParts = deviceToken.map { data in String(format: "%02.2hhx", data) }
@@ -125,6 +154,10 @@ class AppDelegateMac: NSObject, NSApplicationDelegate, NSWindowDelegate {
 //        print("-- 🍎 LIFECYCLE: \(#function)")
 //        // Handle display configuration change
 //    }
+    
+    @objc private func mainWindowDidMove() {
+        print("main window moved")
+    }
 
     @objc private func systemDidWake() {
         print("-- 🍎 LIFECYCLE: \(#function)")

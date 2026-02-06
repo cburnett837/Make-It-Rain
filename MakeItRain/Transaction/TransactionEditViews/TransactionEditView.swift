@@ -734,6 +734,8 @@ struct TransactionEditView: View {
             } else if let meth = calModel.sPayMethod, !meth.isUnified {
                 /// Add the selected viewing payment method to the transaction. (But only if it's not unified.)
                 trans.payMethod = calModel.sPayMethod
+            } else {
+                trans.payMethod = payModel.getEditingDefault()
             }
             
             

@@ -136,25 +136,22 @@ struct PayMethodSheet: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) { closeButton }
                 #else
-                ToolbarItem(placement: .primaryAction) {
-                    if showStartingAmountOption {
-                        Picker("", selection: $paymentMethodSheetViewMode) {
-                            Text("Accounts")
-                                .tag(WhichView.select)
-                            Text("Amounts")
-                                .tag(WhichView.edit)
-                        }
-                        .labelsHidden()
-                        .pickerStyle(.segmented)
-                    } else {
-                        Text("Accounts")
-                    }
-                }
-                
                 ToolbarItemGroup(placement: .destructiveAction) {
                     HStack {
                         moreMenu
                         PayMethodFilterMenu()
+                        if showStartingAmountOption {
+                            Picker("", selection: $paymentMethodSheetViewMode) {
+                                Text("Accounts")
+                                    .tag(WhichView.select)
+                                Text("Amounts")
+                                    .tag(WhichView.edit)
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.segmented)
+                        } else {
+                            Text("Accounts")
+                        }
                     }
                     
                 }
@@ -271,11 +268,17 @@ struct PayMethodSheet: View {
             } icon: {
                 //methColorCircle(meth)
                 //BusinessLogo(parent: meth, fallBackType: meth.isUnified ? .gradient : .color)
+                #if os(iOS)
                 BusinessLogo(config: .init(
                     parent: meth,
                     fallBackType: meth.isUnified ? .gradient : .color
                 ))
-                #if os(macOS)
+                #else
+                BusinessLogo(config: .init(
+                    parent: meth,
+                    fallBackType: meth.isUnified ? .gradient : .color,
+                    size: 20
+                ))
                 .padding(.trailing, 10)
                 #endif
             }

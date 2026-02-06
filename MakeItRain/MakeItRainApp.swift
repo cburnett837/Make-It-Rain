@@ -17,6 +17,8 @@ import AppIntents
 @main
 struct MakeItRainApp: App {
     #if os(macOS)
+    @Environment(\.openWindow) var openWindow
+
     @NSApplicationDelegateAdaptor(AppDelegateMac.self) var appDelegate
     //@State private var windowDelegate = MyWindowDelegate()
     #else
@@ -151,7 +153,29 @@ struct MakeItRainApp: App {
             }
             .onOpenURL { handleOpeningUrl($0) }
             #if os(macOS)
+            .background(
+                WindowAccessor { window in
+                    window?.identifier = NSUserInterfaceItemIdentifier("mainWindow")
+                }
+            )
             .toolbar(.visible, for: .windowToolbar)
+            .onAppear {
+                // to make sure the UtilityWindowView is created
+                // so that the next time we actually need to use it, we can configure it before opening
+                //
+                // if we don't call openWindow(id: UtilityWindowView.id) for at least once,
+                // NSApplication.shared.windows will not contains the window instance.
+                //
+                // That is before the following call,  NSApplication.shared.windows.map(\.identifier?.rawValue) will not contain UtilityWindowView.id
+                //
+                // Also, configure the window within the Button closure right after calling openWindow(id: FullScreenOverlay.id) or within FullScreenOverlay.onAppear will not work completely either
+                // Some of the properties will not be reflected.
+                guard NSApplication.shared.windows.first(where: {$0.identifier?.rawValue == MacAlertAndToastOverlay.id}) == nil else {
+                    // already created and configured
+                    return
+                }
+                openWindow(id: MacAlertAndToastOverlay.id)
+            }
             #endif
             .environment(funcModel)
             .environment(calModel)
@@ -175,6 +199,7 @@ struct MakeItRainApp: App {
             SidebarCommands()
             //TextFormattingCommands()
             //ToolbarCommands()
+            CalendarCommands(calModel: calModel)
         }
         #endif
         
@@ -185,10 +210,9 @@ struct MakeItRainApp: App {
         multiSelectWindow
         monthlyPlaceholderWindow
         settingsWindow
+        macAlertAndToastOverlayWindow
         #endif
     }
-    
-    
     
     
     @ViewBuilder
@@ -349,3 +373,58 @@ struct MakeItRainApp: App {
     }
 }
 
+#if os(macOS)
+
+struct CalendarCommands: Commands {
+    var calModel: CalendarModel
+    
+    @State private var showPopulateAlert = false
+    @State private var showPopulateOptionsSheet = false
+    
+    var body: some Commands {
+        CommandMenu("Calendar") { // "Custom Actions" is the new menu title
+            if NavDestination.justMonths.contains(NavigationManager.shared.selection ?? .placeholderMonth) {
+                populateButton
+                    .disabled(!NavDestination.justMonths.contains(NavigationManager.shared.selection ?? .placeholderMonth))
+                resetButton
+                    .disabled(!NavDestination.justMonths.contains(NavigationManager.shared.selection ?? .placeholderMonth))
+            }
+            
+            Divider()
+            
+            ToolbarNowButton()
+                .environment(calModel)
+            PlaygroundButton()
+                .environment(calModel)
+            
+            Divider()
+            
+            Menu("Submenu") { // You can also nest a Menu for submenus
+                Button("Option 1") {}
+                Button("Option 2") {}
+            }
+        }
+    }
+    
+    var populateButton: some View {
+        Button {
+            if calModel.sMonth.hasBeenPopulated {
+                ToolbarAndCommandsCoordinator.shared.showPopulateAlert = true
+            } else {
+                ToolbarAndCommandsCoordinator.shared.showPopulateOptionsSheet = true
+            }
+        } label: {
+            Text("Populate \(calModel.sMonth.name) \(String(calModel.sMonth.year))…")
+        }
+    }
+    
+    var resetButton: some View {
+        Button {
+            ToolbarAndCommandsCoordinator.shared.showResetMonthAlert = true
+        } label: {
+            Text("Reset \(calModel.sMonth.name) \(String(calModel.sMonth.year))…")
+        }
+    }
+    
+}
+#endif

@@ -570,6 +570,7 @@ class CalendarModel {
                                         withAnimation(.easeOut(duration: 0.6)) {
                                             trans.status = nil
                                             day.remove(trans)
+                                            let _ = self.calculateTotal(for: month)
                                         }
                                     }
                                 }
@@ -2880,7 +2881,7 @@ class CalendarModel {
                                             )
                                             targetDay.transactions.append(newTrans)
                                             repTransToServer.append(newTrans)
-                                        }                                                                                
+                                        }
                                     }
                                 } else {
                                     /// If the day can't be found above, the transaction exists on a day that this month doesn't have (like having a date of the 31st in February).

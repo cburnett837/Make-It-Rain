@@ -36,10 +36,19 @@ struct PayMethodSheetButton: View {
                     } icon: {
                         //BusinessLogo(parent: payMethod, fallBackType: (payMethod ?? CBPaymentMethod()).isUnified ? .gradient : .color)
                         //BusinessLogo(parent: payMethod, fallBackType: logoFallBackType)
+                        #if os(iOS)
                         BusinessLogo(config: .init(
                             parent: payMethod,
                             fallBackType: logoFallBackType
                         ))
+                        #else
+                        BusinessLogo(config: .init(
+                            parent: payMethod,
+                            fallBackType: logoFallBackType,
+                            size: 20
+                        ))
+                        
+                        #endif
                     }
                 } else {
                     Text(text)

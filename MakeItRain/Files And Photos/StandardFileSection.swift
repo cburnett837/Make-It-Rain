@@ -41,6 +41,7 @@ struct StandardFileSection: View {
     
     @Binding var showCamera: Bool
     @Binding var showPhotosPicker: Bool
+    @State private var addFileButtonHoverColor1: Color = Color(.tertiarySystemFill)
     @State private var addFileButtonHoverColor2: Color = Color(.tertiarySystemFill)
     //@State private var safariUrl: URL?
     @State private var showFileWebView: Bool = false
@@ -57,12 +58,18 @@ struct StandardFileSection: View {
         XrefModel.getItem(from: .fileTypes, byEnumID: parentType)
     }
     
-    
+    #if os(iOS)
     var fileButtons: Array<SelectFileButtonType> {[
         .init(title: "Camera", symbol: "camera", action: { showCamera = true }),
         .init(title: "Library", symbol: "photo.on.rectangle", action: { showPhotosPicker = true }),
         .init(title: "Files", symbol: "document.on.document", action: { showFileImporter = true })
     ]}
+    #else
+    var fileButtons: Array<SelectFileButtonType> {[
+        .init(title: "Library", symbol: "photo.on.rectangle", action: { showPhotosPicker = true }),
+        .init(title: "Files", symbol: "document.on.document", action: { showFileImporter = true })
+    ]}
+    #endif
     
     
     let threeColumnGrid = Array(repeating: GridItem(.flexible(), spacing: 5, alignment: .top), count: 3)
@@ -106,7 +113,7 @@ struct StandardFileSection: View {
         .sheet(item: $selectedFile) { file in
             PhotoWebPreview(file: file)
         }
-        
+        #endif
         .photoPickerAndCameraSheet(
             fileUploadCompletedDelegate: fileUploadCompletedDelegate,
             parentType: parentType,
@@ -114,6 +121,7 @@ struct StandardFileSection: View {
             showPhotosPicker: $showPhotosPicker,
             showCamera: $showCamera
         )
+        
         .fileImporter(
             isPresented: $showFileImporter,
             allowedContentTypes: [.pdf, .plainText, .commaSeparatedText, .spreadsheet],
@@ -121,7 +129,7 @@ struct StandardFileSection: View {
         ) {
             handleFileSelection(result: $0)
         }
-        #endif
+        
         .environment(props)
         .onPreferenceChange(MaxSymbolHeightPreferenceKey.self) { symbolHeight = max(symbolHeight, $0) }
     }
@@ -160,9 +168,7 @@ struct StandardFileSection: View {
                     }, photoView: {
                         FileImage(file: file, displayStyle: displayStyle)
                     }, pdfView: {
-                        #if os(iOS)
                         CustomAsyncPdf(file: file, displayStyle: displayStyle)
-                        #endif
                     }, csvView: {
                         #if os(iOS)
                         CustomAsyncCsv(file: file, displayStyle: displayStyle)
@@ -188,9 +194,7 @@ struct StandardFileSection: View {
                     }, photoView: {
                         FileImage(file: file, displayStyle: displayStyle)
                     }, pdfView: {
-                        #if os(iOS)
                         CustomAsyncPdf(file: file, displayStyle: displayStyle)
-                        #endif
                     }, csvView: {
                         #if os(iOS)
                         CustomAsyncCsv(file: file, displayStyle: displayStyle)
@@ -206,7 +210,8 @@ struct StandardFileSection: View {
     @ViewBuilder
     var fileSelectionButtons: some View {
         let loop = ForEach(fileButtons) {
-            fileButton(for: $0)
+            FileButton(button: $0, files: files)
+            //fileButton(for: $0)
         }
         
         if files?.filter({ $0.active }).count ?? 0 > 0 {
@@ -302,46 +307,93 @@ struct StandardFileSection: View {
     }
     
     
-    @ViewBuilder
-    func fileButton(for button: SelectFileButtonType) -> some View {
-        let thereAreFiles = files?.filter({ $0.active }).count ?? 0 > 0
+    struct FileButton: View {
+        var button: SelectFileButtonType
+        var files: [CBFile]?
         
-        let tallRectangle = RoundedRectangle(cornerRadius: 14)
-            .fill(addFileButtonHoverColor2)
-            .frame(width: fileWidth/*, height: (fileHeight / 3) - 3*/) /// -4 to account for the padding
+        @State private var hoverColor: Color = Color(.tertiarySystemFill)
+        @State private var symbolHeight: CGFloat = 20.0
         
-        let shortRectangle = RoundedRectangle(cornerRadius: 14)
-            .fill(addFileButtonHoverColor2)
-            .frame(maxWidth: .infinity)
-            .frame(height: (fileHeight / 3))
-        
-        Button(action: button.action, label: {
-            VStack {
-                if thereAreFiles {
-                    tallRectangle
-                } else {
-                    shortRectangle
-                }
-            }
-            .overlay {
+        var body: some View {
+            let thereAreFiles = files?.filter({ $0.active }).count ?? 0 > 0
+            
+            let tallRectangle = RoundedRectangle(cornerRadius: 14)
+                .fill(hoverColor)
+                .frame(width: fileWidth/*, height: (fileHeight / 3) - 3*/) /// -4 to account for the padding
+            
+            let shortRectangle = RoundedRectangle(cornerRadius: 14)
+                .fill(hoverColor)
+                .frame(maxWidth: .infinity)
+                .frame(height: (fileHeight / 3))
+            
+            Button(action: button.action, label: {
                 VStack {
-                    Image(systemName: button.symbol)
-                        .font(.title)
-                        /// Monitor the background size so all symbols are the same height.
-                        .background { GeometryReader {
-                            Color.clear.preference(key: MaxSymbolHeightPreferenceKey.self, value: $0.size.height) }
-                        }
-                        .frame(height: symbolHeight, alignment: .center)
-                    Text(button.title)
+                    if thereAreFiles {
+                        tallRectangle
+                    } else {
+                        shortRectangle
+                    }
                 }
-                .foregroundStyle(.gray)
-            }
-        })
-        .buttonStyle(.plain)
-        .onHover { isHovered in addFileButtonHoverColor2 = isHovered ? Color(.systemFill) : Color(.tertiarySystemFill) }
-        .focusEffectDisabled(true)
+                .overlay {
+                    VStack {
+                        Image(systemName: button.symbol)
+                            .font(.title)
+                            /// Monitor the background size so all symbols are the same height.
+                            .background { GeometryReader {
+                                Color.clear.preference(key: MaxSymbolHeightPreferenceKey.self, value: $0.size.height) }
+                            }
+                            .frame(height: symbolHeight, alignment: .center)
+                        Text(button.title)
+                    }
+                    .foregroundStyle(.gray)
+                }
+            })
+            .buttonStyle(.plain)
+            .onHover { isHovered in hoverColor = isHovered ? Color(.systemFill) : Color(.tertiarySystemFill) }
+            .focusEffectDisabled(true)
+        }
     }
-    
+//    
+//    @ViewBuilder
+//    func fileButton(for button: SelectFileButtonType) -> some View {
+//        let thereAreFiles = files?.filter({ $0.active }).count ?? 0 > 0
+//        
+//        let tallRectangle = RoundedRectangle(cornerRadius: 14)
+//            .fill(addFileButtonHoverColor2)
+//            .frame(width: fileWidth/*, height: (fileHeight / 3) - 3*/) /// -4 to account for the padding
+//        
+//        let shortRectangle = RoundedRectangle(cornerRadius: 14)
+//            .fill(addFileButtonHoverColor2)
+//            .frame(maxWidth: .infinity)
+//            .frame(height: (fileHeight / 3))
+//        
+//        Button(action: button.action, label: {
+//            VStack {
+//                if thereAreFiles {
+//                    tallRectangle
+//                } else {
+//                    shortRectangle
+//                }
+//            }
+//            .overlay {
+//                VStack {
+//                    Image(systemName: button.symbol)
+//                        .font(.title)
+//                        /// Monitor the background size so all symbols are the same height.
+//                        .background { GeometryReader {
+//                            Color.clear.preference(key: MaxSymbolHeightPreferenceKey.self, value: $0.size.height) }
+//                        }
+//                        .frame(height: symbolHeight, alignment: .center)
+//                    Text(button.title)
+//                }
+//                .foregroundStyle(.gray)
+//            }
+//        })
+//        .buttonStyle(.plain)
+//        .onHover { isHovered in addFileButtonHoverColor2 = isHovered ? Color(.systemFill) : Color(.tertiarySystemFill) }
+//        .focusEffectDisabled(true)
+//    }
+//    
     
     
     

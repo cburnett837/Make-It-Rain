@@ -144,17 +144,21 @@ struct CustomAlert: View {
 extension AppState {
     func showAlert(_ text: String) {
         withAnimation(.snappy(duration: 0.2)) {
-            let config = AlertConfig(title: text)
-            self.alertConfig = config
+            self.alertConfig = AlertConfig(title: text)
             self.showCustomAlert = true
+            #if os(macOS)
+            openMacAlertAndToastOverlayWindow(withDarkOverlay: true)
+            #endif
         }
     }
     
     func showAlert(title: String, subtitle: String) {
         withAnimation(.snappy(duration: 0.2)) {
-            let config = AlertConfig(title: title, subtitle: subtitle)
-            self.alertConfig = config
+            self.alertConfig = AlertConfig(title: title, subtitle: subtitle)
             self.showCustomAlert = true
+            #if os(macOS)
+            openMacAlertAndToastOverlayWindow(withDarkOverlay: true)
+            #endif
         }
     }
             
@@ -162,6 +166,10 @@ extension AppState {
         withAnimation(.snappy(duration: 0.2)) {
             self.alertConfig = config
             self.showCustomAlert = true
+            #if os(macOS)
+            openMacAlertAndToastOverlayWindow(withDarkOverlay: true)
+            #endif
+            
         }
     }
     
@@ -169,6 +177,10 @@ extension AppState {
         withAnimation(.snappy(duration: 0.2)) {
             self.alertConfig = nil
             self.showCustomAlert = false
+            #if os(macOS)
+            dismissWindow(id: MacAlertAndToastOverlay.id)
+            #endif
+            
         }
     }
 }

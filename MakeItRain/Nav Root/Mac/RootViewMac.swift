@@ -151,7 +151,7 @@ struct RootViewMac: View {
         //.toolbarBackground(Color.darkGray2)
         //.background(Color.darkGray2)
         .tint(Color.theme)
-        .toast()
+        //.toast()
     }
 }
 

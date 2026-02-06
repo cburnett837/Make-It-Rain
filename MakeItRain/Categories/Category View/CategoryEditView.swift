@@ -127,6 +127,7 @@ struct CategoryEditView: View {
     }
        
     // MARK: - Category Edit Page Views
+    #if os(macOS)
     @ViewBuilder
     var categoryPageMac: some View {
         Section {
@@ -159,6 +160,7 @@ struct CategoryEditView: View {
             }
         }
     }
+    #endif
     
     
     var categoryPagePhone: some View {

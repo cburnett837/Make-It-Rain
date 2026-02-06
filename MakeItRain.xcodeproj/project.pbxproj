@@ -361,6 +361,8 @@
 		FDEE4D342EB0FFE300F16EEB /* PayMethodSortMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDEE4D332EB0FFE300F16EEB /* PayMethodSortMenu.swift */; };
 		FDEE4D362EB109B800F16EEB /* CategorySortMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDEE4D352EB109B800F16EEB /* CategorySortMenu.swift */; };
 		FDEE4D382EB12AD500F16EEB /* ToastList.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDEE4D372EB12AD500F16EEB /* ToastList.swift */; };
+		FDF491E22F357913005B0ECC /* MacAlertAndToastOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDF491E12F357913005B0ECC /* MacAlertAndToastOverlay.swift */; };
+		FDF491E42F357934005B0ECC /* WindowAccessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDF491E32F357934005B0ECC /* WindowAccessor.swift */; };
 		FDFBC44E2DDE33C9006DE685 /* LinkKit in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = FDFBC44D2DDE33C9006DE685 /* LinkKit */; };
 		FDFBC4502DDE346C006DE685 /* PlaidLinkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDFBC44F2DDE346C006DE685 /* PlaidLinkView.swift */; };
 		FDFBC4522DDEB47D006DE685 /* PlaidServerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDFBC4512DDEB47D006DE685 /* PlaidServerModel.swift */; };
@@ -762,6 +764,8 @@
 		FDEE4D332EB0FFE300F16EEB /* PayMethodSortMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PayMethodSortMenu.swift; sourceTree = "<group>"; };
 		FDEE4D352EB109B800F16EEB /* CategorySortMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategorySortMenu.swift; sourceTree = "<group>"; };
 		FDEE4D372EB12AD500F16EEB /* ToastList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastList.swift; sourceTree = "<group>"; };
+		FDF491E12F357913005B0ECC /* MacAlertAndToastOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacAlertAndToastOverlay.swift; sourceTree = "<group>"; };
+		FDF491E32F357934005B0ECC /* WindowAccessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowAccessor.swift; sourceTree = "<group>"; };
 		FDFBC44F2DDE346C006DE685 /* PlaidLinkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaidLinkView.swift; sourceTree = "<group>"; };
 		FDFBC4512DDEB47D006DE685 /* PlaidServerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaidServerModel.swift; sourceTree = "<group>"; };
 		FDFBC4532DDED96A006DE685 /* PlaidTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaidTable.swift; sourceTree = "<group>"; };
@@ -1100,10 +1104,12 @@
 			children = (
 				FDC26D8F2D3E86D500B0A97C /* AppTips.swift */,
 				FD737B402D835AAF00B6A97B /* AlertAndToastLayerView.swift */,
+				FDF491E12F357913005B0ECC /* MacAlertAndToastOverlay.swift */,
 				FDAECC452DCA6E1D00C6EDA5 /* CalendarSheetLayerView.swift */,
 				FDAECC472DCA6E2400C6EDA5 /* CalendarSheetLayerWrapper.swift */,
 				FDAECC492DCA6E3D00C6EDA5 /* PassThroughWindowPhone.swift */,
 				FDAECC432DCA6E1000C6EDA5 /* RootViewWrapper.swift */,
+				FDF491E32F357934005B0ECC /* WindowAccessor.swift */,
 			);
 			path = "App Root";
 			sourceTree = "<group>";
@@ -1470,11 +1476,11 @@
 				FDC26D8E2D3E86D500B0A97C /* AppState.swift */,
 				FD49F8A12DD9999500A563C8 /* LocalStorage.swift */,
 				FDC26DBF2D3E86D500B0A97C /* FuncModel.swift */,
+				FDAECC4B2DCA6E8D00C6EDA5 /* App Root */,
+				FDC26D882D3E86D500B0A97C /* Nav Root */,
 				FDD577FB2DC135A300C0B197 /* Advanced Search */,
 				FD76DA412EA289AC002E30DA /* Alerts & Toast */,
 				FDAECC4E2DCB9D6700C6EDA5 /* Analytics */,
-				FDAECC4B2DCA6E8D00C6EDA5 /* App Root */,
-				FDC26D882D3E86D500B0A97C /* Nav Root */,
 				FDC26D7A2D3E86D500B0A97C /* Authentication */,
 				FDC26D7B2D3E86D500B0A97C /* Budget */,
 				FDC26D7C2D3E86D500B0A97C /* Calendar */,
@@ -1879,6 +1885,7 @@
 				FD07E28F2D72137800024B11 /* PayMethodRequiredView.swift in Sources */,
 				FD8F14672F1ED4B00098CC49 /* ContactPickerView.swift in Sources */,
 				FD09FF572D9C314300795C28 /* ParentChildIdModel.swift in Sources */,
+				FDF491E42F357934005B0ECC /* WindowAccessor.swift in Sources */,
 				FD2F25B42EE9C99C00E18F99 /* CatChartRawDataList.swift in Sources */,
 				FDEE4D342EB0FFE300F16EEB /* PayMethodSortMenu.swift in Sources */,
 				FD174D432ED7415A00A01F67 /* CustomAsyncCsv.swift in Sources */,
@@ -2068,6 +2075,7 @@
 				FDFBC4582DDF5343006DE685 /* PlaidModel.swift in Sources */,
 				FDC26E8A2D3E86D500B0A97C /* RequestModel.swift in Sources */,
 				FDC26E8B2D3E86D500B0A97C /* RepeatingAndBudgetSubmissionModel.swift in Sources */,
+				FDF491E22F357913005B0ECC /* MacAlertAndToastOverlay.swift in Sources */,
 				FDBA69DC2DF89C84007FB0CB /* UserDefaultsManager.swift in Sources */,
 				FD49F8852DD6C57B00A563C8 /* PayMethodViewContainer.swift in Sources */,
 				FD6D7F032D66CD0A0026D39D /* CBFitTransaction.swift in Sources */,

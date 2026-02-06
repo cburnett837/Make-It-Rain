@@ -36,13 +36,35 @@ struct DayViewMac: View {
 
     @State private var showTransferSheet = false
     
-    var eodColor: Color {
-        if day.eodTotal > AppSettings.shared.lowBalanceThreshold {
-            return .gray
-        } else if day.eodTotal < 0 {
-            return .red
+    private var eodColor: Color {
+        if let meth = calModel.sPayMethod {
+            if meth.isCreditOrLoan {
+                let limit = meth.limit ?? 0
+                let thresh = limit - AppSettings.shared.lowBalanceThreshold
+                
+                if day.eodTotal < thresh {
+                    return .gray
+                } else if day.eodTotal > limit {
+                    return .red
+                } else {
+                    return .orange
+                }
+                
+            } else {
+                if day.eodTotal > AppSettings.shared.lowBalanceThreshold {
+                    return .gray
+                } else if day.eodTotal < 0 {
+                    return .red
+                } else {
+                    return .orange
+                }
+            }
         } else {
-            return .orange
+            if day.eodTotal > 0 {
+                return AppSettings.shared.incomeColor
+            } else {
+                return .gray
+            }
         }
     }
     
@@ -245,9 +267,9 @@ struct DayViewMac: View {
                 if let transactionToPaste = calModel.getCopyOfTransaction() {
                     transactionToPaste.date = day.date!
                                                     
-                    if !calModel.isUnifiedPayMethod {
-                        transactionToPaste.payMethod = calModel.sPayMethod!
-                    }
+//                    if !calModel.isUnifiedPayMethod {
+//                        transactionToPaste.payMethod = calModel.sPayMethod!
+//                    }
                     
                     day.upsert(transactionToPaste)
                     Task {

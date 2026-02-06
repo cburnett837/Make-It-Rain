@@ -67,7 +67,7 @@ struct CategorySortMenu: View {
                 .schemeBasedForegroundStyle()
         }
         #if os(macOS)
-        .schemeBasedForegroundStyle()
+        .schemeBasedTint()
         .buttonStyle(.roundMacButton)
         #endif
     }

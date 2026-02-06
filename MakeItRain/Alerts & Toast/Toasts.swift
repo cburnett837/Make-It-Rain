@@ -85,6 +85,9 @@ extension AppState {
             #if os(iOS)
             Helpers.buzzPhone(.success)
             #endif
+            #if os(macOS)
+            openMacAlertAndToastOverlayWindow()
+            #endif
             self.toast = Toast(
                 header: title,
                 title: subtitle,
@@ -95,6 +98,7 @@ extension AppState {
                 autoDismiss: autoDismiss,
                 action: action
             )
+            
             //}
         }
         

@@ -10,6 +10,25 @@ import SwiftUI
 extension MakeItRainApp {
     #if os(macOS)
     @SceneBuilder
+    var macAlertAndToastOverlayWindow: some Scene {
+        Window("", id: MacAlertAndToastOverlay.id) {
+            MacAlertAndToastOverlay()
+                .environment(funcModel)
+                .environment(calModel)
+                .environment(payModel)
+                .environment(catModel)
+                .environment(keyModel)
+                .environment(repModel)
+                .environment(plaidModel)
+                .environment(calProps)
+                .environment(dataChangeTriggers)
+        }
+        .windowStyle(.hiddenTitleBar)
+        .auxilaryWindow()
+    }
+    
+    
+    @SceneBuilder
     var dashboardWindow: some Scene {
         Window("Budget", id: "budgetWindow") {
             CalendarDashboard()

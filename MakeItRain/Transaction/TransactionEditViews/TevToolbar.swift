@@ -162,17 +162,19 @@ struct TevToolbar: ToolbarContent {
                 )
             }
             
-            #if os(iOS)
-            Button("No", role: .close) {
-                showDeleteAlert = false
-            }
-            #else
-            Button("No") {
-                showDeleteAlert = false
-            }
-            #endif
+//            #if os(iOS)
+//            Button("No", role: .close) {
+//                showDeleteAlert = false
+//            }
+//            #else
+//            Button("No") {
+//                showDeleteAlert = false
+//            }
+//            #endif
         } message: {
+            #if os(iOS)
             Text("Delete \"\(trans.title)\"?")
+            #endif
         }
     }
     

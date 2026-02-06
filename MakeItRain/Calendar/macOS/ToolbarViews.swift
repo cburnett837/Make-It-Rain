@@ -9,6 +9,15 @@ import SwiftUI
 
 #if os(macOS)
 
+@Observable
+class ToolbarAndCommandsCoordinator {
+    static let shared = ToolbarAndCommandsCoordinator()
+    var showPopulateAlert = false
+    var showPopulateOptionsSheet = false
+    var showResetMonthAlert = false
+    var showResetOptionsSheet = false
+}
+
 struct CalendarToolbarLeading: View {
     
     //@AppStorage("showAccountOnUnifiedView") var showAccountOnUnifiedView = false
@@ -47,6 +56,7 @@ struct CalendarToolbarLeading: View {
     var body: some View {
         @Bindable var calModel = calModel
         @Bindable var navManager = NavigationManager.shared
+        @Bindable var toolbarAndCommandsCoordinator = ToolbarAndCommandsCoordinator.shared
         
         HStack {
 //            if LoadingManager.shared.showLoadingSpinner {
@@ -57,20 +67,21 @@ struct CalendarToolbarLeading: View {
             
             if !isInWindow {
                 addNewTransactionButton
-                previousMonthButton
-                nextMonthButton
                 
                 //if calModel.sYear != AppState.shared.todayYear || calModel.sMonth.num != AppState.shared.todayMonth {
                 ToolbarNowButton()
                     .disabled(calModel.sYear == AppState.shared.todayYear && calModel.sMonth.num == AppState.shared.todayMonth)
                 //}
                 
-                PlaygroundButton()
-                    .disabled(calModel.isPlayground)
+//                PlaygroundButton()
+//                    .disabled(calModel.isPlayground)
+                
+                previousMonthButton
+                nextMonthButton
                 
                 Divider()
                 
-                populateButton
+                //populateButton
                 
                 ToolbarRefreshButton()
                     .toolbarBorder()
@@ -87,7 +98,7 @@ struct CalendarToolbarLeading: View {
             startingAmountTextFields
                 .disabled(isInWindow)
         }
-        .alert("Woah!", isPresented: $showPopulateAlert) {
+        .alert("Woah!", isPresented: $toolbarAndCommandsCoordinator.showPopulateAlert) {
             Button("Options") {
                 showPopulateOptionsSheet = true
                 //calModel.populate(repTransactions: repModel.repTransactions, categories: catModel.categories)
@@ -183,22 +194,22 @@ struct CalendarToolbarLeading: View {
     }
     
     
-    var populateButton: some View {
-        Button {
-            if calModel.sMonth.hasBeenPopulated {
-                showPopulateAlert = true
-            } else {
-                showPopulateOptionsSheet = true
-                //calModel.populate(repTransactions: repModel.repTransactions, categories: catModel.categories)
-            }
-        } label: {
-            Image(systemName: "arrow.triangle.branch")
-                .rotationEffect(Angle(degrees: 180))
-        }
-        .toolbarBorder()
-        .help("Populate this month with repeating transactions")
-    }
-   
+//    var populateButton: some View {
+//        Button {
+//            if calModel.sMonth.hasBeenPopulated {
+//                ToolbarAndCommandsCoordinator.shared.showPopulateAlert = true
+//            } else {
+//                showPopulateOptionsSheet = true
+//                //calModel.populate(repTransactions: repModel.repTransactions, categories: catModel.categories)
+//            }
+//        } label: {
+//            Image(systemName: "arrow.triangle.branch")
+//                .rotationEffect(Angle(degrees: 180))
+//        }
+//        .toolbarBorder()
+//        .help("Populate this month with repeating transactions")
+//    }
+//   
     
     var categoryButton: some View {
         Group {
@@ -257,10 +268,7 @@ struct CalendarToolbarLeading: View {
                     
                     BusinessLogo(config: .init(
                         parent: calModel.sPayMethod,
-                        fallBackType: .customImage(.init(
-                            name: calModel.sPayMethod?.fallbackImage,
-                            color: calModel.sPayMethod?.color
-                        )),
+                        fallBackType: (calModel.sPayMethod ?? CBPaymentMethod()).isUnified ? .gradient : .color,
                         size: 20
                     ))
 //                    
@@ -271,14 +279,16 @@ struct CalendarToolbarLeading: View {
 //                        .if((calModel.sPayMethod?.isUnified ?? false == false)) {
 //                            $0.foregroundStyle((calModel.sPayMethod?.isUnified ?? false ? .white : calModel.sPayMethod?.color) ?? .white, .primary, .secondary)
 //                        }
-                    Text(calModel.sPayMethod?.title ?? "Select Payment Method")
+                    Text(calModel.sPayMethod?.title ?? "Select Account")
                 }
                 
                     //.frame(width: 100)
             }
             .toolbarBorder()
-            .sheet(isPresented: $showPayMethodSheet) {
-                PayMethodSheet(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all, showNoneOption: true)
+            .sheet(isPresented: $showPayMethodSheet, onDismiss: {
+                calModel.startingAmountSheetDismissed()
+            }) {
+                PayMethodSheet(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all, showStartingAmountOption: true, showNoneOption: true)
                     .frame(minWidth: 300, minHeight: 500)
 //                    .presentationSizing(.fitted)
             }
@@ -338,7 +348,7 @@ struct CalendarToolbarLeading: View {
                     .foregroundStyle(.gray)
                 
                 if sMeth?.accountType == .credit || sMeth?.accountType == .loan {
-                    StaticAmountText(amount: sMeth?.limit, alertText: "Please edit the credit limit from the payment methods screen.")
+                    StaticAmountText(amount: sMeth?.limit, alertText: "Please edit the credit limit from the accounts screen.")
                         .help("Current \(sMeth?.title ?? "?") credit limit")
                     
                 } else {
@@ -433,6 +443,8 @@ struct CalendarToolbarTrailing: View {
     
     var body: some View {
         @Bindable var calModel = calModel
+        @Bindable var toolbarAndCommandsCoordinator = ToolbarAndCommandsCoordinator.shared
+        
         HStack {
             Spacer()
             if !isInWindow {
@@ -488,9 +500,9 @@ struct CalendarToolbarTrailing: View {
                 
                 displayModePicker
                 
-                Divider()
+                //Divider()
                 
-                resetButton
+                //resetButton
                 //infoButton
                 
                 Divider()
@@ -513,7 +525,7 @@ struct CalendarToolbarTrailing: View {
             .help("Change the search scope to either titles or tags")
         }
         
-        .alert("Reset \(calModel.sMonth.name) \(String(calModel.sMonth.year))", isPresented: $showResetMonthAlert) {
+        .alert("Reset \(calModel.sMonth.name) \(String(calModel.sMonth.year))", isPresented: $toolbarAndCommandsCoordinator.showResetMonthAlert) {
             Button("Options", role: .destructive) {
                 showResetOptionsSheet = true
             }
@@ -608,32 +620,32 @@ struct CalendarToolbarTrailing: View {
     }
     
     
-    var resetButton: some View {
-        Button {
-            showResetMonthAlert = true
-        } label: {
-            Image("calendar.days.reset")
-                .scaleEffect(1.5)
-                .padding(.horizontal, 5)
-            //Image(systemName: "arrow.triangle.2.circlepath")
-                //.foregroundStyle(.red)
-//            Image(systemName: "calendar.badge.exclamationmark")
-//                .symbolRenderingMode(.palette)
-//                .foregroundStyle(.red, .gray)
-        }
-        .toolbarBorder()
-        //.disabled(calModel.refreshTask != nil)
-        .help("Select options to reset this month")
-    }
+//    var resetButton: some View {
+//        Button {
+//            showResetMonthAlert = true
+//        } label: {
+//            Image("calendar.days.reset")
+//                .scaleEffect(1.5)
+//                .padding(.horizontal, 5)
+//            //Image(systemName: "arrow.triangle.2.circlepath")
+//                //.foregroundStyle(.red)
+////            Image(systemName: "calendar.badge.exclamationmark")
+////                .symbolRenderingMode(.palette)
+////                .foregroundStyle(.red, .gray)
+//        }
+//        .toolbarBorder()
+//        //.disabled(calModel.refreshTask != nil)
+//        .help("Select options to reset this month")
+//    }
     
     
-    var infoButton: some View {
-        Button {
-            
-        } label: {
-            Image(systemName: "info.circle")
-        }
-        .toolbarBorder()
-    }
+//    var infoButton: some View {
+//        Button {
+//            
+//        } label: {
+//            Image(systemName: "info.circle")
+//        }
+//        .toolbarBorder()
+//    }
 }
 #endif

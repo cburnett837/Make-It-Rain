@@ -32,6 +32,13 @@ class AppState {
     var notificationToken: String?
     var unreadToasts: Array<String> = []
     
+    @ObservationIgnored
+    @Environment(\.openWindow) var openWindow
+    
+    @ObservationIgnored
+    @Environment(\.dismissWindow) var dismissWindow
+
+    
     //var keyboardHeight: CGFloat = 0
     //var showKeyboardToolbar = false
     
@@ -238,5 +245,48 @@ class AppState {
 //        }
 //    }
 //    #endif
+    
+    
+    
+    #if os(macOS)
+    func openMacAlertAndToastOverlayWindow(withDarkOverlay: Bool = false) {
+        guard let mainWindow = NSApplication.shared.windows.first(where: {$0.identifier?.rawValue == "mainWindow"}) else {
+            print("cant find main window")
+            return
+        }
+        // configure the window in `onAppear` after calling openWindow will not work (completely)
+        // some of the properties set will not be reflected.
+        guard let window = NSApplication.shared.windows.first(where: {$0.identifier?.rawValue == MacAlertAndToastOverlay.id}) else {
+            return
+        }
+        
+        print("window found")
+        window.level = .floating // popUpMenu will also work
+        
+        window.contentMinSize = mainWindow.frame.size
+        window.contentMaxSize = mainWindow.frame.size
+        window.setFrame(mainWindow.frame, display: true, animate: false)
+
+        // remove title and buttons
+        window.styleMask.remove(.titled)
+        window.styleMask = [.borderless]
+        window.standardWindowButton(.closeButton)?.isHidden = true
+        window.standardWindowButton(.miniaturizeButton)?.isHidden = true
+        window.standardWindowButton(.zoomButton)?.isHidden = true
+        window.hidesOnDeactivate = true
+        //window.isReleasedWhenClosed = false
+
+        // so that the window can follow the virtual desktop
+        window.collectionBehavior.insert(.canJoinAllSpaces)
+        
+        // set it clear here so the configuration in UtilityWindowView will be reflected as it is
+        if withDarkOverlay {
+            window.backgroundColor = NSColor.black.withAlphaComponent(0.3)
+        } else {
+            window.backgroundColor = .clear
+        }
+        openWindow(id: MacAlertAndToastOverlay.id)
+    }
+    #endif
 }
 

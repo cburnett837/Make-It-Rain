@@ -65,14 +65,13 @@ struct AlertAndToastLayerView: View {
 //                    Text(config.subtitle ?? "")
 //                }
 //            )
+            #if os(iOS)
             .overlay {
                 if let config = AppState.shared.alertConfig {
                     Rectangle()
                         .fill(Color.black)
-//                    Color.black
-                        #if os(iOS)
+                        
                         .glassEffect(in: .rect())
-                        #endif
                         //.fill(.ultraThickMaterial)
                         //.fill(Color.darkGray3)
                         .opacity(0.3)
@@ -82,7 +81,14 @@ struct AlertAndToastLayerView: View {
                         .accessibilityIdentifier("UniversalAlertContent")
                 }
             }
-            #if os(iOS)
+            #else
+            .overlay {
+                if let config = AppState.shared.alertConfig {
+                    CustomAlert(config: config)
+                }
+            }
+            #endif
+            #if os(iOS) 
             .photoPickerAndCameraSheet(
                 fileUploadCompletedDelegate: calModel,
                 parentType: .transaction,

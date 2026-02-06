@@ -47,4 +47,44 @@ struct PDFKitRepresentedView: UIViewRepresentable {
         }
     }
 }
+#else
+struct PDFKitRepresentedView: NSViewRepresentable {
+    @Environment(\.colorScheme) var colorScheme
+
+    let pdfData: Data?
+    let url: URL?
+    
+    init(pdfData: Data) {
+        self.pdfData = pdfData
+        self.url = nil
+    }
+    
+    init(url: URL) {
+        self.url = url
+        self.pdfData = nil
+    }
+
+    func makeNSView(context: Context) -> PDFView {
+        let pdfView = PDFView()
+        if let url = url {
+            pdfView.document = PDFDocument(url: url)
+        } else if let pdfData = pdfData {
+            pdfView.document = PDFDocument(data: pdfData)
+        }
+        
+        pdfView.autoScales = true // Adjusts the PDF to fit the view
+//        pdfView.isUserInteractionEnabled = false
+        //pdfView.backgroundColor = colorScheme == .dark ? .black : .white
+        //pdfView.backgroundColor = .white
+        return pdfView
+    }
+
+    func updateNSView(_ nsView: PDFView, context: Context) {
+        if let url = url {
+            nsView.document = PDFDocument(url: url)
+        } else if let pdfData = pdfData {
+            nsView.document = PDFDocument(data: pdfData)
+        }
+    }
+}
 #endif
