@@ -213,7 +213,6 @@
 		FDBA69D72DEF9152007FB0CB /* ChartSelectedDataContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBA69D62DEF9152007FB0CB /* ChartSelectedDataContainer.swift */; };
 		FDBA69D92DF252FE007FB0CB /* FileRequestModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBA69D82DF252FE007FB0CB /* FileRequestModel.swift */; };
 		FDBA69DC2DF89C84007FB0CB /* UserDefaultsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBA69DB2DF89C84007FB0CB /* UserDefaultsManager.swift */; };
-		FDBA69E42DF8CF04007FB0CB /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = FDBA69E32DF8CF04007FB0CB /* GRDB */; };
 		FDC26E112D3E86D500B0A97C /* DollarParticalEmitterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DB92D3E86D500B0A97C /* DollarParticalEmitterView.swift */; };
 		FDC26E122D3E86D500B0A97C /* RootViewMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DF42D3E86D500B0A97C /* RootViewMac.swift */; };
 		FDC26E132D3E86D500B0A97C /* CBBudget.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DA32D3E86D500B0A97C /* CBBudget.swift */; };
@@ -802,7 +801,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FDBA69E42DF8CF04007FB0CB /* GRDB in Frameworks */,
 				FDB1ACFE2D779A29001CB2F6 /* Algorithms in Frameworks */,
 				FDFBC44E2DDE33C9006DE685 /* LinkKit in Frameworks */,
 			);
@@ -1630,7 +1628,6 @@
 			packageProductDependencies = (
 				FDB1ACFD2D779A29001CB2F6 /* Algorithms */,
 				FDFBC44D2DDE33C9006DE685 /* LinkKit */,
-				FDBA69E32DF8CF04007FB0CB /* GRDB */,
 			);
 			productName = MakeItRain;
 			productReference = FD292E0E2C9B248B003C18D2 /* MakeItRain.app */;
@@ -1689,7 +1686,6 @@
 			packageReferences = (
 				FD8ABE542D77995E00F3BB64 /* XCRemoteSwiftPackageReference "swift-algorithms" */,
 				FDFBC44C2DDE33C9006DE685 /* XCRemoteSwiftPackageReference "plaid-link-ios-spm" */,
-				FDBA69E22DF8CF04007FB0CB /* XCRemoteSwiftPackageReference "GRDB.swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = FD292E0F2C9B248B003C18D2 /* Products */;
@@ -2168,7 +2164,8 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 6.0;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
@@ -2224,7 +2221,8 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_VERSION = 6.0;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};
@@ -2288,6 +2286,7 @@
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = minimal;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
 				XROS_DEPLOYMENT_TARGET = 2.0;
@@ -2353,6 +2352,7 @@
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = minimal;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
 				XROS_DEPLOYMENT_TARGET = 2.0;
@@ -2468,14 +2468,6 @@
 				minimumVersion = 1.2.1;
 			};
 		};
-		FDBA69E22DF8CF04007FB0CB /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/groue/GRDB.swift.git";
-			requirement = {
-				branch = master;
-				kind = branch;
-			};
-		};
 		FDFBC44C2DDE33C9006DE685 /* XCRemoteSwiftPackageReference "plaid-link-ios-spm" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/plaid/plaid-link-ios-spm.git";
@@ -2491,11 +2483,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = FD8ABE542D77995E00F3BB64 /* XCRemoteSwiftPackageReference "swift-algorithms" */;
 			productName = Algorithms;
-		};
-		FDBA69E32DF8CF04007FB0CB /* GRDB */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FDBA69E22DF8CF04007FB0CB /* XCRemoteSwiftPackageReference "GRDB.swift" */;
-			productName = GRDB;
 		};
 		FDFBC44D2DDE33C9006DE685 /* LinkKit */ = {
 			isa = XCSwiftPackageProductDependency;

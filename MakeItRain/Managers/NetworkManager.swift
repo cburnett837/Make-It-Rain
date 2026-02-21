@@ -95,13 +95,16 @@ class NetworkManager {
                 let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response
                 
                 LogManager.log("decoding data", session: sesh)
+                
                 #warning("Error handling won't work with the force unwrap")
                 #if targetEnvironment(simulator)
                 let decodedData = try! JSONDecoder().decode(Array<U>?.self, from: data)
                 #else
                 let decodedData = try? JSONDecoder().decode(Array<U>?.self, from: data)
                 #endif
-            LogManager.log("data has been decoded", session: sesh)
+                
+                LogManager.log("data has been decoded", session: sesh)
+                
                 guard let decodedData else {
                     LogManager.log("something went wrong with the decoded data", session: sesh)
                     return .failure(.serverError(firstLine))
@@ -192,13 +195,16 @@ class NetworkManager {
                 let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response                                
                 
                 LogManager.log("decoding data", session: sesh)
+                
                 #warning("Error handling won't work with the force unwrap")
                 #if targetEnvironment(simulator)
                 let decodedData = try! JSONDecoder().decode(U?.self, from: data)
                 #else
                 let decodedData = try? JSONDecoder().decode(U?.self, from: data)
                 #endif
+                
                 LogManager.log("data has been decoded", session: sesh)
+                
                 guard let decodedData else {
                     LogManager.log("something went wrong with the decoded data", session: sesh)
                     return .failure(.serverError(firstLine))

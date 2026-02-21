@@ -104,10 +104,7 @@ struct CategoryOverView: View {
             }
             
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Edit") {
-                    categoryEditID = category.id
-                }
-                .schemeBasedForegroundStyle()
+                editCategoryButton
             }
             
             if AppState.shared.isIpad {
@@ -123,12 +120,7 @@ struct CategoryOverView: View {
             
             ToolbarItemGroup(placement: .confirmationAction) {
                 HStack {
-                    Button("Edit") {
-                        categoryEditID = category.id
-                    }
-                    .schemeBasedForegroundStyle()
-                    .buttonStyle(.roundMacButton(horizontalPadding: 10))
-                    
+                    editCategoryButton
                     closeButton
                 }
             }
@@ -186,6 +178,18 @@ struct CategoryOverView: View {
         
     }
     
+    
+    var editCategoryButton: some View {
+        Button {
+            categoryEditID = category.id
+        } label: {
+            Text("Edit")
+                .schemeBasedForegroundStyle()
+        }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton(horizontalPadding: 10))
+        #endif
+    }
     
     /// Only for iPad.
     var closeButton: some View {

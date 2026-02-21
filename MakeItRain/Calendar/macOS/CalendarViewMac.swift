@@ -120,6 +120,9 @@ struct CalendarViewMac: View {
                 //calModel.hilightTrans = nil
                 focusedField = nil
             }
+            .sheet(isPresented: $calProps.showTransferSheet) {
+                TransferSheet(defaultDate: calProps.selectedDay?.date ?? Date())
+            }
             .transactionEditSheetAndLogic(
                 transEditID: $calProps.transEditID,
                 selectedDay: $calProps.selectedDay,
@@ -132,20 +135,29 @@ struct CalendarViewMac: View {
     }
     
     
+    @ViewBuilder
     var calendarView: some View {
-        Group {
-            @Bindable var calModel = calModel
-            VStack {
-                weekdayNames
-                dayGrid
+        @Bindable var calModel = calModel
+        @Bindable var calProps = calProps
+        VStack {
+            weekdayNames
+            dayGrid
+        }
+        .opacity(calModel.sMonth.enumID == enumID ? 1 : 0)
+        .overlay(
+            ProgressView()
+                .transition(.opacity)
+                .tint(.none)
+                .opacity(calModel.sMonth.enumID == enumID ? 0 : 1)
+        )
+        .inspector(isPresented: $calProps.showInspector) {
+            if let content = calProps.inspectorContent {
+                inspectorContent(content)
+            } else {
+                /// Have a fallback view with options in case the inspector gets left open.
+                /// Inspector state is retained by the SwiftUI framework.
+                noInspectorContentView
             }
-            .opacity(calModel.sMonth.enumID == enumID ? 1 : 0)
-            .overlay(
-                ProgressView()
-                    .transition(.opacity)
-                    .tint(.none)
-                    .opacity(calModel.sMonth.enumID == enumID ? 0 : 1)
-            )
         }
     }
     
@@ -211,6 +223,84 @@ struct CalendarViewMac: View {
                 }
             }
         }
+    }
+    
+    
+    @ViewBuilder func inspectorContent(_ content: CalendarInspectorContent) -> some View {
+        @Bindable var calProps = calProps
+        @Bindable var calModel = calModel
+        Group {
+            switch content {
+            case .dashboard:
+                CalendarDashboard()
+                
+            case .analysisSheet:
+                Text("not available")
+                //CategoryInsightsViewWrapperIpad(showAnalysisSheet: $calProps.showInspector, model: categoryAnalysisModel)
+                    //.onDisappear { calModel.isInMultiSelectMode = false }
+                
+            case .transactionList:
+                TransactionListView(showTransactionListSheet: $calProps.showInspector)
+                
+            case .plaidTransactions:
+                PlaidTransactionOverlay(showInspector: $calProps.showInspector, navPath: .constant(.init()))
+                
+            case .multiSelectOptions:
+                MultiSelectTransactionOptionsSheet(showInspector: $calProps.showInspector)
+                
+            case .smartTransactionsWithIssues:
+                SmartTransactionsWithIssuesOverlay(showInspector: $calProps.showInspector)
+                
+            case .budgets:
+                BudgetTable()
+                
+            case .overviewDay:
+                Text("not available")
+                //DayOverviewView(day: $calProps.overviewDay, showInspector: $calProps.showInspector)
+                
+            case .paymentMethods:
+                PayMethodSheet(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all, showStartingAmountOption: true, showNoneOption: true)
+            }
+        }
+        //.toolbarRole(.navigationStack)
+        .inspectorColumnWidth(min: 300, ideal: 450, max: 600)
+        .presentationBackground(.thinMaterial)
+    }
+    
+    
+    var noInspectorContentView: some View {
+        NavigationStack {
+            StandardContainerWithToolbar(.list) {
+                Button { calProps.inspectorContent = .dashboard } label: { Label("Dashboard", systemImage: "rectangle.grid.1x3.fill") }
+                Button { calProps.inspectorContent = .analysisSheet } label: { Label("Insights", systemImage: "chart.bar.doc.horizontal") }
+                Button { calProps.inspectorContent = .budgets } label: { Label("Budgets", systemImage: "chart.pie") }
+                Button { calProps.inspectorContent = .transactionList } label: { Label("All Transactions", systemImage: "list.bullet") }
+                                
+                Section {
+                    Button {
+                        calModel.isInMultiSelectMode = true
+                        calProps.inspectorContent = .multiSelectOptions
+                    } label: {
+                        Label("Multi-Select", systemImage: "rectangle.and.hand.point.up.left.filled")
+                    }
+                }
+            }
+            .navigationTitle("Inspector")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        calProps.showInspector = false
+                    } label: {
+                        Image(systemName: "checkmark")
+                            .schemeBasedForegroundStyle()
+                    }
+                }
+            }
+            #endif
+        }
+        .inspectorColumnWidth(min: 200, ideal: 250, max: 300)
     }
 }
 

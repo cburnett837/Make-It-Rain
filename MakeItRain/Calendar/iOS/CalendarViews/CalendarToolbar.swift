@@ -76,19 +76,14 @@ struct CalendarToolbar: ToolbarContent {
                 }
             }
             
-            //if AppState.shared.isIpad {
-                ToolbarSpacer(.fixed, placement: .topBarTrailing)
-                
-                ToolbarItem(placement: .topBarTrailing) {
-                    GlassEffectContainer {
-                        payMethodButtonAndMenu
-                            .glassEffectID("paymentMethodButton", in: plaidButtonNamespace)
-                    }
+            ToolbarSpacer(.fixed, placement: .topBarTrailing)
+            
+            ToolbarItem(placement: .topBarTrailing) {
+                GlassEffectContainer {
+                    payMethodButtonAndMenu
+                        .glassEffectID("paymentMethodButton", in: plaidButtonNamespace)
                 }
-                //.matchedTransitionSource(id: "paymentMethodButton", in: paymentMethodMenuButtonNamespace)
-            //}
-            
-            
+            }
             
             ToolbarSpacer(.fixed, placement: .topBarTrailing)
         }
@@ -116,7 +111,6 @@ struct CalendarToolbar: ToolbarContent {
         
         
         if funcModel.isLoading {
-//        if temp {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 GlassEffectContainer {
                     refeshingIndicator
@@ -158,21 +152,13 @@ struct CalendarToolbar: ToolbarContent {
 //                    .navigationTransition(.zoom(sourceID: "MENUCONTENT", in: customMenuButtonNamespace))
 //                }
                 
-                CalendarMoreMenu(navPath: $calProps.navPath)
+                CalendarMoreMenu()
                     .glassEffectID("moreMenu", in: refreshButtonNamespace)
             }
         }
         
         if AppState.shared.isIphone {
             Group {
-                
-//                ToolbarItem(placement: .bottomBar) {
-//                    payMethodButtonAndMenu
-//                }
-//                .matchedTransitionSource(id: "paymentMethodButton", in: paymentMethodMenuButtonNamespace)
-                
-//                ToolbarSpacer(.flexible, placement: .bottomBar)
-                
                 ToolbarItem(placement: .bottomBar) { analysisSheetButton }
                 ToolbarSpacer(.fixed, placement: .bottomBar)
                 DefaultToolbarItem(kind: .search, placement: .bottomBar)
@@ -184,11 +170,9 @@ struct CalendarToolbar: ToolbarContent {
                         showPhotosPicker: $calProps.showPhotosPicker,
                         showCamera: $calProps.showCamera
                     )
-                    //.matchedTransitionSource(id: "myButton", in: newTransactionMenuButtonNamespace)
                 }
             }
         }
-        
     }
     
 //    struct PopOverHelper<Content: View>: View {

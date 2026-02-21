@@ -8,6 +8,7 @@
 
 import SwiftUI
 
+#if os(macOS)
 struct WindowAccessor: NSViewRepresentable {
     let callback: (NSWindow?) -> Void
 
@@ -21,3 +22,4 @@ struct WindowAccessor: NSViewRepresentable {
 
     func updateNSView(_ nsView: NSView, context: Context) {}
 }
+#endif

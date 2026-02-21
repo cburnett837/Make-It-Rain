@@ -7,7 +7,6 @@
 
 import Foundation
 import SwiftUI
-import GRDB
 
 @Observable
 class CBKeyword: Codable, Identifiable {

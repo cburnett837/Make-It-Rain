@@ -523,7 +523,7 @@ struct TransactionEditView: View {
         }
         
         Section {
-            if showExpensiveViews {
+            //if showExpensiveViews {
                 if suggestedCategories.isEmpty {
                     categoryLine
                 }
@@ -556,11 +556,11 @@ struct TransactionEditView: View {
                         AppState.shared.showAlert("To change this, please edit the related transaction instead.")
                     }
                 }
-            } else {
-                ProgressView()
-                    .frame(maxWidth: .infinity)
-                    .tint(.none)
-            }
+//            } else {
+//                ProgressView()
+//                    .frame(maxWidth: .infinity)
+//                    .tint(.none)
+//            }
         } footer: {
             paymentMethodQuickPick
         }

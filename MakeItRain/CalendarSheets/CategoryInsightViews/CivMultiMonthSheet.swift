@@ -29,6 +29,11 @@ struct CivMultiMonthSheet: View {
                 ToolbarItem(placement: .topBarLeading) { selectButton }
                 ToolbarItem(placement: .topBarTrailing) { closeButton }
             }
+            #else
+            .toolbar {
+                ToolbarItem(placement: .destructiveAction) { selectButton }
+                ToolbarItem(placement: .confirmationAction) { closeButton }
+            }
             #endif
         }
         .onChange(of: model.monthsForAnalysis) {
@@ -84,6 +89,9 @@ struct CivMultiMonthSheet: View {
             //Image(systemName: months.isEmpty ? "checklist.checked" : "checklist.unchecked")
                 .schemeBasedForegroundStyle()
         }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton(horizontalPadding: 10))
+        #endif
     }
     
     
@@ -94,6 +102,9 @@ struct CivMultiMonthSheet: View {
             Image(systemName: "xmark")
                 .schemeBasedForegroundStyle()
         }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
     }
     
     

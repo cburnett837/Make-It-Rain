@@ -140,18 +140,18 @@ struct PayMethodSheet: View {
                     HStack {
                         moreMenu
                         PayMethodFilterMenu()
-                        if showStartingAmountOption {
-                            Picker("", selection: $paymentMethodSheetViewMode) {
-                                Text("Accounts")
-                                    .tag(WhichView.select)
-                                Text("Amounts")
-                                    .tag(WhichView.edit)
-                            }
-                            .labelsHidden()
-                            .pickerStyle(.segmented)
-                        } else {
-                            Text("Accounts")
-                        }
+//                        if showStartingAmountOption {
+//                            Picker("", selection: $paymentMethodSheetViewMode) {
+//                                Text("Accounts")
+//                                    .tag(WhichView.select)
+//                                Text("Amounts")
+//                                    .tag(WhichView.edit)
+//                            }
+//                            .labelsHidden()
+//                            .pickerStyle(.segmented)
+//                        } else {
+//                            Text("Accounts")
+//                        }
                     }
                     
                 }

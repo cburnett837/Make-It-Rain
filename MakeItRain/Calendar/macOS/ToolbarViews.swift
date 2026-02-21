@@ -100,7 +100,7 @@ struct CalendarToolbarLeading: View {
         }
         .alert("Woah!", isPresented: $toolbarAndCommandsCoordinator.showPopulateAlert) {
             Button("Options") {
-                showPopulateOptionsSheet = true
+                toolbarAndCommandsCoordinator.showPopulateOptionsSheet = true
                 //calModel.populate(repTransactions: repModel.repTransactions, categories: catModel.categories)
             }
             Button("Cancel", role: .cancel) {
@@ -109,7 +109,7 @@ struct CalendarToolbarLeading: View {
         } message: {
             Text("You have already created a budget and populated this month with reoccuring transactions. If you proceed, reoccuring transactions will be duplicated.")
         }
-        .sheet(isPresented: $showPopulateOptionsSheet) {
+        .sheet(isPresented: $toolbarAndCommandsCoordinator.showPopulateOptionsSheet) {
             PopulateMonthOptionsSheet()
                 .frame(minWidth: 300, minHeight: 500)
                 .presentationSizing(.fitted)
@@ -262,6 +262,8 @@ struct CalendarToolbarLeading: View {
         Group {
             @Bindable var calModel = calModel
             Button {
+                //calProps.inspectorContent = .paymentMethods
+                //calProps.showInspector.toggle()
                 showPayMethodSheet = true
             } label: {
                 HStack {
@@ -426,6 +428,7 @@ struct CalendarToolbarTrailing: View {
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
     @Environment(PlaidModel.self) private var plaidModel
+    @Environment(CalendarProps.self) private var calProps
     
     
     //@Binding var searchText: String
@@ -477,10 +480,14 @@ struct CalendarToolbarTrailing: View {
                 
                 
                 Button {
-                    calModel.isInMultiSelectMode.toggle()
-                    //showMultiSelectSheet = true
+                    //calModel.isInMultiSelectMode.toggle()
+                    ////showMultiSelectSheet = true
                     
-                    openWindow(id: "multiSelectSheet")
+                    calModel.isInMultiSelectMode.toggle()
+                    calProps.inspectorContent = .multiSelectOptions
+                    calProps.showInspector.toggle()
+                    
+                    //openWindow(id: "multiSelectSheet")
                     
                 } label: {
                     Image(systemName: "rectangle.and.hand.point.up.left.filled")

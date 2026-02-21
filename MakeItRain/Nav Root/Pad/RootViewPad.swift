@@ -8,7 +8,7 @@
 import SwiftUI
 
 enum CalendarInspectorContent {
-    case dashboard, analysisSheet, transactionList, plaidTransactions, multiSelectOptions, smartTransactionsWithIssues, budgets, overviewDay
+    case dashboard, analysisSheet, transactionList, plaidTransactions, multiSelectOptions, smartTransactionsWithIssues, budgets, overviewDay, paymentMethods
 }
 
 #if os(iOS)
@@ -98,6 +98,9 @@ struct RootViewPad: View {
                 
             case .overviewDay:
                 DayOverviewView(day: $calProps.overviewDay, showInspector: $calProps.showInspector)
+                
+            case .paymentMethods:
+                Text("Not available")
             }
         }
         //.toolbarRole(.navigationStack)

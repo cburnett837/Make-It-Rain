@@ -13,6 +13,7 @@ enum CivNavDestination {
     case monthList, transactionList
 }
 
+#if os(iOS)
 struct CategoryInsightsViewWrapperIpad: View {
     @State private var navPath = NavigationPath()
     @Binding var showAnalysisSheet: Bool
@@ -24,6 +25,7 @@ struct CategoryInsightsViewWrapperIpad: View {
         }
     }
 }
+#endif
 
 struct CategoryInsightsView: View {
     @Environment(\.colorScheme) var colorScheme
@@ -37,7 +39,11 @@ struct CategoryInsightsView: View {
     @Environment(CalendarModel.self) private var calModel
     @Environment(PayMethodModel.self) private var payModel
     
+    #if os(iOS)
     @Binding var navPath: NavigationPath
+    #else
+    @State private var navPath = NavigationPath()
+    #endif
     @Binding var showAnalysisSheet: Bool
     @Bindable var model: CivViewModel
     
@@ -87,7 +93,7 @@ struct CategoryInsightsView: View {
         if AppState.shared.isIphone {
             content
         } else {
-            NavigationStack {
+            NavigationStack(path: $navPath) {
                 content
             }
         }
@@ -182,8 +188,8 @@ struct CategoryInsightsView: View {
         .navigationTitle("Insights")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar { toolbar }
         #endif
+        .toolbar { toolbar }
         .navigationDestination(for: CivNavDestination.self) { dest in
             switch dest {
             case .monthList:
@@ -551,7 +557,19 @@ struct CategoryInsightsView: View {
             ToolbarItem(placement: .bottomBar) { showCalendarButton }
         }
         #else
-        ToolbarItem(placement: .confirmationAction) { closeButton }
+        ToolbarItemGroup(placement: .destructiveAction) {
+            HStack {
+                showCategorySheetButton
+                showMonthsButton
+            }
+        }
+        
+        ToolbarItemGroup(placement: .confirmationAction) {
+            HStack {
+                closeButton
+            }
+        }
+        
         #endif
     }
     
@@ -563,6 +581,9 @@ struct CategoryInsightsView: View {
             Image(systemName: "books.vertical")
         }
         .tint(.none)
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
     }
     
     
@@ -573,6 +594,9 @@ struct CategoryInsightsView: View {
             Image(systemName: "calendar")
         }
         .tint(.none)
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
     }
     
     
@@ -616,6 +640,9 @@ struct CategoryInsightsView: View {
             Image(systemName: "xmark")
         }
         .tint(.none)
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
     }
     
    

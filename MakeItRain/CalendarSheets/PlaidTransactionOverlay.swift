@@ -76,7 +76,28 @@ struct PlaidTransactionOverlay: View {
             }
         }
         #else
-        sheetHeader
+        NavigationStack(path: $navPath) {
+            StandardContainerWithToolbar(.list) {
+                content
+            }
+            .navigationTitle("Pending Transactions")
+            .if(selectedMeth != nil) {
+                $0.navigationSubtitle("(Only \(selectedMeth!.title))")
+            }
+            .toolbar {
+                ToolbarItemGroup(placement: .destructiveAction) {
+                    HStack {
+                        moreMenu
+                    }
+                }
+                ToolbarItemGroup(placement: .confirmationAction) {
+                    HStack {
+                        refreshButton
+                        closeButton
+                    }
+                }
+            }
+        }
         #endif
     }
     
@@ -245,6 +266,10 @@ struct PlaidTransactionOverlay: View {
                 .contentShape(Rectangle())
                 .schemeBasedForegroundStyle()
         }
+        #if os(macOS)
+        .toolbarBorder()
+        //.buttonStyle(.roundMacButton)
+        #endif
         .onChange(of: selectedMeth) {
             calModel.sPayMethod = selectedMeth
         }
@@ -260,6 +285,9 @@ struct PlaidTransactionOverlay: View {
                 .contentShape(Rectangle())
                 .schemeBasedForegroundStyle()
         }
+        #if os(macOS)
+        .toolbarBorder()
+        #endif
     }
     
     
@@ -279,6 +307,9 @@ struct PlaidTransactionOverlay: View {
             Image(systemName: "xmark")
                 .schemeBasedForegroundStyle()
         }
+        #if os(macOS)
+        .toolbarBorder()
+        #endif
     }
     
     

@@ -80,24 +80,39 @@ struct TransferSheet: View {
     }
     
     var body: some View {
-        NavigationStack {
+        Group {
             #if os(iOS)
-            bodyPhone
-                .navigationTitle(title)
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        closeButton
-//                        if isValidToSave {
-//                            closeButton
-//                                .buttonStyle(.glassProminent)
-//                        } else {
-//                            closeButton
-//                        }
+            NavigationStack {
+                bodyPhone
+                    .navigationTitle(title)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            closeButton
+    //                        if isValidToSave {
+    //                            closeButton
+    //                                .buttonStyle(.glassProminent)
+    //                        } else {
+    //                            closeButton
+    //                        }
+                        }
                     }
-                }
+            }
             #else
-            bodyMac
+            Form {
+                bodyMac
+            }
+            .formStyle(.grouped)
+            .navigationTitle(title)
+            .toolbar {
+                ToolbarItemGroup(placement: .destructiveAction) {
+                    transferButtonMac
+                }
+                
+                ToolbarItemGroup(placement: .confirmationAction) {
+                    closeButton
+                }
+            }
             #endif
         }
         .task {
@@ -110,51 +125,71 @@ struct TransferSheet: View {
     }
     
     #if os(macOS)
+    @ViewBuilder
     var bodyMac: some View {
-        StandardContainer {
-            LabeledRow("From", labelWidth) {
-                PayMethodSheetButton(text: "From", payMethod: $transfer.from, whichPaymentMethods: .allExceptUnified)
-            }
+        Section {
+            PayMethodSheetButton(
+                text: "From",
+                logoFallBackType: .customImage(.init(
+                    name: transfer.from?.fallbackImage,
+                    color: transfer.from?.color
+                )),
+                payMethod: $transfer.from,
+                whichPaymentMethods: .allExceptUnified
+            )
             
-            LabeledRow("To", labelWidth) {
-                PayMethodSheetButton(text: "To", payMethod: $transfer.to, whichPaymentMethods: .allExceptUnified)
-            }
-            
-            StandardDivider()
-            
-            LabeledRow("Category", labelWidth) {
-                CategorySheetButton(category: $transfer.category)
-            }
-            
-            StandardDivider()
-            
-            LabeledRow("Amount", labelWidth) {
-                StandardTextField("Amount", text: $transfer.amountString, focusedField: $focusedField, focusValue: 1)
-                    .formatCurrencyLiveAndOnUnFocus(
-                        focusValue: 1,
-                        focusedField: focusedField,
-                        amountString: transfer.amountString,
-                        amountStringBinding: $transfer.amountString,
-                        amount: transfer.amount
+            PayMethodSheetButton(
+                text: "To",
+                logoFallBackType: .customImage(.init(
+                    name: transfer.to?.fallbackImage,
+                    color: transfer.to?.color
+                )),
+                payMethod: $transfer.to,
+                whichPaymentMethods: .allExceptUnified
+            )
+        }
+        
+        
+        Section {
+            CategorySheetButton(category: $transfer.category)
+        }
+        
+        Section {
+            HStack(spacing: 0) {
+                Label {
+                    Text("")
+                } icon: {
+                    Image(systemName: "dollarsign.circle")
+                        .foregroundStyle(.gray)
+                }
+                
+                LabeledContent {
+                    TextField("", text: $transfer.amountString, prompt: Text("Transfer Amount")
+                        .foregroundColor(.gray)
+                        .font(.system(size: 14, weight: .light))
                     )
+                } label: {
+                    EmptyView()
+                }
+                .labelsHidden()
             }
-            
-            StandardDivider()
-            
-            LabeledRow("Date", labelWidth) {
+        }
+                                                                    
+        Section {
+            HStack {
+                Label {
+                    Text("Date")
+                } icon: {
+                    Image(systemName: "calendar")
+                        .foregroundColor(.gray)
+                }
+
+                Spacer()
                 DatePicker("", selection: $date, displayedComponents: [.date])
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
                     .labelsHidden()
             }
-        } header: {
-            SheetHeader(title: title, close: { dismiss() })
-        } footer: {
-            transferButtonMac
         }
-        .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
-//        .task {
-//            //print(day?.date)
-//        }
     }
     #endif
     
@@ -270,11 +305,10 @@ struct TransferSheet: View {
         Button(action: validateForm) {
             Text("Create \(transferLingo)")
         }
-        .padding(.bottom, 6)
         #if os(macOS)
-        .foregroundStyle(Color.theme)
-        .buttonStyle(.codyStandardWithHover)
+        .buttonStyle(.roundMacButton(horizontalPadding: 10))
         #else
+        .padding(.bottom, 6)
         .tint(Color.theme)
         .buttonStyle(.borderedProminent)
         #endif
@@ -296,6 +330,9 @@ struct TransferSheet: View {
             Image(systemName: "xmark")
                 .schemeBasedForegroundStyle()
         }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
     }
 
 

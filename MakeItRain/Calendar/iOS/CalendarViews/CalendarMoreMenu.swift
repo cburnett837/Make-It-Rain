@@ -14,10 +14,8 @@ struct CalendarMoreMenu: View {
     @Environment(CalendarProps.self) private var calProps
     @Environment(CalendarModel.self) private var calModel
     
-    @Binding var navPath: NavigationPath
-
-    
     var body: some View {
+        let _ = Self._printChanges()
         @Bindable var calProps = calProps
         Menu {
             Section("Analytics") {
@@ -75,7 +73,7 @@ struct CalendarMoreMenu: View {
             if AppState.shared.isIphone {
                 /// Sheet is in ``CalendarMoreMenu``.
                 //calProps.showDashboardSheet = true
-                navPath.append(CalendarNavDest.dashboard)
+                calProps.navPath.append(CalendarNavDest.dashboard)
             } else {
                 /// Inspector is in ``RootViewPad``.
                 calProps.inspectorContent = .dashboard
@@ -92,7 +90,7 @@ struct CalendarMoreMenu: View {
             if AppState.shared.isIphone {
                 /// Sheet is in ``CalendarMoreMenu``.
                 //calProps.showBudgetSheet = true
-                navPath.append(CalendarNavDest.budgets)
+                calProps.navPath.append(CalendarNavDest.budgets)
             } else {
                 /// Inspector is in ``RootViewPad``.
                 calProps.inspectorContent = .budgets
@@ -125,7 +123,7 @@ struct CalendarMoreMenu: View {
             if AppState.shared.isIphone {
                 /// Sheet is in ``CalendarMoreMenu``.
                 //calProps.showTransactionListSheet = true
-                navPath.append(CalendarNavDest.transactionList)
+                calProps.navPath.append(CalendarNavDest.transactionList)
             } else {
                 /// Inspector is in ``RootViewPad``.
                 calProps.inspectorContent = .transactionList

@@ -37,6 +37,7 @@ struct SettingSubmitModel: Codable {
     }
 }
 
+//@MainActor
 @Observable
 class AppSettings: Codable {
     static let shared = AppSettings()

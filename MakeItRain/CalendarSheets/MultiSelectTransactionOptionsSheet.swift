@@ -27,9 +27,14 @@ struct MultiSelectTransactionOptionsSheet: View {
     @State private var showCategorySheet = false
     @State private var showDatePicker = false
     @State private var selectedCategory: CBCategory?
+    @State private var shouldChangeCategory = false
         
     @Binding var showInspector: Bool
+    #if os(iOS)
     @Binding var navPath: NavigationPath
+    #else
+    @State private var showDateChangerSheet = false
+    #endif
 
     @State private var showDeleteAlert = false
     
@@ -41,6 +46,10 @@ struct MultiSelectTransactionOptionsSheet: View {
                 contentGrid
             } header: {
                 sheetHeader
+            }
+            /// Keep the state updated if the user drags the inspector closed.
+            .onChange(of: calProps.bottomPanelContent) {
+                if $1 == nil { sheetWasClosed() }
             }
         } else {
             NavigationStack {
@@ -56,27 +65,45 @@ struct MultiSelectTransactionOptionsSheet: View {
                 }
                 #endif
             }
+            /// Keep the state updated if the user drags the inspector closed.
+            .onChange(of: calProps.showInspector) { if !$1 { sheetWasClosed() } }
         }
         #else
-        sheetHeader
-            /// Need this in case the user clicks the red close button.        
-            .onDisappear {
-                withAnimation {
-                    calModel.isInMultiSelectMode = false
-                    calModel.sCategoriesForAnalysis.removeAll()
-                    calModel.sCategoryGroupsForAnalysis.removeAll()
-                    //calModel.sCategoryGroupsForAnalysis.removeAll()
-                    
-                    if shouldSave {
-                        Task {
-                            await calModel.editMultiple(trans: calModel.multiSelectTransactions)
-                            calModel.multiSelectTransactions.removeAll()
-                        }
-                    } else {
-                        calModel.multiSelectTransactions.removeAll()
-                    }
+        NavigationStack {
+            StandardContainerWithToolbar(.list) {
+                contentList
+            }
+            .navigationTitle("Multi-Select Options")
+            .navigationSubtitle("What would you like to do with the selected transactions?")
+            .toolbar {
+                if showInspector {
+                    ToolbarItem(placement: .confirmationAction) { closeButton }
                 }
             }
+            .sheet(isPresented: $showDateChangerSheet) {
+                MultiSelectChangeDatePage(showDateChangerSheet: $showDateChangerSheet)
+            }
+        }
+        /// Keep the state updated if the user drags the inspector closed.
+        .onChange(of: calProps.showInspector) { if !$1 { sheetWasClosed() } }
+        /// Need this in case the user clicks the red close button.
+//        .onDisappear {
+//            withAnimation {
+//                calModel.isInMultiSelectMode = false
+//                calModel.sCategoriesForAnalysis.removeAll()
+//                calModel.sCategoryGroupsForAnalysis.removeAll()
+//                //calModel.sCategoryGroupsForAnalysis.removeAll()
+//                
+//                if shouldSave {
+//                    Task {
+//                        await calModel.editMultiple(trans: calModel.multiSelectTransactions)
+//                        calModel.multiSelectTransactions.removeAll()
+//                    }
+//                } else {
+//                    calModel.multiSelectTransactions.removeAll()
+//                }
+//            }
+//        }
         #endif
     }
     
@@ -118,22 +145,26 @@ struct MultiSelectTransactionOptionsSheet: View {
         SheetHeader(
             title: "Multi-Select Options",
             close: {
-                closeSheet()
+                calProps.bottomPanelContent = nil
             }
         )
-//        #if os(iOS)
-//        .bottomPanelAndScrollViewHeightAdjuster(bottomPanelHeight: $calProps.bottomPanelHeight, scrollContentMargins: $calProps.scrollContentMargins)
-//        #endif
     }
-    
     
     var closeButton: some View {
         Button {
-            closeSheet()
+            //closeSheet()
+            if AppState.shared.isIphone {
+                calProps.bottomPanelContent = nil
+            } else {
+                showInspector = false
+            }
         } label: {
             Image(systemName: "xmark")
                 .schemeBasedForegroundStyle()
         }
+        #if os(macOS)
+        .toolbarBorder()
+        #endif
     }
     
     
@@ -211,33 +242,49 @@ struct MultiSelectTransactionOptionsSheet: View {
     
     var changeCategoryButton: some View {
         Button {
+            selectedCategory = nil
             showCategorySheet = true
         } label: {
             Text("Change category")
         }
         .sheet(isPresented: $showCategorySheet, onDismiss: {
-            withAnimation {
-                for trans in calModel.multiSelectTransactions {
-                    trans.category = selectedCategory
-                    
-                    if trans.relatedTransactionID != nil && trans.relatedTransactionType?.enumID == .transaction {
-                        let trans2 = calModel.getTransaction(by: trans.relatedTransactionID!, from: .normalList)
-                        trans2.category = selectedCategory
+            if shouldChangeCategory {
+                withAnimation {
+                    for trans in calModel.multiSelectTransactions {
+                        trans.category = selectedCategory
+                        
+                        if trans.relatedTransactionID != nil && trans.relatedTransactionType?.enumID == .transaction {
+                            let trans2 = calModel.getTransaction(by: trans.relatedTransactionID!, from: .normalList)
+                            trans2.category = selectedCategory
+                        }
+                        
                     }
-                    
+                    selectedCategory = nil
                 }
-                selectedCategory = nil
+                shouldSave = true
             }
-            shouldSave = true
+            
         }) {
             CategorySheet(category: $selectedCategory)
+                .presentationSizing(.page)
+        }
+        .onChange(of: selectedCategory) {
+            if ($0 != $1) && $1 != nil {
+                shouldChangeCategory = true
+            } else {
+                shouldChangeCategory = false
+            }
         }
     }
     
     
     var changeDateButton: some View {
         Button {
+            #if os(iOS)
             navPath.append(CalendarNavDest.multiTransChangeDate)
+            #else
+            showDateChangerSheet = true
+            #endif
             shouldSave = false
         } label: {
             Text("Change date")
@@ -298,8 +345,8 @@ struct MultiSelectTransactionOptionsSheet: View {
     }
     
         
-    func closeSheet() {
-        #if os(iOS)
+    func sheetWasClosed() {
+        //#if os(iOS)
             withAnimation {
                 if let ogDisplayMode = calProps.phoneLineItemDisplayItemWhenMultiSelectWasOpened {
                     phoneLineItemDisplayItem = ogDisplayMode
@@ -307,17 +354,20 @@ struct MultiSelectTransactionOptionsSheet: View {
                 }
                 
                 
-                if AppState.shared.isIphone {
-                    calProps.bottomPanelContent = nil
-                } else {
-                    showInspector = false
-                }
+//                if AppState.shared.isIphone {
+//                    calProps.bottomPanelContent = nil
+//                } else {
+//                    showInspector = false
+//                }
                 calModel.isInMultiSelectMode = false
                 calModel.sCategoriesForAnalysis.removeAll()
                 //calModel.sCategoryGroupsForAnalysis.removeAll()
                 calModel.sCategoryGroupsForAnalysis.removeAll()
                 
                 var transToEdit = calModel.multiSelectTransactions
+                if transToEdit.isEmpty {
+                    return
+                }
                 
                 if shouldSave {
                     for trans in transToEdit {
@@ -337,17 +387,21 @@ struct MultiSelectTransactionOptionsSheet: View {
                     calModel.multiSelectTransactions.removeAll()
                 }
             }
-        #else
+        //#else
             /// Clean up & saving logic will be handled in the .onDisappear()
-            dismiss()
-        #endif
+            //dismiss()
+        //#endif
     }
 }
 
 
 struct MultiSelectChangeDatePage: View {
     @Environment(CalendarModel.self) private var calModel
+    #if os(iOS)
     @Binding var navPath: NavigationPath
+    #else
+    @Binding var showDateChangerSheet: Bool
+    #endif
     
     @State private var newDate: Date = Date()
     
@@ -383,14 +437,25 @@ struct MultiSelectChangeDatePage: View {
                 .buttonStyle(.glassProminent)
             }
             #else
+            ToolbarItem(placement: .destructiveAction) {
+                Button {
+                    changeDate()
+                } label: {
+                    Text("Change Date")
+                        .schemeBasedForegroundStyle()
+                }
+                .buttonStyle(.roundMacButton(horizontalPadding: 10))
+            }
+            
             ToolbarItem(placement: .confirmationAction) {
                 Button {
-                    navPath.removeLast()
+                    showDateChangerSheet = false
                 } label: {
                     Text("Cancel")
                         .schemeBasedForegroundStyle()
                 }
                 .tint(.red)
+                .buttonStyle(.roundMacButton(horizontalPadding: 10))
             }
             #endif
         }
@@ -424,6 +489,10 @@ struct MultiSelectChangeDatePage: View {
                 }
             }
         }
+        #if os(iOS)
         navPath.removeLast()
+        #else
+        showDateChangerSheet = false
+        #endif
     }
 }

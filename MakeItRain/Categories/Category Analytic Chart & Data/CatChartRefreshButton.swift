@@ -14,15 +14,14 @@ struct CatChartRefreshButton: View {
     
     var body: some View {
         Button {
-            Task {
-                model.fetchYearStart = AppState.shared.todayYear - 10
-                model.fetchYearEnd = AppState.shared.todayYear
-                //data.removeAll()
-                //model.isLoadingHistory = true
-                await model.fetchHistory(setChartAsNew: true)
-            }
+            model.fetchYearStart = AppState.shared.todayYear - 10
+            model.fetchYearEnd = AppState.shared.todayYear
+            //data.removeAll()
+            //model.isLoadingHistory = true
+            model.fetchHistory(setChartAsNew: true)
         } label: {
             Image(systemName: "arrow.triangle.2.circlepath")
+                .schemeBasedForegroundStyle()
         }
         .tint(.none)
         .symbolEffect(.rotate, options: SymbolEffectOptions.repeat(.continuous).speed(3), isActive: model.isLoadingHistory)

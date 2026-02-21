@@ -224,69 +224,21 @@ struct CalendarViewPhone: View {
     }
     
     
-    //@GestureState private var zoom = 1.0
     var calendarView: some View {
-        Group {
-            VStack(spacing: 0) {
-                if AppState.shared.isIphone {
-                    CalendarMonthLabel()
-                        .padding(.bottom, 10)
-                        .scenePadding(.horizontal)
-                        .dropDestination(for: CBTransaction.self) { droppedTrans, location in
-                            calModel.dragTarget = nil
-                            return true
-                        }
-                }
-                weekdayNameGrid
-                CalendarGridPhone(enumID: enumID)
-                    .sensoryFeedback(.selection, trigger: phoneLineItemDisplayItem)
-                    .contentShape(.rect)
-//                    .highPriorityGesture(
-//                        MagnifyGesture()
-//                            .onChanged { value in
-//                                if value.magnification - 1 > 1 {
-//                                    guard phoneLineItemDisplayItem != .both else { return }
-//                                    withAnimation { phoneLineItemDisplayItem = .both }
-//                                }
-//                                
-//                                if value.magnification < 0.5 {
-//                                    guard phoneLineItemDisplayItem != .title else { return }
-//                                    withAnimation { phoneLineItemDisplayItem = .title }
-//                                }
-//                            }
-//                            .onEnded { _ in }
-//                        
-//                    )
-                
-                
-//                    .overlay {
-//                        //if searchFocused == 0 {
-//                            HStack {
-//                                ScrollView {
-//                                    VStack {
-//                                        ForEach(0..<3, id: \.self) { i in
-//                                            Text("Suggestion")
-//                                                .padding()
-//                                                //.background(Color.secondary)
-//                                                //.clipShape(.capsule)
-//                                                .glassEffect(.regular.interactive())
-//                                        }
-//                                    }
-//                                }
-//                                .contentMargins(20, for: .scrollContent)
-//                                .defaultScrollAnchor(.bottom)
-//                                .scrollIndicators(.hidden)
-//                                Spacer()
-//                            }
-//                            //.padding(.leading, 20)
-//                            .padding(.bottom, 5)
-//                            .offset(x: searchFocused == 0 ? 0 : -200)
-//                            //.opacity(searchFocused == 0 ? 1 : 0)
-//                            .transition(.move(edge: .leading))
-//                            .animation(.easeInOut(duration: 0.6), value: searchFocused)
-//                        //}
-//                    }
+        VStack(spacing: 0) {
+            if AppState.shared.isIphone {
+                CalendarMonthLabel()
+                    .padding(.bottom, 10)
+                    .scenePadding(.horizontal)
+                    .dropDestination(for: CBTransaction.self) { droppedTrans, location in
+                        calModel.dragTarget = nil
+                        return true
+                    }
             }
+            weekdayNameGrid
+            CalendarGridPhone(enumID: enumID)
+                .sensoryFeedback(.selection, trigger: phoneLineItemDisplayItem)
+                .contentShape(.rect)
         }
     }
     

@@ -24,6 +24,8 @@ extension MakeItRainApp {
                 .environment(dataChangeTriggers)
         }
         .windowStyle(.hiddenTitleBar)
+        /// Prevent a blank in the "windows" menu in the toolbar from being present.
+        .commandsRemoved()
         .auxilaryWindow()
     }
     
@@ -49,7 +51,7 @@ extension MakeItRainApp {
     var plaidWindow: some Scene {
         Window("Pending Plaid Transactions", id: "pendingPlaidTransactions") {
             PlaidTransactionOverlay(showInspector: .constant(true), navPath: .constant(.init()))
-                .frame(minWidth: 300, minHeight: 200)
+                .frame(minWidth: 200, minHeight: 200)
                 .environment(calModel)
                 .environment(payModel)
                 .environment(plaidModel)
@@ -64,7 +66,22 @@ extension MakeItRainApp {
     @SceneBuilder
     var insightsWindow: some Scene {
         Window("Category Analysis", id: "analysisSheet") {
-            Text("not ready yet")
+            //Text("not ready yet")
+            CategoryInsightsView(
+                //navPath: $calProps.navPath,
+                showAnalysisSheet: $calProps.showAnalysisSheet,
+                model: categoryAnalysisModel
+            )
+            .frame(minWidth: 300, minHeight: 500)
+            .environment(funcModel)
+            .environment(calModel)
+            .environment(payModel)
+            .environment(catModel)
+            .environment(keyModel)
+            .environment(repModel)
+            .environment(plaidModel)
+            .environment(calProps)
+            .environment(dataChangeTriggers)
 //            CategoryInsightsSheet(showAnalysisSheet: .constant(true))
 //                .frame(minWidth: 300, minHeight: 500)
 //                .environment(funcModel)
@@ -81,24 +98,24 @@ extension MakeItRainApp {
         .auxilaryWindow()
     }
 
-    @SceneBuilder
-    var multiSelectWindow: some Scene {
-        Window("Multi-Select", id: "multiSelectSheet") {
-            MultiSelectTransactionOptionsSheet(showInspector: .constant(true), navPath: .constant(NavigationPath()))
-                .frame(minHeight: 500)
-                .frame(width: 250)
-                .environment(funcModel)
-                .environment(calModel)
-                .environment(payModel)
-                .environment(catModel)
-                .environment(keyModel)
-                .environment(repModel)
-                .environment(plaidModel)
-                .environment(calProps)
-                .environment(dataChangeTriggers)
-        }
-        .auxilaryWindow()
-    }
+//    @SceneBuilder
+//    var multiSelectWindow: some Scene {
+//        Window("Multi-Select", id: "multiSelectSheet") {
+//            MultiSelectTransactionOptionsSheet(showInspector: .constant(true), navPath: .constant(NavigationPath()))
+//                .frame(minHeight: 500)
+//                .frame(minWidth: 300)
+//                .environment(funcModel)
+//                .environment(calModel)
+//                .environment(payModel)
+//                .environment(catModel)
+//                .environment(keyModel)
+//                .environment(repModel)
+//                .environment(plaidModel)
+//                .environment(calProps)
+//                .environment(dataChangeTriggers)
+//        }
+//        .auxilaryWindow()
+//    }
 
     @SceneBuilder
     var monthlyPlaceholderWindow: some Scene {

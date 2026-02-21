@@ -52,6 +52,10 @@ struct MakeItRainApp: App {
     @State var dataChangeTriggers = DataChangeTriggers.shared
     //@State private var mapModel = MapModel()
     
+    #if os(macOS)
+    @State var categoryAnalysisModel = CivViewModel()
+    #endif
+    
     @State var calProps = CalendarProps()
     
     @State private var showCamera = false
@@ -207,7 +211,7 @@ struct MakeItRainApp: App {
         dashboardWindow
         plaidWindow
         insightsWindow
-        multiSelectWindow
+        //multiSelectWindow
         monthlyPlaceholderWindow
         settingsWindow
         macAlertAndToastOverlayWindow
@@ -376,6 +380,7 @@ struct MakeItRainApp: App {
 #if os(macOS)
 
 struct CalendarCommands: Commands {
+    @Local(\.showHashTagsOnLineItems) var showHashTagsOnLineItems
     var calModel: CalendarModel
     
     @State private var showPopulateAlert = false
@@ -399,9 +404,10 @@ struct CalendarCommands: Commands {
             
             Divider()
             
-            Menu("Submenu") { // You can also nest a Menu for submenus
-                Button("Option 1") {}
-                Button("Option 2") {}
+            Menu("Line Items") {
+                Toggle("Show Tags", isOn: $showHashTagsOnLineItems)
+                //Button("Option 1") {}
+                //Button("Option 2") {}
             }
         }
     }
