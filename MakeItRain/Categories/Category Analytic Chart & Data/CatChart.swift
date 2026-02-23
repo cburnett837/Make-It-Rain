@@ -170,11 +170,11 @@ struct CatChart: View {
         .chartYAxis {
             AxisMarks {
                 AxisGridLine()
-               let value = $0.as(Int.self)!
-               AxisValueLabel {
+                let value = $0.as(Int.self)!
+                AxisValueLabel {
                    Text("$\(value)")
-               }
-           }
+                }
+            }
         }
 //        .chartXAxis {
 //            AxisMarks(position: .bottom, values: .automatic) { _ in
@@ -198,8 +198,7 @@ struct CatChart: View {
                     AxisGridLine()
                     AxisValueLabel(centered: false)
                 }
-            }
-            
+            }            
         }
         .chartLegend(position: .top, alignment: .leading)
         .padding(.bottom, 10)

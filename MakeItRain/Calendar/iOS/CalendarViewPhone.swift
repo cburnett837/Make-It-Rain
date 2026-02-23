@@ -179,7 +179,7 @@ struct CalendarViewPhone: View {
                 .onDisappear { lastBalanceUpdateTimer?.invalidate() }
             }
             .disableZoomInteractiveDismiss()
-            /// Track the safe area insets, so we can adjust the bottom of the calendar accordingly.
+            /// Track the safe area insets, so we can adjust the bottom of the calendar accordingly (Like when showing the bottom panel).
             /// But, block the insets from updating when in a calendar sheet. The recalc of this view causes the keyboard toolbar to lag inside the transaction edit view.
             .onChange(of: geo.safeAreaInsets, initial: true) {
                 if calProps.transEditID == nil {
@@ -245,11 +245,9 @@ struct CalendarViewPhone: View {
     
     @ViewBuilder
     var weekdayNameGrid: some View {
-        let days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-                
         Grid(alignment: .top, horizontalSpacing: 0, verticalSpacing: 0) {
             GridRow {
-                ForEach(days, id: \.self) { name in
+                ForEach(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], id: \.self) { name in
                     Text(name)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .font(.subheadline)

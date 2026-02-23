@@ -890,7 +890,7 @@ struct TransactionEditView: View {
         let existingCount = calModel.justTransactions
             .filter {
                 $0.title.localizedCaseInsensitiveContains(trans.title)
-                && $0.category?.id == trans.category!.id
+                && $0.category?.id == trans.category?.id
             }
             .count
         
@@ -900,7 +900,7 @@ struct TransactionEditView: View {
             .keywords
             .filter {
                 $0.keyword.localizedCaseInsensitiveContains(trans.title)
-                && $0.category?.id == trans.category!.id
+                && $0.category?.id == trans.category?.id
                 && !$0.isIgnoredSuggestion
             }
             .isEmpty

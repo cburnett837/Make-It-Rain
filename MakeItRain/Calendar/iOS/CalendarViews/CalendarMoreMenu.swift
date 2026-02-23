@@ -15,7 +15,6 @@ struct CalendarMoreMenu: View {
     @Environment(CalendarModel.self) private var calModel
     
     var body: some View {
-        let _ = Self._printChanges()
         @Bindable var calProps = calProps
         Menu {
             Section("Analytics") {
@@ -137,7 +136,6 @@ struct CalendarMoreMenu: View {
 
     var multiSelectButton: some View {
         Button {
-            
             if phoneLineItemDisplayItem != .both {
                 calProps.phoneLineItemDisplayItemWhenMultiSelectWasOpened = phoneLineItemDisplayItem
                 withAnimation {

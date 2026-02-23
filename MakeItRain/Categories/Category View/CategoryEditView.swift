@@ -55,7 +55,7 @@ struct CategoryEditView: View {
                     .navigationTitle(title)
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
-                        ToolbarItem(placement: .topBarLeading) { deleteButton }
+                        //ToolbarItem(placement: .topBarLeading) { deleteButton }
                         
                         ToolbarItem(placement: .topBarTrailing) {
                             AnimatedCloseButton(isValidToSave: isValidToSave, color: category.color, closeButton: closeButton)
@@ -184,6 +184,8 @@ struct CategoryEditView: View {
             } footer: {
                 Text("Hide this category from **my** menus. (This will not delete any data).")
             }
+            
+            deleteButton
             
         }
 //        header: {
@@ -385,8 +387,12 @@ struct CategoryEditView: View {
         Button {
             showDeleteAlert = true
         } label: {
+            #if os(iOS)
+            Text("Delete Category")
+                .frame(maxWidth: .infinity, alignment: .center)
+                .foregroundStyle(.red)
+            #else
             Image(systemName: "trash")
-            #if os(macOS)
                 .foregroundStyle(.red)
             #endif
         }
@@ -395,12 +401,12 @@ struct CategoryEditView: View {
         #endif
         .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
         .tint(.none)
-        .confirmationDialog("Delete \"\(category.title)\"?", isPresented: $showDeleteAlert, actions: {
-            Button("Delete", role: .destructive) { deleteCategory() }
+        .confirmationDialog("Are you sure you want to delete this category?", isPresented: $showDeleteAlert, actions: {
+            Button("Delete Category", role: .destructive) { deleteCategory() }
             //Button("No", role: .close) { showDeleteAlert = false }
         }, message: {
             #if os(iOS)
-            Text("Delete \"\(category.title)\"?\nThis will not delete any associated transactions.")
+            Text("Are you sure you want to delete this category?\nThis will not delete any associated transactions.")
             #else
             Text("This will not delete any associated transactions.")
             #endif

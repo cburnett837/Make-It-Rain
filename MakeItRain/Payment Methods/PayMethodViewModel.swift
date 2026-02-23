@@ -56,6 +56,17 @@ class PayMethodViewModel {
     var minIncome: Double = 0
     var maxIncome: Double = 0
     
+    
+    var minVisibleDate: Date {
+        chartXScale.lowerBound.startDateOfMonth
+    }
+    
+    var maxVisibleDate: Date {
+        chartXScale.upperBound.startDateOfMonth
+    }
+    
+    
+    
     //var chartVisibleYearCount: PayMethodChartRange
 //    var incomeType: IncomeType = .income
 //    
@@ -899,23 +910,43 @@ class PayMethodViewModel {
     
     @AxisContentBuilder
     func xAxis(color: Color = .gray) -> some AxisContent {
-        AxisMarks(position: .bottom, values: .automatic) { _ in
-            AxisTick()
-                .foregroundStyle(color)
-            AxisGridLine()
-                .foregroundStyle(color)
-            //AxisValueLabel(centered: self.visibleYearCount == .yearToDate)
-            AxisValueLabel()
-                .foregroundStyle(color)
-        }
-        
-        
-//        AxisMarks(values: .stride(by: .month)) { date in
-//            AxisGridLine()
+//        AxisMarks(position: .bottom, values: .automatic) { _ in
 //            AxisTick()
-//            AxisValueLabel(format: .dateTime.month(.abbreviated))
+//                .foregroundStyle(color)
+//            AxisGridLine()
+//                .foregroundStyle(color)
+//            //AxisValueLabel(centered: self.visibleYearCount == .yearToDate)
+//            AxisValueLabel()
+//                .foregroundStyle(color)
 //        }
+//        
         
+        
+        
+        if (Calendar.current.dateComponents([.month], from: self.minVisibleDate, to: self.maxVisibleDate).month ?? 0) < 6 {
+            AxisMarks(values: .stride(by: .month)) { value in
+                if let date = value.as(Date.self) {
+                    AxisTick()
+                        .foregroundStyle(color)
+                    AxisGridLine()
+                        .foregroundStyle(color)
+                    
+                    AxisValueLabel(centered: true) {
+                        Text(date, format: .dateTime.month(.abbreviated)) // Displays abbreviated month name (e.g., "Jan", "Feb")
+                    }
+                    .foregroundStyle(color)
+                }
+            }
+        } else {
+            AxisMarks(position: .bottom, values: .automatic) { _ in
+                AxisTick()
+                    .foregroundStyle(color)
+                AxisGridLine()
+                    .foregroundStyle(color)
+                AxisValueLabel(centered: false)
+                    .foregroundStyle(color)
+            }
+        }
     }
     
     @AxisContentBuilder

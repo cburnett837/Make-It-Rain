@@ -87,16 +87,12 @@ struct TevMoreOptions: View {
                     ReminderPicker(title: "for…", notificationOffset: $trans.notificationOffset)
                 }
             } footer: {
-                if trans.notifyOnDueDate {
-                    Text("You will be notified around 9:00 AM.")
-                        #if os(macOS)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        #endif
-                        //.foregroundStyle(.gray)
-                        //.font(.caption)
-                        //.multilineTextAlignment(.leading)
-                }
+                Text(trans.notifyOnDueDate ? "You will be notified around 9:00 AM." : "Choose to be notified when this transaction is approaching.")
+                    #if os(macOS)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    #endif
+                
             }
         }
         
