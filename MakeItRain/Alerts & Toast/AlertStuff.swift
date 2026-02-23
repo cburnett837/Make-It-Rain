@@ -17,7 +17,7 @@ struct CustomAlert: View {
     
     var body: some View {
         VStack {
-            if let logoConfig = config.logo, let image = logoConfig.parent?.logo {
+            if let logoConfig = config.logo, let _ = logoConfig.parent?.logo {
                 BusinessLogo(config: .init(
                     parent: logoConfig.parent,
                     fallBackType: logoConfig.fallBackType,

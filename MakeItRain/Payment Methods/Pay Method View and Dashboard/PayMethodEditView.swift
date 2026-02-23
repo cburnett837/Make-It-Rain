@@ -937,7 +937,7 @@ struct PayMethodEditView: View {
                 viewModel.fetchYearEnd = AppState.shared.todayYear
                 viewModel.payMethods.removeAll()
                 viewModel.isLoadingHistory = true
-                await viewModel.fetchHistory(for: payMethod, payModel: payModel, setChartAsNew: true)
+                viewModel.fetchHistory(for: payMethod, payModel: payModel, setChartAsNew: true)
             }
         } label: {
             Image(systemName: "arrow.triangle.2.circlepath")
@@ -1172,7 +1172,7 @@ struct PayMethodEditView: View {
         #endif
         
         if payMethod.action != .add {
-            await viewModel.fetchHistory(for: payMethod, payModel: payModel, setChartAsNew: true)
+            viewModel.fetchHistory(for: payMethod, payModel: payModel, setChartAsNew: true)
         } else {
             viewModel.isLoadingHistory = false
         }

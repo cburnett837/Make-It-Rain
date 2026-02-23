@@ -196,7 +196,7 @@ struct CategoryInsightsView: View {
                 CivMonthMiddleMan(monthlyData: model.selectedMonthGroup, selectedMonth: $model.selectedMonth, model: model, navPath: $navPath)
                 
             case .transactionList:
-                if let selectedMonth = model.selectedMonth {
+                if let _ = model.selectedMonth {
                     CivTransactionList(model: model)
                 } else {
                     ContentUnavailableView("Uh Oh!", systemImage: "exclamationmark.triangle.text.page", description: Text("The page you are looking for could not be found."))

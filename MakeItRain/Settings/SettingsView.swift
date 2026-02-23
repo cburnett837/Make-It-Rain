@@ -24,7 +24,7 @@ class SettingsModel {
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
         switch await result {
-        case .success(let model):
+        case .success:
             LogManager.networkingSuccessful()
 
         case .failure(let error):

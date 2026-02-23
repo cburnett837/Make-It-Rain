@@ -246,56 +246,59 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     }
     
     
-    init(entity: TempTransaction, payMethod: CBPaymentMethod, category: CBCategory?, logs: Array<CBLog>) {
-        self.isFromCoreData = true
-        self.serverID = entity.id ?? ""
-        self.title = entity.title ?? ""
-        
-        self.amountString = entity.amount.currencyWithDecimals()
-        
-        //self.category = CBCategory(from: entity)guard let entity = DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(entity.payMethodID ?? "0")), createIfNotFound: true) else { return }
-        //self.payMethod = CBPaymentMethod(from: entity)
-        self.payMethod = payMethod
-        
-        //guard let entity = DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(entity.categoryID)), createIfNotFound: true) else { return }
-        //self.category = CBCategory(from: entity)
-        self.category = category
-        
-        self.trackingNumber = entity.trackingNumber ?? ""
-        self.orderNumber = entity.orderNumber ?? ""
-        self.url = entity.url ?? ""
-        
-        self.date = entity.date
-        self.notes = AttributedString(entity.notes ?? "")
-        
-        let color = Color.fromHex(entity.hexCode) ?? .primary
-        if color == .white || color == .black {
-            self.color = .primary
-        } else {
-            self.color = color
-        }
-
-        self.tags = []
-        self.locations = []
-        self.enteredDate = entity.enteredDate ?? Date()
-        self.updatedDate = entity.updatedDate ?? Date()
-        self.factorInCalculations = entity.factorInCalculations
-        self.notificationOffset = Int(entity.notificationOffset)
-        self.notifyOnDueDate = entity.notifyOnDueDate
-        self.active = entity.active
-        self.action = TransactionAction.fromString(entity.action ?? "add")
-        self.tempAction = TransactionAction.fromString(entity.tempAction ?? "add")
-        self.wasAddedFromPopulate = false
-        
-        self.logs = logs
-        
-        self.isPaymentOrigin = false
-        self.isPaymentDest = false
-        self.isTransferOrigin = false
-        self.isTransferDest = false
-        
-        //self.undoManager = TransUndoManager(trans: self)
-    }
+//    init(entity: TempTransaction, payMethod: CBPaymentMethod, category: CBCategory?, logs: Array<CBLog>) {        
+//        self.isFromCoreData = true
+//        self.serverID = entity.id ?? ""
+//        self.title = entity.title ?? ""
+//        
+//        self.amountString = entity.amount.currencyWithDecimals()
+//        
+//        //self.category = CBCategory(from: entity)guard let entity = DataManager.shared.getOne(type: PersistentPaymentMethod.self, predicate: .byId(.string(entity.payMethodID ?? "0")), createIfNotFound: true) else { return }
+//        //self.payMethod = CBPaymentMethod(from: entity)
+//        self.payMethod = payMethod
+//        
+//        //guard let entity = DataManager.shared.getOne(type: PersistentCategory.self, predicate: .byId(.string(entity.categoryID)), createIfNotFound: true) else { return }
+//        //self.category = CBCategory(from: entity)
+//        self.category = category
+//        
+//        self.trackingNumber = entity.trackingNumber ?? ""
+//        self.orderNumber = entity.orderNumber ?? ""
+//        self.url = entity.url ?? ""
+//        
+//        self.date = entity.date
+//        self.notes = AttributedString(entity.notes ?? "")
+//        
+//        let color = Color.fromHex(entity.hexCode) ?? .primary
+//        if color == .white || color == .black {
+//            self.color = .primary
+//        } else {
+//            self.color = color
+//        }
+//
+//        self.tags = []
+//        self.locations = []
+//        self.enteredDate = entity.enteredDate ?? Date()
+//        self.updatedDate = entity.updatedDate ?? Date()
+//        self.factorInCalculations = entity.factorInCalculations
+//        self.notificationOffset = Int(entity.notificationOffset)
+//        self.notifyOnDueDate = entity.notifyOnDueDate
+//        self.active = entity.active
+//        self.action = TransactionAction.fromString(entity.action ?? "add")
+//        self.tempAction = TransactionAction.fromString(entity.tempAction ?? "add")
+//        self.wasAddedFromPopulate = false
+//        
+//        self.logs = logs
+//        
+//        self.isPaymentOrigin = false
+//        self.isPaymentDest = false
+//        self.isTransferOrigin = false
+//        self.isTransferDest = false
+//        
+//        //self.undoManager = TransUndoManager(trans: self)
+//        
+//        
+//        print("Created new transaction from entity - ID=\(self.serverID), title=\(self.title), amount=\(self.amount)")
+//    }
     
     
     init(repTrans: CBRepeatingTransaction, date: Date, payMethod: CBPaymentMethod?, amountString: String) {
@@ -947,7 +950,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
                 self.log(field: .tags, old: deepCopy.tags.map { $0.tag }.joined(separator: ", "), new: self.tags.map { $0.tag }.joined(separator: ", "), groupID: groupID)
             }
             if self.notificationOffset != deepCopy.notificationOffset {
-                self.log(field: .notificationOffset, old: String(deepCopy.notificationOffset ?? 0), new: String(self.notificationOffset ?? 0), groupID: groupID)
+                self.log(field: .notificationOffset, old: String(deepCopy.notificationOffset), new: String(self.notificationOffset), groupID: groupID)
             }
             if self.notifyOnDueDate != deepCopy.notifyOnDueDate {
                 self.log(field: .notifyOnDueDate, old: deepCopy.notifyOnDueDate ? "true" : "false", new: self.notifyOnDueDate ? "true" : "false", groupID: groupID)
@@ -1571,4 +1574,121 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
 //            return false
 //        }
 //    }
+}
+
+
+import CoreData
+
+extension CBTransaction {
+    struct Snapshot: Sendable {
+        let id: String
+        let title: String
+        let amount: Double
+        let payMethodID: String?
+        let categoryID: String?
+        let trackingNumber: String?
+        let orderNumber: String?
+        let url: String?
+        let date: Date?
+        let notes: String?
+        let hexCode: String?
+        let enteredDate: Date?
+        let updatedDate: Date?
+        let factorInCalculations: Bool
+        let notificationOffset: Int
+        let notifyOnDueDate: Bool
+        let active: Bool
+        let actionRaw: String
+        let tempActionRaw: String
+    }
+
+    
+    @MainActor
+    convenience init(snapshot s: Snapshot, payMethod: CBPaymentMethod, category: CBCategory?) {
+        self.init()
+        self.isFromCoreData = true
+        self.serverID = s.id
+        self.title = s.title
+        self.amountString = s.amount.currencyWithDecimals()
+        self.payMethod = payMethod
+        self.category = category
+        self.trackingNumber = s.trackingNumber ?? ""
+        self.orderNumber = s.orderNumber ?? ""
+        self.url = s.url ?? ""
+        self.date = s.date
+        self.notes = AttributedString(s.notes ?? "")
+
+        let parsedColor = Color.fromHex(s.hexCode) ?? .primary
+        self.color = (parsedColor == .white || parsedColor == .black) ? .primary : parsedColor
+
+        self.tags = []
+        self.locations = []
+        self.enteredDate = s.enteredDate ?? Date()
+        self.updatedDate = s.updatedDate ?? Date()
+        self.factorInCalculations = s.factorInCalculations
+        self.notificationOffset = s.notificationOffset
+        self.notifyOnDueDate = s.notifyOnDueDate
+        self.active = s.active
+        self.action = TransactionAction.fromString(s.actionRaw)
+        self.tempAction = TransactionAction.fromString(s.tempActionRaw)
+        self.wasAddedFromPopulate = false
+        self.isPaymentOrigin = false
+        self.isPaymentDest = false
+        self.isTransferOrigin = false
+        self.isTransferDest = false
+    }
+
+    
+    @MainActor
+    static func loadFromCoreData(id: String) async -> CBTransaction? {
+        let snapshot = await CBTransaction.createSnapshotFromCoreData(id: id)
+        guard let snapshot else { return nil }
+        
+        guard
+            let payMethodID = snapshot.payMethodID,
+            let payMethod = await CBPaymentMethod.loadFromCoreData(id: payMethodID)
+        else {
+            return nil
+        }
+
+        let category: CBCategory? = if let categoryID = snapshot.categoryID {
+            await CBCategory.loadFromCoreData(id: categoryID)
+        } else {
+            nil
+        }
+
+        return CBTransaction(snapshot: snapshot, payMethod: payMethod, category: category)
+    }
+    
+    
+    @MainActor
+    static func createSnapshotFromCoreData(id: String) async -> CBTransaction.Snapshot? {
+        let context = DataManager.shared.createContext()
+
+        return await DataManager.shared.perform(context: context) {
+            guard let entity = DataManager.shared.getOne(context: context, type: TempTransaction.self, predicate: .byId(.string(id)), createIfNotFound: false) else { return nil }
+
+            return Snapshot(
+                id: entity.id ?? "",
+                title: entity.title ?? "",
+                amount: entity.amount,
+                payMethodID: entity.payMethodID,
+                categoryID: entity.categoryID,
+                trackingNumber: entity.trackingNumber,
+                orderNumber: entity.orderNumber,
+                url: entity.url,
+                date: entity.date,
+                notes: entity.notes,
+                hexCode: entity.hexCode,
+                enteredDate: entity.enteredDate,
+                updatedDate: entity.updatedDate,
+                factorInCalculations: entity.factorInCalculations,
+                notificationOffset: Int(entity.notificationOffset),
+                notifyOnDueDate: entity.notifyOnDueDate,
+                active: entity.active,
+                actionRaw: entity.action ?? "add",
+                tempActionRaw: entity.tempAction ?? "add"
+            )
+        }
+    }
 }

@@ -105,7 +105,7 @@ class FuncModel {
             await NotificationManager.shared.registerForPushNotifications()
         }
         
-        setUserAvatars()
+        await setUserAvatars()
         
         
 //        /// Set user avatar.
@@ -286,118 +286,6 @@ class FuncModel {
                 
         withAnimation {
             isLoading = false
-        }
-    }
-    
-    
-    @MainActor
-    func submitCachedTransactionsIfApplicable() async {
-        let context = DataManager.shared.createContext()
-        
-        let tempTransactions: [(TempTransaction, CBCategory?, CBPaymentMethod?, [CBLog])] = await context.perform {
-            var results: [(TempTransaction, CBCategory?, CBPaymentMethod?, [CBLog])] = []
-
-            if let entities = DataManager.shared.getMany(context: context, type: TempTransaction.self) {
-                for entity in entities {
-                    var category: CBCategory?
-                    var payMethod: CBPaymentMethod?
-                    var logs: [CBLog] = []
-
-                    if let categoryID = entity.categoryID,
-                       let perCategory = DataManager.shared.getOne(
-                           context: context,
-                           type: PersistentCategory.self,
-                           predicate: .byId(.string(categoryID)),
-                           createIfNotFound: false
-                       ) {
-                        category = CBCategory(entity: perCategory)
-                    }
-
-                    if let payMethodID = entity.payMethodID,
-                       let perPayMethod = DataManager.shared.getOne(
-                           context: context,
-                           type: PersistentPaymentMethod.self,
-                           predicate: .byId(.string(payMethodID)),
-                           createIfNotFound: false
-                       ) {
-                        payMethod = CBPaymentMethod(entity: perPayMethod)
-                    }
-
-                    if let logEntities = entity.logs {
-                        let groupID = UUID().uuidString
-                        for case let logEntity as TempTransactionLog in logEntities {
-                            logs.append(CBLog(transEntity: logEntity, groupID: groupID))
-                        }
-                    }
-
-                    results.append((entity, category, payMethod, logs))
-                }
-            }
-
-            return results
-        }
-
-        // Now safely on the main actor
-        await MainActor.run {
-            for (entity, category, payMethod, logs) in tempTransactions {
-                if let payMethod {
-                    Task { await self.calModel.saveTemp(trans: CBTransaction(entity: entity, payMethod: payMethod, category: category, logs: logs)) }
-                }
-            }
-        }
-    }
-    
-    
-    @MainActor
-    func submitCachedAccessorialsIfApplicable() async {
-        let context = DataManager.shared.createContext()
-        let mainContext = DataManager.shared.container.viewContext
-        
-        /// Thread-safe arrays to hold the IDs
-        var catIDs: [NSManagedObjectID] = []
-        var groupIDs: [NSManagedObjectID] = []
-        var keyIDs: [NSManagedObjectID] = []
-        var methIDs: [NSManagedObjectID] = []
-
-        /// Perform the fetches on the context’s queue
-        await context.perform {
-            let pred = NSPredicate(format: "isPending == %@", NSNumber(value: true))
-
-            if let cats = DataManager.shared.getMany(context: context, type: PersistentCategory.self, predicate: .single(pred)) {
-                catIDs = cats.map { $0.objectID }
-            }
-            if let groups = DataManager.shared.getMany(context: context, type: PersistentCategoryGroup.self, predicate: .single(pred)) {
-                groupIDs = groups.map { $0.objectID }
-            }
-            if let keys = DataManager.shared.getMany(context: context, type: PersistentKeyword.self, predicate: .single(pred)) {
-                keyIDs = keys.map { $0.objectID }
-            }
-            if let meths = DataManager.shared.getMany(context: context, type: PersistentPaymentMethod.self, predicate: .single(pred)) {
-                methIDs = meths.map { $0.objectID }
-            }
-        }
-
-        /// Now that we have the IDs, switch to the main actor
-        await MainActor.run {
-            let catObjects = catIDs.compactMap { mainContext.object(with: $0) as? PersistentCategory }
-            for entity in catObjects {
-                Task { await self.catModel.submit(CBCategory(entity: entity)) }
-            }
-            
-            let groupObjects = groupIDs.compactMap { mainContext.object(with: $0) as? PersistentCategoryGroup }
-            for entity in groupObjects {
-                Task { await self.catModel.submit(CBCategoryGroup(entity: entity)) }
-            }
-            
-            let keyObjects = keyIDs.compactMap { mainContext.object(with: $0) as? PersistentKeyword }
-            for entity in keyObjects {
-                Task { await self.keyModel.submit(CBKeyword(entity: entity)) }
-            }
-            
-            let methObjects = methIDs.compactMap { mainContext.object(with: $0) as? PersistentPaymentMethod }
-            for entity in methObjects {
-                Task { await self.payModel.submit(CBPaymentMethod(entity: entity)) }
-            }
         }
     }
     
@@ -613,211 +501,584 @@ class FuncModel {
     
     // MARK: - Cache Stuff
     /// Not private because it is called directly from the RootView
-    func populatePaymentMethodsFromCache(setDefaultPayMethod: Bool) async {
-        //print("-- \(#function)")
-        let context = DataManager.shared.createContext()
-        
-        var objectIDs: Array<NSManagedObjectID>?
-        await context.perform {
-            let meths = DataManager.shared.getMany(context: context, type: PersistentPaymentMethod.self)
-            if let meths {
-                /// Get object IDs from the core data entities
-                objectIDs = meths.map { $0.objectID }
-            }
-        }
-        
-        guard let objectIDs else { print("❌ No Object IDs found for pay methods"); return }
-                
-        await MainActor.run {
-            let mainContext = DataManager.shared.container.viewContext
-            let mainObjects: [PersistentPaymentMethod] = objectIDs.compactMap {
-                mainContext.object(with: $0) as? PersistentPaymentMethod
-            }
-            
-            mainObjects.forEach { meth in
-                //print("Meth title: \(meth.title) - editDefault: \(meth.isEditingDefault)")
-                if setDefaultPayMethod && meth.isViewingDefault {
-                    calModel.sPayMethod = CBPaymentMethod(entity: meth)
-                }
-                
-                if let id = meth.id, !payModel.paymentMethods.contains(where: { $0.id == id }) {
-                    payModel.paymentMethods.append(CBPaymentMethod(entity: meth))
-                }
-            }
-            
-            /// Sort the payment methods in place.
-            payModel.paymentMethods.sort(by: Helpers.paymentMethodSorter())
-            
-            /// Prepopulate the payment method sections to avoid flash on first viewing.
-//            payModel.sections = payModel.getApplicablePayMethods(
-//                type: .all,
-//                calModel: calModel,
-//                plaidModel: plaidModel,
-//                searchText: .constant(""),
-//                includeHidden: true
-//            )
-        }
-    }
-        
-    /// Not private because it is called directly from the RootView, and from the temp transaction list
-    func populateCategoriesFromCache() async {
-        //print("-- \(#function)")
-        let context = DataManager.shared.createContext()
-                        
-        var objectIDs: Array<NSManagedObjectID>?
-        await context.perform {
-            let meths = DataManager.shared.getMany(context: context, type: PersistentCategory.self)
-            if let meths {
-                /// Get object IDs from the core data entities
-                objectIDs = meths.map { $0.objectID }
-            }
-        }
-        
-        guard let objectIDs else { print("❌ No Object IDs found for categories"); return }
-                
-        await MainActor.run {
-            let mainContext = DataManager.shared.container.viewContext
-            let mainObjects: [PersistentCategory] = objectIDs.compactMap {
-                mainContext.object(with: $0) as? PersistentCategory
-            }
-            
-            mainObjects.forEach { cat in
-                if let id = cat.id, !catModel.categories.contains(where: { $0.id == id }) {
-                    catModel.categories.append(CBCategory(entity: cat))
-                }
-            }
-            
-            catModel.categories.sort(by: Helpers.categorySorter())
-        }
-    }
-    
-    
-    /// Not private because it is called directly from the RootView, and from the temp transaction list
-    func populateCategoryGroupsFromCache() async {
-        //print("-- \(#function)")
-        let context = DataManager.shared.createContext()
-                        
-        var objectIDs: Array<NSManagedObjectID>?
-        await context.perform {
-            let meths = DataManager.shared.getMany(context: context, type: PersistentCategoryGroup.self)
-            if let meths {
-                /// Get object IDs from the core data entities
-                objectIDs = meths.map { $0.objectID }
-            }
-        }
-        
-        guard let objectIDs else { print("❌ No Object IDs found for category groups"); return }
-                
-        await MainActor.run {
-            let mainContext = DataManager.shared.container.viewContext
-            let mainObjects: [PersistentCategoryGroup] = objectIDs.compactMap {
-                mainContext.object(with: $0) as? PersistentCategoryGroup
-            }
-            
-            mainObjects.forEach { group in
-                if let id = group.id, !catModel.categoryGroups.contains(where: { $0.id == id }) {
-                    catModel.categoryGroups.append(CBCategoryGroup(entity: group))
-                }
-            }
-            
-            //catModel.categories.sort(by: Helpers.categorySorter())
-        }
-    }
-    
-    
-    private func populateKeywordsFromCache() async {
-        //print("-- \(#function)")
-        let context = DataManager.shared.createContext()
-                
-        var objectIDs: Array<NSManagedObjectID>?
-        await context.perform {
-            let meths = DataManager.shared.getMany(context: context, type: PersistentKeyword.self)
-            if let meths {
-                /// Get object IDs from the core data entities
-                objectIDs = meths.map { $0.objectID }
-            }
-        }
-        
-        guard let objectIDs else { print("❌ No Object IDs found for keywords"); return }
-    
-        await MainActor.run {
-            let mainContext = DataManager.shared.container.viewContext
-            let mainObjects: [PersistentKeyword] = objectIDs.compactMap {
-                mainContext.object(with: $0) as? PersistentKeyword
-            }
-            
-            mainObjects
-                .sorted { ($0.keyword ?? "").lowercased() < ($1.keyword ?? "").lowercased() }
-                .forEach { key in
-                    if let id = key.id, !keyModel.keywords.contains(where: { $0.id == id }) {
-                        keyModel.keywords.append(CBKeyword(entity: key))
-                    }
-                }
-        }
-    
-        
-        
-//        do {
-//            let url = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("cache_directory.sqlite")
-//            let dbQueue = try DatabaseQueue(path: url.path)
-//            try await dbQueue.write { db in
-//                let keys = try CBKeyword.fetchAll(db)
-//                Task { @MainActor in
-//                    keys
-//                        .sorted { ($0.keyword).lowercased() < ($1.keyword).lowercased() }
-//                        .forEach { key in
-//                            
-//                            if let index = self.keyModel.keywords.firstIndex(where: { $0.id == key.id }) {
-//                                self.keyModel.keywords[index].setFromAnotherInstance(keyword: key)
-//                            } else {
-//                                self.keyModel.keywords.append(key)
-//                            }
-//                        }
-//                }
-//            }
-//        } catch {
-//            print(error.localizedDescription)
-//        }
-        
-//        let man = CacheManager<CBKeyword>(file: .keywords)
-//        if let keys = man.loadMany() {
-//            Task { @MainActor in
-//                keys
-//                    .sorted { ($0.keyword).lowercased() < ($1.keyword).lowercased() }
-//                    .forEach { key in
-//
-//                        if let index = keyModel.keywords.firstIndex(where: { $0.id == key.id }) {
-//                            keyModel.keywords[index].setFromAnotherInstance(keyword: key)
-//                        } else {
-//                            keyModel.keywords.append(key)
-//                        }
-//                    }
+//    func populatePaymentMethodsFromCache(setDefaultPayMethod: Bool) async {
+//        //print("-- \(#function)")
+//        let context = DataManager.shared.createContext()
+//        
+//        var objectIDs: Array<NSManagedObjectID>?
+//        await context.perform {
+//            let meths = DataManager.shared.getMany(context: context, type: PersistentPaymentMethod.self)
+//            if let meths {
+//                /// Get object IDs from the core data entities
+//                objectIDs = meths.map { $0.objectID }
 //            }
 //        }
-        
-//        let keys = DataManager.shared.getMany(context: context, type: PersistentKeyword.self)
-//        if let keys {
-//            let objectIDs = keys.map { $0.objectID }
+//        
+//        guard let objectIDs else { print("❌ No Object IDs found for pay methods"); return }
+//                
+//        await MainActor.run {
+//            let mainContext = DataManager.shared.container.viewContext
+//            let mainObjects: [PersistentPaymentMethod] = objectIDs.compactMap {
+//                mainContext.object(with: $0) as? PersistentPaymentMethod
+//            }
 //            
-//            Task { @MainActor in
-//                let mainContext = DataManager.shared.container.viewContext
-//                let mainObjects: [PersistentKeyword] = objectIDs.compactMap {
-//                    mainContext.object(with: $0) as? PersistentKeyword
+//            mainObjects.forEach { meth in
+//                //print("Meth title: \(meth.title) - editDefault: \(meth.isEditingDefault)")
+//                if setDefaultPayMethod && meth.isViewingDefault {
+//                    calModel.sPayMethod = CBPaymentMethod(entity: meth)
 //                }
 //                
-//                mainObjects
-//                    .sorted { ($0.keyword ?? "").lowercased() < ($1.keyword ?? "").lowercased() }
-//                //.filter { $0.id != nil } /// Have a weird bug that added blank in CoreData.
-//                    .forEach { key in
-//                        //print(key.keyword)
-//                        if keyModel.keywords.filter({ $0.id == key.id! }).isEmpty {
-//                            keyModel.keywords.append(CBKeyword(entity: key))
-//                        }
-//                    }
+//                if let id = meth.id, !payModel.paymentMethods.contains(where: { $0.id == id }) {
+//                    payModel.paymentMethods.append(CBPaymentMethod(entity: meth))
+//                }
+//            }
+//            
+//            /// Sort the payment methods in place.
+//            payModel.paymentMethods.sort(by: Helpers.paymentMethodSorter())
+//            
+//            /// Prepopulate the payment method sections to avoid flash on first viewing.
+////            payModel.sections = payModel.getApplicablePayMethods(
+////                type: .all,
+////                calModel: calModel,
+////                plaidModel: plaidModel,
+////                searchText: .constant(""),
+////                includeHidden: true
+////            )
+//        }
+//    }
+    
+    
+    
+    @MainActor
+    func populatePaymentMethodsFromCache(setDefaultPayMethod: Bool) async {
+        let context = DataManager.shared.createContext()
+
+        let methodIDs: [String] = await DataManager.shared.perform(context: context) {
+            let entities = DataManager.shared.getMany(context: context, type: PersistentPaymentMethod.self) ?? []
+            return entities.compactMap(\.id)
+        }
+
+        guard !methodIDs.isEmpty else {
+            print("❌ No IDs found for pay methods")
+            return
+        }
+
+        var loadedMethods: [CBPaymentMethod] = []
+        loadedMethods.reserveCapacity(methodIDs.count)
+
+        for id in methodIDs {
+            if let method = await CBPaymentMethod.loadFromCoreData(id: id) {
+                loadedMethods.append(method)
+            }
+        }
+
+        for method in loadedMethods {
+            if setDefaultPayMethod && method.isViewingDefault {
+                calModel.sPayMethod = method
+            }
+
+            if let index = payModel.paymentMethods.firstIndex(where: { $0.id == method.id }) {
+                payModel.paymentMethods[index].setFromAnotherInstance(payMethod: method)
+            } else {
+                payModel.paymentMethods.append(method)
+            }
+        }
+
+        payModel.paymentMethods.sort(by: Helpers.paymentMethodSorter())
+    }
+
+    
+    
+    /// Not private because it is called directly from the RootView, and from the temp transaction list
+    @MainActor
+    func populateCategoriesFromCache() async {
+        let context = DataManager.shared.createContext()
+
+        let categoryIDs: [String] = await DataManager.shared.perform(context: context) {
+            let entities = DataManager.shared.getMany(context: context, type: PersistentCategory.self) ?? []
+            return entities.compactMap(\.id)
+        }
+
+        guard !categoryIDs.isEmpty else {
+            print("❌ No IDs found for categories")
+            return
+        }
+
+        var loadedCategories: [CBCategory] = []
+        loadedCategories.reserveCapacity(categoryIDs.count)
+
+        for id in categoryIDs {
+            if let category = await CBCategory.loadFromCoreData(id: id) {
+                loadedCategories.append(category)
+            }
+        }
+
+        for category in loadedCategories {
+            if let index = catModel.categories.firstIndex(where: { $0.id == category.id }) {
+                catModel.categories[index].setFromAnotherInstance(category: category)
+            } else {
+                catModel.categories.append(category)
+            }
+        }
+
+        catModel.categories.sort(by: Helpers.categorySorter())
+    }
+
+
+    
+    
+        
+    /// Not private because it is called directly from the RootView, and from the temp transaction list
+//    func populateCategoriesFromCache() async {
+//        //print("-- \(#function)")
+//        let context = DataManager.shared.createContext()
+//                        
+//        var objectIDs: Array<NSManagedObjectID>?
+//        await context.perform {
+//            let meths = DataManager.shared.getMany(context: context, type: PersistentCategory.self)
+//            if let meths {
+//                /// Get object IDs from the core data entities
+//                objectIDs = meths.map { $0.objectID }
 //            }
 //        }
-       
+//        
+//        guard let objectIDs else { print("❌ No Object IDs found for categories"); return }
+//                
+//        await MainActor.run {
+//            let mainContext = DataManager.shared.container.viewContext
+//            let mainObjects: [PersistentCategory] = objectIDs.compactMap {
+//                mainContext.object(with: $0) as? PersistentCategory
+//            }
+//            
+//            mainObjects.forEach { cat in
+//                if let id = cat.id, !catModel.categories.contains(where: { $0.id == id }) {
+//                    catModel.categories.append(CBCategory(entity: cat))
+//                }
+//            }
+//            
+//            catModel.categories.sort(by: Helpers.categorySorter())
+//        }
+//    }
+    
+    
+    
+    /// Not private because it is called directly from the RootView, and from the temp transaction list
+    @MainActor
+    func populateCategoryGroupsFromCache() async {
+        let context = DataManager.shared.createContext()
+
+        let groupIDs: [String] = await DataManager.shared.perform(context: context) {
+            let entities = DataManager.shared.getMany(context: context, type: PersistentCategoryGroup.self) ?? []
+            return entities.compactMap(\.id)
+        }
+
+        guard !groupIDs.isEmpty else {
+            print("❌ No IDs found for category groups")
+            return
+        }
+
+        var loadedGroups: [CBCategoryGroup] = []
+        loadedGroups.reserveCapacity(groupIDs.count)
+
+        for id in groupIDs {
+            if let group = await CBCategoryGroup.loadFromCoreData(id: id) {
+                loadedGroups.append(group)
+            }
+        }
+
+        for group in loadedGroups {
+            if let index = catModel.categoryGroups.firstIndex(where: { $0.id == group.id }) {
+                catModel.categoryGroups[index].setFromAnotherInstance(group: group)
+            } else {
+                catModel.categoryGroups.append(group)
+            }
+        }
     }
+
+    
+//    /// Not private because it is called directly from the RootView, and from the temp transaction list
+//    func populateCategoryGroupsFromCache() async {
+//        //print("-- \(#function)")
+//        let context = DataManager.shared.createContext()
+//                        
+//        var objectIDs: Array<NSManagedObjectID>?
+//        await context.perform {
+//            let meths = DataManager.shared.getMany(context: context, type: PersistentCategoryGroup.self)
+//            if let meths {
+//                /// Get object IDs from the core data entities
+//                objectIDs = meths.map { $0.objectID }
+//            }
+//        }
+//        
+//        guard let objectIDs else { print("❌ No Object IDs found for category groups"); return }
+//                
+//        await MainActor.run {
+//            let mainContext = DataManager.shared.container.viewContext
+//            let mainObjects: [PersistentCategoryGroup] = objectIDs.compactMap {
+//                mainContext.object(with: $0) as? PersistentCategoryGroup
+//            }
+//            
+//            mainObjects.forEach { group in
+//                if let id = group.id, !catModel.categoryGroups.contains(where: { $0.id == id }) {
+//                    catModel.categoryGroups.append(CBCategoryGroup(entity: group))
+//                }
+//            }
+//            
+//            //catModel.categories.sort(by: Helpers.categorySorter())
+//        }
+//    }
+    
+    
+    @MainActor
+    private func populateKeywordsFromCache() async {
+        let context = DataManager.shared.createContext()
+
+        let keywordIDs: [String] = await DataManager.shared.perform(context: context) {
+            let entities = DataManager.shared.getMany(context: context, type: PersistentKeyword.self) ?? []
+            return entities.compactMap(\.id)
+        }
+
+        guard !keywordIDs.isEmpty else {
+            print("❌ No IDs found for keywords")
+            return
+        }
+
+        var loadedKeywords: [CBKeyword] = []
+        loadedKeywords.reserveCapacity(keywordIDs.count)
+
+        for id in keywordIDs {
+            if let keyword = await CBKeyword.loadFromCoreData(id: id) {
+                loadedKeywords.append(keyword)
+            }
+        }
+
+        loadedKeywords.sort { $0.keyword.lowercased() < $1.keyword.lowercased() }
+
+        for keyword in loadedKeywords {
+            if let index = keyModel.keywords.firstIndex(where: { $0.id == keyword.id }) {
+                keyModel.keywords[index].setFromAnotherInstance(keyword: keyword)
+            } else {
+                keyModel.keywords.append(keyword)
+            }
+        }
+    }
+
+    
+//    private func populateKeywordsFromCache() async {
+//        //print("-- \(#function)")
+//        let context = DataManager.shared.createContext()
+//                
+//        var objectIDs: Array<NSManagedObjectID>?
+//        await context.perform {
+//            let meths = DataManager.shared.getMany(context: context, type: PersistentKeyword.self)
+//            if let meths {
+//                /// Get object IDs from the core data entities
+//                objectIDs = meths.map { $0.objectID }
+//            }
+//        }
+//        
+//        guard let objectIDs else { print("❌ No Object IDs found for keywords"); return }
+//    
+//        await MainActor.run {
+//            let mainContext = DataManager.shared.container.viewContext
+//            let mainObjects: [PersistentKeyword] = objectIDs.compactMap {
+//                mainContext.object(with: $0) as? PersistentKeyword
+//            }
+//            
+//            mainObjects
+//                .sorted { ($0.keyword ?? "").lowercased() < ($1.keyword ?? "").lowercased() }
+//                .forEach { key in
+//                    if let id = key.id, !keyModel.keywords.contains(where: { $0.id == id }) {
+//                        keyModel.keywords.append(CBKeyword(entity: key))
+//                    }
+//                }
+//        }
+//    }
+//    
+    
+    
+//    @MainActor
+//    func submitCachedTransactionsIfApplicable() async {
+//        let context = DataManager.shared.createContext()
+//        
+//        
+//        
+//        let tempTransactions: [(TempTransaction, CBCategory?, CBPaymentMethod?, [CBLog])] = await context.perform {
+//            var results: [(TempTransaction, CBCategory?, CBPaymentMethod?, [CBLog])] = []
+//
+//            if let entities = DataManager.shared.getMany(context: context, type: TempTransaction.self) {
+//                for entity in entities {
+//                    var category: CBCategory?
+//                    var payMethod: CBPaymentMethod?
+//                    var logs: [CBLog] = []
+//
+//                    if let categoryID = entity.categoryID,
+//                       let perCategory = DataManager.shared.getOne(
+//                           context: context,
+//                           type: PersistentCategory.self,
+//                           predicate: .byId(.string(categoryID)),
+//                           createIfNotFound: false
+//                       ) {
+//                        category = CBCategory(entity: perCategory)
+//                    }
+//                    
+//                    if let payMethodID = entity.payMethodID {
+//                        payMethod = await CBPaymentMethod.loadFromCoreData(id: payMethodID)
+//                    }
+//
+////                    if let payMethodID = entity.payMethodID,
+////                       let perPayMethod = DataManager.shared.getOne(
+////                           context: context,
+////                           type: PersistentPaymentMethod.self,
+////                           predicate: .byId(.string(payMethodID)),
+////                           createIfNotFound: false
+////                       ) {
+////                        payMethod = CBPaymentMethod(entity: perPayMethod)
+////                    }
+//
+//                    if let logEntities = entity.logs {
+//                        let groupID = UUID().uuidString
+//                        for case let logEntity as TempTransactionLog in logEntities {
+//                            logs.append(CBLog(transEntity: logEntity, groupID: groupID))
+//                        }
+//                    }
+//
+//                    results.append((entity, category, payMethod, logs))
+//                }
+//            }
+//
+//            return results
+//        }
+//
+//        // Now safely on the main actor
+//        await MainActor.run {
+//            for (entity, category, payMethod, logs) in tempTransactions {
+//                if let payMethod {
+//                    print("Submitting temp trans on \(entity.title ?? "N/A")")
+//                    let trans = CBTransaction(entity: entity, payMethod: payMethod, category: category, logs: logs)
+//                    Task { await self.calModel.saveTemp(trans: trans) }
+//                } else {
+//                    print("Pay method is not set on temp trans")
+//                }
+//            }
+//        }
+//    }
+//    
+    
+    @MainActor
+    func submitCachedTransactionsIfApplicable() async {
+        let context = DataManager.shared.createContext()
+
+        // Only move plain values (IDs) out of Core Data queue.
+        let tempTransactionIDs: [String] = await DataManager.shared.perform(context: context) {
+            let entities = DataManager.shared.getMany(context: context, type: TempTransaction.self) ?? []
+            return entities.compactMap(\.id)
+        }
+
+        guard !tempTransactionIDs.isEmpty else { return }
+
+        for id in tempTransactionIDs {
+            guard let trans = await CBTransaction.loadFromCoreData(id: id) else {
+                print("Skipping cached temp trans \(id): could not rebuild model.")
+                continue
+            }
+
+            guard trans.payMethod != nil else {
+                print("Pay method is not set on temp trans \(trans.id)")
+                continue
+            }
+
+            print("Submitting temp trans on \(trans.title)")
+            await calModel.saveTemp(trans: trans)
+        }
+    }
+
+    
+    
+//    @MainActor
+//    func submitCachedTransactionsIfApplicable() async {
+//        let context = DataManager.shared.createContext()
+//
+//        struct PendingSubmission: Sendable {
+//            let trans: CBTransaction.Snapshot
+//            let category: CBCategory.Snapshot?
+//            let payMethod: CBPaymentMethod.Snapshot?
+//        }
+//
+//        let pending: [PendingSubmission] = await DataManager.shared.perform(context: context) {
+//            var out: [PendingSubmission] = []
+//
+//            guard let entities = DataManager.shared.getMany(context: context, type: TempTransaction.self) else {
+//                return out
+//            }
+//
+//            let payMethodLogoTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id
+//
+//            for entity in entities {
+//                // Category snapshot
+//                let categorySnap: CBCategory.Snapshot? = {
+//                    guard
+//                        let categoryID = entity.categoryID,
+//                        let perCategory = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(categoryID)), createIfNotFound: false)
+//                    else { return nil }
+//
+//                    return CBCategory.createSnapshotFromCoreData(id: categoryID)
+//                }()
+//
+//                // Payment method snapshot (+ logo) from same context queue
+//                let payMethodSnap: CBPaymentMethod.Snapshot? = {
+//                    guard
+//                        let payMethodID = entity.payMethodID,
+//                        let perPayMethod = DataManager.shared.getOne(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethodID)), createIfNotFound: false)
+//                    else { return nil }
+//
+//                    let pred1 = NSPredicate(format: "relatedID == %@", payMethodID)
+//                    let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: payMethodLogoTypeID))
+//                    let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
+//
+//                    let logoData = DataManager.shared.getOne(
+//                        context: context,
+//                        type: PersistentLogo.self,
+//                        predicate: .compound(comp),
+//                        createIfNotFound: false
+//                    )?.photoData
+//
+//                    return CBPaymentMethod.Snapshot(entity: perPayMethod, logoData: logoData)
+//                }()
+//
+//                // Transaction snapshot
+//                let transSnap = CBTransaction.Snapshot(entity: entity)
+//
+//                out.append(
+//                    PendingSubmission(
+//                        trans: transSnap,
+//                        category: categorySnap,
+//                        payMethod: payMethodSnap
+//                    )
+//                )
+//            }
+//
+//            return out
+//        }
+//
+//        // Already on MainActor here
+//        for item in pending {
+//            guard let payMethodSnap = item.payMethod else {
+//                print("Pay method is not set on temp trans")
+//                continue
+//            }
+//
+//            let payMethod = CBPaymentMethod(snapshot: payMethodSnap)
+//            let category = item.category.map { CBCategory(snapshot: $0) }
+//            let trans = CBTransaction(snapshot: item.trans, payMethod: payMethod, category: category)
+//
+//            print("Submitting temp trans on \(trans.title)")
+//            await calModel.saveTemp(trans: trans)
+//        }
+//    }
+
+    
+    
+//    @MainActor
+//    func submitCachedAccessorialsIfApplicable() async {
+//        let context = DataManager.shared.createContext()
+//        let mainContext = DataManager.shared.container.viewContext
+//        
+//        /// Thread-safe arrays to hold the IDs
+//        var catIDs: [NSManagedObjectID] = []
+//        var groupIDs: [NSManagedObjectID] = []
+//        var keyIDs: [NSManagedObjectID] = []
+//        var methIDs: [NSManagedObjectID] = []
+//
+//        /// Perform the fetches on the context’s queue
+//        await context.perform {
+//            let pred = NSPredicate(format: "isPending == %@", NSNumber(value: true))
+//
+//            if let cats = DataManager.shared.getMany(context: context, type: PersistentCategory.self, predicate: .single(pred)) {
+//                catIDs = cats.map { $0.objectID }
+//            }
+//            if let groups = DataManager.shared.getMany(context: context, type: PersistentCategoryGroup.self, predicate: .single(pred)) {
+//                groupIDs = groups.map { $0.objectID }
+//            }
+//            if let keys = DataManager.shared.getMany(context: context, type: PersistentKeyword.self, predicate: .single(pred)) {
+//                keyIDs = keys.map { $0.objectID }
+//            }
+//            if let meths = DataManager.shared.getMany(context: context, type: PersistentPaymentMethod.self, predicate: .single(pred)) {
+//                methIDs = meths.map { $0.objectID }
+//            }
+//        }
+//
+//        /// Now that we have the IDs, switch to the main actor
+//        await MainActor.run {
+//            let catObjects = catIDs.compactMap { mainContext.object(with: $0) as? PersistentCategory }
+//            for entity in catObjects {
+//                Task { await self.catModel.submit(CBCategory(entity: entity)) }
+//            }
+//            
+//            let groupObjects = groupIDs.compactMap { mainContext.object(with: $0) as? PersistentCategoryGroup }
+//            for entity in groupObjects {
+//                Task { await self.catModel.submit(CBCategoryGroup(entity: entity)) }
+//            }
+//            
+//            let keyObjects = keyIDs.compactMap { mainContext.object(with: $0) as? PersistentKeyword }
+//            for entity in keyObjects {
+//                Task { await self.keyModel.submit(CBKeyword(entity: entity)) }
+//            }
+//            
+//            let methObjects = methIDs.compactMap { mainContext.object(with: $0) as? PersistentPaymentMethod }
+//            for entity in methObjects {
+//                guard
+//                    let id = entity.id,
+//                    let meth = CBPaymentMethod.loadFromCoreData(id: id)
+//                else {
+//                    continue
+//                }
+//                Task { await self.payModel.submit(meth) }
+//            }
+//        }
+//    }
+    
+    
+    @MainActor
+    func submitCachedAccessorialsIfApplicable() async {
+        let context = DataManager.shared.createContext()
+        let pendingPredicate = NSPredicate(format: "isPending == %@", NSNumber(value: true))
+
+        // Pull only plain IDs from Core Data queue.
+        let pending = await DataManager.shared.perform(context: context) {
+            let catIDs = (DataManager.shared.getMany(context: context, type: PersistentCategory.self, predicate: .single(pendingPredicate)) ?? []).compactMap(\.id)
+            let groupIDs = (DataManager.shared.getMany(context: context, type: PersistentCategoryGroup.self, predicate: .single(pendingPredicate)) ?? []).compactMap(\.id)
+            let keyIDs = (DataManager.shared.getMany(context: context, type: PersistentKeyword.self, predicate: .single(pendingPredicate)) ?? []).compactMap(\.id)
+            let methIDs = (DataManager.shared.getMany(context: context, type: PersistentPaymentMethod.self, predicate: .single(pendingPredicate)) ?? []).compactMap(\.id)
+
+            return (catIDs: catIDs, groupIDs: groupIDs, keyIDs: keyIDs, methIDs: methIDs)
+        }
+
+        for id in pending.catIDs {
+            if let category = await CBCategory.loadFromCoreData(id: id) {
+                await catModel.submit(category)
+            }
+        }
+
+        for id in pending.groupIDs {
+            if let group = await CBCategoryGroup.loadFromCoreData(id: id) {
+                await catModel.submit(group)
+            }
+        }
+
+        for id in pending.keyIDs {
+            if let keyword = await CBKeyword.loadFromCoreData(id: id) {
+                await keyModel.submit(keyword)
+            }
+        }
+
+        for id in pending.methIDs {
+            if let method = await CBPaymentMethod.loadFromCoreData(id: id) {
+                await payModel.submit(method)
+            }
+        }
+    }
+
     
     
     
@@ -886,7 +1147,7 @@ class FuncModel {
                     //|| model.receipts != nil
                     {
                         
-                        #warning("This all needs to be fixed in regards to coredata. Right now, each update of the cache or delete ferom the cache uses its own context, and saves after each operation. If I used a single background context, when deleting a payment method via the long poll, the save operation will fail. It is recommended to perform all operations, and then call save at the end. But this will require some work to implement. 11/6/25")
+                        #warning("This all needs to be fixed in regards to coredata. Right now, each update of the cache or delete from the cache uses its own context, and saves after each operation. If I used a single background context, when deleting a payment method via the long poll, the save operation will fail. It is recommended to perform all operations, and then call save at the end. But this will require some work to implement. 11/6/25")
                         //try? await Task.sleep(nanoseconds: UInt64(5 * Double(NSEC_PER_SEC)))
                         
                         if let transactions = model.transactions { self.handleLongPollTransactions(transactions) }
@@ -1261,7 +1522,7 @@ class FuncModel {
         let context = DataManager.shared.createContext()
         
         for logo in logos {
-            print("incoming base64 for logo \(logo.baseString)")
+            print("incoming base64 for logo \(String(describing: logo.baseString))")
             
             /// Try and decode the data, if not, wipe out the logos.
             var logoData: Data?
@@ -1613,115 +1874,210 @@ class FuncModel {
 //    }
     
     
+//    @MainActor
+//    func fetchLogos(file: String = #file, line: Int = #line, function: String = #function) async {
+//        NSLog("\(file):\(line) : \(function)")
+//        LogManager.log()
+//        let start = CFAbsoluteTimeGetCurrent()
+//        
+//        /// Gather all the logos in the cache and send them to the server to see if the cache needs to be updated.
+//        var logos: Array<CBLogo> = []
+//        let context = DataManager.shared.createContext()
+//        if let perLogos = DataManager.shared.getMany(context: context, type: PersistentLogo.self) {
+//            for each in perLogos {
+//                if each.id == nil || each.relatedID == nil {
+//                    continue
+//                }
+//                logos.append(CBLogo(entity: each))
+//                
+//            }
+//        }
+//        
+//        let submitModel = LogoMaybeShouldUpdateModel(logos: logos)
+//        
+//        
+//        /// Do networking.
+//        let model = RequestModel(requestType: "fetch_logos", model: submitModel)
+//        typealias ResultResponse = Result<Array<CBLogo>?, AppError>
+//        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+//        
+//        switch await result {
+//        case .success(let model):
+//            
+//            /// For testing bad network connection.
+//            //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
+//
+//            LogManager.networkingSuccessful()
+//            if let model {
+//                if !model.isEmpty {
+//                    let context = DataManager.shared.createContext()
+//                    for logo in model {
+//                        print("Logo \(logo.id) changed")
+//                        
+//                        /// Try and decode the data, if not, wipe out the logos.
+//                        var logoData: Data?
+//                        if let baseString = logo.baseString {
+//                            logoData = Data(base64Encoded: baseString)
+//                        }
+//                        
+//                        
+//                        /// Find the persistent logo, create if not found.
+//                        let pred1 = NSPredicate(format: "relatedID == %@", String(logo.relatedID))
+//                        let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: logo.relatedRecordType.id))
+//                        let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
+//                        
+//                        if let perLogo = DataManager.shared.getOne(
+//                            context: context,
+//                            type: PersistentLogo.self,
+//                            predicate: .compound(comp),
+//                            createIfNotFound: true
+//                        ) {
+//                            /// Update the persistent record
+//                            perLogo.photoData = logoData
+//                            perLogo.id = logo.id
+//                            perLogo.relatedID = logo.relatedID
+//                            perLogo.relatedTypeID = Int64(logo.relatedRecordType.id)
+//                            //perLogo.serverEnteredDate = logo.enteredDate
+//                            perLogo.localUpdatedDate = logo.updatedDate
+//                            perLogo.serverUpdatedDate = logo.updatedDate
+//                            
+//                            /// If the server logo is for a payment method.
+//                            if logo.relatedRecordType.enumID == .paymentMethod {
+//                                /// Find the method and update it.
+//                                let meth = payModel.getPaymentMethod(by: logo.relatedID)
+//                                meth.logo = logoData
+//                                /// Update all the related objects. (Transactions, starting amounts, etc)
+//                                changePaymentMethodLogoLocally(meth: meth, logoData: logoData)
+//                            }
+//                            
+//                            /// If the server logo is for a plaid bank.
+//                            else if logo.relatedRecordType.enumID == .plaidBank {
+//                                /// Find the method and update it.
+//                                if let bank = plaidModel.getBank(by: logo.relatedID) {
+//                                    bank.logo = logoData
+//                                }
+//                                
+//                                /// Update all the related objects. (Transactions, starting amounts, etc)
+//                                //changePaymentMethodLogoLocally(meth: meth, logoData: logoData)
+//                            }
+//                            
+//                            /// If the logo is a user avatar, find all the local `CBUser` instances and update their avatar.
+//                            else if logo.relatedRecordType.enumID == .avatar {
+//                                let relatedID = logo.relatedID
+//                                changeAvatarLocally(to: logoData, id: relatedID)
+//                            }
+//                        }
+//                    }
+//                    
+//                    let _ = DataManager.shared.save(context: context)
+//                    
+//                } else {
+//                    //print("looks like no logos have changed")
+//                }
+//            }
+//            
+//            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
+//            print("⏰It took \(currentElapsed) seconds to fetch payment method logos")
+//            
+//        case .failure (let error):
+//            switch error {
+//            case .taskCancelled:
+//                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
+//                print("repModel fetchFrom Server Task Cancelled")
+//            default:
+//                LogManager.error(error.localizedDescription)
+//                AppState.shared.showAlert("There was a problem trying to fetch payment method logos.")
+//            }
+//        }
+//    }
+    
+    
+    
+    
     @MainActor
     func fetchLogos(file: String = #file, line: Int = #line, function: String = #function) async {
         NSLog("\(file):\(line) : \(function)")
         LogManager.log()
         let start = CFAbsoluteTimeGetCurrent()
-        
-        /// Gather all the logos in the cache and send them to the server to see if the cache needs to be updated.
-        var logos: Array<CBLogo> = []
-        let context = DataManager.shared.createContext()
-        if let perLogos = DataManager.shared.getMany(context: context, type: PersistentLogo.self) {
-            for each in perLogos {
-                if each.id == nil || each.relatedID == nil {
-                    continue
-                }
-                logos.append(CBLogo(entity: each))
-                
-            }
-        }
-        
-        let submitModel = LogoMaybeShouldUpdateModel(logos: logos)
-        
-        
-        /// Do networking.
-        let model = RequestModel(requestType: "fetch_logos", model: submitModel)
-        typealias ResultResponse = Result<Array<CBLogo>?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
-        
-        switch await result {
-        case .success(let model):
-            
-            /// For testing bad network connection.
-            //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
 
-            LogManager.networkingSuccessful()
-            if let model {
-                if !model.isEmpty {
-                    let context = DataManager.shared.createContext()
-                    for logo in model {
-                        print("Logo \(logo.id) changed")
-                        
-                        /// Try and decode the data, if not, wipe out the logos.
-                        var logoData: Data?
-                        if let baseString = logo.baseString {
-                            logoData = Data(base64Encoded: baseString)
-                        }
-                        
-                        
-                        /// Find the persistent logo, create if not found.
-                        let pred1 = NSPredicate(format: "relatedID == %@", String(logo.relatedID))
-                        let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: logo.relatedRecordType.id))
-                        let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
-                        
-                        if let perLogo = DataManager.shared.getOne(
-                            context: context,
-                            type: PersistentLogo.self,
-                            predicate: .compound(comp),
-                            createIfNotFound: true
-                        ) {
-                            /// Update the persistent record
-                            perLogo.photoData = logoData
-                            perLogo.id = logo.id
-                            perLogo.relatedID = logo.relatedID
-                            perLogo.relatedTypeID = Int64(logo.relatedRecordType.id)
-                            //perLogo.serverEnteredDate = logo.enteredDate
-                            perLogo.localUpdatedDate = logo.updatedDate
-                            perLogo.serverUpdatedDate = logo.updatedDate
-                            
-                            /// If the server logo is for a payment method.
-                            if logo.relatedRecordType.enumID == .paymentMethod {
-                                /// Find the method and update it.
-                                let meth = payModel.getPaymentMethod(by: logo.relatedID)
-                                meth.logo = logoData
-                                /// Update all the related objects. (Transactions, starting amounts, etc)
-                                changePaymentMethodLogoLocally(meth: meth, logoData: logoData)
-                            }
-                            
-                            /// If the server logo is for a plaid bank.
-                            else if logo.relatedRecordType.enumID == .plaidBank {
-                                /// Find the method and update it.
-                                if let bank = plaidModel.getBank(by: logo.relatedID) {
-                                    bank.logo = logoData
-                                }
-                                
-                                /// Update all the related objects. (Transactions, starting amounts, etc)
-                                //changePaymentMethodLogoLocally(meth: meth, logoData: logoData)
-                            }
-                            
-                            /// If the logo is a user avatar, find all the local `CBUser` instances and update their avatar.
-                            else if logo.relatedRecordType.enumID == .avatar {
-                                let relatedID = logo.relatedID
-                                changeAvatarLocally(to: logoData, id: relatedID)
-                            }
-                        }
+        // 1) Build probe logos from cache on Core Data queue.
+        let cachedLogos: [CBLogo] = await {
+            let context = DataManager.shared.createContext()
+            return await DataManager.shared.perform(context: context) {
+                (DataManager.shared.getMany(context: context, type: PersistentLogo.self) ?? [])
+                    .compactMap { entity in
+                        guard entity.id != nil, entity.relatedID != nil else { return nil }
+                        return CBLogo(entity: entity)
                     }
-                    
-                    let _ = DataManager.shared.save(context: context)
-                    
-                } else {
-                    //print("looks like no logos have changed")
+            }
+        }()
+
+        let submitModel = LogoMaybeShouldUpdateModel(logos: cachedLogos)
+
+        // 2) Request updates from server.
+        let model = RequestModel(requestType: "fetch_logos", model: submitModel)
+        typealias ResultResponse = Result<[CBLogo]?, AppError>
+        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+
+        switch await result {
+        case .success(let response):
+            LogManager.networkingSuccessful()
+            guard let logos = response, !logos.isEmpty else {
+                print("⏰It took \(CFAbsoluteTimeGetCurrent() - start) seconds to fetch payment method logos")
+                return
+            }
+
+            // 3) Write updates to Core Data on context queue.
+            let snapshots: [(relatedID: String, typeID: Int, data: Data?)] = logos.map {
+                ($0.relatedID, $0.relatedRecordType.id, $0.baseString.flatMap { Data(base64Encoded: $0) } )
+            }
+
+            let context = DataManager.shared.createContext()
+            await DataManager.shared.perform(context: context) {
+                for logo in logos {
+                    let pred1 = NSPredicate(format: "relatedID == %@", logo.relatedID)
+                    let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: logo.relatedRecordType.id))
+                    let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
+
+                    if let perLogo = DataManager.shared.getOne(
+                        context: context,
+                        type: PersistentLogo.self,
+                        predicate: .compound(comp),
+                        createIfNotFound: true
+                    ) {
+                        perLogo.photoData = logo.baseString.flatMap { Data(base64Encoded: $0) }
+                        perLogo.id = logo.id
+                        perLogo.relatedID = logo.relatedID
+                        perLogo.relatedTypeID = Int64(logo.relatedRecordType.id)
+                        perLogo.localUpdatedDate = logo.updatedDate
+                        perLogo.serverUpdatedDate = logo.updatedDate
+                    }
+                }
+                let _ = DataManager.shared.save(context: context)
+            }
+
+            // 4) Apply model/UI updates on main actor.
+            let paymentMethodTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id
+            let plaidBankTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .plaidBank).id
+            let avatarTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .avatar).id
+
+            for snap in snapshots {
+                if snap.typeID == paymentMethodTypeID {
+                    let meth = payModel.getPaymentMethod(by: snap.relatedID)
+                    meth.logo = snap.data
+                    changePaymentMethodLogoLocally(meth: meth, logoData: snap.data)
+                } else if snap.typeID == plaidBankTypeID {
+                    plaidModel.getBank(by: snap.relatedID)?.logo = snap.data
+                } else if snap.typeID == avatarTypeID {
+                    changeAvatarLocally(to: snap.data, id: snap.relatedID)
                 }
             }
-            
-            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-            print("⏰It took \(currentElapsed) seconds to fetch payment method logos")
-            
-        case .failure (let error):
+
+            print("⏰It took \(CFAbsoluteTimeGetCurrent() - start) seconds to fetch payment method logos")
+
+        case .failure(let error):
             switch error {
             case .taskCancelled:
-                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
                 print("repModel fetchFrom Server Task Cancelled")
             default:
                 LogManager.error(error.localizedDescription)
@@ -1729,28 +2085,66 @@ class FuncModel {
             }
         }
     }
+
     
-    @MainActor func setUserAvatars() {
-        for user in AppState.shared.accountUsers {
-            let pred1 = NSPredicate(format: "relatedID == %@", String(user.id))
-            let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .avatar).id))
+//    @MainActor func setUserAvatars() {
+//        for user in AppState.shared.accountUsers {
+//            let pred1 = NSPredicate(format: "relatedID == %@", String(user.id))
+//            let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .avatar).id))
+//            let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
+//    
+//            /// Fetch the logo out of core data since the encoded strings can be heavy and I don't want to use Async Image for every logo.
+//            let context = DataManager.shared.createContext()
+//            if let logo = DataManager.shared.getOne(
+//               context: context,
+//               type: PersistentLogo.self,
+//               predicate: .compound(comp),
+//               createIfNotFound: false
+//            ) {
+//                user.avatar = logo.photoData
+//                if user.id == AppState.shared.user!.id {
+//                    AppState.shared.user?.avatar = logo.photoData
+//                }
+//            }
+//        }
+//    }
+    
+    
+    @MainActor
+    func setUserAvatars() async {
+        let context = DataManager.shared.createContext()
+        let avatarTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .avatar).id
+        let userIDs = Set(AppState.shared.accountUsers.map(\.id).map(String.init))
+
+        let avatarMap: [Int: Data] = await DataManager.shared.perform(context: context) {
+            let pred1 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: avatarTypeID))
+            let pred2 = NSPredicate(format: "relatedID IN %@", Array(userIDs))
             let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
-    
-            /// Fetch the logo out of core data since the encoded strings can be heavy and I don't want to use Async Image for every logo.
-            let context = DataManager.shared.createContext()
-            if let logo = DataManager.shared.getOne(
-               context: context,
-               type: PersistentLogo.self,
-               predicate: .compound(comp),
-               createIfNotFound: false
-            ) {
-                user.avatar = logo.photoData
-                if user.id == AppState.shared.user!.id {
-                    AppState.shared.user?.avatar = logo.photoData
+
+            let logos = DataManager.shared.getMany(context: context, type: PersistentLogo.self, predicate: .compound(comp)) ?? []
+
+            var map: [Int: Data] = [:]
+            for logo in logos {
+                guard
+                    let idString = logo.relatedID,
+                    let id = Int(idString),
+                    let data = logo.photoData
+                else {
+                    continue
                 }
+                map[id] = data
             }
+            return map
+        }
+
+        for user in AppState.shared.accountUsers {
+            user.avatar = avatarMap[user.id]
+        }
+        if let current = AppState.shared.user {
+            current.avatar = avatarMap[current.id]
         }
     }
+
     
     
     @MainActor

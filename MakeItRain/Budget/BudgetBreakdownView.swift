@@ -73,7 +73,7 @@ struct BudgetBreakdownView: View {
                                                     
                         Text(metric.income.currencyWithDecimals())
                                                     
-                        let overUnder = (metric.budgetForCategory ?? 0) + (metric.expenses + metric.income)
+                        let overUnder = (metric.budgetForCategory) + (metric.expenses + metric.income)
                         Text(abs(overUnder).currencyWithDecimals())
                             .foregroundStyle(overUnder < 0 ? .red : .green)
                             //.frame(maxWidth: .infinity, alignment: .leading)

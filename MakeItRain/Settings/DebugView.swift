@@ -215,9 +215,8 @@ struct DebugView: View {
             for month in calModel.months {
                 let budgets = month.budgets
                 for budget in budgets {
-                    print("budget for \(month.actualNum)-\(month.year) --- \(String(describing: budget.category?.title))-\(budget.month)-\(budget.year)")
-                }
-                
+                    print("budget for \(month.actualNum)-\(month.year) --- \(String(describing: budget.category?.title))-\(String(describing: budget.month))-\(budget.year)")
+                }                
             }
         }
     }

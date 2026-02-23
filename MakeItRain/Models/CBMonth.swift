@@ -48,9 +48,9 @@ extension [CBMonth] {
     func getDay(by date: Date) -> CBDay? {
         
         let targetMonth = first(where: { $0.actualNum == date.month && $0.year == date.year })
-        print("targetMonth is \(targetMonth)")
+        //print("targetMonth is \(targetMonth)")
         let targetDay = targetMonth?.getDay(by: date.day)
-        print("targetDay is \(targetDay)")
+        //print("targetDay is \(targetDay)")
         return targetDay
     }
     

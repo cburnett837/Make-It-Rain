@@ -218,96 +218,96 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
 //        self.color = .white
 //        self.active = true
 //    
-    init(entity: PersistentPaymentMethod) {
-        self.id = entity.id!
-        self.title = entity.title ?? ""
-        self.dueDateString = String(entity.dueDate)
-        
-        
-        self.limitString = entity.limit.currencyWithDecimals()
-        
-        self.accountType = AccountType(rawValue: Int(entity.accountType)) ?? .checking
-        self.color = Color.fromHex(entity.hexCode) ?? .clear
-        //self.color = Color.fromName(entity.hexCode ?? "white")
-        self.action = .edit
-        self.isViewingDefault = entity.isViewingDefault
-        self.isEditingDefault = entity.isEditingDefault
-        self.active = true
-        self.notificationOffset = Int(entity.notificationOffset)
-        self.notifyOnDueDate = entity.notifyOnDueDate
-        self.last4 = entity.last4
-        self.interestRateString = String(entity.interestRate)
-        self.loanDurationString = String(entity.loanDuration)
-        
-//        self.enteredBy = AppState.shared.user!
-//        self.updatedBy = AppState.shared.user!
-//        self.enteredDate = Date()
-//        self.updatedDate = Date()
-        
-        self.enteredBy = AppState.shared.getUserBy(id: Int(entity.enteredByID)) ?? AppState.shared.user!
-        self.updatedBy = AppState.shared.getUserBy(id: Int(entity.updatedByID)) ?? AppState.shared.user!
-        self.enteredDate = entity.enteredDate ?? Date()
-        self.updatedDate = entity.updatedDate ?? Date()
-        
-        self.holderOne = AppState.shared.getUserBy(id: Int(entity.holderOneID))
-        self.holderTwo = AppState.shared.getUserBy(id: Int(entity.holderTwoID))
-        self.holderThree = AppState.shared.getUserBy(id: Int(entity.holderThreeID))
-        self.holderFour = AppState.shared.getUserBy(id: Int(entity.holderFourID))
-        
-        if Int(entity.holderOneTypeID) != 0 {
-            self.holderOneType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: Int(entity.holderOneTypeID))
-        }
-        if Int(entity.holderTwoTypeID) != 0 {
-            self.holderTwoType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: Int(entity.holderTwoTypeID))
-        }
-        if Int(entity.holderThreeTypeID) != 0 {
-            self.holderThreeType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: Int(entity.holderThreeTypeID))
-        }
-        if Int(entity.holderFourTypeID) != 0 {
-            self.holderFourType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: Int(entity.holderFourTypeID))
-        }
-        
-        
-        self.isHidden = entity.isHidden
-        self.isPrivate = entity.isPrivate
-        //self.logo = entity.logo?.photoData
-        
-        self.listOrder = Int(entity.listOrder)
-        self.recentTransactionCount = Int(entity.recentTransactionCount)
-        
-        
-        /// Fetch the logo from core data and store it in the image cache.
-        let pred1 = NSPredicate(format: "relatedID == %@", id)
-        let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id))
-        let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
-        
-        let context = DataManager.shared.createContext()
-        if let perLogo = DataManager.shared.getOne(
-            context: context,
-            type: PersistentLogo.self,
-            predicate: .compound(comp),
-            createIfNotFound: false
-        ) {
-            self.logo = perLogo.photoData
-            
-            if ImageCache.shared.loadFromCache(
-                parentTypeId: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id,
-                parentId: entity.id!,
-                id: entity.id!
-            ) == nil {
-                if let data = perLogo.photoData {
-                    Task {
-                        await ImageCache.shared.saveToCache(
-                            parentTypeId: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id,
-                            parentId: entity.id!,
-                            id: entity.id!,
-                            data: data
-                        )
-                    }
-                }
-            }
-        }
-    }
+//    init(entity: PersistentPaymentMethod) {
+//        self.id = entity.id!
+//        self.title = entity.title ?? ""
+//        self.dueDateString = String(entity.dueDate)
+//        
+//        
+//        self.limitString = entity.limit.currencyWithDecimals()
+//        
+//        self.accountType = AccountType(rawValue: Int(entity.accountType)) ?? .checking
+//        self.color = Color.fromHex(entity.hexCode) ?? .clear
+//        //self.color = Color.fromName(entity.hexCode ?? "white")
+//        self.action = .edit
+//        self.isViewingDefault = entity.isViewingDefault
+//        self.isEditingDefault = entity.isEditingDefault
+//        self.active = true
+//        self.notificationOffset = Int(entity.notificationOffset)
+//        self.notifyOnDueDate = entity.notifyOnDueDate
+//        self.last4 = entity.last4
+//        self.interestRateString = String(entity.interestRate)
+//        self.loanDurationString = String(entity.loanDuration)
+//        
+////        self.enteredBy = AppState.shared.user!
+////        self.updatedBy = AppState.shared.user!
+////        self.enteredDate = Date()
+////        self.updatedDate = Date()
+//        
+//        self.enteredBy = AppState.shared.getUserBy(id: Int(entity.enteredByID)) ?? AppState.shared.user!
+//        self.updatedBy = AppState.shared.getUserBy(id: Int(entity.updatedByID)) ?? AppState.shared.user!
+//        self.enteredDate = entity.enteredDate ?? Date()
+//        self.updatedDate = entity.updatedDate ?? Date()
+//        
+//        self.holderOne = AppState.shared.getUserBy(id: Int(entity.holderOneID))
+//        self.holderTwo = AppState.shared.getUserBy(id: Int(entity.holderTwoID))
+//        self.holderThree = AppState.shared.getUserBy(id: Int(entity.holderThreeID))
+//        self.holderFour = AppState.shared.getUserBy(id: Int(entity.holderFourID))
+//        
+//        if Int(entity.holderOneTypeID) != 0 {
+//            self.holderOneType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: Int(entity.holderOneTypeID))
+//        }
+//        if Int(entity.holderTwoTypeID) != 0 {
+//            self.holderTwoType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: Int(entity.holderTwoTypeID))
+//        }
+//        if Int(entity.holderThreeTypeID) != 0 {
+//            self.holderThreeType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: Int(entity.holderThreeTypeID))
+//        }
+//        if Int(entity.holderFourTypeID) != 0 {
+//            self.holderFourType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: Int(entity.holderFourTypeID))
+//        }
+//        
+//        
+//        self.isHidden = entity.isHidden
+//        self.isPrivate = entity.isPrivate
+//        //self.logo = entity.logo?.photoData
+//        
+//        self.listOrder = Int(entity.listOrder)
+//        self.recentTransactionCount = Int(entity.recentTransactionCount)
+//        
+//        
+//        /// Fetch the logo from core data and store it in the image cache.
+//        let pred1 = NSPredicate(format: "relatedID == %@", id)
+//        let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id))
+//        let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
+//        
+//        let context = DataManager.shared.createContext()
+//        if let perLogo = DataManager.shared.getOne(
+//            context: context,
+//            type: PersistentLogo.self,
+//            predicate: .compound(comp),
+//            createIfNotFound: false
+//        ) {
+//            self.logo = perLogo.photoData
+//            
+//            if ImageCache.shared.loadFromCache(
+//                parentTypeId: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id,
+//                parentId: entity.id!,
+//                id: entity.id!
+//            ) == nil {
+//                if let data = perLogo.photoData {
+//                    Task {
+//                        await ImageCache.shared.saveToCache(
+//                            parentTypeId: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id,
+//                            parentId: entity.id!,
+//                            id: entity.id!,
+//                            data: data
+//                        )
+//                    }
+//                }
+//            }
+//        }
+//    }
     
     /// Send the current year to the server when updating a payment method for 1 use case:
     /// If the method goes from private to public, update the starting amount records so the long poll will push them to other users on the account.
@@ -364,138 +364,234 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     }
     
     
+//    required init(from decoder: Decoder) throws {
+//        let container = try decoder.container(keyedBy: CodingKeys.self)
+//        
+//        do {
+//            id = try String(container.decode(Int.self, forKey: .id))
+//        } catch {
+//            id = try container.decode(String.self, forKey: .id)
+//        }
+//        
+//        
+//        title = try container.decode(String.self, forKey: .title)
+//        
+//        let dueDate = try container.decode(Int?.self, forKey: .due_date)
+//        self.dueDateString = String(dueDate ?? 0)
+//        
+//        let limit = try container.decode(Double?.self, forKey: .limit)
+//        
+//        self.limitString = limit?.currencyWithDecimals()
+//        
+//        let accountType = try container.decode(Int.self, forKey: .account_type_id)
+//        self.accountType = AccountType(rawValue: accountType) ?? .checking
+//        
+//        let hexCode = try container.decode(String?.self, forKey: .hex_code)
+//        self.color = Color.fromHex(hexCode) ?? .primary
+//        //let colorDescription = try container.decode(String?.self, forKey: .hex_code)
+//        //self.color = Color.fromName(colorDescription ?? "white")
+//        
+//        
+//        
+//        let isViewingDefault = try container.decode(Int?.self, forKey: .is_viewing_default)
+//        self.isViewingDefault = isViewingDefault == 1
+//        
+//        let isEditingDefault = try container.decode(Int?.self, forKey: .is_editing_default)
+//        self.isEditingDefault = isEditingDefault == 1
+//        
+//        let isHidden = try container.decode(Int?.self, forKey: .is_hidden)
+//        self.isHidden = isHidden == 1
+//        
+//        let isPrivate = try container.decode(Int?.self, forKey: .is_private)
+//        self.isPrivate = isPrivate == 1
+//        
+//        let isActive = try container.decode(Int?.self, forKey: .active)
+//        self.active = isActive == 1
+//        
+////        let offset = try container.decode(Int?.self, forKey: .notification_offset)
+////        if offset == nil {
+////            self.notificationOffset = 0
+////        } else {
+////            self.notificationOffset = offset
+////        }
+//        
+//        
+//        let offset = try container.decode(Int?.self, forKey: .notification_offset)
+//        if let offset {
+//            self.notificationOffset = offset
+//        } else {
+//            self.notificationOffset = 0
+//        }
+//        
+//        let notifyOnDueDate = try container.decode(Int?.self, forKey: .notify_on_due_date)
+//        self.notifyOnDueDate = notifyOnDueDate == 1
+//        
+//        self.last4 = try container.decode(String?.self, forKey: .last_4_digits)
+//        //self.logo = try container.decode(String?.self, forKey: .logo)
+//        holderOne = try container.decode(CBUser?.self, forKey: .holder_one)
+//        holderTwo = try container.decode(CBUser?.self, forKey: .holder_two)
+//        holderThree = try container.decode(CBUser?.self, forKey: .holder_three)
+//        holderFour = try container.decode(CBUser?.self, forKey: .holder_four)
+//        
+//        let holderOneTypeID = try container.decode(Int?.self, forKey: .holder_one_type_id)
+//        let holderTwoTypeID = try container.decode(Int?.self, forKey: .holder_two_type_id)
+//        let holderThreeTypeID = try container.decode(Int?.self, forKey: .holder_three_type_id)
+//        let holderFourTypeID = try container.decode(Int?.self, forKey: .holder_four_type_id)
+//                
+//        if let holderOneTypeID { holderOneType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: holderOneTypeID) }
+//        if let holderTwoTypeID { holderTwoType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: holderTwoTypeID) }
+//        if let holderThreeTypeID { holderThreeType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: holderThreeTypeID) }
+//        if let holderFourTypeID { holderFourType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: holderFourTypeID) }
+//        
+//        //self.interestRate = try container.decode(Double?.self, forKey: .interest_rate)
+//        //self.loanDuration = try container.decode(Int?.self, forKey: .loan_duration)
+//        
+//        if let interestRate = try container.decode(Double?.self, forKey: .interest_rate) {
+//            self.interestRateString = String(interestRate)
+//        }
+//        
+//        if let loanDuration = try container.decode(Double?.self, forKey: .loan_duration) {
+//            self.loanDurationString = String(loanDuration)
+//        }
+//        
+//        action = .edit
+//        
+//        enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
+//        updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
+//        
+//        let enteredDate = try container.decode(String?.self, forKey: .entered_date)
+//        if let enteredDate {
+//            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime)!
+//        } else {
+//            fatalError("Could not determine enteredDate date")
+//        }
+//        
+//        let updatedDate = try container.decode(String?.self, forKey: .updated_date)
+//        if let updatedDate {
+//            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
+//        } else {
+//            fatalError("Could not determine updatedDate date")
+//        }
+//                
+//        self.breakdowns = try container.decodeIfPresent(Array<PayMethodMonthlyBreakdown>.self, forKey: .breakdowns) ?? []
+//                        
+//        let pred1 = NSPredicate(format: "relatedID == %@", self.id)
+//        let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id))
+//        let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
+//        
+//        /// Fetch the logo out of core data since the encoded strings can be heavy and I don't want to use Async Image for every logo.
+//        let context = DataManager.shared.createContext()
+//        if let logo = DataManager.shared.getOne(
+//           context: context,
+//           type: PersistentLogo.self,
+//           predicate: .compound(comp),
+//           createIfNotFound: false
+//        ) {
+//            self.logo = logo.photoData
+//        }
+//        
+//        
+//        
+//        listOrder = try container.decode(Int?.self, forKey: .list_order)
+//        
+//        recentTransactionCount = try container.decodeIfPresent(Int.self, forKey: .transaction_count) ?? 0
+//    }
+    
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        
+
         do {
             id = try String(container.decode(Int.self, forKey: .id))
         } catch {
             id = try container.decode(String.self, forKey: .id)
         }
-        
-        
+
         title = try container.decode(String.self, forKey: .title)
-        
-        let dueDate = try container.decode(Int?.self, forKey: .due_date)
-        self.dueDateString = String(dueDate ?? 0)
-        
-        let limit = try container.decode(Double?.self, forKey: .limit)
-        
-        self.limitString = limit?.currencyWithDecimals()
-        
+        dueDateString = String(try container.decode(Int?.self, forKey: .due_date) ?? 0)
+        limitString = (try container.decode(Double?.self, forKey: .limit))?.currencyWithDecimals()
+
         let accountType = try container.decode(Int.self, forKey: .account_type_id)
         self.accountType = AccountType(rawValue: accountType) ?? .checking
-        
-        let hexCode = try container.decode(String?.self, forKey: .hex_code)
-        self.color = Color.fromHex(hexCode) ?? .primary
-        //let colorDescription = try container.decode(String?.self, forKey: .hex_code)
-        //self.color = Color.fromName(colorDescription ?? "white")
-        
-        
-        
-        let isViewingDefault = try container.decode(Int?.self, forKey: .is_viewing_default)
-        self.isViewingDefault = isViewingDefault == 1
-        
-        let isEditingDefault = try container.decode(Int?.self, forKey: .is_editing_default)
-        self.isEditingDefault = isEditingDefault == 1
-        
-        let isHidden = try container.decode(Int?.self, forKey: .is_hidden)
-        self.isHidden = isHidden == 1
-        
-        let isPrivate = try container.decode(Int?.self, forKey: .is_private)
-        self.isPrivate = isPrivate == 1
-        
-        let isActive = try container.decode(Int?.self, forKey: .active)
-        self.active = isActive == 1
-        
-//        let offset = try container.decode(Int?.self, forKey: .notification_offset)
-//        if offset == nil {
-//            self.notificationOffset = 0
-//        } else {
-//            self.notificationOffset = offset
-//        }
-        
-        
-        let offset = try container.decode(Int?.self, forKey: .notification_offset)
-        if let offset {
-            self.notificationOffset = offset
-        } else {
-            self.notificationOffset = 0
-        }
-        
-        let notifyOnDueDate = try container.decode(Int?.self, forKey: .notify_on_due_date)
-        self.notifyOnDueDate = notifyOnDueDate == 1
-        
-        self.last4 = try container.decode(String?.self, forKey: .last_4_digits)
-        //self.logo = try container.decode(String?.self, forKey: .logo)
+
+        color = Color.fromHex(try container.decode(String?.self, forKey: .hex_code)) ?? .primary
+        isViewingDefault = (try container.decode(Int?.self, forKey: .is_viewing_default)) == 1
+        isEditingDefault = (try container.decode(Int?.self, forKey: .is_editing_default)) == 1
+        isHidden = (try container.decode(Int?.self, forKey: .is_hidden)) == 1
+        isPrivate = (try container.decode(Int?.self, forKey: .is_private)) == 1
+        active = (try container.decode(Int?.self, forKey: .active)) == 1
+
+        notificationOffset = try container.decode(Int?.self, forKey: .notification_offset) ?? 0
+        notifyOnDueDate = (try container.decode(Int?.self, forKey: .notify_on_due_date)) == 1
+        last4 = try container.decode(String?.self, forKey: .last_4_digits)
+
         holderOne = try container.decode(CBUser?.self, forKey: .holder_one)
         holderTwo = try container.decode(CBUser?.self, forKey: .holder_two)
         holderThree = try container.decode(CBUser?.self, forKey: .holder_three)
         holderFour = try container.decode(CBUser?.self, forKey: .holder_four)
-        
-        let holderOneTypeID = try container.decode(Int?.self, forKey: .holder_one_type_id)
-        let holderTwoTypeID = try container.decode(Int?.self, forKey: .holder_two_type_id)
-        let holderThreeTypeID = try container.decode(Int?.self, forKey: .holder_three_type_id)
-        let holderFourTypeID = try container.decode(Int?.self, forKey: .holder_four_type_id)
-                
-        if let holderOneTypeID { holderOneType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: holderOneTypeID) }
-        if let holderTwoTypeID { holderTwoType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: holderTwoTypeID) }
-        if let holderThreeTypeID { holderThreeType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: holderThreeTypeID) }
-        if let holderFourTypeID { holderFourType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: holderFourTypeID) }
-        
-        //self.interestRate = try container.decode(Double?.self, forKey: .interest_rate)
-        //self.loanDuration = try container.decode(Int?.self, forKey: .loan_duration)
-        
+
+        if let id = try container.decode(Int?.self, forKey: .holder_one_type_id) { holderOneType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: id) }
+        if let id = try container.decode(Int?.self, forKey: .holder_two_type_id) { holderTwoType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: id) }
+        if let id = try container.decode(Int?.self, forKey: .holder_three_type_id) { holderThreeType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: id) }
+        if let id = try container.decode(Int?.self, forKey: .holder_four_type_id) { holderFourType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: id) }
+
         if let interestRate = try container.decode(Double?.self, forKey: .interest_rate) {
-            self.interestRateString = String(interestRate)
+            interestRateString = String(interestRate)
         }
-        
         if let loanDuration = try container.decode(Double?.self, forKey: .loan_duration) {
-            self.loanDurationString = String(loanDuration)
+            loanDurationString = String(loanDuration)
         }
-        
+
         action = .edit
-        
         enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
         updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
-        
-        let enteredDate = try container.decode(String?.self, forKey: .entered_date)
-        if let enteredDate {
-            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime)!
+
+        if let enteredDate = try container.decode(String?.self, forKey: .entered_date) {
+            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime) ?? Date()
         } else {
-            fatalError("Could not determine enteredDate date")
+            self.enteredDate = Date()
         }
-        
-        let updatedDate = try container.decode(String?.self, forKey: .updated_date)
-        if let updatedDate {
-            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
+
+        if let updatedDate = try container.decode(String?.self, forKey: .updated_date) {
+            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime) ?? Date()
         } else {
-            fatalError("Could not determine updatedDate date")
+            self.updatedDate = Date()
         }
-                
-        self.breakdowns = try container.decodeIfPresent(Array<PayMethodMonthlyBreakdown>.self, forKey: .breakdowns) ?? []
-                        
-        let pred1 = NSPredicate(format: "relatedID == %@", self.id)
-        let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id))
-        let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
-        
-        /// Fetch the logo out of core data since the encoded strings can be heavy and I don't want to use Async Image for every logo.
-        let context = DataManager.shared.createContext()
-        if let logo = DataManager.shared.getOne(
-           context: context,
-           type: PersistentLogo.self,
-           predicate: .compound(comp),
-           createIfNotFound: false
-        ) {
-            self.logo = logo.photoData
-        }
-        
-        
-        
+
+        breakdowns = try container.decodeIfPresent([PayMethodMonthlyBreakdown].self, forKey: .breakdowns) ?? []
+
+        // Do not hit Core Data here.
+        logo = try container.decodeIfPresent(Data.self, forKey: .logo)
+
         listOrder = try container.decode(Int?.self, forKey: .list_order)
-        
         recentTransactionCount = try container.decodeIfPresent(Int.self, forKey: .transaction_count) ?? 0
     }
+
+    
+    
+    @MainActor
+    func loadLogoFromCacheIfNeeded() async {
+        guard logo == nil else { return }
+
+        let context = DataManager.shared.createContext()
+        let logoData: Data? = await DataManager.shared.perform(context: context) {
+            let pred1 = NSPredicate(format: "relatedID == %@", self.id)
+            let pred2 = NSPredicate(
+                format: "relatedTypeID == %@",
+                NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id)
+            )
+            let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
+
+            return DataManager.shared.getOne(
+                context: context,
+                type: PersistentLogo.self,
+                predicate: .compound(comp),
+                createIfNotFound: false
+            )?.photoData
+        }
+
+        self.logo = logoData
+    }
+
     
     
     func getAmount(for date: Date) -> Double? {
@@ -699,5 +795,172 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
+    }
+}
+
+
+extension CBPaymentMethod {
+    struct Snapshot: Sendable {
+        let id: String
+        let title: String
+        let dueDate: Int64
+        let limit: Double
+        let accountType: Int
+        let hexCode: String?
+        let isViewingDefault: Bool
+        let isEditingDefault: Bool
+        let notificationOffset: Int64
+        let notifyOnDueDate: Bool
+        let last4: String?
+        let interestRate: Double
+        let loanDuration: Int64
+
+        let enteredByID: Int64
+        let updatedByID: Int64
+        let enteredDate: Date?
+        let updatedDate: Date?
+
+        let holderOneID: Int64
+        let holderTwoID: Int64
+        let holderThreeID: Int64
+        let holderFourID: Int64
+
+        let holderOneTypeID: Int64
+        let holderTwoTypeID: Int64
+        let holderThreeTypeID: Int64
+        let holderFourTypeID: Int64
+
+        let isHidden: Bool
+        let isPrivate: Bool
+        let listOrder: Int64
+        let recentTransactionCount: Int64
+
+        let logoData: Data?
+    }
+    
+    
+    @MainActor
+    convenience init(snapshot s: Snapshot) {
+        self.init()
+
+        self.id = s.id
+        self.title = s.title
+        self.dueDateString = String(s.dueDate)
+        self.limitString = s.limit.currencyWithDecimals()
+        self.accountType = AccountType(rawValue: s.accountType) ?? .checking
+        self.color = Color.fromHex(s.hexCode) ?? .clear
+        self.action = .edit
+        self.isViewingDefault = s.isViewingDefault
+        self.isEditingDefault = s.isEditingDefault
+        self.active = true
+        self.notificationOffset = Int(s.notificationOffset)
+        self.notifyOnDueDate = s.notifyOnDueDate
+        self.last4 = s.last4
+        self.interestRateString = String(s.interestRate)
+        self.loanDurationString = String(s.loanDuration)
+
+        self.enteredBy = AppState.shared.getUserBy(id: Int(s.enteredByID)) ?? AppState.shared.user!
+        self.updatedBy = AppState.shared.getUserBy(id: Int(s.updatedByID)) ?? AppState.shared.user!
+        self.enteredDate = s.enteredDate ?? Date()
+        self.updatedDate = s.updatedDate ?? Date()
+
+        self.holderOne = AppState.shared.getUserBy(id: Int(s.holderOneID))
+        self.holderTwo = AppState.shared.getUserBy(id: Int(s.holderTwoID))
+        self.holderThree = AppState.shared.getUserBy(id: Int(s.holderThreeID))
+        self.holderFour = AppState.shared.getUserBy(id: Int(s.holderFourID))
+
+        if Int(s.holderOneTypeID) != 0 {
+            self.holderOneType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: Int(s.holderOneTypeID))
+        }
+        if Int(s.holderTwoTypeID) != 0 {
+            self.holderTwoType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: Int(s.holderTwoTypeID))
+        }
+        if Int(s.holderThreeTypeID) != 0 {
+            self.holderThreeType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: Int(s.holderThreeTypeID))
+        }
+        if Int(s.holderFourTypeID) != 0 {
+            self.holderFourType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: Int(s.holderFourTypeID))
+        }
+
+        self.isHidden = s.isHidden
+        self.isPrivate = s.isPrivate
+        self.listOrder = Int(s.listOrder)
+        self.recentTransactionCount = Int(s.recentTransactionCount)
+        self.logo = s.logoData
+
+        if let data = s.logoData,
+           ImageCache.shared.loadFromCache(
+               parentTypeId: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id,
+               parentId: s.id,
+               id: s.id
+           ) == nil {
+            Task {
+                await ImageCache.shared.saveToCache(
+                    parentTypeId: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id,
+                    parentId: s.id,
+                    id: s.id,
+                    data: data
+                )
+            }
+        }
+    }
+    
+    
+    @MainActor
+    static func loadFromCoreData(id: String) async -> CBPaymentMethod? {
+        let snapshot = await CBPaymentMethod.createSnapshotFromCoreData(id: id)
+        guard let snapshot else { return nil }
+        return CBPaymentMethod(snapshot: snapshot)
+    }
+    
+    
+    @MainActor
+    static func createSnapshotFromCoreData(id: String) async -> CBPaymentMethod.Snapshot? {
+        let context = DataManager.shared.createContext()
+
+        return await DataManager.shared.perform(context: context) {
+            guard let entity = DataManager.shared.getOne(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(id)), createIfNotFound: false) else { return nil }
+
+            let logoTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id
+            let perdicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                NSPredicate(format: "relatedID == %@", entity.id ?? id),
+                NSPredicate(format: "relatedTypeID == %@", NSNumber(value: logoTypeID))
+            ])
+
+            let logo = DataManager.shared.getOne(context: context, type: PersistentLogo.self, predicate: .compound(perdicate), createIfNotFound: false)?.photoData
+
+            return Snapshot(
+                id: entity.id ?? "0",
+                title: entity.title ?? "",
+                dueDate: entity.dueDate,
+                limit: entity.limit,
+                accountType: Int(entity.accountType),
+                hexCode: entity.hexCode,
+                isViewingDefault: entity.isViewingDefault,
+                isEditingDefault: entity.isEditingDefault,
+                notificationOffset: entity.notificationOffset,
+                notifyOnDueDate: entity.notifyOnDueDate,
+                last4: entity.last4,
+                interestRate: entity.interestRate,
+                loanDuration: entity.loanDuration,
+                enteredByID: entity.enteredByID,
+                updatedByID: entity.updatedByID,
+                enteredDate: entity.enteredDate,
+                updatedDate: entity.updatedDate,
+                holderOneID: entity.holderOneID,
+                holderTwoID: entity.holderTwoID,
+                holderThreeID: entity.holderThreeID,
+                holderFourID: entity.holderFourID,
+                holderOneTypeID: entity.holderOneTypeID,
+                holderTwoTypeID: entity.holderTwoTypeID,
+                holderThreeTypeID: entity.holderThreeTypeID,
+                holderFourTypeID: entity.holderFourTypeID,
+                isHidden: entity.isHidden,
+                isPrivate: entity.isPrivate,
+                listOrder: entity.listOrder,
+                recentTransactionCount: entity.recentTransactionCount,
+                logoData: logo
+            )
+        }
     }
 }

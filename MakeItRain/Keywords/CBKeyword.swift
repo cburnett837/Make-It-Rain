@@ -56,32 +56,32 @@ class CBKeyword: Codable, Identifiable {
         self.updatedDate = Date()
     }
     
-    init(entity: PersistentKeyword) {
-        self.id = entity.id!
-        self.keyword = entity.keyword ?? ""
-        self.renameTo = entity.renameTo
-        self.triggerType = KeywordTriggerType(rawValue: entity.triggerType ?? "") ?? .contains
-        
-        if let categoryEntity = entity.category {
-            self.category = CBCategory(entity: categoryEntity)
-        } else {
-            self.category = CBCategory()
-        }
-                
-        self.action = .edit
-        self.active = true
-        self.action = KeywordAction.fromString(entity.action!)
-        //self.enteredBy = AppState.shared.user!
-        //self.updatedBy = AppState.shared.user!
-        //self.enteredDate = Date()
-        //self.updatedDate = Date()
-        
-        self.enteredBy = AppState.shared.getUserBy(id: Int(entity.enteredByID)) ?? AppState.shared.user!
-        self.updatedBy = AppState.shared.getUserBy(id: Int(entity.updatedByID)) ?? AppState.shared.user!
-        self.enteredDate = entity.enteredDate ?? Date()
-        self.updatedDate = entity.updatedDate ?? Date()
-        self.isIgnoredSuggestion = entity.isIgnoredSuggestion
-    }
+//    init(entity: PersistentKeyword) {
+//        self.id = entity.id!
+//        self.keyword = entity.keyword ?? ""
+//        self.renameTo = entity.renameTo
+//        self.triggerType = KeywordTriggerType(rawValue: entity.triggerType ?? "") ?? .contains
+//        
+//        if let categoryEntity = entity.category {
+//            self.category = CBCategory(entity: categoryEntity)
+//        } else {
+//            self.category = CBCategory()
+//        }
+//                
+//        self.action = .edit
+//        self.active = true
+//        self.action = KeywordAction.fromString(entity.action!)
+//        //self.enteredBy = AppState.shared.user!
+//        //self.updatedBy = AppState.shared.user!
+//        //self.enteredDate = Date()
+//        //self.updatedDate = Date()
+//        
+//        self.enteredBy = AppState.shared.getUserBy(id: Int(entity.enteredByID)) ?? AppState.shared.user!
+//        self.updatedBy = AppState.shared.getUserBy(id: Int(entity.updatedByID)) ?? AppState.shared.user!
+//        self.enteredDate = entity.enteredDate ?? Date()
+//        self.updatedDate = entity.updatedDate ?? Date()
+//        self.isIgnoredSuggestion = entity.isIgnoredSuggestion
+//    }
     
 //    init(entity: TempKeyword) {
 //        self.id = entity.id!
@@ -271,3 +271,77 @@ extension CBKeyword: Equatable, Hashable {
 //        static var updatedDate = Column(CodingKeys.updated_date)
 //    }
 //}
+
+
+import CoreData
+
+extension CBKeyword {
+    struct Snapshot: Sendable {
+        let id: String
+        let keyword: String
+        let renameTo: String?
+        let triggerTypeRaw: String
+        let actionRaw: String
+        let enteredByID: Int
+        let updatedByID: Int
+        let enteredDate: Date?
+        let updatedDate: Date?
+        let isIgnoredSuggestion: Bool
+        let categoryID: String?
+    }
+
+    @MainActor
+    convenience init(snapshot s: Snapshot, category: CBCategory?) {
+        self.init()
+        self.id = s.id
+        self.keyword = s.keyword
+        self.renameTo = s.renameTo
+        self.triggerType = KeywordTriggerType(rawValue: s.triggerTypeRaw) ?? .contains
+        self.category = category ?? CBCategory()
+        self.active = true
+        self.action = KeywordAction.fromString(s.actionRaw)
+        self.enteredBy = AppState.shared.getUserBy(id: s.enteredByID) ?? AppState.shared.user!
+        self.updatedBy = AppState.shared.getUserBy(id: s.updatedByID) ?? AppState.shared.user!
+        self.enteredDate = s.enteredDate ?? Date()
+        self.updatedDate = s.updatedDate ?? Date()
+        self.isIgnoredSuggestion = s.isIgnoredSuggestion
+    }
+
+    @MainActor
+    static func loadFromCoreData(id: String) async -> CBKeyword? {
+        let context = DataManager.shared.createContext()
+
+        let snapshot: Snapshot? = await DataManager.shared.perform(context: context) {
+            guard let entity = DataManager.shared.getOne(
+                context: context,
+                type: PersistentKeyword.self,
+                predicate: .byId(.string(id)),
+                createIfNotFound: false
+            ) else { return nil }
+
+            return Snapshot(
+                id: entity.id ?? "0",
+                keyword: entity.keyword ?? "",
+                renameTo: entity.renameTo,
+                triggerTypeRaw: entity.triggerType ?? KeywordTriggerType.contains.rawValue,
+                actionRaw: entity.action ?? KeywordAction.edit.rawValue,
+                enteredByID: Int(entity.enteredByID),
+                updatedByID: Int(entity.updatedByID),
+                enteredDate: entity.enteredDate,
+                updatedDate: entity.updatedDate,
+                isIgnoredSuggestion: entity.isIgnoredSuggestion,
+                categoryID: entity.category?.id
+            )
+        }
+
+        guard let snapshot else { return nil }
+
+        let category: CBCategory? = if let categoryID = snapshot.categoryID {
+            await CBCategory.loadFromCoreData(id: categoryID)
+        } else {
+            nil
+        }
+
+        return CBKeyword(snapshot: snapshot, category: category)
+    }
+}

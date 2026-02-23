@@ -446,7 +446,7 @@ struct DayViewPhone: View {
             }
                                     
             
-            print("Transaction id to copy: \(trans.id) - \(trans.uuid) - \(trans.serverID)")
+            print("Transaction id to copy: \(trans.id) - \(String(describing: trans.uuid)) - \(trans.serverID)")
             
             calModel.transactionToCopy = trans
             calModel.transactionIdToCopy = trans.id

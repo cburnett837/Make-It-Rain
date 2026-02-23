@@ -7,7 +7,7 @@
 
 import Foundation
 import SwiftUI
-
+import CoreData
 
 @Observable
 class CBCategory: Codable, Identifiable, Hashable, Equatable {
@@ -73,43 +73,43 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
     }
     
     
-    init(entity: PersistentCategory) {
-        self.id = entity.id!
-        self.title = entity.title ?? ""
-        self.color = Color.fromHex(entity.hexCode) ?? .clear
-        //self.color = Color.fromName(entity.hexCode ?? "white")
-        if entity.isNil {
-            self.emoji = nil
-        } else {
-            self.emoji = entity.emoji ?? ""
-        }
-        
-        self.active = true
-        self.action = CategoryAction.fromString(entity.action!)
-        
-        self.amountString = entity.amount.currencyWithDecimals()
-        //#warning("remove this when Laura installs")
-        //self.type = XrefModel.getItem(from: .categoryTypes, byID: Int(entity.typeID) == 0 ? 27 : Int(entity.typeID))
-        self.type = XrefModel.getItem(from: .categoryTypes, byID: Int(entity.typeID))
-        self.listOrder = Int(entity.listOrder)
-        
-//        self.enteredBy = AppState.shared.user!
-//        self.updatedBy = AppState.shared.user!
-//        self.enteredDate = Date()
-//        self.updatedDate = Date()
-        
-        self.enteredBy = AppState.shared.getUserBy(id: Int(entity.enteredByID)) ?? AppState.shared.user!
-        self.updatedBy = AppState.shared.getUserBy(id: Int(entity.updatedByID)) ?? AppState.shared.user!
-        self.enteredDate = entity.enteredDate ?? Date()
-        self.updatedDate = entity.updatedDate ?? Date()
-                                
-        self.isNil = entity.isNil
-        self.isHidden = entity.isHidden
-        if let key = entity.appSuiteKey {
-            self.appSuiteKey = AppSuiteKey.fromString(key)
-        }
-        
-    }
+//    init(entity: PersistentCategory) {
+//        self.id = entity.id!
+//        self.title = entity.title ?? ""
+//        self.color = Color.fromHex(entity.hexCode) ?? .clear
+//        //self.color = Color.fromName(entity.hexCode ?? "white")
+//        if entity.isNil {
+//            self.emoji = nil
+//        } else {
+//            self.emoji = entity.emoji ?? ""
+//        }
+//        
+//        self.active = true
+//        self.action = CategoryAction.fromString(entity.action!)
+//        
+//        self.amountString = entity.amount.currencyWithDecimals()
+//        //#warning("remove this when Laura installs")
+//        //self.type = XrefModel.getItem(from: .categoryTypes, byID: Int(entity.typeID) == 0 ? 27 : Int(entity.typeID))
+//        self.type = XrefModel.getItem(from: .categoryTypes, byID: Int(entity.typeID))
+//        self.listOrder = Int(entity.listOrder)
+//        
+////        self.enteredBy = AppState.shared.user!
+////        self.updatedBy = AppState.shared.user!
+////        self.enteredDate = Date()
+////        self.updatedDate = Date()
+//        
+//        self.enteredBy = AppState.shared.getUserBy(id: Int(entity.enteredByID)) ?? AppState.shared.user!
+//        self.updatedBy = AppState.shared.getUserBy(id: Int(entity.updatedByID)) ?? AppState.shared.user!
+//        self.enteredDate = entity.enteredDate ?? Date()
+//        self.updatedDate = entity.updatedDate ?? Date()
+//                                
+//        self.isNil = entity.isNil
+//        self.isHidden = entity.isHidden
+//        if let key = entity.appSuiteKey {
+//            self.appSuiteKey = AppSuiteKey.fromString(key)
+//        }
+//        
+//    }
     
     
     /// For Christmas or other special events
@@ -350,5 +350,85 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
     
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
+    }
+}
+
+
+
+extension CBCategory {
+    struct Snapshot: Sendable {
+        let id: String
+        let title: String
+        let hexCode: String?
+        let emoji: String?
+        let actionRaw: String
+        let amount: Double
+        let typeID: Int
+        let listOrder: Int?
+        let enteredByID: Int
+        let updatedByID: Int
+        let enteredDate: Date?
+        let updatedDate: Date?
+        let isNil: Bool
+        let isHidden: Bool
+        let appSuiteKeyRaw: String?
+    }
+
+    
+    @MainActor
+    convenience init(snapshot s: Snapshot) {
+        self.init()
+        self.id = s.id
+        self.title = s.title
+        self.color = Color.fromHex(s.hexCode) ?? .clear
+        self.emoji = s.isNil ? nil : (s.emoji ?? "")
+        self.active = true
+        self.action = CategoryAction.fromString(s.actionRaw)
+        self.amountString = s.amount.currencyWithDecimals()
+        self.type = XrefModel.getItem(from: .categoryTypes, byID: s.typeID)
+        self.listOrder = s.listOrder
+        self.enteredBy = AppState.shared.getUserBy(id: s.enteredByID) ?? AppState.shared.user!
+        self.updatedBy = AppState.shared.getUserBy(id: s.updatedByID) ?? AppState.shared.user!
+        self.enteredDate = s.enteredDate ?? Date()
+        self.updatedDate = s.updatedDate ?? Date()
+        self.isNil = s.isNil
+        self.isHidden = s.isHidden
+        if let raw = s.appSuiteKeyRaw { self.appSuiteKey = AppSuiteKey.fromString(raw) }
+    }
+
+    
+    @MainActor
+    static func loadFromCoreData(id: String) async -> CBCategory? {
+        let snapshot = await CBCategory.createSnapshotFromCoreData(id: id)
+        guard let snapshot else { return nil }
+        return CBCategory(snapshot: snapshot)
+    }
+    
+    
+    @MainActor
+    static func createSnapshotFromCoreData(id: String) async -> CBCategory.Snapshot? {
+        let context = DataManager.shared.createContext()
+
+        return await DataManager.shared.perform(context: context) {
+            guard let entity = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(id)), createIfNotFound: false) else { return nil }
+
+            return Snapshot(
+                id: entity.id ?? "0",
+                title: entity.title ?? "",
+                hexCode: entity.hexCode,
+                emoji: entity.emoji,
+                actionRaw: entity.action ?? CategoryAction.edit.rawValue,
+                amount: entity.amount,
+                typeID: Int(entity.typeID),
+                listOrder: Int(entity.listOrder),
+                enteredByID: Int(entity.enteredByID),
+                updatedByID: Int(entity.updatedByID),
+                enteredDate: entity.enteredDate,
+                updatedDate: entity.updatedDate,
+                isNil: entity.isNil,
+                isHidden: entity.isHidden,
+                appSuiteKeyRaw: entity.appSuiteKey
+            )
+        }
     }
 }

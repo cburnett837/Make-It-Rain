@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24299" systemVersion="24G419" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24299" systemVersion="24G517" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
     <entity name="PersistentCategory" representedClassName="PersistentCategory" syncable="YES" codeGenerationType="class">
         <attribute name="action" optional="YES" attributeType="String"/>
         <attribute name="amount" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
@@ -137,18 +137,10 @@
         <attribute name="trackingNumber" optional="YES" attributeType="String"/>
         <attribute name="updatedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="url" optional="YES" attributeType="String"/>
-        <relationship name="logs" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="TempTransactionLog" inverseName="transaction" inverseEntity="TempTransactionLog"/>
         <uniquenessConstraints>
             <uniquenessConstraint>
                 <constraint value="id"/>
             </uniquenessConstraint>
         </uniquenessConstraints>
-    </entity>
-    <entity name="TempTransactionLog" representedClassName="TempTransactionLog" syncable="YES" codeGenerationType="class">
-        <attribute name="field" optional="YES" attributeType="String"/>
-        <attribute name="newValue" optional="YES" attributeType="String"/>
-        <attribute name="oldValue" optional="YES" attributeType="String"/>
-        <attribute name="transactionID" optional="YES" attributeType="String"/>
-        <relationship name="transaction" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="TempTransaction" inverseName="logs" inverseEntity="TempTransaction"/>
     </entity>
 </model>

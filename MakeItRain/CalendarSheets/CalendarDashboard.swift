@@ -554,7 +554,7 @@ struct CalendarDashboard: View {
                             x: .value("Amount", item.chartPercentage),
                             y: .value("Budget", item.category.title)
                         )
-                        .foregroundStyle(getColor(for: item.category, withOpacity: false) ?? .primary)
+                        .foregroundStyle(getColor(for: item.category, withOpacity: false))
                     }
                     
                     BarMark(

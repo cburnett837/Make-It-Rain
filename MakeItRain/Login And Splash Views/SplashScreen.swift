@@ -12,7 +12,7 @@ import SpriteKit
 struct SplashScreen: View {
     @AppStorage("shouldWarmUpTransactionViewDuringSplash") var shouldWarmUpTransactionViewDuringSplash: Bool = false
 
-    
+    @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) var calModel
 
     @State private var logoScale: Double = 1
@@ -22,21 +22,14 @@ struct SplashScreen: View {
 //    @State private var showLoadingSpinner = false
     @State private var showSlowLoadingButton = false
     @State private var warmUpTransactionView = false
+    @State private var waitToGoToMainViewTask: Task<Void, Never>? = nil
 
     
     var body: some View {
         ZStack {
             rainingDollars
-            
-//            VStack {
-                makeItRainLogo
-                    .frame(maxHeight: .infinity, alignment: .center)
-                
-//                ProgressView().tint(.none)
-//                    .opacity(showLoadingSpinner ? 1 : 0)
-//            }
-            
-            
+            makeItRainLogo
+                .frame(maxHeight: .infinity, alignment: .center)
         }
         .overlay {
             if showSlowLoadingButton {
@@ -48,6 +41,22 @@ struct SplashScreen: View {
         }
         .onReceive(timer) { _ in
             showOfflineButton()
+        }
+        .onChange(of: AppState.shared.hasBadConnection) {
+            if !$1 {
+                AppState.shared.shouldShowSplash = false
+                showSlowLoadingButton = false
+                waitToShowMainApp()
+                Task {
+                    if AuthState.shared.isLoggedIn {
+                        funcModel.downloadInitial()
+                    } else {
+                        if await AuthState.shared.loginViaKeychain() {
+                            funcModel.downloadInitial()
+                        }
+                    }
+                }
+            }
         }
         .onDisappear {
             timer.upstream.connect().cancel()
@@ -102,6 +111,7 @@ struct SplashScreen: View {
             Text("Connecting is taking longer than expected…")
             Button("Offline Mode") {
                 AuthState.shared.loginTask?.cancel()
+                waitToGoToMainViewTask?.cancel()
                 withAnimation {
                     AuthState.shared.isThinking = false
                     AuthState.shared.isLoggedIn = false
@@ -154,7 +164,7 @@ struct SplashScreen: View {
     
     
     func waitToShowMainApp() {
-        Task { @MainActor in
+        self.waitToGoToMainViewTask = Task { @MainActor in
             if shouldWarmUpTransactionViewDuringSplash {
                 /// Let the transaction view warm up
                 try? await Task.sleep(for: .milliseconds(1500))
@@ -166,9 +176,16 @@ struct SplashScreen: View {
             while attempts < maxAttempts {
                 attempts += 1
                 
+                if let task = waitToGoToMainViewTask, task.isCancelled { return }
+                
                 //print(AppState.shared.shouldShowSplash, AuthState.shared.isThinking, AuthState.shared.isLoggedIn, AuthState.shared.keychainCredentialsExist)
                 
-                if !AppState.shared.shouldShowSplash && !AuthState.shared.isThinking && (AuthState.shared.isLoggedIn || !AuthState.shared.keychainCredentialsExist) { break }
+                
+                print("Should be all 'true'", !AppState.shared.shouldShowSplash, !AuthState.shared.isThinking, (AuthState.shared.isLoggedIn || !AuthState.shared.keychainCredentialsExist))
+                
+                if !AppState.shared.shouldShowSplash && !AuthState.shared.isThinking && (AuthState.shared.isLoggedIn || !AuthState.shared.keychainCredentialsExist) {
+                    break
+                }
 
                 try? await Task.sleep(for: .milliseconds(500))
             }
@@ -177,9 +194,7 @@ struct SplashScreen: View {
 
             if success {
                 #if os(iOS)
-                if AppState.shared.isIphone,
-                AuthState.shared.isLoggedIn,
-                !AppState.shared.showPaymentMethodNeededSheet {
+                if AppState.shared.isIphone, AuthState.shared.isLoggedIn, !AppState.shared.showPaymentMethodNeededSheet {
                     calModel.showMonth = true
                 }
                 #endif
@@ -206,7 +221,6 @@ struct SplashScreen: View {
         
         self.timer.upstream.connect().cancel()
     }
-    
 }
 
 

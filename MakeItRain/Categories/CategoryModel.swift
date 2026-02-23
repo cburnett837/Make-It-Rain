@@ -260,10 +260,6 @@ class CategoryModel {
         case .failure(let error):
             LogManager.error(error.localizedDescription)
             AppState.shared.showAlert("There was a problem trying to add the new budgets to the server.")
-            //showSaveAlert = true
-            #warning("Undo behavior")
-            //let listActivity = activities.filter { $0.id == activity.id }.first ?? DailyActivity.emptyActivity
-            //listActivity.deepCopy(.restore)
             
             /// End the background task.
             #if os(iOS)
@@ -740,6 +736,7 @@ class CategoryModel {
     
     /// Updated for concurrency rules.
     @MainActor
+    @discardableResult
     func submit(_ category: CBCategory) async -> Bool {
         print("-- \(#function)")
         /// Allow more time to save if the user enters the background.
@@ -915,6 +912,7 @@ class CategoryModel {
     
     
     @MainActor
+    @discardableResult
     func submit(_ group: CBCategoryGroup) async -> Bool {
         print("-- \(#function)")
         /// Allow more time to save if the user enters the background.
@@ -1198,9 +1196,7 @@ class CategoryModel {
                 LogManager.error(error.localizedDescription)
                 AppState.shared.showAlert("There was a problem trying to fetch the analytics.")
                 return nil
-            }
-            //showSaveAlert = true
-            #warning("Undo behavior")
+            }            
         }
         //LoadingManager.shared.stopDelayedSpinner()
     }

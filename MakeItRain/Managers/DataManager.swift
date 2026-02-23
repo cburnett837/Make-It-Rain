@@ -238,6 +238,16 @@ class DataManager {
     }
     
     
+    func perform<T>(context: NSManagedObjectContext, _ work: @escaping () -> T) async -> T {
+        await withCheckedContinuation { continuation in
+            context.perform {
+                continuation.resume(returning: work())
+            }
+        }
+    }
+
+    
+    
 //    func deleteAllOG<T: NSManagedObject>(context: NSManagedObjectContext, for entity: T.Type, predicate: Predicate? = nil) async {
 //        await withCheckedContinuation { continuation in
 //            context.perform {

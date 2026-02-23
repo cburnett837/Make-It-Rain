@@ -116,7 +116,7 @@ class PayMethodModel {
         let accountType = Int64(payMethod.accountType.rawValue)
         let hexCode = payMethod.color.toHex()
         let isViewingDefault = payMethod.isViewingDefault
-        let notificationOffset = Int64(payMethod.notificationOffset ?? 0)
+        let notificationOffset = Int64(payMethod.notificationOffset)
         let notifyOnDueDate = payMethod.notifyOnDueDate
         let last4 = payMethod.last4
         let interestRate = payMethod.interestRate ?? 0
@@ -249,7 +249,7 @@ class PayMethodModel {
                         let hexCode = payMethod.color.toHex()
                         let isViewingDefault = payMethod.isViewingDefault
                         let isEditingDefault = payMethod.isEditingDefault
-                        let notificationOffset = Int64(payMethod.notificationOffset ?? 0)
+                        let notificationOffset = Int64(payMethod.notificationOffset)
                         let notifyOnDueDate = payMethod.notifyOnDueDate
                         let last4 = payMethod.last4
                         let interestRate = payMethod.interestRate ?? 0
@@ -279,6 +279,10 @@ class PayMethodModel {
 //                        if calModel.sPayMethod == nil && payMethod.isViewingDefault {
 //                            calModel.sPayMethod = payMethod
 //                        }
+                        
+                        
+                        /// Load the logo from coredata
+                        await payMethod.loadLogoFromCacheIfNeeded()
                         
                         let index = paymentMethods.firstIndex(where: { $0.id == payMethod.id })
                         if let index {
@@ -375,6 +379,7 @@ class PayMethodModel {
     
     
     @MainActor
+    @discardableResult
     func submit(_ payMethod: CBPaymentMethod) async -> Bool {
         print("-- \(#function)")
                 
@@ -394,7 +399,7 @@ class PayMethodModel {
         let accountType = Int64(payMethod.accountType.rawValue)
         let hexCode = payMethod.color.toHex()
         let isViewingDefault = payMethod.isViewingDefault
-        let notificationOffset = Int64(payMethod.notificationOffset ?? 0)
+        let notificationOffset = Int64(payMethod.notificationOffset)
         let notifyOnDueDate = payMethod.notifyOnDueDate
         let last4 = payMethod.last4
         let interestRate = payMethod.interestRate ?? 0

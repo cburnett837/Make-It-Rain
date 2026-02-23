@@ -129,23 +129,48 @@ class CBPlaidBank: Codable, Identifiable, Equatable, Hashable, CanHandleLogo {
         if let lastTimeICheckedPlaidSyncedDate {
             self.lastTimeICheckedPlaidSyncedDate = lastTimeICheckedPlaidSyncedDate.toDateObj(from: .serverDateTime)!
         }
-        
-        //logo = try container.decode(String?.self, forKey: .logo)
-        
-        let pred1 = NSPredicate(format: "relatedID == %@", self.id)
-        let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .plaidBank).id))
-        let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
-        
-        /// Fetch the logo out of core data since the encoded strings can be heavy and I don't want to use Async Image for every logo.
+//        
+//        //logo = try container.decode(String?.self, forKey: .logo)
+//        
+//        let pred1 = NSPredicate(format: "relatedID == %@", self.id)
+//        let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .plaidBank).id))
+//        let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
+//        
+//        /// Fetch the logo out of core data since the encoded strings can be heavy and I don't want to use Async Image for every logo.
+//        let context = DataManager.shared.createContext()
+//        if let logo = DataManager.shared.getOne(
+//           context: context,
+//           type: PersistentLogo.self,
+//           predicate: .compound(comp),
+//           createIfNotFound: false
+//        ) {
+//            self.logo = logo.photoData
+//        }
+    }
+    
+    
+    @MainActor
+    func loadLogoFromCacheIfNeeded() async {
+        guard logo == nil else { return }
+
         let context = DataManager.shared.createContext()
-        if let logo = DataManager.shared.getOne(
-           context: context,
-           type: PersistentLogo.self,
-           predicate: .compound(comp),
-           createIfNotFound: false
-        ) {
-            self.logo = logo.photoData
+        let logoData: Data? = await DataManager.shared.perform(context: context) {
+            let pred1 = NSPredicate(format: "relatedID == %@", self.id)
+            let pred2 = NSPredicate(
+                format: "relatedTypeID == %@",
+                NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .plaidBank).id)
+            )
+            let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
+
+            return DataManager.shared.getOne(
+                context: context,
+                type: PersistentLogo.self,
+                predicate: .compound(comp),
+                createIfNotFound: false
+            )?.photoData
         }
+
+        self.logo = logoData
     }
         
     

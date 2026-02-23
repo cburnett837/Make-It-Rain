@@ -137,25 +137,6 @@ class CBLog: Codable, Identifiable, Transferable, Equatable, Hashable {
         self.groupID = groupID
     }
     
-    init(transEntity: TempTransactionLog, groupID: String) {
-        //self.isFromCoreData = true
-        let uuid = UUID().uuidString
-        self.id = uuid
-        self.uuid = uuid
-        self.itemID = transEntity.transactionID!
-        self.logType = .transaction
-        self.field = LogField(rawValue: transEntity.field ?? "")!
-        self.old = transEntity.oldValue
-        self.new = transEntity.newValue
-        self.active = true
-        self.enteredBy = AppState.shared.user!
-        self.updatedBy = AppState.shared.user!
-        self.enteredDate = Date()
-        self.updatedDate = Date()
-        
-        self.groupID = groupID
-    }
-    
     
     enum CodingKeys: CodingKey { case id, uuid, item_id, log_type, field, old, new, active, user_id, account_id, device_uuid, entered_by, updated_by, entered_date, updated_date, group_id }
     
@@ -220,20 +201,7 @@ class CBLog: Codable, Identifiable, Transferable, Equatable, Hashable {
         
         groupID = try container.decode(String.self, forKey: .group_id)
     }
-    
-    
-    func createCoreDataEntity(context: NSManagedObjectContext) async -> TempTransactionLog? {
-        let context = DataManager.shared.createContext()
-        guard let entity = DataManager.shared.createBlank(context: context, type: TempTransactionLog.self) else { return nil }
-        entity.field = field.rawValue
-        entity.oldValue = old
-        entity.newValue = new
-        entity.transactionID = itemID
-        return entity
         
-    }
- 
-    
     static func == (lhs: CBLog, rhs: CBLog) -> Bool {
         if lhs.id == rhs.id
         && lhs.uuid == rhs.uuid
@@ -260,4 +228,3 @@ class CBLog: Codable, Identifiable, Transferable, Equatable, Hashable {
         CodableRepresentation(contentType: .transaction)
     }
 }
-

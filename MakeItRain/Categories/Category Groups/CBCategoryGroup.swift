@@ -52,29 +52,29 @@ class CBCategoryGroup: Codable, Identifiable, Hashable, Equatable {
         self.updatedDate = Date()
     }
     
-    init(entity: PersistentCategoryGroup) {
-        self.id = entity.id!
-        self.title = entity.title ?? ""
-        self.active = true
-        self.action = CategoryGroupAction.fromString(entity.action!)
-        
-        self.amountString = entity.amount.currencyWithDecimals()
-        //#warning("remove this when Laura installs")
-        
-        self.enteredBy = AppState.shared.getUserBy(id: Int(entity.enteredByID)) ?? AppState.shared.user!
-        self.updatedBy = AppState.shared.getUserBy(id: Int(entity.updatedByID)) ?? AppState.shared.user!
-        self.enteredDate = entity.enteredDate ?? Date()
-        self.updatedDate = entity.updatedDate ?? Date()
-                            
-        
-        if let set = entity.categories as? Set<PersistentCategory> {
-            self.categories = set
-                .map { CBCategory(entity: $0) }
-                .sorted { $0.listOrder ?? 0 < $1.listOrder ?? 0 }
-        } else {
-            self.categories = []
-        }                        
-    }
+//    init(entity: PersistentCategoryGroup) {
+//        self.id = entity.id!
+//        self.title = entity.title ?? ""
+//        self.active = true
+//        self.action = CategoryGroupAction.fromString(entity.action!)
+//        
+//        self.amountString = entity.amount.currencyWithDecimals()
+//        //#warning("remove this when Laura installs")
+//        
+//        self.enteredBy = AppState.shared.getUserBy(id: Int(entity.enteredByID)) ?? AppState.shared.user!
+//        self.updatedBy = AppState.shared.getUserBy(id: Int(entity.updatedByID)) ?? AppState.shared.user!
+//        self.enteredDate = entity.enteredDate ?? Date()
+//        self.updatedDate = entity.updatedDate ?? Date()
+//                            
+//        
+//        if let set = entity.categories as? Set<PersistentCategory> {
+//            self.categories = set
+//                .map { CBCategory(entity: $0) }
+//                .sorted { $0.listOrder ?? 0 < $1.listOrder ?? 0 }
+//        } else {
+//            self.categories = []
+//        }                        
+//    }
     
     
     func encode(to encoder: Encoder) throws {
@@ -201,5 +201,83 @@ class CBCategoryGroup: Codable, Identifiable, Hashable, Equatable {
     
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
+    }
+}
+
+
+import CoreData
+
+extension CBCategoryGroup {
+    struct Snapshot: Sendable {
+        let id: String
+        let title: String
+        let amount: Double
+        let actionRaw: String
+        let enteredByID: Int
+        let updatedByID: Int
+        let enteredDate: Date?
+        let updatedDate: Date?
+        let categoryIDs: [String]
+    }
+
+    @MainActor
+    convenience init(snapshot s: Snapshot, categories: [CBCategory]) {
+        self.init()
+        self.id = s.id
+        self.title = s.title
+        self.active = true
+        self.action = CategoryGroupAction.fromString(s.actionRaw)
+        self.amountString = s.amount.currencyWithDecimals()
+        self.enteredBy = AppState.shared.getUserBy(id: s.enteredByID) ?? AppState.shared.user!
+        self.updatedBy = AppState.shared.getUserBy(id: s.updatedByID) ?? AppState.shared.user!
+        self.enteredDate = s.enteredDate ?? Date()
+        self.updatedDate = s.updatedDate ?? Date()
+        self.categories = categories.sorted { ($0.listOrder ?? 0) < ($1.listOrder ?? 0) }
+    }
+
+    @MainActor
+    static func loadFromCoreData(id: String) async -> CBCategoryGroup? {
+        let context = DataManager.shared.createContext()
+
+        let snapshot: Snapshot? = await DataManager.shared.perform(context: context) {
+            guard let entity = DataManager.shared.getOne(
+                context: context,
+                type: PersistentCategoryGroup.self,
+                predicate: .byId(.string(id)),
+                createIfNotFound: false
+            ) else { return nil }
+
+            let categoryIDs: [String]
+            if let set = entity.categories as? Set<PersistentCategory> {
+                categoryIDs = set.compactMap(\.id)
+            } else {
+                categoryIDs = []
+            }
+
+            return Snapshot(
+                id: entity.id ?? "0",
+                title: entity.title ?? "",
+                amount: entity.amount,
+                actionRaw: entity.action ?? CategoryGroupAction.edit.rawValue,
+                enteredByID: Int(entity.enteredByID),
+                updatedByID: Int(entity.updatedByID),
+                enteredDate: entity.enteredDate,
+                updatedDate: entity.updatedDate,
+                categoryIDs: categoryIDs
+            )
+        }
+
+        guard let snapshot else { return nil }
+
+        var categories: [CBCategory] = []
+        categories.reserveCapacity(snapshot.categoryIDs.count)
+
+        for categoryID in snapshot.categoryIDs {
+            if let category = await CBCategory.loadFromCoreData(id: categoryID) {
+                categories.append(category)
+            }
+        }
+
+        return CBCategoryGroup(snapshot: snapshot, categories: categories)
     }
 }

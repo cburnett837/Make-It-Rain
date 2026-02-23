@@ -45,7 +45,10 @@ struct TempTransactionList: View {
                     ContentUnavailableView("Problem Connecting To Server", systemImage: "network.slash", description: Text("You can add transactions here, and they will attempt to sync the next time you open the app."))
                 } else {
                     List(filteredTransactions, selection: $transEditID) { trans in
-                        TransactionListLine(trans: trans, withDate: true) {}
+                        VStack {
+                            Text("ID: \(trans.id)")
+                            TransactionListLine(trans: trans, withDate: true) {}
+                        }
                     }
                 }
             }
@@ -223,37 +226,12 @@ struct TempTransactionList: View {
                 entity.updatedDate = trans.updatedDate
                 //entity.files = trans.files
                 entity.factorInCalculations = trans.factorInCalculations
-                entity.notificationOffset = Int64(trans.notificationOffset ?? 0)
+                entity.notificationOffset = Int64(trans.notificationOffset)
                 entity.notifyOnDueDate = trans.notifyOnDueDate
                 entity.action = trans.action.rawValue
                 entity.tempAction = trans.tempAction.rawValue
                 entity.isPending = true
-                
-                
-                var set: Set<TempTransactionLog> = Set()
-                
-                for each in trans.logs {
-                    if let entity = DataManager.shared.createBlank(context: context, type: TempTransactionLog.self) {
-                        entity.field = each.field.rawValue
-                        entity.oldValue = each.old
-                        entity.newValue = each.new
-                        entity.transactionID = each.itemID
-                        set.insert(entity)
-                    }
-                }
-                entity.logs = NSSet(set: set)
-//                entity.logs = NSSet(set: Set(trans.logs.compactMap {
-//                    if let entity = DataManager.shared.createBlank(context: context, type: TempTransactionLog.self) {
-//                        entity.field = $0.field.rawValue
-//                        entity.oldValue = $0.old
-//                        entity.newValue = $0.new
-//                        entity.transactionID = $0.itemID
-//                        set.insert(entity)
-//                    }
-//                    
-//                }))
-                
-                
+                                                
                 let _ = DataManager.shared.save(context: context)
             }
         }
@@ -261,82 +239,114 @@ struct TempTransactionList: View {
     
     
     
+//    func fetchTransactionsFromCache() async {
+//        // Clear immediately on main actor
+//        await MainActor.run {
+//            withAnimation {
+//                calModel.tempTransactions.removeAll()
+//            }
+//        }
+//        
+//        let context = DataManager.shared.createContext()
+//        
+//        // Step 1 — Load everything in background
+//        let loadedTransactions: [CBTransaction] = await context.perform {
+//            
+//            var results: [CBTransaction] = []
+//            
+//            if let entities = DataManager.shared.getMany(context: context, type: TempTransaction.self) {
+//                for entity in entities {
+//                    var category: CBCategory?
+//                    var payMethod: CBPaymentMethod?
+//                    
+//                    if let categoryID = entity.categoryID,
+//                       let perCategory = DataManager.shared.getOne(
+//                           context: context,
+//                           type: PersistentCategory.self,
+//                           predicate: .byId(.string(categoryID)),
+//                           createIfNotFound: false
+//                       ) {
+//                        category = CBCategory(entity: perCategory)
+//                    }
+//                    
+//                    if let payMethodID = entity.payMethodID,
+//                       let perPayMethod = DataManager.shared.getOne(
+//                           context: context,
+//                           type: PersistentPaymentMethod.self,
+//                           predicate: .byId(.string(payMethodID)),
+//                           createIfNotFound: false
+//                       ) {
+//                        payMethod = CBPaymentMethod(entity: perPayMethod)
+//                    }
+//                    
+//                    
+//                    if let payMethod {
+//                        let trans = CBTransaction(entity: entity, payMethod: payMethod, category: category)
+//                        
+//                        if trans.action != .delete && trans.tempAction != .delete {
+//                            results.append(trans)
+//                        }
+//                    }
+//                }
+//            }
+//            
+//            return results
+//        }
+//        
+//        // Step 2 — Apply diffs back on the main actor
+//        await MainActor.run {
+//            withAnimation {
+//                for trans in loadedTransactions {
+//                    if let index = calModel.tempTransactions.firstIndex(where: { $0.id == trans.id }) {
+//                        calModel.tempTransactions[index].setFromAnotherInstance(transaction: trans)
+//                    } else {
+//                        calModel.tempTransactions.append(trans)
+//                    }
+//                }
+//            }
+//        }
+//    }
+//    
+    
     func fetchTransactionsFromCache() async {
-        // Clear immediately on main actor
-        await MainActor.run {
-            withAnimation {
-                calModel.tempTransactions.removeAll()
-            }
+        // Step 0: clear current temp list on main actor
+        withAnimation {
+            calModel.tempTransactions.removeAll()
         }
-        
+
         let context = DataManager.shared.createContext()
-        
-        // Step 1 — Load everything in background
-        let loadedTransactions: [CBTransaction] = await context.perform {
-            
-            var results: [CBTransaction] = []
-            
-            if let entities = DataManager.shared.getMany(context: context, type: TempTransaction.self) {
-                for entity in entities {
-                    var category: CBCategory?
-                    var payMethod: CBPaymentMethod?
-                    
-                    if let categoryID = entity.categoryID,
-                       let perCategory = DataManager.shared.getOne(
-                           context: context,
-                           type: PersistentCategory.self,
-                           predicate: .byId(.string(categoryID)),
-                           createIfNotFound: false
-                       ) {
-                        category = CBCategory(entity: perCategory)
-                    }
-                    
-                    if let payMethodID = entity.payMethodID,
-                       let perPayMethod = DataManager.shared.getOne(
-                           context: context,
-                           type: PersistentPaymentMethod.self,
-                           predicate: .byId(.string(payMethodID)),
-                           createIfNotFound: false
-                       ) {
-                        payMethod = CBPaymentMethod(entity: perPayMethod)
-                    }
-                    
-                    var logs: [CBLog] = []
-                    if let logEntities = entity.logs {
-                        let groupID = UUID().uuidString
-                        logEntities.forEach { e in
-                            logs.append(
-                                CBLog(transEntity: e as! TempTransactionLog, groupID: groupID)
-                            )
-                        }
-                    }
-                    
-                    if let payMethod {
-                        let trans = CBTransaction(entity: entity, payMethod: payMethod, category: category, logs: logs)
-                        
-                        if trans.action != .delete && trans.tempAction != .delete {
-                            results.append(trans)
-                        }
-                    }
-                }
-            }
-            
-            return results
+
+        // Step 1: pull only IDs from Core Data queue
+        let tempTransactionIDs: [String] = await DataManager.shared.perform(context: context) {
+            let entities = DataManager.shared.getMany(context: context, type: TempTransaction.self) ?? []
+            return entities.compactMap(\.id)
         }
-        
-        // Step 2 — Apply diffs back on the main actor
-        await MainActor.run {
-            withAnimation {
-                for trans in loadedTransactions {
-                    if let index = calModel.tempTransactions.firstIndex(where: { $0.id == trans.id }) {
-                        calModel.tempTransactions[index].setFromAnotherInstance(transaction: trans)
-                    } else {
-                        calModel.tempTransactions.append(trans)
-                    }
+
+        guard !tempTransactionIDs.isEmpty else { return }
+
+        // Step 2: rebuild models via loadFromCoreData pipeline
+        var loadedTransactions: [CBTransaction] = []
+        loadedTransactions.reserveCapacity(tempTransactionIDs.count)
+
+        for id in tempTransactionIDs {
+            guard let trans = await CBTransaction.loadFromCoreData(id: id) else { continue }
+            if trans.action != .delete && trans.tempAction != .delete {
+                loadedTransactions.append(trans)
+            }
+        }
+
+        // Step 3: apply diffs on main actor (already on @MainActor in FuncModel)
+        withAnimation {
+            for trans in loadedTransactions {
+                if let index = calModel.tempTransactions.firstIndex(where: { $0.id == trans.id }) {
+                    calModel.tempTransactions[index].setFromAnotherInstance(transaction: trans)
+                } else {
+                    calModel.tempTransactions.append(trans)
                 }
             }
         }
     }
+
     
 //    
 //    

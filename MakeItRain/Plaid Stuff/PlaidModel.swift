@@ -96,6 +96,9 @@ class PlaidModel {
         case .success(let model):
             if let model {
                 self.banks = model
+                for each in model {
+                    await each.loadLogoFromCacheIfNeeded()
+                }
             }
 
         case .failure(let error):
@@ -627,13 +630,13 @@ class PlaidModel {
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
         
         switch await result {
-        case .success(let model):
+        case .success:
             let currentElapsed = CFAbsoluteTimeGetCurrent() - start
             print("⏰It took \(currentElapsed) seconds to force sync plaid transactions for bankID \(bank.id).")
             
             AppState.shared.showAlert(title: "\(bank.title) Sync Initiated", subtitle: "You will be notified when new transactions are available")
             
-        case .failure (let error):
+        case .failure(let error):
             switch error {
             case .taskCancelled:
                 /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
@@ -665,7 +668,7 @@ class PlaidModel {
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
         
         switch await result {
-        case .success(let model):
+        case .success:
             let currentElapsed = CFAbsoluteTimeGetCurrent() - start
             print("⏰It took \(currentElapsed) seconds to fetch all available plaid transaction history for bankID \(bank.id).")
             

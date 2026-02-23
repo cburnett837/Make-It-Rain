@@ -1042,7 +1042,7 @@ class CalendarModel {
                 entity.updatedDate = trans.updatedDate
                 //entity.files = trans.files
                 entity.factorInCalculations = trans.factorInCalculations
-                entity.notificationOffset = Int64(trans.notificationOffset ?? 0)
+                entity.notificationOffset = Int64(trans.notificationOffset)
                 entity.notifyOnDueDate = trans.notifyOnDueDate
                 //entity.action = isNew ? "add" : trans.action.rawValue
                 entity.action = trans.action.rawValue
@@ -1279,10 +1279,6 @@ class CalendarModel {
         case .failure(let error):
             LogManager.error(error.localizedDescription)
             AppState.shared.showAlert("There was a problem trying to add multiple transactions.")
-            //showSaveAlert = true
-            #warning("Undo behavior")
-            //let listActivity = activities.filter { $0.id == activity.id }.first ?? DailyActivity.emptyActivity
-            //listActivity.deepCopy(.restore)
             
             for each in trans {
                 each.status = .saveFail
@@ -1536,7 +1532,6 @@ class CalendarModel {
             default:
                 LogManager.error(error.localizedDescription)
                 AppState.shared.showAlert("There was a problem trying to fetch suggested titles.")
-                #warning("Undo behavior")
             }
         }
     }
@@ -1589,7 +1584,6 @@ class CalendarModel {
             default:
                 LogManager.error(error.localizedDescription)
                 AppState.shared.showAlert("There was a problem trying to deny the smart transaction.")
-                #warning("Undo behavior")
             }
             /// End the background task.
             #if os(iOS)
@@ -2333,7 +2327,7 @@ class CalendarModel {
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
 
         switch await result {
-        case .success(let model):
+        case .success:
             LogManager.networkingSuccessful()
             
             /// End the background task.
@@ -3074,11 +3068,6 @@ class CalendarModel {
             case .failure(let error):
                 LogManager.error(error.localizedDescription)
                 AppState.shared.showAlert("There was a problem trying to save the starting amount.")
-                //showSaveAlert = true
-                #warning("Undo behavior")
-                //let listActivity = activities.filter { $0.id == activity.id }.first ?? DailyActivity.emptyActivity
-                //listActivity.deepCopy(.restore)
-                
                 /// End the background task.
                 #if os(iOS)
                 AppState.shared.endBackgroundTask(&backgroundTaskId)

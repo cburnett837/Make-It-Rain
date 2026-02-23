@@ -381,6 +381,7 @@ class KeywordModel {
     
     
     @MainActor
+    @discardableResult
     func submit(_ keyword: CBKeyword, file: String = #file, line: Int = #line, function: String = #function) async -> Bool {
         print("-- \(#function) -- Called from: \(file):\(line) : \(function)")
         

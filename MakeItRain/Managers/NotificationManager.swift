@@ -197,7 +197,7 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
             
             #warning("FIX ME")
             //date = nextDate(for: reminderDay, startDate: date)
-            date = nextDate(for: (payMethod.dueDate ?? 0) - (payMethod.notificationOffset ?? 0), startDate: date)
+            date = nextDate(for: (payMethod.dueDate ?? 0) - (payMethod.notificationOffset), startDate: date)
             let components = calendar.dateComponents(in: calendar.timeZone, from: date)
             
             let content = UNMutableNotificationContent()
