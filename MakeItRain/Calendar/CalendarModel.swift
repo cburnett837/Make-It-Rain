@@ -112,8 +112,8 @@ class CalendarModel {
     
     
     // MARK: - Fetch From Server
-    //@MainActor
-    nonisolated func fetchFromServer(month: CBMonth, createNewStructs: Bool, refreshTechnique: RefreshTechnique) async {
+    @MainActor
+    func fetchFromServer(month: CBMonth, createNewStructs: Bool, refreshTechnique: RefreshTechnique) async {
         print("-- \(#function) \(month.actualNum) \(month.year) -- \(Date())")
         LogManager.log()
         
@@ -129,7 +129,7 @@ class CalendarModel {
         
         switch await result {
         case .success(let model):
-            await MainActor.run {
+            //await MainActor.run {
                 LogManager.networkingSuccessful()
                 
                 #warning("need snapshot code")
@@ -137,7 +137,7 @@ class CalendarModel {
                     month.hasBeenPopulated = model.hasPopulated
                     
                     if !createNewStructs {
-                        self.handleTransactions(model.transactions, for: month, refreshTechnique: refreshTechnique)
+                        await self.handleTransactions(model.transactions, for: month, refreshTechnique: refreshTechnique)
                     } else {
                         for trans in model.transactions {
                             
@@ -153,6 +153,8 @@ class CalendarModel {
                                 }
                             }
                             
+                            await trans.payMethod?.loadLogoFromCoreDataIfNeeded()
+                            
                             let day = month.days.filter { $0.date == trans.date }.first
                             day?.transactions.append(trans)
                         }
@@ -160,6 +162,7 @@ class CalendarModel {
                     
                     for startingAmount in model.startingAmounts {
                         /// When navigation changes, a new `CBStartingAmount` that corresponds to `self.sPayMethod` gets added to the newly selected month. (for when we navigate to a month that does not yet have one on the server.)
+                        await startingAmount.payMethod.loadLogoFromCoreDataIfNeeded()
                         if month.startingAmounts.contains(where: { $0.payMethod.id == startingAmount.payMethod.id }) {
                             let index = month.startingAmounts.firstIndex(where: { $0.payMethod.id == startingAmount.payMethod.id })!
                             month.startingAmounts[index] = startingAmount
@@ -206,7 +209,7 @@ class CalendarModel {
                 
                 let currentElapsed = CFAbsoluteTimeGetCurrent() - start
                 print("⏰It took \(currentElapsed) seconds to fetch \(month.actualNum) \(month.year) -- \(Date())")
-            }
+            //}
             
         case .failure (let error):
             switch error {
@@ -469,7 +472,7 @@ class CalendarModel {
     }
     
     
-    func handleTransactions(_ transactions: Array<CBTransaction>, for month: CBMonth? = nil, refreshTechnique: RefreshTechnique?) {
+    func handleTransactions(_ transactions: Array<CBTransaction>, for month: CBMonth? = nil, refreshTechnique: RefreshTechnique?) async {
         let pendingSmartTransactionCount = tempTransactions.filter({ $0.isSmartTransaction ?? false }).count
         
         for incomingTrans in transactions {
@@ -478,6 +481,8 @@ class CalendarModel {
             let month = incomingTrans.dateComponents?.month
             let dayNum = incomingTrans.dateComponents?.day
             let year = incomingTrans.dateComponents?.year
+            
+            await incomingTrans.payMethod?.loadLogoFromCoreDataIfNeeded()
             
             
             var ogObject: CBTransaction?
@@ -838,9 +843,9 @@ class CalendarModel {
         return true
     }
   
-    
-    @discardableResult
+        
     @MainActor
+    @discardableResult
     func saveTransaction(id: String, /*day: CBDay? = nil,*/ location: WhereToLookForTransaction = .normalList) async -> Bool {
         //cleanTags()
                 
@@ -866,7 +871,7 @@ class CalendarModel {
             
             /// Go update the normal transaction list if changing that transaction via the smart list (temp list) or search result list.
             if location == .smartList || location == .searchResultList {
-                self.handleTransactions([trans], refreshTechnique: nil)
+                await self.handleTransactions([trans], refreshTechnique: nil)
             }
                                     
             var saveResultToReturn: Bool = false

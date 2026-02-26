@@ -30,7 +30,14 @@ struct LogoPickerRow<T: CanHandleLogo & Observation.Observable>: View {
                 }
             } else {
                 Menu {
-                    Button("Clear Logo") { parent.logo = nil }
+                    Button("Clear Logo") {
+                        parent.logo = nil
+                        ImageCache.shared.removeFromCache(
+                            parentTypeId: XrefModel.getItem(from: .logoTypes, byEnumID: parentType).id,
+                            parentId: parent.id,
+                            id: parent.id
+                        )
+                    }
                     Button("Change Logo") { showLogoSearchPage = true }
                 } label: {
                     logoLabel

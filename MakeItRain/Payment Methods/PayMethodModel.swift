@@ -282,7 +282,7 @@ class PayMethodModel {
                         
                         
                         /// Load the logo from coredata
-                        await payMethod.loadLogoFromCacheIfNeeded()
+                        await payMethod.loadLogoFromCoreDataIfNeeded()
                         
                         let index = paymentMethods.firstIndex(where: { $0.id == payMethod.id })
                         if let index {

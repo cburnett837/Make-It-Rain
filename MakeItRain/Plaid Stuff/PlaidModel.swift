@@ -392,8 +392,11 @@ class PlaidModel {
                     for each in trans {
                         //print(each.title)
                         activeIds.append(each.id)
-                        let index = self.trans.firstIndex(where: { $0.id == each.id })
-                        if let index {
+                        
+                        
+                        await each.payMethod?.loadLogoFromCoreDataIfNeeded()
+                        
+                        if let index = self.trans.firstIndex(where: { $0.id == each.id }){
                             /// If the trans is already in the list, update it from the server.
                             self.trans[index].setFromAnotherInstance(trans: each)
                         } else {

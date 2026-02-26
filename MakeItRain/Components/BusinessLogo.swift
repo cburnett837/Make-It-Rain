@@ -68,6 +68,7 @@ struct BusinessLogo: View {
                 }
             }
             .onChange(of: config.parent?.logo, initial: true) {
+                //print("Logo did change for business logo! \(config.parent?.id ?? "nil") - \(String(describing: config.parent?.logoParentType.enumID)), - \(config.parent?.logo)")
                 prepareLogo(data: config.parent?.logo)
             }
         } else {
@@ -125,7 +126,11 @@ struct BusinessLogo: View {
     #if os(iOS)
     
     func prepareLogo(data: Data?) {
-        if let cachedImage = ImageCache.shared.loadFromCache(
+        if data == nil {
+            //print("Blanking out image")
+            self.logo = nil
+            
+        } else if let cachedImage = ImageCache.shared.loadFromCache(
             parentTypeId: config.parent?.logoParentType.id,
             parentId: config.parent?.id,
             id: config.parent?.id
@@ -136,22 +141,21 @@ struct BusinessLogo: View {
         } else if let logoData = config.parent?.logo, let image = UIImage(data: logoData) {
             //print("need to cache image for \(config.parent?.logoParentType.id ?? 0)_\(config.parent?.id ?? "unknown")")
             self.logo = image
-            Task.detached {
-                await ImageCache.shared.saveToCache(
-                    parentTypeId: config.parent?.logoParentType.id,
-                    parentId: config.parent?.id,
-                    id: config.parent?.id,
-                    data: logoData
-                )
-            }
-            
-        } else {
-            self.logo = nil
+            ImageCache.shared.saveToCache(
+                parentTypeId: config.parent?.logoParentType.id,
+                parentId: config.parent?.id,
+                id: config.parent?.id,
+                data: logoData
+            )
         }
     }
     #else
     func prepareLogo(data: Data?) {
-        if let cachedImage = ImageCache.shared.loadFromCache(
+        if data == nil {
+            //print("Blanking out image")
+            self.logo = nil
+            
+        } else if let cachedImage = ImageCache.shared.loadFromCache(
             parentTypeId: config.parent?.logoParentType.id,
             parentId: config.parent?.id,
             id: config.parent?.id
@@ -162,14 +166,12 @@ struct BusinessLogo: View {
         } else if let logoData = config.parent?.logo, let image = NSImage(data: logoData) {
             //print("need to cache image for \(config.parent?.logoParentType.id ?? 0)_\(config.parent?.id ?? "unknown")")
             self.logo = image
-            Task.detached {
-                await ImageCache.shared.saveToCache(
-                    parentTypeId: config.parent?.logoParentType.id,
-                    parentId: config.parent?.id,
-                    id: config.parent?.id,
-                    data: logoData
-                )
-            }
+            ImageCache.shared.saveToCache(
+                parentTypeId: config.parent?.logoParentType.id,
+                parentId: config.parent?.id,
+                id: config.parent?.id,
+                data: logoData
+            )
             
         } else {
             self.logo = nil

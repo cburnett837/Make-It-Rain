@@ -38,23 +38,7 @@ class CategoryModel {
         return categories.firstIndex(where: { $0.id == category.id })
     }
         
-    func doesExist(_ group: CBCategoryGroup) -> Bool {
-        return !categoryGroups.filter { $0.id == group.id }.isEmpty
-    }
     
-    func getCategoryGroup(by id: String) -> CBCategoryGroup {
-        return categoryGroups.filter { $0.id == id }.first ?? CBCategoryGroup(uuid: id)
-    }
-    
-    func upsert(_ group: CBCategoryGroup) {
-        if !doesExist(group) {
-            categoryGroups.append(group)
-        }
-    }
-    
-    func getIndex(for group: CBCategoryGroup) -> Int? {
-        return categoryGroups.firstIndex(where: { $0.id == group.id })
-    }
     
     
     func getNil() -> CBCategory? {
@@ -190,36 +174,7 @@ class CategoryModel {
     }
     
     
-    func saveCategoryGroup(id: String) {
-        let group = getCategoryGroup(by: id)
-        
-        if group.action == .delete {
-            group.updatedBy = AppState.shared.user!
-            group.updatedDate = Date()
-            delete(group, andSubmit: true)
-            return
-        }
-                
-        if group.title.isEmpty {
-            /// User blanked out the title of an existing transaction.
-            if group.action == .edit {
-                group.title = group.deepCopy?.title ?? ""
-                AppState.shared.showAlert("Removing a title is not allowed. If you want to delete \(group.title), please use the delete button instead.")
-            } else {
-                /// Remove the dud that is in `.add` mode since it's being upserted into the list on creation.
-                withAnimation { categoryGroups.removeAll { $0.id == id } }
-            }
-            return
-        }
-                                                
-        if group.hasChanges() {
-            group.updatedBy = AppState.shared.user!
-            group.updatedDate = Date()
-            Task {
-                let _ = await submit(group)
-            }
-        }
-    }
+    
     
     
     @MainActor
@@ -669,69 +624,6 @@ class CategoryModel {
     
     
     
-    @MainActor
-    func fetchCategoryGroups(file: String = #file, line: Int = #line, function: String = #function) async {
-        NSLog("\(file):\(line) : \(function)")
-        LogManager.log()
-        
-        /// Do networking.
-        let model = RequestModel(requestType: "fetch_category_groups", model: AppState.shared.user)
-        typealias ResultResponse = Result<Array<CBCategoryGroup>?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
-        
-        switch await result {
-        case .success(let model):
-            
-            /// For testing bad network connection.
-            //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
-
-            LogManager.networkingSuccessful()
-            if let model {
-                if !model.isEmpty {
-                    var activeIds: Array<String> = []
-                    for group in model {
-                                                
-                        let _ = await self.updateCache(
-                            for: group,
-                            createIfNotFound: true,
-                            findById: group.id,
-                            action: group.action,
-                            isPending: false
-                        )
-                        
-                        activeIds.append(group.id)
-                        if let index = categoryGroups.firstIndex(where: { $0.id == group.id }) {
-                            /// If the category is already in the list, update it from the server.
-                            categoryGroups[index].setFromAnotherInstance(group: group)
-                        } else {
-                            /// Add the category to the list (like when the category was added on another device).
-                            categoryGroups.append(group)
-                        }
-                    }
-                    
-                    /// Delete from cache and model.
-                    for group in categoryGroups {
-                        if !activeIds.contains(group.id) {
-                            categoryGroups.removeAll { $0.id == group.id }
-                        }
-                    }
-            
-                } else {
-                    categoryGroups.removeAll()
-                }
-            }
-            
-        case .failure (let error):
-            switch error {
-            case .taskCancelled:
-                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
-                print("catModel fetchFrom Server Task Cancelled")
-            default:
-                LogManager.error(error.localizedDescription)
-                AppState.shared.showAlert("There was a problem trying to fetch the categories.")
-            }
-        }
-    }
     
     
     /// Updated for concurrency rules.
@@ -911,106 +803,7 @@ class CategoryModel {
     
     
     
-    @MainActor
-    @discardableResult
-    func submit(_ group: CBCategoryGroup) async -> Bool {
-        print("-- \(#function)")
-        /// Allow more time to save if the user enters the background.
-        #if os(iOS)
-        var backgroundTaskId = AppState.shared.beginBackgroundTask()
-        #endif
-        
-        isThinking = true
-        
-        let _ = await updateCache(
-            for: group,
-            createIfNotFound: true,
-            findById: group.id,
-            action: group.action,
-            isPending: true
-        )
-        
-        //LoadingManager.shared.startDelayedSpinner()
-        LogManager.log()
-        let model = RequestModel(requestType: group.action.serverKey, model: group)
-            
-        /// Used to test the snapshot data race
-        //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
-        
-        typealias ResultResponse = Result<ReturnIdModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
-                    
-        switch await result {
-        case .success(let model):
-            LogManager.networkingSuccessful()
-            //let _ = DataManager.shared.delete(type: TempCategory.self, predicate: .byId(.string(category.id)))
-            
-            /// Get the new ID from the server after adding a new activity.
-            if group.action != .delete {
-                
-                if group.action == .add {
-                    group.id = model?.id ?? "0"
-                }
-                
-                let _ = await updateCache(
-                    for: group,
-                    createIfNotFound: true,
-                    findById: (group.action == .add ? group.uuid : group.id) ?? "",
-                    action: group.action,
-                    isPending: false
-                )
-                
-                if group.action == .add {
-                    group.uuid = nil
-                    group.action = .edit
-                }
-                
-            } else {
-                /// Does so in its own perform block.
-                let context = DataManager.shared.createContext()
-                DataManager.shared.delete(context: context, type: PersistentCategoryGroup.self, predicate: .byId(.string(group.id)))
-            }
-            
-            isThinking = false
-            group.action = .edit
-            #if os(macOS)
-            fuckYouSwiftuiTableRefreshID = UUID()
-            #endif
-            
-            /// End the background task.
-            #if os(iOS)
-            AppState.shared.endBackgroundTask(&backgroundTaskId)
-            #endif
-            
-            return true
-            
-        case .failure(let error):
-            LogManager.error(error.localizedDescription)
-            AppState.shared.showAlert("There was a problem syncing the category. Will try again at a later time.")
-            //AppState.shared.showAlert("There was a problem trying to save the category.")
-//            category.deepCopy(.restore)
-//
-//            switch category.action {
-//            case .add: categories.removeAll { $0.id == category.id }
-//            case .edit: break
-//            case .delete: categories.append(category)
-//            }
-            
-            isThinking = false
-            group.action = .edit
-            #if os(macOS)
-            fuckYouSwiftuiTableRefreshID = UUID()
-            #endif
-            
-            /// End the background task.
-            #if os(iOS)
-            AppState.shared.endBackgroundTask(&backgroundTaskId)
-            #endif
-            return false
-        }
-        
-        
-    }
+    
     
     
     @MainActor
@@ -1138,20 +931,7 @@ class CategoryModel {
     }
     
     
-    func delete(_ group: CBCategoryGroup, andSubmit: Bool) {
-        group.action = .delete
-        group.deepCopy?.action = .delete
-        withAnimation { categoryGroups.removeAll { $0.id == group.id } }
-        
-        if andSubmit {
-            Task { @MainActor in
-                let _ = await submit(group)
-            }
-        } else {
-            let context = DataManager.shared.createContext()
-            DataManager.shared.delete(context: context, type: PersistentCategoryGroup.self, predicate: .byId(.string(group.id)))
-        }
-    }
+    
     
     
     func deleteAll() async {
@@ -1202,3 +982,237 @@ class CategoryModel {
     }
 }
 
+
+
+// MARK: - Groups
+extension CategoryModel {
+    func doesExist(_ group: CBCategoryGroup) -> Bool {
+        return !categoryGroups.filter { $0.id == group.id }.isEmpty
+    }
+    
+    func getCategoryGroup(by id: String) -> CBCategoryGroup {
+        return categoryGroups.filter { $0.id == id }.first ?? CBCategoryGroup(uuid: id)
+    }
+    
+    func upsert(_ group: CBCategoryGroup) {
+        if !doesExist(group) {
+            categoryGroups.append(group)
+        }
+    }
+    
+    func getIndex(for group: CBCategoryGroup) -> Int? {
+        return categoryGroups.firstIndex(where: { $0.id == group.id })
+    }
+    
+    func saveCategoryGroup(id: String) {
+        let group = getCategoryGroup(by: id)
+        
+        if group.action == .delete {
+            group.updatedBy = AppState.shared.user!
+            group.updatedDate = Date()
+            delete(group, andSubmit: true)
+            return
+        }
+                
+        if group.title.isEmpty {
+            /// User blanked out the title of an existing transaction.
+            if group.action == .edit {
+                group.title = group.deepCopy?.title ?? ""
+                AppState.shared.showAlert("Removing a title is not allowed. If you want to delete \(group.title), please use the delete button instead.")
+            } else {
+                /// Remove the dud that is in `.add` mode since it's being upserted into the list on creation.
+                withAnimation { categoryGroups.removeAll { $0.id == id } }
+            }
+            return
+        }
+                                                
+        if group.hasChanges() {
+            group.updatedBy = AppState.shared.user!
+            group.updatedDate = Date()
+            Task {
+                let _ = await submit(group)
+            }
+        }
+    }
+    
+    @MainActor
+    func fetchCategoryGroups(file: String = #file, line: Int = #line, function: String = #function) async {
+        NSLog("\(file):\(line) : \(function)")
+        LogManager.log()
+        
+        /// Do networking.
+        let model = RequestModel(requestType: "fetch_category_groups", model: AppState.shared.user)
+        typealias ResultResponse = Result<Array<CBCategoryGroup>?, AppError>
+        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+        
+        switch await result {
+        case .success(let model):
+            
+            /// For testing bad network connection.
+            //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
+
+            LogManager.networkingSuccessful()
+            if let model {
+                if !model.isEmpty {
+                    var activeIds: Array<String> = []
+                    for group in model {
+                                                
+                        let _ = await self.updateCache(
+                            for: group,
+                            createIfNotFound: true,
+                            findById: group.id,
+                            action: group.action,
+                            isPending: false
+                        )
+                        
+                        activeIds.append(group.id)
+                        if let index = categoryGroups.firstIndex(where: { $0.id == group.id }) {
+                            /// If the category is already in the list, update it from the server.
+                            categoryGroups[index].setFromAnotherInstance(group: group)
+                        } else {
+                            /// Add the category to the list (like when the category was added on another device).
+                            categoryGroups.append(group)
+                        }
+                    }
+                    
+                    /// Delete from cache and model.
+                    for group in categoryGroups {
+                        if !activeIds.contains(group.id) {
+                            categoryGroups.removeAll { $0.id == group.id }
+                        }
+                    }
+            
+                } else {
+                    categoryGroups.removeAll()
+                }
+            }
+            
+        case .failure (let error):
+            switch error {
+            case .taskCancelled:
+                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
+                print("catModel fetchFrom Server Task Cancelled")
+            default:
+                LogManager.error(error.localizedDescription)
+                AppState.shared.showAlert("There was a problem trying to fetch the categories.")
+            }
+        }
+    }
+    
+    
+    @MainActor
+    @discardableResult
+    func submit(_ group: CBCategoryGroup) async -> Bool {
+        print("-- \(#function)")
+        /// Allow more time to save if the user enters the background.
+        #if os(iOS)
+        var backgroundTaskId = AppState.shared.beginBackgroundTask()
+        #endif
+        
+        isThinking = true
+        
+        let _ = await updateCache(
+            for: group,
+            createIfNotFound: true,
+            findById: group.id,
+            action: group.action,
+            isPending: true
+        )
+        
+        //LoadingManager.shared.startDelayedSpinner()
+        LogManager.log()
+        let model = RequestModel(requestType: group.action.serverKey, model: group)
+            
+        /// Used to test the snapshot data race
+        //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
+        
+        typealias ResultResponse = Result<ReturnIdModel?, AppError>
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+                    
+        switch await result {
+        case .success(let model):
+            LogManager.networkingSuccessful()
+            //let _ = DataManager.shared.delete(type: TempCategory.self, predicate: .byId(.string(category.id)))
+            
+            /// Get the new ID from the server after adding a new activity.
+            if group.action != .delete {
+                
+                if group.action == .add {
+                    group.id = model?.id ?? "0"
+                }
+                
+                let _ = await updateCache(
+                    for: group,
+                    createIfNotFound: true,
+                    findById: (group.action == .add ? group.uuid : group.id) ?? "",
+                    action: group.action,
+                    isPending: false
+                )
+                
+                if group.action == .add {
+                    group.uuid = nil
+                    group.action = .edit
+                }
+                
+            } else {
+                /// Does so in its own perform block.
+                let context = DataManager.shared.createContext()
+                DataManager.shared.delete(context: context, type: PersistentCategoryGroup.self, predicate: .byId(.string(group.id)))
+            }
+            
+            isThinking = false
+            group.action = .edit
+            #if os(macOS)
+            fuckYouSwiftuiTableRefreshID = UUID()
+            #endif
+            
+            /// End the background task.
+            #if os(iOS)
+            AppState.shared.endBackgroundTask(&backgroundTaskId)
+            #endif
+            
+            return true
+            
+        case .failure(let error):
+            LogManager.error(error.localizedDescription)
+            AppState.shared.showAlert("There was a problem syncing the category. Will try again at a later time.")
+            //AppState.shared.showAlert("There was a problem trying to save the category.")
+//            category.deepCopy(.restore)
+//
+//            switch category.action {
+//            case .add: categories.removeAll { $0.id == category.id }
+//            case .edit: break
+//            case .delete: categories.append(category)
+//            }
+            
+            isThinking = false
+            group.action = .edit
+            #if os(macOS)
+            fuckYouSwiftuiTableRefreshID = UUID()
+            #endif
+            
+            /// End the background task.
+            #if os(iOS)
+            AppState.shared.endBackgroundTask(&backgroundTaskId)
+            #endif
+            return false
+        }
+        
+        
+    }
+    
+    func delete(_ group: CBCategoryGroup, andSubmit: Bool) {
+        group.action = .delete
+        group.deepCopy?.action = .delete
+        withAnimation { categoryGroups.removeAll { $0.id == group.id } }
+        
+        if andSubmit {
+            Task { @MainActor in
+                let _ = await submit(group)
+            }
+        } else {
+            let context = DataManager.shared.createContext()
+            DataManager.shared.delete(context: context, type: PersistentCategoryGroup.self, predicate: .byId(.string(group.id)))
+        }
+    }
+}

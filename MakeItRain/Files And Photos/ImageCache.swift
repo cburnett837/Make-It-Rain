@@ -27,7 +27,7 @@ class ImageCache {
         cache.totalCostLimit = 50 * 1024 * 1024
     }
         
-    func saveToCache(parentTypeId: Int?, parentId: String?, id: String?, data: Data) async {
+    func saveToCache(parentTypeId: Int?, parentId: String?, id: String?, data: Data) {
         #if os(iOS)
         if let parentTypeId = parentTypeId,
         let parentId = parentId,
@@ -36,6 +36,8 @@ class ImageCache {
             //print("Saving image to cache for key: \(key)")
             ImageCache.shared.cache.setObject(uiImage, forKey: NSString(string: key))
         }
+        
+        
         #else
         if let parentTypeId = parentTypeId,
         let parentId = parentId,
@@ -70,4 +72,13 @@ class ImageCache {
         return nil
     }
     #endif
+    
+    
+    
+    func removeFromCache(parentTypeId: Int?, parentId: String?, id: String?) {
+        if let parentTypeId = parentTypeId, let parentId = parentId {
+            let key = "\(parentTypeId)_\(parentId)_\(id ?? "")"
+            ImageCache.shared.cache.removeObject(forKey: NSString(string: key))
+        }
+    }
 }

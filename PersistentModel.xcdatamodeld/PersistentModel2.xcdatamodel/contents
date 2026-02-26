@@ -51,7 +51,6 @@
         <attribute name="updatedByID" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="updatedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <relationship name="category" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PersistentCategory" inverseName="keywords" inverseEntity="PersistentCategory"/>
-        <relationship name="group" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PersistentCategoryGroup"/>
         <uniquenessConstraints>
             <uniquenessConstraint>
                 <constraint value="id"/>

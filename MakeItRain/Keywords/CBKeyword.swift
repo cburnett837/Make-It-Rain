@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import CoreData
 
 @Observable
 class CBKeyword: Codable, Identifiable {
@@ -258,22 +259,6 @@ extension CBKeyword: Equatable, Hashable {
     }
 }
 
-//
-//extension CBKeyword: PersistableRecord, FetchableRecord {
-//    enum Columns {
-//        static var keyword = Column(CodingKeys.keyword)
-//        static var triggerType = Column(CodingKeys.trigger_type)
-//        static var categoryID = Column(CodingKeys.category_id)
-//        static var active = Column(CodingKeys.active)
-//        static var enteredBy = Column(CodingKeys.entered_by)
-//        static var updatedBy = Column(CodingKeys.updated_by)
-//        static var enteredDate = Column(CodingKeys.entered_date)
-//        static var updatedDate = Column(CodingKeys.updated_date)
-//    }
-//}
-
-
-import CoreData
 
 extension CBKeyword {
     struct Snapshot: Sendable {
@@ -287,7 +272,16 @@ extension CBKeyword {
         let enteredDate: Date?
         let updatedDate: Date?
         let isIgnoredSuggestion: Bool
+        
         let categoryID: String?
+        let categoryTitle: String?
+        let categoryAmount: Double?
+        let categoryHexCode: String?
+        let categoryEmoji: String?
+        
+        /// Extension contains inits for...
+        /// `init(_ keyword: CBKeyword) {}`
+        /// `init(_ entity: PersistentKeyword) {}`
     }
 
     @MainActor
@@ -306,18 +300,98 @@ extension CBKeyword {
         self.updatedDate = s.updatedDate ?? Date()
         self.isIgnoredSuggestion = s.isIgnoredSuggestion
     }
-
+    
+    
+    @discardableResult
+    func updateCoreData(action: KeywordAction, isPending: Bool, createIfNotFound: Bool) async -> Result<Bool, CoreDataError> {
+        let snapshot = CBKeyword.Snapshot(self)
+        let context = DataManager.shared.createContext()
+        
+        return await context.perform {
+            if let entity = DataManager.shared.getOne(context: context, type: PersistentKeyword.self, predicate: .byId(.string(snapshot.id)), createIfNotFound: createIfNotFound) {
+                entity.id = snapshot.id
+                entity.keyword = snapshot.keyword
+                entity.triggerType = snapshot.triggerTypeRaw
+                entity.action = action.rawValue
+                entity.isPending = isPending
+                entity.renameTo = snapshot.renameTo
+                entity.isIgnoredSuggestion = snapshot.isIgnoredSuggestion
+                entity.enteredByID = Int64(snapshot.enteredByID)
+                entity.updatedByID = Int64(snapshot.updatedByID)
+                entity.enteredDate = snapshot.enteredDate
+                entity.updatedDate = snapshot.updatedDate
+                
+                if let categoryID = snapshot.categoryID,
+                   let catEnt = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(categoryID)), createIfNotFound: createIfNotFound) {
+                    if catEnt.id == nil {
+                        catEnt.id = categoryID
+                        catEnt.title = snapshot.categoryTitle
+                        catEnt.amount = snapshot.categoryAmount ?? 0.0
+                        catEnt.hexCode = snapshot.categoryHexCode
+                        catEnt.emoji = snapshot.categoryEmoji
+                        catEnt.action = "edit"
+                        catEnt.isPending = false
+                    }                    
+                    
+                    entity.category = catEnt
+                }
+                
+                return DataManager.shared.save(context: context)
+                
+            } else {
+                return .failure(.notFound)
+            }
+        }
+    }
+    
+    
+    @discardableResult
+    func updateAfterSubmit(id: String, lookupId: String, action: KeywordAction) async -> Result<Bool, CoreDataError> {
+        self.action = .edit
+        
+        if action == .add {
+            self.id = id
+            self.uuid = nil
+        }
+        
+        let context = DataManager.shared.createContext()
+        return await context.perform {
+            if let entity = DataManager.shared.getOne(context: context, type: PersistentKeyword.self, predicate: .byId(.string(lookupId)), createIfNotFound: true) {
+                if action == .add {
+                    entity.id = id
+                    entity.action = KeywordAction.edit.rawValue
+                }
+                entity.isPending = false
+                return DataManager.shared.save(context: context)
+                
+            } else {
+                return .failure(.notFound)
+            }
+        }
+    }
+    
+            
     @MainActor
     static func loadFromCoreData(id: String) async -> CBKeyword? {
+        let snapshot = await CBKeyword.createSnapshotFromCoreData(id: id)
+        guard let snapshot else { return nil }
+        
+        let category: CBCategory? = if let categoryID = snapshot.categoryID {
+            await CBCategory.loadFromCoreData(id: categoryID)
+        } else {
+            nil
+        }
+
+        return CBKeyword(snapshot: snapshot, category: category)
+    }
+
+    
+    @MainActor
+    static func createSnapshotFromCoreData(id: String) async -> CBKeyword.Snapshot? {
         let context = DataManager.shared.createContext()
 
-        let snapshot: Snapshot? = await DataManager.shared.perform(context: context) {
-            guard let entity = DataManager.shared.getOne(
-                context: context,
-                type: PersistentKeyword.self,
-                predicate: .byId(.string(id)),
-                createIfNotFound: false
-            ) else { return nil }
+        return await DataManager.shared.perform(context: context) {
+            guard let entity = DataManager.shared.getOne(context: context, type: PersistentKeyword.self, predicate: .byId(.string(id)), createIfNotFound: false) else { return nil }
 
             return Snapshot(
                 id: entity.id ?? "0",
@@ -330,18 +404,52 @@ extension CBKeyword {
                 enteredDate: entity.enteredDate,
                 updatedDate: entity.updatedDate,
                 isIgnoredSuggestion: entity.isIgnoredSuggestion,
-                categoryID: entity.category?.id
+                categoryID: entity.category?.id,
+                categoryTitle: entity.category?.title,
+                categoryAmount: entity.category?.amount ?? 0.0,
+                categoryHexCode: entity.category?.hexCode,
+                categoryEmoji: entity.category?.emoji
             )
         }
+    }
+}
 
-        guard let snapshot else { return nil }
 
-        let category: CBCategory? = if let categoryID = snapshot.categoryID {
-            await CBCategory.loadFromCoreData(id: categoryID)
-        } else {
-            nil
-        }
+extension CBKeyword.Snapshot {
+    init(_ keyword: CBKeyword) {
+        self.id = keyword.id
+        self.keyword = keyword.keyword
+        self.renameTo = keyword.renameTo
+        self.triggerTypeRaw = keyword.triggerType.rawValue
+        self.actionRaw = keyword.action.rawValue
+        self.enteredByID = keyword.enteredBy.id
+        self.updatedByID = keyword.updatedBy.id
+        self.enteredDate = keyword.enteredDate
+        self.updatedDate = keyword.updatedDate
+        self.isIgnoredSuggestion = keyword.isIgnoredSuggestion
+        self.categoryID = keyword.category?.id
+        self.categoryTitle = keyword.category?.title
+        self.categoryAmount = keyword.category?.amount ?? 0.0
+        self.categoryHexCode = keyword.category?.color.toHex()
+        self.categoryEmoji = keyword.category?.emoji
+        
+    }
 
-        return CBKeyword(snapshot: snapshot, category: category)
+    init(_ entity: PersistentKeyword) {
+        self.id = entity.id ?? ""
+        self.keyword = entity.keyword ?? ""
+        self.renameTo = entity.renameTo
+        self.triggerTypeRaw = entity.triggerType ?? ""
+        self.actionRaw = entity.action ?? ""
+        self.enteredByID = Int(entity.enteredByID)
+        self.updatedByID = Int(entity.updatedByID)
+        self.enteredDate = entity.enteredDate
+        self.updatedDate = entity.updatedDate
+        self.isIgnoredSuggestion = entity.isIgnoredSuggestion
+        self.categoryID = entity.category?.id
+        self.categoryTitle = entity.category?.title
+        self.categoryAmount = entity.category?.amount ?? 0.0
+        self.categoryHexCode = entity.category?.hexCode
+        self.categoryEmoji = entity.category?.emoji
     }
 }

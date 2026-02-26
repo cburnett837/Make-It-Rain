@@ -116,10 +116,16 @@ struct LogoSearchPage<T: CanHandleLogo & Observation.Observable>: View {
                     selectedItemId = result.id
                     Task {
                         print(result.logoUrl)
-                        let logoData = try? await downloadCompanyLogo(logoUrl: result.logoUrl)
-                        //if let b64String = logoData?.base64EncodedString() {
+                        if let logoData = try? await downloadCompanyLogo(logoUrl: result.logoUrl) {
                             parent.logo = logoData
-                        //}
+                            ImageCache.shared.saveToCache(
+                                parentTypeId: XrefModel.getItem(from: .logoTypes, byEnumID: parentType).id,
+                                parentId: parent.id,
+                                id: parent.id,
+                                data: logoData
+                            )
+                        }                        
+                        
                         dismiss()
                     }
                 }

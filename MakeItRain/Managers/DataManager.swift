@@ -238,6 +238,7 @@ class DataManager {
     }
     
     
+    
     func perform<T>(context: NSManagedObjectContext, _ work: @escaping () -> T) async -> T {
         await withCheckedContinuation { continuation in
             context.perform {

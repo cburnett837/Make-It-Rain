@@ -569,7 +569,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     
     
     @MainActor
-    func loadLogoFromCacheIfNeeded() async {
+    func loadLogoFromCoreDataIfNeeded() async {
         guard logo == nil else { return }
 
         let context = DataManager.shared.createContext()
@@ -888,20 +888,14 @@ extension CBPaymentMethod {
         self.recentTransactionCount = Int(s.recentTransactionCount)
         self.logo = s.logoData
 
-        if let data = s.logoData,
-           ImageCache.shared.loadFromCache(
-               parentTypeId: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id,
-               parentId: s.id,
-               id: s.id
-           ) == nil {
-            Task {
-                await ImageCache.shared.saveToCache(
-                    parentTypeId: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id,
-                    parentId: s.id,
-                    id: s.id,
-                    data: data
-                )
-            }
+        let imageIsNotInCache = ImageCache.shared.loadFromCache(parentTypeId: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id, parentId: s.id, id: s.id) == nil
+        if let data = s.logoData, imageIsNotInCache {
+            ImageCache.shared.saveToCache(
+                parentTypeId: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id,
+                parentId: s.id,
+                id: s.id,
+                data: data
+            )
         }
     }
     

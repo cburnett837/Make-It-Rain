@@ -20,3 +20,10 @@ extension [LayoutSubviews.Element] {
         }.max() ?? 0
     }
 }
+
+extension Result {
+    var isSuccess: Bool {
+        if case .success = self { return true }
+        return false
+    }
+}

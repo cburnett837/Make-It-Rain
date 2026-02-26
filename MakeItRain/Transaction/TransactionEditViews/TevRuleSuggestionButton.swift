@@ -47,6 +47,7 @@ struct TevRuleSuggestionButton: View {
     func createRule() {
         let keyword = CBKeyword()
         withAnimation {
+            shouldSuggestAddingNewRule = false
             keyword.keyword = trans.title
             keyword.category = trans.category!
             keyword.triggerType = .contains

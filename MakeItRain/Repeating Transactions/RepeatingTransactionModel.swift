@@ -95,8 +95,11 @@ class RepeatingTransactionModel {
                     var activeIds: Array<String> = []
                     for repTransaction in model.sorted(by: { $0.title.lowercased() < $1.title.lowercased() }) {
                         activeIds.append(repTransaction.id)
-                        let index = repTransactions.firstIndex(where: { $0.id == repTransaction.id })
-                        if let index {
+                        
+                        await repTransaction.payMethod?.loadLogoFromCoreDataIfNeeded()
+                        await repTransaction.payMethodPayTo?.loadLogoFromCoreDataIfNeeded()
+                        
+                        if let index = repTransactions.firstIndex(where: { $0.id == repTransaction.id }) {
                             /// If the transaction is already in the list, update it from the server.
                             repTransactions[index].setFromAnotherInstance(repTransaction: repTransaction)
                         } else {

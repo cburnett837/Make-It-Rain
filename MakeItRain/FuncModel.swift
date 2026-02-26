@@ -162,7 +162,7 @@ class FuncModel {
         await populatePaymentMethodsFromCache(setDefaultPayMethod: setDefaultPayMethod)
         await populateCategoriesFromCache()
         await populateCategoryGroupsFromCache()
-        await populateKeywordsFromCache()
+        await keyModel.populateFromCache()
                             
         var next: CBMonth?
         var prev: CBMonth?
@@ -558,10 +558,7 @@ class FuncModel {
             return entities.compactMap(\.id)
         }
 
-        guard !methodIDs.isEmpty else {
-            print("❌ No IDs found for pay methods")
-            return
-        }
+        guard !methodIDs.isEmpty else { return }
 
         var loadedMethods: [CBPaymentMethod] = []
         loadedMethods.reserveCapacity(methodIDs.count)
@@ -599,10 +596,7 @@ class FuncModel {
             return entities.compactMap(\.id)
         }
 
-        guard !categoryIDs.isEmpty else {
-            print("❌ No IDs found for categories")
-            return
-        }
+        guard !categoryIDs.isEmpty else { return }
 
         var loadedCategories: [CBCategory] = []
         loadedCategories.reserveCapacity(categoryIDs.count)
@@ -672,10 +666,7 @@ class FuncModel {
             return entities.compactMap(\.id)
         }
 
-        guard !groupIDs.isEmpty else {
-            print("❌ No IDs found for category groups")
-            return
-        }
+        guard !groupIDs.isEmpty else { return }
 
         var loadedGroups: [CBCategoryGroup] = []
         loadedGroups.reserveCapacity(groupIDs.count)
@@ -729,39 +720,36 @@ class FuncModel {
 //    }
     
     
-    @MainActor
-    private func populateKeywordsFromCache() async {
-        let context = DataManager.shared.createContext()
-
-        let keywordIDs: [String] = await DataManager.shared.perform(context: context) {
-            let entities = DataManager.shared.getMany(context: context, type: PersistentKeyword.self) ?? []
-            return entities.compactMap(\.id)
-        }
-
-        guard !keywordIDs.isEmpty else {
-            print("❌ No IDs found for keywords")
-            return
-        }
-
-        var loadedKeywords: [CBKeyword] = []
-        loadedKeywords.reserveCapacity(keywordIDs.count)
-
-        for id in keywordIDs {
-            if let keyword = await CBKeyword.loadFromCoreData(id: id) {
-                loadedKeywords.append(keyword)
-            }
-        }
-
-        loadedKeywords.sort { $0.keyword.lowercased() < $1.keyword.lowercased() }
-
-        for keyword in loadedKeywords {
-            if let index = keyModel.keywords.firstIndex(where: { $0.id == keyword.id }) {
-                keyModel.keywords[index].setFromAnotherInstance(keyword: keyword)
-            } else {
-                keyModel.keywords.append(keyword)
-            }
-        }
-    }
+//    @MainActor
+//    private func populateKeywordsFromCache() async {
+//        let context = DataManager.shared.createContext()
+//
+//        let keywordIDs: [String] = await DataManager.shared.perform(context: context) {
+//            let entities = DataManager.shared.getMany(context: context, type: PersistentKeyword.self) ?? []
+//            return entities.compactMap(\.id)
+//        }
+//
+//        guard !keywordIDs.isEmpty else { return }
+//
+//        var loadedKeywords: [CBKeyword] = []
+//        loadedKeywords.reserveCapacity(keywordIDs.count)
+//
+//        for id in keywordIDs {
+//            if let keyword = await CBKeyword.loadFromCoreData(id: id) {
+//                loadedKeywords.append(keyword)
+//            }
+//        }
+//
+//        loadedKeywords.sort { $0.keyword.lowercased() < $1.keyword.lowercased() }
+//
+//        for keyword in loadedKeywords {
+//            if let index = keyModel.keywords.firstIndex(where: { $0.id == keyword.id }) {
+//                keyModel.keywords[index].setFromAnotherInstance(keyword: keyword)
+//            } else {
+//                keyModel.keywords.append(keyword)
+//            }
+//        }
+//    }
 
     
 //    private func populateKeywordsFromCache() async {
@@ -869,7 +857,6 @@ class FuncModel {
     func submitCachedTransactionsIfApplicable() async {
         let context = DataManager.shared.createContext()
 
-        // Only move plain values (IDs) out of Core Data queue.
         let tempTransactionIDs: [String] = await DataManager.shared.perform(context: context) {
             let entities = DataManager.shared.getMany(context: context, type: TempTransaction.self) ?? []
             return entities.compactMap(\.id)
@@ -878,17 +865,8 @@ class FuncModel {
         guard !tempTransactionIDs.isEmpty else { return }
 
         for id in tempTransactionIDs {
-            guard let trans = await CBTransaction.loadFromCoreData(id: id) else {
-                print("Skipping cached temp trans \(id): could not rebuild model.")
-                continue
-            }
-
-            guard trans.payMethod != nil else {
-                print("Pay method is not set on temp trans \(trans.id)")
-                continue
-            }
-
-            print("Submitting temp trans on \(trans.title)")
+            guard let trans = await CBTransaction.loadFromCoreData(id: id) else { continue }
+            guard trans.payMethod != nil else { continue }
             await calModel.saveTemp(trans: trans)
         }
     }
@@ -1044,7 +1022,6 @@ class FuncModel {
         let context = DataManager.shared.createContext()
         let pendingPredicate = NSPredicate(format: "isPending == %@", NSNumber(value: true))
 
-        // Pull only plain IDs from Core Data queue.
         let pending = await DataManager.shared.perform(context: context) {
             let catIDs = (DataManager.shared.getMany(context: context, type: PersistentCategory.self, predicate: .single(pendingPredicate)) ?? []).compactMap(\.id)
             let groupIDs = (DataManager.shared.getMany(context: context, type: PersistentCategoryGroup.self, predicate: .single(pendingPredicate)) ?? []).compactMap(\.id)
@@ -1150,39 +1127,56 @@ class FuncModel {
                         #warning("This all needs to be fixed in regards to coredata. Right now, each update of the cache or delete from the cache uses its own context, and saves after each operation. If I used a single background context, when deleting a payment method via the long poll, the save operation will fail. It is recommended to perform all operations, and then call save at the end. But this will require some work to implement. 11/6/25")
                         //try? await Task.sleep(nanoseconds: UInt64(5 * Double(NSEC_PER_SEC)))
                         
-                        if let transactions = model.transactions { self.handleLongPollTransactions(transactions) }
-                        
+                        if let transactions = model.transactions {
+                            await self.handleLongPollTransactions(transactions)
+                        }
 //                        if AppState.shared.user?.id == 1 {
 //                            if let fitTransactions = model.fitTransactions { self.handleLongPollFitTransactions(fitTransactions) }
 //                        }
-                        
-                        if let startingAmounts = model.startingAmounts { self.handleLongPollStartingAmounts(startingAmounts) }
-                        if let repeatingTransactions = model.repeatingTransactions { await self.handleLongPollRepeatingTransactions(repeatingTransactions) }
-                        if let payMethods = model.payMethods { await self.handleLongPollPaymentMethods(payMethods) }
-                        if let categories = model.categories { await self.handleLongPollCategories(categories) }
-                        if let categoryGroups = model.categoryGroups { await self.handleLongPollCategoryGroups(categoryGroups) }
-                        if let keywords = model.keywords { await self.handleLongPollKeywords(keywords) }
-                        if let budgets = model.budgets { self.handleLongPollBudgets(budgets) }
-                        
+                        if let startingAmounts = model.startingAmounts {
+                            self.handleLongPollStartingAmounts(startingAmounts)
+                        }
+                        if let repeatingTransactions = model.repeatingTransactions {
+                            await self.handleLongPollRepeatingTransactions(repeatingTransactions)
+                        }
+                        if let payMethods = model.payMethods {
+                            await self.handleLongPollPaymentMethods(payMethods)
+                        }
+                        if let categories = model.categories {
+                            await self.handleLongPollCategories(categories)
+                        }
+                        if let categoryGroups = model.categoryGroups {
+                            await self.handleLongPollCategoryGroups(categoryGroups)
+                        }
+                        if let keywords = model.keywords {
+                            await keyModel.handleLongPoll(keywords)
+                        }
+                        if let budgets = model.budgets {
+                            self.handleLongPollBudgets(budgets)
+                        }
                         if let openRecords = model.openRecords, !openRecords.isEmpty {
                             await self.handleLongPollOpenRecords(openRecords)
                         }
-                        
-                        if let plaidBanks = model.plaidBanks { await self.handleLongPollPlaidBanks(plaidBanks) }
-                        if let plaidAccounts = model.plaidAccounts { await self.handleLongPollPlaidAccounts(plaidAccounts) }
-                        
+                        if let logos = model.logos {
+                            await self.handleLongPollLogos(logos)
+                        }
+                        if let settings = model.settings {
+                            self.handleLongPollSettings(settings)
+                        }
+                        if let plaidBanks = model.plaidBanks {
+                            await self.handleLongPollPlaidBanks(plaidBanks)
+                        }
+                        if let plaidAccounts = model.plaidAccounts {
+                            await self.handleLongPollPlaidAccounts(plaidAccounts)
+                        }
+                        if let plaidBalances = model.plaidBalances, !plaidBalances.isEmpty {
+                            self.handleLongPollPlaidBalances(plaidBalances)
+                        }
                         if let plaidTransactionsWithCount = model.plaidTransactionsWithCount {
                             if let trans = plaidTransactionsWithCount.trans, !trans.isEmpty {
                                 self.handleLongPollPlaidTransactions(plaidTransactionsWithCount)
                             }
                         }
-                        
-                        if let plaidBalances = model.plaidBalances, !plaidBalances.isEmpty {
-                            self.handleLongPollPlaidBalances(plaidBalances)
-                        }
-                        
-                        if let logos = model.logos { self.handleLongPollLogos(logos) }
-                        if let settings = model.settings { self.handleLongPollSettings(settings) }
                         //if let receipts = model.receipts { self.handleLongPollReceipts(receipts) }
                     }
                 } else {
@@ -1229,9 +1223,9 @@ class FuncModel {
     }
     
     
-    @MainActor private func handleLongPollTransactions(_ transactions: Array<CBTransaction>) {
+    @MainActor private func handleLongPollTransactions(_ transactions: Array<CBTransaction>) async {
         print("-- \(#function)")
-        calModel.handleTransactions(transactions, refreshTechnique: .viaLongPoll)
+        await calModel.handleTransactions(transactions, refreshTechnique: .viaLongPoll)
         
         let months = transactions
             .filter { $0.date != nil }
@@ -1346,6 +1340,20 @@ class FuncModel {
                     continue
                 } else {
                     if let index = payModel.getIndex(for: payMethod) {
+                        
+                        
+//                        if let logoData = payMethod.logo {
+//                            let paymentMethodTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id
+//                            await ImageCache.shared.saveToCache(
+//                                parentTypeId: paymentMethodTypeID,
+//                                parentId: payMethod.id,
+//                                id: logo.id,
+//                                data: logoData
+//                            )
+//                        }
+                        
+                        
+                        
                         payModel.paymentMethods[index].setFromAnotherInstance(payMethod: payMethod)
                         payModel.paymentMethods[index].deepCopy?.setFromAnotherInstance(payMethod: payMethod)
                     }
@@ -1457,28 +1465,28 @@ class FuncModel {
     }
     
     
-    @MainActor private func handleLongPollKeywords(_ keywords: Array<CBKeyword>) async {
-        print("-- \(#function)")
-        for keyword in keywords {
-            if keyModel.doesExist(keyword) {
-                if !keyword.active {
-                    keyModel.delete(keyword, andSubmit: false)
-                    continue
-                } else {
-                    if let index = keyModel.getIndex(for: keyword){
-                        keyModel.keywords[index].setFromAnotherInstance(keyword: keyword)
-                        keyModel.keywords[index].deepCopy?.setFromAnotherInstance(keyword: keyword)
-                    }
-                }
-            } else {
-                if keyword.active {
-                    withAnimation { keyModel.upsert(keyword) }
-                }
-            }
-            let _ = await keyModel.updateCache(for: keyword)
-            //print("SaveResult: \(saveResult)")
-        }
-    }
+//    @MainActor private func handleLongPollKeywords(_ keywords: Array<CBKeyword>) async {
+//        print("-- \(#function)")
+//        for keyword in keywords {
+//            if keyModel.doesExist(keyword) {
+//                if !keyword.active {
+//                    keyModel.delete(keyword, andSubmit: false)
+//                    continue
+//                } else {
+//                    if let index = keyModel.getIndex(for: keyword){
+//                        keyModel.keywords[index].setFromAnotherInstance(keyword: keyword)
+//                        keyModel.keywords[index].deepCopy?.setFromAnotherInstance(keyword: keyword)
+//                    }
+//                }
+//            } else {
+//                if keyword.active {
+//                    withAnimation { keyModel.upsert(keyword) }
+//                }
+//            }
+//            let _ = await keyModel.updateCoreData(for: CBKeyword.Snapshot(keyword))
+//            //print("SaveResult: \(saveResult)")
+//        }
+//    }
     
     
     @MainActor private func handleLongPollBudgets(_ budgets: Array<CBBudget>) {
@@ -1517,48 +1525,134 @@ class FuncModel {
     
     
     
-    @MainActor private func handleLongPollLogos(_ logos: Array<CBLogo>) {
+//    @MainActor
+//    private func handleLongPollLogos(_ logos: Array<CBLogo>) {
+//        print("-- \(#function)")
+//        let context = DataManager.shared.createContext()
+//        
+//        for logo in logos {
+//            print("incoming base64 for logo \(String(describing: logo.baseString))")
+//            
+//            /// Try and decode the data, if not, wipe out the logos.
+//            var logoData: Data?
+//            if let baseString = logo.baseString {
+//                logoData = Data(base64Encoded: baseString)
+//            }
+//            
+//            if let perLogo = DataManager.shared.getOne(context: context, type: PersistentLogo.self, predicate: .byId(.string(logo.id)), createIfNotFound: false) {
+//                perLogo.photoData = logoData
+//                perLogo.serverUpdatedDate = logo.updatedDate
+//                perLogo.localUpdatedDate = logo.updatedDate
+//            }
+//            
+//            if logo.relatedRecordType.enumID == .paymentMethod {
+//                let meth = payModel.getPaymentMethod(by: logo.relatedID)
+//                meth.logo = logoData
+//                
+//                changePaymentMethodLogoLocally(meth: meth, logoData: logoData)
+//                
+//                #warning("Need starting amounts")
+//            }
+//            
+//            if logo.relatedRecordType.enumID == .plaidBank {
+//                if let bank = plaidModel.getBank(by: logo.relatedID) {
+//                    bank.logo = logoData
+//                }
+//            }
+//            
+//            if logo.relatedRecordType.enumID == .avatar {
+//                let relatedID = logo.relatedID
+//                changeAvatarLocally(to: logoData, id: relatedID)
+//            }
+//        }
+//        
+//        let _ = DataManager.shared.save(context: context)
+//    }
+//    
+    
+    @MainActor
+    private func handleLongPollLogos(_ logos: [CBLogo]) async {
+        //return
         print("-- \(#function)")
+        guard !logos.isEmpty else { return }
+
+        // Snapshot values so no Core Data objects or non-sendable refs cross boundaries.
+        struct IncomingLogo: Sendable {
+            let id: String
+            let relatedID: String
+            let typeID: Int
+            let updatedDate: Date
+            let data: Data?
+        }
+
+        let incoming: [IncomingLogo] = logos.map {
+            IncomingLogo(
+                id: $0.id,
+                relatedID: $0.relatedID,
+                typeID: $0.relatedRecordType.id,
+                updatedDate: $0.updatedDate,
+                data: $0.baseString.flatMap { Data(base64Encoded: $0) }
+            )
+        }
+
+        // Persist on Core Data queue only.
         let context = DataManager.shared.createContext()
-        
-        for logo in logos {
-            print("incoming base64 for logo \(String(describing: logo.baseString))")
-            
-            /// Try and decode the data, if not, wipe out the logos.
-            var logoData: Data?
-            if let baseString = logo.baseString {
-                logoData = Data(base64Encoded: baseString)
-            }
-            
-            if let perLogo = DataManager.shared.getOne(context: context, type: PersistentLogo.self, predicate: .byId(.string(logo.id)), createIfNotFound: false) {
-                perLogo.photoData = logoData
-                perLogo.serverUpdatedDate = logo.updatedDate
-                perLogo.localUpdatedDate = logo.updatedDate
-            }
-            
-            if logo.relatedRecordType.enumID == .paymentMethod {
-                let meth = payModel.getPaymentMethod(by: logo.relatedID)
-                meth.logo = logoData
-                
-                changePaymentMethodLogoLocally(meth: meth, logoData: logoData)
-                
-                #warning("Need starting amounts")
-            }
-            
-            if logo.relatedRecordType.enumID == .plaidBank {
-                if let bank = plaidModel.getBank(by: logo.relatedID) {
-                    bank.logo = logoData
+        await DataManager.shared.perform(context: context) {
+            for logo in incoming {
+                if let perLogo = DataManager.shared.getOne(
+                    context: context,
+                    type: PersistentLogo.self,
+                    predicate: .byId(.string(logo.id)),
+                    createIfNotFound: false
+                ) {
+                    perLogo.photoData = logo.data
+                    perLogo.serverUpdatedDate = logo.updatedDate
+                    perLogo.localUpdatedDate = logo.updatedDate
                 }
             }
-            
-            if logo.relatedRecordType.enumID == .avatar {
-                let relatedID = logo.relatedID
-                changeAvatarLocally(to: logoData, id: relatedID)
-            }
+            let _ = DataManager.shared.save(context: context)
         }
-        
-        let _ = DataManager.shared.save(context: context)
+
+        // Apply UI/model updates on MainActor.
+        let paymentMethodTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id
+        let plaidBankTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .plaidBank).id
+        let avatarTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .avatar).id
+
+        for logo in incoming {
+            if let logoData = logo.data {
+                /// Don't use the logo id in the save because the logo gets cached with the relatedID as the ID in ``ImageCache``.
+                /// This is because the CBLogo is not available in the parent that contains the logo... why specifically, I don't know.
+                ImageCache.shared.saveToCache(
+                    parentTypeId: logo.typeID,
+                    parentId: logo.relatedID,
+                    id: logo.relatedID,
+                    data: logoData
+                )
+            } else {
+                //print("removing from cache \(logo.typeID), \(logo.relatedID)")
+                ImageCache.shared.removeFromCache(
+                    parentTypeId: logo.typeID,
+                    parentId: logo.relatedID,
+                    id: logo.relatedID,
+                )
+            }
+            
+            if logo.typeID == paymentMethodTypeID {
+                let meth = payModel.getPaymentMethod(by: logo.relatedID)
+                meth.logo = logo.data
+                changePaymentMethodLogoLocally(meth: meth, logoData: logo.data)
+                
+            } else if logo.typeID == plaidBankTypeID {
+                plaidModel.getBank(by: logo.relatedID)?.logo = logo.data
+                
+            } else if logo.typeID == avatarTypeID {
+                changeAvatarLocally(to: logo.data, id: logo.relatedID)
+            }
+       }
     }
+
+    
+    
     
     
     @MainActor private func handleLongPollSettings(_ settings: AppSettings) {
@@ -1996,12 +2090,19 @@ class FuncModel {
     
     @MainActor
     func fetchLogos(file: String = #file, line: Int = #line, function: String = #function) async {
+        /// THE WAY LOGOS WORK.
+        /// The base64 string representing the logo data is stored on the server.
+        /// When the app launches, it will download the base64 string and store it in core data.
+        /// When payment methods (for example) download, we fetch the base64 string from coredata and update the logo property in the payment method with `Data` created via the base64 string.
+        /// When a logo needs to be shown via ``BusinessLogo``, the ``BusinessLogo`` view will run a task that checks if the UIImage created from the base64 data already exists in NSCache.
+        /// If it does, it will just grab the UIImage and display it. If not, it will create the image, and cache it for future views to use.
+        
         NSLog("\(file):\(line) : \(function)")
         LogManager.log()
         let start = CFAbsoluteTimeGetCurrent()
 
-        // 1) Build probe logos from cache on Core Data queue.
-        let cachedLogos: [CBLogo] = await {
+        /// Gather the logos from core data.
+        let persistentLogos: [CBLogo] = await {
             let context = DataManager.shared.createContext()
             return await DataManager.shared.perform(context: context) {
                 (DataManager.shared.getMany(context: context, type: PersistentLogo.self) ?? [])
@@ -2012,9 +2113,8 @@ class FuncModel {
             }
         }()
 
-        let submitModel = LogoMaybeShouldUpdateModel(logos: cachedLogos)
-
-        // 2) Request updates from server.
+        /// Fetch latest logo data from the server.
+        let submitModel = LogoMaybeShouldUpdateModel(logos: persistentLogos)
         let model = RequestModel(requestType: "fetch_logos", model: submitModel)
         typealias ResultResponse = Result<[CBLogo]?, AppError>
         async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
@@ -2022,16 +2122,13 @@ class FuncModel {
         switch await result {
         case .success(let response):
             LogManager.networkingSuccessful()
+            
             guard let logos = response, !logos.isEmpty else {
-                print("⏰It took \(CFAbsoluteTimeGetCurrent() - start) seconds to fetch payment method logos")
+                print("⏰It took \(CFAbsoluteTimeGetCurrent() - start) seconds to fetch logos")
                 return
             }
-
-            // 3) Write updates to Core Data on context queue.
-            let snapshots: [(relatedID: String, typeID: Int, data: Data?)] = logos.map {
-                ($0.relatedID, $0.relatedRecordType.id, $0.baseString.flatMap { Data(base64Encoded: $0) } )
-            }
-
+            
+            /// Update core data with the latest logo info from the server.
             let context = DataManager.shared.createContext()
             await DataManager.shared.perform(context: context) {
                 for logo in logos {
@@ -2056,32 +2153,92 @@ class FuncModel {
                 let _ = DataManager.shared.save(context: context)
             }
 
-            // 4) Apply model/UI updates on main actor.
+            
             let paymentMethodTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id
             let plaidBankTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .plaidBank).id
             let avatarTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .avatar).id
-
-            for snap in snapshots {
-                if snap.typeID == paymentMethodTypeID {
-                    let meth = payModel.getPaymentMethod(by: snap.relatedID)
-                    meth.logo = snap.data
-                    changePaymentMethodLogoLocally(meth: meth, logoData: snap.data)
-                } else if snap.typeID == plaidBankTypeID {
-                    plaidModel.getBank(by: snap.relatedID)?.logo = snap.data
-                } else if snap.typeID == avatarTypeID {
-                    changeAvatarLocally(to: snap.data, id: snap.relatedID)
+            
+            // 3) Write updates to Core Data on context queue.
+//            let snapshots: [(relatedID: String, typeID: Int, data: Data?)] = logos.map {
+//                ($0.relatedID, $0.relatedRecordType.id, $0.baseString.flatMap { Data(base64Encoded: $0) } )
+//            }
+            
+            for logo in logos {
+                var data: Data?
+                
+                if let base = logo.baseString {
+                    data = Data(base64Encoded: base)
+                }
+                
+                if let data = data {
+                    ImageCache.shared.saveToCache(
+                        parentTypeId: logo.relatedRecordType.id,
+                        parentId: logo.relatedID,
+                        id: logo.relatedID,
+                        data: data
+                    )
+                } else {
+                    ImageCache.shared.removeFromCache(
+                        parentTypeId: logo.relatedRecordType.id,
+                        parentId: logo.relatedID,
+                        id: logo.relatedID,
+                    )
+                }
+                
+                if logo.relatedRecordType.id == paymentMethodTypeID {
+                    let meth = payModel.getPaymentMethod(by: logo.relatedID)
+                    meth.logo = data
+                    changePaymentMethodLogoLocally(meth: meth, logoData: data)
+                    
+                } else if logo.relatedRecordType.id == plaidBankTypeID {
+                    plaidModel.getBank(by: logo.relatedID)?.logo = data
+                    
+                } else if logo.relatedRecordType.id == avatarTypeID {
+                    changeAvatarLocally(to: data, id: logo.relatedID)
                 }
             }
+            
 
-            print("⏰It took \(CFAbsoluteTimeGetCurrent() - start) seconds to fetch payment method logos")
+//            for snap in snapshots {
+//                if let data = snap.data {
+//                    ImageCache.shared.saveToCache(
+//                        parentTypeId: snap.typeID,
+//                        parentId: snap.relatedID,
+//                        id: snap.relatedID,
+//                        data: data
+//                    )
+//                } else {
+//                    ImageCache.shared.removeFromCache(
+//                        parentTypeId: snap.typeID,
+//                        parentId: snap.relatedID,
+//                        id: snap.relatedID,
+//                    )
+//                }
+//                
+//                print("The logo type id is \(snap.typeID)")
+//                
+//                if snap.typeID == paymentMethodTypeID {
+//                    let meth = payModel.getPaymentMethod(by: snap.relatedID)
+//                    meth.logo = snap.data
+//                    changePaymentMethodLogoLocally(meth: meth, logoData: snap.data)
+//                    
+//                } else if snap.typeID == plaidBankTypeID {
+//                    plaidModel.getBank(by: snap.relatedID)?.logo = snap.data
+//                    
+//                } else if snap.typeID == avatarTypeID {
+//                    changeAvatarLocally(to: snap.data, id: snap.relatedID)
+//                }
+//            }
+
+            print("⏰It took \(CFAbsoluteTimeGetCurrent() - start) seconds to fetch logos")
 
         case .failure(let error):
             switch error {
             case .taskCancelled:
-                print("repModel fetchFrom Server Task Cancelled")
+                print("fetchLogos Server Task Cancelled")
             default:
                 LogManager.error(error.localizedDescription)
-                AppState.shared.showAlert("There was a problem trying to fetch payment method logos.")
+                AppState.shared.showAlert("There was a problem trying to fetch logos.")
             }
         }
     }
@@ -2149,20 +2306,21 @@ class FuncModel {
     
     @MainActor
     func changePaymentMethodLogoLocally(meth: CBPaymentMethod, logoData: Data?) {
+        print("-- \(#function)")
         /// Transactions
         calModel.justTransactions
             .filter { $0.payMethod?.id == meth.id }
-            .forEach { $0.payMethod?.logo = meth.logo }
+            .forEach { $0.payMethod?.logo = logoData }
         
         /// Advanced search results.
         calModel.searchedTransactions
             .filter { $0.payMethod?.id == meth.id }
-            .forEach { $0.payMethod?.logo = meth.logo }
+            .forEach { $0.payMethod?.logo = logoData }
         
         /// Temp transactions.
         calModel.tempTransactions
             .filter { $0.payMethod?.id == meth.id }
-            .forEach { $0.payMethod?.logo = meth.logo }
+            .forEach { $0.payMethod?.logo = logoData }
         
         /// Repeating transactions.
         repModel.repTransactions
@@ -2251,8 +2409,8 @@ class FuncModel {
                                                             
         
         
-        #warning("Need starting amonunts")
-        #warning("Need budgets")
+//        #warning("Need starting amonunts")
+//        #warning("Need budgets")
         
 //        /// Starting Amounts
 //        calModel.months
@@ -2433,7 +2591,7 @@ class FuncModel {
         case .success(let data):
             if let data = data {
                 
-                await ImageCache.shared.saveToCache(
+                ImageCache.shared.saveToCache(
                     parentTypeId: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction).id,
                     parentId: file.relatedID,
                     id: file.id,
