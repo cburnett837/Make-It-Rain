@@ -44,6 +44,7 @@ class AppState {
     
     var debugPrintString = UserDefaults.standard.string(forKey: "debugPrint") ?? "no debugPrint found"
     var debugPrint: Bool { return debugPrintString == "YES" ? true : false }
+    var devMode: Bool = UserDefaults.standard.bool(forKey: "devMode")
     
     let numberFormatter = NumberFormatter()
     let dateFormatter = DateFormatter()
@@ -86,11 +87,17 @@ class AppState {
         
     //var shouldWarmUpTransactionViewDuringSplash = false
     
-    var fromServerDateFormatter: DateFormatter {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = getDateFormat(.serverDateTime)
-        dateFormatter.timeZone = .none
-        return dateFormatter
+    #warning("for sqlite")
+//    var fromServerDateFormatter: DateFormatter {
+//        let dateFormatter = DateFormatter()
+//        dateFormatter.dateFormat = getDateFormat(.serverDateTime)
+//        dateFormatter.timeZone = .none
+//        return dateFormatter
+//    }
+    #warning("for postgres")
+    var fromServerDateFormatter: ISO8601DateFormatter {
+        let formatter = ISO8601DateFormatter()
+        return formatter
     }
           
     
@@ -151,6 +158,7 @@ class AppState {
     
     func checkIfDownloadingDataIsNeeded() async -> Bool {
         print("-- \(#function)")
+        
         
         let model = RequestModel(requestType: "check_for_changes", model: CheckIfShouldDownloadModel(lastNetworkTime: AppState.shared.lastNetworkTime ?? Date()))
         typealias ResultResponse = Result<CheckIfShouldDownloadModel?, AppError>
@@ -250,42 +258,47 @@ class AppState {
     
     #if os(macOS)
     func openMacAlertAndToastOverlayWindow(withDarkOverlay: Bool = false) {
-        guard let mainWindow = NSApplication.shared.windows.first(where: {$0.identifier?.rawValue == "mainWindow"}) else {
-            print("cant find main window")
-            return
-        }
-        // configure the window in `onAppear` after calling openWindow will not work (completely)
-        // some of the properties set will not be reflected.
-        guard let window = NSApplication.shared.windows.first(where: {$0.identifier?.rawValue == MacAlertAndToastOverlay.id}) else {
-            return
+        Task {
+            await MainActor.run {
+                guard let mainWindow = NSApplication.shared.windows.first(where: {$0.identifier?.rawValue == "mainWindow"}) else {
+                    print("cant find main window")
+                    return
+                }
+                // configure the window in `onAppear` after calling openWindow will not work (completely)
+                // some of the properties set will not be reflected.
+                guard let window = NSApplication.shared.windows.first(where: {$0.identifier?.rawValue == MacAlertAndToastOverlay.id}) else {
+                    return
+                }
+                
+                print("window found")
+                window.level = .floating // popUpMenu will also work
+                
+                window.contentMinSize = mainWindow.frame.size
+                window.contentMaxSize = mainWindow.frame.size
+                window.setFrame(mainWindow.frame, display: true, animate: false)
+                
+                // remove title and buttons
+                window.styleMask.remove(.titled)
+                window.styleMask = [.borderless]
+                window.standardWindowButton(.closeButton)?.isHidden = true
+                window.standardWindowButton(.miniaturizeButton)?.isHidden = true
+                window.standardWindowButton(.zoomButton)?.isHidden = true
+                window.hidesOnDeactivate = true
+                //window.isReleasedWhenClosed = false
+                
+                // so that the window can follow the virtual desktop
+                window.collectionBehavior.insert(.canJoinAllSpaces)
+                
+                // set it clear here so the configuration in UtilityWindowView will be reflected as it is
+                if withDarkOverlay {
+                    window.backgroundColor = NSColor.black.withAlphaComponent(0.3)
+                } else {
+                    window.backgroundColor = .clear
+                }
+                openWindow(id: MacAlertAndToastOverlay.id)
+            }
         }
         
-        print("window found")
-        window.level = .floating // popUpMenu will also work
-        
-        window.contentMinSize = mainWindow.frame.size
-        window.contentMaxSize = mainWindow.frame.size
-        window.setFrame(mainWindow.frame, display: true, animate: false)
-
-        // remove title and buttons
-        window.styleMask.remove(.titled)
-        window.styleMask = [.borderless]
-        window.standardWindowButton(.closeButton)?.isHidden = true
-        window.standardWindowButton(.miniaturizeButton)?.isHidden = true
-        window.standardWindowButton(.zoomButton)?.isHidden = true
-        window.hidesOnDeactivate = true
-        //window.isReleasedWhenClosed = false
-
-        // so that the window can follow the virtual desktop
-        window.collectionBehavior.insert(.canJoinAllSpaces)
-        
-        // set it clear here so the configuration in UtilityWindowView will be reflected as it is
-        if withDarkOverlay {
-            window.backgroundColor = NSColor.black.withAlphaComponent(0.3)
-        } else {
-            window.backgroundColor = .clear
-        }
-        openWindow(id: MacAlertAndToastOverlay.id)
     }
     #endif
 }

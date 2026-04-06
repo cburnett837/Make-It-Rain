@@ -72,67 +72,160 @@ class RepeatingTransactionModel {
     }
     
     
+//    @MainActor
+//    func fetchRepeatingTransactions(file: String = #file, line: Int = #line, function: String = #function) async {
+//        NSLog("\(file):\(line) : \(function)")
+//        LogManager.log()
+//        let start = CFAbsoluteTimeGetCurrent()
+//        
+//        /// Do networking.
+//        let model = RequestModel(requestType: "fetch_repeating_transactions", model: AppState.shared.user)
+//        typealias ResultResponse = Result<Array<CBRepeatingTransaction>?, AppError>
+//        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+//        
+//        switch await result {
+//        case .success(let model):
+//            
+//            /// For testing bad network connection.
+//            //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
+//
+//            LogManager.networkingSuccessful()
+//            if let model {
+//                if !model.isEmpty {
+//                    var activeIds: Array<String> = []
+//                    for repTransaction in model.sorted(by: { $0.title.lowercased() < $1.title.lowercased() }) {
+//                        activeIds.append(repTransaction.id)
+//                        
+//                        await repTransaction.payMethod?.loadLogoFromCoreDataIfNeeded()
+//                        await repTransaction.payMethodPayTo?.loadLogoFromCoreDataIfNeeded()
+//                        
+//                        if let index = repTransactions.firstIndex(where: { $0.id == repTransaction.id }) {
+//                            /// If the transaction is already in the list, update it from the server.
+//                            repTransactions[index].setFromAnotherInstance(repTransaction: repTransaction)
+//                        } else {
+//                            /// Add the transaction to the list (like when the transaction was added on another device).
+//                            repTransactions.append(repTransaction)
+//                        }
+//                    }
+//                    
+//                    /// Delete from model.
+//                    for repTransaction in repTransactions {
+//                        if !activeIds.contains(repTransaction.id) {
+//                            repTransactions.removeAll { $0.id == repTransaction.id }
+//                        }
+//                    }
+//                } else {
+//                    repTransactions.removeAll()
+//                }
+//            }                        
+//            
+//            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
+//            print("⏰It took \(currentElapsed) seconds to fetch the repeating transactions")
+//            
+//        case .failure (let error):
+//            switch error {
+//            case .taskCancelled:
+//                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
+//                print("repModel fetchFrom Server Task Cancelled")
+//            default:
+//                LogManager.error(error.localizedDescription)
+//                AppState.shared.showAlert("There was a problem trying to fetch the repTransactions.")
+//            }
+//        }
+//    }
+    
+    
+    
+//    @MainActor
+//    func handleDownloadedRepeatingTransactions(reps: Array<CBRepeatingTransaction>?, file: String = #file, line: Int = #line, function: String = #function) async {
+//        LogManager.networkingSuccessful()
+//        if let reps {
+//            if !reps.isEmpty {
+//                var activeIds: Array<String> = []
+//                for repTransaction in reps.sorted(by: { $0.title.lowercased() < $1.title.lowercased() }) {
+//                    activeIds.append(repTransaction.id)
+//                    
+//                    await repTransaction.payMethod?.loadLogoFromCoreDataIfNeeded()
+//                    await repTransaction.payMethodPayTo?.loadLogoFromCoreDataIfNeeded()
+//                    
+//                    if let index = repTransactions.firstIndex(where: { $0.id == repTransaction.id }) {
+//                        /// If the transaction is already in the list, update it from the server.
+//                        repTransactions[index].setFromAnotherInstance(repTransaction: repTransaction)
+//                    } else {
+//                        /// Add the transaction to the list (like when the transaction was added on another device).
+//                        repTransactions.append(repTransaction)
+//                    }
+//                }
+//                
+//                /// Delete from model.
+//                for repTransaction in repTransactions {
+//                    if !activeIds.contains(repTransaction.id) {
+//                        repTransactions.removeAll { $0.id == repTransaction.id }
+//                    }
+//                }
+//            } else {
+//                repTransactions.removeAll()
+//            }
+//        }
+//    }
+    
+    
     @MainActor
-    func fetchRepeatingTransactions(file: String = #file, line: Int = #line, function: String = #function) async {
-        NSLog("\(file):\(line) : \(function)")
-        LogManager.log()
-        let start = CFAbsoluteTimeGetCurrent()
-        
-        /// Do networking.
-        let model = RequestModel(requestType: "fetch_repeating_transactions", model: AppState.shared.user)
-        typealias ResultResponse = Result<Array<CBRepeatingTransaction>?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
-        
-        switch await result {
-        case .success(let model):
+    func handleIncoming(reps: Array<CBRepeatingTransaction>, incomingDataType: IncomingDataType) async {
+        if reps.isEmpty {
+            self.repTransactions.removeAll()
+            return
+        }
+                
+        for repTransaction in reps.sorted(by: { $0.title.lowercased() < $1.title.lowercased() }) {            
+            await repTransaction.payMethod?.loadLogoFromCoreDataIfNeeded()
+            await repTransaction.payMethodPayTo?.loadLogoFromCoreDataIfNeeded()
             
-            /// For testing bad network connection.
-            //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
-
-            LogManager.networkingSuccessful()
-            if let model {
-                if !model.isEmpty {
-                    var activeIds: Array<String> = []
-                    for repTransaction in model.sorted(by: { $0.title.lowercased() < $1.title.lowercased() }) {
-                        activeIds.append(repTransaction.id)
-                        
-                        await repTransaction.payMethod?.loadLogoFromCoreDataIfNeeded()
-                        await repTransaction.payMethodPayTo?.loadLogoFromCoreDataIfNeeded()
-                        
-                        if let index = repTransactions.firstIndex(where: { $0.id == repTransaction.id }) {
-                            /// If the transaction is already in the list, update it from the server.
-                            repTransactions[index].setFromAnotherInstance(repTransaction: repTransaction)
-                        } else {
-                            /// Add the transaction to the list (like when the transaction was added on another device).
-                            repTransactions.append(repTransaction)
-                        }
-                    }
-                    
-                    /// Delete from model.
-                    for repTransaction in repTransactions {
-                        if !activeIds.contains(repTransaction.id) {
-                            repTransactions.removeAll { $0.id == repTransaction.id }
-                        }
-                    }
-                } else {
-                    repTransactions.removeAll()
+            if self.doesExist(repTransaction) {
+                if !repTransaction.active {
+                    self.delete(repTransaction, andSubmit: false)
+                    continue
+                } else if let index = self.getIndex(for: repTransaction) {
+                    self.repTransactions[index].setFromAnotherInstance(repTransaction: repTransaction)
+                    self.repTransactions[index].deepCopy?.setFromAnotherInstance(repTransaction: repTransaction)
                 }
-            }                        
-            
-            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-            print("⏰It took \(currentElapsed) seconds to fetch the repeating transactions")
-            
-        case .failure (let error):
-            switch error {
-            case .taskCancelled:
-                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
-                print("repModel fetchFrom Server Task Cancelled")
-            default:
-                LogManager.error(error.localizedDescription)
-                AppState.shared.showAlert("There was a problem trying to fetch the repTransactions.")
+            } else if repTransaction.active {
+                withAnimation { self.upsert(repTransaction) }
+            }
+        }
+        
+        /// When downloading everything from the server, if we find a local object that is not in the server payload, it means it is no longer valid and must be deleted from the local copies.
+        if incomingDataType == .viaStandardRefresh {
+            for rep in self.repTransactions {
+                if reps.filter({ $0.id == rep.id }).isEmpty {
+                    delete(rep, andSubmit: false)
+                }
             }
         }
     }
+    
+    
+    
+//    @MainActor
+//    private func handleLongPollRepeatingTransactions(_ repeatingTransactions: Array<CBRepeatingTransaction>) async {
+//        print("-- \(#function)")
+//        for transaction in repeatingTransactions {
+//            if self.doesExist(transaction) {
+//                if !transaction.active {
+//                    self.delete(transaction, andSubmit: false)
+//                } else {
+//                    if let index = self.getIndex(for: transaction) {
+//                        self.repTransactions[index].setFromAnotherInstance(repTransaction: transaction)
+//                        self.repTransactions[index].deepCopy?.setFromAnotherInstance(repTransaction: transaction)
+//                    }
+//                }
+//            } else {
+//                if transaction.active {
+//                    withAnimation { self.upsert(transaction) }
+//                }
+//            }
+//        }
+//    }
     
     
     @MainActor

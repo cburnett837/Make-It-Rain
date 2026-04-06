@@ -38,6 +38,7 @@ class DataManager {
     }
     
     //@MainActor
+    @discardableResult
     func save(context: NSManagedObjectContext, file: String = #file, line: Int = #line, function: String = #function) -> Result<Bool, CoreDataError> {
         //NSLog("\(file):\(line) : \(function)")
         //print("-- \(#function) -- Called from: \(file):\(line) : \(function)")

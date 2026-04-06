@@ -217,9 +217,10 @@ extension CBCategoryGroup {
         let updatedByID: Int
         let enteredDate: Date?
         let updatedDate: Date?
-        let categoryIDs: [String]
+        let categories: [CBCategory.Snapshot]
     }
 
+    
     @MainActor
     convenience init(snapshot s: Snapshot, categories: [CBCategory]) {
         self.init()
@@ -234,24 +235,127 @@ extension CBCategoryGroup {
         self.updatedDate = s.updatedDate ?? Date()
         self.categories = categories.sorted { ($0.listOrder ?? 0) < ($1.listOrder ?? 0) }
     }
-
+    
+    
+    @discardableResult
+    func updateCoreData(action: CategoryGroupAction, isPending: Bool, createIfNotFound: Bool) async -> Result<Bool, CoreDataError> {
+        let snapshot = CBCategoryGroup.Snapshot(self)
+        let context = DataManager.shared.createContext()
+        
+        return await context.perform {
+            if let entity = DataManager.shared.getOne(context: context, type: PersistentCategoryGroup.self, predicate: .byId(.string(snapshot.id)), createIfNotFound: createIfNotFound) {
+                
+                entity.id = snapshot.id
+                entity.title = snapshot.title
+                entity.amount = snapshot.amount
+                entity.action = action.rawValue
+                entity.enteredByID = Int64(snapshot.enteredByID)
+                entity.updatedByID = Int64(snapshot.updatedByID)
+                entity.enteredDate = snapshot.enteredDate
+                entity.updatedDate = snapshot.updatedDate
+                entity.isPending = isPending
+                
+                var newSet: Set<PersistentCategory> = []
+                
+                for cat in snapshot.categories {
+                    guard let catEntity = DataManager.shared.getOne(
+                        context: context,
+                        type: PersistentCategory.self,
+                        predicate: .byId(.string(cat.id)),
+                        createIfNotFound: true
+                    ) else {
+                        return .failure(.notFound)
+                    }
+                    
+                    // Update category (safe because we’re in the context queue)
+                    catEntity.id = cat.id
+                    catEntity.title = cat.title
+                    catEntity.amount = cat.amount
+                    catEntity.hexCode = cat.hexCode
+                    catEntity.emoji = cat.emoji
+                    catEntity.action = cat.actionRaw
+                    catEntity.isPending = false
+                    catEntity.isHidden = cat.isHidden
+                    catEntity.typeID = Int64(cat.typeID)
+                    catEntity.listOrder = Int64(cat.listOrder ?? 0)
+                    catEntity.isNil = cat.isNil
+                    catEntity.enteredByID = Int64(snapshot.enteredByID)
+                    catEntity.updatedByID = Int64(snapshot.updatedByID)
+                    catEntity.enteredDate = snapshot.enteredDate
+                    catEntity.updatedDate = snapshot.updatedDate
+                    catEntity.appSuiteKey = cat.appSuiteKeyRaw
+                    
+                    newSet.insert(catEntity)
+                }
+                
+                entity.categories = newSet as NSSet
+                                
+                return DataManager.shared.save(context: context)
+                
+            } else {
+                return .failure(.notFound)
+            }
+        }
+    }
+    
+    
+    @discardableResult
+    func updateAfterSubmit(id: String, lookupId: String, action: CategoryGroupAction) async -> Result<Bool, CoreDataError> {
+        self.action = .edit
+        
+        if action == .add {
+            self.id = id
+            self.uuid = nil
+        }
+        
+        let context = DataManager.shared.createContext()
+        return await context.perform {
+            if let entity = DataManager.shared.getOne(context: context, type: PersistentCategoryGroup.self, predicate: .byId(.string(lookupId)), createIfNotFound: true) {
+                if action == .add {
+                    entity.id = id
+                    entity.action = CategoryGroupAction.edit.rawValue
+                }
+                entity.isPending = false
+                return DataManager.shared.save(context: context)
+                
+            } else {
+                return .failure(.notFound)
+            }
+        }
+    }
+    
+    
     @MainActor
     static func loadFromCoreData(id: String) async -> CBCategoryGroup? {
+        let snapshot = await CBCategoryGroup.createSnapshotFromCoreData(id: id)
+        guard let snapshot else { return nil }
+        
+        var categories: [CBCategory] = []
+        categories.reserveCapacity(snapshot.categories.count)
+
+        for category in snapshot.categories {
+            if let category = await CBCategory.loadFromCoreData(id: category.id) {
+                categories.append(category)
+            }
+        }
+        
+        return CBCategoryGroup(snapshot: snapshot, categories: categories)
+    }
+    
+    
+    @MainActor
+    static func createSnapshotFromCoreData(id: String) async -> CBCategoryGroup.Snapshot? {
         let context = DataManager.shared.createContext()
 
-        let snapshot: Snapshot? = await DataManager.shared.perform(context: context) {
-            guard let entity = DataManager.shared.getOne(
-                context: context,
-                type: PersistentCategoryGroup.self,
-                predicate: .byId(.string(id)),
-                createIfNotFound: false
-            ) else { return nil }
+        return await DataManager.shared.perform(context: context) {
+            guard let entity = DataManager.shared.getOne(context: context, type: PersistentCategoryGroup.self, predicate: .byId(.string(id)), createIfNotFound: false) else { return nil }
 
-            let categoryIDs: [String]
+            
+            let categorySnapshots: [CBCategory.Snapshot]
             if let set = entity.categories as? Set<PersistentCategory> {
-                categoryIDs = set.compactMap(\.id)
+                categorySnapshots = set.map { CBCategory.Snapshot($0) }
             } else {
-                categoryIDs = []
+                categorySnapshots = []
             }
 
             return Snapshot(
@@ -263,21 +367,40 @@ extension CBCategoryGroup {
                 updatedByID: Int(entity.updatedByID),
                 enteredDate: entity.enteredDate,
                 updatedDate: entity.updatedDate,
-                categoryIDs: categoryIDs
+                categories: categorySnapshots
             )
         }
+    }
+}
 
-        guard let snapshot else { return nil }
 
-        var categories: [CBCategory] = []
-        categories.reserveCapacity(snapshot.categoryIDs.count)
+extension CBCategoryGroup.Snapshot {
+    init(_ group: CBCategoryGroup) {
+        self.id = group.id
+        self.title = group.title
+        self.amount = group.amount ?? 0.0
+        self.actionRaw = group.action.rawValue
+        self.enteredByID = group.enteredBy.id
+        self.updatedByID = group.updatedBy.id
+        self.enteredDate = group.enteredDate
+        self.updatedDate = group.updatedDate
+        self.categories = group.categories.map { CBCategory.Snapshot($0) }
+    }
 
-        for categoryID in snapshot.categoryIDs {
-            if let category = await CBCategory.loadFromCoreData(id: categoryID) {
-                categories.append(category)
-            }
+    init(_ entity: PersistentCategoryGroup) {
+        self.id = entity.id ?? ""
+        self.title = entity.title ?? ""
+        self.amount = entity.amount
+        self.actionRaw = entity.action ?? ""
+        self.enteredByID = Int(entity.enteredByID)
+        self.updatedByID = Int(entity.updatedByID)
+        self.enteredDate = entity.enteredDate
+        self.updatedDate = entity.updatedDate
+
+        if let set = entity.categories as? Set<PersistentCategory> {
+            self.categories = set.map { CBCategory.Snapshot($0) }
+        } else {
+            self.categories = []
         }
-
-        return CBCategoryGroup(snapshot: snapshot, categories: categories)
     }
 }

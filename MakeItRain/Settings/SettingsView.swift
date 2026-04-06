@@ -45,8 +45,7 @@ struct SettingsView: View {
     @Local(\.showPaymentMethodIndicator) var showPaymentMethodIndicator
     @Local(\.startInFullScreen) var startInFullScreen
     @Local(\.updatedByOtherUserDisplayMode) var updatedByOtherUserDisplayMode
-    @Local(\.userColorScheme) var userColorScheme
-    
+    @Local(\.userColorScheme) var userColorScheme    
     
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
@@ -123,7 +122,7 @@ struct SettingsView: View {
             .tint(.red)
         }
     }
-    
+                    
     
     @ViewBuilder
     var locationErrorView: some View {
@@ -422,12 +421,14 @@ struct SettingsView: View {
         Section {
             if let uuid = UserDefaults.fetchOneString(requestedKey: "deviceUUID") {
                 Text(uuid)
+                    .textSelection(.enabled)
                     .foregroundStyle(.gray)
                     .font(.footnote)
             }
                                 
             if NotificationManager.shared.notificationsAreAllowed {
                 Text(AppState.shared.notificationToken ?? "N/A")
+                    .textSelection(.enabled)
                     .foregroundStyle(.gray)
                     .font(.footnote)
             } else {

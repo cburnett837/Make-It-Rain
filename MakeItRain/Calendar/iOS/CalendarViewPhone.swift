@@ -339,7 +339,7 @@ struct CalendarViewPhone: View {
             //calModel.isInMultiSelectMode = false
             let month = calModel.months.filter { $0.enumID == enumID }.first!
             
-            funcModel.prepareStartingAmounts(for: month)
+            payModel.prepareStartingAmounts(for: month, calModel: calModel)
             calModel.setSelectedMonthFromNavigation(navID: enumID, calculateStartingAndEod: true)
             
             /// Set the selected day so new transactions have a default date.

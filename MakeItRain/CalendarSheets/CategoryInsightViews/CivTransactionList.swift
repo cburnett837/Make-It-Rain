@@ -103,7 +103,6 @@ struct CivTransactionList: View {
                                 monthlyCategoriesPieChart(monthlyData: data)
                                 monthlyCategoriesBarChart(monthlyData: data)
                             }
-                            
                         }
                     }
                     
@@ -120,13 +119,20 @@ struct CivTransactionList: View {
                             Section(cat.title) {
                                 let filteredTrans = trans.filter { $0.category?.id == cat.id }
                                 
-                                ForEach(filteredTrans) { trans in
-                                    TransactionListLine(trans: trans, withDate: true) {
-                                        let day = model.selectedMonth!.month.days.filter { $0.id == trans.dateComponents?.day }.first
-                                        self.transDay = day
-                                        self.transEditID = trans.id
+                                if filteredTrans.isEmpty {
+                                    Text("No Transactions")
+                                        .foregroundStyle(.gray)
+                                } else {
+                                    ForEach(filteredTrans) { trans in
+                                        TransactionListLine(trans: trans, withDate: true) {
+                                            let day = model.selectedMonth!.month.days.filter { $0.id == trans.dateComponents?.day }.first
+                                            self.transDay = day
+                                            self.transEditID = trans.id
+                                        }
                                     }
                                 }
+                                
+                                
                             }
                         }
                     }

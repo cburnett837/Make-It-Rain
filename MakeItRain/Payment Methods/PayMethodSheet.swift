@@ -179,6 +179,7 @@ struct PayMethodSheet: View {
                     section: section,
                     type: whichPaymentMethods,
                     sText: searchText,
+                    includeHidden: whichPaymentMethods == .remainingAvailbleForPlaid,
                     calModel: calModel,
                     plaidModel: plaidModel
                 )) { meth in

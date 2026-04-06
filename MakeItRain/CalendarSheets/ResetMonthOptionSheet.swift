@@ -97,7 +97,7 @@ struct ResetMonthOptionSheet: View {
             Button("Reset", role: .destructive) {
                 dismiss()
                 calModel.resetMonth(model)
-                funcModel.prepareStartingAmounts(for: calModel.sMonth)
+                payModel.prepareStartingAmounts(for: calModel.sMonth, calModel: calModel)
             }
             Button("Cancel", role: .cancel) {}
         } message: {

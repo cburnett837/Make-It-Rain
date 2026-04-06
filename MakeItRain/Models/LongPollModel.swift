@@ -63,7 +63,7 @@ class LongPollModel: Decodable {
     
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.returnTime = try container.decode(Int.self, forKey: .return_time)
+        self.returnTime = try container.decodeIfPresent(Int.self, forKey: .return_time)
         self.transactions = try container.decodeIfPresent(Array<CBTransaction>.self, forKey: .transactions)
         self.startingAmounts = try container.decodeIfPresent(Array<CBStartingAmount>.self, forKey: .starting_amounts)
         self.repeatingTransactions = try container.decodeIfPresent(Array<CBRepeatingTransaction>.self, forKey: .repeating_transactions)

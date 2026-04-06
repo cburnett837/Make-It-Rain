@@ -12,15 +12,10 @@ import SwiftUI
 @Observable
 class PayMethodModel {
     static let shared = PayMethodModel()
-    var isThinking = false
-    
-    //var paymentMethodEditID: Int?
     var paymentMethods: Array<CBPaymentMethod> = []
-    //var refreshTask: Task<Void, Error>?
     var fuckYouSwiftuiTableRefreshID: UUID = UUID()
     
     let sections: [PaymentMethodSection] = [.debit, .credit, .other]
-    //var sections: Array<PaySection> = []
     
     func doesExist(_ payMethod: CBPaymentMethod) -> Bool {
         return !paymentMethods.filter { $0.id == payMethod.id }.isEmpty
@@ -31,7 +26,9 @@ class PayMethodModel {
     }
     
     func upsert(_ payMethod: CBPaymentMethod) {
-        if !doesExist(payMethod) {
+        if doesExist(payMethod), let index = getIndex(for: payMethod) {
+            paymentMethods[index].setFromAnotherInstance(payMethod: payMethod)
+        } else {
             paymentMethods.append(payMethod)
         }
     }
@@ -107,119 +104,121 @@ class PayMethodModel {
     }
     
     
-    func updateCache(for payMethod: CBPaymentMethod) async -> Result<Bool, CoreDataError> {
-        
-        let id = payMethod.id
-        let title = payMethod.title
-        let dueDate = Int64(payMethod.dueDate ?? 0)
-        let limit = payMethod.limit ?? 0.0
-        let accountType = Int64(payMethod.accountType.rawValue)
-        let hexCode = payMethod.color.toHex()
-        let isViewingDefault = payMethod.isViewingDefault
-        let notificationOffset = Int64(payMethod.notificationOffset)
-        let notifyOnDueDate = payMethod.notifyOnDueDate
-        let last4 = payMethod.last4
-        let interestRate = payMethod.interestRate ?? 0
-        let loanDuration = Int64(payMethod.loanDuration ?? 0)
-        let isHidden = payMethod.isHidden
-        let isPrivate = payMethod.isPrivate
-        let logo = payMethod.logo
-        //let action = "edit"
-        //let isPending = false
-        let enteredByID = Int64(payMethod.enteredBy.id)
-        let updatedByID = Int64(payMethod.updatedBy.id)
-        let enteredDate = payMethod.enteredDate
-        let updatedDate = payMethod.updatedDate
-        let listOrder = Int64(payMethod.listOrder ?? 0)
-        
-        let holderOneID = Int64(payMethod.holderOne?.id ?? 0)
-        let holderTwoID = Int64(payMethod.holderTwo?.id ?? 0)
-        let holderThreeID = Int64(payMethod.holderThree?.id ?? 0)
-        let holderFourID = Int64(payMethod.holderFour?.id ?? 0)
-        
-        let holderOneTypeID = Int64(payMethod.holderOneType?.id ?? 0)
-        let holderTwoTypeID = Int64(payMethod.holderTwoType?.id ?? 0)
-        let holderThreeTypeID = Int64(payMethod.holderThreeType?.id ?? 0)
-        let holderFourTypeID = Int64(payMethod.holderFourType?.id ?? 0)
-        let recentTransactionCount = Int64(payMethod.recentTransactionCount)
-        
-        
-        
-        let context = DataManager.shared.createContext()
-        return await context.perform {
-            /// Create this if not found because if a method gets marked as private from another device after this one has already cached it, it will get deleted from the cache by the long poll.
-            if let entity = DataManager.shared.getOne(
-                context: context,
-                type: PersistentPaymentMethod.self,
-                predicate: .byId(.string(id)),
-                createIfNotFound: true
-            ) {
-                entity.id = id
-                entity.title = title
-                entity.dueDate = dueDate
-                entity.limit = limit
-                entity.accountType = accountType
-                entity.hexCode = hexCode
-                //entity.hexCode = payMethod.color.description
-                entity.isViewingDefault = isViewingDefault
-                entity.notificationOffset = notificationOffset
-                entity.notifyOnDueDate = notifyOnDueDate
-                entity.last4 = last4
-                entity.interestRate = interestRate
-                entity.loanDuration = loanDuration
-                entity.isHidden = isHidden
-                entity.isPrivate = isPrivate
-                entity.action = "edit"
-                entity.isPending = false
-//                entity.logo?.photoData = logo
-//                entity.logo?.localUpdatedDate = Date()
-                entity.enteredByID = enteredByID
-                entity.updatedByID = updatedByID
-                entity.enteredDate = enteredDate
-                entity.updatedDate = updatedDate
-                
-                entity.listOrder = listOrder
-                entity.recentTransactionCount = recentTransactionCount
-                
-                entity.holderOneID = holderOneID
-                entity.holderTwoID = holderTwoID
-                entity.holderThreeID = holderThreeID
-                entity.holderFourID = holderFourID
-                entity.holderOneTypeID = holderOneTypeID
-                entity.holderTwoTypeID = holderTwoTypeID
-                entity.holderThreeTypeID = holderThreeTypeID
-                entity.holderFourTypeID = holderFourTypeID
-                
-                
-                let pred1 = NSPredicate(format: "relatedID == %@", id)
-                let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id))
-                let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
-                
-                if let perLogo = DataManager.shared.getOne(
-                    context: context,
-                    type: PersistentLogo.self,
-                    predicate: .compound(comp),
-                    createIfNotFound: true
-                ) {
-                    perLogo.photoData = logo
-                    perLogo.localUpdatedDate = Date()
-                }
-                
-                
-                return DataManager.shared.save(context: context)
-            } else {
-                return .failure(.notFound)
-            }
-        }
-    }
+//    func updateCache(for payMethod: CBPaymentMethod) async -> Result<Bool, CoreDataError> {
+//        
+//        let id = payMethod.id
+//        let title = payMethod.title
+//        let dueDate = Int64(payMethod.dueDate ?? 0)
+//        let limit = payMethod.limit ?? 0.0
+//        let accountType = Int64(payMethod.accountType.rawValue)
+//        let hexCode = payMethod.color.toHex()
+//        let isViewingDefault = payMethod.isViewingDefault
+//        let notificationOffset = Int64(payMethod.notificationOffset)
+//        let notifyOnDueDate = payMethod.notifyOnDueDate
+//        let last4 = payMethod.last4
+//        let interestRate = payMethod.interestRate ?? 0
+//        let loanDuration = Int64(payMethod.loanDuration ?? 0)
+//        let isHidden = payMethod.isHidden
+//        let isPrivate = payMethod.isPrivate
+//        let logo = payMethod.logo
+//        //let action = "edit"
+//        //let isPending = false
+//        let enteredByID = Int64(payMethod.enteredBy.id)
+//        let updatedByID = Int64(payMethod.updatedBy.id)
+//        let enteredDate = payMethod.enteredDate
+//        let updatedDate = payMethod.updatedDate
+//        let listOrder = Int64(payMethod.listOrder ?? 0)
+//        
+//        let holderOneID = Int64(payMethod.holderOne?.id ?? 0)
+//        let holderTwoID = Int64(payMethod.holderTwo?.id ?? 0)
+//        let holderThreeID = Int64(payMethod.holderThree?.id ?? 0)
+//        let holderFourID = Int64(payMethod.holderFour?.id ?? 0)
+//        
+//        let holderOneTypeID = Int64(payMethod.holderOneType?.id ?? 0)
+//        let holderTwoTypeID = Int64(payMethod.holderTwoType?.id ?? 0)
+//        let holderThreeTypeID = Int64(payMethod.holderThreeType?.id ?? 0)
+//        let holderFourTypeID = Int64(payMethod.holderFourType?.id ?? 0)
+//        let recentTransactionCount = Int64(payMethod.recentTransactionCount)
+//        
+//        
+//        
+//        let context = DataManager.shared.createContext()
+//        return await context.perform {
+//            /// Create this if not found because if a method gets marked as private from another device after this one has already cached it, it will get deleted from the cache by the long poll.
+//            if let entity = DataManager.shared.getOne(
+//                context: context,
+//                type: PersistentPaymentMethod.self,
+//                predicate: .byId(.string(id)),
+//                createIfNotFound: true
+//            ) {
+//                entity.id = id
+//                entity.title = title
+//                entity.dueDate = dueDate
+//                entity.limit = limit
+//                entity.accountType = accountType
+//                entity.hexCode = hexCode
+//                //entity.hexCode = payMethod.color.description
+//                entity.isViewingDefault = isViewingDefault
+//                entity.notificationOffset = notificationOffset
+//                entity.notifyOnDueDate = notifyOnDueDate
+//                entity.last4 = last4
+//                entity.interestRate = interestRate
+//                entity.loanDuration = loanDuration
+//                entity.isHidden = isHidden
+//                entity.isPrivate = isPrivate
+//                entity.action = "edit"
+//                entity.isPending = false
+////                entity.logo?.photoData = logo
+////                entity.logo?.localUpdatedDate = Date()
+//                entity.enteredByID = enteredByID
+//                entity.updatedByID = updatedByID
+//                entity.enteredDate = enteredDate
+//                entity.updatedDate = updatedDate
+//                
+//                entity.listOrder = listOrder
+//                entity.recentTransactionCount = recentTransactionCount
+//                
+//                entity.holderOneID = holderOneID
+//                entity.holderTwoID = holderTwoID
+//                entity.holderThreeID = holderThreeID
+//                entity.holderFourID = holderFourID
+//                entity.holderOneTypeID = holderOneTypeID
+//                entity.holderTwoTypeID = holderTwoTypeID
+//                entity.holderThreeTypeID = holderThreeTypeID
+//                entity.holderFourTypeID = holderFourTypeID
+//                
+//                
+//                let pred1 = NSPredicate(format: "relatedID == %@", id)
+//                let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id))
+//                let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
+//                
+//                if let perLogo = DataManager.shared.getOne(
+//                    context: context,
+//                    type: PersistentLogo.self,
+//                    predicate: .compound(comp),
+//                    createIfNotFound: true
+//                ) {
+//                    perLogo.photoData = logo
+//                    perLogo.localUpdatedDate = Date()
+//                }
+//                
+//                
+//                return DataManager.shared.save(context: context)
+//            } else {
+//                return .failure(.notFound)
+//            }
+//        }
+//    }
     
     
     @MainActor
     func fetchPaymentMethods(calModel: CalendarModel) async {
-        //print("-- \(#function)")
         LogManager.log()
         
         let start = CFAbsoluteTimeGetCurrent()
+        
+        /// For testing bad network connection.
+        //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
         
         /// Do networking.
         let model = RequestModel(requestType: "fetch_payment_methods", model: AppState.shared.user)
@@ -228,133 +227,19 @@ class PayMethodModel {
         
         switch await result {
         case .success(let model):
-            
-            /// For testing bad network connection.
-            //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
-            
-            let context = DataManager.shared.createContext()
-            
             LogManager.networkingSuccessful()
             if let model {
                 if !model.isEmpty {
-                    var activeIds: Array<String> = []
-                    for payMethod in model {
-                        activeIds.append(payMethod.id)
-                        
-                        let id = payMethod.id
-                        let title = payMethod.title
-                        let dueDate = Int64(payMethod.dueDate ?? 0)
-                        let limit = payMethod.limit ?? 0.0
-                        let accountType = Int64(payMethod.accountType.rawValue)
-                        let hexCode = payMethod.color.toHex()
-                        let isViewingDefault = payMethod.isViewingDefault
-                        let isEditingDefault = payMethod.isEditingDefault
-                        let notificationOffset = Int64(payMethod.notificationOffset)
-                        let notifyOnDueDate = payMethod.notifyOnDueDate
-                        let last4 = payMethod.last4
-                        let interestRate = payMethod.interestRate ?? 0
-                        let loanDuration = Int64(payMethod.loanDuration ?? 0)
-                        let isHidden = payMethod.isHidden
-                        let isPrivate = payMethod.isPrivate
-                        //let logo = payMethod.logo
-                        //let action = "edit"
-                        //let isPending = false
-                        let enteredByID = Int64(payMethod.enteredBy.id)
-                        let updatedByID = Int64(payMethod.updatedBy.id)
-                        let enteredDate = payMethod.enteredDate
-                        let updatedDate = payMethod.updatedDate
-                        let listOrder = Int64(payMethod.listOrder ?? 0)
-                        let recentTransactionCount = Int64(payMethod.recentTransactionCount)
-                        
-                        let holderOneID = Int64(payMethod.holderOne?.id ?? 0)
-                        let holderTwoID = Int64(payMethod.holderTwo?.id ?? 0)
-                        let holderThreeID = Int64(payMethod.holderThree?.id ?? 0)
-                        let holderFourID = Int64(payMethod.holderFour?.id ?? 0)
-                        
-                        let holderOneTypeID = Int64(payMethod.holderOneType?.id ?? 0)
-                        let holderTwoTypeID = Int64(payMethod.holderTwoType?.id ?? 0)
-                        let holderThreeTypeID = Int64(payMethod.holderThreeType?.id ?? 0)
-                        let holderFourTypeID = Int64(payMethod.holderFourType?.id ?? 0)
-                                                                                                
-//                        if calModel.sPayMethod == nil && payMethod.isViewingDefault {
-//                            calModel.sPayMethod = payMethod
-//                        }
-                        
-                        
-                        /// Load the logo from coredata
-                        await payMethod.loadLogoFromCoreDataIfNeeded()
-                        
-                        let index = paymentMethods.firstIndex(where: { $0.id == payMethod.id })
-                        if let index {
-                            /// If the payment method is already in the list, update it from the server.
-                            paymentMethods[index].setFromAnotherInstance(payMethod: payMethod)
-                        } else {
-                            /// Add the payment method to the list (like when the payment method was added on another device).
-                            paymentMethods.append(payMethod)
-                        }
-                        
-                        /// Find the payment method in cache.
-                        await context.perform {
-                            /// Update the cache and add to model (if appolicable).
-                            /// This should always be true because the line above creates the entity if it's not found.
-                            if let entity = DataManager.shared.getOne(
-                                context: context,
-                                type: PersistentPaymentMethod.self,
-                                predicate: .byId(.string(id)),
-                                createIfNotFound: true
-                            ) {
-                                entity.id = id
-                                entity.title = title
-                                entity.dueDate = dueDate
-                                entity.limit = limit
-                                entity.accountType = accountType
-                                entity.hexCode = hexCode
-                                //entity.hexCode = payMethod.color.description
-                                entity.isEditingDefault = isEditingDefault
-                                entity.isViewingDefault = isViewingDefault
-                                entity.notificationOffset = notificationOffset
-                                entity.notifyOnDueDate = notifyOnDueDate
-                                entity.last4 = last4
-                                entity.interestRate = interestRate
-                                entity.loanDuration = loanDuration
-                                entity.isHidden = isHidden
-                                entity.isPrivate = isPrivate
-                                entity.action = "edit"
-                                entity.isPending = false
-                                //entity.logo?.photoData = logo
-//                                entity.logo?.localUpdatedDate = Date()
-                                entity.enteredByID = enteredByID
-                                entity.updatedByID = updatedByID
-                                entity.enteredDate = enteredDate
-                                entity.updatedDate = updatedDate
-                                
-                                entity.listOrder = listOrder
-                                entity.recentTransactionCount = recentTransactionCount
-                                
-                                entity.holderOneID = holderOneID
-                                entity.holderTwoID = holderTwoID
-                                entity.holderThreeID = holderThreeID
-                                entity.holderFourID = holderFourID
-                                entity.holderOneTypeID = holderOneTypeID
-                                entity.holderTwoTypeID = holderTwoTypeID
-                                entity.holderThreeTypeID = holderThreeTypeID
-                                entity.holderFourTypeID = holderFourTypeID
-                                
-                                let _ = DataManager.shared.save(context: context)
-                            }
-                        }
+                    for meth in model {
+                        await meth.loadLogoFromCoreDataIfNeeded()
+                        upsert(meth)
+                        await meth.updateCoreData(action: .edit, isPending: false, createIfNotFound: true)
                     }
                     
-                    /// Delete from cache and model.
-                    for payMethod in paymentMethods {
-                        if !activeIds.contains(payMethod.id) {
-                            paymentMethods.removeAll { $0.id == payMethod.id }
-                            /// Does so in its own perform block.
-                            DataManager.shared.delete(
-                                context: context,
-                                type: PersistentPaymentMethod.self,
-                                predicate: .byId(.string(payMethod.id))
-                            )
+                    /// Delete from cache and local list.
+                    for meth in paymentMethods {
+                        if model.filter({ $0.id == meth.id }).isEmpty {
+                            paymentMethods.removeAll { $0.id == meth.id }
                         }
                     }
                 } else {
@@ -388,219 +273,55 @@ class PayMethodModel {
         var backgroundTaskId = AppState.shared.beginBackgroundTask()
         #endif
         
-        isThinking = true
         //LoadingManager.shared.startDelayedSpinner()
         LogManager.log()
         
-        let id = payMethod.id
-        let title = payMethod.title
-        let dueDate = Int64(payMethod.dueDate ?? 0)
-        let limit = payMethod.limit ?? 0.0
-        let accountType = Int64(payMethod.accountType.rawValue)
-        let hexCode = payMethod.color.toHex()
-        let isViewingDefault = payMethod.isViewingDefault
-        let notificationOffset = Int64(payMethod.notificationOffset)
-        let notifyOnDueDate = payMethod.notifyOnDueDate
-        let last4 = payMethod.last4
-        let interestRate = payMethod.interestRate ?? 0
-        let loanDuration = Int64(payMethod.loanDuration ?? 0)
-        let isHidden = payMethod.isHidden
-        let isPrivate = payMethod.isPrivate
-        let logo = payMethod.logo
-        let action = payMethod.action
-        //let isPending = false
-        let enteredByID = Int64(payMethod.enteredBy.id)
-        let updatedByID = Int64(payMethod.updatedBy.id)
-        let enteredDate = payMethod.enteredDate
-        let updatedDate = payMethod.updatedDate
-        
-        let listOrder = Int64(payMethod.listOrder ?? 0)
-        let recentTransactionCount = Int64(payMethod.recentTransactionCount)
-        
-        let holderOneID = Int64(payMethod.holderOne?.id ?? 0)
-        let holderTwoID = Int64(payMethod.holderTwo?.id ?? 0)
-        let holderThreeID = Int64(payMethod.holderThree?.id ?? 0)
-        let holderFourID = Int64(payMethod.holderFour?.id ?? 0)
-        
-        let holderOneTypeID = Int64(payMethod.holderOneType?.id ?? 0)
-        let holderTwoTypeID = Int64(payMethod.holderTwoType?.id ?? 0)
-        let holderThreeTypeID = Int64(payMethod.holderThreeType?.id ?? 0)
-        let holderFourTypeID = Int64(payMethod.holderFourType?.id ?? 0)
-        
-                
-        let context = DataManager.shared.createContext()
-        await context.perform {
-            if let entity = DataManager.shared.getOne(
-                context: context,
-                type: PersistentPaymentMethod.self,
-                predicate: .byId(.string(id)),
-                createIfNotFound: true
-            ) {
-                entity.id = id
-                entity.title = title
-                entity.dueDate = dueDate
-                entity.limit = limit
-                entity.accountType = accountType
-                entity.hexCode = hexCode
-                //entity.hexCode = payMethod.color.description
-                entity.isViewingDefault = isViewingDefault
-                entity.notificationOffset = notificationOffset
-                entity.notifyOnDueDate = notifyOnDueDate
-                entity.last4 = last4
-                entity.interestRate = interestRate
-                entity.loanDuration = loanDuration
-                entity.isHidden = isHidden
-                entity.isPrivate = isPrivate
-                entity.action = action.rawValue
-                entity.isPending = true
-                //entity.logo?.photoData = logo
-                //entity.logo?.localUpdatedDate = Date()
-                entity.enteredByID = enteredByID
-                entity.updatedByID = updatedByID
-                entity.enteredDate = enteredDate
-                entity.updatedDate = updatedDate
-                entity.listOrder = listOrder
-                entity.recentTransactionCount = recentTransactionCount
-                
-                entity.holderOneID = holderOneID
-                entity.holderTwoID = holderTwoID
-                entity.holderThreeID = holderThreeID
-                entity.holderFourID = holderFourID
-                entity.holderOneTypeID = holderOneTypeID
-                entity.holderTwoTypeID = holderTwoTypeID
-                entity.holderThreeTypeID = holderThreeTypeID
-                entity.holderFourTypeID = holderFourTypeID
-                
-                let pred1 = NSPredicate(format: "relatedID == %@", id)
-                let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id))
-                let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
-                
-                if let perLogo = DataManager.shared.getOne(
-                    context: context,
-                    type: PersistentLogo.self,
-                    predicate: .compound(comp),
-                    createIfNotFound: true
-                ) {
-                    perLogo.id = UUID().uuidString
-                    perLogo.relatedID = id
-                    perLogo.relatedTypeID = Int64(XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id)
-                    perLogo.photoData = logo
-                    perLogo.localUpdatedDate = Date()
-                }
-                
-                
-                let _ = DataManager.shared.save(context: context)
-            }
-        }
-        
-        let model = RequestModel(requestType: payMethod.action.serverKey, model: payMethod)
-            
         /// Used to test the snapshot data race
         //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
         
+        /// Stuff in core data in case something goes wrong in the networking.
+        /// If something goes wrong, the isPending flag will cause it to be queued for syncing on next successful connection.
+        await payMethod.updateCoreData(action: payMethod.action, isPending: true, createIfNotFound: true)
+        
+        let model = RequestModel(requestType: payMethod.action.serverKey, model: payMethod)
         typealias ResultResponse = Result<ReturnIdModel?, AppError>
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
         switch await result {
         case .success(let model):
             LogManager.networkingSuccessful()
-                        
-            let modelID = model?.id ?? String(0)
-            let updatedDate = model?.updatedDate ?? Date()
-            let action = payMethod.action
             
-            //print("The server updated date is \(model?.updatedDate)")
-            
-            if payMethod.action != .delete {
-                await context.perform {
-                    if let entity = DataManager.shared.getOne(
-                        context: context,
-                        type: PersistentPaymentMethod.self,
-                        predicate: .byId(.string(id)),
-                        createIfNotFound: true
-                    ) {
-                        /// If adding a new pay method, update core data with the server ID by finding it via the UUID.
-                        if action == .add {
-                            entity.id = modelID
-                            entity.action = "edit"
-                        }
-                        entity.isPending = false
-                        
-                        /// Update the logo with the updated date from the record.
-                        let pred1 = NSPredicate(format: "relatedID == %@", action == .add ? modelID : id)
-                        let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id))
-                        let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
-                        
-                        if let perLogo = DataManager.shared.getOne(
-                            context: context,
-                            type: PersistentLogo.self,
-                            predicate: .compound(comp),
-                            createIfNotFound: true
-                        ) {
-                            perLogo.relatedID = modelID
-                            perLogo.photoData = logo
-                            perLogo.localUpdatedDate = updatedDate
-                            perLogo.serverUpdatedDate = updatedDate
-                        }
-                                                                        
-                        let _ = DataManager.shared.save(context: context)
-                    }
-                }
+            if payMethod.action == .delete {
+                print("Delete payment method from core data with id \(payMethod.id)")
+                DataManager.shared.delete(context: DataManager.shared.createContext(), type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)))
                 
-                /// Get the new ID from the server after adding a new activity.
-                if action == .add {
-                    payMethod.id = modelID
-                    payMethod.uuid = nil
-                    payMethod.action = .edit
-                }
-                
-            } else {
-                /// Does so in its own perform block.
-                DataManager.shared.delete(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)))
+            } else if let serverID = model?.id {
+                /// If adding, the keyword ID will be the UUID, which is what would have been used to save the item to core data initially, so pass it as the lookupID.
+                /// Pass the new serverID as the id so it gets set on the keyword.
+                await payMethod.updateAfterSubmit(
+                    id: payMethod.action == .add ? serverID : payMethod.id,
+                    lookupId: payMethod.id,
+                    action: payMethod.action,
+                    updatedDate: model?.updatedDate ?? Date(),
+                    logo: payMethod.logo
+                )
             }
-            
-            print("✅Payment method successfully saved")
-            
-            isThinking = false
-            payMethod.action = .edit
-            #if os(macOS)
-            fuckYouSwiftuiTableRefreshID = UUID()
-            #endif
-            
-            /// End the background task.
-            #if os(iOS)
-            AppState.shared.endBackgroundTask(&backgroundTaskId)
-            #endif
-            
-            return true
                                                 
         case .failure(let error):
             print("❌Payment method failed to save")
             LogManager.error(error.localizedDescription)
             AppState.shared.showAlert("There was a problem syncing the payment method. Will try again at a later time.")
-//            payMethod.deepCopy(.restore)
-//            
-//            switch payMethod.action {
-//            case .add: paymentMethods.removeAll { $0.id == payMethod.id }
-//            case .edit: break
-//            case .delete: paymentMethods.append(payMethod)
-//            }
-            
-            isThinking = false
-            payMethod.action = .edit
-            #if os(macOS)
-            fuckYouSwiftuiTableRefreshID = UUID()
-            #endif
-            
-            /// End the background task.
-            #if os(iOS)
-            AppState.shared.endBackgroundTask(&backgroundTaskId)
-            #endif
-            
-            return false
         }
         
+        #if os(macOS)
+        fuckYouSwiftuiTableRefreshID = UUID()
+        #endif
         
+        #if os(iOS)
+        AppState.shared.endBackgroundTask(&backgroundTaskId)
+        #endif
+        
+        return (await result).isSuccess
     }
     
     
@@ -652,8 +373,7 @@ class PayMethodModel {
         
         //LoadingManager.shared.startDelayedSpinner()
         LogManager.log()
-                                
-        
+                                        
         for each in paymentMethods {
             each.isViewingDefault = false
         }
@@ -663,62 +383,38 @@ class PayMethodModel {
                 each.isViewingDefault = true
             }
         }
-        
-//        self.paymentMethods = paymentMethods.map({
-//            let optionItem = $0
-//            $0.isViewingDefault = $0.id == payMethod.id
-//            return optionItem
-//        })
                 
-        let methInfos = await MainActor.run {
-            self.paymentMethods.map { (id: $0.id, isViewingDefault: $0.isViewingDefault) }
-        }
+        let methInfos = self.paymentMethods.map { (id: $0.id, isViewingDefault: $0.isViewingDefault) }
         
         let context = DataManager.shared.createContext()
         await context.perform {
             for method in methInfos {
-                if let entity = DataManager.shared.getOne(
-                    context: context,
-                    type: PersistentPaymentMethod.self,
-                    predicate: .byId(.string(method.id)),
-                    createIfNotFound: true
-                ) {
+                if let entity = DataManager.shared.getOne(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(method.id)), createIfNotFound: true) {
                     entity.isViewingDefault = method.isViewingDefault
                 }
             }
             
             let _ = DataManager.shared.save(context: context)
         }
-        
-        let submitModel = IdSubmitModel(id: payMethod?.id)
-      
+                      
         /// Networking
+        let submitModel = IdSubmitModel(id: payMethod?.id)
         let model = RequestModel(requestType: "set_default_viewing_payment_method", model: submitModel)
-        
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
         switch await result {
         case .success:
             LogManager.networkingSuccessful()
-            
-            /// End the background task.
-            #if os(iOS)
-            AppState.shared.endBackgroundTask(&backgroundTaskId)
-            #endif
 
         case .failure(let error):
             LogManager.error(error.localizedDescription)
             AppState.shared.showAlert("There was a problem trying to set the default payment method.")
-            //showSaveAlert = true
-            #warning("Undo behavior")
-            
-            /// End the background task.
-            #if os(iOS)
-            AppState.shared.endBackgroundTask(&backgroundTaskId)
-            #endif
         }
-        //LoadingManager.shared.stopDelayedSpinner()
+        
+        #if os(iOS)
+        AppState.shared.endBackgroundTask(&backgroundTaskId)
+        #endif
     }
     
     
@@ -744,60 +440,38 @@ class PayMethodModel {
             }
         }
                                 
-//        paymentMethods = paymentMethods.map({
-//            let optionItem = $0
-//            $0.isEditingDefault = $0.id == payMethod.id
-//            return optionItem
-//        })
-        
-        let methInfos = await MainActor.run {
-            self.paymentMethods.map { (id: $0.id, isEditingDefault: $0.isEditingDefault) }
-        }
+        let methInfos = self.paymentMethods.map { (id: $0.id, isEditingDefault: $0.isEditingDefault) }
         
         let context = DataManager.shared.createContext()
         await context.perform {
             for method in methInfos {
                 if let entity = DataManager.shared.getOne(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(method.id)), createIfNotFound: true) {
-                    
-                    print("Setting cache result of defaultEdit for \(method.id) to \(method.isEditingDefault)")
-                    
                     entity.isEditingDefault = method.isEditingDefault
                 }
             }
             
             let _ = DataManager.shared.save(context: context)
         }
-        
-        let submitModel = IdSubmitModel(id: payMethod?.id)
-
-                              
+                                              
         /// Networking
+        let submitModel = IdSubmitModel(id: payMethod?.id)
         let model = RequestModel(requestType: "set_default_editing_payment_method", model: submitModel)
-        
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
         async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
         switch await result {
         case .success:
             LogManager.networkingSuccessful()
-            
-            /// End the background task.
-            #if os(iOS)
-            AppState.shared.endBackgroundTask(&backgroundTaskId)
-            #endif
 
         case .failure(let error):
             LogManager.error(error.localizedDescription)
             AppState.shared.showAlert("There was a problem trying to set the default payment method.")
-            //showSaveAlert = true
-            #warning("Undo behavior")
-            
-            /// End the background task.
-            #if os(iOS)
-            AppState.shared.endBackgroundTask(&backgroundTaskId)
-            #endif
         }
-        //LoadingManager.shared.stopDelayedSpinner()
+        
+        /// End the background task.
+        #if os(iOS)
+        AppState.shared.endBackgroundTask(&backgroundTaskId)
+        #endif
     }
     
     
@@ -811,7 +485,6 @@ class PayMethodModel {
       
         /// Networking
         let model = RequestModel(requestType: "fetch_starting_amounts_for_date_range", model: analModel)
-        
         typealias ResultResponse = Result<Array<CBStartingAmount>?, AppError>
         async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
                     
@@ -863,6 +536,27 @@ class PayMethodModel {
         }
     }
     
+    
+    @MainActor func prepareStartingAmounts(for month: CBMonth, calModel: CalendarModel) {
+        //print("-- \(#function)")
+        for payMethod in self.paymentMethods.filter({ $0.isPermittedAndViewable }) {
+            /// Create a starting amount if it doesn't exist in the current month.
+            if !month.startingAmounts.contains(where: { $0.payMethod.id == payMethod.id }) {
+                let starting = CBStartingAmount()
+                starting.payMethod = payMethod
+                starting.action = .add
+                starting.month = month.actualNum
+                starting.year = month.year
+                
+                starting.amountString = ""
+                month.startingAmounts.append(starting)
+            }
+                                                
+            if payMethod.isUnified {
+                let _ = calModel.updateUnifiedStartingAmount(month: month, for: payMethod.accountType)
+            }
+        }
+    }
     
     
     func determineIfUserIsRequiredToAddPaymentMethod() {
@@ -949,6 +643,92 @@ class PayMethodModel {
     }
     
     
+    @MainActor
+    func handleLongPoll(_ payMethods: Array<CBPaymentMethod>, calModel: CalendarModel, repModel: RepeatingTransactionModel) async {
+        print("-- \(#function)")
+        
+        //let ogListOrders = payModel.paymentMethods.map { $0.listOrder ?? 0 }.sorted()
+        //var newListOrders: [Int] = []
+        
+        let context = DataManager.shared.createContext()
+        for payMethod in payMethods {
+            await payMethod.loadLogoFromCoreDataIfNeeded()
+            
+            //newListOrders.append(payMethod.listOrder ?? 0)
+            if self.doesExist(payMethod) {
+                if !payMethod.active {
+                    self.delete(payMethod, andSubmit: false, calModel: calModel)
+                    continue
+                } else {
+                    if let index = self.getIndex(for: payMethod) {
+                        self.paymentMethods[index].setFromAnotherInstance(payMethod: payMethod)
+                        self.paymentMethods[index].deepCopy?.setFromAnotherInstance(payMethod: payMethod)
+                    }
+                }
+            } else {
+                if payMethod.active {
+                    withAnimation { self.upsert(payMethod) }
+                }
+            }
+            
+            if payMethod.isPermitted {
+                await payMethod.updateCoreData(action: .edit, isPending: false, createIfNotFound: false)
+            } else {
+                DataManager.shared.delete(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)))
+            }
+            //print("SaveResult: \(saveResult)")
+            
+            calModel.justTransactions
+                .filter { $0.payMethod?.id == payMethod.id }
+                .forEach { $0.payMethod?.setFromAnotherInstance(payMethod: payMethod) }
+            
+            calModel.months
+                .flatMap { $0.startingAmounts.compactMap { $0.payMethod } }
+                .filter { $0.id == payMethod.id }
+                .forEach { $0.setFromAnotherInstance(payMethod: payMethod) }
+            
+            repModel.repTransactions
+                .filter { $0.payMethod?.id == payMethod.id }
+                .forEach { $0.payMethod?.setFromAnotherInstance(payMethod: payMethod) }
+        }
+        
+        self.determineIfUserIsRequiredToAddPaymentMethod()
+    }
+    
+    
+    @MainActor
+    func populateFromCoreData(setDefaultPayMethod: Bool, calModel: CalendarModel) async {
+        let context = DataManager.shared.createContext()
+
+        let methodIDs: [String] = await DataManager.shared.perform(context: context) {
+            let entities = DataManager.shared.getMany(context: context, type: PersistentPaymentMethod.self) ?? []
+            return entities.compactMap(\.id)
+        }
+
+        guard !methodIDs.isEmpty else { return }
+
+        var loadedMethods: [CBPaymentMethod] = []
+        loadedMethods.reserveCapacity(methodIDs.count)
+
+        for id in methodIDs {
+            if let method = await CBPaymentMethod.loadFromCoreData(id: id) {
+                loadedMethods.append(method)
+            }
+        }
+
+        for method in loadedMethods {
+            if setDefaultPayMethod && method.isViewingDefault {
+                calModel.sPayMethod = method
+            }
+            
+            self.upsert(method)
+        }
+
+        self.paymentMethods.sort(by: Helpers.paymentMethodSorter())
+    }
+
+    
+    
     func getMethodsFor(
         section: PaymentMethodSection,
         type: ApplicablePaymentMethods,
@@ -973,7 +753,8 @@ class PayMethodModel {
                     
                 case .remainingAvailbleForPlaid:
                     let taken: Array<String> = plaidModel?.banks.flatMap ({ $0.accounts.compactMap({ $0.paymentMethodID }) }) ?? []
-                    return meth.accountType == .checking && !taken.contains(meth.id)
+                    //return meth.accountType == .checking && !taken.contains(meth.id)
+                    return !meth.isUnified && !taken.contains(meth.id)
                 }
             }
             .filter {

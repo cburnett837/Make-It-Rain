@@ -20,20 +20,22 @@ class FuncModel {
     var keyModel: KeywordModel
     var repModel: RepeatingTransactionModel
     var plaidModel: PlaidModel
+    var webSocketManager: WebSocketManager
     
-    var longPollTask: Task<Void, Error>?
+    //var longPollTask: Task<Void, Error>?
     var refreshTask: Task<Void, Error>?
     
     var isLoading = false
     var loadTimes: [(id: UUID, date: Date, load: Double)] = []
     
-    init(calModel: CalendarModel, payModel: PayMethodModel, catModel: CategoryModel, keyModel: KeywordModel, repModel: RepeatingTransactionModel, plaidModel: PlaidModel) {
+    init(calModel: CalendarModel, payModel: PayMethodModel, catModel: CategoryModel, keyModel: KeywordModel, repModel: RepeatingTransactionModel, plaidModel: PlaidModel, webSocketManager: WebSocketManager) {
         self.calModel = calModel
         self.payModel = payModel
         self.catModel = catModel
         self.keyModel = keyModel
         self.repModel = repModel
         self.plaidModel = plaidModel
+        self.webSocketManager = webSocketManager
     }
     
 //    /// This is only for biometrics.
@@ -141,12 +143,14 @@ class FuncModel {
         Task {
             if await AppState.shared.hasBadConnection() {
                 self.refreshTask?.cancel()
-                self.longPollTask?.cancel()
+                //self.longPollTask?.cancel()
+                webSocketManager.stopListening()
             }
         }
         
+        webSocketManager.startListening()
         /// Restart long poll (if applicable).
-        longPollServerForChanges()
+        //longPollServerForChanges()
                 
         /// Reset loading visuals (if applicable).
         /// Don't show the loading cover on the month if refreshing via scene change.
@@ -159,10 +163,10 @@ class FuncModel {
         await submitCachedAccessorialsIfApplicable()
                                                                  
         /// Populate accessorials from cache.
-        await populatePaymentMethodsFromCache(setDefaultPayMethod: setDefaultPayMethod)
-        await populateCategoriesFromCache()
-        await populateCategoryGroupsFromCache()
-        await keyModel.populateFromCache()
+        await payModel.populateFromCoreData(setDefaultPayMethod: setDefaultPayMethod, calModel: calModel)
+        await catModel.populateFromCoreData()
+        await catModel.populateCategoryGroupsFromCoreData()
+        await keyModel.populateFromCoreData()
                             
         var next: CBMonth?
         var prev: CBMonth?
@@ -186,41 +190,23 @@ class FuncModel {
                     await payModel.fetchPaymentMethods(calModel: calModel)
                 }
                 
-                //let viewingMonth = calModel.months.filter { $0.num == currentNavSelection.monthNum }.first!
                 let viewingMonth = calModel.months.get(byEnumId: currentNavSelection.id)
                 
-                self.prepareStartingAmounts(for: viewingMonth)
+                payModel.prepareStartingAmounts(for: viewingMonth, calModel: calModel)
                                 
                 /// If not at the beginning or end of the data, download the months adjacent to the viewing month.
                 if ![.lastDecember, .nextJanuary].contains(viewingMonth.enumID) {
                     next = calModel.months.getAdjacent(num: (currentNavSelection.monthNum ?? 0), direction: .next)
                     prev = calModel.months.getAdjacent(num: (currentNavSelection.monthNum ?? 0), direction: .prev)
-                    //next = calModel.months.filter { $0.num == (currentNavSelection.monthNum ?? 0) + 1 }.first!
-                    //prev = calModel.months.filter { $0.num == (currentNavSelection.monthNum ?? 0) - 1 }.first!
                 }
                 
-                /// Download user settings.
-                await AppSettings.shared.fetch()
+                /// Download user settings if it's a user-initiated-refresh, or a scene-change-initiated refresh.
+                if refreshTechnique != .viaInitial {
+                    await AppSettings.shared.fetch()
+                }
                 
                 /// Download viewing month.
-                await downloadViewingMonth(
-                    viewingMonth,
-                    createNewStructs: createNewStructs,
-                    refreshTechnique: refreshTechnique
-                )
-                    
-                /// Download Plaid stuff.
-                await downloadPlaidStuff()
-                
-                //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
-                                                
-                /// Download adjacent months.
-                await downloadAdjacentMonths(
-                    next: next,
-                    prev: prev,
-                    createNewStructs: createNewStructs,
-                    refreshTechnique: refreshTechnique
-                )
+                await downloadViewingMonth(viewingMonth, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
                 
                 /// Download other months and accessorials.
                 await downloadOtherMonthsAndAccessorials(
@@ -232,12 +218,15 @@ class FuncModel {
                 )
                                 
             } else {
+                #warning("Fix this")
                 /// Run this code if we come back from a sceneChange and are not viewing a month.
                 /// If we're not viewing a month, then we must be viewing an accessorial view, so download those first.
                 if NavDestination.justAccessorials.contains(currentNavSelection) {
                     
                     /// Download user settings.
-                    await AppSettings.shared.fetch()
+                    if refreshTechnique != .viaInitial {
+                        await AppSettings.shared.fetch()
+                    }
                     
                     /// Download other months and accessorials.
                     await downloadAccessorials(createNewStructs: createNewStructs)
@@ -249,16 +238,19 @@ class FuncModel {
                         refreshTechnique: refreshTechnique
                     )
                     
+                    
+                    
+                    
                     /// Download Plaid stuff.
-                    await downloadPlaidStuff()
+                    //await downloadPlaidStuff()
                     
                     /// Download adjacent months.
-                    await downloadAdjacentMonths(
-                        next: next,
-                        prev: prev,
-                        createNewStructs: createNewStructs,
-                        refreshTechnique: refreshTechnique
-                    )
+//                    await downloadAdjacentMonths(
+//                        next: next,
+//                        prev: prev,
+//                        createNewStructs: createNewStructs,
+//                        refreshTechnique: refreshTechnique
+//                    )
                     
                     /// Download other months only.
                     await downloadOtherMonths(
@@ -292,25 +284,25 @@ class FuncModel {
     
     
     // MARK: - Downloading Stuff
-    @MainActor private func downloadPlaidStuff() async {
-        let plaidStart = CFAbsoluteTimeGetCurrent()
-        
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask {
-                //print("fetching plaid transactions");
-                let fetchModel = PlaidServerModel(rowNumber: 1)
-                await self.plaidModel.fetchPlaidTransactionsFromServer(fetchModel, accumulate: false)
-            }
-        
-            group.addTask {
-                //print("fetching plaid balances");
-                await self.plaidModel.fetchPlaidBalancesFromServer()
-            }
-        }
-        
-        let plaidElapsed = CFAbsoluteTimeGetCurrent() - plaidStart
-        print("⏰It took \(plaidElapsed) seconds to fetch the plaid data")
-    }
+//    @MainActor private func downloadPlaidStuff() async {
+//        let plaidStart = CFAbsoluteTimeGetCurrent()
+//        
+//        await withTaskGroup(of: Void.self) { group in
+//            group.addTask {
+//                //print("fetching plaid transactions");
+//                let fetchModel = PlaidServerModel(rowNumber: 1)
+//                await self.plaidModel.fetchPlaidTransactionsFromServer(fetchModel, accumulate: false)
+//            }
+//        
+//            group.addTask {
+//                //print("fetching plaid balances");
+//                await self.plaidModel.fetchPlaidBalancesFromServer()
+//            }
+//        }
+//        
+//        let plaidElapsed = CFAbsoluteTimeGetCurrent() - plaidStart
+//        print("⏰It took \(plaidElapsed) seconds to fetch the plaid data")
+//    }
     
     
     @MainActor private func downloadViewingMonth(_ viewingMonth: CBMonth, createNewStructs: Bool, refreshTechnique: RefreshTechnique) async  {
@@ -320,7 +312,7 @@ class FuncModel {
         
         viewingMonth.changeLoadingSpinners(toShowing: true, includeCalendar: createNewStructs)
         
-        await calModel.fetchFromServer(
+        await self.fetchMonthlyData(
             month: viewingMonth,
             createNewStructs: createNewStructs,
             refreshTechnique: refreshTechnique
@@ -334,41 +326,41 @@ class FuncModel {
     }
         
     
-    @MainActor private func downloadAdjacentMonths(next: CBMonth?, prev: CBMonth?, createNewStructs: Bool, refreshTechnique: RefreshTechnique) async {
-        /// Grab months adjacent to viewing month.
-        let adjacentStart = CFAbsoluteTimeGetCurrent()
-        await withTaskGroup(of: Void.self) { group in
-            if let next {
-                group.addTask {
-                    //print("fetching \(next.num)");
-                    
-                    next.changeLoadingSpinners(toShowing: true, includeCalendar: createNewStructs)
-                    
-                    await self.calModel.fetchFromServer(
-                        month: next,
-                        createNewStructs: createNewStructs,
-                        refreshTechnique: refreshTechnique
-                    )
-                }
-            }
-            if let prev {
-                group.addTask {
-                    //print("fetching \(prev.num)");
-                    
-                    prev.changeLoadingSpinners(toShowing: true, includeCalendar: createNewStructs)
-                    
-                    await self.calModel.fetchFromServer(
-                        month: prev,
-                        createNewStructs: createNewStructs,
-                        refreshTechnique: refreshTechnique
-                    )
-                }
-            }
-        }
-        
-        let adjacentElapsed = CFAbsoluteTimeGetCurrent() - adjacentStart
-        print("⏰It took \(adjacentElapsed) seconds to fetch the Adjacent months")
-    }
+//    @MainActor private func downloadAdjacentMonths(next: CBMonth?, prev: CBMonth?, createNewStructs: Bool, refreshTechnique: RefreshTechnique) async {
+//        /// Grab months adjacent to viewing month.
+//        let adjacentStart = CFAbsoluteTimeGetCurrent()
+//        await withTaskGroup(of: Void.self) { group in
+//            if let next {
+//                group.addTask {
+//                    //print("fetching \(next.num)");
+//                    
+//                    next.changeLoadingSpinners(toShowing: true, includeCalendar: createNewStructs)
+//                    
+//                    await self.calModel.fetchFromServer(
+//                        month: next,
+//                        createNewStructs: createNewStructs,
+//                        refreshTechnique: refreshTechnique
+//                    )
+//                }
+//            }
+//            if let prev {
+//                group.addTask {
+//                    //print("fetching \(prev.num)");
+//                    
+//                    prev.changeLoadingSpinners(toShowing: true, includeCalendar: createNewStructs)
+//                    
+//                    await self.calModel.fetchFromServer(
+//                        month: prev,
+//                        createNewStructs: createNewStructs,
+//                        refreshTechnique: refreshTechnique
+//                    )
+//                }
+//            }
+//        }
+//        
+//        let adjacentElapsed = CFAbsoluteTimeGetCurrent() - adjacentStart
+//        print("⏰It took \(adjacentElapsed) seconds to fetch the Adjacent months")
+//    }
     
     
     @MainActor private func downloadOtherMonths(viewingMonth: CBMonth, next: CBMonth?, prev: CBMonth?, createNewStructs: Bool, refreshTechnique: RefreshTechnique) async {
@@ -379,13 +371,13 @@ class FuncModel {
                 
                 month.changeLoadingSpinners(toShowing: true, includeCalendar: createNewStructs)
                 
-                if let next, month.num == next.num { continue }
-                if let prev, month.num == prev.num { continue }
+                //if let next, month.num == next.num { continue }
+                //if let prev, month.num == prev.num { continue }
                 
                 if month.num != viewingMonth.num {
                     group.addTask {
                         //print("fetching \(month.num)");
-                        await self.calModel.fetchFromServer(
+                        await self.fetchMonthlyData(
                             month: month,
                             createNewStructs: createNewStructs,
                             refreshTechnique: refreshTechnique
@@ -404,37 +396,23 @@ class FuncModel {
         /// Grab all the other months & extra data (payment methods, categories, etc)
         let everythingElseStart = CFAbsoluteTimeGetCurrent()
         await withTaskGroup(of: Void.self) { group in
-            
-            /// Grab Tags.
-            group.addTask { await self.calModel.fetchTags() }
-            
+                
             /// Grab Payment Methods (only if not logging in. If logging in, they are fetched before the viewing month is fetched).
             if !AppState.shared.isLoggingInForFirstTime {
                 group.addTask {
                     await self.payModel.fetchPaymentMethods(calModel: self.calModel)
-                    await self.prepareStartingAmounts(for: self.calModel.sMonth)
+                    await self.payModel.prepareStartingAmounts(for: self.calModel.sMonth, calModel: self.calModel)
                 }
             }
-            /// Grab Transaction Title Suggestions.
-            group.addTask { await self.calModel.fetchSuggestedTitles() }
+            
             /// Grab Logos.
             group.addTask { await self.fetchLogos() }
+            
+            /// Grab Categories, Category Groups, Keywords, Repeating Transactions, Plaid Banks, Christmas Budget, Suggested Titles, Tags.
+            group.addTask { await self.fetchAccessorials() }
+            
             /// Grab Receipts.
             group.addTask { await self.calModel.fetchReceiptsFromServer(funcModel: self) }
-            /// Grab Categories.
-            group.addTask { await self.catModel.fetchCategories() }
-            /// Grab Category Groups.
-            group.addTask { await self.catModel.fetchCategoryGroups() }
-            /// Grab Keywords.
-            group.addTask { await self.keyModel.fetchKeywords() }
-            /// Grab Repeating Transactions.
-            group.addTask { await self.repModel.fetchRepeatingTransactions() }
-            /// Grab plaid things.
-            group.addTask { await self.plaidModel.fetchBanks() }
-            /// Grab Open Records.
-            group.addTask { await OpenRecordManager.shared.fetchOpenOrClosed() }
-            /// Grab Christmas Budget.
-            group.addTask { await self.fetchAppSuiteBudgets() }
         }
         
         let everytingElseElapsed = CFAbsoluteTimeGetCurrent() - everythingElseStart
@@ -447,54 +425,134 @@ class FuncModel {
         let everythingElseStart = CFAbsoluteTimeGetCurrent()
         
         await withTaskGroup(of: Void.self) { group in
-            
-            /// Grab Tags.
-            group.addTask { await self.calModel.fetchTags() }
+            //group.addTask { await self.downloadPlaidStuff() }
             
             for month in calModel.months {
-                if let next, month.num == next.num { continue }
-                if let prev, month.num == prev.num { continue }
-                
                 if month.num != viewingMonth.num {
                     group.addTask {
                         //print("fetching \(month.num)")
-                        await self.calModel.fetchFromServer(
-                            month: month,
-                            createNewStructs: createNewStructs,
-                            refreshTechnique: refreshTechnique
-                        )
+                        await self.fetchMonthlyData(month: month, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
                     }
                 }
             }
             
-            /// Grab Payment Methods and their logos.
-            group.addTask {
-                await self.payModel.fetchPaymentMethods(calModel: self.calModel)
-                await self.fetchLogos()
+            /// Grab Payment Methods (only if not logging in. If logging in, they are fetched before the viewing month is fetched).
+            if !AppState.shared.isLoggingInForFirstTime {
+                group.addTask { await self.payModel.fetchPaymentMethods(calModel: self.calModel) }
             }
-            /// Grab Transaction Title Suggestions.
-            group.addTask { await self.calModel.fetchSuggestedTitles() }
+            
+            /// Grab Logos.
+            group.addTask { await self.fetchLogos() }
+            
+            /// Grab Categories, Category Groups, Keywords, Repeating Transactions, Plaid Banks, Christmas Budget, Suggested Titles, Tags.
+            group.addTask { await self.fetchAccessorials() }
+            
             /// Grab Receipts.
             group.addTask { await self.calModel.fetchReceiptsFromServer(funcModel: self) }
-            /// Grab Categories.
-            group.addTask { await self.catModel.fetchCategories() }
-            /// Grab Category Groups.
-            group.addTask { await self.catModel.fetchCategoryGroups() }
-            /// Grab Keywords.
-            group.addTask { await self.keyModel.fetchKeywords() }
-            /// Grab Repeating Transactions.
-            group.addTask { await self.repModel.fetchRepeatingTransactions() }
-            /// Grab plaid things.
-            group.addTask { await self.plaidModel.fetchBanks() }
-            /// Grab Open Records.
-            group.addTask { await OpenRecordManager.shared.fetchOpenOrClosed() }
-            /// Grab Christmas Budget.
-            group.addTask { await self.fetchAppSuiteBudgets() }
         }
         let everytingElseElapsed = CFAbsoluteTimeGetCurrent() - everythingElseStart
         print("⏰It took \(everytingElseElapsed) seconds to fetch all other months")
     }
     
+    
+    
+    func fetchAccessorials(file: String = #file, line: Int = #line, function: String = #function) async {
+        NSLog("\(file):\(line) : \(function)")
+        LogManager.log()
+        
+        let start = CFAbsoluteTimeGetCurrent()
+        
+        /// For testing bad network connection.
+        //try? await Task.sleep(for: .seconds(10))
+        
+        let user = AppState.shared.user
+        user?.year = await calModel.sYear
+        
+        let model = RequestModel(requestType: "fetch_accessorials", model: user)
+        
+        typealias ResultResponse = Result<AccessorialModelDecodable?, AppError>
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+                    
+        switch await result {
+        case .success(let model):
+            LogManager.networkingSuccessful()
+            if let model {
+                await self.catModel.handleIncoming(cats: model.categories, calModel: calModel, keyModel: keyModel, repModel: repModel, incomingDataType: .viaStandardRefresh)
+                //await self.catModel.handleDownloadedCategoryGroups(groups: model.categoryGroups)
+                //await self.keyModel.handleDownloadedKeywords(keys: model.keywords)
+                
+                await self.catModel.handleIncoming(groups: model.categoryGroups, incomingDataType: .viaStandardRefresh)
+                await self.keyModel.handleIncoming(keys: model.keywords, incomingDataType: .viaStandardRefresh)
+                
+                await self.repModel.handleIncoming(reps: model.repeatingTransactions, incomingDataType: .viaStandardRefresh)
+                await self.calModel.handleIncoming(tags: model.tags, incomingDataType: .viaStandardRefresh)
+                await self.calModel.handleIncoming(titles: model.suggestedTitles, incomingDataType: .viaStandardRefresh)
+                await self.calModel.handleIncoming(budgets: model.appSuiteBudgets, incomingDataType: .viaStandardRefresh)
+                await self.plaidModel.handleIncoming(banks: model.plaidBanks, incomingDataType: .viaStandardRefresh)
+                
+//                if let appSuiteBudgets = model.appSuiteBudgets {
+//                    calModel.appSuiteBudgets = model.appSuiteBudgets
+//                }
+                
+            }
+            
+            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
+            print("⏰It took \(currentElapsed) seconds to fetch the keywords")
+
+        case .failure(let error):
+            switch error {
+            case .taskCancelled:
+                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
+                print("fetchAccessorials Task Cancelled")
+            default:
+                LogManager.error(error.localizedDescription)
+                AppState.shared.showAlert("There was a problem trying to fetch the accessorials.")
+            }
+        }
+    }
+    
+    
+    // MARK: - Fetch From Server
+    @MainActor
+    func fetchMonthlyData(month: CBMonth, createNewStructs: Bool, refreshTechnique: RefreshTechnique) async {
+        print("-- \(#function) \(month.actualNum) \(month.year) -- \(Date())")
+        LogManager.log()
+        
+        //let start = CFAbsoluteTimeGetCurrent()
+        
+        //try? await Task.sleep(for: .seconds(10))
+                            
+        let model = RequestModel(requestType: "fetch_monthly_data", model: month)
+        typealias ResultResponse = Result<TransactionAndStartingAmountModel?, AppError>
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        
+        switch await result {
+        case .success(let model):
+            if let model {
+                if let plaidTrans = model.plaidTransactionsWithCount {
+                    await self.plaidModel.handleIncoming(transactionsWithCount: plaidTrans, incomingDataType: .viaStandardRefresh)
+                }
+                
+                if let balances = model.plaidBalances {
+                    plaidModel.balances = balances
+                }
+                
+                await self.calModel.handleIncomingData(for: month, using: model, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
+            }
+            
+            
+        case .failure (let error):
+            switch error {
+            case .taskCancelled:
+                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
+                print("calModel fetchFrom Server Task Cancelled")
+            default:
+                LogManager.error(error.localizedDescription)
+                AppState.shared.showAlert("There was a problem trying to fetch transactions.")
+            }
+        }
+    }
+
     
     
     
@@ -549,75 +607,75 @@ class FuncModel {
     
     
     
-    @MainActor
-    func populatePaymentMethodsFromCache(setDefaultPayMethod: Bool) async {
-        let context = DataManager.shared.createContext()
-
-        let methodIDs: [String] = await DataManager.shared.perform(context: context) {
-            let entities = DataManager.shared.getMany(context: context, type: PersistentPaymentMethod.self) ?? []
-            return entities.compactMap(\.id)
-        }
-
-        guard !methodIDs.isEmpty else { return }
-
-        var loadedMethods: [CBPaymentMethod] = []
-        loadedMethods.reserveCapacity(methodIDs.count)
-
-        for id in methodIDs {
-            if let method = await CBPaymentMethod.loadFromCoreData(id: id) {
-                loadedMethods.append(method)
-            }
-        }
-
-        for method in loadedMethods {
-            if setDefaultPayMethod && method.isViewingDefault {
-                calModel.sPayMethod = method
-            }
-
-            if let index = payModel.paymentMethods.firstIndex(where: { $0.id == method.id }) {
-                payModel.paymentMethods[index].setFromAnotherInstance(payMethod: method)
-            } else {
-                payModel.paymentMethods.append(method)
-            }
-        }
-
-        payModel.paymentMethods.sort(by: Helpers.paymentMethodSorter())
-    }
+//    @MainActor
+//    func populatePaymentMethodsFromCache(setDefaultPayMethod: Bool) async {
+//        let context = DataManager.shared.createContext()
+//
+//        let methodIDs: [String] = await DataManager.shared.perform(context: context) {
+//            let entities = DataManager.shared.getMany(context: context, type: PersistentPaymentMethod.self) ?? []
+//            return entities.compactMap(\.id)
+//        }
+//
+//        guard !methodIDs.isEmpty else { return }
+//
+//        var loadedMethods: [CBPaymentMethod] = []
+//        loadedMethods.reserveCapacity(methodIDs.count)
+//
+//        for id in methodIDs {
+//            if let method = await CBPaymentMethod.loadFromCoreData(id: id) {
+//                loadedMethods.append(method)
+//            }
+//        }
+//
+//        for method in loadedMethods {
+//            if setDefaultPayMethod && method.isViewingDefault {
+//                calModel.sPayMethod = method
+//            }
+//
+//            if let index = payModel.paymentMethods.firstIndex(where: { $0.id == method.id }) {
+//                payModel.paymentMethods[index].setFromAnotherInstance(payMethod: method)
+//            } else {
+//                payModel.paymentMethods.append(method)
+//            }
+//        }
+//
+//        payModel.paymentMethods.sort(by: Helpers.paymentMethodSorter())
+//    }
 
     
     
     /// Not private because it is called directly from the RootView, and from the temp transaction list
-    @MainActor
-    func populateCategoriesFromCache() async {
-        let context = DataManager.shared.createContext()
-
-        let categoryIDs: [String] = await DataManager.shared.perform(context: context) {
-            let entities = DataManager.shared.getMany(context: context, type: PersistentCategory.self) ?? []
-            return entities.compactMap(\.id)
-        }
-
-        guard !categoryIDs.isEmpty else { return }
-
-        var loadedCategories: [CBCategory] = []
-        loadedCategories.reserveCapacity(categoryIDs.count)
-
-        for id in categoryIDs {
-            if let category = await CBCategory.loadFromCoreData(id: id) {
-                loadedCategories.append(category)
-            }
-        }
-
-        for category in loadedCategories {
-            if let index = catModel.categories.firstIndex(where: { $0.id == category.id }) {
-                catModel.categories[index].setFromAnotherInstance(category: category)
-            } else {
-                catModel.categories.append(category)
-            }
-        }
-
-        catModel.categories.sort(by: Helpers.categorySorter())
-    }
-
+//    @MainActor
+//    func populateCategoriesFromCache() async {
+//        let context = DataManager.shared.createContext()
+//
+//        let categoryIDs: [String] = await DataManager.shared.perform(context: context) {
+//            let entities = DataManager.shared.getMany(context: context, type: PersistentCategory.self) ?? []
+//            return entities.compactMap(\.id)
+//        }
+//
+//        guard !categoryIDs.isEmpty else { return }
+//
+//        var loadedCategories: [CBCategory] = []
+//        loadedCategories.reserveCapacity(categoryIDs.count)
+//
+//        for id in categoryIDs {
+//            if let category = await CBCategory.loadFromCoreData(id: id) {
+//                loadedCategories.append(category)
+//            }
+//        }
+//
+//        for category in loadedCategories {
+//            if let index = catModel.categories.firstIndex(where: { $0.id == category.id }) {
+//                catModel.categories[index].setFromAnotherInstance(category: category)
+//            } else {
+//                catModel.categories.append(category)
+//            }
+//        }
+//
+//        catModel.categories.sort(by: Helpers.categorySorter())
+//    }
+//
 
     
     
@@ -657,34 +715,34 @@ class FuncModel {
     
     
     /// Not private because it is called directly from the RootView, and from the temp transaction list
-    @MainActor
-    func populateCategoryGroupsFromCache() async {
-        let context = DataManager.shared.createContext()
-
-        let groupIDs: [String] = await DataManager.shared.perform(context: context) {
-            let entities = DataManager.shared.getMany(context: context, type: PersistentCategoryGroup.self) ?? []
-            return entities.compactMap(\.id)
-        }
-
-        guard !groupIDs.isEmpty else { return }
-
-        var loadedGroups: [CBCategoryGroup] = []
-        loadedGroups.reserveCapacity(groupIDs.count)
-
-        for id in groupIDs {
-            if let group = await CBCategoryGroup.loadFromCoreData(id: id) {
-                loadedGroups.append(group)
-            }
-        }
-
-        for group in loadedGroups {
-            if let index = catModel.categoryGroups.firstIndex(where: { $0.id == group.id }) {
-                catModel.categoryGroups[index].setFromAnotherInstance(group: group)
-            } else {
-                catModel.categoryGroups.append(group)
-            }
-        }
-    }
+//    @MainActor
+//    func populateCategoryGroupsFromCache() async {
+//        let context = DataManager.shared.createContext()
+//
+//        let groupIDs: [String] = await DataManager.shared.perform(context: context) {
+//            let entities = DataManager.shared.getMany(context: context, type: PersistentCategoryGroup.self) ?? []
+//            return entities.compactMap(\.id)
+//        }
+//
+//        guard !groupIDs.isEmpty else { return }
+//
+//        var loadedGroups: [CBCategoryGroup] = []
+//        loadedGroups.reserveCapacity(groupIDs.count)
+//
+//        for id in groupIDs {
+//            if let group = await CBCategoryGroup.loadFromCoreData(id: id) {
+//                loadedGroups.append(group)
+//            }
+//        }
+//
+//        for group in loadedGroups {
+//            if let index = catModel.categoryGroups.firstIndex(where: { $0.id == group.id }) {
+//                catModel.categoryGroups[index].setFromAnotherInstance(group: group)
+//            } else {
+//                catModel.categoryGroups.append(group)
+//            }
+//        }
+//    }
 
     
 //    /// Not private because it is called directly from the RootView, and from the temp transaction list
@@ -865,7 +923,11 @@ class FuncModel {
         guard !tempTransactionIDs.isEmpty else { return }
 
         for id in tempTransactionIDs {
+            print("Found temp trans with ID \(id)")
             guard let trans = await CBTransaction.loadFromCoreData(id: id) else { continue }
+            
+            print("Created trans snapshot with ID \(trans.id)")
+            
             guard trans.payMethod != nil else { continue }
             await calModel.saveTemp(trans: trans)
         }
@@ -1062,752 +1124,753 @@ class FuncModel {
     
     
     // MARK: - Long Poll Stuff
-    @MainActor func longPollServerForChanges() {
-        //print("-- \(#function)")
-        
-        if longPollTask == nil {
-            //print("Longpoll task does not exist. Creating.")
-            longPollTask = Task {
-                await longPollServer(lastReturnTime: nil)
-            }
-        } else {
-            //print("Longpoll task exists")
-            if longPollTask!.isCancelled {
-                //print("Long poll task has been cancelled. Restarting")
-                longPollTask = Task {
-                    await longPollServer(lastReturnTime: nil)
-                }
-            } else {
-                //print("Long poll task has not been cancelled and is running. Ignoring.")
-            }
-        }
-        
-        
-        @MainActor
-        func longPollServer(lastReturnTime: Int?) async {
-            //return
-            //print("-- \(#function) -- starting with lastReturnTime: \(String(describing: lastReturnTime))")
-            LogManager.log()
-                                
-            let model = RequestModel(requestType: "longpoll_server", model: LongPollSubscribeModel(lastReturnTime: lastReturnTime))
-            typealias ResultResponse = Result<LongPollModel?, AppError>
-            async let result: ResultResponse = await NetworkManager().longPollServer(requestModel: model)
-            
-            switch await result {
-            case .success(let model):
-                LogManager.networkingSuccessful()
-                
-                AppState.shared.lastNetworkTime = .now
-                
-                var lastReturnTimeFromServer: Int?
-                
-                if let model {
-                    //print("GOT SUccessful long poll model with return time \(String(describing: model.returnTime))")
-                    lastReturnTimeFromServer = model.returnTime
-                    
-                    if model.transactions != nil
-                    || model.fitTransactions != nil
-                    || model.startingAmounts != nil
-                    || model.repeatingTransactions != nil
-                    || model.payMethods != nil
-                    || model.categories != nil
-                    || model.categoryGroups != nil
-                    || model.keywords != nil
-                    || model.budgets != nil
-                    || model.openRecords != nil
-                    || model.plaidBanks != nil
-                    || model.plaidAccounts != nil
-                    || model.plaidTransactionsWithCount != nil
-                    || model.plaidBalances != nil
-                    || model.logos != nil
-                    || model.settings != nil
-                    //|| model.receipts != nil
-                    {
-                        
-                        #warning("This all needs to be fixed in regards to coredata. Right now, each update of the cache or delete from the cache uses its own context, and saves after each operation. If I used a single background context, when deleting a payment method via the long poll, the save operation will fail. It is recommended to perform all operations, and then call save at the end. But this will require some work to implement. 11/6/25")
-                        //try? await Task.sleep(nanoseconds: UInt64(5 * Double(NSEC_PER_SEC)))
-                        
-                        if let transactions = model.transactions {
-                            await self.handleLongPollTransactions(transactions)
-                        }
-//                        if AppState.shared.user?.id == 1 {
-//                            if let fitTransactions = model.fitTransactions { self.handleLongPollFitTransactions(fitTransactions) }
-//                        }
-                        if let startingAmounts = model.startingAmounts {
-                            self.handleLongPollStartingAmounts(startingAmounts)
-                        }
-                        if let repeatingTransactions = model.repeatingTransactions {
-                            await self.handleLongPollRepeatingTransactions(repeatingTransactions)
-                        }
-                        if let payMethods = model.payMethods {
-                            await self.handleLongPollPaymentMethods(payMethods)
-                        }
-                        if let categories = model.categories {
-                            await self.handleLongPollCategories(categories)
-                        }
-                        if let categoryGroups = model.categoryGroups {
-                            await self.handleLongPollCategoryGroups(categoryGroups)
-                        }
-                        if let keywords = model.keywords {
-                            await keyModel.handleLongPoll(keywords)
-                        }
-                        if let budgets = model.budgets {
-                            self.handleLongPollBudgets(budgets)
-                        }
-                        if let openRecords = model.openRecords, !openRecords.isEmpty {
-                            await self.handleLongPollOpenRecords(openRecords)
-                        }
-                        if let logos = model.logos {
-                            await self.handleLongPollLogos(logos)
-                        }
-                        if let settings = model.settings {
-                            self.handleLongPollSettings(settings)
-                        }
-                        if let plaidBanks = model.plaidBanks {
-                            await self.handleLongPollPlaidBanks(plaidBanks)
-                        }
-                        if let plaidAccounts = model.plaidAccounts {
-                            await self.handleLongPollPlaidAccounts(plaidAccounts)
-                        }
-                        if let plaidBalances = model.plaidBalances, !plaidBalances.isEmpty {
-                            self.handleLongPollPlaidBalances(plaidBalances)
-                        }
-                        if let plaidTransactionsWithCount = model.plaidTransactionsWithCount {
-                            if let trans = plaidTransactionsWithCount.trans, !trans.isEmpty {
-                                self.handleLongPollPlaidTransactions(plaidTransactionsWithCount)
-                            }
-                        }
-                        //if let receipts = model.receipts { self.handleLongPollReceipts(receipts) }
-                    }
-                } else {
-                    //print("GOT UNNNNSUccessful long poll model with return time \(String(describing: model?.returnTime))")
-                    lastReturnTimeFromServer = lastReturnTime
-                }
-                
-                
-                //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
-                
-                print("restarting longpoll - \(Date())")
-                await longPollServer(lastReturnTime: lastReturnTimeFromServer)
-                
-            case .failure (let error):
-                switch error {
-                case .taskCancelled:
-                    /// Task gets cancelled when logging out. So only show the alert if the error is not related to the task being cancelled.
-                    print("Task Cancelled")
-                case .incorrectCredentials:
-                    print("NO LONG POLL PERMISSION")
-                default:
-                    LogManager.error(error.localizedDescription)
-                    print(error.localizedDescription)
-                    AppState.shared.longPollFailed = true
-                    
-                    longPollTask?.cancel()
-                    longPollTask = nil
-                    
-                    let alertConfig = AlertConfig(
-                        title: "There was a problem subscribing to multi-device updates.",
-                        symbol: .init(name: "ipad.and.iphone.slash", color: .red),
-                        primaryButton:
-                            AlertConfig.AlertButton(config: .init(text: "Retry", role: .primary, function: {
-                                Task {
-                                    AppState.shared.longPollFailed = false
-                                    await self.downloadEverything(setDefaultPayMethod: false, createNewStructs: false, refreshTechnique: .viaLongPoll)
-                                }
-                            }))
-                    )
-                    AppState.shared.showAlert(config: alertConfig)
-                }
-            }
-        }
-    }
-    
-    
-    @MainActor private func handleLongPollTransactions(_ transactions: Array<CBTransaction>) async {
-        print("-- \(#function)")
-        await calModel.handleTransactions(transactions, refreshTechnique: .viaLongPoll)
-        
-        let months = transactions
-            .filter { $0.date != nil }
-            .compactMap { $0.dateComponents?.month }
-            .uniqued()
-        
-        months.forEach { month in
-            //let montObj = calModel.months.filter{ $0.num == month }.first!
-            let montObj = calModel.months.get(byNum: month)!
-            let _ = calModel.calculateTotal(for: montObj)
-        }
-        
-        DataChangeTriggers.shared.viewDidChange(.calendar)
-    }
-    
-    
-//    @MainActor private func handleLongPollFitTransactions(_ transactions: Array<CBFitTransaction>) {
-//        print("-- \(#function)")
-//        for trans in transactions {
-//            if calModel.doesExist(trans) {
-//                if trans.isAcknowledged {
-//                    calModel.delete(trans)
-//                    continue
-//                } else {
-//                    if let index = calModel.getIndex(for: trans) {
-//                        calModel.fitTrans[index].setFromAnotherInstance(trans: trans)
-//                    }
-//                }
-//            } else {
-//                if !trans.isAcknowledged {
-//                    calModel.upsert(trans)
-//                }
-//            }
-//        }
-//    }
-    
-    
-    @MainActor private func handleLongPollStartingAmounts(_ startingAmounts: Array<CBStartingAmount>) {
-        print("-- \(#function)")
-        for startingAmount in startingAmounts {
-            //let year = startingAmount.year
-            
-//            if startingAmount.month == 1 && startingAmount.year == AppState.shared.todayYear + 1 {
-//                startingAmount.month = 13
-//            } else if startingAmount.month == 12 && startingAmount.year == AppState.shared.todayYear - 1 {
-//                startingAmount.month = 0
-//            }
-            
-            let month = startingAmount.month
-            let year = startingAmount.year
-                        
-            if let targetMonth = calModel.months.get(by: (month, year)) {
-                let targetAmount = targetMonth.startingAmounts.filter { $0.payMethod.id == startingAmount.payMethod.id }.first
-                if let targetAmount {
-                    
-                    if !startingAmount.active {
-                        targetAmount.amountString = ""
-                    } else {
-                        targetAmount.setFromAnotherInstance(startingAmount: startingAmount)
-                    }
-                } else {
-                    self.prepareStartingAmounts(for: targetMonth)
-                    //calModel.prepareStartingAmount(for: startingAmount.payMethod)
-                    let targetAmount = targetMonth.startingAmounts.filter { $0.payMethod.id == startingAmount.payMethod.id }.first
-                    if let targetAmount {
-                        targetAmount.setFromAnotherInstance(startingAmount: startingAmount)
-                    }
-                    
-                }
-            }
-            
-            //let montObj = calModel.months.filter { $0.num == month }.first!
-            let montObj = calModel.months.get(byNum: month)!
-            let _ = calModel.calculateTotal(for: montObj)
-        }
-    }
-    
-    
-    @MainActor private func handleLongPollRepeatingTransactions(_ repeatingTransactions: Array<CBRepeatingTransaction>) async {
-        print("-- \(#function)")
-        for transaction in repeatingTransactions {
-            if repModel.doesExist(transaction) {
-                if !transaction.active {
-                    repModel.delete(transaction, andSubmit: false)
-                } else {
-                    if let index = repModel.getIndex(for: transaction) {
-                        repModel.repTransactions[index].setFromAnotherInstance(repTransaction: transaction)
-                        repModel.repTransactions[index].deepCopy?.setFromAnotherInstance(repTransaction: transaction)
-                    }
-                }
-            } else {
-                if transaction.active {
-                    withAnimation { repModel.upsert(transaction) }
-                }
-            }
-        }
-    }
-    
-    
-    @MainActor private func handleLongPollPaymentMethods(_ payMethods: Array<CBPaymentMethod>) async {
-        print("-- \(#function)")
-        
-        //let ogListOrders = payModel.paymentMethods.map { $0.listOrder ?? 0 }.sorted()
-        //var newListOrders: [Int] = []
-        
-        let context = DataManager.shared.createContext()
-        for payMethod in payMethods {
-            //newListOrders.append(payMethod.listOrder ?? 0)
-            if payModel.doesExist(payMethod) {
-                if !payMethod.active {
-                    payModel.delete(payMethod, andSubmit: false, calModel: calModel)
-                    continue
-                } else {
-                    if let index = payModel.getIndex(for: payMethod) {
-                        
-                        
-//                        if let logoData = payMethod.logo {
-//                            let paymentMethodTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id
-//                            await ImageCache.shared.saveToCache(
-//                                parentTypeId: paymentMethodTypeID,
-//                                parentId: payMethod.id,
-//                                id: logo.id,
-//                                data: logoData
-//                            )
-//                        }
-                        
-                        
-                        
-                        payModel.paymentMethods[index].setFromAnotherInstance(payMethod: payMethod)
-                        payModel.paymentMethods[index].deepCopy?.setFromAnotherInstance(payMethod: payMethod)
-                    }
-                }
-            } else {
-                if payMethod.active {
-                    withAnimation { payModel.upsert(payMethod) }
-                }
-            }
-            
-            if payMethod.isPermitted {
-                let _ = await payModel.updateCache(for: payMethod)
-            } else {
-                DataManager.shared.delete(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)))
-            }
-            //print("SaveResult: \(saveResult)")
-            
-            calModel.justTransactions
-                .filter { $0.payMethod?.id == payMethod.id }
-                .forEach { $0.payMethod?.setFromAnotherInstance(payMethod: payMethod) }
-            
-            calModel.months
-                .flatMap { $0.startingAmounts.compactMap { $0.payMethod } }
-                .filter { $0.id == payMethod.id }
-                .forEach { $0.setFromAnotherInstance(payMethod: payMethod) }
-            
-            repModel.repTransactions
-                .filter { $0.payMethod?.id == payMethod.id }
-                .forEach { $0.payMethod?.setFromAnotherInstance(payMethod: payMethod) }
-        }
-        
-        payModel.determineIfUserIsRequiredToAddPaymentMethod()
-        
-        self.prepareStartingAmounts(for: calModel.sMonth)
-        
-//        if newListOrders != ogListOrders {
-//            DataChangeTriggers.shared.viewDidChange(.paymentMethodListOrders)
-//        }
-        
-    }
-    
-    
-    @MainActor private func handleLongPollCategories(_ categories: Array<CBCategory>) async {
-        print("-- \(#function)")
-        for category in categories {
-            if catModel.doesExist(category) {
-                if !category.active {
-                    catModel.delete(category, andSubmit: false, calModel: calModel, keyModel: keyModel)
-                    continue
-                } else {
-                    if let index = catModel.getIndex(for: category) {
-                        catModel.categories[index].setFromAnotherInstance(category: category)
-                        catModel.categories[index].deepCopy?.setFromAnotherInstance(category: category)
-                    }
-                }
-            } else {
-                if category.active {
-                    withAnimation { catModel.upsert(category) }
-                }
-            }
-            let _ = await catModel.updateCache(
-                for: category,
-                createIfNotFound: false,
-                findById: category.id,
-                action: .edit,
-                isPending: false
-            )
-            //print("SaveResult: \(saveResult)")
-            
-            calModel.justTransactions.filter { $0.category?.id == category.id }.forEach { $0.category = category }
-            repModel.repTransactions.filter { $0.category?.id == category.id }.forEach { $0.category = category }
-        }
-        
-        //let categorySortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
-                           
-        withAnimation {
-            catModel.categories.sort(by: Helpers.categorySorter())
-        }
-    }
-    
-    
-    @MainActor private func handleLongPollCategoryGroups(_ groups: Array<CBCategoryGroup>) async {
-        print("-- \(#function)")
-        for group in groups {
-            if catModel.doesExist(group) {
-                if !group.active {
-                    catModel.delete(group, andSubmit: false)
-                    continue
-                } else {
-                    if let index = catModel.getIndex(for: group) {
-                        catModel.categoryGroups[index].setFromAnotherInstance(group: group)
-                        catModel.categoryGroups[index].deepCopy?.setFromAnotherInstance(group: group)
-                    }
-                }
-            } else {
-                if group.active {
-                    withAnimation { catModel.upsert(group) }
-                }
-            }
-            
-            let _ = await catModel.updateCache(
-                for: group,
-                createIfNotFound: false,
-                findById: group.id,
-                action: .edit,
-                isPending: false
-            )
-        }
-    }
-    
-    
-//    @MainActor private func handleLongPollKeywords(_ keywords: Array<CBKeyword>) async {
-//        print("-- \(#function)")
-//        for keyword in keywords {
-//            if keyModel.doesExist(keyword) {
-//                if !keyword.active {
-//                    keyModel.delete(keyword, andSubmit: false)
-//                    continue
-//                } else {
-//                    if let index = keyModel.getIndex(for: keyword){
-//                        keyModel.keywords[index].setFromAnotherInstance(keyword: keyword)
-//                        keyModel.keywords[index].deepCopy?.setFromAnotherInstance(keyword: keyword)
-//                    }
-//                }
-//            } else {
-//                if keyword.active {
-//                    withAnimation { keyModel.upsert(keyword) }
-//                }
-//            }
-//            let _ = await keyModel.updateCoreData(for: CBKeyword.Snapshot(keyword))
-//            //print("SaveResult: \(saveResult)")
-//        }
-//    }
-    
-    
-    @MainActor private func handleLongPollBudgets(_ budgets: Array<CBBudget>) {
-        print("-- \(#function)")
-        for budget in budgets {
-            
-            
-            if budget.appSuiteKey == nil {
-                if let targetMonth = calModel.months.filter({ $0.actualNum == budget.month && budget.year == $0.year }).first {
-                    if targetMonth.isExisting(budget) {
-                        if !budget.active {
-                            targetMonth.delete(budget)
-                            continue
-                        } else {
-                            if let index = targetMonth.getIndex(for: budget) {
-                                targetMonth.budgets[index].setFromAnotherInstance(budget: budget)
-                            }
-                        }
-                    } else {
-                        targetMonth.upsert(budget)
-                    }
-                }
-            } else {
-                print("Budget \(budget.id) incomign")
-                if let index = calModel.appSuiteBudgets.firstIndex(where: { $0.id == budget.id }) {
-                    calModel.appSuiteBudgets[index].setFromAnotherInstance(budget: budget)
-                } else {
-                    calModel.appSuiteBudgets.append(budget)
-                }
-            }
-            
-            
-        }
-    }
-    
-    
-    
-    
-//    @MainActor
-//    private func handleLongPollLogos(_ logos: Array<CBLogo>) {
-//        print("-- \(#function)")
-//        let context = DataManager.shared.createContext()
+//    @MainActor func longPollServerForChanges() {
+//        //print("-- \(#function)")
 //        
-//        for logo in logos {
-//            print("incoming base64 for logo \(String(describing: logo.baseString))")
-//            
-//            /// Try and decode the data, if not, wipe out the logos.
-//            var logoData: Data?
-//            if let baseString = logo.baseString {
-//                logoData = Data(base64Encoded: baseString)
+//        if longPollTask == nil {
+//            //print("Longpoll task does not exist. Creating.")
+//            longPollTask = Task {
+//                await longPollServer(lastReturnTime: nil)
 //            }
-//            
-//            if let perLogo = DataManager.shared.getOne(context: context, type: PersistentLogo.self, predicate: .byId(.string(logo.id)), createIfNotFound: false) {
-//                perLogo.photoData = logoData
-//                perLogo.serverUpdatedDate = logo.updatedDate
-//                perLogo.localUpdatedDate = logo.updatedDate
-//            }
-//            
-//            if logo.relatedRecordType.enumID == .paymentMethod {
-//                let meth = payModel.getPaymentMethod(by: logo.relatedID)
-//                meth.logo = logoData
-//                
-//                changePaymentMethodLogoLocally(meth: meth, logoData: logoData)
-//                
-//                #warning("Need starting amounts")
-//            }
-//            
-//            if logo.relatedRecordType.enumID == .plaidBank {
-//                if let bank = plaidModel.getBank(by: logo.relatedID) {
-//                    bank.logo = logoData
+//        } else {
+//            //print("Longpoll task exists")
+//            if longPollTask!.isCancelled {
+//                //print("Long poll task has been cancelled. Restarting")
+//                longPollTask = Task {
+//                    await longPollServer(lastReturnTime: nil)
 //                }
-//            }
-//            
-//            if logo.relatedRecordType.enumID == .avatar {
-//                let relatedID = logo.relatedID
-//                changeAvatarLocally(to: logoData, id: relatedID)
+//            } else {
+//                //print("Long poll task has not been cancelled and is running. Ignoring.")
 //            }
 //        }
 //        
-//        let _ = DataManager.shared.save(context: context)
+//        
+//        @MainActor
+//        func longPollServer(lastReturnTime: Int?) async {
+//            //return
+//            //print("-- \(#function) -- starting with lastReturnTime: \(String(describing: lastReturnTime))")
+//            LogManager.log()
+//                                
+//            let model = RequestModel(requestType: "longpoll_server", model: LongPollSubscribeModel(lastReturnTime: lastReturnTime))
+//            typealias ResultResponse = Result<LongPollModel?, AppError>
+//            async let result: ResultResponse = await NetworkManager().longPollServer(requestModel: model)
+//            
+//            switch await result {
+//            case .success(let model):
+//                LogManager.networkingSuccessful()
+//                
+//                AppState.shared.lastNetworkTime = .now
+//                
+//                var lastReturnTimeFromServer: Int?
+//                
+//                if let model {
+//                    //print("GOT SUccessful long poll model with return time \(String(describing: model.returnTime))")
+//                    lastReturnTimeFromServer = model.returnTime
+//                    
+//                    if model.transactions != nil
+//                    || model.fitTransactions != nil
+//                    || model.startingAmounts != nil
+//                    || model.repeatingTransactions != nil
+//                    || model.payMethods != nil
+//                    || model.categories != nil
+//                    || model.categoryGroups != nil
+//                    || model.keywords != nil
+//                    || model.budgets != nil
+//                    || model.openRecords != nil
+//                    || model.plaidBanks != nil
+//                    || model.plaidAccounts != nil
+//                    || model.plaidTransactionsWithCount != nil
+//                    || model.plaidBalances != nil
+//                    || model.logos != nil
+//                    || model.settings != nil
+//                    //|| model.receipts != nil
+//                    {
+//                        
+//                        #warning("This all needs to be fixed in regards to coredata. Right now, each update of the cache or delete from the cache uses its own context, and saves after each operation. If I used a single background context, when deleting a payment method via the long poll, the save operation will fail. It is recommended to perform all operations, and then call save at the end. But this will require some work to implement. 11/6/25")
+//                        //try? await Task.sleep(nanoseconds: UInt64(5 * Double(NSEC_PER_SEC)))
+//                        
+//                        if let transactions = model.transactions {
+//                            await self.handleLongPollTransactions(transactions)
+//                        }
+////                        if AppState.shared.user?.id == 1 {
+////                            if let fitTransactions = model.fitTransactions { self.handleLongPollFitTransactions(fitTransactions) }
+////                        }
+//                        if let startingAmounts = model.startingAmounts {
+//                            self.handleLongPollStartingAmounts(startingAmounts)
+//                        }
+//                        if let repeatingTransactions = model.repeatingTransactions {
+//                            await self.handleLongPollRepeatingTransactions(repeatingTransactions)
+//                        }
+//                        if let payMethods = model.payMethods {
+//                            await payModel.handleLongPoll(payMethods, calModel: calModel, repModel: repModel)
+//                            payModel.prepareStartingAmounts(for: calModel.sMonth, calModel: calModel)
+//                        }
+//                        if let categories = model.categories {
+//                            await catModel.handleLongPollCategories(categories, calModel: calModel, keyModel: keyModel, repModel: repModel)
+//                        }
+//                        if let categoryGroups = model.categoryGroups {
+//                            await catModel.handleLongPollCategoryGroups(categoryGroups)
+//                        }
+//                        if let keywords = model.keywords {
+//                            await keyModel.handleLongPoll(keywords)
+//                        }
+//                        if let budgets = model.budgets {
+//                            self.handleLongPollBudgets(budgets)
+//                        }
+//                        if let openRecords = model.openRecords, !openRecords.isEmpty {
+//                            await self.handleLongPollOpenRecords(openRecords)
+//                        }
+//                        if let logos = model.logos {
+//                            await self.handleLongPollLogos(logos)
+//                        }
+//                        if let settings = model.settings {
+//                            self.handleLongPollSettings(settings)
+//                        }
+//                        if let plaidBanks = model.plaidBanks {
+//                            await self.handleLongPollPlaidBanks(plaidBanks)
+//                        }
+//                        if let plaidAccounts = model.plaidAccounts {
+//                            await self.handleLongPollPlaidAccounts(plaidAccounts)
+//                        }
+//                        if let plaidBalances = model.plaidBalances, !plaidBalances.isEmpty {
+//                            self.handleLongPollPlaidBalances(plaidBalances)
+//                        }
+//                        if let plaidTransactionsWithCount = model.plaidTransactionsWithCount {
+//                            if let trans = plaidTransactionsWithCount.trans, !trans.isEmpty {
+//                                self.handleLongPollPlaidTransactions(plaidTransactionsWithCount)
+//                            }
+//                        }
+//                        //if let receipts = model.receipts { self.handleLongPollReceipts(receipts) }
+//                    }
+//                } else {
+//                    //print("GOT UNNNNSUccessful long poll model with return time \(String(describing: model?.returnTime))")
+//                    lastReturnTimeFromServer = lastReturnTime
+//                }
+//                
+//                
+//                //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
+//                
+//                print("restarting longpoll - \(Date())")
+//                await longPollServer(lastReturnTime: lastReturnTimeFromServer)
+//                
+//            case .failure (let error):
+//                switch error {
+//                case .taskCancelled:
+//                    /// Task gets cancelled when logging out. So only show the alert if the error is not related to the task being cancelled.
+//                    print("Task Cancelled")
+//                case .incorrectCredentials:
+//                    print("NO LONG POLL PERMISSION")
+//                default:
+//                    LogManager.error(error.localizedDescription)
+//                    print(error.localizedDescription)
+//                    AppState.shared.longPollFailed = true
+//                    
+//                    longPollTask?.cancel()
+//                    longPollTask = nil
+//                    
+//                    let alertConfig = AlertConfig(
+//                        title: "There was a problem subscribing to multi-device updates.",
+//                        symbol: .init(name: "ipad.and.iphone.slash", color: .red),
+//                        primaryButton:
+//                            AlertConfig.AlertButton(config: .init(text: "Retry", role: .primary, function: {
+//                                Task {
+//                                    AppState.shared.longPollFailed = false
+//                                    await self.downloadEverything(setDefaultPayMethod: false, createNewStructs: false, refreshTechnique: .viaLongPoll)
+//                                }
+//                            }))
+//                    )
+//                    AppState.shared.showAlert(config: alertConfig)
+//                }
+//            }
+//        }
 //    }
 //    
-    
-    @MainActor
-    private func handleLongPollLogos(_ logos: [CBLogo]) async {
-        //return
-        print("-- \(#function)")
-        guard !logos.isEmpty else { return }
-
-        // Snapshot values so no Core Data objects or non-sendable refs cross boundaries.
-        struct IncomingLogo: Sendable {
-            let id: String
-            let relatedID: String
-            let typeID: Int
-            let updatedDate: Date
-            let data: Data?
-        }
-
-        let incoming: [IncomingLogo] = logos.map {
-            IncomingLogo(
-                id: $0.id,
-                relatedID: $0.relatedID,
-                typeID: $0.relatedRecordType.id,
-                updatedDate: $0.updatedDate,
-                data: $0.baseString.flatMap { Data(base64Encoded: $0) }
-            )
-        }
-
-        // Persist on Core Data queue only.
-        let context = DataManager.shared.createContext()
-        await DataManager.shared.perform(context: context) {
-            for logo in incoming {
-                if let perLogo = DataManager.shared.getOne(
-                    context: context,
-                    type: PersistentLogo.self,
-                    predicate: .byId(.string(logo.id)),
-                    createIfNotFound: false
-                ) {
-                    perLogo.photoData = logo.data
-                    perLogo.serverUpdatedDate = logo.updatedDate
-                    perLogo.localUpdatedDate = logo.updatedDate
-                }
-            }
-            let _ = DataManager.shared.save(context: context)
-        }
-
-        // Apply UI/model updates on MainActor.
-        let paymentMethodTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id
-        let plaidBankTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .plaidBank).id
-        let avatarTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .avatar).id
-
-        for logo in incoming {
-            if let logoData = logo.data {
-                /// Don't use the logo id in the save because the logo gets cached with the relatedID as the ID in ``ImageCache``.
-                /// This is because the CBLogo is not available in the parent that contains the logo... why specifically, I don't know.
-                ImageCache.shared.saveToCache(
-                    parentTypeId: logo.typeID,
-                    parentId: logo.relatedID,
-                    id: logo.relatedID,
-                    data: logoData
-                )
-            } else {
-                //print("removing from cache \(logo.typeID), \(logo.relatedID)")
-                ImageCache.shared.removeFromCache(
-                    parentTypeId: logo.typeID,
-                    parentId: logo.relatedID,
-                    id: logo.relatedID,
-                )
-            }
-            
-            if logo.typeID == paymentMethodTypeID {
-                let meth = payModel.getPaymentMethod(by: logo.relatedID)
-                meth.logo = logo.data
-                changePaymentMethodLogoLocally(meth: meth, logoData: logo.data)
-                
-            } else if logo.typeID == plaidBankTypeID {
-                plaidModel.getBank(by: logo.relatedID)?.logo = logo.data
-                
-            } else if logo.typeID == avatarTypeID {
-                changeAvatarLocally(to: logo.data, id: logo.relatedID)
-            }
-       }
-    }
-
-    
-    
-    
-    
-    @MainActor private func handleLongPollSettings(_ settings: AppSettings) {
-        AppSettings.shared.setFromAnotherInstance(setting: settings)
-    }
-   
-   
-    
-    @MainActor private func handleLongPollOpenRecords(_ openRecords: Array<CBOpenOrClosedRecord>) async {
-        print("-- \(#function)")
-        
-        for openRecord in openRecords {
-            let recordType = openRecord.recordType.enumID
-            
-            if OpenRecordManager.shared.doesExist(openRecord, what: recordType) {
-                if !openRecord.active {
-                    OpenRecordManager.shared.deleteOpen(id: openRecord.id, what: recordType)
-                    continue
-                } else {
-                    if let index = OpenRecordManager.shared.getIndex(for: openRecord, what: recordType) {
-                        OpenRecordManager.shared.openOrClosedRecords[index].setFromAnotherInstance(openEvent: openRecord)
-                    }
-                }
-            } else {
-                if openRecord.active {
-                    OpenRecordManager.shared.upsert(openRecord, what: recordType)
-                }
-            }
-        }
-    }
-    
-    
-    @MainActor private func handleLongPollPlaidBanks(_ banks: Array<CBPlaidBank>) async {
-        print("-- \(#function)")
-        for bank in banks {
-            if plaidModel.doesExist(bank) {
-                if !bank.active {
-                    plaidModel.delete(bank, andSubmit: false)
-                    continue
-                } else {
-                    if let index = plaidModel.getIndex(for: bank) {
-                        plaidModel.banks[index].setFromAnotherInstance(bank: bank)
-                        plaidModel.banks[index].deepCopy?.setFromAnotherInstance(bank: bank)
-                    }
-                }
-            } else {
-                if bank.active {
-                    plaidModel.upsert(bank)
-                }
-            }
-        }
-    }
-    
-    
-    @MainActor private func handleLongPollPlaidAccounts(_ accounts: Array<CBPlaidAccount>) async {
-        print("-- \(#function)")
-        var eventIdsThatGotChanged: Array<String> = []
-        
-        for act in accounts {
-            if let index = plaidModel.banks.firstIndex(where: { $0.id == act.bankID }) {
-                let bank = plaidModel.banks[index]
-                
-                eventIdsThatGotChanged.append(bank.id)
-                
-                if bank.doesExist(act) {
-                    if !act.active {
-                        bank.deleteAccount(id: act.id)
-                        continue
-                    } else {
-                        if let index = bank.getIndex(for: act) {
-                            bank.accounts[index].setFromAnotherInstance(account: act)
-                            bank.accounts[index].deepCopy?.setFromAnotherInstance(account: act)
-                        }
-                    }
-                } else {
-                    if act.active {
-                        bank.upsert(act)
-                    }
-                }
-            }
-        }
-    }
-    
-        
-    @MainActor private func handleLongPollPlaidTransactions(_ transactionsWithCount: CBPlaidTransactionListWithCount) {
-        print("-- \(#function)")
-        plaidModel.totalTransCount = transactionsWithCount.count
-        if let safeTrans = transactionsWithCount.trans {
-            for trans in safeTrans {
-                if plaidModel.doesExist(trans) {
-                    if !trans.active {
-                        plaidModel.delete(trans)
-                        continue
-                    } else {
-                        if trans.isAcknowledged {
-                            plaidModel.delete(trans)
-                            continue
-                        } else {
-                            if let index = plaidModel.getIndex(for: trans) {
-                                plaidModel.trans[index].setFromAnotherInstance(trans: trans)
-                            }
-                        }
-                    }
-                } else {
-                    if !trans.isAcknowledged {
-                        plaidModel.upsert(trans)
-                    }
-                }
-            }
-        }
-    }
-    
-    
-    @MainActor private func handleLongPollPlaidBalances(_ balances: Array<CBPlaidBalance>) {
-        print("-- \(#function)")
-        for bal in balances {
-            if plaidModel.doesExist(bal) {
-                if !bal.active {
-                    plaidModel.delete(bal)
-                    continue
-                } else {
-                    if let index = plaidModel.getIndex(for: bal) {
-                        plaidModel.balances[index].setFromAnotherInstance(bal: bal)
-                    }
-                }
-            } else {
-                plaidModel.upsert(bal)
-            }
-        }
-    }
+//    
+//    @MainActor private func handleLongPollTransactions(_ transactions: Array<CBTransaction>) async {
+//        print("-- \(#function)")
+//        await calModel.handleTransactions(transactions, refreshTechnique: .viaLongPoll)
+//        
+//        let months = transactions
+//            .filter { $0.date != nil }
+//            .compactMap { $0.dateComponents?.month }
+//            .uniqued()
+//        
+//        months.forEach { month in
+//            //let montObj = calModel.months.filter{ $0.num == month }.first!
+//            let montObj = calModel.months.get(byNum: month)!
+//            let _ = calModel.calculateTotal(for: montObj)
+//        }
+//        
+//        DataChangeTriggers.shared.viewDidChange(.calendar)
+//    }
+//    
+//    
+////    @MainActor private func handleLongPollFitTransactions(_ transactions: Array<CBFitTransaction>) {
+////        print("-- \(#function)")
+////        for trans in transactions {
+////            if calModel.doesExist(trans) {
+////                if trans.isAcknowledged {
+////                    calModel.delete(trans)
+////                    continue
+////                } else {
+////                    if let index = calModel.getIndex(for: trans) {
+////                        calModel.fitTrans[index].setFromAnotherInstance(trans: trans)
+////                    }
+////                }
+////            } else {
+////                if !trans.isAcknowledged {
+////                    calModel.upsert(trans)
+////                }
+////            }
+////        }
+////    }
+//    
+//    
+//    @MainActor private func handleLongPollStartingAmounts(_ startingAmounts: Array<CBStartingAmount>) {
+//        print("-- \(#function)")
+//        for startingAmount in startingAmounts {
+//            //let year = startingAmount.year
+//            
+////            if startingAmount.month == 1 && startingAmount.year == AppState.shared.todayYear + 1 {
+////                startingAmount.month = 13
+////            } else if startingAmount.month == 12 && startingAmount.year == AppState.shared.todayYear - 1 {
+////                startingAmount.month = 0
+////            }
+//            
+//            let month = startingAmount.month
+//            let year = startingAmount.year
+//                        
+//            if let targetMonth = calModel.months.get(by: (month, year)) {
+//                let targetAmount = targetMonth.startingAmounts.filter { $0.payMethod.id == startingAmount.payMethod.id }.first
+//                if let targetAmount {
+//                    
+//                    if !startingAmount.active {
+//                        targetAmount.amountString = ""
+//                    } else {
+//                        targetAmount.setFromAnotherInstance(startingAmount: startingAmount)
+//                    }
+//                } else {
+//                    payModel.prepareStartingAmounts(for: targetMonth, calModel: calModel)
+//                    //calModel.prepareStartingAmount(for: startingAmount.payMethod)
+//                    let targetAmount = targetMonth.startingAmounts.filter { $0.payMethod.id == startingAmount.payMethod.id }.first
+//                    if let targetAmount {
+//                        targetAmount.setFromAnotherInstance(startingAmount: startingAmount)
+//                    }
+//                    
+//                }
+//            }
+//            
+//            //let montObj = calModel.months.filter { $0.num == month }.first!
+//            let montObj = calModel.months.get(byNum: month)!
+//            let _ = calModel.calculateTotal(for: montObj)
+//        }
+//    }
+//    
+//    
+//    @MainActor private func handleLongPollRepeatingTransactions(_ repeatingTransactions: Array<CBRepeatingTransaction>) async {
+//        print("-- \(#function)")
+//        for transaction in repeatingTransactions {
+//            if repModel.doesExist(transaction) {
+//                if !transaction.active {
+//                    repModel.delete(transaction, andSubmit: false)
+//                } else {
+//                    if let index = repModel.getIndex(for: transaction) {
+//                        repModel.repTransactions[index].setFromAnotherInstance(repTransaction: transaction)
+//                        repModel.repTransactions[index].deepCopy?.setFromAnotherInstance(repTransaction: transaction)
+//                    }
+//                }
+//            } else {
+//                if transaction.active {
+//                    withAnimation { repModel.upsert(transaction) }
+//                }
+//            }
+//        }
+//    }
+//    
+//    
+////    @MainActor private func handleLongPollPaymentMethods(_ payMethods: Array<CBPaymentMethod>) async {
+////        print("-- \(#function)")
+////        
+////        //let ogListOrders = payModel.paymentMethods.map { $0.listOrder ?? 0 }.sorted()
+////        //var newListOrders: [Int] = []
+////        
+////        let context = DataManager.shared.createContext()
+////        for payMethod in payMethods {
+////            //newListOrders.append(payMethod.listOrder ?? 0)
+////            if payModel.doesExist(payMethod) {
+////                if !payMethod.active {
+////                    payModel.delete(payMethod, andSubmit: false, calModel: calModel)
+////                    continue
+////                } else {
+////                    if let index = payModel.getIndex(for: payMethod) {
+////                        
+////                        
+//////                        if let logoData = payMethod.logo {
+//////                            let paymentMethodTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id
+//////                            await ImageCache.shared.saveToCache(
+//////                                parentTypeId: paymentMethodTypeID,
+//////                                parentId: payMethod.id,
+//////                                id: logo.id,
+//////                                data: logoData
+//////                            )
+//////                        }
+////                        
+////                        
+////                        
+////                        payModel.paymentMethods[index].setFromAnotherInstance(payMethod: payMethod)
+////                        payModel.paymentMethods[index].deepCopy?.setFromAnotherInstance(payMethod: payMethod)
+////                    }
+////                }
+////            } else {
+////                if payMethod.active {
+////                    withAnimation { payModel.upsert(payMethod) }
+////                }
+////            }
+////            
+////            if payMethod.isPermitted {
+////                let _ = await payModel.updateCache(for: payMethod)
+////            } else {
+////                DataManager.shared.delete(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)))
+////            }
+////            //print("SaveResult: \(saveResult)")
+////            
+////            calModel.justTransactions
+////                .filter { $0.payMethod?.id == payMethod.id }
+////                .forEach { $0.payMethod?.setFromAnotherInstance(payMethod: payMethod) }
+////            
+////            calModel.months
+////                .flatMap { $0.startingAmounts.compactMap { $0.payMethod } }
+////                .filter { $0.id == payMethod.id }
+////                .forEach { $0.setFromAnotherInstance(payMethod: payMethod) }
+////            
+////            repModel.repTransactions
+////                .filter { $0.payMethod?.id == payMethod.id }
+////                .forEach { $0.payMethod?.setFromAnotherInstance(payMethod: payMethod) }
+////        }
+////        
+////        payModel.determineIfUserIsRequiredToAddPaymentMethod()
+////        
+////        self.prepareStartingAmounts(for: calModel.sMonth)
+////        
+//////        if newListOrders != ogListOrders {
+//////            DataChangeTriggers.shared.viewDidChange(.paymentMethodListOrders)
+//////        }
+////        
+////    }
+//    
+//    
+////    @MainActor private func handleLongPollCategories(_ categories: Array<CBCategory>) async {
+////        print("-- \(#function)")
+////        for category in categories {
+////            if catModel.doesExist(category) {
+////                if !category.active {
+////                    catModel.delete(category, andSubmit: false, calModel: calModel, keyModel: keyModel)
+////                    continue
+////                } else {
+////                    if let index = catModel.getIndex(for: category) {
+////                        catModel.categories[index].setFromAnotherInstance(category: category)
+////                        catModel.categories[index].deepCopy?.setFromAnotherInstance(category: category)
+////                    }
+////                }
+////            } else {
+////                if category.active {
+////                    withAnimation { catModel.upsert(category) }
+////                }
+////            }
+////            let _ = await catModel.updateCache(
+////                for: category,
+////                createIfNotFound: false,
+////                findById: category.id,
+////                action: .edit,
+////                isPending: false
+////            )
+////            //print("SaveResult: \(saveResult)")
+////            
+////            calModel.justTransactions.filter { $0.category?.id == category.id }.forEach { $0.category = category }
+////            repModel.repTransactions.filter { $0.category?.id == category.id }.forEach { $0.category = category }
+////        }
+////        
+////        //let categorySortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
+////                           
+////        withAnimation {
+////            catModel.categories.sort(by: Helpers.categorySorter())
+////        }
+////    }
+//    
+////    
+////    @MainActor private func handleLongPollCategoryGroups(_ groups: Array<CBCategoryGroup>) async {
+////        print("-- \(#function)")
+////        for group in groups {
+////            if catModel.doesExist(group) {
+////                if !group.active {
+////                    catModel.delete(group, andSubmit: false)
+////                    continue
+////                } else {
+////                    if let index = catModel.getIndex(for: group) {
+////                        catModel.categoryGroups[index].setFromAnotherInstance(group: group)
+////                        catModel.categoryGroups[index].deepCopy?.setFromAnotherInstance(group: group)
+////                    }
+////                }
+////            } else {
+////                if group.active {
+////                    withAnimation { catModel.upsert(group) }
+////                }
+////            }
+////            
+////            let _ = await catModel.updateCache(
+////                for: group,
+////                createIfNotFound: false,
+////                findById: group.id,
+////                action: .edit,
+////                isPending: false
+////            )
+////        }
+////    }
+////    
+////    
+////    @MainActor private func handleLongPollKeywords(_ keywords: Array<CBKeyword>) async {
+////        print("-- \(#function)")
+////        for keyword in keywords {
+////            if keyModel.doesExist(keyword) {
+////                if !keyword.active {
+////                    keyModel.delete(keyword, andSubmit: false)
+////                    continue
+////                } else {
+////                    if let index = keyModel.getIndex(for: keyword){
+////                        keyModel.keywords[index].setFromAnotherInstance(keyword: keyword)
+////                        keyModel.keywords[index].deepCopy?.setFromAnotherInstance(keyword: keyword)
+////                    }
+////                }
+////            } else {
+////                if keyword.active {
+////                    withAnimation { keyModel.upsert(keyword) }
+////                }
+////            }
+////            let _ = await keyModel.updateCoreData(for: CBKeyword.Snapshot(keyword))
+////            //print("SaveResult: \(saveResult)")
+////        }
+////    }
+//    
+//    
+//    @MainActor private func handleLongPollBudgets(_ budgets: Array<CBBudget>) {
+//        print("-- \(#function)")
+//        for budget in budgets {
+//            
+//            
+//            if budget.appSuiteKey == nil {
+//                if let targetMonth = calModel.months.filter({ $0.actualNum == budget.month && budget.year == $0.year }).first {
+//                    if targetMonth.isExisting(budget) {
+//                        if !budget.active {
+//                            targetMonth.delete(budget)
+//                            continue
+//                        } else {
+//                            if let index = targetMonth.getIndex(for: budget) {
+//                                targetMonth.budgets[index].setFromAnotherInstance(budget: budget)
+//                            }
+//                        }
+//                    } else {
+//                        targetMonth.upsert(budget)
+//                    }
+//                }
+//            } else {
+//                print("Budget \(budget.id) incomign")
+//                if let index = calModel.appSuiteBudgets.firstIndex(where: { $0.id == budget.id }) {
+//                    calModel.appSuiteBudgets[index].setFromAnotherInstance(budget: budget)
+//                } else {
+//                    calModel.appSuiteBudgets.append(budget)
+//                }
+//            }
+//            
+//            
+//        }
+//    }
+//    
+//    
+//    
+//    
+////    @MainActor
+////    private func handleLongPollLogos(_ logos: Array<CBLogo>) {
+////        print("-- \(#function)")
+////        let context = DataManager.shared.createContext()
+////        
+////        for logo in logos {
+////            print("incoming base64 for logo \(String(describing: logo.baseString))")
+////            
+////            /// Try and decode the data, if not, wipe out the logos.
+////            var logoData: Data?
+////            if let baseString = logo.baseString {
+////                logoData = Data(base64Encoded: baseString)
+////            }
+////            
+////            if let perLogo = DataManager.shared.getOne(context: context, type: PersistentLogo.self, predicate: .byId(.string(logo.id)), createIfNotFound: false) {
+////                perLogo.photoData = logoData
+////                perLogo.serverUpdatedDate = logo.updatedDate
+////                perLogo.localUpdatedDate = logo.updatedDate
+////            }
+////            
+////            if logo.relatedRecordType.enumID == .paymentMethod {
+////                let meth = payModel.getPaymentMethod(by: logo.relatedID)
+////                meth.logo = logoData
+////                
+////                changePaymentMethodLogoLocally(meth: meth, logoData: logoData)
+////                
+////                #warning("Need starting amounts")
+////            }
+////            
+////            if logo.relatedRecordType.enumID == .plaidBank {
+////                if let bank = plaidModel.getBank(by: logo.relatedID) {
+////                    bank.logo = logoData
+////                }
+////            }
+////            
+////            if logo.relatedRecordType.enumID == .avatar {
+////                let relatedID = logo.relatedID
+////                changeAvatarLocally(to: logoData, id: relatedID)
+////            }
+////        }
+////        
+////        let _ = DataManager.shared.save(context: context)
+////    }
+////    
+//    
+//    @MainActor
+//    private func handleLongPollLogos(_ logos: [CBLogo]) async {
+//        //return
+//        print("-- \(#function)")
+//        guard !logos.isEmpty else { return }
+//
+//        // Snapshot values so no Core Data objects or non-sendable refs cross boundaries.
+//        struct IncomingLogo: Sendable {
+//            let id: String
+//            let relatedID: String
+//            let typeID: Int
+//            let updatedDate: Date
+//            let data: Data?
+//        }
+//
+//        let incoming: [IncomingLogo] = logos.map {
+//            IncomingLogo(
+//                id: $0.id,
+//                relatedID: $0.relatedID,
+//                typeID: $0.relatedRecordType.id,
+//                updatedDate: $0.updatedDate,
+//                data: $0.baseString.flatMap { Data(base64Encoded: $0) }
+//            )
+//        }
+//
+//        // Persist on Core Data queue only.
+//        let context = DataManager.shared.createContext()
+//        await DataManager.shared.perform(context: context) {
+//            for logo in incoming {
+//                if let perLogo = DataManager.shared.getOne(
+//                    context: context,
+//                    type: PersistentLogo.self,
+//                    predicate: .byId(.string(logo.id)),
+//                    createIfNotFound: false
+//                ) {
+//                    perLogo.photoData = logo.data
+//                    perLogo.serverUpdatedDate = logo.updatedDate
+//                    perLogo.localUpdatedDate = logo.updatedDate
+//                }
+//            }
+//            let _ = DataManager.shared.save(context: context)
+//        }
+//
+//        // Apply UI/model updates on MainActor.
+//        let paymentMethodTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id
+//        let plaidBankTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .plaidBank).id
+//        let avatarTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .avatar).id
+//
+//        for logo in incoming {
+//            if let logoData = logo.data {
+//                /// Don't use the logo id in the save because the logo gets cached with the relatedID as the ID in ``ImageCache``.
+//                /// This is because the CBLogo is not available in the parent that contains the logo... why specifically, I don't know.
+//                ImageCache.shared.saveToCache(
+//                    parentTypeId: logo.typeID,
+//                    parentId: logo.relatedID,
+//                    id: logo.relatedID,
+//                    data: logoData
+//                )
+//            } else {
+//                //print("removing from cache \(logo.typeID), \(logo.relatedID)")
+//                ImageCache.shared.removeFromCache(
+//                    parentTypeId: logo.typeID,
+//                    parentId: logo.relatedID,
+//                    id: logo.relatedID,
+//                )
+//            }
+//            
+//            if logo.typeID == paymentMethodTypeID {
+//                let meth = payModel.getPaymentMethod(by: logo.relatedID)
+//                meth.logo = logo.data
+//                changePaymentMethodLogoLocally(meth: meth, logoData: logo.data)
+//                
+//            } else if logo.typeID == plaidBankTypeID {
+//                plaidModel.getBank(by: logo.relatedID)?.logo = logo.data
+//                
+//            } else if logo.typeID == avatarTypeID {
+//                changeAvatarLocally(to: logo.data, id: logo.relatedID)
+//            }
+//       }
+//    }
+//
+//    
+//    
+//    
+//    
+//    @MainActor private func handleLongPollSettings(_ settings: AppSettings) {
+//        AppSettings.shared.setFromAnotherInstance(setting: settings)
+//    }
+//   
+//   
+//    
+//    @MainActor private func handleLongPollOpenRecords(_ openRecords: Array<CBOpenOrClosedRecord>) async {
+//        print("-- \(#function)")
+//        
+//        for openRecord in openRecords {
+//            let recordType = openRecord.recordType.enumID
+//            
+//            if OpenRecordManager.shared.doesExist(openRecord, what: recordType) {
+//                if !openRecord.active {
+//                    OpenRecordManager.shared.deleteOpen(id: openRecord.id, what: recordType)
+//                    continue
+//                } else {
+//                    if let index = OpenRecordManager.shared.getIndex(for: openRecord, what: recordType) {
+//                        OpenRecordManager.shared.openOrClosedRecords[index].setFromAnotherInstance(openEvent: openRecord)
+//                    }
+//                }
+//            } else {
+//                if openRecord.active {
+//                    OpenRecordManager.shared.upsert(openRecord, what: recordType)
+//                }
+//            }
+//        }
+//    }
+//    
+//    
+//    @MainActor private func handleLongPollPlaidBanks(_ banks: Array<CBPlaidBank>) async {
+//        print("-- \(#function)")
+//        for bank in banks {
+//            if plaidModel.doesExist(bank) {
+//                if !bank.active {
+//                    plaidModel.delete(bank, andSubmit: false)
+//                    continue
+//                } else {
+//                    if let index = plaidModel.getIndex(for: bank) {
+//                        plaidModel.banks[index].setFromAnotherInstance(bank: bank)
+//                        plaidModel.banks[index].deepCopy?.setFromAnotherInstance(bank: bank)
+//                    }
+//                }
+//            } else {
+//                if bank.active {
+//                    plaidModel.upsert(bank)
+//                }
+//            }
+//        }
+//    }
+//    
+//    
+//    @MainActor private func handleLongPollPlaidAccounts(_ accounts: Array<CBPlaidAccount>) async {
+//        print("-- \(#function)")
+//        var eventIdsThatGotChanged: Array<String> = []
+//        
+//        for act in accounts {
+//            if let index = plaidModel.banks.firstIndex(where: { $0.id == act.bankID }) {
+//                let bank = plaidModel.banks[index]
+//                
+//                eventIdsThatGotChanged.append(bank.id)
+//                
+//                if bank.doesExist(act) {
+//                    if !act.active {
+//                        bank.deleteAccount(id: act.id)
+//                        continue
+//                    } else {
+//                        if let index = bank.getIndex(for: act) {
+//                            bank.accounts[index].setFromAnotherInstance(account: act)
+//                            bank.accounts[index].deepCopy?.setFromAnotherInstance(account: act)
+//                        }
+//                    }
+//                } else {
+//                    if act.active {
+//                        bank.upsert(act)
+//                    }
+//                }
+//            }
+//        }
+//    }
+//    
+//        
+//    @MainActor private func handleLongPollPlaidTransactions(_ transactionsWithCount: CBPlaidTransactionListWithCount) {
+//        print("-- \(#function)")
+//        plaidModel.totalTransCount = transactionsWithCount.count
+//        if let safeTrans = transactionsWithCount.trans {
+//            for trans in safeTrans {
+//                if plaidModel.doesExist(trans) {
+//                    if !trans.active {
+//                        plaidModel.delete(trans)
+//                        continue
+//                    } else {
+//                        if trans.isAcknowledged {
+//                            plaidModel.delete(trans)
+//                            continue
+//                        } else {
+//                            if let index = plaidModel.getIndex(for: trans) {
+//                                plaidModel.trans[index].setFromAnotherInstance(trans: trans)
+//                            }
+//                        }
+//                    }
+//                } else {
+//                    if !trans.isAcknowledged {
+//                        plaidModel.upsert(trans)
+//                    }
+//                }
+//            }
+//        }
+//    }
+//    
+//    
+//    @MainActor private func handleLongPollPlaidBalances(_ balances: Array<CBPlaidBalance>) {
+//        print("-- \(#function)")
+//        for bal in balances {
+//            if plaidModel.doesExist(bal) {
+//                if !bal.active {
+//                    plaidModel.delete(bal)
+//                    continue
+//                } else {
+//                    if let index = plaidModel.getIndex(for: bal) {
+//                        plaidModel.balances[index].setFromAnotherInstance(bal: bal)
+//                    }
+//                }
+//            } else {
+//                plaidModel.upsert(bal)
+//            }
+//        }
+//    }
     
     
     
     
     // MARK: - Misc
-    @MainActor func prepareStartingAmounts(for month: CBMonth) {
-        //print("-- \(#function)")
-        for payMethod in payModel.paymentMethods.filter({ $0.isPermittedAndViewable }) {
-            /// Create a starting amount if it doesn't exist in the current month.
-            if !month.startingAmounts.contains(where: { $0.payMethod.id == payMethod.id }) {
-                let starting = CBStartingAmount()
-                starting.payMethod = payMethod
-                starting.action = .add
-                starting.month = month.actualNum
-                starting.year = month.year
-                
-                starting.amountString = ""
-                month.startingAmounts.append(starting)
-            }
-                                                
-            if payMethod.isUnified {
-                let _ = calModel.updateUnifiedStartingAmount(month: month, for: payMethod.accountType)
-            }
-        }
-    }
+//    @MainActor func prepareStartingAmounts(for month: CBMonth) {
+//        //print("-- \(#function)")
+//        for payMethod in payModel.paymentMethods.filter({ $0.isPermittedAndViewable }) {
+//            /// Create a starting amount if it doesn't exist in the current month.
+//            if !month.startingAmounts.contains(where: { $0.payMethod.id == payMethod.id }) {
+//                let starting = CBStartingAmount()
+//                starting.payMethod = payMethod
+//                starting.action = .add
+//                starting.month = month.actualNum
+//                starting.year = month.year
+//                
+//                starting.amountString = ""
+//                month.startingAmounts.append(starting)
+//            }
+//                                                
+//            if payMethod.isUnified {
+//                let _ = calModel.updateUnifiedStartingAmount(month: month, for: payMethod.accountType)
+//            }
+//        }
+//    }
     
         
     @MainActor
@@ -2519,7 +2582,8 @@ class FuncModel {
     
     
     // MARK: - Logout
-    @MainActor func logout() {
+    @MainActor
+    func logout() {
         print("-- \(#function)")
         /// Clearing all session data related to login and loading indicators.
         AuthState.shared.clearLoginState()
@@ -2528,13 +2592,15 @@ class FuncModel {
             $0.changeLoadingSpinners(toShowing: true, includeCalendar: true)
         }
         
-        /// Cancel the long polling task.
-        if let _ = longPollTask {
-            longPollTask!.cancel()
-            longPollTask = nil
-        }
+        webSocketManager.stopListening()
         
         /// Cancel the long polling task.
+//        if let _ = longPollTask {
+//            longPollTask!.cancel()
+//            longPollTask = nil
+//        }
+        
+        /// Cancel the refresh task.
         if let _ = refreshTask {
             refreshTask!.cancel()
             refreshTask = nil

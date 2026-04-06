@@ -89,6 +89,10 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
     /// It should always show when a download is happening - regardless of the download technique.
     var showSecondaryLoadingSpinner = false
     
+    var isTodayMonth: Bool {
+        self.actualNum == AppState.shared.todayMonth && self.year == AppState.shared.todayYear
+    }
+    
     
     var prettyName: String {
         if (year == 1901 && actualNum == 1) || (year == 1899 && actualNum == 12) || year == 1900 {
@@ -292,7 +296,7 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
     }
     
     
-    enum CodingKeys: CodingKey { case month, year, user_id, account_id, device_uuid }
+    enum CodingKeys: CodingKey { case month, year, user_id, account_id, device_uuid, is_today_month }
         
     func encode(to encoder: Encoder) throws {
         let formatter = NumberFormatter()
@@ -306,6 +310,7 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
         try container.encode(AppState.shared.user?.id, forKey: .user_id)
         try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
         try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
+        try container.encode(isTodayMonth ? 1 : 0, forKey: .is_today_month)
     }
                 
     

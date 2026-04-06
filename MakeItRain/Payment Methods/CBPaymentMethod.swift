@@ -900,6 +900,115 @@ extension CBPaymentMethod {
     }
     
     
+    @discardableResult
+    func updateCoreData(action: PaymentMethodAction, isPending: Bool, createIfNotFound: Bool) async -> Result<Bool, CoreDataError> {
+        let snapshot = CBPaymentMethod.Snapshot(self)
+        let context = DataManager.shared.createContext()        
+        
+        return await context.perform {
+            if let entity = DataManager.shared.getOne(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(snapshot.id)), createIfNotFound: createIfNotFound) {
+                entity.id = snapshot.id
+                entity.title = snapshot.title
+                entity.dueDate = snapshot.dueDate
+                entity.limit = snapshot.limit
+                entity.accountType = Int64(snapshot.accountType)
+                entity.hexCode = snapshot.hexCode
+                //entity.hexCode = payMethod.color.description
+                entity.isViewingDefault = snapshot.isViewingDefault
+                entity.notificationOffset = snapshot.notificationOffset
+                entity.notifyOnDueDate = snapshot.notifyOnDueDate
+                entity.last4 = snapshot.last4
+                entity.interestRate = snapshot.interestRate
+                entity.loanDuration = snapshot.loanDuration
+                entity.isHidden = snapshot.isHidden
+                entity.isPrivate = snapshot.isPrivate
+                entity.action = action.rawValue
+                entity.isPending = isPending
+                entity.enteredByID = Int64(snapshot.enteredByID)
+                entity.updatedByID = Int64(snapshot.updatedByID)
+                entity.enteredDate = snapshot.enteredDate
+                entity.updatedDate = snapshot.updatedDate
+                
+                entity.listOrder = Int64(snapshot.listOrder)
+                entity.recentTransactionCount = Int64(snapshot.recentTransactionCount)
+                
+                entity.holderOneID = snapshot.holderOneID
+                entity.holderTwoID = snapshot.holderTwoID
+                entity.holderThreeID = snapshot.holderThreeID
+                entity.holderFourID = snapshot.holderFourID
+                entity.holderOneTypeID = snapshot.holderOneTypeID
+                entity.holderTwoTypeID = snapshot.holderTwoTypeID
+                entity.holderThreeTypeID = snapshot.holderThreeTypeID
+                entity.holderFourTypeID = snapshot.holderFourTypeID
+                
+                
+                let pred1 = NSPredicate(format: "relatedID == %@", snapshot.id)
+                let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id))
+                let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
+                
+                if let perLogo = DataManager.shared.getOne(
+                    context: context,
+                    type: PersistentLogo.self,
+                    predicate: .compound(comp),
+                    createIfNotFound: true
+                ) {
+                    perLogo.photoData = snapshot.logoData
+                    perLogo.localUpdatedDate = Date()
+                }
+                
+                return DataManager.shared.save(context: context)
+                
+            } else {
+                return .failure(.notFound)
+            }
+        }
+    }
+    
+    
+    @discardableResult
+    func updateAfterSubmit(id: String, lookupId: String, action: PaymentMethodAction, updatedDate: Date, logo: Data?) async -> Result<Bool, CoreDataError> {
+        self.action = .edit
+        
+        if action == .add {
+            self.id = id
+            self.uuid = nil
+        }
+        
+        let context = DataManager.shared.createContext()
+        return await context.perform {
+            if let entity = DataManager.shared.getOne(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(lookupId)), createIfNotFound: true) {
+                if action == .add {
+                    entity.id = id
+                    entity.action = PaymentMethodAction.edit.rawValue
+                }
+                entity.isPending = false
+                
+                
+                let pred1 = NSPredicate(format: "relatedID == %@", action == .add ? id : id)
+                let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id))
+                let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
+                
+                if let perLogo = DataManager.shared.getOne(
+                    context: context,
+                    type: PersistentLogo.self,
+                    predicate: .compound(comp),
+                    createIfNotFound: true
+                ) {
+                    perLogo.relatedID = id
+                    perLogo.photoData = logo
+                    perLogo.localUpdatedDate = updatedDate
+                    perLogo.serverUpdatedDate = updatedDate
+                }
+                
+                return DataManager.shared.save(context: context)
+                
+            } else {
+                return .failure(.notFound)
+            }
+        }
+    }
+    
+    
     @MainActor
     static func loadFromCoreData(id: String) async -> CBPaymentMethod? {
         let snapshot = await CBPaymentMethod.createSnapshotFromCoreData(id: id)
@@ -956,5 +1065,84 @@ extension CBPaymentMethod {
                 logoData: logo
             )
         }
+    }
+}
+
+
+extension CBPaymentMethod.Snapshot {
+    init(_ payMethod: CBPaymentMethod) {
+        self.id = payMethod.id
+        self.title = payMethod.title
+        self.dueDate = Int64(payMethod.dueDate ?? 0)
+        self.limit = payMethod.limit ?? 0.0
+        self.accountType = payMethod.accountType.rawValue
+        self.hexCode = payMethod.color.toHex()
+        self.isViewingDefault = payMethod.isViewingDefault
+        self.isEditingDefault = payMethod.isEditingDefault
+        self.notificationOffset = Int64(payMethod.notificationOffset)
+        self.notifyOnDueDate = payMethod.notifyOnDueDate
+        self.last4 = payMethod.last4
+        self.interestRate = payMethod.interestRate ?? 0.0
+        self.loanDuration = Int64(payMethod.loanDuration ?? 0.0)
+
+        self.enteredByID = Int64(payMethod.enteredBy.id)
+        self.updatedByID = Int64(payMethod.updatedBy.id)
+        self.enteredDate = payMethod.enteredDate
+        self.updatedDate = payMethod.updatedDate
+
+        self.holderOneID = Int64(payMethod.holderOne?.id ?? 0)
+        self.holderTwoID = Int64(payMethod.holderTwo?.id ?? 0)
+        self.holderThreeID = Int64(payMethod.holderThree?.id ?? 0)
+        self.holderFourID = Int64(payMethod.holderFour?.id ?? 0)
+
+        self.holderOneTypeID = Int64(payMethod.holderOneType?.id ?? 0)
+        self.holderTwoTypeID = Int64(payMethod.holderTwoType?.id ?? 0)
+        self.holderThreeTypeID = Int64(payMethod.holderThreeType?.id ?? 0)
+        self.holderFourTypeID = Int64(payMethod.holderFourType?.id ?? 0)
+
+        self.isHidden = payMethod.isHidden
+        self.isPrivate = payMethod.isPrivate
+        self.listOrder = Int64(payMethod.listOrder ?? 0)
+        self.recentTransactionCount = Int64(payMethod.recentTransactionCount)
+
+        self.logoData = payMethod.logo
+    }
+
+    init(_ entity: PersistentPaymentMethod) {
+        self.id = entity.id ?? ""
+        self.title = entity.title ?? ""
+        self.dueDate = entity.dueDate
+        self.limit = entity.limit
+        self.accountType = Int(entity.accountType)
+        self.hexCode = entity.hexCode
+        self.isViewingDefault = entity.isViewingDefault
+        self.isEditingDefault = entity.isEditingDefault
+        self.notificationOffset = entity.notificationOffset
+        self.notifyOnDueDate = entity.notifyOnDueDate
+        self.last4 = entity.last4
+        self.interestRate = entity.interestRate
+        self.loanDuration = entity.loanDuration
+
+        self.enteredByID = entity.enteredByID
+        self.updatedByID = entity.updatedByID
+        self.enteredDate = entity.enteredDate
+        self.updatedDate = entity.updatedDate
+
+        self.holderOneID = entity.holderOneID
+        self.holderTwoID = entity.holderTwoID
+        self.holderThreeID = entity.holderThreeID
+        self.holderFourID = entity.holderFourID
+
+        self.holderOneTypeID = entity.holderOneTypeID
+        self.holderTwoTypeID = entity.holderTwoTypeID
+        self.holderThreeTypeID = entity.holderThreeTypeID
+        self.holderFourTypeID = entity.holderFourTypeID
+
+        self.isHidden = entity.isHidden
+        self.isPrivate = entity.isPrivate
+        self.listOrder = entity.listOrder
+        self.recentTransactionCount = entity.recentTransactionCount
+
+        self.logoData = nil
     }
 }

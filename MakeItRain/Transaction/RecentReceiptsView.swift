@@ -81,7 +81,7 @@ struct RecentReceiptsView: View {
             }
         }
         .listStyle(.plain)
-        .navigationTitle("Receipts")
+        .navigationTitle("Receipts\(AppState.shared.devMode ? " (Dev)" : "")")
         .toolbar { toolbar }
         #if os(iOS)
         .photoPickerAndCameraSheet(
@@ -103,6 +103,23 @@ struct RecentReceiptsView: View {
             PhotoWebPreview(file: file)
         }
         #endif
+        .onDisappear {
+            for trans in transactions {
+                if let files = trans.files?.filter({ $0.active }), !files.isEmpty, let firstFile = files.first {
+                    ImageCache.shared.removeFromCache(
+                        parentTypeId: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction).id,
+                        parentId: firstFile.relatedID,
+                        id: firstFile.id
+                    )
+                }
+//                ImageCache.shared.saveToCache(
+//                    parentTypeId: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction).id,
+//                    parentId: file.relatedID,
+//                    id: file.id,
+//                    data: data
+//                )
+            }
+        }
     }
     
     

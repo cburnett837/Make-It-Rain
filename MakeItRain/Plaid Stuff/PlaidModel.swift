@@ -84,7 +84,8 @@ class PlaidModel {
         }
     }
     
-    
+  
+    /// We need to keep this function because when adding a new link token, the banks will get downloaded after the link flow.
     @MainActor
     func fetchBanks() async {
         let model = RequestModel(requestType: "fetch_plaid_banks", model: AppState.shared.user!)
@@ -106,6 +107,74 @@ class PlaidModel {
             AppState.shared.showAlert("There was a problem trying to fetch plaid banks.")
         }
     }
+    
+    
+//    @MainActor
+//    func handleDownloadedBanks(bks: Array<CBPlaidBank>?) async {
+//        if let bks {
+//            self.banks = bks
+//            for each in bks {
+//                await each.loadLogoFromCacheIfNeeded()
+//            }
+//        }
+//    }
+    
+    
+    @MainActor
+    func handleIncoming(banks: Array<CBPlaidBank>, incomingDataType: IncomingDataType) async {
+        for bank in banks {
+            await bank.loadLogoFromCacheIfNeeded()
+            
+            if self.doesExist(bank) {
+                if !bank.active {
+                    self.delete(bank, andSubmit: false)
+                    continue
+                } else {
+                    if let index = self.getIndex(for: bank) {
+                        self.banks[index].setFromAnotherInstance(bank: bank)
+                        self.banks[index].deepCopy?.setFromAnotherInstance(bank: bank)
+                    }
+                }
+            } else {
+                if bank.active {
+                    self.upsert(bank)
+                }
+            }
+        }
+        
+        /// When downloading everything from the server, if we find a local object that is not in the server payload, it means it is no longer valid and must be deleted from the local copies.
+        if incomingDataType == .viaStandardRefresh {
+            for bank in self.banks {
+                if banks.filter({ $0.id == bank.id }).isEmpty {
+                    delete(bank, andSubmit: false)
+                }
+            }
+        }
+    }
+    
+    
+//    @MainActor
+//    func handleLongPollPlaidBanks(_ banks: Array<CBPlaidBank>) async {
+//        print("-- \(#function)")
+//        for bank in banks {
+//            if self.doesExist(bank) {
+//                if !bank.active {
+//                    self.delete(bank, andSubmit: false)
+//                    continue
+//                } else {
+//                    if let index = self.getIndex(for: bank) {
+//                        self.banks[index].setFromAnotherInstance(bank: bank)
+//                        self.banks[index].deepCopy?.setFromAnotherInstance(bank: bank)
+//                    }
+//                }
+//            } else {
+//                if bank.active {
+//                    self.upsert(bank)
+//                }
+//            }
+//        }
+//    }
+    
     
 //    @MainActor
 //    func fetchAccounts(for bank: CBPlaidBank) async -> Array<CBPlaidAccount>? {
@@ -295,6 +364,38 @@ class PlaidModel {
     
     
     
+    @MainActor
+    func handleLongPollPlaidAccounts(_ accounts: Array<CBPlaidAccount>) async {
+        print("-- \(#function)")
+        var eventIdsThatGotChanged: Array<String> = []
+        
+        for act in accounts {
+            if let index = self.banks.firstIndex(where: { $0.id == act.bankID }) {
+                let bank = self.banks[index]
+                
+                eventIdsThatGotChanged.append(bank.id)
+                
+                if bank.doesExist(act) {
+                    if !act.active {
+                        bank.deleteAccount(id: act.id)
+                        continue
+                    } else {
+                        if let index = bank.getIndex(for: act) {
+                            bank.accounts[index].setFromAnotherInstance(account: act)
+                            bank.accounts[index].deepCopy?.setFromAnotherInstance(account: act)
+                        }
+                    }
+                } else {
+                    if act.active {
+                        bank.upsert(act)
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    
     
     // MARK: - Plaid Specific Stuff
     @MainActor
@@ -365,86 +466,86 @@ class PlaidModel {
     
     
     
-    @MainActor
-    func fetchPlaidTransactionsFromServer(_ plaidModel: PlaidServerModel, accumulate: Bool) async {
-        //print("-- \(#function)")
-        LogManager.log()
-        
-        let start = CFAbsoluteTimeGetCurrent()
-        
-        //try? await Task.sleep(nanoseconds: UInt64(5 * Double(NSEC_PER_SEC)))
-        //print("DONE FETCHING")
-                            
-        //let month = months.filter { $0.num == monthNum }.first!
-        let model = RequestModel(requestType: "fetch_plaid_transactions", model: plaidModel)
-        typealias ResultResponse = Result<CBPlaidTransactionListWithCount?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
-        
-        switch await result {
-        case .success(let model):
-            if let model, let trans = model.trans {
-                if !trans.isEmpty {
-                    
-                    totalTransCount = model.count
-                    
-                    var activeIds: Array<Int> = []
-                    
-                    for each in trans {
-                        //print(each.title)
-                        activeIds.append(each.id)
-                        
-                        
-                        await each.payMethod?.loadLogoFromCoreDataIfNeeded()
-                        
-                        if let index = self.trans.firstIndex(where: { $0.id == each.id }){
-                            /// If the trans is already in the list, update it from the server.
-                            self.trans[index].setFromAnotherInstance(trans: each)
-                        } else {
-                            withAnimation {
-                                /// Add the trans  to the list (like when the trans was added from plaid).
-                                self.trans.append(each)
-                            }
-                            
-                        }
-                    }
-                    
-                    if !accumulate {
-                        /// Delete from model.
-                        for tran in self.trans {
-                            if !activeIds.contains(tran.id) {
-                                withAnimation {
-                                    self.trans.removeAll { $0.id == tran.id }
-                                }
-                            }
-                        }
-                    }
-                    
-                } else {
-                    print("model.trans is empty")
-                    if !accumulate {
-                        withAnimation {
-                            self.trans.removeAll()
-                        }
-                    }
-                }
-            } else {
-                print("Model was nil or model.trans was nil")
-            }
-            
-            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-            print("⏰It took \(currentElapsed) seconds to fetch the plaid transactions")
-            
-        case .failure (let error):
-            switch error {
-            case .taskCancelled:
-                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
-                print("calModel fetchPlaidTransactionsFromServer Server Task Cancelled")
-            default:
-                LogManager.error(error.localizedDescription)
-                AppState.shared.showAlert("There was a problem trying to fetch fit transactions.")
-            }
-        }
-    }
+//    @MainActor
+//    func fetchPlaidTransactionsFromServer(_ plaidModel: PlaidServerModel, accumulate: Bool) async {
+//        //print("-- \(#function)")
+//        LogManager.log()
+//        
+//        let start = CFAbsoluteTimeGetCurrent()
+//        
+//        //try? await Task.sleep(nanoseconds: UInt64(5 * Double(NSEC_PER_SEC)))
+//        //print("DONE FETCHING")
+//                            
+//        //let month = months.filter { $0.num == monthNum }.first!
+//        let model = RequestModel(requestType: "fetch_plaid_transactions", model: plaidModel)
+//        typealias ResultResponse = Result<CBPlaidTransactionListWithCount?, AppError>
+//        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+//        
+//        switch await result {
+//        case .success(let model):
+//            if let model, let trans = model.trans {
+//                if !trans.isEmpty {
+//                    
+//                    totalTransCount = model.count
+//                    
+//                    var activeIds: Array<Int> = []
+//                    
+//                    for each in trans {
+//                        //print(each.title)
+//                        activeIds.append(each.id)
+//                        
+//                        
+//                        await each.payMethod?.loadLogoFromCoreDataIfNeeded()
+//                        
+//                        if let index = self.trans.firstIndex(where: { $0.id == each.id }){
+//                            /// If the trans is already in the list, update it from the server.
+//                            self.trans[index].setFromAnotherInstance(trans: each)
+//                        } else {
+//                            withAnimation {
+//                                /// Add the trans  to the list (like when the trans was added from plaid).
+//                                self.trans.append(each)
+//                            }
+//                            
+//                        }
+//                    }
+//                    
+//                    if !accumulate {
+//                        /// Delete from model.
+//                        for tran in self.trans {
+//                            if !activeIds.contains(tran.id) {
+//                                withAnimation {
+//                                    self.trans.removeAll { $0.id == tran.id }
+//                                }
+//                            }
+//                        }
+//                    }
+//                    
+//                } else {
+//                    print("model.trans is empty")
+//                    if !accumulate {
+//                        withAnimation {
+//                            self.trans.removeAll()
+//                        }
+//                    }
+//                }
+//            } else {
+//                print("Model was nil or model.trans was nil")
+//            }
+//            
+//            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
+//            print("⏰It took \(currentElapsed) seconds to fetch the plaid transactions")
+//            
+//        case .failure (let error):
+//            switch error {
+//            case .taskCancelled:
+//                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
+//                print("calModel fetchPlaidTransactionsFromServer Server Task Cancelled")
+//            default:
+//                LogManager.error(error.localizedDescription)
+//                AppState.shared.showAlert("There was a problem trying to fetch fit transactions.")
+//            }
+//        }
+//    }
     
     
     @MainActor
@@ -501,6 +602,80 @@ class PlaidModel {
         //LoadingManager.shared.stopDelayedSpinner()
     }
     
+//    
+//    @MainActor
+//    func handleLongPollPlaidTransactions(_ transactionsWithCount: CBPlaidTransactionListWithCount) {
+//        print("-- \(#function)")
+//        self.totalTransCount = transactionsWithCount.count
+//        if let safeTrans = transactionsWithCount.trans {
+//            for trans in safeTrans {
+//                if self.doesExist(trans) {
+//                    if !trans.active {
+//                        self.delete(trans)
+//                        continue
+//                    } else {
+//                        if trans.isAcknowledged {
+//                            self.delete(trans)
+//                            continue
+//                        } else {
+//                            if let index = self.getIndex(for: trans) {
+//                                self.trans[index].setFromAnotherInstance(trans: trans)
+//                            }
+//                        }
+//                    }
+//                } else {
+//                    if !trans.isAcknowledged {
+//                        self.upsert(trans)
+//                    }
+//                }
+//            }
+//        }
+//    }
+//    
+    
+    @MainActor
+    func handleIncoming(transactionsWithCount: CBPlaidTransactionListWithCount, incomingDataType: IncomingDataType) async {
+        print("-- \(#function)")
+        self.totalTransCount = transactionsWithCount.count
+        
+        if let safeTrans = transactionsWithCount.trans {
+            for trans in safeTrans {
+                await trans.payMethod?.loadLogoFromCoreDataIfNeeded()
+                
+                if self.doesExist(trans) {
+                    if !trans.active {
+                        self.delete(trans)
+                        continue
+                    } else {
+                        if trans.isAcknowledged {
+                            self.delete(trans)
+                            continue
+                        } else {
+                            if let index = self.getIndex(for: trans) {
+                                self.trans[index].setFromAnotherInstance(trans: trans)
+                            }
+                        }
+                    }
+                } else {
+                    if !trans.isAcknowledged {
+                        self.upsert(trans)
+                    }
+                }
+            }
+            
+            /// When downloading everything from the server, if we find a local object that is not in the server payload, it means it is no longer valid and must be deleted from the local copies.
+            if incomingDataType == .viaStandardRefresh {
+                for trans in self.trans {
+                    if safeTrans.filter({ $0.id == trans.id }).isEmpty {
+                        self.trans.removeAll { $0.id == trans.id }
+                    }
+                }
+            }
+        }
+        
+        
+    }
+    
     
     
     
@@ -528,41 +703,41 @@ class PlaidModel {
     }
     
     
-    @MainActor
-    func fetchPlaidBalancesFromServer() async {
-        //print("-- \(#function)")
-        LogManager.log()
-        
-        let start = CFAbsoluteTimeGetCurrent()
-        
-        //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
-        //print("DONE FETCHING")
-                            
-        //let month = months.filter { $0.num == monthNum }.first!
-        let model = RequestModel(requestType: "fetch_plaid_balances", model: AppState.shared.user!)
-        typealias ResultResponse = Result<Array<CBPlaidBalance>?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
-        
-        switch await result {
-        case .success(let model):
-            if let model {
-                self.balances = model
-            }
-            
-            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-            print("⏰It took \(currentElapsed) seconds to fetch the plaid balances")
-            
-        case .failure (let error):
-            switch error {
-            case .taskCancelled:
-                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
-                print("calModel fetchPlaidTransactionsFromServer Server Task Cancelled")
-            default:
-                LogManager.error(error.localizedDescription)
-                AppState.shared.showAlert("There was a problem trying to fetch plaid balances.")
-            }
-        }
-    }
+//    @MainActor
+//    func fetchPlaidBalancesFromServer() async {
+//        //print("-- \(#function)")
+//        LogManager.log()
+//        
+//        let start = CFAbsoluteTimeGetCurrent()
+//        
+//        //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
+//        //print("DONE FETCHING")
+//                            
+//        //let month = months.filter { $0.num == monthNum }.first!
+//        let model = RequestModel(requestType: "fetch_plaid_balances", model: AppState.shared.user!)
+//        typealias ResultResponse = Result<Array<CBPlaidBalance>?, AppError>
+//        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+//        
+//        switch await result {
+//        case .success(let model):
+//            if let model {
+//                self.balances = model
+//            }
+//            
+//            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
+//            print("⏰It took \(currentElapsed) seconds to fetch the plaid balances")
+//            
+//        case .failure (let error):
+//            switch error {
+//            case .taskCancelled:
+//                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
+//                print("calModel fetchPlaidTransactionsFromServer Server Task Cancelled")
+//            default:
+//                LogManager.error(error.localizedDescription)
+//                AppState.shared.showAlert("There was a problem trying to fetch plaid balances.")
+//            }
+//        }
+//    }
     
     
     
@@ -688,6 +863,25 @@ class PlaidModel {
     }
     
     
+    
+    @MainActor
+    func handleLongPollPlaidBalances(_ balances: Array<CBPlaidBalance>) {
+        print("-- \(#function)")
+        for bal in balances {
+            if self.doesExist(bal) {
+                if !bal.active {
+                    self.delete(bal)
+                    continue
+                } else {
+                    if let index = self.getIndex(for: bal) {
+                        self.balances[index].setFromAnotherInstance(bal: bal)
+                    }
+                }
+            } else {
+                self.upsert(bal)
+            }
+        }
+    }
     
     
     

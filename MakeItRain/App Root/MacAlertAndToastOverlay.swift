@@ -20,6 +20,7 @@ struct MacAlertAndToastOverlay: View {
     @Environment(KeywordModel.self) private var keyModel
     @Environment(RepeatingTransactionModel.self) private var repModel
     @Environment(PlaidModel.self) private var plaidModel
+    @Environment(WebSocketManager.self) private var webSocketManager
     
     @State private var isInitial = true
 
@@ -43,6 +44,7 @@ struct MacAlertAndToastOverlay: View {
             .environment(plaidModel)
             .environment(calProps)
             .environment(dataChangeTriggers)
+            .environment(webSocketManager)
             //.frame(width: NSScreen.main?.frame.size.width, height: NSScreen.main?.frame.size.height)
     }
 }

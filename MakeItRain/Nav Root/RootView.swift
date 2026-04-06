@@ -17,6 +17,7 @@ struct RootView: View {
     @Environment(CategoryModel.self) var catModel
     @Environment(KeywordModel.self) var keyModel
     @Environment(RepeatingTransactionModel.self) var repModel
+    @Environment(WebSocketManager.self) var webSocketManager
     
     //@State private var warmUpTransactionView = false
     
@@ -121,7 +122,7 @@ struct RootView: View {
                 Task {
                     let targetMonth = calModel.months.filter { $0.enumID == selection }.first
                     if let targetMonth {
-                        funcModel.prepareStartingAmounts(for: targetMonth)
+                        payModel.prepareStartingAmounts(for: targetMonth, calModel: calModel)
                         calModel.setSelectedMonthFromNavigation(navID: selection, calculateStartingAndEod: true)
                     } else {
                         fatalError("Incorrect month")
@@ -164,7 +165,8 @@ struct RootView: View {
                     refreshTechnique: .viaButton
                 )
             }
-            funcModel.longPollServerForChanges()
+            webSocketManager.startListening()
+            //funcModel.longPollServerForChanges()
         }
     }
         
@@ -228,7 +230,8 @@ struct RootView: View {
                     await funcModel.downloadEverything(setDefaultPayMethod: false, createNewStructs: false, refreshTechnique: .viaSceneChange)
                 } else {
                     print("🎃There is no new data to download.")
-                    funcModel.longPollServerForChanges()
+                    webSocketManager.startListening()
+                    //funcModel.longPollServerForChanges()
                 }
             }
         }
@@ -239,8 +242,9 @@ struct RootView: View {
         AppState.shared.scenePhase = .background
         #endif
         AppState.shared.cancelNowTimer()
-        funcModel.longPollTask?.cancel()
-        funcModel.longPollTask = nil
+        //funcModel.longPollTask?.cancel()
+        //funcModel.longPollTask = nil
+        webSocketManager.stopListening()
         funcModel.refreshTask?.cancel()
         funcModel.refreshTask = nil
     }

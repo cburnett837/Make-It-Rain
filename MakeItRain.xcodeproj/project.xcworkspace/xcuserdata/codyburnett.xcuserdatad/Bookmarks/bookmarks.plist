@@ -105,53 +105,6 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>71</string>
-					<key>StartingColumnNumber</key>
-					<string>0</string>
-					<key>StartingLineNumber</key>
-					<string>70</string>
-					<key>Timestamp</key>
-					<string>792432777.0610861</string>
-				</dict>
-				<key>rebasable-url</key>
-				<dict>
-					<key>base</key>
-					<string>workspace</string>
-					<key>payload</key>
-					<dict>
-						<key>relative-path</key>
-						<string>MakeItRain/Calendar/macOS/CalendarViewMac.swift</string>
-					</dict>
-				</dict>
-			</dict>
-			<key>text-context</key>
-			<dict>
-				<key>focused</key>
-				<string>                //funcModel.prepareStartingAmounts()
-</string>
-				<key>leading</key>
-				<string>            }
-            .task {
-</string>
-				<key>trailing</key>
-				<string>                /// Needed when selecting a month from a category analytic.
-                let viewingMonth = calModel.months.filter { $0.enumID == enumID }.first!
-                funcModel.prepareStartingAmounts(for: viewingMonth)
-</string>
-			</dict>
-			<key>title</key>
-			<string>prepare starting amount</string>
-			<key>type</key>
-			<string>bookmark</string>
-		</dict>
-		<dict>
-			<key>destination</key>
-			<dict>
-				<key>location-parameters</key>
-				<dict>
-					<key>EndingColumnNumber</key>
-					<string>0</string>
-					<key>EndingLineNumber</key>
 					<string>308</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>

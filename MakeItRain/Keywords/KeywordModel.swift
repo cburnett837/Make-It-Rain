@@ -171,53 +171,109 @@ class KeywordModel {
 //    }
     
     
+//    @MainActor
+//    func fetchKeywords(file: String = #file, line: Int = #line, function: String = #function) async {
+//        NSLog("\(file):\(line) : \(function)")
+//        LogManager.log()
+//        
+//        let start = CFAbsoluteTimeGetCurrent()
+//        
+//        /// For testing bad network connection.
+//        //try? await Task.sleep(for: .seconds(10))
+//        
+//        /// Do networking.
+//        let model = RequestModel(requestType: "fetch_keywords", model: AppState.shared.user)
+//        typealias ResultResponse = Result<Array<CBKeyword>?, AppError>
+//        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+//        
+//        switch await result {
+//        case .success(let model):
+//            LogManager.networkingSuccessful()
+//            if let model {
+//                if !model.isEmpty {
+//                    for keyword in model.sorted(by: { $0.keyword.lowercased() < $1.keyword.lowercased() }) {
+//                        upsert(keyword)
+//                        await keyword.updateCoreData(action: .edit, isPending: false, createIfNotFound: true)
+//                    }
+//                    
+//                    /// Delete from cache and local list.
+//                    for keyword in keywords {
+//                        if model.filter({ $0.id == keyword.id }).isEmpty {
+//                            delete(keyword, andSubmit: false)
+//                        }
+//                    }
+//                } else {
+//                    keywords.removeAll()
+//                }
+//            }                        
+//            
+//            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
+//            print("⏰It took \(currentElapsed) seconds to fetch the keywords")
+//            
+//        case .failure (let error):
+//            switch error {
+//            case .taskCancelled:
+//                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
+//                print("keyModel fetchFrom Server Task Cancelled")
+//            default:
+//                LogManager.error(error.localizedDescription)
+//                AppState.shared.showAlert("There was a problem trying to fetch the keywords.")
+//            }
+//        }
+//    }
+//    
+//    
+//    @MainActor
+//    func handleDownloadedKeywords(keys: Array<CBKeyword>?, file: String = #file, line: Int = #line, function: String = #function) async {
+//        if let keys {
+//            if !keys.isEmpty {
+//                for keyword in keys.sorted(by: { $0.keyword.lowercased() < $1.keyword.lowercased() }) {
+//                    upsert(keyword)
+//                    await keyword.updateCoreData(action: .edit, isPending: false, createIfNotFound: true)
+//                }
+//                
+//                /// Delete from cache and local list.
+//                for keyword in keywords {
+//                    if keys.filter({ $0.id == keyword.id }).isEmpty {
+//                        delete(keyword, andSubmit: false)
+//                    }
+//                }
+//            } else {
+//                keywords.removeAll()
+//            }
+//        }
+//    }
+    
+    
     @MainActor
-    func fetchKeywords(file: String = #file, line: Int = #line, function: String = #function) async {
-        NSLog("\(file):\(line) : \(function)")
-        LogManager.log()
+    func handleIncoming(keys: Array<CBKeyword>, incomingDataType: IncomingDataType) async {
+        if keys.isEmpty {
+            keywords.removeAll()
+            return
+        }
         
-        let start = CFAbsoluteTimeGetCurrent()
-        
-        /// For testing bad network connection.
-        //try? await Task.sleep(for: .seconds(10))
-        
-        /// Do networking.
-        let model = RequestModel(requestType: "fetch_keywords", model: AppState.shared.user)
-        typealias ResultResponse = Result<Array<CBKeyword>?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
-        
-        switch await result {
-        case .success(let model):
-            LogManager.networkingSuccessful()
-            if let model {
-                if !model.isEmpty {
-                    for keyword in model.sorted(by: { $0.keyword.lowercased() < $1.keyword.lowercased() }) {
-                        upsert(keyword)
-                        await keyword.updateCoreData(action: .edit, isPending: false, createIfNotFound: true)
-                    }
-                    
-                    /// Delete from cache and local list.
-                    for keyword in keywords {
-                        if model.filter({ $0.id == keyword.id }).isEmpty {
-                            delete(keyword, andSubmit: false)
-                        }
-                    }
-                } else {
-                    keywords.removeAll()
+        for keyword in keys.sorted(by: { $0.keyword.lowercased() < $1.keyword.lowercased() }) {
+            if self.doesExist(keyword) {
+                if !keyword.active {
+                    self.delete(keyword, andSubmit: false)
+                    continue
+                } else if let index = self.getIndex(for: keyword) {
+                    self.keywords[index].setFromAnotherInstance(keyword: keyword)
+                    self.keywords[index].deepCopy?.setFromAnotherInstance(keyword: keyword)
                 }
-            }                        
+            } else if keyword.active {
+                withAnimation { self.upsert(keyword) }
+            }
             
-            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-            print("⏰It took \(currentElapsed) seconds to fetch the keywords")
-            
-        case .failure (let error):
-            switch error {
-            case .taskCancelled:
-                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
-                print("keyModel fetchFrom Server Task Cancelled")
-            default:
-                LogManager.error(error.localizedDescription)
-                AppState.shared.showAlert("There was a problem trying to fetch the keywords.")
+            await keyword.updateCoreData(action: .edit, isPending: false, createIfNotFound: incomingDataType == .viaStandardRefresh)
+        }
+        
+        /// When downloading everything from the server, if we find a local object that is not in the server payload, it means it is no longer valid and must be deleted from the local copies.
+        if incomingDataType == .viaStandardRefresh {
+            for keyword in self.keywords {
+                if keys.filter({ $0.id == keyword.id }).isEmpty {
+                    delete(keyword, andSubmit: false)
+                }
             }
         }
     }
@@ -241,7 +297,7 @@ class KeywordModel {
         
         /// Stuff in core data in case something goes wrong in the networking.
         /// If something goes wrong, the isPending flag will cause it to be queued for syncing on next successful connection.
-        await keyword.updateCoreData(action: keyword.action, isPending: true, createIfNotFound: false)
+        await keyword.updateCoreData(action: keyword.action, isPending: true, createIfNotFound: true)
         
         let model = RequestModel(requestType: keyword.action.serverKey, model: keyword)
         typealias ResultResponse = Result<ReturnIdModel?, AppError>
@@ -296,31 +352,31 @@ class KeywordModel {
     }
     
     
-    func handleLongPoll(_ keywords: Array<CBKeyword>) async {
-        print("-- \(#function)")
-        for keyword in keywords {
-            if self.doesExist(keyword) {
-                if !keyword.active {
-                    self.delete(keyword, andSubmit: false)
-                    continue
-                } else {
-                    if let index = self.getIndex(for: keyword) {
-                        self.keywords[index].setFromAnotherInstance(keyword: keyword)
-                        self.keywords[index].deepCopy?.setFromAnotherInstance(keyword: keyword)
-                    }
-                }
-            } else {
-                if keyword.active {
-                    withAnimation { self.upsert(keyword) }
-                }
-            }
-            let _ = await keyword.updateCoreData(action: .edit, isPending: false, createIfNotFound: false)
-            //print("SaveResult: \(saveResult)")
-        }
-    }
+//    func handleLongPoll(_ keywords: Array<CBKeyword>) async {
+//        print("-- \(#function)")
+//        for keyword in keywords {
+//            if self.doesExist(keyword) {
+//                if !keyword.active {
+//                    self.delete(keyword, andSubmit: false)
+//                    continue
+//                } else {
+//                    if let index = self.getIndex(for: keyword) {
+//                        self.keywords[index].setFromAnotherInstance(keyword: keyword)
+//                        self.keywords[index].deepCopy?.setFromAnotherInstance(keyword: keyword)
+//                    }
+//                }
+//            } else {
+//                if keyword.active {
+//                    withAnimation { self.upsert(keyword) }
+//                }
+//            }
+//            await keyword.updateCoreData(action: .edit, isPending: false, createIfNotFound: false)
+//            //print("SaveResult: \(saveResult)")
+//        }
+//    }
     
     @MainActor
-    func populateFromCache() async {
+    func populateFromCoreData() async {
         let context = DataManager.shared.createContext()
 
         let keywordIDs: [String] = await DataManager.shared.perform(context: context) {

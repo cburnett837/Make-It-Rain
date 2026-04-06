@@ -27,3 +27,21 @@ extension Result {
         return false
     }
 }
+
+extension Error {
+    var isExpectedWebSocketClose: Bool {
+        let e = self as NSError
+
+        // POSIX ENOTCONN (57): "Socket is not connected"
+        if e.domain == NSPOSIXErrorDomain && e.code == POSIXError.ENOTCONN.rawValue {
+            return true
+        }
+
+        // URLSession cancellation (-999)
+        if e.domain == NSURLErrorDomain && e.code == NSURLErrorCancelled {
+            return true
+        }
+
+        return false
+    }
+}

@@ -131,7 +131,7 @@ struct PlaidTransactionOverlay: View {
     
     @ViewBuilder var transactions: some View {
         ForEach(plaidTransactions) { trans in
-            LineItem(trans: trans)
+            LineItem(trans: trans, selectedMeth: $selectedMeth)
                 #if os(iOS)
                 .padding(.horizontal, AppState.shared.isIphone ? 8 : 0)
                 #endif
@@ -332,16 +332,17 @@ struct PlaidTransactionOverlay: View {
     
     
     func loadFromServer(removeAllBefore: Bool) {
-        if removeAllBefore {
-            plaidModel.trans.removeAll()
-        }
-        
-        plaidModel.isFetchingMoreTransactions = true
-        let fetchModel = PlaidServerModel(rowNumber: rowNumber)
-        Task {
-            await plaidModel.fetchPlaidTransactionsFromServer(fetchModel, accumulate: true)
-            plaidModel.isFetchingMoreTransactions = false
-        }
+        AppState.shared.showAlert("This feature is not yet implemented")
+//        if removeAllBefore {
+//            plaidModel.trans.removeAll()
+//        }
+//        
+//        plaidModel.isFetchingMoreTransactions = true
+//        let fetchModel = PlaidServerModel(rowNumber: rowNumber)
+//        Task {
+//            await plaidModel.fetchPlaidTransactionsFromServer(fetchModel, accumulate: true)
+//            plaidModel.isFetchingMoreTransactions = false
+//        }
     }
     
     
@@ -357,6 +358,7 @@ struct PlaidTransactionOverlay: View {
         @State private var showExpandedTitle = false
         
         var trans: CBPlaidTransaction
+        @Binding var selectedMeth: CBPaymentMethod?
         
         var body: some View {
             VStack(spacing: 0) {
@@ -452,7 +454,10 @@ struct PlaidTransactionOverlay: View {
                     if let newName = willRenameTo {
                         trans.title = newName
                     }
-                    accept()
+                    Task {
+                        await accept()
+                    }
+                    
                 }
                 
                 if willRenameTo == nil {
@@ -550,7 +555,9 @@ struct PlaidTransactionOverlay: View {
         }
         
         
-        func accept() {
+        func accept() async {
+                                    
+            
             /// Animate for the toolbar button
             withAnimation {
                 trans.isAcknowledged = true
@@ -572,6 +579,16 @@ struct PlaidTransactionOverlay: View {
             
             let realTrans = CBTransaction(plaidTrans: trans)
             
+            
+            /// Switch the calendar to the payment method of the transaction (if it's not already)
+            if calModel.sPayMethod != realTrans.payMethod {
+                withAnimation {
+                    calModel.sPayMethod = realTrans.payMethod
+                }
+                
+                try? await Task.sleep(for: .seconds(1))
+            }
+            
             /// See if there is a rename rule and rename the transaction.
             if let key = keyModel.keywords.filter({ $0.keyword.uppercased() == trans.title.uppercased() }).first {
                 if let renameTo = key.renameTo {
@@ -588,14 +605,17 @@ struct PlaidTransactionOverlay: View {
             
             if let targetMonth = calModel.months.filter({ $0.actualNum == realTrans.date?.month && $0.year == realTrans.date?.year }).first {
                 if let targetDay = targetMonth.days.filter({ $0.dateComponents?.day == realTrans.date?.day }).first {
-                    targetDay.upsert(realTrans)
+                    withAnimation {
+                        targetDay.upsert(realTrans)
+                    }
+                    
                 }
             }
             
             calModel.tempTransactions.append(realTrans)
-            Task {
-                await calModel.saveTransaction(id: realTrans.id, location: .tempList)
-            }
+                                    
+            
+            await calModel.saveTransaction(id: realTrans.id, location: .tempList)
             
         }
         

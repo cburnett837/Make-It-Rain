@@ -23,12 +23,28 @@ extension Date? {
 
 
 extension Date {
+    #warning("for sqlite")
+//    func string(to format: DateFormat) -> String {
+//        let dateFormatter = DateFormatter()
+//        dateFormatter.dateFormat = getDateFormat(format)
+//        dateFormatter.timeZone = .none
+//        let format = dateFormatter.string(from: self)
+//        return format
+//    }
+    #warning("new for postgres")
     func string(to format: DateFormat) -> String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = getDateFormat(format)
-        dateFormatter.timeZone = .none
-        let format = dateFormatter.string(from: self)
-        return format
+        if format == .serverDateTime {
+            let formatter = AppState.shared.fromServerDateFormatter
+            let string = formatter.string(from: self)
+            return string
+        } else {
+            let dateFormatter = AppState.shared.dateFormatter
+            dateFormatter.dateFormat = getDateFormat(format)
+            dateFormatter.timeZone = .none
+            let format = dateFormatter.string(from: self)
+            return format
+        }
+
     }
     
     func convert(from: DateFormat, to: DateFormat) -> Date {
@@ -265,48 +281,77 @@ extension String {
         return "-"
     }
     
-    func toDateObjOG(from format: DateFormat) -> Date? {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = getDateFormat(format)
-        dateFormatter.timeZone = .none
-        //dateFormatter.dateFormat = "y-MM-dd H:mm:ss.SSS"
-        //print("inside toDateObj")
-        //print("Date inside obj func \(self)")
-        
-        //let date = dateFormatter.date(from: self)!
-        //let string = dateFormatter.string(from: date)
-        //dateFormatter.dateFormat = getDateFormat(format)
-        //return dateFormatter.date(from: string)
-        
-        
-        if let date = dateFormatter.date(from: self) {
-            let string = dateFormatter.string(from: date)
-            dateFormatter.dateFormat = getDateFormat(format)
-            return dateFormatter.date(from: string)
-            
-        }
-        return nil
-    }
+//    func toDateObjOG(from format: DateFormat) -> Date? {
+//        let dateFormatter = DateFormatter()
+//        dateFormatter.dateFormat = getDateFormat(format)
+//        dateFormatter.timeZone = .none
+//        //dateFormatter.dateFormat = "y-MM-dd H:mm:ss.SSS"
+//        //print("inside toDateObj")
+//        //print("Date inside obj func \(self)")
+//        
+//        //let date = dateFormatter.date(from: self)!
+//        //let string = dateFormatter.string(from: date)
+//        //dateFormatter.dateFormat = getDateFormat(format)
+//        //return dateFormatter.date(from: string)
+//        
+//        
+//        if let date = dateFormatter.date(from: self) {
+//            let string = dateFormatter.string(from: date)
+//            dateFormatter.dateFormat = getDateFormat(format)
+//            return dateFormatter.date(from: string)
+//            
+//        }
+//        return nil
+//    }
    
     
+    #warning("for sqlite")
+//    func toDateObj(from format: DateFormat) -> Date? {
+//        
+//        var dateFormatter: DateFormatter
+//        if format == .serverDateTime {
+//            dateFormatter = AppState.shared.fromServerDateFormatter
+//        } else {
+//            //#warning("This is expensive")
+//            dateFormatter = DateFormatter()
+//            dateFormatter.dateFormat = getDateFormat(format)
+//            dateFormatter.timeZone = .none
+//        }
+//        
+//        if let date = dateFormatter.date(from: self) {
+//            let string = dateFormatter.string(from: date)
+//            //dateFormatter.dateFormat = getDateFormat(format)
+//            return dateFormatter.date(from: string)
+//            
+//        }
+//        return nil
+//    }
+    #warning("for postgres")
     func toDateObj(from format: DateFormat) -> Date? {
-        
-        var dateFormatter: DateFormatter
+            
+        //var dateFormatter: DateFormatter
         if format == .serverDateTime {
-            dateFormatter = AppState.shared.fromServerDateFormatter
+            
+            if let date = DateManager.isoFormatter.date(from: self) {
+                return date
+            }
+            
+            //let dateFormatter = AppState.shared.fromServerDateFormatter
+//            return dateFormatter.date(from: self)
+
         } else {
-            //#warning("This is expensive")
-            dateFormatter = DateFormatter()
+            let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = getDateFormat(format)
             dateFormatter.timeZone = .none
-        }
-        
-        if let date = dateFormatter.date(from: self) {
-            let string = dateFormatter.string(from: date)
-            dateFormatter.dateFormat = getDateFormat(format)
-            return dateFormatter.date(from: string)
             
+            if let date = dateFormatter.date(from: self) {
+                let string = dateFormatter.string(from: date)
+                //dateFormatter.dateFormat = getDateFormat(format)
+                return dateFormatter.date(from: string)
+                
+            }
         }
+
         return nil
     }
     
@@ -326,6 +371,16 @@ extension String {
 
 
 
+struct DateManager {
+    static let isoFormatter = ISO8601DateFormatter()
+    static let serverFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        return formatter
+    }()
+}
 
 
 
@@ -370,3 +425,68 @@ func getDateFormat(_ format: DateFormat) -> String {
     case .invoiceDate:                  return "MM-dd-y"
     }
 }
+
+enum APIJSON {
+    // Reused once (don’t create per request)
+    static let iso8601WithMillis: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    static let iso8601NoMillis: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f
+    }()
+
+    static let decoder: JSONDecoder = {
+        let d = JSONDecoder()
+        d.dateDecodingStrategy = .custom { decoder in
+            let c = try decoder.singleValueContainer()
+
+            if let s = try? c.decode(String.self),
+               let date = iso8601WithMillis.date(from: s) ?? iso8601NoMillis.date(from: s) {
+                return date
+            }
+            
+            if let unix = try? c.decode(Double.self) { // optional unix fallback
+                return Date(timeIntervalSince1970: unix)
+            }
+
+            throw DecodingError.dataCorruptedError(
+                in: c,
+                debugDescription: "Expected ISO8601 date string or unix timestamp."
+            )
+        }
+        return d
+    }()
+    
+    
+//    static let decoder: JSONDecoder = {
+//        let d = JSONDecoder()
+//        d.dateDecodingStrategy = .custom { decoder in
+//            let c = try decoder.singleValueContainer()
+//            let path = decoder.codingPath.map(\.stringValue).joined(separator: ".")
+//
+//            let raw = try c.decode(String.self)
+//            if raw.isEmpty {
+//                throw DecodingError.dataCorruptedError(in: c, debugDescription: "Empty date at \(path)")
+//            }
+//
+//            if let date = APIJSON.iso8601WithMillis.date(from: raw)
+//                ?? APIJSON.iso8601NoMillis.date(from: raw) {
+//                return date
+//            }
+//
+//            throw DecodingError.dataCorruptedError(
+//                in: c,
+//                debugDescription: "Invalid date '\(raw)' at \(path)"
+//            )
+//        }
+//        return d
+//    }()
+
+}
+
+

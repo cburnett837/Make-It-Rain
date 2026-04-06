@@ -85,7 +85,7 @@ struct CategoriesTable: View {
             }
             .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
             #if os(iOS)
-            .navigationTitle("Categories")
+            .navigationTitle("Categories\(AppState.shared.devMode ? " (Dev)" : "")")
             //.navigationBarTitleDisplayMode(.inline)
             #endif
             #if os(macOS)

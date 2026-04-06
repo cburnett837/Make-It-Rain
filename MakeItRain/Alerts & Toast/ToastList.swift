@@ -161,8 +161,6 @@ struct ToastList: View {
                 predicate: .byId(.string(id))
             )
             
-            
-            
             let toastDate = toast.enteredDate?.string(to: .monthDayShortYear) ?? ""
             
             if let index = toastsByDay.firstIndex(where: { $0.date == toastDate }) {

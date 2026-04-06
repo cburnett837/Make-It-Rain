@@ -395,6 +395,69 @@ extension CBCategory {
         self.isHidden = s.isHidden
         if let raw = s.appSuiteKeyRaw { self.appSuiteKey = AppSuiteKey.fromString(raw) }
     }
+    
+    
+    @discardableResult
+    func updateCoreData(action: CategoryAction, isPending: Bool, createIfNotFound: Bool) async -> Result<Bool, CoreDataError> {
+        let snapshot = CBCategory.Snapshot(self)
+        let context = DataManager.shared.createContext()
+        
+        return await context.perform {
+            if let entity = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(snapshot.id)), createIfNotFound: createIfNotFound) {
+                
+                entity.id = snapshot.id
+                entity.title = snapshot.title
+                entity.amount = snapshot.amount
+                entity.hexCode = snapshot.hexCode
+                entity.emoji = snapshot.emoji
+                entity.action = action.rawValue
+                entity.isPending = isPending
+                entity.isHidden = snapshot.isHidden
+                entity.typeID = Int64(snapshot.typeID)
+                entity.listOrder = Int64(snapshot.listOrder ?? 0)
+                entity.isNil = snapshot.isNil
+                entity.enteredByID = Int64(snapshot.enteredByID)
+                entity.updatedByID = Int64(snapshot.updatedByID)
+                entity.enteredDate = snapshot.enteredDate
+                entity.updatedDate = snapshot.updatedDate
+                entity.appSuiteKey = snapshot.appSuiteKeyRaw
+                                
+                return DataManager.shared.save(context: context)
+                
+            } else {
+                return .failure(.notFound)
+            }
+        }
+    }
+    
+    
+    @discardableResult
+    func updateAfterSubmit(id: String, lookupId: String, action: CategoryAction) async -> Result<Bool, CoreDataError> {
+        self.action = .edit
+        
+        if action == .add {
+            self.id = id
+            self.uuid = nil
+        }
+        
+        let context = DataManager.shared.createContext()
+        
+        return await DataManager.shared.perform(context: context) {
+            if let entity = DataManager.shared.getOne(context: context, type: PersistentCategory.self, predicate: .byId(.string(lookupId)), createIfNotFound: true) {
+                if action == .add {
+                    entity.id = id
+                    entity.action = CategoryAction.edit.rawValue
+                }
+                entity.isPending = false
+                return DataManager.shared.save(context: context)
+                
+            } else {
+                return .failure(.notFound)
+            }
+        }        
+    }
+    
+    
 
     
     @MainActor
@@ -430,5 +493,44 @@ extension CBCategory {
                 appSuiteKeyRaw: entity.appSuiteKey
             )
         }
+    }
+}
+
+
+extension CBCategory.Snapshot {
+    init(_ category: CBCategory) {
+        self.id = category.id
+        self.title = category.title
+        self.hexCode = category.color.toHex()
+        self.emoji = category.emoji
+        self.actionRaw = category.action.rawValue
+        self.amount = category.amount ?? 0.0
+        self.typeID = category.type.id
+        self.listOrder = category.listOrder
+        self.enteredByID = category.enteredBy.id
+        self.updatedByID = category.updatedBy.id
+        self.enteredDate = category.enteredDate
+        self.updatedDate = category.updatedDate
+        self.isNil = category.isNil
+        self.isHidden = category.isHidden
+        self.appSuiteKeyRaw = category.appSuiteKey?.rawValue
+    }
+
+    init(_ entity: PersistentCategory) {
+        self.id = entity.id ?? ""
+        self.title = entity.title ?? ""
+        self.hexCode = entity.hexCode
+        self.emoji = entity.emoji
+        self.actionRaw = entity.action ?? ""
+        self.amount = entity.amount
+        self.typeID = Int(entity.typeID)
+        self.listOrder = Int(entity.listOrder)
+        self.enteredByID = Int(entity.enteredByID)
+        self.updatedByID = Int(entity.updatedByID)
+        self.enteredDate = entity.enteredDate
+        self.updatedDate = entity.updatedDate
+        self.isNil = entity.isNil
+        self.isHidden = entity.isHidden
+        self.appSuiteKeyRaw = entity.appSuiteKey
     }
 }

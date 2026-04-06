@@ -64,7 +64,7 @@ struct KeywordsTable: View {
             }
         }
         #if os(iOS)
-        .navigationTitle("Rules")
+        .navigationTitle("Rules\(AppState.shared.devMode ? " (Dev)" : "")")
         //.navigationBarTitleDisplayMode(.inline)
         #endif
         /// There seems to be a bug in SwiftUI `Table` that prevents the view from refreshing when adding a new keyword, and then trying to edit it.

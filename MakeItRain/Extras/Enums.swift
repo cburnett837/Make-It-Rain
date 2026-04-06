@@ -341,6 +341,10 @@ enum RefreshTechnique: String {
     case viaInitial, viaButton, viaSceneChange, viaLongPoll, viaTempListButton, viaTempListSceneChange
 }
 
+enum IncomingDataType {
+    case viaStandardRefresh, viaLongPoll
+}
+
 public enum UserPreferedColorScheme: String {
     case userLight, userDark, userSystem
     

@@ -15,7 +15,12 @@ class CheckIfShouldDownloadModel: Codable {
     enum CodingKeys: CodingKey { case user_id, account_id, device_uuid, should_download, last_network_time }
     
     init(lastNetworkTime: Date) {
-        self.lastNetworkTime = lastNetworkTime.string(to: .serverDateTime)
+        //self.lastNetworkTime = lastNetworkTime.string(to: .serverDateTime)
+        
+        let formatter = ISO8601DateFormatter()
+        //formatter.formatOptions = [.withInternetDateTime]
+
+        self.lastNetworkTime = formatter.string(from: lastNetworkTime)
     }
     
     func encode(to encoder: Encoder) throws {

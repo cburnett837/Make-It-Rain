@@ -74,7 +74,7 @@ struct ConditionalFileView<Placeholder: View, PhotoView: View, PdfView: View, Cs
         #if os(macOS)
         /// Open in safari browser
         .onTapGesture {
-            openURL(URL(string: "https://\(Keys.baseURL):8676/files/\(file.fileType.rawValue).photo.\(file.uuid).\(file.fileType.ext)")!)
+            openURL(URL(string: "https://\(Keys.prodBaseURL)/files/\(file.fileType.rawValue).photo.\(file.uuid).\(file.fileType.ext)")!)
         }
         /// Hover to show share button and delete button.
         .onContinuousHover { phase in

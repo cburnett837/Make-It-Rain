@@ -210,7 +210,7 @@ struct LoginView: View {
         /// Sets `AuthState.isThinking`
         /// Sets `AuthState.isLoggedIn`
         /// Sets `AppState.shouldShowSplash`
-        await AuthState.shared.attemptLogin(using: .emailAndPassword, with: LoginModel(email: email, password: password))
+        await AuthState.shared.attemptLogin(using: .emailAndPassword, with: LoginModel(email: email, password: password, deviceUUID: AppState.shared.deviceUUID))
                 
         switch AuthState.shared.error {
         case .incorrectCredentials, .accessRevoked: // calling .credentialsIncorrect because credentials can't be revoked at this stage. I mean they can, but this is a better alert.

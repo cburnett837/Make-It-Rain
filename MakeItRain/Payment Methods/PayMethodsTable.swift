@@ -114,7 +114,7 @@ struct PayMethodsTable: View {
                 }
             }
             #if os(iOS)
-            .navigationTitle("Accounts")
+            .navigationTitle("Accounts\(AppState.shared.devMode ? " (Dev)" : "")")
             //.navigationBarTitleDisplayMode(.inline)
             #endif
             

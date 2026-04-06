@@ -105,6 +105,9 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
         } catch {
             id = try container.decode(String.self, forKey: .id)
         }
+        
+        
+        
         self.category = try container.decodeIfPresent(CBCategory.self, forKey: .category)
         //print(try container.decodeIfPresent(CBCategoryGroup.self, forKey: .category_group)?.title)
         self.categoryGroup = try container.decodeIfPresent(CBCategoryGroup.self, forKey: .category_group)

@@ -16,6 +16,7 @@ struct CalendarViewMac: View {
     @Local(\.alignWeekdayNamesLeft) var alignWeekdayNamesLeft
     @Environment(CalendarProps.self) private var calProps
     @Environment(CalendarModel.self) private var calModel
+    @Environment(PayMethodModel.self) private var payModel
     @Environment(FuncModel.self) private var funcModel
         
     var divideBy: CGFloat {
@@ -71,7 +72,7 @@ struct CalendarViewMac: View {
                 //funcModel.prepareStartingAmounts()
                 /// Needed when selecting a month from a category analytic.
                 let viewingMonth = calModel.months.filter { $0.enumID == enumID }.first!
-                funcModel.prepareStartingAmounts(for: viewingMonth)
+                payModel.prepareStartingAmounts(for: viewingMonth, calModel: calModel)
                 calModel.setSelectedMonthFromNavigation(navID: enumID, calculateStartingAndEod: true)
                 
                 let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first

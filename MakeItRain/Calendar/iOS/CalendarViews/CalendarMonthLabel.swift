@@ -88,7 +88,7 @@ struct CalendarMonthLabel: View {
     var body: some View {
         //VStack(alignment: .leading, spacing: 0) {
         HStack(spacing: 0) {
-            Text(monthText)
+            Text("\(monthText)\(AppState.shared.devMode ? " (Dev)" : "")")
                 .font(.largeTitle)
                 .bold()
                 .schemeBasedForegroundStyle()

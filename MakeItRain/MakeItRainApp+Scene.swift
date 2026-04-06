@@ -22,6 +22,7 @@ extension MakeItRainApp {
                 .environment(plaidModel)
                 .environment(calProps)
                 .environment(dataChangeTriggers)
+                .environment(webSocketManager)
         }
         .windowStyle(.hiddenTitleBar)
         /// Prevent a blank in the "windows" menu in the toolbar from being present.
@@ -43,6 +44,7 @@ extension MakeItRainApp {
                 .environment(plaidModel)
                 .environment(calProps)
                 .environment(dataChangeTriggers)
+                .environment(webSocketManager)
         }
         .auxilaryWindow()
     }
@@ -59,6 +61,7 @@ extension MakeItRainApp {
                 .environment(keyModel)
                 .environment(calProps)
                 .environment(dataChangeTriggers)
+                .environment(webSocketManager)
         }
         .auxilaryWindow()
     }
@@ -82,6 +85,7 @@ extension MakeItRainApp {
             .environment(plaidModel)
             .environment(calProps)
             .environment(dataChangeTriggers)
+            .environment(webSocketManager)
 //            CategoryInsightsSheet(showAnalysisSheet: .constant(true))
 //                .frame(minWidth: 300, minHeight: 500)
 //                .environment(funcModel)
@@ -141,6 +145,7 @@ extension MakeItRainApp {
                     .environment(plaidModel)
                     .environment(calProps)
                     .environment(dataChangeTriggers)
+                    .environment(webSocketManager)
                     //.environment(mapModel)
                     .onAppear {
                         if let window = NSApp.windows.first(where: { $0.title.contains("MonthlyWindowPlaceHolder") }) {
@@ -171,6 +176,7 @@ extension MakeItRainApp {
                 .environment(plaidModel)
                 .environment(calProps)
                 .environment(dataChangeTriggers)
+                .environment(webSocketManager)
                 //.environment(mapModel)
         }
     }

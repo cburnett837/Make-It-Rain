@@ -57,7 +57,7 @@ struct PlaidTable: View {
             }
         }
         .environment(plaidModel)
-        .navigationTitle("Plaid Institutions")
+        .navigationTitle("Plaid Banks\(AppState.shared.devMode ? " (Dev)" : "")")
         .id(plaidModel.fuckYouSwiftuiTableRefreshID)
         .toolbar {
             phoneToolbar()

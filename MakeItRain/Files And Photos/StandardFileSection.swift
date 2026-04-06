@@ -471,7 +471,7 @@ struct StandardFileSection: View {
 //                            .background(RoundedRectangle(cornerRadius: 4).fill(.ultraThickMaterial))
 //                    }
 
-                    ShareLink(item: URL(string: "https://\(Keys.baseURL):8676/files/budget_app.photo.\(file.uuid).jpg")! /*, subject: Text(trans.title), message: Text(trans.amountString)*/) {
+                    ShareLink(item: URL(string: "https://\(Keys.prodBaseFileURL)/files/budget_app.photo.\(file.uuid).jpg")! /*, subject: Text(trans.title), message: Text(trans.amountString)*/) {
                         Image(systemName: "square.and.arrow.up")
                             .frame(width: 30, height: 30)
                             .foregroundStyle(Color.accentColor)

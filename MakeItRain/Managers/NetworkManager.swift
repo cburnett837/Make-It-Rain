@@ -17,8 +17,18 @@ class NetworkManager {
     var session: URLSession?
     
     init(timeout: TimeInterval = 60) {        
-        let earl = String(format: "https://\(Keys.baseURL):8681/budget_app")
-        //let earl = String(format: "http://\(Keys.baseURL):8677/")
+
+        let earl = String(format: "\(AppState.shared.devMode ? Keys.devBaseURL : Keys.prodBaseURL)/budget_app")
+        
+        
+        
+        //let earl = String(format: "\(Keys.devBaseURL)/budget_app")
+
+        
+        
+        
+        
+        
         let URL = URL(string: earl)
         var request = URLRequest(url: URL!)
         
@@ -98,6 +108,7 @@ class NetworkManager {
                 
                 #warning("Error handling won't work with the force unwrap")
                 #if targetEnvironment(simulator)
+                //let decodedData = try APIJSON.decoder.decode(Array<U>?.self, from: data)
                 let decodedData = try! JSONDecoder().decode(Array<U>?.self, from: data)
                 #else
                 let decodedData = try? JSONDecoder().decode(Array<U>?.self, from: data)
@@ -198,7 +209,11 @@ class NetworkManager {
                 
                 #warning("Error handling won't work with the force unwrap")
                 #if targetEnvironment(simulator)
+                
                 let decodedData = try! JSONDecoder().decode(U?.self, from: data)
+                
+                //let decodedData = try APIJSON.decoder.decode(U?.self, from: data)
+                
                 #else
                 let decodedData = try? JSONDecoder().decode(U?.self, from: data)
                 #endif
@@ -238,7 +253,7 @@ class NetworkManager {
     
     
     func login(using loginType: LoginType, with loginModel: LoginModel, ticker: Int = 3) async -> Result<CBLogin?, AppError> {
-        do {
+        do {            
             let requestModel = RequestModel(requestType: "login", model: loginModel)
             
             if loginType == .apiKey {
@@ -267,6 +282,7 @@ class NetworkManager {
                                                                                                 
                 let serverText = String(data: data, encoding: .utf8) ?? ""
                 if AppState.shared.debugPrint { print(serverText) }
+                print(serverText)
                 let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response
                 
                 if firstLine == "None" && requestModel.requestType == "login" {
@@ -304,92 +320,92 @@ class NetworkManager {
     
     
     
-    func longPollServer<T: Encodable, U: Decodable>(requestModel: RequestModel<T>, ticker: Int = 2, sessionID: String = "") async -> Result<U?, AppError> {
-        var sesh: String = ""
-        if sessionID.isEmpty {
-            sesh = UUID().uuidString
-        } else {
-            sesh = sessionID
-        }
-        
-        do {
-            var request: URLRequest?
-            var session: URLSession?                        
-            let earl = String(format: "https://\(Keys.baseURL):8678/") ///3000 internal
-            var subRequest = URLRequest(url: URL(string: earl)!)
-            
-            subRequest.httpMethod = "POST"
-            subRequest.setValue("Application/json", forHTTPHeaderField: "Content-Type")
-            subRequest.setValue(Keys.authPhrase, forHTTPHeaderField: "Auth-Phrase")
-            subRequest.setValue(Keys.authID, forHTTPHeaderField: "Auth-ID")
-            subRequest.setValue(AppState.shared.apiKey, forHTTPHeaderField: "Api-Key")
-            subRequest.timeoutInterval = 130
-            subRequest.setValue(Keys.userAgent, forHTTPHeaderField: "User-Agent")
-
-            request = subRequest
-            session = URLSession.shared
-                        
-            
-            LogManager.log("starting", session: sesh)
-            requestModel.sessionID = sessionID
-            let jsonData = try? JSONEncoder().encode(requestModel)
-            LogManager.log("jsonData: \(String(data: jsonData!, encoding: .utf8)!)", session: sesh)
-            
-            request?.httpBody = jsonData
-            
-            if let session {
-                let (data, response): (Data, URLResponse) = try await session.data(for: request!)
-                let httpResponse = response as? HTTPURLResponse
-                //print(httpResponse?.statusCode)
-                
-                LogManager.log("should have a response from the server now", session: sesh)
-                
-                let serverText = String(data: data, encoding: .utf8) ?? ""
-                if AppState.shared.debugPrint { print(serverText) }
-                let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response
-                
-                LogManager.log("decoding data", session: sesh)
-                
-                if httpResponse?.statusCode == 403 {
-                    return .failure(.incorrectCredentials)
-                }
-                            
-                #if targetEnvironment(simulator)
-                let decodedData = try! JSONDecoder().decode(U?.self, from: data)
-                #else
-                let decodedData = try! JSONDecoder().decode(U?.self, from: data)
-                #endif
-                LogManager.log("data has been decoded", session: sesh)
-                guard let decodedData else {
-                    LogManager.log("something went wrong with the decoded data", session: sesh)
-                    return .failure(.serverError(firstLine))
-                }
-                
-                LogManager.log("networking successful", session: sesh)
-                return .success(decodedData)
-            
-            } else {
-                LogManager.error("session error", session: sesh)
-                return .failure(.sessionError)
-            }
-                                    
-        } catch {
-            LogManager.error("networking exception \(error.localizedDescription)", session: sesh)
-            if Task.isCancelled {
-                LogManager.error("task cancelled", session: sesh)
-                return .failure(.taskCancelled)
-            }
-            if ticker == 0 {
-                LogManager.error("connection failure", session: sesh)
-                return .failure(.connectionError)
-            } else {
-                //try? await Task.sleep(for: .milliseconds(5000))
-                try? await Task.sleep(for: .seconds(5))
-                LogManager.error("retrying request", session: sesh)
-                return await longPollServer(requestModel: requestModel, ticker: ticker - 1, sessionID: sesh)
-            }
-        }
-    }
+//    func longPollServer<T: Encodable, U: Decodable>(requestModel: RequestModel<T>, ticker: Int = 2, sessionID: String = "") async -> Result<U?, AppError> {
+//        var sesh: String = ""
+//        if sessionID.isEmpty {
+//            sesh = UUID().uuidString
+//        } else {
+//            sesh = sessionID
+//        }
+//        
+//        do {
+//            var request: URLRequest?
+//            var session: URLSession?                        
+//            let earl = String(format: "https://\(Keys.baseLongPollURL)/") ///3000 internal
+//            var subRequest = URLRequest(url: URL(string: earl)!)
+//            
+//            subRequest.httpMethod = "POST"
+//            subRequest.setValue("Application/json", forHTTPHeaderField: "Content-Type")
+//            subRequest.setValue(Keys.authPhrase, forHTTPHeaderField: "Auth-Phrase")
+//            subRequest.setValue(Keys.authID, forHTTPHeaderField: "Auth-ID")
+//            subRequest.setValue(AppState.shared.apiKey, forHTTPHeaderField: "Api-Key")
+//            subRequest.timeoutInterval = 130
+//            subRequest.setValue(Keys.userAgent, forHTTPHeaderField: "User-Agent")
+//
+//            request = subRequest
+//            session = URLSession.shared
+//                        
+//            
+//            LogManager.log("starting", session: sesh)
+//            requestModel.sessionID = sessionID
+//            let jsonData = try? JSONEncoder().encode(requestModel)
+//            LogManager.log("jsonData: \(String(data: jsonData!, encoding: .utf8)!)", session: sesh)
+//            
+//            request?.httpBody = jsonData
+//            
+//            if let session {
+//                let (data, response): (Data, URLResponse) = try await session.data(for: request!)
+//                let httpResponse = response as? HTTPURLResponse
+//                //print(httpResponse?.statusCode)
+//                
+//                LogManager.log("should have a response from the server now", session: sesh)
+//                
+//                let serverText = String(data: data, encoding: .utf8) ?? ""
+//                if AppState.shared.debugPrint { print(serverText) }
+//                let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response
+//                
+//                LogManager.log("decoding data", session: sesh)
+//                
+//                if httpResponse?.statusCode == 403 {
+//                    return .failure(.incorrectCredentials)
+//                }
+//                            
+//                #if targetEnvironment(simulator)
+//                let decodedData = try! JSONDecoder().decode(U?.self, from: data)
+//                #else
+//                let decodedData = try! JSONDecoder().decode(U?.self, from: data)
+//                #endif
+//                LogManager.log("data has been decoded", session: sesh)
+//                guard let decodedData else {
+//                    LogManager.log("something went wrong with the decoded data", session: sesh)
+//                    return .failure(.serverError(firstLine))
+//                }
+//                
+//                LogManager.log("networking successful", session: sesh)
+//                return .success(decodedData)
+//            
+//            } else {
+//                LogManager.error("session error", session: sesh)
+//                return .failure(.sessionError)
+//            }
+//                                    
+//        } catch {
+//            LogManager.error("networking exception \(error.localizedDescription)", session: sesh)
+//            if Task.isCancelled {
+//                LogManager.error("task cancelled", session: sesh)
+//                return .failure(.taskCancelled)
+//            }
+//            if ticker == 0 {
+//                LogManager.error("connection failure", session: sesh)
+//                return .failure(.connectionError)
+//            } else {
+//                //try? await Task.sleep(for: .milliseconds(5000))
+//                try? await Task.sleep(for: .seconds(5))
+//                LogManager.error("retrying request", session: sesh)
+//                return await longPollServer(requestModel: requestModel, ticker: ticker - 1, sessionID: sesh)
+//            }
+//        }
+//    }
     
     
     func downloadFile(requestModel: RequestModel<FileRequestModel>, ticker: Int = 3, sessionID: String = "", retainTime: Bool = true) async -> Result<Data?, AppError> {

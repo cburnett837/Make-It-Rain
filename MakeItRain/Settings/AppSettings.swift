@@ -112,6 +112,17 @@ class AppSettings: Codable {
         self.incomeColor = setting.incomeColor
     }
     
+    func setFromServerData(setting: AppSettingsDecodable) {
+        self.useWholeNumbers = setting.useWholeNumbers
+        self.tightenUpEodTotals = setting.tightenUpEodTotals
+        self.lowBalanceThreshold = setting.lowBalanceThreshold
+        self.paymentMethodFilterMode = setting.paymentMethodFilterMode
+        self.paymentMethodSortMode = setting.paymentMethodSortMode
+        self.transactionSortMode = setting.transactionSortMode
+        self.categorySortMode = setting.categorySortMode
+        self.incomeColor = setting.incomeColor
+    }
+    
     
     func fetch() async {
         let model = RequestModel(requestType: "fetch_user_settings", model: AppState.shared.user)
@@ -151,5 +162,47 @@ class AppSettings: Codable {
                 AppState.shared.showAlert("There was a problem trying to update the setting.")
             }
         }
+    }
+}
+
+
+struct AppSettingsDecodable: Decodable {
+    var useWholeNumbers: Bool
+    var tightenUpEodTotals: Bool
+    var lowBalanceThreshold: Double
+    var paymentMethodFilterMode: PaymentMethodFilterMode
+    var paymentMethodSortMode: SortMode
+    var transactionSortMode: TransactionSortMode
+    var categorySortMode: SortMode
+    var incomeColor: Color
+    
+    enum CodingKeys: CodingKey { case use_whole_numbers, tighten_up_eod_totals, low_balance_threshold, payment_method_filter_mode, payment_method_sort_mode, transaction_sort_mode, category_sort_mode, income_color, user_id, account_id, device_uuid }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        let useWholeNumbers = try container.decode(String.self, forKey: .use_whole_numbers)
+        self.useWholeNumbers = useWholeNumbers == "1"
+                
+        let tightenUpEodTotals = try container.decode(String.self, forKey: .tighten_up_eod_totals)
+        self.tightenUpEodTotals = tightenUpEodTotals == "1"
+        
+        let lowBalanceThreshold = try container.decode(String.self, forKey: .low_balance_threshold)
+        self.lowBalanceThreshold = Double(lowBalanceThreshold) ?? 0.0
+        
+        let paymentMethodFilterMode = try container.decode(String.self, forKey: .payment_method_filter_mode)
+        self.paymentMethodFilterMode = PaymentMethodFilterMode.fromString(paymentMethodFilterMode)
+        
+        let paymentMethodSortMode = try container.decode(String.self, forKey: .payment_method_sort_mode)
+        self.paymentMethodSortMode = SortMode.fromString(paymentMethodSortMode)
+        
+        let transactionSortMode = try container.decode(String.self, forKey: .transaction_sort_mode)
+        self.transactionSortMode = TransactionSortMode.fromString(transactionSortMode)
+        
+        let categorySortMode = try container.decode(String.self, forKey: .category_sort_mode)
+        self.categorySortMode = SortMode.fromString(categorySortMode)
+        
+        let incomeColor = try container.decode(String.self, forKey: .income_color)
+        self.incomeColor = Color.fromName(incomeColor)
     }
 }

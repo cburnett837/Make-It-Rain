@@ -10,15 +10,20 @@ import PDFKit
 
 struct DebugView: View {
     @AppStorage("shouldWarmUpTransactionViewDuringSplash") var shouldWarmUpTransactionViewDuringSplash: Bool = false
+    @AppStorage("devMode") var devMode: Bool = false
 
     @Local(\.debugPrint) var debugPrint
 
     @Environment(CalendarModel.self) var calModel
     @Environment(FuncModel.self) var funcModel
+    @Environment(PlaidModel.self) var plaidModel
     
     @State private var plaidCosts: Array<PlaidForceRefreshCost> = []
     @State private var showBasicAlert = false
     @State private var text = ""
+    @State private var showFileImporter = false
+    @State private var selectedFileURL: URL?
+
     @FocusState private var focusedField: Int?
     
     var body: some View {
@@ -29,6 +34,10 @@ struct DebugView: View {
 //            #if os(iOS)
 //            customNumPad
 //            #endif
+            
+            
+            devModelToggle
+            
             
             Section {
                 printAllBudgetsButton
@@ -72,9 +81,36 @@ struct DebugView: View {
         }
     }
     
-    @State private var showFileImporter = false
-    @State private var selectedFileURL: URL?
-
+    
+    
+    @ViewBuilder
+    var devModelToggle: some View {
+        Toggle(isOn: $devMode) {
+            VStack(alignment: .leading) {
+                HStack {
+                    Image(systemName: "testtube.2")
+                    Text("Dev Mode")
+                }
+            }
+        }
+        .onChange(of: devMode) {
+            AppState.shared.devMode = $1
+            funcModel.isLoading = true
+            funcModel.refreshTask?.cancel()
+            funcModel.refreshTask = Task {
+                plaidModel.trans.removeAll()
+                
+                calModel.months.forEach { month in
+                    month.days.removeAll()
+                    month.budgets.removeAll()
+                }
+                calModel.prepareMonths()
+                await funcModel.downloadEverything(setDefaultPayMethod: false, createNewStructs: true, refreshTechnique: .viaButton)
+            }
+        }
+    }
+    
+    
     @ViewBuilder
     var documentTester: some View {
         @Bindable var photoModel = FileModel.shared

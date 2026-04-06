@@ -20,7 +20,7 @@ struct RootViewWrapper<Content: View>: View {
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
     @Environment(RepeatingTransactionModel.self) private var repModel
-    
+    @Environment(WebSocketManager.self) private var webSocketManager    
     @Environment(PlaidModel.self) private var plaidModel
     //@Environment(MapModel.self) private var mapModel
     
@@ -85,6 +85,7 @@ struct RootViewWrapper<Content: View>: View {
                     .environment(plaidModel)
                     .environment(calProps)
                     .environment(dataChangeTriggers)
+                    .environment(webSocketManager)
                     //.environment(mapModel)
             )
             rootVC.view.backgroundColor = .clear

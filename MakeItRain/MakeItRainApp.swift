@@ -39,6 +39,7 @@ struct MakeItRainApp: App {
     @State private var undoManager = UndodoManager.shared
     @State private var openRecordManager = OpenRecordManager.shared
     
+    @State var webSocketManager: WebSocketManager
     @State var funcModel: FuncModel
     @State var calModel: CalendarModel
     @State var payModel: PayMethodModel
@@ -65,6 +66,11 @@ struct MakeItRainApp: App {
     @Namespace private var monthNavigationNamespace
     
     init() {
+        let isStressTest = ProcessInfo.processInfo.arguments.contains("--ui-stress-test")
+        if isStressTest {
+            print("Running in UI stress test mode")
+        }
+        
         let calModel = CalendarModel()
                 
         /// This is now a singleton because the creditLimits are needed inside the calModel. 2/21/25
@@ -86,7 +92,7 @@ struct MakeItRainApp: App {
         self.repModel = repModel
         self.plaidModel = plaidModel
         
-        self.funcModel = .init(
+        let webSocketManager = WebSocketManager(
             calModel: calModel,
             payModel: payModel,
             catModel: catModel,
@@ -94,6 +100,19 @@ struct MakeItRainApp: App {
             repModel: repModel,
             plaidModel: plaidModel
         )
+        
+        let funcModel = FuncModel(
+            calModel: calModel,
+            payModel: payModel,
+            catModel: catModel,
+            keyModel: keyModel,
+            repModel: repModel,
+            plaidModel: plaidModel,
+            webSocketManager: webSocketManager
+        )
+        
+        self.funcModel = funcModel
+        self.webSocketManager = webSocketManager
         
         do {
             try setupTips()
@@ -155,6 +174,9 @@ struct MakeItRainApp: App {
                     #endif
                 }
             }
+            .task {
+                webSocketManager.funcModelRefreshFunction = refreshMiddleManForWebSocketManager
+            }
             .onOpenURL { handleOpeningUrl($0) }
             #if os(macOS)
             .background(
@@ -190,6 +212,7 @@ struct MakeItRainApp: App {
             .environment(plaidModel)
             .environment(calProps)
             .environment(dataChangeTriggers)
+            .environment(webSocketManager)
             //.preferredColorScheme(colorScheme)
         }
         .defaultSize(width: 1000, height: 600)
@@ -216,6 +239,11 @@ struct MakeItRainApp: App {
         settingsWindow
         macAlertAndToastOverlayWindow
         #endif
+    }
+    
+    
+    func refreshMiddleManForWebSocketManager() async {
+        await funcModel.downloadEverything(setDefaultPayMethod: false, createNewStructs: false, refreshTechnique: .viaLongPoll)
     }
     
     

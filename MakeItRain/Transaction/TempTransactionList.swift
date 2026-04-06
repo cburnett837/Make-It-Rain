@@ -52,7 +52,7 @@ struct TempTransactionList: View {
                     }
                 }
             }
-            .navigationTitle("Offline Transactions")
+            .navigationTitle("Offline Transactions\(AppState.shared.devMode ? " (Dev)" : "")")
             .navigationSubtitle("Transactions will sync when you have internet")
             .searchable(text: $searchText, prompt: searchPrompt)
             .searchFocused($searchFocused, equals: 0)
@@ -150,7 +150,7 @@ struct TempTransactionList: View {
         let targetMonth = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
         
         if let month = calModel.months.filter({ $0.enumID == targetMonth }).first {
-            funcModel.prepareStartingAmounts(for: month)
+            payModel.prepareStartingAmounts(for: month, calModel: calModel)
         }
         
         /// Set the selected month so the app functions normally.
@@ -161,8 +161,8 @@ struct TempTransactionList: View {
         selectedDay = targetDay
         
         /// Grab categories, payment methods, and transactions from the cache.
-        await funcModel.populateCategoriesFromCache()
-        await funcModel.populatePaymentMethodsFromCache(setDefaultPayMethod: true)
+        await catModel.populateFromCoreData()
+        await payModel.populateFromCoreData(setDefaultPayMethod: true, calModel: calModel)
         await fetchTransactionsFromCache()
     }
     
@@ -175,7 +175,7 @@ struct TempTransactionList: View {
                 await funcModel.downloadEverything(setDefaultPayMethod: false, createNewStructs: true, refreshTechnique: .viaTempListSceneChange)
             } else {
                 if let apiKey = await AuthState.shared.getApiKeyFromKeychain() {
-                    await AuthState.shared.attemptLogin(using: .apiKey, with: LoginModel(apiKey: apiKey))
+                    await AuthState.shared.attemptLogin(using: .apiKey, with: LoginModel(apiKey: apiKey, deviceUUID: AppState.shared.deviceUUID))
                 }
             }
             showLoadingSpinner = false

@@ -196,7 +196,7 @@ struct CalendarNavGridHeader: View {
     
     var mainTitleMenuLabel: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Make It Rain")
+            Text("Make It Rain\(AppState.shared.devMode ? " (Dev)" : "")")
                 .font(.largeTitle)
                 .bold()
                 .schemeBasedForegroundStyle()

@@ -583,6 +583,9 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         self.intendedServerAction = .edit
         //factorInCalculations = true
         
+        //self.date = try container.decodeIfPresent(Date.self, forKey: .date)
+
+        
         let date = try container.decode(String?.self, forKey: .date)
         if let date {
             self.date = date.toDateObj(from: .serverDate)!
@@ -1608,6 +1611,7 @@ extension CBTransaction {
         self.init()
         self.isFromCoreData = true
         self.serverID = s.id
+        self.uuid = nil
         self.title = s.title
         self.amountString = s.amount.currencyWithDecimals()
         self.payMethod = payMethod
@@ -1669,7 +1673,7 @@ extension CBTransaction {
             guard let entity = DataManager.shared.getOne(context: context, type: TempTransaction.self, predicate: .byId(.string(id)), createIfNotFound: false) else { return nil }
 
             return Snapshot(
-                id: entity.id ?? "",
+                id: id,
                 title: entity.title ?? "",
                 amount: entity.amount,
                 payMethodID: entity.payMethodID,

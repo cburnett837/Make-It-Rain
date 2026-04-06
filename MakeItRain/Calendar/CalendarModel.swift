@@ -110,118 +110,181 @@ class CalendarModel {
     
     
     
+    @MainActor
+    func handleIncomingData(for month: CBMonth, using model: TransactionAndStartingAmountModel, createNewStructs: Bool, refreshTechnique: RefreshTechnique) async {
+        month.hasBeenPopulated = model.hasPopulated
+        
+        if !createNewStructs {
+            await self.handleTransactions(model.transactions, for: month, refreshTechnique: refreshTechnique)
+        } else {
+            for trans in model.transactions {
+                
+                /// Handle smart transactions that may have been added
+                if let isSmartTransaction = trans.isSmartTransaction {
+                    if isSmartTransaction && !(trans.smartTransactionIsAcknowledged ?? true) {
+                        if trans.smartTransactionIssue != nil {
+                            if tempTransactions.filter({ $0.id == trans.id }).isEmpty {
+                                tempTransactions.append(trans)
+                            }
+                            continue
+                        }
+                    }
+                }
+                
+                await trans.payMethod?.loadLogoFromCoreDataIfNeeded()
+                
+                let day = month.days.filter { $0.date == trans.date }.first
+                day?.transactions.append(trans)
+            }
+        }
+        
+        for startingAmount in model.startingAmounts {
+            /// When navigation changes, a new `CBStartingAmount` that corresponds to `self.sPayMethod` gets added to the newly selected month. (for when we navigate to a month that does not yet have one on the server.)
+            await startingAmount.payMethod.loadLogoFromCoreDataIfNeeded()
+            if month.startingAmounts.contains(where: { $0.payMethod.id == startingAmount.payMethod.id }) {
+                let index = month.startingAmounts.firstIndex(where: { $0.payMethod.id == startingAmount.payMethod.id })!
+                month.startingAmounts[index] = startingAmount
+            } else {
+                month.startingAmounts.append(startingAmount)
+            }
+        }
+        
+        
+        if let budgets = model.budgets {
+            for budget in budgets {
+                if month.budgets.contains(where: { $0.id == budget.id }) {
+                    let index = month.budgets.firstIndex(where: { $0.id == budget.id })!
+                    month.budgets[index] = budget
+                } else {
+                    month.budgets.append(budget)
+                }
+            }
+        }
+        
+        let _ = calculateTotal(for: month)
+        
+        /// Run this when switching years.
+        if month.enumID == self.sMonth.enumID {
+            /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
+            /// So we use the ``DataChangeTriggers`` class to send a notification to the view to tell it to recalculate.
+            DataChangeTriggers.shared.viewDidChange(.calendar)
+        }
+        
+        month.changeLoadingSpinners(toShowing: false, includeCalendar: true)
+    }
+    
     
     // MARK: - Fetch From Server
-    @MainActor
-    func fetchFromServer(month: CBMonth, createNewStructs: Bool, refreshTechnique: RefreshTechnique) async {
-        print("-- \(#function) \(month.actualNum) \(month.year) -- \(Date())")
-        LogManager.log()
-        
-        let start = CFAbsoluteTimeGetCurrent()
-        
-        //try? await Task.sleep(for: .seconds(10))
-        //print("DONE FETCHING")
-                            
-        //let month = months.filter { $0.num == monthNum }.first!
-        let model = RequestModel(requestType: "fetch_transactions_for_month", model: month)
-        typealias ResultResponse = Result<TransactionAndStartingAmountModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
-        
-        switch await result {
-        case .success(let model):
-            //await MainActor.run {
-                LogManager.networkingSuccessful()
-                
-                #warning("need snapshot code")
-                if let model {
-                    month.hasBeenPopulated = model.hasPopulated
-                    
-                    if !createNewStructs {
-                        await self.handleTransactions(model.transactions, for: month, refreshTechnique: refreshTechnique)
-                    } else {
-                        for trans in model.transactions {
-                            
-                            /// Handle smart transactions that may have been added
-                            if let isSmartTransaction = trans.isSmartTransaction {
-                                if isSmartTransaction && !(trans.smartTransactionIsAcknowledged ?? true) {
-                                    if trans.smartTransactionIssue != nil {
-                                        if tempTransactions.filter({ $0.id == trans.id }).isEmpty {
-                                            tempTransactions.append(trans)
-                                        }
-                                        continue
-                                    }
-                                }
-                            }
-                            
-                            await trans.payMethod?.loadLogoFromCoreDataIfNeeded()
-                            
-                            let day = month.days.filter { $0.date == trans.date }.first
-                            day?.transactions.append(trans)
-                        }
-                    }
-                    
-                    for startingAmount in model.startingAmounts {
-                        /// When navigation changes, a new `CBStartingAmount` that corresponds to `self.sPayMethod` gets added to the newly selected month. (for when we navigate to a month that does not yet have one on the server.)
-                        await startingAmount.payMethod.loadLogoFromCoreDataIfNeeded()
-                        if month.startingAmounts.contains(where: { $0.payMethod.id == startingAmount.payMethod.id }) {
-                            let index = month.startingAmounts.firstIndex(where: { $0.payMethod.id == startingAmount.payMethod.id })!
-                            month.startingAmounts[index] = startingAmount
-                        } else {
-                            month.startingAmounts.append(startingAmount)
-                        }
-                    }
-                    
-                    
-                    if let budgets = model.budgets {
-                        for budget in budgets {
-                            if month.budgets.contains(where: { $0.id == budget.id }) {
-                                let index = month.budgets.firstIndex(where: { $0.id == budget.id })!
-                                month.budgets[index] = budget
-                            } else {
-                                month.budgets.append(budget)
-                            }
-                        }
-                    }
-                    
-//                    if let budgets = model.budgetGroups {
+//    @MainActor
+//    func fetchFromServer(month: CBMonth, createNewStructs: Bool, refreshTechnique: RefreshTechnique) async {
+//        print("-- \(#function) \(month.actualNum) \(month.year) -- \(Date())")
+//        LogManager.log()
+//        
+//        let start = CFAbsoluteTimeGetCurrent()
+//        
+//        //try? await Task.sleep(for: .seconds(10))
+//        //print("DONE FETCHING")
+//                            
+//        //let month = months.filter { $0.num == monthNum }.first!
+//        let model = RequestModel(requestType: "fetch_monthly_data", model: month)
+//        typealias ResultResponse = Result<TransactionAndStartingAmountModel?, AppError>
+//        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+//        
+//        switch await result {
+//        case .success(let model):
+//            //await MainActor.run {
+//                LogManager.networkingSuccessful()
+//                
+//                #warning("need snapshot code")
+//                if let model {
+//                    month.hasBeenPopulated = model.hasPopulated
+//                    
+//                    if !createNewStructs {
+//                        await self.handleTransactions(model.transactions, for: month, refreshTechnique: refreshTechnique)
+//                    } else {
+//                        for trans in model.transactions {
+//                            
+//                            /// Handle smart transactions that may have been added
+//                            if let isSmartTransaction = trans.isSmartTransaction {
+//                                if isSmartTransaction && !(trans.smartTransactionIsAcknowledged ?? true) {
+//                                    if trans.smartTransactionIssue != nil {
+//                                        if tempTransactions.filter({ $0.id == trans.id }).isEmpty {
+//                                            tempTransactions.append(trans)
+//                                        }
+//                                        continue
+//                                    }
+//                                }
+//                            }
+//                            
+//                            await trans.payMethod?.loadLogoFromCoreDataIfNeeded()
+//                            
+//                            let day = month.days.filter { $0.date == trans.date }.first
+//                            day?.transactions.append(trans)
+//                        }
+//                    }
+//                    
+//                    for startingAmount in model.startingAmounts {
+//                        /// When navigation changes, a new `CBStartingAmount` that corresponds to `self.sPayMethod` gets added to the newly selected month. (for when we navigate to a month that does not yet have one on the server.)
+//                        await startingAmount.payMethod.loadLogoFromCoreDataIfNeeded()
+//                        if month.startingAmounts.contains(where: { $0.payMethod.id == startingAmount.payMethod.id }) {
+//                            let index = month.startingAmounts.firstIndex(where: { $0.payMethod.id == startingAmount.payMethod.id })!
+//                            month.startingAmounts[index] = startingAmount
+//                        } else {
+//                            month.startingAmounts.append(startingAmount)
+//                        }
+//                    }
+//                    
+//                    
+//                    if let budgets = model.budgets {
 //                        for budget in budgets {
-//                            if month.budgetGroups.contains(where: { $0.id == budget.id }) {
-//                                let index = month.budgetGroups.firstIndex(where: { $0.id == budget.id })!
-//                                month.budgetGroups[index] = budget
+//                            if month.budgets.contains(where: { $0.id == budget.id }) {
+//                                let index = month.budgets.firstIndex(where: { $0.id == budget.id })!
+//                                month.budgets[index] = budget
 //                            } else {
-//                                month.budgetGroups.append(budget)
+//                                month.budgets.append(budget)
 //                            }
 //                        }
 //                    }
-                    
-                    let _ = calculateTotal(for: month)
-                    
-                    /// Run this when switching years.
-                    if month.enumID == self.sMonth.enumID {
-                        /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
-                        /// So we use the ``DataChangeTriggers`` class to send a notification to the view to tell it to recalculate.
-                        DataChangeTriggers.shared.viewDidChange(.calendar)
-                    }
-                    
-                }
-                
-                month.changeLoadingSpinners(toShowing: false, includeCalendar: true)
-                
-                let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-                print("⏰It took \(currentElapsed) seconds to fetch \(month.actualNum) \(month.year) -- \(Date())")
-            //}
-            
-        case .failure (let error):
-            switch error {
-            case .taskCancelled:
-                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
-                print("calModel fetchFrom Server Task Cancelled")
-            default:
-                LogManager.error(error.localizedDescription)
-                AppState.shared.showAlert("There was a problem trying to fetch transactions.")
-            }
-        }
-    }
+//                    
+////                    if let budgets = model.budgetGroups {
+////                        for budget in budgets {
+////                            if month.budgetGroups.contains(where: { $0.id == budget.id }) {
+////                                let index = month.budgetGroups.firstIndex(where: { $0.id == budget.id })!
+////                                month.budgetGroups[index] = budget
+////                            } else {
+////                                month.budgetGroups.append(budget)
+////                            }
+////                        }
+////                    }
+//                    
+//                    let _ = calculateTotal(for: month)
+//                    
+//                    /// Run this when switching years.
+//                    if month.enumID == self.sMonth.enumID {
+//                        /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
+//                        /// So we use the ``DataChangeTriggers`` class to send a notification to the view to tell it to recalculate.
+//                        DataChangeTriggers.shared.viewDidChange(.calendar)
+//                    }
+//                    
+//                }
+//                
+//                month.changeLoadingSpinners(toShowing: false, includeCalendar: true)
+//                
+//                let currentElapsed = CFAbsoluteTimeGetCurrent() - start
+//                print("⏰It took \(currentElapsed) seconds to fetch \(month.actualNum) \(month.year)")
+//            //}
+//            
+//        case .failure (let error):
+//            switch error {
+//            case .taskCancelled:
+//                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
+//                print("calModel fetchFrom Server Task Cancelled")
+//            default:
+//                LogManager.error(error.localizedDescription)
+//                AppState.shared.showAlert("There was a problem trying to fetch transactions.")
+//            }
+//        }
+//    }
 
     
     
@@ -1050,8 +1113,8 @@ class CalendarModel {
                 entity.notificationOffset = Int64(trans.notificationOffset)
                 entity.notifyOnDueDate = trans.notifyOnDueDate
                 //entity.action = isNew ? "add" : trans.action.rawValue
-                entity.action = trans.action.rawValue
-                entity.tempAction = trans.action == .add ? "edit" : trans.action.rawValue
+                entity.action = trans.intendedServerAction.rawValue
+                entity.tempAction = trans.action == .add ? "edit" : trans.intendedServerAction.rawValue
                 entity.isPending = true
                 let _ = DataManager.shared.save(context: context)
             }
@@ -1072,6 +1135,7 @@ class CalendarModel {
             LogManager.networkingSuccessful()
             
             /// Performs in its own context
+            print("Attempting to delete trans from core data with id \(trans.id)")
             DataManager.shared.delete(context: context, type: TempTransaction.self, predicate: .byId(.string(trans.id)))
             
             if trans.isFromCoreData {
@@ -1114,8 +1178,7 @@ class CalendarModel {
                 trans.status = .saveSuccess
             }
             performLineItemAnimations(for: trans)
-            
-            
+                        
             /// At this point, in the future the trans will always be in edit mode unless it was deleted.
             trans.intendedServerAction = .edit
             
@@ -1272,6 +1335,7 @@ class CalendarModel {
                         let index = targetMonth.budgets.firstIndex(where: { $0.id == idModel.uuid })
                         if let index {
                             targetMonth.budgets[index].id = idModel.id
+                            targetMonth.budgets[index].action = .edit
                         }
                     }
                 }
@@ -1510,35 +1574,46 @@ class CalendarModel {
     }
                 
     
+//    @MainActor
+//    func fetchSuggestedTitles() async {
+//        //print("-- \(#function)")
+//        LogManager.log()
+//        let model = RequestModel(requestType: "fetch_suggested_transaction_titles", model: AppState.shared.user!)
+//            
+//        /// Used to test the snapshot data race
+//        //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
+//        
+//        typealias ResultResponse = Result<Array<CBSuggestedTitle>?, AppError>
+//        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+//                    
+//        switch await result {
+//        case .success(let model):
+//            LogManager.networkingSuccessful()
+//            if let model {
+//                suggestedTitles = model
+//                //print(suggestedTitles)
+//            }
+//            
+//        case .failure(let error):
+//            switch error {
+//            case .taskCancelled:
+//                print("\(#function) Task Cancelled")
+//            default:
+//                LogManager.error(error.localizedDescription)
+//                AppState.shared.showAlert("There was a problem trying to fetch suggested titles.")
+//            }
+//        }
+//    }
+    
+    
     @MainActor
-    func fetchSuggestedTitles() async {
-        //print("-- \(#function)")
-        LogManager.log()
-        let model = RequestModel(requestType: "fetch_suggested_transaction_titles", model: AppState.shared.user!)
-            
-        /// Used to test the snapshot data race
-        //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
-        
-        typealias ResultResponse = Result<Array<CBSuggestedTitle>?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
-                    
-        switch await result {
-        case .success(let model):
-            LogManager.networkingSuccessful()
-            if let model {
-                suggestedTitles = model
-                //print(suggestedTitles)
-            }
-            
-        case .failure(let error):
-            switch error {
-            case .taskCancelled:
-                print("\(#function) Task Cancelled")
-            default:
-                LogManager.error(error.localizedDescription)
-                AppState.shared.showAlert("There was a problem trying to fetch suggested titles.")
-            }
-        }
+    func handleIncoming(titles: [CBSuggestedTitle], incomingDataType: IncomingDataType) {
+        self.suggestedTitles = titles
+    }
+    
+    @MainActor
+    func handleIncoming(budgets: [CBBudget], incomingDataType: IncomingDataType) {
+        self.appSuiteBudgets = budgets
     }
     
     
@@ -1717,6 +1792,7 @@ class CalendarModel {
             if let model {
                 if self.receiptTransactions.isEmpty {
                     for trans in model {
+                        await trans.payMethod?.loadLogoFromCoreDataIfNeeded()
                         self.receiptTransactions.append(trans)
                     }
                     
@@ -1734,6 +1810,7 @@ class CalendarModel {
                         if let index = self.receiptTransactions.firstIndex(where: { $0.id == trans.id }) {
                             self.receiptTransactions[index].setFromAnotherInstance(transaction: trans)
                         } else {
+                            await trans.payMethod?.loadLogoFromCoreDataIfNeeded()
                             self.receiptTransactions.insert(trans, at: 0)
                         }
                     }
@@ -2087,6 +2164,7 @@ class CalendarModel {
         
         //LoadingManager.shared.startDelayedSpinner()
         LogManager.log()
+        print("\(budget.action.serverKey.capitalized) BUDGET!")
         let model = RequestModel(requestType: budget.action.serverKey, model: budget)
             
         /// Used to test the snapshot data race
@@ -2311,6 +2389,21 @@ class CalendarModel {
             default:
                 LogManager.error(error.localizedDescription)
                 AppState.shared.showAlert("There was a problem trying to fetch the tags.")
+            }
+        }
+    }
+    
+    
+    
+    @MainActor
+    func handleIncoming(tags: Array<CBTag>, incomingDataType: IncomingDataType) async {
+        self.tags.removeAll()
+        for tag in tags {
+            let index = self.tags.firstIndex(where: { $0.id == tag.id })
+            if let index {
+                self.tags[index].setFromAnotherInstance(tag: tag)
+            } else {
+                self.tags.append(tag)
             }
         }
     }

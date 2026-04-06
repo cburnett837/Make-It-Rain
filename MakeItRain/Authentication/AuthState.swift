@@ -77,6 +77,9 @@ class AuthState {
                         
                         let userData = try JSONEncoder().encode(model.user)
                         UserDefaults.standard.set(userData, forKey: "user")
+                        
+                        AppSettings.shared.setFromServerData(setting: model.settings)
+                        
                         //AppSettings.shared.setFromAnotherInstance(setting: model.settings)
                         AppState.shared.user = model.user
                         AppState.shared.accountUsers = model.accountUsers
@@ -107,6 +110,13 @@ class AuthState {
             
             
         case .failure(let error):
+            print(error.localizedDescription)
+            let devMode = UserDefaults.standard.bool(forKey: "devMode")
+            if devMode {
+                UserDefaults.standard.set(false, forKey: "devMode")
+                AppState.shared.devMode = false
+                await self.attemptLogin(using: loginType, with: loginModel)
+            }
             LogManager.error(error.localizedDescription)
             
             self.error = error
@@ -160,8 +170,8 @@ class AuthState {
 //        if let apiKey = await self.getApiKeyFromKeychain() {
 //            self.loginTask = Task {
 //                /// Talk to server with the users API key.
-//                await self.attemptLogin(using: .apiKey, with: LoginModel(apiKey: apiKey))
-//                
+//                await self.attemptLogin(using: .apiKey, with: LoginModel(apiKey: apiKey, deviceUUID: AppState.shared.deviceUUID))
+//
 //                /// This will get set via `attemptLogin()`
 //                if self.isLoggedIn {
 //                    /// When the user logs in, if they have no payment methods, show the payment method required sheet.
@@ -191,7 +201,7 @@ class AuthState {
             self.keychainCredentialsExist = true
             self.loginTask = Task {
                 /// Talk to server with the users API key.
-                await self.attemptLogin(using: .apiKey, with: LoginModel(apiKey: apiKey))
+                await self.attemptLogin(using: .apiKey, with: LoginModel(apiKey: apiKey, deviceUUID: AppState.shared.deviceUUID))
                 
                 /// This will get set via `self.attemptLogin()`
                 if self.isLoggedIn {
