@@ -6,7 +6,6 @@
 //
 
 import Foundation
-//import GRDB
 import SwiftUI
 
 @MainActor
@@ -20,8 +19,8 @@ class KeywordModel {
         return !keywords.filter { $0.id == keyword.id }.isEmpty
     }
     
-    func getKeyword(by id: String) -> CBKeyword {
-        return keywords.filter { $0.id == id }.first ?? CBKeyword(uuid: id)
+    func getKeyword(by id: String) -> CBKeyword? {
+        return keywords.first(where: { $0.id == id })
     }
     
 //    func upsert(_ keyword: CBKeyword) {
@@ -45,7 +44,7 @@ class KeywordModel {
     func saveKeyword(id: String, file: String = #file, line: Int = #line, function: String = #function) {
         print("-- \(#function) -- Called from: \(file):\(line) : \(function)")
 
-        let keyword = getKeyword(by: id)
+        guard let keyword = getKeyword(by: id) else { return }
         
         if keyword.action == .delete {
             keyword.updatedBy = AppState.shared.user!

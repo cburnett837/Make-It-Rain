@@ -17,21 +17,14 @@ struct CalendarNavGridPhone: View {
     @Environment(KeywordModel.self) var keyModel
     @Environment(RepeatingTransactionModel.self) var repModel
     
-    
-    let monthNavigationNamespace: Namespace.ID
-    
     @Binding var calendarNavPath: NavigationPath
-
     
     @State private var hasDoneInitialScrollToThisMonth = false
     
     var body: some View {        
         VStack(spacing: 0) {
-            CalendarNavGridHeader(
-                monthNavigationNamespace: monthNavigationNamespace,
-                calendarNavPath: $calendarNavPath
-            )
-            .scenePadding(.horizontal)
+            CalendarNavGridHeader(calendarNavPath: $calendarNavPath)
+                .scenePadding(.horizontal)
             
             ScrollViewReader { scrollProxy in
                 ScrollView {
@@ -40,31 +33,31 @@ struct CalendarNavGridPhone: View {
                             GridRow(alignment: .top) {
                                 Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
                                 Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
-                                MonthNavigationLink(enumID: .lastDecember, monthNavigationNamespace: monthNavigationNamespace)
+                                MonthNavigationLink(enumID: .lastDecember)
                                 
                             }
                             GridRow(alignment: .top) {
-                                MonthNavigationLink(enumID: .january, monthNavigationNamespace: monthNavigationNamespace).id(1)
-                                MonthNavigationLink(enumID: .february, monthNavigationNamespace: monthNavigationNamespace).id(2)
-                                MonthNavigationLink(enumID: .march, monthNavigationNamespace: monthNavigationNamespace).id(3)
+                                MonthNavigationLink(enumID: .january).id(1)
+                                MonthNavigationLink(enumID: .february).id(2)
+                                MonthNavigationLink(enumID: .march).id(3)
                             }
                             GridRow(alignment: .top) {
-                                MonthNavigationLink(enumID: .april, monthNavigationNamespace: monthNavigationNamespace).id(4)
-                                MonthNavigationLink(enumID: .may, monthNavigationNamespace: monthNavigationNamespace).id(5)
-                                MonthNavigationLink(enumID: .june, monthNavigationNamespace: monthNavigationNamespace).id(6)
+                                MonthNavigationLink(enumID: .april).id(4)
+                                MonthNavigationLink(enumID: .may).id(5)
+                                MonthNavigationLink(enumID: .june).id(6)
                             }
                             GridRow(alignment: .top) {
-                                MonthNavigationLink(enumID: .july, monthNavigationNamespace: monthNavigationNamespace).id(7)
-                                MonthNavigationLink(enumID: .august, monthNavigationNamespace: monthNavigationNamespace).id(8)
-                                MonthNavigationLink(enumID: .september, monthNavigationNamespace: monthNavigationNamespace).id(9)
+                                MonthNavigationLink(enumID: .july).id(7)
+                                MonthNavigationLink(enumID: .august).id(8)
+                                MonthNavigationLink(enumID: .september).id(9)
                             }
                             GridRow(alignment: .top) {
-                                MonthNavigationLink(enumID: .october, monthNavigationNamespace: monthNavigationNamespace).id(10)
-                                MonthNavigationLink(enumID: .november, monthNavigationNamespace: monthNavigationNamespace).id(11)
-                                MonthNavigationLink(enumID: .december, monthNavigationNamespace: monthNavigationNamespace).id(12)
+                                MonthNavigationLink(enumID: .october).id(10)
+                                MonthNavigationLink(enumID: .november).id(11)
+                                MonthNavigationLink(enumID: .december).id(12)
                             }
                             GridRow(alignment: .top) {
-                                MonthNavigationLink(enumID: .nextJanuary, monthNavigationNamespace: monthNavigationNamespace)
+                                MonthNavigationLink(enumID: .nextJanuary)
                                 Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
                                 Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
                             }

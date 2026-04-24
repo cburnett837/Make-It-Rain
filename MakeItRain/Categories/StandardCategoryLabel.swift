@@ -11,6 +11,7 @@ struct StandardCategoryLabel: View {
     var cat: CBCategory
     var labelWidth: CGFloat
     var showCheckmarkCondition: Bool
+    var isDisabled: Bool = false
 
     var body: some View {
         HStack {
@@ -32,7 +33,7 @@ struct StandardCategoryLabel: View {
             Image(systemName: "checkmark")
                 .opacity(showCheckmarkCondition ? 1 : 0)
         }
-        .schemeBasedForegroundStyle()
+        .schemeBasedForegroundStyle(isDisabled: isDisabled)
         .contentShape(Rectangle())
     }
 }

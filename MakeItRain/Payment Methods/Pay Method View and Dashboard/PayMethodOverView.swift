@@ -108,8 +108,12 @@ struct PayMethodOverView: View {
             }
             .onChange(of: paymentMethodEditID) { oldId, newId in
                 if let newId {
-                    let payMethod = payModel.getPaymentMethod(by: newId)
-                    editPaymentMethod = payMethod
+                    if let payMethod = payModel.getPaymentMethod(by: newId) {
+                        editPaymentMethod = payMethod
+                    } else {
+                        editPaymentMethod = CBPaymentMethod(uuid: newId)
+                    }
+                    
                 } else {
                     let _ = payModel.savePaymentMethod(id: oldId!, calModel: calModel, plaidModel: plaidModel)
                     payModel.determineIfUserIsRequiredToAddPaymentMethod()

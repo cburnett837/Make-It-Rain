@@ -80,26 +80,48 @@ struct TakePhotoIntent: AppIntent, WidgetConfigurationIntent {
 
 
 // MARK: - Control Center
+//struct Take_Photo_Control_Widget: ControlWidget {
+//    var body: some ControlWidgetConfiguration {
+//        StaticControlConfiguration(kind: "TakePhotoControl") {
+//            ControlWidgetButton(action: TakePhotoControlIntent()) {
+//                Label("Take Photo", systemImage: "document.viewfinder.fill")
+//                    .font(.largeTitle)
+//            }
+//        }
+//    }
+//}
+//
+//
+//struct TakePhotoControlIntent: AppIntent, WidgetConfigurationIntent {
+//    static var title: LocalizedStringResource = "Select Item"
+//    static var description = IntentDescription("Select an item to display in the widget.")
+//
+//    @MainActor
+//    func perform() async throws -> some IntentResult & OpensIntent {
+//        return .result(opensIntent: OpenURLIntent(URL(string: "redirect-url")!))
+//    }
+//}
+
+
 struct Take_Photo_Control_Widget: ControlWidget {
     var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(kind: "TakePhotoControl") {
             ControlWidgetButton(action: TakePhotoControlIntent()) {
                 Label("Take Photo", systemImage: "document.viewfinder.fill")
-                    .font(.largeTitle)
             }
         }
+        .displayName("Take Photo")
+        .description("Open the app camera to capture a receipt.")
     }
 }
 
-
-struct TakePhotoControlIntent: AppIntent, WidgetConfigurationIntent {
-    static var title: LocalizedStringResource = "Select Item"
-    static var description = IntentDescription("Select an item to display in the widget.")
+struct TakePhotoControlIntent: AppIntent, ControlConfigurationIntent {
+    static var title: LocalizedStringResource = "Take Photo"
+    static var description = IntentDescription("Open the app camera to capture a receipt.")
 
     @MainActor
     func perform() async throws -> some IntentResult & OpensIntent {
-        return .result(opensIntent: OpenURLIntent(URL(string: "redirect-url")!))
+        let url = URL(string: "https://codyburnett.com/plaid_redirect/plaid-redirect.html?action=take_photo")!
+        return .result(opensIntent: OpenURLIntent(url))
     }
 }
-
-

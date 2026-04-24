@@ -185,7 +185,7 @@ struct TempTransactionList: View {
     
     func saveTransaction(id: String) async {
         print("-- \(#function)")
-        let trans = calModel.getTransaction(by: id, from: .tempList)
+        guard let trans = calModel.getTransaction(by: id, from: .tempList) else { return }
         
         if trans.title.isEmpty || trans.payMethod == nil {
             withAnimation {

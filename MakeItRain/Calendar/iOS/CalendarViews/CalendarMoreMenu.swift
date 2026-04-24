@@ -19,7 +19,7 @@ struct CalendarMoreMenu: View {
         Menu {
             Section("Analytics") {
                 ControlGroup {
-                    dashboardSheetButton
+                    //dashboardSheetButton
                     //analysisSheetButton
                     budgetSheetButton
                     transactionListSheetButton

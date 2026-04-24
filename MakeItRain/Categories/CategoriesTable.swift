@@ -115,11 +115,15 @@ struct CategoriesTable: View {
                 #endif
             }
             .searchable(text: $searchText)
-            .onChange(of: categoryEditID) { oldValue, newValue in
-                if let newValue {
-                    editCategory = catModel.getCategory(by: newValue)
+            .onChange(of: categoryEditID) { oldId, newId in
+                if let newId {
+                    if let category = catModel.getCategory(by: newId) {
+                        editCategory = category
+                    } else {
+                        editCategory = CBCategory(uuid: newId)
+                    }
                 } else {
-                    catModel.saveCategory(id: oldValue!, calModel: calModel, keyModel: keyModel)
+                    catModel.saveCategory(id: oldId!, calModel: calModel, keyModel: keyModel)
                     //catModel.categories.sort(by: Helpers.categorySorter())
                 }
             }            
@@ -163,11 +167,16 @@ struct CategoriesTable: View {
             .onChange(of: sortOrder) { _, sortOrder in
                 catModel.categories.sort(using: sortOrder)
             }
-            .onChange(of: groupEditID) { oldValue, newValue in
-                if let newValue {
-                    editGroup = catModel.getCategoryGroup(by: newValue)
+            .onChange(of: groupEditID) { oldId, newId in
+                if let newId {
+                    if let group = catModel.getCategoryGroup(by: newId) {
+                        editGroup = group
+                    } else {
+                        editGroup = CBCategoryGroup(uuid: newId)
+                    }
+                    
                 } else {
-                    catModel.saveCategoryGroup(id: oldValue!)
+                    catModel.saveCategoryGroup(id: oldId!)
                 }
             }
             
@@ -442,8 +451,7 @@ struct CategoriesTable: View {
                 
                 /// On iPhone, push the details page to the nav, which will auto-open the edit sheet.
                 if AppState.shared.isIphone {
-                    let newCat = catModel.getCategory(by: newId)
-                    navPath.append(newCat)
+                    navPath.append(CBCategory(uuid: newId))
                 } else {
                     /// On iPad, trigger the details sheet to open, which will then open the edit sheet.
                     //#error("On Ipad, when closing the edit sheet, the details sheet freaks out.")
@@ -456,8 +464,7 @@ struct CategoriesTable: View {
                 
                 /// On iPhone, push the details page to the nav, which will auto-open the edit sheet.
                 if AppState.shared.isIphone {
-                    let newGroup = catModel.getCategoryGroup(by: newId)
-                    navPath.append(newGroup)
+                    navPath.append(CBCategoryGroup(uuid: newId))
                 } else {
                     /// On iPad, trigger the details sheet to open, which will then open the edit sheet.
                     //#error("On Ipad, when closing the edit sheet, the details sheet freaks out.")
@@ -478,9 +485,8 @@ struct CategoriesTable: View {
                 }
             }
         } icon: {
-            Circle()
-                .fill(AngularGradient(gradient: Gradient(stops: getReversedColors(group.categories)), center: .center))
-                .frame(width: 20, height: 20)
+            let colors = group.categories.filter({ $0.active }).sorted(by: Helpers.categorySorter()).map { $0.color }
+            GradientCircleDot(colors: colors)
         }
         
     }

@@ -62,31 +62,37 @@ struct PayMethodRequiredView: View {
         }, content: { meth in
             PayMethodEditView(payMethod: meth, editID: $paymentMethodEditID)
         })
-        .onChange(of: paymentMethodEditID) { oldValue, newValue in
-            if let newValue {
-                let payMethod = payModel.getPaymentMethod(by: newValue)
-                editPaymentMethod = payMethod
+        .onChange(of: paymentMethodEditID) { oldId, newId in
+            if let newId {
+                if let payMethod = payModel.getPaymentMethod(by: newId) {
+                    editPaymentMethod = payMethod
+                } else {
+                    editPaymentMethod = CBPaymentMethod(uuid: newId)
+                }
+                
             } else {
                 /// Slimmed down logic from `payModel.savePaymentMethod()`
-                let payMethod = payModel.getPaymentMethod(by: oldValue!)
-                if payMethod.title.isEmpty {
-                    if payMethod.action != .add && payMethod.title.isEmpty {
-                        payMethod.title = payMethod.deepCopy?.title ?? ""
+                if let payMethod = payModel.getPaymentMethod(by: oldId!) {
+                    if payMethod.title.isEmpty {
+                        if payMethod.action != .add && payMethod.title.isEmpty {
+                            payMethod.title = payMethod.deepCopy?.title ?? ""
+                        }
+                        return
                     }
-                    return
+                                    
+                    Task {
+                        showLoadingSpinner = true
+                        /// Save the newly created payment method to the server.
+                        let _ = await payModel.submit(payMethod)
+                        /// Fetch the newly added payment method, plus the 2 unified methods from the server.
+                        await payModel.fetchPaymentMethods(calModel: calModel)
+                        /// Allow entry into the normal app.
+                        AppState.shared.methsExist = true
+                        /// Close the sheet, which will kick off the normal download task.
+                        dismiss()
+                    }
                 }
-                                
-                Task {
-                    showLoadingSpinner = true
-                    /// Save the newly created payment method to the server.
-                    let _ = await payModel.submit(payMethod)
-                    /// Fetch the newly added payment method, plus the 2 unified methods from the server.
-                    await payModel.fetchPaymentMethods(calModel: calModel)
-                    /// Allow entry into the normal app.
-                    AppState.shared.methsExist = true
-                    /// Close the sheet, which will kick off the normal download task.
-                    dismiss()
-                }
+                
             }
         }
     }

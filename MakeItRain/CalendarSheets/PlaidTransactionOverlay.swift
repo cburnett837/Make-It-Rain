@@ -30,7 +30,7 @@ struct PlaidTransactionOverlay: View {
     @State private var selectedMeth: CBPaymentMethod?
     
     @Binding var showInspector: Bool
-    @Binding var navPath: NavigationPath
+    @Binding var navPath: [CalendarNavDest]
     
     var plaidTransactions: [CBPlaidTransaction] {
         plaidModel.trans
@@ -582,9 +582,7 @@ struct PlaidTransactionOverlay: View {
             
             /// Switch the calendar to the payment method of the transaction (if it's not already)
             if calModel.sPayMethod != realTrans.payMethod {
-                withAnimation {
-                    calModel.sPayMethod = realTrans.payMethod
-                }
+                withAnimation { calModel.sPayMethod = realTrans.payMethod }
                 
                 try? await Task.sleep(for: .seconds(1))
             }
@@ -603,13 +601,10 @@ struct PlaidTransactionOverlay: View {
                 }
             }
             
-            if let targetMonth = calModel.months.filter({ $0.actualNum == realTrans.date?.month && $0.year == realTrans.date?.year }).first {
-                if let targetDay = targetMonth.days.filter({ $0.dateComponents?.day == realTrans.date?.day }).first {
-                    withAnimation {
-                        targetDay.upsert(realTrans)
-                    }
-                    
-                }
+            if
+                let targetMonth = calModel.months.filter({ $0.actualNum == realTrans.date?.month && $0.year == realTrans.date?.year }).first,
+                let targetDay = targetMonth.days.filter({ $0.dateComponents?.day == realTrans.date?.day }).first {
+                    withAnimation { targetDay.upsert(realTrans) }
             }
             
             calModel.tempTransactions.append(realTrans)
@@ -628,7 +623,7 @@ struct PlaidTransactionOverlay: View {
             plaidModel.totalTransCount -= 1
             Task {
                 await plaidModel.denyPlaidTransaction(trans)
-                plaidModel.trans.removeAll(where: {$0.id == trans.id})
+                plaidModel.trans.removeAll(where: { $0.id == trans.id })
             }
         }
     }
@@ -640,7 +635,7 @@ struct ClearPlaidBeforeDateView: View {
     @State private var clearDate: Date = Date()
     
     @Binding var selectedMeth: CBPaymentMethod?
-    @Binding var navPath: NavigationPath
+    @Binding var navPath: [CalendarNavDest]
     
     var body: some View {
         clearBeforeDateView

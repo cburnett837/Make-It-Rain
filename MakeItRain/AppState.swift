@@ -156,27 +156,27 @@ class AppState {
     }
     
     
-    func checkIfDownloadingDataIsNeeded() async -> Bool {
-        print("-- \(#function)")
-        
-        
-        let model = RequestModel(requestType: "check_for_changes", model: CheckIfShouldDownloadModel(lastNetworkTime: AppState.shared.lastNetworkTime ?? Date()))
-        typealias ResultResponse = Result<CheckIfShouldDownloadModel?, AppError>
-        async let result: ResultResponse = await NetworkManager(timeout: 10).singleRequest(requestModel: model, retainTime: false)
-        
-        switch await result {
-        case .success(let model):
-            if let model = model {
-                return model.shouldDownload
-            } else {
-                return true
-            }
-            
-        case .failure(let error):
-            LogManager.error(error.localizedDescription)
-            return true
-        }
-    }
+//    func checkIfDownloadingDataIsNeeded() async -> Bool {
+//        print("-- \(#function)")
+//        
+//        
+//        let model = RequestModel(requestType: "check_for_changes", model: CheckIfShouldDownloadModel(lastNetworkTime: AppState.shared.lastNetworkTime ?? Date()))
+//        typealias ResultResponse = Result<CheckIfShouldDownloadModel?, AppError>
+//        async let result: ResultResponse = await NetworkManager(timeout: 10).singleRequest(requestModel: model, retainTime: false)
+//        
+//        switch await result {
+//        case .success(let model):
+//            if let model = model {
+//                return model.shouldDownload
+//            } else {
+//                return true
+//            }
+//            
+//        case .failure(let error):
+//            LogManager.error(error.localizedDescription)
+//            return true
+//        }
+//    }
     
     
     // MARK: - Current Date Stuff

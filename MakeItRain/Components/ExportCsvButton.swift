@@ -8,7 +8,7 @@
 import SwiftUI
 
 
-struct BreakdownExportCsvButton:  View {
+struct BreakdownExportCsvButton: View {
     @Environment(CalendarModel.self) private var calModel
     let chartData: [ChartData]
     
@@ -16,9 +16,9 @@ struct BreakdownExportCsvButton:  View {
     var rows: [[String]] {
         chartData.map {
             let budget = $0.budgetForCategory
-            let expense = ($0.expenses == 0 ? 0 : $0.expenses * -1)
+            let expense = ($0.expenses == 0 ? 0 : ($0.expenses) * -1)
             let income = $0.income
-            let overUnder1 = ($0.budgetForCategory) + ($0.expenses + $0.income)
+            let overUnder1 = ($0.budgetForCategory) + (($0.expenses) + ($0.income))
             let overUnder2 = abs(overUnder1)
             
             return [$0.category.title, String(budget), String(expense), String(income), String(overUnder2)]

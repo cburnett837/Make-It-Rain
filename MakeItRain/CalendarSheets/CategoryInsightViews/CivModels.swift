@@ -19,24 +19,19 @@ class CivViewModel {
     var cashOut: Double = 0.0
     var income: Double = 0.0
     var budget: Double = 0.0
-    var chartData: [ChartData] = []
+    var budgetVsSpendChartData: [ChartData] = []
+    var groupBudgetVsSpendChartData: [GroupChartData] = []
     var cumTotals: [CumTotal] = []
     var progress: Double = 0
     var statusMessage: String = ""
-    
+    var spendingBreakdownChartdata = [CivSpendingBreakdownChartData]()
+    var transactionCountChartData = [CivTransactionCountChartData]()
+    var actualSpendingBreakdownByCategoryChartData = [CivActualSpendingBreakdownByCategoryOuterChartData]()
     
     var selectedDataPoint: CivDataPoint? = nil
     var selectedMonthGroup: Array<CivMonthlyData> = []
     var selectedMonth: CivMonthlyData?
-    
-    
-    
-    var spendingBreakdownChartdata = [CivSpendingBreakdownChartData]()
-    var transactionCountChartData = [CivTransactionCountChartData]()
-    var actualSpendingBreakdownByCategoryChartData = [CivActualSpendingBreakdownByCategoryOuterChartData]()
-
-    
-    
+        
     var showLoadingSpinner = false
     var loadingSpinnerTimer: Timer?
     @objc func showLoadingSpinnerViaTimer() {
@@ -123,3 +118,71 @@ struct CivBreakdownData: Identifiable {
     var actualSpending: Double
     //var totalSpending: Double
 }
+
+
+enum CivDataPoint {
+    case moneyIn, cashOut, totalSpending, actualSpending, all
+    
+    var titleString: String {
+        switch self {
+        case .moneyIn:
+            "Money In"
+        case .cashOut:
+            "Cash Out"
+        case .totalSpending:
+            "Total Spending"
+        case .actualSpending:
+            "Actual Spending"
+        case .all:
+            "All Transactions"
+        }
+    }
+}
+
+
+
+struct CivSpendingBreakdownChartData: Identifiable {
+    var id: UUID { return month.id }
+    var month: CBMonth
+    var date: Date
+    var cost: Double
+}
+
+struct CivTransactionCountChartData: Identifiable {
+    var id: UUID { return month.id }
+    var month: CBMonth
+    var date: Date
+    var count: Int
+}
+
+struct CivActualSpendingBreakdownByCategoryOuterChartData: Identifiable {
+    var id: String {
+        //UUID().uuidString
+        //"\(group?.id ?? "0")-\(category?.id ?? "0")"
+        if let category {
+            category.id
+        } else if let group {
+            "\(group.id)-\(costPerMonth.map {$0.category.id})"
+        } else {
+            UUID().uuidString
+        }
+    }
+    var category: CBCategory?
+    var group: CBCategoryGroup?
+    var costPerMonth: [ChartData]
+}
+//
+//struct CivActualSpendingBreakdownByCategoryChartData: Identifiable {
+//    var id: UUID { return month.id }
+//    var month: CBMonth
+//    var category: CBCategory?
+//    var date: Date
+//    var cost: Double
+//    
+//    var budgetForCategory: Double
+//    var budgetForCategoryGroup: Double?
+//    var income: Double
+//    var incomeMinusPayments: Double
+//    var expenses: Double
+//    var expensesMinusIncome: Double
+//}

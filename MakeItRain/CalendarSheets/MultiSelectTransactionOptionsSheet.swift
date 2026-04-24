@@ -31,7 +31,7 @@ struct MultiSelectTransactionOptionsSheet: View {
         
     @Binding var showInspector: Bool
     #if os(iOS)
-    @Binding var navPath: NavigationPath
+    @Binding var navPath: [CalendarNavDest]
     #else
     @State private var showDateChangerSheet = false
     #endif
@@ -201,8 +201,10 @@ struct MultiSelectTransactionOptionsSheet: View {
                     trans.factorInCalculations = true
                     
                     if trans.relatedTransactionID != nil && trans.relatedTransactionType?.enumID == .transaction {
-                        let trans2 = calModel.getTransaction(by: trans.relatedTransactionID!, from: .normalList)
-                        trans2.factorInCalculations = true
+                        if let trans2 = calModel.getTransaction(by: trans.relatedTransactionID!, from: .normalList) {
+                            trans2.factorInCalculations = true
+                        }
+                        
                     }
                 }
             }
@@ -224,8 +226,9 @@ struct MultiSelectTransactionOptionsSheet: View {
                     trans.factorInCalculations = false
                     
                     if trans.relatedTransactionID != nil && trans.relatedTransactionType?.enumID == .transaction {
-                        let trans2 = calModel.getTransaction(by: trans.relatedTransactionID!, from: .normalList)
-                        trans2.factorInCalculations = false
+                        if let trans2 = calModel.getTransaction(by: trans.relatedTransactionID!, from: .normalList) {
+                            trans2.factorInCalculations = false
+                        }
                     }
                 }
             }
@@ -254,8 +257,9 @@ struct MultiSelectTransactionOptionsSheet: View {
                         trans.category = selectedCategory
                         
                         if trans.relatedTransactionID != nil && trans.relatedTransactionType?.enumID == .transaction {
-                            let trans2 = calModel.getTransaction(by: trans.relatedTransactionID!, from: .normalList)
-                            trans2.category = selectedCategory
+                            if let trans2 = calModel.getTransaction(by: trans.relatedTransactionID!, from: .normalList) {
+                                trans2.category = selectedCategory
+                            }
                         }
                         
                     }
@@ -311,11 +315,12 @@ struct MultiSelectTransactionOptionsSheet: View {
                         //trans.active = false
                         //calModel.performLineItemAnimations(for: trans)
                         if trans.relatedTransactionID != nil && trans.relatedTransactionType?.enumID == .transaction {
-                            let trans2 = calModel.getTransaction(by: trans.relatedTransactionID!, from: .normalList)
-                            //trans2.deepCopy(.create)
-                            trans2.action = .delete
-                            trans2.intendedServerAction = .delete
-                            transToEdit.append(trans2)
+                            if let trans2 = calModel.getTransaction(by: trans.relatedTransactionID!, from: .normalList) {
+                                //trans2.deepCopy(.create)
+                                trans2.action = .delete
+                                trans2.intendedServerAction = .delete
+                                transToEdit.append(trans2)
+                            }
                         }
                     }
                     
@@ -372,8 +377,9 @@ struct MultiSelectTransactionOptionsSheet: View {
                 if shouldSave {
                     for trans in transToEdit {
                         if trans.relatedTransactionID != nil && trans.relatedTransactionType?.enumID == .transaction {
-                            let trans2 = calModel.getTransaction(by: trans.relatedTransactionID!, from: .normalList)
-                            transToEdit.append(trans2)
+                            if let trans2 = calModel.getTransaction(by: trans.relatedTransactionID!, from: .normalList) {
+                                transToEdit.append(trans2)
+                            }
                         }
                     }
                     
@@ -398,7 +404,7 @@ struct MultiSelectTransactionOptionsSheet: View {
 struct MultiSelectChangeDatePage: View {
     @Environment(CalendarModel.self) private var calModel
     #if os(iOS)
-    @Binding var navPath: NavigationPath
+    @Binding var navPath: [CalendarNavDest]
     #else
     @Binding var showDateChangerSheet: Bool
     #endif

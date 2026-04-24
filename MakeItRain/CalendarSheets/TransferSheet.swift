@@ -360,7 +360,10 @@ struct TransferSheet: View {
         Task {
             dismiss()
             
-            let fromTrans = calModel.getTransaction(by: UUID().uuidString, from: .normalList)
+            let fromTrans = CBTransaction(uuid: UUID().uuidString)
+            let toTrans = CBTransaction(uuid: UUID().uuidString)
+            
+            //let fromTrans = calModel.getTransaction(by: UUID().uuidString, from: .normalList)
             fromTrans.title = "\(transferLingo) to \(transfer.to?.title ?? "N/A")"
             fromTrans.date = date
                                     
@@ -376,7 +379,7 @@ struct TransferSheet: View {
             fromTrans.updatedDate = Date()
             fromTrans.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
                         
-            let toTrans = calModel.getTransaction(by: UUID().uuidString, from: .normalList)
+            //let toTrans = calModel.getTransaction(by: UUID().uuidString, from: .normalList)
             toTrans.title = "\(transferLingo) from \(transfer.from?.title ?? "N/A")"
             toTrans.date = date
             toTrans.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)

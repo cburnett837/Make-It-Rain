@@ -76,6 +76,11 @@
 		FD25FF3F2E97EA560079E001 /* PaymentMethodChartDisplayYearPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD25FF3E2E97EA560079E001 /* PaymentMethodChartDisplayYearPicker.swift */; };
 		FD25FF412E97EB010079E001 /* PaymentMethodChartVisibleYearPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD25FF402E97EB010079E001 /* PaymentMethodChartVisibleYearPicker.swift */; };
 		FD25FF432E97EFB30079E001 /* PaymentMethodChartDetailsSectionContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD25FF422E97EFB30079E001 /* PaymentMethodChartDetailsSectionContainer.swift */; };
+		FD2822DF2F911DED00CA00B8 /* CivBudgetBreakdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2822DE2F911DED00CA00B8 /* CivBudgetBreakdown.swift */; };
+		FD2822E12F9120EA00CA00B8 /* CivNetWorthChange.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2822E02F9120EA00CA00B8 /* CivNetWorthChange.swift */; };
+		FD2822E32F925B2C00CA00B8 /* Extensions+Sequence.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2822E22F925B2400CA00B8 /* Extensions+Sequence.swift */; };
+		FD2822E52F92641D00CA00B8 /* GradientCircleDot.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2822E42F92641D00CA00B8 /* GradientCircleDot.swift */; };
+		FD2822FF2F97A73400CA00B8 /* Dashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2822FE2F97A73400CA00B8 /* Dashboard.swift */; };
 		FD2F25B12EE9C75700E18F99 /* CatChartDataStructures.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2F25B02EE9C75700E18F99 /* CatChartDataStructures.swift */; };
 		FD2F25B42EE9C99C00E18F99 /* CatChartRawDataList.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2F25B32EE9C99C00E18F99 /* CatChartRawDataList.swift */; };
 		FD2F25B62EE9E55C00E18F99 /* CatChartRawDataListLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2F25B52EE9E55C00E18F99 /* CatChartRawDataListLine.swift */; };
@@ -103,6 +108,7 @@
 		FD4BABD02D95F9EE00384AB3 /* LinkPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD4BABCF2D95F9EE00384AB3 /* LinkPreviewView.swift */; };
 		FD4BABE12D9AD8B800384AB3 /* ToolbarLongPollButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD4BABE02D9AD8B800384AB3 /* ToolbarLongPollButton.swift */; };
 		FD502A862F17D892003BBF87 /* GenericUserInfoModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD502A852F17D892003BBF87 /* GenericUserInfoModel.swift */; };
+		FD53CD792F84AD0B00810EAC /* CBRepTransactionCreateModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD53CD782F84AD0B00810EAC /* CBRepTransactionCreateModel.swift */; };
 		FD5563FC2EF1D40000830102 /* CustomCalculatorKeyboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD5563FB2EF1D3F800830102 /* CustomCalculatorKeyboard.swift */; };
 		FD5564002EF32F6A00830102 /* TevTrackingNumberView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD5563FF2EF32F6A00830102 /* TevTrackingNumberView.swift */; };
 		FD5E53662EF9990F0059BA6F /* PhotoTakeAndSelectButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD5E53652EF9990F0059BA6F /* PhotoTakeAndSelectButtons.swift */; };
@@ -174,7 +180,6 @@
 		FDA172612EF5971A00C113F2 /* CivMultiMonthSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA172602EF5971A00C113F2 /* CivMultiMonthSheet.swift */; };
 		FDA172632EF5972600C113F2 /* CivModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA172622EF5972600C113F2 /* CivModels.swift */; };
 		FDA172652EF5973400C113F2 /* CivCalculatingProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA172642EF5973400C113F2 /* CivCalculatingProgressView.swift */; };
-		FDA172672EF5974B00C113F2 /* CivDataPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA172662EF5974B00C113F2 /* CivDataPoint.swift */; };
 		FDA172692EF5999200C113F2 /* CumTotal.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA172682EF5999200C113F2 /* CumTotal.swift */; };
 		FDA1726B2EF60BA500C113F2 /* CivCharts.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA1726A2EF60BA500C113F2 /* CivCharts.swift */; };
 		FDA1726D2EF993F900C113F2 /* RecentReceiptsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA1726C2EF993F900C113F2 /* RecentReceiptsView.swift */; };
@@ -357,7 +362,6 @@
 		FDE773C62E00A2060061A662 /* PlaidForceRefreshCost.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDE773C52E00A2060061A662 /* PlaidForceRefreshCost.swift */; };
 		FDECFAC82EBF1201004DC491 /* AiAnimatedSwishSymbol.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDECFAC72EBF1201004DC491 /* AiAnimatedSwishSymbol.swift */; };
 		FDECFACA2EBF124E004DC491 /* AiAnimatedAliveLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDECFAC92EBF124E004DC491 /* AiAnimatedAliveLabel.swift */; };
-		FDED0A792EC27A8700FBD08C /* CategoryInsightsSheetOG.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDED0A782EC27A8700FBD08C /* CategoryInsightsSheetOG.swift */; };
 		FDED0A7B2EC2872600FBD08C /* ChartData.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDED0A7A2EC2872600FBD08C /* ChartData.swift */; };
 		FDEE4D342EB0FFE300F16EEB /* PayMethodSortMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDEE4D332EB0FFE300F16EEB /* PayMethodSortMenu.swift */; };
 		FDEE4D362EB109B800F16EEB /* CategorySortMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDEE4D352EB109B800F16EEB /* CategorySortMenu.swift */; };
@@ -486,6 +490,11 @@
 		FD25FF3E2E97EA560079E001 /* PaymentMethodChartDisplayYearPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentMethodChartDisplayYearPicker.swift; sourceTree = "<group>"; };
 		FD25FF402E97EB010079E001 /* PaymentMethodChartVisibleYearPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentMethodChartVisibleYearPicker.swift; sourceTree = "<group>"; };
 		FD25FF422E97EFB30079E001 /* PaymentMethodChartDetailsSectionContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentMethodChartDetailsSectionContainer.swift; sourceTree = "<group>"; };
+		FD2822DE2F911DED00CA00B8 /* CivBudgetBreakdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CivBudgetBreakdown.swift; sourceTree = "<group>"; };
+		FD2822E02F9120EA00CA00B8 /* CivNetWorthChange.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CivNetWorthChange.swift; sourceTree = "<group>"; };
+		FD2822E22F925B2400CA00B8 /* Extensions+Sequence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Extensions+Sequence.swift"; sourceTree = "<group>"; };
+		FD2822E42F92641D00CA00B8 /* GradientCircleDot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradientCircleDot.swift; sourceTree = "<group>"; };
+		FD2822FE2F97A73400CA00B8 /* Dashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Dashboard.swift; sourceTree = "<group>"; };
 		FD292E0E2C9B248B003C18D2 /* MakeItRain.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MakeItRain.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FD2F25B02EE9C75700E18F99 /* CatChartDataStructures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatChartDataStructures.swift; sourceTree = "<group>"; };
 		FD2F25B32EE9C99C00E18F99 /* CatChartRawDataList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatChartRawDataList.swift; sourceTree = "<group>"; };
@@ -514,6 +523,7 @@
 		FD4BABCF2D95F9EE00384AB3 /* LinkPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkPreviewView.swift; sourceTree = "<group>"; };
 		FD4BABE02D9AD8B800384AB3 /* ToolbarLongPollButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolbarLongPollButton.swift; sourceTree = "<group>"; };
 		FD502A852F17D892003BBF87 /* GenericUserInfoModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenericUserInfoModel.swift; sourceTree = "<group>"; };
+		FD53CD782F84AD0B00810EAC /* CBRepTransactionCreateModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBRepTransactionCreateModel.swift; sourceTree = "<group>"; };
 		FD5563FB2EF1D3F800830102 /* CustomCalculatorKeyboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomCalculatorKeyboard.swift; sourceTree = "<group>"; };
 		FD5563FF2EF32F6A00830102 /* TevTrackingNumberView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TevTrackingNumberView.swift; sourceTree = "<group>"; };
 		FD5E53652EF9990F0059BA6F /* PhotoTakeAndSelectButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoTakeAndSelectButtons.swift; sourceTree = "<group>"; };
@@ -588,7 +598,6 @@
 		FDA172602EF5971A00C113F2 /* CivMultiMonthSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CivMultiMonthSheet.swift; sourceTree = "<group>"; };
 		FDA172622EF5972600C113F2 /* CivModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CivModels.swift; sourceTree = "<group>"; };
 		FDA172642EF5973400C113F2 /* CivCalculatingProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CivCalculatingProgressView.swift; sourceTree = "<group>"; };
-		FDA172662EF5974B00C113F2 /* CivDataPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CivDataPoint.swift; sourceTree = "<group>"; };
 		FDA172682EF5999200C113F2 /* CumTotal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CumTotal.swift; sourceTree = "<group>"; };
 		FDA1726A2EF60BA500C113F2 /* CivCharts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CivCharts.swift; sourceTree = "<group>"; };
 		FDA1726C2EF993F900C113F2 /* RecentReceiptsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentReceiptsView.swift; sourceTree = "<group>"; };
@@ -769,7 +778,6 @@
 		FDE773C52E00A2060061A662 /* PlaidForceRefreshCost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaidForceRefreshCost.swift; sourceTree = "<group>"; };
 		FDECFAC72EBF1201004DC491 /* AiAnimatedSwishSymbol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AiAnimatedSwishSymbol.swift; sourceTree = "<group>"; };
 		FDECFAC92EBF124E004DC491 /* AiAnimatedAliveLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AiAnimatedAliveLabel.swift; sourceTree = "<group>"; };
-		FDED0A782EC27A8700FBD08C /* CategoryInsightsSheetOG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryInsightsSheetOG.swift; sourceTree = "<group>"; };
 		FDED0A7A2EC2872600FBD08C /* ChartData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartData.swift; sourceTree = "<group>"; };
 		FDEE20662F7AAE5100E51FA4 /* MakeItRainUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MakeItRainUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		FDEE4D332EB0FFE300F16EEB /* PayMethodSortMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PayMethodSortMenu.swift; sourceTree = "<group>"; };
@@ -888,6 +896,7 @@
 				FD174C2D2ED53F7500A01F67 /* Extensions+Double.swift */,
 				FD174C2B2ED53F4000A01F67 /* Extensions+Int.swift */,
 				FD174C3B2ED541F900A01F67 /* Extensions+Scene.swift */,
+				FD2822E22F925B2400CA00B8 /* Extensions+Sequence.swift */,
 				FD174C2F2ED53FA300A01F67 /* Extensions+String.swift */,
 				FD174C232ED53E1900A01F67 /* Extensions+UiDevice.swift */,
 				FD174C272ED53EE000A01F67 /* Extensions+UiNavigationController.swift */,
@@ -909,6 +918,14 @@
 				FD174D502EDB776700A01F67 /* snow.sks */,
 			);
 			path = ChristmasListSnow;
+			sourceTree = "<group>";
+		};
+		FD2822FD2F97A72600CA00B8 /* Dashboard */ = {
+			isa = PBXGroup;
+			children = (
+				FD2822FE2F97A73400CA00B8 /* Dashboard.swift */,
+			);
+			path = Dashboard;
 			sourceTree = "<group>";
 		};
 		FD292E052C9B248B003C18D2 = {
@@ -1113,12 +1130,12 @@
 				FDA172622EF5972600C113F2 /* CivModels.swift */,
 				FDA172642EF5973400C113F2 /* CivCalculatingProgressView.swift */,
 				FDA1726A2EF60BA500C113F2 /* CivCharts.swift */,
-				FDA172662EF5974B00C113F2 /* CivDataPoint.swift */,
 				FDA1725E2EF5970C00C113F2 /* CivFakeNavLink.swift */,
 				FDA1725A2EF596FC00C113F2 /* CivMonthMiddleMan.swift */,
 				FDA172602EF5971A00C113F2 /* CivMultiMonthSheet.swift */,
 				FDA1725C2EF5970400C113F2 /* CivTransactionList.swift */,
-				FDED0A782EC27A8700FBD08C /* CategoryInsightsSheetOG.swift */,
+				FD2822DE2F911DED00CA00B8 /* CivBudgetBreakdown.swift */,
+				FD2822E02F9120EA00CA00B8 /* CivNetWorthChange.swift */,
 			);
 			path = CategoryInsightViews;
 			sourceTree = "<group>";
@@ -1231,6 +1248,7 @@
 		FDC26D7D2D3E86D500B0A97C /* CalendarSheets */ = {
 			isa = PBXGroup;
 			children = (
+				FD2822FD2F97A72600CA00B8 /* Dashboard */,
 				FDA172592EF596EC00C113F2 /* CategoryInsightViews */,
 				FDC26D952D3E86D500B0A97C /* CalendarDashboard.swift */,
 				FDC26D982D3E86D500B0A97C /* CalendarOptionsSheet.swift */,
@@ -1284,6 +1302,7 @@
 				FD7F77072E8D6A2E0087F229 /* EnteredByAndUpdatedByView.swift */,
 				FDC26DBB2D3E86D500B0A97C /* ExcludeFromTotalsLine.swift */,
 				FDAECC5C2DCE399E00C6EDA5 /* ExportCsvButton.swift */,
+				FD2822E42F92641D00CA00B8 /* GradientCircleDot.swift */,
 				FDC26DC92D3E86D500B0A97C /* LabeledRow.swift */,
 				FD4BABCF2D95F9EE00384AB3 /* LinkPreviewView.swift */,
 				FD06F6B92DEA4D2800753490 /* LittleBottomSheetContainer.swift */,
@@ -1479,6 +1498,7 @@
 				FD83716B2DEDE3660099C6F3 /* TransactionListView.swift */,
 				FD7F77012E8C75600087F229 /* TransactionTypeButton.swift */,
 				FDA1726C2EF993F900C113F2 /* RecentReceiptsView.swift */,
+				FD53CD782F84AD0B00810EAC /* CBRepTransactionCreateModel.swift */,
 			);
 			path = Transaction;
 			sourceTree = "<group>";
@@ -1811,7 +1831,6 @@
 				FD09FF4B2D9C30F100795C28 /* ListOrderUpdateModel.swift in Sources */,
 				FDFBC45A2DDF5BD6006DE685 /* PlaidBankView.swift in Sources */,
 				FD174C3C2ED541F900A01F67 /* Extensions+Scene.swift in Sources */,
-				FDED0A792EC27A8700FBD08C /* CategoryInsightsSheetOG.swift in Sources */,
 				FDC26E182D3E86D500B0A97C /* PreferenceKeys.swift in Sources */,
 				FD83FACA2E6F786D002A394D /* PlaygroundButton.swift in Sources */,
 				FDAECC292DC8FA6900C6EDA5 /* MonthNavigationLink.swift in Sources */,
@@ -1827,6 +1846,7 @@
 				FDC26E1E2D3E86D500B0A97C /* MultiYearSheet.swift in Sources */,
 				FD8F14632F1ECED20098CC49 /* PdfInvoiceViewForMultipleTransactions.swift in Sources */,
 				FDC26E1F2D3E86D500B0A97C /* CBMonth.swift in Sources */,
+				FD53CD792F84AD0B00810EAC /* CBRepTransactionCreateModel.swift in Sources */,
 				FD0DB2B52DD62F7500475334 /* PayMethodChartModels.swift in Sources */,
 				FDC26E202D3E86D500B0A97C /* TransactionEditView.swift in Sources */,
 				FDFBC45E2DDF6017006DE685 /* CBPlaidAccount.swift in Sources */,
@@ -1880,6 +1900,7 @@
 				FDA172692EF5999200C113F2 /* CumTotal.swift in Sources */,
 				FDC26E322D3E86D500B0A97C /* ExcludeFromTotalsLine.swift in Sources */,
 				FDC26E332D3E86D500B0A97C /* AppState.swift in Sources */,
+				FD2822FF2F97A73400CA00B8 /* Dashboard.swift in Sources */,
 				FD174C362ED540A800A01F67 /* Extensions+View.swift in Sources */,
 				FD09FF552D9C313D00795C28 /* ReturnIdModel.swift in Sources */,
 				FDC26E342D3E86D500B0A97C /* TransferSheet.swift in Sources */,
@@ -1978,6 +1999,7 @@
 				FD0DB2B12DD4DD6D00475334 /* PayMethodViewModel.swift in Sources */,
 				FD7DD9A82F0423B4008F3F71 /* AppSettings.swift in Sources */,
 				FDC26E4F2D3E86D500B0A97C /* ColorPickerView.swift in Sources */,
+				FD2822E32F925B2C00CA00B8 /* Extensions+Sequence.swift in Sources */,
 				FD06F6B82DEA36BD00753490 /* ChartOptionToggle.swift in Sources */,
 				FDC26E502D3E86D500B0A97C /* SplashScreen.swift in Sources */,
 				FD7F77292E900EF80087F229 /* CalendarProps.swift in Sources */,
@@ -1995,7 +2017,6 @@
 				FDC26E572D3E86D500B0A97C /* DayViewMac.swift in Sources */,
 				FD174C382ED540DA00A01F67 /* Extensions+UserDefaults.swift in Sources */,
 				FD49F8892DD77CBD00A563C8 /* PayMethodViewModelOG.swift in Sources */,
-				FDA172672EF5974B00C113F2 /* CivDataPoint.swift in Sources */,
 				FD8F14652F1ECF0C0098CC49 /* PdfInvoiceCreatorSheet.swift in Sources */,
 				FD8F146B2F2024350098CC49 /* PdfInvoiceCreatorModel.swift in Sources */,
 				FDBA69D02DEE29A6007FB0CB /* MinMaxEodChart.swift in Sources */,
@@ -2017,6 +2038,7 @@
 				FDE4E8142D5BF33200A883EE /* UndodoManager.swift in Sources */,
 				FDC26E602D3E86D500B0A97C /* SymbolPicker.swift in Sources */,
 				FDDDF9572DBFB87E00B85979 /* MultiTransactionSubmissionModel.swift in Sources */,
+				FD2822E12F9120EA00CA00B8 /* CivNetWorthChange.swift in Sources */,
 				FDD577FD2DC135B300C0B197 /* AdvancedSearchModel.swift in Sources */,
 				FD174D4F2ED8822000A01F67 /* PayMethodFilterMenu.swift in Sources */,
 				FD76DA452EA402CA002E30DA /* BudgetTable.swift in Sources */,
@@ -2052,6 +2074,7 @@
 				FDAECC4A2DCA6E3D00C6EDA5 /* PassThroughWindowPhone.swift in Sources */,
 				FDAECC482DCA6E2500C6EDA5 /* CalendarSheetLayerWrapper.swift in Sources */,
 				FDBA69D72DEF9152007FB0CB /* ChartSelectedDataContainer.swift in Sources */,
+				FD2822E52F92641D00CA00B8 /* GradientCircleDot.swift in Sources */,
 				FDC26E6E2D3E86D500B0A97C /* TransactionListLine.swift in Sources */,
 				FD618F4A2EE728E800D97C86 /* LogoPickerRow.swift in Sources */,
 				FD678ECC2DBABA4200D6BC5E /* CalendarNavGridHeader.swift in Sources */,
@@ -2100,6 +2123,7 @@
 				FDA172562EF459FE00C113F2 /* TevHashtags.swift in Sources */,
 				FD5563FC2EF1D40000830102 /* CustomCalculatorKeyboard.swift in Sources */,
 				FDC26E7E2D3E86D500B0A97C /* CategoryModel.swift in Sources */,
+				FD2822DF2F911DED00CA00B8 /* CivBudgetBreakdown.swift in Sources */,
 				FD8F154D2F225AFB0098CC49 /* PDFKitRepresentedView.swift in Sources */,
 				FD3DFD132EE0CDA9002C2051 /* CategoryOverView.swift in Sources */,
 				FDAECC5D2DCE399E00C6EDA5 /* ExportCsvButton.swift in Sources */,
@@ -2348,7 +2372,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.3;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
@@ -2415,7 +2439,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.3;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.0;

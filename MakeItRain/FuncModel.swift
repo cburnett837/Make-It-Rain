@@ -27,8 +27,16 @@ class FuncModel {
     
     var isLoading = false
     var loadTimes: [(id: UUID, date: Date, load: Double)] = []
-    
-    init(calModel: CalendarModel, payModel: PayMethodModel, catModel: CategoryModel, keyModel: KeywordModel, repModel: RepeatingTransactionModel, plaidModel: PlaidModel, webSocketManager: WebSocketManager) {
+        
+    init(
+        calModel: CalendarModel,
+        payModel: PayMethodModel,
+        catModel: CategoryModel,
+        keyModel: KeywordModel,
+        repModel: RepeatingTransactionModel,
+        plaidModel: PlaidModel,
+        webSocketManager: WebSocketManager
+    ) {
         self.calModel = calModel
         self.payModel = payModel
         self.catModel = catModel
@@ -60,13 +68,37 @@ class FuncModel {
 //    
 //    
     /// Establish a UUID for each device for the long poll server. The long poll will not respond to the device that makes the change.
-    @MainActor func setDeviceUUID() {
+    @MainActor
+    func setDeviceUUID() {
         if let uuid = UserDefaults.fetchOneString(requestedKey: "deviceUUID") {
             AppState.shared.deviceUUID = uuid
         } else {
             let uuid = UUID().uuidString
             UserDefaults.updateStringValue(valueToUpdate: uuid, keyToUpdate: "deviceUUID")
             AppState.shared.deviceUUID = uuid
+        }
+    }
+    
+    
+    func checkIfDownloadingDataIsNeeded() async -> Bool {
+        print("-- \(#function)")
+        
+        let submit = CheckIfShouldDownloadModel(lastNetworkTime: AppState.shared.lastNetworkTime ?? Date())
+        let model = RequestModel(requestType: "check_for_changes", model: submit)
+        typealias ResultResponse = Result<CheckIfShouldDownloadModel?, AppError>
+        async let result: ResultResponse = await NetworkManager(timeout: 10).singleRequest(requestModel: model, retainTime: false)
+        
+        switch await result {
+        case .success(let model):
+            if let model = model {
+                return model.shouldDownload
+            } else {
+                return true
+            }
+            
+        case .failure(let error):
+            LogManager.error(error.localizedDescription)
+            return true
         }
     }
     
@@ -130,7 +162,6 @@ class FuncModel {
 //        
         
         
-        
         /// If coming from the tempList, remove all the data so it's guaranteed fresh.
         /// createNewStructs will be true here.
         if refreshTechnique == .viaTempListButton || refreshTechnique == .viaTempListSceneChange {
@@ -161,8 +192,10 @@ class FuncModel {
         /// Grab anything that got stuffed into temporary storage while the network connection was bad, and send it to the server before trying to download any new data.
         await submitCachedTransactionsIfApplicable()
         await submitCachedAccessorialsIfApplicable()
-                                                                 
+                                             
+        
         /// Populate accessorials from cache.
+        payModel.methsAreCachedAtLaunch = false
         await payModel.populateFromCoreData(setDefaultPayMethod: setDefaultPayMethod, calModel: calModel)
         await catModel.populateFromCoreData()
         await catModel.populateCategoryGroupsFromCoreData()
@@ -186,7 +219,8 @@ class FuncModel {
             if NavDestination.justMonths.contains(currentNavSelection) {
                 
                 /// Grab Payment Methods (only when logging in. We need this to have a payment method in place before the viewing month loads.)
-                if AppState.shared.isLoggingInForFirstTime {
+                /// If not logging in, methods will be downloaded the accessory download function.
+                if AppState.shared.isLoggingInForFirstTime, !payModel.methsAreCachedAtLaunch {
                     await payModel.fetchPaymentMethods(calModel: calModel)
                 }
                 
@@ -199,14 +233,13 @@ class FuncModel {
                     next = calModel.months.getAdjacent(num: (currentNavSelection.monthNum ?? 0), direction: .next)
                     prev = calModel.months.getAdjacent(num: (currentNavSelection.monthNum ?? 0), direction: .prev)
                 }
-                
-                /// Download user settings if it's a user-initiated-refresh, or a scene-change-initiated refresh.
-                if refreshTechnique != .viaInitial {
-                    await AppSettings.shared.fetch()
-                }
-                
+        
                 /// Download viewing month.
-                await downloadViewingMonth(viewingMonth, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
+                await downloadViewingMonth(
+                    viewingMonth,
+                    createNewStructs: createNewStructs,
+                    refreshTechnique: refreshTechnique
+                )
                 
                 /// Download other months and accessorials.
                 await downloadOtherMonthsAndAccessorials(
@@ -237,9 +270,6 @@ class FuncModel {
                         createNewStructs: createNewStructs,
                         refreshTechnique: refreshTechnique
                     )
-                    
-                    
-                    
                     
                     /// Download Plaid stuff.
                     //await downloadPlaidStuff()
@@ -305,7 +335,12 @@ class FuncModel {
 //    }
     
     
-    @MainActor private func downloadViewingMonth(_ viewingMonth: CBMonth, createNewStructs: Bool, refreshTechnique: RefreshTechnique) async  {
+    @MainActor
+    private func downloadViewingMonth(
+        _ viewingMonth: CBMonth,
+        createNewStructs: Bool,
+        refreshTechnique: RefreshTechnique
+    ) async  {
         /// Grab the viewing month first.
         //print("fetching \(viewingMonth.num)");
         let start = CFAbsoluteTimeGetCurrent()
@@ -363,7 +398,14 @@ class FuncModel {
 //    }
     
     
-    @MainActor private func downloadOtherMonths(viewingMonth: CBMonth, next: CBMonth?, prev: CBMonth?, createNewStructs: Bool, refreshTechnique: RefreshTechnique) async {
+    @MainActor
+    private func downloadOtherMonths(
+        viewingMonth: CBMonth,
+        next: CBMonth?,
+        prev: CBMonth?,
+        createNewStructs: Bool,
+        refreshTechnique: RefreshTechnique
+    ) async {
         /// Grab all the other months & extra data (payment methods, categories, etc)
         let everythingElseStart = CFAbsoluteTimeGetCurrent()
         await withTaskGroup(of: Void.self) { group in
@@ -392,7 +434,8 @@ class FuncModel {
     }
     
     
-    @MainActor private func downloadAccessorials(createNewStructs: Bool) async {
+    @MainActor
+    private func downloadAccessorials(createNewStructs: Bool) async {
         /// Grab all the other months & extra data (payment methods, categories, etc)
         let everythingElseStart = CFAbsoluteTimeGetCurrent()
         await withTaskGroup(of: Void.self) { group in
@@ -416,13 +459,20 @@ class FuncModel {
         }
         
         let everytingElseElapsed = CFAbsoluteTimeGetCurrent() - everythingElseStart
-        print("⏰It took \(everytingElseElapsed) seconds to fetch all accessorials")
+        print("⏰It took \(everytingElseElapsed) seconds to fetch all logos, accessorials, and receipts.")
     }
     
         
-    @MainActor private func downloadOtherMonthsAndAccessorials(viewingMonth: CBMonth, next: CBMonth?, prev: CBMonth?, createNewStructs: Bool, refreshTechnique: RefreshTechnique) async {
+    @MainActor
+    private func downloadOtherMonthsAndAccessorials(
+        viewingMonth: CBMonth,
+        next: CBMonth?,
+        prev: CBMonth?,
+        createNewStructs: Bool,
+        refreshTechnique: RefreshTechnique
+    ) async {
         /// Grab all the other months & extra data (payment methods, categories, etc)
-        let everythingElseStart = CFAbsoluteTimeGetCurrent()
+        //let everythingElseStart = CFAbsoluteTimeGetCurrent()
         
         await withTaskGroup(of: Void.self) { group in
             //group.addTask { await self.downloadPlaidStuff() }
@@ -448,15 +498,19 @@ class FuncModel {
             group.addTask { await self.fetchAccessorials() }
             
             /// Grab Receipts.
-            group.addTask { await self.calModel.fetchReceiptsFromServer(funcModel: self) }
+            //group.addTask { await self.calModel.fetchReceiptsFromServer(funcModel: self) }
         }
-        let everytingElseElapsed = CFAbsoluteTimeGetCurrent() - everythingElseStart
-        print("⏰It took \(everytingElseElapsed) seconds to fetch all other months")
+        //let everytingElseElapsed = CFAbsoluteTimeGetCurrent() - everythingElseStart
+        //print("⏰It took \(everytingElseElapsed) seconds to fetch all other months, logos, receipts, and accessorials.")
     }
     
     
     
-    func fetchAccessorials(file: String = #file, line: Int = #line, function: String = #function) async {
+    func fetchAccessorials(
+        file: String = #file,
+        line: Int = #line,
+        function: String = #function
+    ) async {
         NSLog("\(file):\(line) : \(function)")
         LogManager.log()
         
@@ -477,27 +531,22 @@ class FuncModel {
         case .success(let model):
             LogManager.networkingSuccessful()
             if let model {
+                if let settings = model.settings {
+                    AppSettings.shared.setFromServerData(setting: settings)
+                }
+                                
+                await self.payModel.handleIncoming(meths: model.paymentMethods, calModel: calModel, repModel: repModel, incomingDataType: .viaStandardRefresh)
                 await self.catModel.handleIncoming(cats: model.categories, calModel: calModel, keyModel: keyModel, repModel: repModel, incomingDataType: .viaStandardRefresh)
-                //await self.catModel.handleDownloadedCategoryGroups(groups: model.categoryGroups)
-                //await self.keyModel.handleDownloadedKeywords(keys: model.keywords)
-                
                 await self.catModel.handleIncoming(groups: model.categoryGroups, incomingDataType: .viaStandardRefresh)
                 await self.keyModel.handleIncoming(keys: model.keywords, incomingDataType: .viaStandardRefresh)
-                
                 await self.repModel.handleIncoming(reps: model.repeatingTransactions, incomingDataType: .viaStandardRefresh)
                 await self.calModel.handleIncoming(tags: model.tags, incomingDataType: .viaStandardRefresh)
                 await self.calModel.handleIncoming(titles: model.suggestedTitles, incomingDataType: .viaStandardRefresh)
                 await self.calModel.handleIncoming(budgets: model.appSuiteBudgets, incomingDataType: .viaStandardRefresh)
                 await self.plaidModel.handleIncoming(banks: model.plaidBanks, incomingDataType: .viaStandardRefresh)
-                
-//                if let appSuiteBudgets = model.appSuiteBudgets {
-//                    calModel.appSuiteBudgets = model.appSuiteBudgets
-//                }
-                
             }
             
-            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-            print("⏰It took \(currentElapsed) seconds to fetch the keywords")
+            print("⏰It took \(CFAbsoluteTimeGetCurrent() - start) seconds to fetch the accessorials")
 
         case .failure(let error):
             switch error {
@@ -2249,9 +2298,10 @@ class FuncModel {
                 }
                 
                 if logo.relatedRecordType.id == paymentMethodTypeID {
-                    let meth = payModel.getPaymentMethod(by: logo.relatedID)
-                    meth.logo = data
-                    changePaymentMethodLogoLocally(meth: meth, logoData: data)
+                    if let meth = payModel.getPaymentMethod(by: logo.relatedID) {
+                        meth.logo = data
+                        changePaymentMethodLogoLocally(meth: meth, logoData: data)
+                    }
                     
                 } else if logo.relatedRecordType.id == plaidBankTypeID {
                     plaidModel.getBank(by: logo.relatedID)?.logo = data
@@ -2527,10 +2577,9 @@ class FuncModel {
         }
     }
     
-    
-    
-    @discardableResult
+            
     @MainActor
+    @discardableResult
     func submitListOrders(items: Array<ListOrderUpdate>, for updateType: ListOrderUpdateType) async -> Bool {
         print("-- \(#function)")
         LogManager.log()
@@ -2552,8 +2601,8 @@ class FuncModel {
     }
     
     
-    @discardableResult
     @MainActor
+    @discardableResult
     func fetchAppSuiteBudgets() async -> Bool {
         print("-- \(#function)")
         LogManager.log()
@@ -2655,8 +2704,7 @@ class FuncModel {
         
         switch result {
         case .success(let data):
-            if let data = data {
-                
+            if let data = data {                
                 ImageCache.shared.saveToCache(
                     parentTypeId: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction).id,
                     parentId: file.relatedID,

@@ -6,8 +6,8 @@
 //
 
 import Foundation
-struct ChartData: Identifiable {
-    var id: String { return category.id }
+struct ChartData: Identifiable, Equatable {
+    var id: String { return "\(categoryGroup?.id ?? "0")-\(category.id)" }
     
     let category: CBCategory
     var budgetForCategory: Double
@@ -19,7 +19,13 @@ struct ChartData: Identifiable {
     var incomeMinusPayments: Double
     var expenses: Double
     var expensesMinusIncome: Double
-    var chartPercentage: Double
-    var actualPercentage: Double
+    var chartPercentage: Double /// Only used in ``CivBudgetBreakdown``, in a chart that isn't currently used
+    var actualPercentage: Double /// Only used in ``CivBudgetBreakdown``, in a chart that isn't currently used
     var budgetObjects: Array<CBBudget>?
+    
+    
+    var month: CBMonth?
+    var dateForMonth: Date?
+    var transactionCount: Int?
+    var costPerMonth: [ChartData] = []
 }

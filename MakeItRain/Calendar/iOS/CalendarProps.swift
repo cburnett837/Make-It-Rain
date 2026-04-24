@@ -5,7 +5,6 @@
 //  Created by Cody Burnett on 10/3/25.
 //
 
-
 import SwiftUI
 
 @Observable
@@ -46,7 +45,7 @@ class CalendarProps {
     var inspectorContent: CalendarInspectorContent?
     ///
     
-    var navPath = NavigationPath()
+    var navPath: [CalendarNavDest] = []//NavigationPath()
     
     var bottomPanelContent: BottomPanelContent?
                 

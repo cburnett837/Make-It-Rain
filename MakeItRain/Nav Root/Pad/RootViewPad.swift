@@ -25,12 +25,13 @@ struct RootViewPad: View {
     
     //@FocusState private var focusedField: Int?
     //@FocusState private var searchFocus: Int?
-    let monthNavigationNamespace: Namespace.ID
         
     /// Used to navigate to additional pages in the bottom panel. (Plaid transactions reject all before date)
-    @State private var navPath = NavigationPath()
+    //@State private var navPath = NavigationPath()
+    @State private var navPath: [CalendarNavDest] = []
     @State private var categoryAnalysisModel = CivViewModel()
-
+    @State private var overviewAnalysisModel = CivViewModel()
+    @State private var moreNavPath = NavigationPath()
 
     
     //@State private var columnVisibility = NavigationSplitViewVisibility.doubleColumn
@@ -41,7 +42,7 @@ struct RootViewPad: View {
         @Bindable var calProps = calProps
         
         NavigationSplitView(columnVisibility: $navManager.columnVisibility) {
-            NavSidebarPad(monthNavigationNamespace: monthNavigationNamespace)
+            NavSidebarPad()
         } detail: {
             if let selectedMonth = navManager.selectedMonth, calModel.isShowingFullScreenCoverOnIpad == false {
                 CalendarViewPhone(enumID: selectedMonth)
@@ -50,7 +51,7 @@ struct RootViewPad: View {
                     }
                 
             } else if let dest = navManager.selection {
-                NavDestination.view(for: dest)                
+                NavDestination.view(for: dest, navPath: $moreNavPath)                
             }
         }
         .inspector(isPresented: $calProps.showInspector) {
@@ -75,10 +76,11 @@ struct RootViewPad: View {
         Group {
             switch content {
             case .dashboard:
-                CalendarDashboard()
+                Text("NO more")
+                //CalendarDashboard()
                 
             case .analysisSheet:
-                CategoryInsightsViewWrapperIpad(showAnalysisSheet: $calProps.showInspector, model: categoryAnalysisModel)
+                CategoryInsightsViewWrapperIpad(showAnalysisSheet: $calProps.showInspector, model: categoryAnalysisModel, overviewModel: overviewAnalysisModel)
                     //.onDisappear { calModel.isInMultiSelectMode = false }
                 
             case .transactionList:

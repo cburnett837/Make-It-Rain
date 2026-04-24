@@ -1,6 +1,6 @@
 //
 //  MyLogger.swift
-//  JarvisPhoneApp
+//  MakeItRain
 //
 //  Created by Cody Burnett on 9/10/24.
 //
@@ -14,7 +14,7 @@ struct LogManager {
         subsystem: "MakeItRainLogger",
         category: "LogManager"
         /// To Read: Plug iPhone into Mac, open console app, and start streaming.
-        /// Set search type to "subsystem" and search for the key in the subsystem above (Jarvis)
+        /// Set search type to "subsystem" and search for the key in the subsystem above (MakeItRainLogger)
     )
     
     

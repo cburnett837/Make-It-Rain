@@ -77,14 +77,20 @@ struct ResetMonthOptionSheet: View {
                 budgetSection
                 populatedStatusSection
             }
-            #if os(iOS)
+            
             .navigationTitle("Reset Options")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .topBarTrailing) { closeButton }
                 ToolbarItem(placement: .bottomBar) { resetButton }
+                #else
+                ToolbarItem(placement: .destructiveAction) { resetButton }
+                ToolbarItem(placement: .confirmationAction) { closeButton }
+                #endif
             }
-            #endif
         }
         .task {
             payModel.paymentMethods
@@ -238,7 +244,7 @@ struct ResetMonthOptionSheet: View {
         }
         #if os(macOS)
         .foregroundStyle(.red)
-        .buttonStyle(.codyStandardWithHover)
+        .buttonStyle(.roundMacButton(horizontalPadding: 10))
         #else
         .tint(.red)
         .buttonStyle(.glassProminent)
@@ -254,5 +260,9 @@ struct ResetMonthOptionSheet: View {
             Image(systemName: "xmark")
                 .schemeBasedForegroundStyle()
         }
+        #if os(macOS)
+        .foregroundStyle(Color.theme)
+        .buttonStyle(.roundMacButton)
+        #endif
     }
 }

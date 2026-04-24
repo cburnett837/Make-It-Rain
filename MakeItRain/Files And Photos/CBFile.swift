@@ -18,7 +18,7 @@ class CBFile: Codable, Identifiable, Hashable {
     
     var isPlaceholder: Bool = false
     
-    enum CodingKeys: CodingKey { case id, related_id, related_type_id, uuid, ext, active, user_id, account_id, device_uuid }
+    enum CodingKeys: CodingKey { case id, related_id, related_type_id, file_type, uuid, ext, active, user_id, account_id, device_uuid }
     
     init(relatedID: String, uuid: String, parentType: XrefEnum, fileType: FileType) {
         self.id = UUID().uuidString
@@ -33,6 +33,7 @@ class CBFile: Codable, Identifiable, Hashable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(Int(id), forKey: .id) // This weird Int() thing is for the drag and drop
         try container.encode(relatedID, forKey: .related_id)
+        try container.encode(fileType.rawValue, forKey: .file_type)
         try container.encode(fileType.ext, forKey: .ext)
         try container.encode(uuid, forKey: .uuid)
         try container.encode(active ? 1 : 0, forKey: .active)

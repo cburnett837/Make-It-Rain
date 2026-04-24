@@ -22,10 +22,19 @@ class CBCategoryGroup: Codable, Identifiable, Hashable, Equatable {
     var action: CategoryGroupAction
     var enteredBy: CBUser = AppState.shared.user!
     var updatedBy: CBUser = AppState.shared.user!
+    var enteredById: Int?
+    var updatedById: Int?
     var enteredDate: Date
     var updatedDate: Date
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, categories, active, user_id, account_id, device_uuid, entered_by, updated_by, entered_date, updated_date }
+    /// For the dashboard
+    var budgetAmount: Double = 0.0    
+    var debitAmounts: DashboardAmounts?
+    var creditAmounts: DashboardAmounts?
+    var allAmounts: DashboardAmounts?
+    var isExpanded: Bool = false
+    
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, categories, active, user_id, account_id, device_uuid, entered_by, updated_by, entered_date, updated_date, entered_by_id, updated_by_id, budget_amount, debit_amounts, credit_amounts, all_amounts }
         
     init() {
         let uuid = UUID().uuidString
@@ -88,8 +97,10 @@ class CBCategoryGroup: Codable, Identifiable, Hashable, Equatable {
         try container.encode(AppState.shared.user?.id, forKey: .user_id)
         try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
         try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
-        try container.encode(enteredBy, forKey: .entered_by) // for the Transferable protocol
-        try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
+//        try container.encode(enteredBy, forKey: .entered_by) // for the Transferable protocol
+//        try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
+        try container.encode(enteredById, forKey: .entered_by_id) // for the Transferable protocol
+        try container.encode(updatedById, forKey: .updated_by_id) // for the Transferable protocol
         try container.encode(enteredDate.string(to: .serverDateTime), forKey: .entered_date) // for the Transferable protocol
         try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date) // for the Transferable protocol
     }
@@ -114,22 +125,39 @@ class CBCategoryGroup: Codable, Identifiable, Hashable, Equatable {
         
         action = .edit
         
-        enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
-        updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
+        //enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
+        //updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
+        enteredDate = try container.decode(Date.self, forKey: .entered_date)
+        updatedDate = try container.decode(Date.self, forKey: .updated_date)
         
-        let enteredDate = try container.decode(String?.self, forKey: .entered_date)
-        if let enteredDate {
-            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime)!
-        } else {
-            fatalError("Could not determine enteredDate date")
+        if let enteredById = try container.decode(Int?.self, forKey: .entered_by_id) {
+            self.enteredBy = AppState.shared.getUserBy(id: enteredById) ?? CBUser()
         }
         
-        let updatedDate = try container.decode(String?.self, forKey: .updated_date)
-        if let updatedDate {
-            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
-        } else {
-            fatalError("Could not determine updatedDate date")
+        if let updatedById = try container.decode(Int?.self, forKey: .updated_by_id) {
+            self.updatedBy = AppState.shared.getUserBy(id: updatedById) ?? CBUser()
         }
+        
+        
+        /// For the dashboard
+        self.budgetAmount = try container.decodeIfPresent(Double.self, forKey: .budget_amount) ?? 0.0
+        self.debitAmounts = try container.decodeIfPresent(DashboardAmounts.self, forKey: .debit_amounts)
+        self.creditAmounts = try container.decodeIfPresent(DashboardAmounts.self, forKey: .credit_amounts)
+        self.allAmounts = try container.decodeIfPresent(DashboardAmounts.self, forKey: .all_amounts)                
+        
+//        let enteredDate = try container.decode(String?.self, forKey: .entered_date)
+//        if let enteredDate {
+//            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime)!
+//        } else {
+//            fatalError("Could not determine enteredDate date")
+//        }
+//        
+//        let updatedDate = try container.decode(String?.self, forKey: .updated_date)
+//        if let updatedDate {
+//            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
+//        } else {
+//            fatalError("Could not determine updatedDate date")
+//        }
     }
     
     
@@ -179,6 +207,11 @@ class CBCategoryGroup: Codable, Identifiable, Hashable, Equatable {
         self.amountString = group.amount?.currencyWithDecimals()
         self.categories = group.categories
         self.active = group.active
+        
+        self.budgetAmount = group.budgetAmount
+        self.debitAmounts = group.debitAmounts
+        self.creditAmounts = group.creditAmounts
+        self.allAmounts = group.allAmounts
     }
     
     

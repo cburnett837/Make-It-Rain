@@ -93,6 +93,12 @@ struct CategoryOverView: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .task { await prepareView() }
+        .onDisappear {
+            if model.didForceToViewIncomeMetrics, let oldMetric = model.metricBeforeForceToIncomeHappened {
+                model.didForceToViewIncomeMetrics = false
+                model.displayedMetric = oldMetric
+            }
+        }
         .refreshable {
             model.fetchHistoryTime = Date()
             model.fetchHistory(setChartAsNew: true)
@@ -126,11 +132,15 @@ struct CategoryOverView: View {
             }
             #endif
         }
-        .onChange(of: categoryEditID) { oldValue, newValue in
-            if let newValue {
-                editCategory = catModel.getCategory(by: newValue)
+        .onChange(of: categoryEditID) { oldId, newId in
+            if let newId {
+                if let category = catModel.getCategory(by: newId) {
+                    editCategory = category
+                } else {
+                    editCategory = CBCategory(uuid: newId)
+                }                
             } else {
-                catModel.saveCategory(id: oldValue!, calModel: calModel, keyModel: keyModel)
+                catModel.saveCategory(id: oldId!, calModel: calModel, keyModel: keyModel)
                 
                 /// Close if deleting since it will be gone.
                 /// Also close if adding, since the server will send back the real ID, and cause the list to redraw, which would cause the sheet to dismiss itself and reopen.
@@ -175,7 +185,6 @@ struct CategoryOverView: View {
                 model.refreshTask?.cancel()
             }
         }
-        
     }
     
     
@@ -211,7 +220,19 @@ struct CategoryOverView: View {
             categoryEditID = category.id
         }
         
-        await model.prepareView()
+        
+        if !model.isForGroup {
+            if model.category!.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .income) {
+                model.metricBeforeForceToIncomeHappened = model.displayedMetric
+                model.displayedMetric = .income
+                model.didForceToViewIncomeMetrics = true
+            }
+        }
+        
+        
+        if category.action != .add {
+            await model.prepareView()
+        }
     }
 }
 

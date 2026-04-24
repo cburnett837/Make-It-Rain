@@ -22,6 +22,8 @@ class CBLocation: Codable, Identifiable, Equatable, Hashable {
     var mapItem: MKMapItem?
     var enteredBy: CBUser = AppState.shared.user!
     var updatedBy: CBUser = AppState.shared.user!
+    var enteredById: Int?
+    var updatedById: Int?
     var enteredDate: Date
     var updatedDate: Date
     var identifier: String?
@@ -34,7 +36,7 @@ class CBLocation: Codable, Identifiable, Equatable, Hashable {
     }
     
     
-    enum CodingKeys: CodingKey { case id, uuid, related_id, related_type_id, title, lat, lon, active, user_id, account_id, device_uuid, entered_by, updated_by, entered_date, updated_date, action, identifier }
+    enum CodingKeys: CodingKey { case id, uuid, related_id, related_type_id, title, lat, lon, active, user_id, account_id, device_uuid, entered_by, updated_by, entered_date, updated_date, action, identifier, entered_by_id, updated_by_id }
 
                 
     init(relatedID: String, locationType: XrefEnum, title: String, mapItem: MKMapItem?) {
@@ -80,10 +82,12 @@ class CBLocation: Codable, Identifiable, Equatable, Hashable {
         try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
         try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
         try container.encode(relatedRecordType.id, forKey: .related_type_id)
-        try container.encode(enteredBy, forKey: .entered_by) // for the Transferable protocol
-        try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
-        try container.encode(enteredDate.string(to: .serverDateTime), forKey: .entered_date) // for the Transferable protocol
-        try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date) // for the Transferable protocol
+        //try container.encode(enteredBy, forKey: .entered_by) // for the Transferable protocol
+        //try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
+        try container.encode(enteredById, forKey: .entered_by_id) // for the Transferable protocol
+        try container.encode(updatedById, forKey: .updated_by_id) // for the Transferable protocol
+        try container.encode(enteredDate, forKey: .entered_date) // for the Transferable protocol
+        try container.encode(updatedDate, forKey: .updated_date) // for the Transferable protocol
     }
     
     required init(from decoder: Decoder) throws {
@@ -114,22 +118,32 @@ class CBLocation: Codable, Identifiable, Equatable, Hashable {
         
         action = .edit
         
-        enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
-        updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
+        //enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
+        //updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
+        enteredDate = try container.decode(Date.self, forKey: .entered_date)
+        updatedDate = try container.decode(Date.self, forKey: .updated_date)
         
-        let enteredDate = try container.decode(String?.self, forKey: .entered_date)
-        if let enteredDate {
-            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime)!
-        } else {
-            fatalError("Could not determine enteredDate date")
+        if let enteredById = try container.decode(Int?.self, forKey: .entered_by_id) {
+            self.enteredBy = AppState.shared.getUserBy(id: enteredById) ?? CBUser()
         }
         
-        let updatedDate = try container.decode(String?.self, forKey: .updated_date)
-        if let updatedDate {
-            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
-        } else {
-            fatalError("Could not determine updatedDate date")
+        if let updatedById = try container.decode(Int?.self, forKey: .updated_by_id) {
+            self.updatedBy = AppState.shared.getUserBy(id: updatedById) ?? CBUser()
         }
+        
+//        let enteredDate = try container.decode(String?.self, forKey: .entered_date)
+//        if let enteredDate {
+//            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime)!
+//        } else {
+//            fatalError("Could not determine enteredDate date")
+//        }
+//        
+//        let updatedDate = try container.decode(String?.self, forKey: .updated_date)
+//        if let updatedDate {
+//            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
+//        } else {
+//            fatalError("Could not determine updatedDate date")
+//        }
     }
     
     

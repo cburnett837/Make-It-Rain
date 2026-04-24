@@ -44,6 +44,8 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
     var action: RepeatingTransactionAction
     var enteredBy: CBUser = AppState.shared.user!
     var updatedBy: CBUser = AppState.shared.user!
+    var enteredById: Int?
+    var updatedById: Int?
     var enteredDate: Date
     var updatedDate: Date
     var include: Bool
@@ -196,7 +198,7 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         ]
     }
         
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, title_hex_code, payment_method, payment_method_pay_to, category, active, user_id, account_id, device_uuid, when, sunday, monday, tuesday, wednesday, thursday, friday, saturday, january, february, march, april, may, june, july, august, september, october, november, december, day1, day2, day3, day4, day5, day6, day7, day8, day9, day10, day11, day12, day13, day14, day15, day16, day17, day18, day19, day20, day21, day22, day23, day24, day25, day26, day27, day28, day29, day30, day31, entered_by, updated_by, entered_date, updated_date, repeating_transaction_type_id, notes, include, factor_in_calculations }
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, title_hex_code, payment_method, payment_method_pay_to, category, active, user_id, account_id, device_uuid, when, sunday, monday, tuesday, wednesday, thursday, friday, saturday, january, february, march, april, may, june, july, august, september, october, november, december, day1, day2, day3, day4, day5, day6, day7, day8, day9, day10, day11, day12, day13, day14, day15, day16, day17, day18, day19, day20, day21, day22, day23, day24, day25, day26, day27, day28, day29, day30, day31, entered_by, updated_by, entered_date, updated_date, repeating_transaction_type_id, notes, include, factor_in_calculations, entered_by_id, updated_by_id }
     
     
     func encode(to encoder: Encoder) throws {
@@ -219,56 +221,56 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         try container.encode(base64, forKey: .notes)
 
         
-        try container.encode(when.filter { $0.when == "sunday" }.first!.active, forKey: .sunday)
-        try container.encode(when.filter { $0.when == "monday" }.first!.active, forKey: .monday)
-        try container.encode(when.filter { $0.when == "tuesday" }.first!.active, forKey: .tuesday)
-        try container.encode(when.filter { $0.when == "wednesday" }.first!.active, forKey: .wednesday)
-        try container.encode(when.filter { $0.when == "thursday" }.first!.active, forKey: .thursday)
-        try container.encode(when.filter { $0.when == "friday" }.first!.active, forKey: .friday)
-        try container.encode(when.filter { $0.when == "saturday" }.first!.active, forKey: .saturday)
-        try container.encode(when.filter { $0.when == "january" }.first!.active, forKey: .january)
-        try container.encode(when.filter { $0.when == "february" }.first!.active, forKey: .february)
-        try container.encode(when.filter { $0.when == "march" }.first!.active, forKey: .march)
-        try container.encode(when.filter { $0.when == "april" }.first!.active, forKey: .april)
-        try container.encode(when.filter { $0.when == "may" }.first!.active, forKey: .may)
-        try container.encode(when.filter { $0.when == "june" }.first!.active, forKey: .june)
-        try container.encode(when.filter { $0.when == "july" }.first!.active, forKey: .july)
-        try container.encode(when.filter { $0.when == "august" }.first!.active, forKey: .august)
-        try container.encode(when.filter { $0.when == "september" }.first!.active, forKey: .september)
-        try container.encode(when.filter { $0.when == "october" }.first!.active, forKey: .october)
-        try container.encode(when.filter { $0.when == "november" }.first!.active, forKey: .november)
-        try container.encode(when.filter { $0.when == "december" }.first!.active, forKey: .december)
-        try container.encode(when.filter { $0.when == "day1" }.first!.active, forKey: .day1)
-        try container.encode(when.filter { $0.when == "day2" }.first!.active, forKey: .day2)
-        try container.encode(when.filter { $0.when == "day3" }.first!.active, forKey: .day3)
-        try container.encode(when.filter { $0.when == "day4" }.first!.active, forKey: .day4)
-        try container.encode(when.filter { $0.when == "day5" }.first!.active, forKey: .day5)
-        try container.encode(when.filter { $0.when == "day6" }.first!.active, forKey: .day6)
-        try container.encode(when.filter { $0.when == "day7" }.first!.active, forKey: .day7)
-        try container.encode(when.filter { $0.when == "day8" }.first!.active, forKey: .day8)
-        try container.encode(when.filter { $0.when == "day9" }.first!.active, forKey: .day9)
-        try container.encode(when.filter { $0.when == "day10" }.first!.active, forKey: .day10)
-        try container.encode(when.filter { $0.when == "day11" }.first!.active, forKey: .day11)
-        try container.encode(when.filter { $0.when == "day12" }.first!.active, forKey: .day12)
-        try container.encode(when.filter { $0.when == "day13" }.first!.active, forKey: .day13)
-        try container.encode(when.filter { $0.when == "day14" }.first!.active, forKey: .day14)
-        try container.encode(when.filter { $0.when == "day15" }.first!.active, forKey: .day15)
-        try container.encode(when.filter { $0.when == "day16" }.first!.active, forKey: .day16)
-        try container.encode(when.filter { $0.when == "day17" }.first!.active, forKey: .day17)
-        try container.encode(when.filter { $0.when == "day18" }.first!.active, forKey: .day18)
-        try container.encode(when.filter { $0.when == "day19" }.first!.active, forKey: .day19)
-        try container.encode(when.filter { $0.when == "day20" }.first!.active, forKey: .day20)
-        try container.encode(when.filter { $0.when == "day21" }.first!.active, forKey: .day21)
-        try container.encode(when.filter { $0.when == "day22" }.first!.active, forKey: .day22)
-        try container.encode(when.filter { $0.when == "day23" }.first!.active, forKey: .day23)
-        try container.encode(when.filter { $0.when == "day24" }.first!.active, forKey: .day24)
-        try container.encode(when.filter { $0.when == "day25" }.first!.active, forKey: .day25)
-        try container.encode(when.filter { $0.when == "day26" }.first!.active, forKey: .day26)
-        try container.encode(when.filter { $0.when == "day27" }.first!.active, forKey: .day27)
-        try container.encode(when.filter { $0.when == "day28" }.first!.active, forKey: .day28)
-        try container.encode(when.filter { $0.when == "day29" }.first!.active, forKey: .day29)
-        try container.encode(when.filter { $0.when == "day30" }.first!.active, forKey: .day30)
-        try container.encode(when.filter { $0.when == "day31" }.first!.active, forKey: .day31)
+        try container.encode(when.filter { $0.when == "sunday" }.first!.active ? 1 : 0, forKey: .sunday)
+        try container.encode(when.filter { $0.when == "monday" }.first!.active ? 1 : 0, forKey: .monday)
+        try container.encode(when.filter { $0.when == "tuesday" }.first!.active ? 1 : 0, forKey: .tuesday)
+        try container.encode(when.filter { $0.when == "wednesday" }.first!.active ? 1 : 0, forKey: .wednesday)
+        try container.encode(when.filter { $0.when == "thursday" }.first!.active ? 1 : 0, forKey: .thursday)
+        try container.encode(when.filter { $0.when == "friday" }.first!.active ? 1 : 0, forKey: .friday)
+        try container.encode(when.filter { $0.when == "saturday" }.first!.active ? 1 : 0, forKey: .saturday)
+        try container.encode(when.filter { $0.when == "january" }.first!.active ? 1 : 0, forKey: .january)
+        try container.encode(when.filter { $0.when == "february" }.first!.active ? 1 : 0, forKey: .february)
+        try container.encode(when.filter { $0.when == "march" }.first!.active ? 1 : 0, forKey: .march)
+        try container.encode(when.filter { $0.when == "april" }.first!.active ? 1 : 0, forKey: .april)
+        try container.encode(when.filter { $0.when == "may" }.first!.active ? 1 : 0, forKey: .may)
+        try container.encode(when.filter { $0.when == "june" }.first!.active ? 1 : 0, forKey: .june)
+        try container.encode(when.filter { $0.when == "july" }.first!.active ? 1 : 0, forKey: .july)
+        try container.encode(when.filter { $0.when == "august" }.first!.active ? 1 : 0, forKey: .august)
+        try container.encode(when.filter { $0.when == "september" }.first!.active ? 1 : 0, forKey: .september)
+        try container.encode(when.filter { $0.when == "october" }.first!.active ? 1 : 0, forKey: .october)
+        try container.encode(when.filter { $0.when == "november" }.first!.active ? 1 : 0, forKey: .november)
+        try container.encode(when.filter { $0.when == "december" }.first!.active ? 1 : 0, forKey: .december)
+        try container.encode(when.filter { $0.when == "day1" }.first!.active ? 1 : 0, forKey: .day1)
+        try container.encode(when.filter { $0.when == "day2" }.first!.active ? 1 : 0, forKey: .day2)
+        try container.encode(when.filter { $0.when == "day3" }.first!.active ? 1 : 0, forKey: .day3)
+        try container.encode(when.filter { $0.when == "day4" }.first!.active ? 1 : 0, forKey: .day4)
+        try container.encode(when.filter { $0.when == "day5" }.first!.active ? 1 : 0, forKey: .day5)
+        try container.encode(when.filter { $0.when == "day6" }.first!.active ? 1 : 0, forKey: .day6)
+        try container.encode(when.filter { $0.when == "day7" }.first!.active ? 1 : 0, forKey: .day7)
+        try container.encode(when.filter { $0.when == "day8" }.first!.active ? 1 : 0, forKey: .day8)
+        try container.encode(when.filter { $0.when == "day9" }.first!.active ? 1 : 0, forKey: .day9)
+        try container.encode(when.filter { $0.when == "day10" }.first!.active ? 1 : 0, forKey: .day10)
+        try container.encode(when.filter { $0.when == "day11" }.first!.active ? 1 : 0, forKey: .day11)
+        try container.encode(when.filter { $0.when == "day12" }.first!.active ? 1 : 0, forKey: .day12)
+        try container.encode(when.filter { $0.when == "day13" }.first!.active ? 1 : 0, forKey: .day13)
+        try container.encode(when.filter { $0.when == "day14" }.first!.active ? 1 : 0, forKey: .day14)
+        try container.encode(when.filter { $0.when == "day15" }.first!.active ? 1 : 0, forKey: .day15)
+        try container.encode(when.filter { $0.when == "day16" }.first!.active ? 1 : 0, forKey: .day16)
+        try container.encode(when.filter { $0.when == "day17" }.first!.active ? 1 : 0, forKey: .day17)
+        try container.encode(when.filter { $0.when == "day18" }.first!.active ? 1 : 0, forKey: .day18)
+        try container.encode(when.filter { $0.when == "day19" }.first!.active ? 1 : 0, forKey: .day19)
+        try container.encode(when.filter { $0.when == "day20" }.first!.active ? 1 : 0, forKey: .day20)
+        try container.encode(when.filter { $0.when == "day21" }.first!.active ? 1 : 0, forKey: .day21)
+        try container.encode(when.filter { $0.when == "day22" }.first!.active ? 1 : 0, forKey: .day22)
+        try container.encode(when.filter { $0.when == "day23" }.first!.active ? 1 : 0, forKey: .day23)
+        try container.encode(when.filter { $0.when == "day24" }.first!.active ? 1 : 0, forKey: .day24)
+        try container.encode(when.filter { $0.when == "day25" }.first!.active ? 1 : 0, forKey: .day25)
+        try container.encode(when.filter { $0.when == "day26" }.first!.active ? 1 : 0, forKey: .day26)
+        try container.encode(when.filter { $0.when == "day27" }.first!.active ? 1 : 0, forKey: .day27)
+        try container.encode(when.filter { $0.when == "day28" }.first!.active ? 1 : 0, forKey: .day28)
+        try container.encode(when.filter { $0.when == "day29" }.first!.active ? 1 : 0, forKey: .day29)
+        try container.encode(when.filter { $0.when == "day30" }.first!.active ? 1 : 0, forKey: .day30)
+        try container.encode(when.filter { $0.when == "day31" }.first!.active ? 1 : 0, forKey: .day31)
         
         try container.encode(active ? 1 : 0, forKey: .active)
         try container.encode(AppState.shared.user?.id, forKey: .user_id)
@@ -338,22 +340,33 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         
         action = .edit
         
-        enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
-        updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
+//        enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
+//        updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
         
-        let enteredDate = try container.decode(String?.self, forKey: .entered_date)
-        if let enteredDate {
-            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime)!
-        } else {
-            fatalError("Could not determine enteredDate date")
+        if let enteredById = try container.decode(Int?.self, forKey: .entered_by_id) {
+            self.enteredBy = AppState.shared.getUserBy(id: enteredById) ?? CBUser()
         }
         
-        let updatedDate = try container.decode(String?.self, forKey: .updated_date)
-        if let updatedDate {
-            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
-        } else {
-            fatalError("Could not determine updatedDate date")
+        if let updatedById = try container.decode(Int?.self, forKey: .updated_by_id) {
+            self.updatedBy = AppState.shared.getUserBy(id: updatedById) ?? CBUser()
         }
+        
+        enteredDate = try container.decode(Date.self, forKey: .entered_date)
+        updatedDate = try container.decode(Date.self, forKey: .updated_date)
+        
+//        let enteredDate = try container.decode(String?.self, forKey: .entered_date)
+//        if let enteredDate {
+//            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime)!
+//        } else {
+//            fatalError("Could not determine enteredDate date")
+//        }
+//        
+//        let updatedDate = try container.decode(String?.self, forKey: .updated_date)
+//        if let updatedDate {
+//            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
+//        } else {
+//            fatalError("Could not determine updatedDate date")
+//        }
         
         
         let repeatingTransactionTypeID = try container.decode(Int?.self, forKey: .repeating_transaction_type_id)

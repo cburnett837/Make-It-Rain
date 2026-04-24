@@ -16,6 +16,7 @@ enum BeforeAfterOrOn: String, CaseIterable {
 class AdvancedSearchModel: Encodable {
     var payMethods: Array<CBPaymentMethod> = []
     var categories: Array<CBCategory> = []
+    var categoryGroups: Array<CBCategoryGroup> = []
     var months: Array<CBMonth> = []
     var years: Array<Int> = []
     var searchTerms: Array<String> = []
@@ -29,12 +30,13 @@ class AdvancedSearchModel: Encodable {
     var endDate: Date? = nil
 
     
-    enum CodingKeys: CodingKey { case payment_methods, categories, months, years, amount_type, include_excluded, only_with_photos, search_terms, user_id, account_id, device_uuid, cut_off_date, cut_off_date_type, begin_date, end_date }
+    enum CodingKeys: CodingKey { case payment_methods, categories, category_groups, months, years, amount_type, include_excluded, only_with_photos, search_terms, user_id, account_id, device_uuid, cut_off_date, cut_off_date_type, begin_date, end_date }
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(payMethods, forKey: .payment_methods)
         try container.encode(categories, forKey: .categories)
+        try container.encode(categoryGroups, forKey: .category_groups)
         try container.encode(months, forKey: .months)
         try container.encode(years, forKey: .years)
         try container.encode(amountType.rawValue, forKey: .amount_type)
@@ -52,6 +54,7 @@ class AdvancedSearchModel: Encodable {
     
     func isValid() -> Bool {
         if categories.isEmpty
+        && categoryGroups.isEmpty
         && payMethods.isEmpty
         && months.isEmpty
         && years.isEmpty

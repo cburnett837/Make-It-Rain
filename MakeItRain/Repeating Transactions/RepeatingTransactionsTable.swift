@@ -88,11 +88,15 @@ struct RepeatingTransactionsTable: View {
                 .presentationSizing(.fitted)
                 #endif
         }
-        .onChange(of: repTransactionEditID) { oldValue, newValue in
-            if let newValue {
-                editRepeatingTransaction = repModel.getRepeatingTransaction(by: newValue)
+        .onChange(of: repTransactionEditID) { oldId, newId in
+            if let newId {
+                if let trans = repModel.getRepeatingTransaction(by: newId) {
+                    editRepeatingTransaction = trans
+                } else {
+                    editRepeatingTransaction = CBRepeatingTransaction(uuid: newId)
+                }
             } else {
-                repModel.saveTransaction(id: oldValue!)
+                repModel.saveTransaction(id: oldId!)
             }
         }
     }

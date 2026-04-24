@@ -46,7 +46,7 @@ struct IncomeAndExpenseChartDetails: View {
         if let raw = rawSelectedDate {
             let breakdowns = vm.payMethods.first?.breakdowns
             if vm.viewByQuarter {
-                return breakdowns?.first { $0.date.year == raw.year && $0.date.startOfQuarter == raw.startOfQuarter }?.date
+                return breakdowns?.first { $0.date.year == raw.year && $0.date.startDateOfQuarter == raw.startDateOfQuarter }?.date
             } else {
                 return breakdowns?.first { raw.matchesMonth(of: $0.date) }?.date
             }

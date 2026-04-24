@@ -271,14 +271,18 @@ struct CategoryEditView: View {
         
     var typeRow: some View {
         Picker(selection: $category.type) {
-            Text("Expense")
-                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .expense))
-            Text("Income")
-                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .income))
-            Text("Payment")
-                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .payment))
-            Text("Savings")
-                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .savings))
+            ForEach(XrefModel.categoryTypes) { typ in
+                Text(typ.description)
+                    .tag(typ)
+            }
+//            Text("Expense")
+//                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .expense))
+//            Text("Income")
+//                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .income))
+//            Text("Payment")
+//                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .payment))
+//            Text("Savings")
+//                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .savings))
         } label: {
             Label {
                 Text("Category Type")
@@ -449,10 +453,13 @@ struct CategoryEditView: View {
     
     
     func deleteCategory() {
-        //Task {
+        /// Prevent from going to the server and trying to delete something that isn't there.
+        if category.action == .add {
+            catModel.delete(category, andSubmit: false, calModel: calModel, keyModel: keyModel)
+        } else {
             category.action = .delete
-            dismiss()
-            //await catModel.delete(category, andSubmit: true, calModel: calModel, keyModel: keyModel, eventModel: eventModel)
-        //}
+        }
+        
+        dismiss()
     }
 }

@@ -176,8 +176,6 @@ struct BudgetTable: View {
                         }
                     }
                 }
-                
-                
             }
         }
         .sheet(item: $editBudget, onDismiss: {
@@ -188,38 +186,6 @@ struct BudgetTable: View {
                 .presentationSizing(.page)
         }
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
-//            .onChange(of: budgetGroupEditID) { oldValue, newValue in
-//                if let newValue {
-//                    if let editBudget = calModel.sMonth.budgetGroups.first(where: { $0.id == newValue }) {
-//                        self.editBudgetGroup = editBudget
-//                    }
-//                } else if newValue == nil && oldValue != nil {
-//                    var budget: CBBudgetGroup?
-//
-//                    if let editBudget = calModel.sMonth.budgetGroups.first(where: { $0.id == newValue }) {
-//                        budget = editBudget
-//                    }
-//
-//                    if let budget = budget {
-//                        Task {
-//                            if budget.hasChanges() || budget.action == .add {
-//                                #warning("Fix this ")
-//                                //await calModel.submit(budget)
-//                            }
-//                        }
-//                    }
-//
-//
-//                }
-//            }
-//            .sheet(item: $editBudgetGroup, onDismiss: {
-//                budgetGroupEditID = nil
-//                //calculateDataFunction()
-//            }) { budget in
-//                Text("Budget Group Edit View pending…")
-//                //BudgetEditView(budget: budget, calModel: calModel)
-//                    .presentationSizing(.page)
-//            }
     }
     
     
@@ -228,19 +194,17 @@ struct BudgetTable: View {
         Section("Budget Groups for \(calModel.sMonth.name) \(String(calModel.sMonth.year))") {
             ForEach(filteredBudgetGroups) { budget in
                 if let group = budget.categoryGroup {
-                    HStack {
-                        //StandardCategoryLabel(cat: cat, labelWidth: labelWidth, showCheckmarkCondition: false)
-                        
-//                        ChartCircleDot(
-//                            budget: budget.amount,
-//                            expenses: getExpenseAmount(for: cat),
-//                            color: cat.color,
-//                            size: 22
-//                        )
-                        Text(group.title)
-                        
-                        Spacer()
-                        Text(budget.amount.currencyWithDecimals())
+                    Label {
+                        VStack(alignment: .leading) {
+                            HStack {
+                                Text(group.title)
+                                Spacer()
+                                Text(budget.amount.currencyWithDecimals())
+                            }
+                        }
+                    } icon: {
+                        let colors = group.categories.filter({ $0.active }).sorted(by: Helpers.categorySorter()).map { $0.color }
+                        GradientCircleDot(colors: colors)
                     }
                     .contentShape(Rectangle())
                     .onTapGesture {
@@ -249,41 +213,42 @@ struct BudgetTable: View {
                 }
             }
         }
+        
         Section("Budgets for \(calModel.sMonth.name) \(String(calModel.sMonth.year))") {
             ForEach(filteredBudgets) { budget in
                 if let cat = budget.category {
-                    HStack {
-                        //StandardCategoryLabel(cat: cat, labelWidth: labelWidth, showCheckmarkCondition: false)
-//                        let expenses = getExpenseAmount(for: cat)
-//                        let display = expenses == 0 ? 0 : (expenses * -1)
-//                        
-//                        Gauge(value: display, in: 0...budget.amount) {
-//                            Text("hey")
-//                        }
-//                        .gaugeStyle(.variableSizeCircular)
-//                        .foregroundStyle(cat.color)
-//                        .frame(width: 30, height: 30)
-                        
-//                        .gaugeStyle(.accessoryCircularCapacity)
-//                        .tint(cat.color)
-//                        .scaleEffect(0.5)
-
-                        
+                    
+                    Label {
+                        VStack(alignment: .leading) {
+                            HStack {
+                                Text(cat.title)
+                                Spacer()
+                                Text(budget.amount.currencyWithDecimals())
+                            }
+                        }
+                    } icon: {
                         ChartCircleDot(
                             budget: budget.amount,
                             expenses: getExpenseAmount(for: cat),
                             color: cat.color,
-                            size: 22
+                            size: 20
                         )
-                        Text(cat.title)
-                        
-                        Spacer()
-                        Text(budget.amount.currencyWithDecimals())
                     }
                     .contentShape(Rectangle())
                     .onTapGesture {
                         budgetEditID = budget.id
                     }
+                    
+//                    Gauge(value: display, in: 0...budget.amount) {
+//                            Text("hey")
+//                        }
+//                        .gaugeStyle(.variableSizeCircular)
+//                        .foregroundStyle(cat.color)
+//                        .frame(width: 30, height: 30)
+
+//                        .gaugeStyle(.accessoryCircularCapacity)
+//                        .tint(cat.color)
+//                        .scaleEffect(0.5)
                 }
             }
         }
@@ -307,5 +272,30 @@ struct BudgetTable: View {
         }
         .tint(.none)
         //.buttonStyle(.glassProminent)
+    }
+    
+    
+    func getReversedColors(_ categories: Array<CBCategory>) -> Array<Gradient.Stop> {
+         let colors = categories
+            .filter({ $0.active })
+            .sorted(by: Helpers.categorySorter())
+            .map {$0.color}
+        
+        
+        let count = colors.count
+        let step = 1.0 / Double(count)
+        let epsilon = 0.00001
+
+        // For sharp edges, we give each color two stops: start and end.
+        let stops: [Gradient.Stop] = colors.enumerated().flatMap { index, color in
+            let start = Double(index) * step
+            let end = start + step - epsilon // Slightly before the next color's start
+            return [
+                Gradient.Stop(color: color, location: start),
+                Gradient.Stop(color: color, location: end)
+            ]
+        }
+        
+        return stops
     }
 }

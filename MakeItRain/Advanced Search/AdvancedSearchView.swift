@@ -43,17 +43,36 @@ struct AdvancedSearchView: View {
     
     var categoryFilterTitle: String {
         let cats = searchModel.categories
-        if cats.isEmpty {
+        let groups = searchModel.categoryGroups
+        
+        let totalCount = cats.count + groups.count
+        
+        if cats.isEmpty && groups.isEmpty {
             return ""
             
-        } else if cats.count == 1 {
-            return cats.first!.title
+        } else if totalCount == 1 {
+            return cats.isEmpty ? groups.first!.title : cats.first!.title
             
-        } else if cats.count == 2 {
-            return "\(cats[0].title), \(cats[1].title)"
+        } else if totalCount == 2 {
+            if cats.count == 1 && groups.count == 1 {
+                return "\(groups[0].title), \(cats[0].title)"
+            } else if cats.count == 2 {
+                return "\(cats[0].title), \(cats[1].title)"
+            } else {
+                return "\(groups[0].title), \(groups[1].title)"
+            }
             
         } else {
-            return "\(cats[0].title), \(cats[1].title), \(cats.count - 2)+"
+            if cats.count > 2 && groups.count < 2 {
+                return "\(cats[0].title), \(cats[1].title), \(cats.count - 2)+"
+            } else if groups.count > 2 {
+                return "\(groups[0].title), \(groups[1].title), \(groups.count - 2)+"
+            } else if cats.count > 2 {
+                return "\(cats[0].title), \(cats[1].title), \(totalCount - 2)+"
+            } else {
+                return "\(cats[0].title), \(groups[0].title), \(totalCount - 2)+"
+            }
+            
         }
     }
     
@@ -183,7 +202,7 @@ struct AdvancedSearchView: View {
             #endif
         }
         .sheet(isPresented: $showCategorySheet) {
-            MultiCategorySheet(categories: $searchModel.categories, categoryGroup: .constant([]), includeHidden: true)
+            MultiCategorySheet(categories: $searchModel.categories, categoryGroups: $searchModel.categoryGroups, includeHidden: true)
             #if os(macOS)
                 .frame(minWidth: 300, minHeight: 500)
                 .presentationSizing(.fitted)
@@ -335,7 +354,6 @@ struct AdvancedSearchView: View {
 
     @ViewBuilder
     var phoneList: some View {
-        
         @Bindable var photoModel = FileModel.shared
 
         List {
@@ -783,6 +801,9 @@ struct AdvancedSearchView: View {
             LogManager.networkingSuccessful()
             if let model {
                 if sortOrder == .forward {
+                    for each in model {
+                        await each.payMethod?.loadLogoFromCoreDataIfNeeded()
+                    }
                     calModel.searchedTransactions = model.sorted { $0.date ?? Date() > $1.date ?? Date() }
                 } else {
                     calModel.searchedTransactions = model.sorted { $0.date ?? Date() < $1.date ?? Date() }

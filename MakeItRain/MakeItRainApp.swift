@@ -62,9 +62,7 @@ struct MakeItRainApp: App {
     @State private var showCamera = false
     
     //@State private var isUnlocked = false
-    
-    @Namespace private var monthNavigationNamespace
-    
+        
     init() {
         let isStressTest = ProcessInfo.processInfo.arguments.contains("--ui-stress-test")
         if isStressTest {
@@ -127,7 +125,7 @@ struct MakeItRainApp: App {
             /// Views shown in this layer will be at the top-most part of the UI - Allowing for content on top of both sheets, and the universal calendar sheet.
             RootViewWrapper(showCamera: $showCamera) {
                 /// Allow for a universal calendar view.
-                CalendarSheetLayerWrapper(monthNavigationNamespace: monthNavigationNamespace) {
+                CalendarSheetLayerWrapper() {
                     @Bindable var appState = AppState.shared
                     Group {
                         /// `AuthState.shared.isThinking` is always true when app launches from a fresh state.
@@ -318,7 +316,7 @@ struct MakeItRainApp: App {
     @ViewBuilder
     private var rootView: some View {
         //let _ = print("RootView Render")
-        RootView(monthNavigationNamespace: monthNavigationNamespace)
+        RootView()
             .tint(Color.theme)
             .frame(idealWidth: screenWidth, idealHeight: screenHeight)
             .onPreferenceChange(SizePreferenceKey.self) { value in
@@ -403,6 +401,25 @@ struct MakeItRainApp: App {
             }
         }
     }
+    
+    
+//    private func handleOpeningUrl(_ url: URL) {
+//        print("opened url:", url.absoluteString)
+//
+//        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+//            return
+//        }
+//
+//        let action = components.queryItems?
+//            .first(where: { $0.name == "action" })?
+//            .value
+//
+//        guard action == "take_photo" else { return }
+//
+//        print("should open camera")
+//        calModel.isUploadingSmartTransactionFile = true
+//        showCamera = true
+//    }
 }
 
 #if os(macOS)

@@ -79,8 +79,8 @@ struct CatChart: View {
                     
                     if selectedMonth.first?.type == "category" {
                         ChartCircleDot(
-                            budget: selectedMonth.map { $0.budget}.reduce(0.0, +),
-                            expenses: selectedMonth.map { $0.expenses}.reduce(0.0, +),
+                            budget: selectedMonth.map { $0.budget }.reduce(0.0, +),
+                            expenses: selectedMonth.map { $0.expenses }.reduce(0.0, +),
                             color: .white, size: 20
                         )
                     }

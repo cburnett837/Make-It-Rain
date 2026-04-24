@@ -20,6 +20,8 @@ class CBPlaidBank: Codable, Identifiable, Equatable, Hashable, CanHandleLogo {
     
     var enteredBy: CBUser = AppState.shared.user!
     var updatedBy: CBUser = AppState.shared.user!
+    var enteredById: Int?
+    var updatedById: Int?
     var enteredDate: Date
     var updatedDate: Date
     var lastUpdateByPlaidDate: Date?
@@ -58,7 +60,7 @@ class CBPlaidBank: Codable, Identifiable, Equatable, Hashable, CanHandleLogo {
     }
     
         
-    enum CodingKeys: CodingKey { case id, title, active, user_id, account_id, device_uuid, entered_by, updated_by, entered_date, updated_date, accounts, plaid_id, requires_update, last_updated_by_plaid_date, last_time_plaid_synced_with_institution_date, last_time_i_checked_plaid_synced_date, logo }
+    enum CodingKeys: CodingKey { case id, title, active, user_id, account_id, device_uuid, entered_by, updated_by, entered_date, updated_date, accounts, plaid_id, requires_update, last_updated_by_plaid_date, last_time_plaid_synced_with_institution_date, last_time_i_checked_plaid_synced_date, logo, entered_by_id, updated_by_id }
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -98,37 +100,51 @@ class CBPlaidBank: Codable, Identifiable, Equatable, Hashable, CanHandleLogo {
         
         action = .edit
         
-        enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
-        updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
+        //enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
+        //updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
         
-        let enteredDate = try container.decode(String?.self, forKey: .entered_date)
-        if let enteredDate {
-            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime)!
-        } else {
-            fatalError("Could not determine enteredDate date")
+        if let enteredById = try container.decode(Int?.self, forKey: .entered_by_id) {
+            self.enteredBy = AppState.shared.getUserBy(id: enteredById) ?? CBUser()
         }
         
-        let updatedDate = try container.decode(String?.self, forKey: .updated_date)
-        if let updatedDate {
-            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
-        } else {
-            fatalError("Could not determine updatedDate date")
+        if let updatedById = try container.decode(Int?.self, forKey: .updated_by_id) {
+            self.updatedBy = AppState.shared.getUserBy(id: updatedById) ?? CBUser()
         }
         
-        let lastUpdateByPlaidDate = try container.decode(String?.self, forKey: .last_updated_by_plaid_date)
-        if let lastUpdateByPlaidDate {
-            self.lastUpdateByPlaidDate = lastUpdateByPlaidDate.toDateObj(from: .serverDateTime)!
-        }
+//        let enteredDate = try container.decode(String?.self, forKey: .entered_date)
+//        if let enteredDate {
+//            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime)!
+//        } else {
+//            fatalError("Could not determine enteredDate date")
+//        }
+//        
+//        let updatedDate = try container.decode(String?.self, forKey: .updated_date)
+//        if let updatedDate {
+//            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
+//        } else {
+//            fatalError("Could not determine updatedDate date")
+//        }
         
-        let lastTimePlaidSyncedWithInstitutionDate = try container.decode(String?.self, forKey: .last_time_plaid_synced_with_institution_date)
-        if let lastTimePlaidSyncedWithInstitutionDate {
-            self.lastTimePlaidSyncedWithInstitutionDate = lastTimePlaidSyncedWithInstitutionDate.toDateObj(from: .serverDateTime)!
-        }
+        enteredDate = try container.decode(Date.self, forKey: .entered_date)
+        updatedDate = try container.decode(Date.self, forKey: .updated_date)
+        lastUpdateByPlaidDate = try container.decode(Date.self, forKey: .last_updated_by_plaid_date)
+        lastTimePlaidSyncedWithInstitutionDate = try container.decode(Date.self, forKey: .last_time_plaid_synced_with_institution_date)
+        lastTimeICheckedPlaidSyncedDate = try container.decode(Date.self, forKey: .last_time_i_checked_plaid_synced_date)
         
-        let lastTimeICheckedPlaidSyncedDate = try container.decode(String?.self, forKey: .last_time_i_checked_plaid_synced_date)
-        if let lastTimeICheckedPlaidSyncedDate {
-            self.lastTimeICheckedPlaidSyncedDate = lastTimeICheckedPlaidSyncedDate.toDateObj(from: .serverDateTime)!
-        }
+//        let lastUpdateByPlaidDate = try container.decode(String?.self, forKey: .last_updated_by_plaid_date)
+//        if let lastUpdateByPlaidDate {
+//            self.lastUpdateByPlaidDate = lastUpdateByPlaidDate.toDateObj(from: .serverDateTime)!
+//        }
+//        
+//        let lastTimePlaidSyncedWithInstitutionDate = try container.decode(String?.self, forKey: .last_time_plaid_synced_with_institution_date)
+//        if let lastTimePlaidSyncedWithInstitutionDate {
+//            self.lastTimePlaidSyncedWithInstitutionDate = lastTimePlaidSyncedWithInstitutionDate.toDateObj(from: .serverDateTime)!
+//        }
+//        
+//        let lastTimeICheckedPlaidSyncedDate = try container.decode(String?.self, forKey: .last_time_i_checked_plaid_synced_date)
+//        if let lastTimeICheckedPlaidSyncedDate {
+//            self.lastTimeICheckedPlaidSyncedDate = lastTimeICheckedPlaidSyncedDate.toDateObj(from: .serverDateTime)!
+//        }
 //        
 //        //logo = try container.decode(String?.self, forKey: .logo)
 //        

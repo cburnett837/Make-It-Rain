@@ -1,6 +1,6 @@
 //
 //  RequestModel.swift
-//  JarvisPhoneApp
+//  MakeItRain
 //
 //  Created by Cody Burnett on 7/25/24.
 //

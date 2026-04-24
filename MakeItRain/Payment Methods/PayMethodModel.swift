@@ -15,14 +15,17 @@ class PayMethodModel {
     var paymentMethods: Array<CBPaymentMethod> = []
     var fuckYouSwiftuiTableRefreshID: UUID = UUID()
     
+    /// Prevent downloading payment methods before other data if they're cached.
+    var methsAreCachedAtLaunch: Bool = false
+    
     let sections: [PaymentMethodSection] = [.debit, .credit, .other]
     
     func doesExist(_ payMethod: CBPaymentMethod) -> Bool {
         return !paymentMethods.filter { $0.id == payMethod.id }.isEmpty
     }
     
-    func getPaymentMethod(by id: String) -> CBPaymentMethod {
-        return paymentMethods.filter { $0.id == id }.first ?? CBPaymentMethod(uuid: id)
+    func getPaymentMethod(by id: String) -> CBPaymentMethod? {
+        return paymentMethods.first(where: { $0.id == id })
     }
     
     func upsert(_ payMethod: CBPaymentMethod) {
@@ -38,17 +41,18 @@ class PayMethodModel {
     }
     
     var editingDefaultAccountType: AccountType? {
-        paymentMethods.filter({ $0.isEditingDefault }).first?.accountType
+        paymentMethods.first(where: { $0.isEditingDefault })?.accountType
     }
     
     func getEditingDefault() -> CBPaymentMethod? {
-        paymentMethods.filter({ $0.isEditingDefault }).first
+        paymentMethods.first(where: { $0.isEditingDefault })
     }
     
     
     @discardableResult
     func savePaymentMethod(id: String, calModel: CalendarModel, plaidModel: PlaidModel) -> Bool {
-        let payMethod = getPaymentMethod(by: id)
+        guard let payMethod = getPaymentMethod(by: id) else { return true }
+        
         payMethod.viewingYear = calModel.sYear
         
         if payMethod.action == .delete {
@@ -643,15 +647,17 @@ class PayMethodModel {
     }
     
     
+    
     @MainActor
-    func handleLongPoll(_ payMethods: Array<CBPaymentMethod>, calModel: CalendarModel, repModel: RepeatingTransactionModel) async {
-        print("-- \(#function)")
-        
-        //let ogListOrders = payModel.paymentMethods.map { $0.listOrder ?? 0 }.sorted()
-        //var newListOrders: [Int] = []
+    func handleIncoming(meths: Array<CBPaymentMethod>, calModel: CalendarModel, repModel: RepeatingTransactionModel, incomingDataType: IncomingDataType) async {
+        if meths.isEmpty {
+            paymentMethods.removeAll()
+            return
+        }
         
         let context = DataManager.shared.createContext()
-        for payMethod in payMethods {
+
+        for payMethod in meths {
             await payMethod.loadLogoFromCoreDataIfNeeded()
             
             //newListOrders.append(payMethod.listOrder ?? 0)
@@ -676,8 +682,8 @@ class PayMethodModel {
             } else {
                 DataManager.shared.delete(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)))
             }
-            //print("SaveResult: \(saveResult)")
             
+
             calModel.justTransactions
                 .filter { $0.payMethod?.id == payMethod.id }
                 .forEach { $0.payMethod?.setFromAnotherInstance(payMethod: payMethod) }
@@ -692,8 +698,68 @@ class PayMethodModel {
                 .forEach { $0.payMethod?.setFromAnotherInstance(payMethod: payMethod) }
         }
         
-        self.determineIfUserIsRequiredToAddPaymentMethod()
+        /// When downloading everything from the server, if we find a local object that is not in the server payload, it means it is no longer valid and must be deleted from the local copies.
+        if incomingDataType == .viaStandardRefresh {
+            for meth in paymentMethods {
+                if meths.filter({ $0.id == meth.id }).isEmpty {
+                    paymentMethods.removeAll { $0.id == meth.id }
+                }
+            }
+        }
     }
+    
+    
+//    @MainActor
+//    func handleLongPoll(_ payMethods: Array<CBPaymentMethod>, calModel: CalendarModel, repModel: RepeatingTransactionModel) async {
+//        print("-- \(#function)")
+//        
+//        //let ogListOrders = payModel.paymentMethods.map { $0.listOrder ?? 0 }.sorted()
+//        //var newListOrders: [Int] = []
+//        
+//        let context = DataManager.shared.createContext()
+//        for payMethod in payMethods {
+//            await payMethod.loadLogoFromCoreDataIfNeeded()
+//            
+//            //newListOrders.append(payMethod.listOrder ?? 0)
+//            if self.doesExist(payMethod) {
+//                if !payMethod.active {
+//                    self.delete(payMethod, andSubmit: false, calModel: calModel)
+//                    continue
+//                } else {
+//                    if let index = self.getIndex(for: payMethod) {
+//                        self.paymentMethods[index].setFromAnotherInstance(payMethod: payMethod)
+//                        self.paymentMethods[index].deepCopy?.setFromAnotherInstance(payMethod: payMethod)
+//                    }
+//                }
+//            } else {
+//                if payMethod.active {
+//                    withAnimation { self.upsert(payMethod) }
+//                }
+//            }
+//            
+//            if payMethod.isPermitted {
+//                await payMethod.updateCoreData(action: .edit, isPending: false, createIfNotFound: false)
+//            } else {
+//                DataManager.shared.delete(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)))
+//            }
+//            //print("SaveResult: \(saveResult)")
+//            
+//            calModel.justTransactions
+//                .filter { $0.payMethod?.id == payMethod.id }
+//                .forEach { $0.payMethod?.setFromAnotherInstance(payMethod: payMethod) }
+//            
+//            calModel.months
+//                .flatMap { $0.startingAmounts.compactMap { $0.payMethod } }
+//                .filter { $0.id == payMethod.id }
+//                .forEach { $0.setFromAnotherInstance(payMethod: payMethod) }
+//            
+//            repModel.repTransactions
+//                .filter { $0.payMethod?.id == payMethod.id }
+//                .forEach { $0.payMethod?.setFromAnotherInstance(payMethod: payMethod) }
+//        }
+//        
+//        self.determineIfUserIsRequiredToAddPaymentMethod()
+//    }
     
     
     @MainActor
@@ -723,7 +789,9 @@ class PayMethodModel {
             
             self.upsert(method)
         }
-
+        
+        /// Prevent downloading payment methods before other data if they're cached.
+        self.methsAreCachedAtLaunch = !loadedMethods.isEmpty
         self.paymentMethods.sort(by: Helpers.paymentMethodSorter())
     }
 

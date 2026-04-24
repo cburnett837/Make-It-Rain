@@ -140,7 +140,7 @@ class PayMethodViewModel {
     func quarterlyBreakdowns(for payMethod: CBPaymentMethod) -> [PayMethodMonthlyBreakdown] {
         /// Group by year and quarter.
         let grouped = Dictionary(grouping: monthlyBreakdowns(for: payMethod)) {
-            YearQuarter(year: $0.date.year, quarter: $0.date.startOfQuarter.month)
+            YearQuarter(year: $0.date.year, quarter: $0.date.startDateOfQuarter.month)
         }
 
         /// Summarize each group into one quarterly breakdown.
@@ -733,7 +733,7 @@ class PayMethodViewModel {
         var result: [PayMethodMonthlyBreakdown]
         var startingAmounts: String
         if viewByQuarter {
-            result = method.breakdowns.filter { $0.date.year == selectedDate.year && $0.date.startOfQuarter.month == selectedDate.month }
+            result = method.breakdowns.filter { $0.date.year == selectedDate.year && $0.date.startDateOfQuarter.month == selectedDate.month }
             
             startingAmounts = method.isCreditOrUnified ? String(avg(\.startingAmounts)) : String(sum(\.startingAmounts))
             
@@ -983,14 +983,14 @@ class PayMethodViewModel {
     #if os(iOS)
     @ChartContentBuilder
     func selectionRectangle(for date: Date, color: Color = Color(.tertiarySystemBackground)) -> some ChartContent {
-        RuleMark(x: .value("Start Date", viewByQuarter ? date.startOfQuarter : date, unit: .month))        
+        RuleMark(x: .value("Start Date", viewByQuarter ? date.startDateOfQuarter : date, unit: .month))
             .foregroundStyle(color.opacity(0.5))
             .zIndex(-1)
     }
     #else
     @ChartContentBuilder
     func selectionRectangle(for date: Date, color: Color = Color(.secondarySystemFill)) -> some ChartContent {
-        RuleMark(x: .value("Start Date", viewByQuarter ? date.startOfQuarter : date, unit: .month))        
+        RuleMark(x: .value("Start Date", viewByQuarter ? date.startDateOfQuarter : date, unit: .month))
             .foregroundStyle(color)
             .zIndex(-1)
     }
@@ -1005,7 +1005,7 @@ class PayMethodViewModel {
     //            xEnd: .value("End Date", viewByQuarter ? date.endOfQuarter : date.endDateOfMonth, unit: .day)
     //        )
         
-        RuleMark(x: .value("Start Date", viewByQuarter ? date.startOfQuarter : date, unit: .month))
+        RuleMark(x: .value("Start Date", viewByQuarter ? date.startDateOfQuarter : date, unit: .month))
         
         .foregroundStyle(color)
         .zIndex(-1)

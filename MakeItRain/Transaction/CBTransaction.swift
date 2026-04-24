@@ -9,36 +9,8 @@ import Foundation
 import UniformTypeIdentifiers
 import SwiftUI
 
-enum GiftStatus: String, CaseIterable, Identifiable {
-    case idea, purchased, inTransit, inHand, wrapped
-    var id: String { return self.rawValue }
-    var string: String { String(describing: self).capitalized }
-    
-    var prettyValue: String {
-        switch self {
-        case .idea:
-            "Idea"
-        case .purchased:
-            "Bought"
-        case .inTransit:
-            "Shipped"
-        case .inHand:
-            "Have"
-        case .wrapped:
-            "Done"
-        }
-    }
-    
-    //var boughtArray: Array<GiftStatus> { [GiftStatus.purchased, GiftStatus.inTransit, GiftStatus.inHand, GiftStatus.wrapped] }
-}
-
-
-enum ObjectStatus {
-    case editing, inFlight, saveSuccess, saveFail, dummy, deleteSucceess
-}
-
 @Observable
-class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, CanEditTitleWithLocation, CanEditAmount {
+class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation, CanEditAmount {
     
     #warning("serverID Change")
     /// This changed affected
@@ -105,6 +77,9 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     
     var enteredBy: CBUser = AppState.shared.user ?? CBUser()
     var updatedBy: CBUser = AppState.shared.user ?? CBUser()
+    
+    var enteredById: Int?
+    var updatedById: Int?
     
     var enteredDate: Date
     var updatedDate: Date
@@ -301,8 +276,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
 //    }
     
     
-    init(repTrans: CBRepeatingTransaction, date: Date, payMethod: CBPaymentMethod?, amountString: String) {
-        let uuid = UUID().uuidString
+    init(uuid: String, repTrans: CBRepeatingTransaction, date: Date, payMethod: CBPaymentMethod?, amountString: String) {        
         self.serverID = uuid
         self.uuid = uuid
         self.repID = repTrans.id
@@ -334,37 +308,37 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     }
     
     
-    init(fitTrans: CBFitTransaction) {
-        let uuid = UUID().uuidString
-        self.serverID = uuid
-        self.uuid = uuid
-        self.fitID = String(fitTrans.fitID)
-        self.title = fitTrans.title
-        self.amountString = fitTrans.amountString
-        //self.action = .add
-        self.factorInCalculations = true
-        self.payMethod = fitTrans.payMethod
-        self.category = fitTrans.category
-        self.date = fitTrans.date
-        self.color = .primary
-        self.active = true
-        self.enteredDate = Date()
-        self.updatedDate = Date()
-        self.trackingNumber = ""
-        self.orderNumber = ""
-        self.url = ""
-        self.notes = "(Added via F.I.T.)"
-        self.tags = []
-        self.locations = []
-        self.wasAddedFromPopulate = false
-        
-        self.isPaymentOrigin = false
-        self.isPaymentDest = false
-        self.isTransferOrigin = false
-        self.isTransferDest = false
-                
-        self.action = .add
-    }
+//    init(fitTrans: CBFitTransaction) {
+//        let uuid = UUID().uuidString
+//        self.serverID = uuid
+//        self.uuid = uuid
+//        self.fitID = String(fitTrans.fitID)
+//        self.title = fitTrans.title
+//        self.amountString = fitTrans.amountString
+//        //self.action = .add
+//        self.factorInCalculations = true
+//        self.payMethod = fitTrans.payMethod
+//        self.category = fitTrans.category
+//        self.date = fitTrans.date
+//        self.color = .primary
+//        self.active = true
+//        self.enteredDate = Date()
+//        self.updatedDate = Date()
+//        self.trackingNumber = ""
+//        self.orderNumber = ""
+//        self.url = ""
+//        self.notes = "(Added via F.I.T.)"
+//        self.tags = []
+//        self.locations = []
+//        self.wasAddedFromPopulate = false
+//        
+//        self.isPaymentOrigin = false
+//        self.isPaymentDest = false
+//        self.isTransferOrigin = false
+//        self.isTransferDest = false
+//                
+//        self.action = .add
+//    }
     
     
     init(plaidTrans: CBPlaidTransaction) {
@@ -400,7 +374,7 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
     }
     
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, entered_date, updated_date, files, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, related_transaction_type_id, fit_id, is_smart_transaction, smart_transaction_issue_id, smart_transaction_is_acknowledged, locations, action, is_payment_origin, is_payment_dest, is_transfer_origin, is_transfer_dest, plaid_id, duplicate_file_records, christmas_list_gift_id, christmas_list_delete_preference, christmas_list_gift_status }
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, entered_date, updated_date, files, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, related_transaction_type_id, fit_id, is_smart_transaction, smart_transaction_issue_id, smart_transaction_is_acknowledged, locations, action, is_payment_origin, is_payment_dest, is_transfer_origin, is_transfer_dest, plaid_id, duplicate_file_records, christmas_list_gift_id, christmas_list_delete_preference, christmas_list_gift_status, entered_by_id, updated_by_id }
     
     
     func encode(to encoder: Encoder) throws {
@@ -426,10 +400,12 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         try container.encode(AppState.shared.user?.id, forKey: .user_id)
         try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
         try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
-        try container.encode(enteredBy, forKey: .entered_by) // for the Transferable protocol
-        try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
-        try container.encode(enteredDate.string(to: .serverDateTime), forKey: .entered_date) // for the Transferable protocol
-        try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date) // for the Transferable protocol
+        //try container.encode(enteredBy, forKey: .entered_by) // for the Transferable protocol
+        //try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
+        try container.encode(enteredById, forKey: .entered_by_id) // for the Transferable protocol
+        try container.encode(updatedById, forKey: .updated_by_id) // for the Transferable protocol
+        try container.encode(enteredDate, forKey: .entered_date) // for the Transferable protocol
+        try container.encode(updatedDate, forKey: .updated_date) // for the Transferable protocol
         try container.encode(files, forKey: .files)
         try container.encode(duplicateFileRecordsOnDb ? 1 : 0, forKey: .duplicate_file_records)
         try container.encode(tags, forKey: .tags)
@@ -565,8 +541,18 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
         self.notifyOnDueDate = notifyOnDueDate == 1
         
         
-        self.enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
-        self.updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
+        //self.enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
+        //self.updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
+        
+        if let enteredById = try container.decode(Int?.self, forKey: .entered_by_id) {
+            self.enteredBy = AppState.shared.getUserBy(id: enteredById) ?? CBUser()
+        }
+        
+        if let updatedById = try container.decode(Int?.self, forKey: .updated_by_id) {
+            self.updatedBy = AppState.shared.getUserBy(id: updatedById) ?? CBUser()
+        }
+        
+        
         
         self.files = try container.decode(Array<CBFile>?.self, forKey: .files)
         self.tags = try container.decode(Array<CBTag>?.self, forKey: .tags) ?? []
@@ -593,19 +579,22 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
             //fatalError("Could not determine transaction date")
         }
         
-        let enteredDate = try container.decode(String?.self, forKey: .entered_date)
-        if let enteredDate {
-            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime)!
-        } else {
-            fatalError("Could not determine enteredDate date")
-        }
+        self.enteredDate = try container.decode(Date.self, forKey: .entered_date)
+        self.updatedDate = try container.decode(Date.self, forKey: .updated_date)
         
-        let updatedDate = try container.decode(String?.self, forKey: .updated_date)
-        if let updatedDate {
-            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
-        } else {
-            fatalError("Could not determine updatedDate date")
-        }
+//        let enteredDate = try container.decode(String?.self, forKey: .entered_date)
+//        if let enteredDate {
+//            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime)!
+//        } else {
+//            fatalError("Could not determine enteredDate date")
+//        }
+//        
+//        let updatedDate = try container.decode(String?.self, forKey: .updated_date)
+//        if let updatedDate {
+//            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
+//        } else {
+//            fatalError("Could not determine updatedDate date")
+//        }
         
         do {
             let relatedTransactionID = try container.decode(Int?.self, forKey: .related_transaction_id)
@@ -1316,267 +1305,19 @@ class CBTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, C
 //        self.newDate = new
 //        self.dateChangeViaLongPoll = true
 //    }
-    
-    
-    
-    
+}
+
+
+extension CBTransaction: Hashable {
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
-    
+}
+
+extension CBTransaction: Transferable {
     static var transferRepresentation: some TransferRepresentation {
         CodableRepresentation(contentType: .transaction)
     }
-    
-            
-//    class TransUndoManager {
-//
-//        var trans: CBTransaction
-//        init(trans: CBTransaction) {
-//            self.trans = trans
-//        }
-//        
-//        //static let shared = UndodoManager()
-//        
-//        var undoField: String = ""
-//        var redoField: String = ""
-//        var showAlert = false
-//        var returnMe: UndoableText?
-//        //var trans: CBTransaction = CBTransaction()
-//        
-//        var undoPosition: Int = 0
-//        var history: [UndoableText] = []
-//        var maxIndex: Int { history.count - 1 }
-//
-//        private var changeTasks: Array<UndoTask> = []
-//        
-//        var canUndo: Bool = false
-//        var canRedo: Bool = false
-//        
-//        func getChangeFields() {
-//            /// Simulate undo to get field that will be undone if the user takes action.
-//            var simUndoPosition = undoPosition - 1
-//            print("undo simPos \(simUndoPosition)")
-//            
-//            if simUndoPosition == -1 {
-//                canUndo = false
-//                
-//            } else if simUndoPosition == 0 {
-//                if !shouldIgnore(for: .undo, index: simUndoPosition) {
-//                    canUndo = true
-//                    undoField = history[simUndoPosition].field.rawValue
-//                } else {
-//                    canUndo = false
-//                }
-//                
-//            } else if simUndoPosition > 0 {
-//                let usedPosition = getPosition(for: .undo, index: simUndoPosition)
-//                simUndoPosition = usedPosition
-//                print("undo simPos \(simUndoPosition)")
-//                
-//                if simUndoPosition == -1 {
-//                    canUndo = false
-//                } else {
-//                    canUndo = true
-//                    undoField = history[simUndoPosition].field.rawValue
-//                }
-//            }
-//            
-//            
-//            /// Simulate redo to get field that will be redone if the user takes action.
-//            var simRedoPosition = undoPosition + 1
-//            print("redo simPos \(simRedoPosition)")
-//            
-//            if simRedoPosition > maxIndex {
-//                canRedo = false
-//                
-//            } else if simRedoPosition == maxIndex {
-//                if !shouldIgnore(for: .redo, index: simRedoPosition) {
-//                    canRedo = true
-//                    redoField = history[simRedoPosition].field.rawValue
-//                } else {
-//                    canRedo = false
-//                }
-//                
-//            } else if simRedoPosition < maxIndex {
-//                let usedPosition = getPosition(for: .redo, index: simRedoPosition)
-//                simRedoPosition = usedPosition
-//                print("redo simPos \(simRedoPosition)")
-//                
-//                if simRedoPosition > maxIndex {
-//                    canRedo = false
-//                } else {
-//                    canRedo = true
-//                    redoField = history[simRedoPosition].field.rawValue
-//                }
-//            }
-//            
-//            
-//        }
-//        
-//        func processChange(value: String?, field: TransactionUndoField) {
-//            if returnMe != nil {
-//                returnMe = nil
-//            } else {
-//                let task = Task {
-//                    do {
-//                        try await Task.sleep(for: .seconds(1))
-//                        await MainActor.run {
-//                            self.commitChange(value: value, field: field)
-//                        }
-//                    }
-//                }
-//                            
-//                if let index = changeTasks.firstIndex(where: { $0.field == field }) {
-//                    changeTasks[index].task?.cancel()
-//                    changeTasks[index].task = task
-//                } else {
-//                    changeTasks.append(UndoTask(field: field, task: task))
-//                }
-//            }
-//        }
-//        
-//        
-//        func commitChangeInTask(value: String?, field: TransactionUndoField) {
-//            Task {
-//                do {
-//                    try await Task.sleep(for: .seconds(1))
-//                    await MainActor.run {
-//                        self.commitChange(value: value, field: field)
-//                    }
-//                }
-//            }
-//        }
-//        
-//        
-//        func commitChange(value: String?, field: TransactionUndoField) {
-//            /// Make sure you don't duplicate changes.
-//            guard (value, field) != (history.last?.value, history.last?.field) else { return }
-//
-//            
-//            let undoText = UndoableText(value: value, field: field)
-//            history.append(undoText)
-//            undoPosition += 1
-//            
-//            if maxIndex == -1 {
-//                undoPosition = 0
-//            } else if undoPosition < maxIndex  {
-//                let range = undoPosition..<maxIndex
-//                history.removeSubrange(range)
-//            } else {
-//                undoPosition = maxIndex
-//            }
-//            
-//            print("-- \(#function) -- undoPosition: \(undoPosition)")
-//            print(history.map { "\($0.value ?? "") - \($0.field.rawValue)" })
-//        }
-//
-//        
-//        func undo(trans: CBTransaction) -> UndoableText? {
-//            print("-- \(#function) ❌old position \(undoPosition)")
-//            undoPosition -= 1
-//            
-//            if undoPosition == -1 {
-//                undoPosition = 0
-//                
-//            } else if undoPosition == 0 {
-//                // do the check from getPosition(), but only check for matching, don't get new index
-//                
-//            } else if undoPosition > 0 {
-//                let usedPosition = getPosition(for: .undo, index: undoPosition)
-//                undoPosition = usedPosition
-//            }
-//            print("-- \(#function) ✅usedPosition \(undoPosition)")
-//            return history[undoPosition]
-//        }
-//
-//        
-//        func redo(trans: CBTransaction) -> UndoableText?  {
-//            print("-- \(#function) ❌old position \(undoPosition)")
-//            undoPosition += 1
-//            
-//            if undoPosition > maxIndex {
-//                undoPosition = maxIndex
-//                
-//            } else if undoPosition == maxIndex {
-//                // do the check from getPosition(), but only check for matching, don't get new index
-//                
-//            } else if undoPosition < maxIndex {
-//                let usedPosition = getPosition(for: .redo, index: undoPosition)
-//                undoPosition = usedPosition
-//            }
-//            
-//            print("-- \(#function) ✅usedPosition \(undoPosition)")
-//            return history[undoPosition]
-//        }
-//        
-//        
-//        func clearHistory() {
-//            history.removeAll()
-//        }
-//        
-//        
-//        func getPosition(for undoredo: UndoRedo, index: Int) -> Int {
-//            print("-- \(#function) -- \(index)")
-//            if index < 0 {
-//                print("index is less than 0")
-//                return 0
-//            }
-//            
-//            let target = history[index]
-//            
-//            let next = undoredo == .undo ? index - 1 : index + 1
-//            
-//            switch target.field {
-//            case .title:
-//                if trans.title == target.value { return getPosition(for: undoredo, index: next) }
-//            case .amount:
-//                if trans.amountString == target.value { return getPosition(for: undoredo, index: next) }
-//            case .payMethod:
-//                if trans.payMethod?.id == target.value { return getPosition(for: undoredo, index: next) }
-//            case .category:
-//                if trans.category?.id == target.value { return getPosition(for: undoredo, index: next) }
-//            case .date:
-//                if trans.date?.string(to: .serverDate) == target.value { return getPosition(for: undoredo, index: next) }
-//            case .trackingNumber:
-//                if trans.trackingNumber == target.value { return getPosition(for: undoredo, index: next) }
-//            case .orderNumber:
-//                if trans.orderNumber == target.value { return getPosition(for: undoredo, index: next) }
-//            case .url:
-//                if trans.url == target.value { return getPosition(for: undoredo, index: next) }
-//            case .notes:
-//                if trans.notes == target.value { return getPosition(for: undoredo, index: next) }
-//            }
-//            return index
-//        }
-//        
-//        
-//        func shouldIgnore(for undoredo: UndoRedo, index: Int) -> Bool {
-//            let target = history[index]
-//                    
-//            switch target.field {
-//            case .title:
-//                if trans.title == target.value { return true }
-//            case .amount:
-//                if trans.amountString == target.value { return true }
-//            case .payMethod:
-//                if trans.payMethod?.id == target.value { return true }
-//            case .category:
-//                if trans.category?.id == target.value { return true }
-//            case .date:
-//                if trans.date?.string(to: .serverDate) == target.value { return true }
-//            case .trackingNumber:
-//                if trans.trackingNumber == target.value { return true }
-//            case .orderNumber:
-//                if trans.orderNumber == target.value { return true }
-//            case .url:
-//                if trans.url == target.value { return true }
-//            case .notes:
-//                if trans.notes == target.value { return true }
-//            }
-//            return false
-//        }
-//    }
 }
 
 

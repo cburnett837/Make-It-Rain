@@ -22,7 +22,6 @@ class LongPollModel: Decodable {
     let keywords: Array<CBKeyword>?
     let budgets: Array<CBBudget>?
     
-    let fitTransactions: Array<CBFitTransaction>?
     let openRecords: Array<CBOpenOrClosedRecord>?
     
     let plaidBanks: Array<CBPlaidBank>?
@@ -34,7 +33,7 @@ class LongPollModel: Decodable {
     let settings: AppSettings?
     let receipts: Array<CBTransaction>?
     
-    enum CodingKeys: CodingKey { case return_time, transactions, starting_amounts, repeating_transactions, pay_methods, categories, category_groups, keywords, budgets, fit_transactions, open_records, plaid_banks, plaid_accounts, plaid_transactions, plaid_balances, logos, settings, receipts }
+    enum CodingKeys: CodingKey { case return_time, transactions, starting_amounts, repeating_transactions, pay_methods, categories, category_groups, keywords, budgets, open_records, plaid_banks, plaid_accounts, plaid_transactions, plaid_balances, logos, settings, receipts }
     
     init () {
         self.returnTime = nil
@@ -47,7 +46,6 @@ class LongPollModel: Decodable {
         self.keywords = nil
         self.budgets = nil
         
-        self.fitTransactions = nil
         self.openRecords = nil
         
         self.plaidBanks = nil
@@ -73,7 +71,6 @@ class LongPollModel: Decodable {
         self.keywords = try container.decodeIfPresent(Array<CBKeyword>.self, forKey: .keywords)
         self.budgets = try container.decodeIfPresent(Array<CBBudget>.self, forKey: .budgets)
                 
-        self.fitTransactions = try container.decodeIfPresent(Array<CBFitTransaction>.self, forKey: .fit_transactions)
         self.openRecords = try container.decodeIfPresent(Array<CBOpenOrClosedRecord>.self, forKey: .open_records)
         
         self.plaidBanks = try container.decodeIfPresent(Array<CBPlaidBank>.self, forKey: .plaid_banks)

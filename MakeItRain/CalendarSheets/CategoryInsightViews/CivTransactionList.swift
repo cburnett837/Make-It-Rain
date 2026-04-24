@@ -44,6 +44,7 @@ struct CivTransactionList: View {
         }
     }
     
+    
     @ViewBuilder
     var theView: some View {
         if let data = model.selectedMonth {
@@ -114,7 +115,8 @@ struct CivTransactionList: View {
                         condensedView(for: data.month)
                     case .byCategory:
                         let trans = getTransactions(month: data.month)
-                        ForEach(calModel.sCategoriesForAnalysis) { cat in
+                        let cats = calModel.sCategoriesForAnalysis + calModel.sCategoryGroupsForAnalysis.flatMap(\.categories).uniqued(on: {$0.id})
+                        ForEach(cats) { cat in
                             
                             Section(cat.title) {
                                 let filteredTrans = trans.filter { $0.category?.id == cat.id }

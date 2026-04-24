@@ -3,31 +3,89 @@ import WidgetKit
 import SwiftUI
 import os
 
+
+import Foundation
+
+final class NetworkLogger: NSObject, URLSessionTaskDelegate, URLSessionDataDelegate {
+    private var startTimes: [Int: Date] = [:]
+    private let lock = NSLock()
+
+    private func startTime(for task: URLSessionTask) -> Date {
+        lock.lock()
+        defer { lock.unlock() }
+
+        if let existing = startTimes[task.taskIdentifier] {
+            return existing
+        }
+
+        let now = Date()
+        startTimes[task.taskIdentifier] = now
+        return now
+    }
+
+    private func elapsed(for task: URLSessionTask) -> TimeInterval {
+        let start = startTime(for: task)
+        return Date().timeIntervalSince(start)
+    }
+
+    private func cleanup(for task: URLSessionTask) {
+        lock.lock()
+        defer { lock.unlock() }
+        startTimes.removeValue(forKey: task.taskIdentifier)
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
+        let elapsed = elapsed(for: task)
+
+        if totalBytesExpectedToSend > 0 {
+            let percent = (Double(totalBytesSent) / Double(totalBytesExpectedToSend)) * 100
+            print(String(format: "[upload][task %d] %.1f%% (%lld / %lld bytes) after %.2fs",
+                         task.taskIdentifier,
+                         percent,
+                         totalBytesSent,
+                         totalBytesExpectedToSend,
+                         elapsed))
+        } else {
+            print("[upload][task \(task.taskIdentifier)] \(totalBytesSent) bytes sent after \(elapsed)s")
+        }
+    }
+
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+        let elapsed = elapsed(for: dataTask)
+        print("[response][task \(dataTask.taskIdentifier)] received \(data.count) bytes after \(elapsed)s")
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        let elapsed = elapsed(for: task)
+
+        if let error {
+            print("[complete][task \(task.taskIdentifier)] failed after \(elapsed)s: \(error)")
+        } else {
+            print("[complete][task \(task.taskIdentifier)] finished after \(elapsed)s")
+        }
+
+        cleanup(for: task)
+    }
+}
+
+
 class NetworkManager {
     
     //static var shared = NetworkManager()
     
     private static let logger = Logger(
-        subsystem: "Jarvis",
+        subsystem: "MakeItRain",
         category: "Network Manager"
         /// To Read: Plug iPhone into Mac, open console app, and start streaming.
-        /// Set search type to "subsystem" and search for the key in the subsystem above (Jarvis)
+        /// Set search type to "subsystem" and search for the key in the subsystem above (MakeItRain)
     )
     var request: URLRequest?
     var session: URLSession?
+    let logger = NetworkLogger()
     
-    init(timeout: TimeInterval = 60) {        
-
+    init(timeout: TimeInterval = 60) {
         let earl = String(format: "\(AppState.shared.devMode ? Keys.devBaseURL : Keys.prodBaseURL)/budget_app")
-        
-        
-        
         //let earl = String(format: "\(Keys.devBaseURL)/budget_app")
-
-        
-        
-        
-        
         
         let URL = URL(string: earl)
         var request = URLRequest(url: URL!)
@@ -36,11 +94,21 @@ class NetworkManager {
         request.setValue("Application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(Keys.authPhrase, forHTTPHeaderField: "Auth-Phrase")
         request.setValue(Keys.authID, forHTTPHeaderField: "Auth-ID")
-        request.timeoutInterval = timeout
         request.setValue(Keys.userAgent, forHTTPHeaderField: "User-Agent")
+        request.timeoutInterval = timeout
 
         self.request = request
-        self.session = URLSession.shared
+        //self.session = URLSession.shared
+        //self.session?.delegate = NetworkLogger()
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 120
+        config.timeoutIntervalForResource = 300
+
+        session = URLSession(
+            configuration: config,
+            delegate: logger,
+            delegateQueue: nil
+        )
     }
     
     deinit {
@@ -78,7 +146,9 @@ class NetworkManager {
             request?.httpBody = jsonData
             
             if let session {
-                let (data, response): (Data, URLResponse) = try await session.data(for: request!)
+                //print("Sending!")
+                let (data, response): (Data, URLResponse) = try await session.data(for: request!, delegate: logger)
+                //print("Got response!")
                 let httpResponse = response as? HTTPURLResponse
                 
                 /// Only retain the time if the app is in the foreground. This prevents the time from updating if something is in flight in the background, and a change happens from another device.
@@ -109,9 +179,13 @@ class NetworkManager {
                 #warning("Error handling won't work with the force unwrap")
                 #if targetEnvironment(simulator)
                 //let decodedData = try APIJSON.decoder.decode(Array<U>?.self, from: data)
-                let decodedData = try! JSONDecoder().decode(Array<U>?.self, from: data)
+                let decoder = JSONDecoder()
+                decoder.dateDecodingStrategy = .iso8601
+                let decodedData = try! decoder.decode(Array<U>?.self, from: data)
                 #else
-                let decodedData = try? JSONDecoder().decode(Array<U>?.self, from: data)
+                let decoder = JSONDecoder()
+                decoder.dateDecodingStrategy = .iso8601
+                let decodedData = try? decoder.decode(Array<U>?.self, from: data)
                 #endif
                 
                 LogManager.log("data has been decoded", session: sesh)
@@ -176,7 +250,7 @@ class NetworkManager {
             request?.httpBody = jsonData
             
             if let session {
-                let (data, response): (Data, URLResponse) = try await session.data(for: request!)
+                let (data, response): (Data, URLResponse) = try await session.data(for: request!, delegate: logger)
                 let httpResponse = response as? HTTPURLResponse
                 //print(httpResponse?.statusCode)
                 
@@ -209,18 +283,22 @@ class NetworkManager {
                 
                 #warning("Error handling won't work with the force unwrap")
                 #if targetEnvironment(simulator)
-                
-                let decodedData = try! JSONDecoder().decode(U?.self, from: data)
+                let decoder = JSONDecoder()
+                decoder.dateDecodingStrategy = .iso8601
+                let decodedData = try! decoder.decode(U?.self, from: data)
                 
                 //let decodedData = try APIJSON.decoder.decode(U?.self, from: data)
                 
                 #else
-                let decodedData = try? JSONDecoder().decode(U?.self, from: data)
+                let decoder = JSONDecoder()
+                decoder.dateDecodingStrategy = .iso8601
+                let decodedData = try? decoder.decode(U?.self, from: data)
                 #endif
                 
                 LogManager.log("data has been decoded", session: sesh)
                 
                 guard let decodedData else {
+                    //print(serverText)
                     LogManager.log("something went wrong with the decoded data", session: sesh)
                     return .failure(.serverError(firstLine))
                 }
@@ -282,7 +360,7 @@ class NetworkManager {
                                                                                                 
                 let serverText = String(data: data, encoding: .utf8) ?? ""
                 if AppState.shared.debugPrint { print(serverText) }
-                print(serverText)
+                //print(serverText)
                 let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response
                 
                 if firstLine == "None" && requestModel.requestType == "login" {

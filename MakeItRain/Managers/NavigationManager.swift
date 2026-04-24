@@ -50,6 +50,7 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
     case toasts
     case more
     case recentReceipts
+    case dashboard
     
     var id: NavDestination { return self }
     
@@ -123,6 +124,7 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
         case .calendar:                 "Calendar"
         case .more:                     "More"
         case .recentReceipts:           "Receipts"
+        case .dashboard:                "Dashboard"
         }
     }
     
@@ -155,6 +157,7 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
         case .calendar:                 "calendar"
         case .more:                     "ellipsis"
         case .recentReceipts:           "receipt"
+        case .dashboard:                "chart.pie"
         }
     }
     
@@ -187,17 +190,17 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
     }
     
     @MainActor @ViewBuilder
-    static func view(for destination: NavDestination) -> some View {
+    static func view(for destination: NavDestination, navPath: Binding<NavigationPath>) -> some View {
         switch destination {
         case .repeatingTransactions:
             RepeatingTransactionsTable()
             
         case .paymentMethods:
-            PayMethodsTable()
+            PayMethodsTable(navPath: navPath) /// NavStack is in the view.
             
         case .categories:
             CategoriesTable()
-            
+             
         case .keywords:
             KeywordsTable()
             

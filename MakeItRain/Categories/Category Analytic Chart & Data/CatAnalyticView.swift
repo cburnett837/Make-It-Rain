@@ -100,8 +100,7 @@ struct CatAnalyticView: View {
                     Text("\(model.visibleTotal.currencyWithDecimals())")
                         .contentTransition(.numericText())
                 }
-                                                
-                
+                                                                
                 HStack(spacing: 5) {
                     let currentYear = Calendar.current.component(.year, from: .now)
                     let years = (0..<model.chartVisibleYearCount.rawValue).map { currentYear - $0 }
@@ -128,15 +127,19 @@ struct CatAnalyticView: View {
             
             Toggle("Show Average", isOn: $showAverage.animation())
                 .tint(isForGroup ? Color.theme : category!.color)
-                        
-            Picker("Metrics", selection: $model.displayedMetric.animation()) {
-                /// Filter out the budget options since we have a line dedicated to that
-                ForEach(CategoryAnalyticChartDisplayedMetric.allCases.filter { $0.id != .budget }) { opt in
-                    Text(opt.prettyValue)
-                        .tag(opt.id)
+                         
+            if !model.isForGroup {
+                if model.category!.type != XrefModel.getItem(from: .categoryTypes, byEnumID: .income) {
+                    Picker("Metrics", selection: $model.displayedMetric.animation()) {
+                        /// Filter out the budget options since we have a line dedicated to that
+                        ForEach(CategoryAnalyticChartDisplayedMetric.allCases.filter { $0.id != .budget }) { opt in
+                            Text(opt.prettyValue)
+                                .tag(opt.id)
+                        }
+                    }
+                    .tint(isForGroup ? .gray : category!.color)
                 }
             }
-            .tint(isForGroup ? .gray : category!.color)
         } header: {
             Text("Options")
         }

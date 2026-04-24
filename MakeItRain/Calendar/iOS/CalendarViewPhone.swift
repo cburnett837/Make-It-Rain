@@ -18,7 +18,7 @@ fileprivate let BOTTOM_PANEL_HEIGHT: CGFloat = 260
 
 
 enum CalendarNavDest {
-    case categoryInsights, plaidRejectPage, budgets, dashboard, transactionList, multiTransChangeDate
+    case categoryInsights, plaidRejectPage, budgets, dashboard, transactionList, multiTransChangeDate, dashboardNumericBreakdown
 }
 
 
@@ -44,13 +44,20 @@ struct CalendarViewPhone: View {
     @State private var lastBalanceUpdateTimer: Timer?
     @State private var showDemoSheet = false
     /// Used to navigate to additional pages in the bottom panel. (I.E. Plaid transactions reject all before date)
-    @State private var navPath = NavigationPath()
+    @State private var navPath: [CalendarNavDest] = []
     //@State private var showSearchBar = true
     
     /// Retain this here so we don't lose the data when we leave the sheet
     @State private var categoryAnalysisModel = CivViewModel()
+    @State private var overviewAnalysisModel = CivViewModel()
     @State private var selectedPlaidFilterMeth: CBPaymentMethod?
+    
+    //@State private var dashboardModel = DashboardViewModel()
+    
+    //@State private var oldNavPath: [CalendarNavDest] = []
+    //@State private var newNavPath: [CalendarNavDest] = []
 
+    @State private var shouldLoadDashboard = true
     
     var searchPrompt: String {
         searchFocused == 0 ? "Search by transaction name or #" : "Search"
@@ -88,11 +95,21 @@ struct CalendarViewPhone: View {
                 .navigationDestination(for: CalendarNavDest.self) { dest in
                     switch dest {
                     case .categoryInsights:
-                        CategoryInsightsView(
+                        Dashboard(
                             navPath: $calProps.navPath,
                             showAnalysisSheet: $calProps.showAnalysisSheet,
-                            model: categoryAnalysisModel
+                            model: calModel.dashboardModel,
+                            isForSelectedMonth: true
                         )
+//                        CategoryInsightsView(
+//                            navPath: $calProps.navPath,
+//                            showAnalysisSheet: $calProps.showAnalysisSheet,
+//                            model: categoryAnalysisModel,
+//                            overviewModel: overviewAnalysisModel
+//                        )
+                        
+                    case .dashboardNumericBreakdown:
+                        DashboardNumericDetails(data: calModel.dashboardModel.data)
                         
                     case .plaidRejectPage:
                         ClearPlaidBeforeDateView(
@@ -104,12 +121,12 @@ struct CalendarViewPhone: View {
                         BudgetTable()
                         
                     case .dashboard:
-                        CalendarDashboard()
+                        Text("No More")
+                        //CalendarDashboard()
                         
                     case .transactionList:
-                        TransactionListView(
-                            showTransactionListSheet: $calProps.showTransactionListSheet
-                        )
+                        TransactionListView(showTransactionListSheet: $calProps.showTransactionListSheet)
+                        
                     case .multiTransChangeDate:
                         MultiSelectChangeDatePage(navPath: $calProps.navPath)
                     }
@@ -123,6 +140,9 @@ struct CalendarViewPhone: View {
                 //.navigationBarBackButtonHidden(true)
                 //.navigationTitle("Calendar")
                 .toolbar { CalendarToolbar() }
+                /// Prevent the dashboard for loading again after coming back to the calendar from the dashboard.
+                .onChange(of: calProps.navPath) { if $1.first == CalendarNavDest.categoryInsights { shouldLoadDashboard = false } }
+                .onChange(of: calModel.dashboardModel.isDirty) { if $1 { Task { await loadDashboard() } } }
                 /// Using this instead of a task because the iPad doesn't reload `CalendarView`. It just changes the data source.
                 .onChange(of: enumID, initial: true, onChangeOfMonthEnumID)
                 .onShake {
@@ -352,7 +372,24 @@ struct CalendarViewPhone: View {
             /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
             /// So we use the ``DataChangeTriggers`` class to send a notification to the view to tell it to recalculate.
             DataChangeTriggers.shared.viewDidChange(.calendar)
+            
+            if shouldLoadDashboard {
+                await loadDashboard()
+            }
         }
+    }
+    
+    
+    func loadDashboard() async {
+        let month = calModel.months.filter { $0.enumID == enumID }.first!
+        let dashboardModel = calModel.dashboardModel
+        
+        dashboardModel.resetSelf()
+        
+        dashboardModel.beginDate = month.days.filter({ !$0.isPlaceholder }).first!.date!.startDateOfMonth// ?? Date().startDateOfMonth
+        dashboardModel.endDate = month.days.filter({ !$0.isPlaceholder }).last!.date!.endDateOfMonth// ?? Date().endDateOfMonth
+        await dashboardModel.initialFetchIfApplicable(catModel: catModel)
+        dashboardModel.isDirty = false
     }
 }
 

@@ -28,12 +28,17 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
     //var unwrappedListOrder: Int { listOrder ?? 0 }
     var enteredBy: CBUser = AppState.shared.user!
     var updatedBy: CBUser = AppState.shared.user!
+    var enteredById: Int?
+    var updatedById: Int?
     var enteredDate: Date
     var updatedDate: Date
     var isNil: Bool = false
     var topTitles: [CBSuggestedTitle] = []
     
-    var isIncome: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .income) }
+    var isIncome: Bool { self.isRegularIncome || self.isIrregularIncome }    
+    var isRegularIncome: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .income) }
+    var isIrregularIncome: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .irregularIncome) }
+    
     var isPayment: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .payment) }
     var isExpense: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .expense) }
     var isSavings: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .savings) }
@@ -41,7 +46,14 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
     
     var appSuiteKey: AppSuiteKey?
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, hex_code, emoji, active, user_id, account_id, device_uuid, type_id, list_order, entered_by, updated_by, entered_date, updated_date, is_nil, top_titles, is_hidden, app_suite_key }
+    /// For the dashboard
+    var budgetAmount: Double = 0.0    
+    var debitAmounts: DashboardAmounts?
+    var creditAmounts: DashboardAmounts?
+    var allAmounts: DashboardAmounts?
+    
+    
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, hex_code, emoji, active, user_id, account_id, device_uuid, type_id, list_order, entered_by, updated_by, entered_date, updated_date, is_nil, top_titles, is_hidden, app_suite_key, entered_by_id, updated_by_id, budget_amount, debit_amounts, credit_amounts, all_amounts }
         
     init() {
         let uuid = UUID().uuidString
@@ -157,10 +169,12 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
         try container.encode(type.id, forKey: .type_id)
         try container.encode(listOrder, forKey: .list_order)
-        try container.encode(enteredBy, forKey: .entered_by) // for the Transferable protocol
-        try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
-        try container.encode(enteredDate.string(to: .serverDateTime), forKey: .entered_date) // for the Transferable protocol
-        try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date) // for the Transferable protocol
+        //try container.encode(enteredBy, forKey: .entered_by) // for the Transferable protocol
+        //try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
+        try container.encode(enteredById, forKey: .entered_by_id) // for the Transferable protocol
+        try container.encode(updatedById, forKey: .updated_by_id) // for the Transferable protocol
+        try container.encode(enteredDate, forKey: .entered_date) // for the Transferable protocol
+        try container.encode(updatedDate, forKey: .updated_date) // for the Transferable protocol
         
         try container.encode(isNil ? 1 : 0, forKey: .is_nil) // for the Transferable protocol
         try container.encode(isHidden ? 1 : 0, forKey: .is_hidden)
@@ -214,22 +228,34 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         
         action = .edit
         
-        enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
-        updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
+        //enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
+        //updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
         
-        let enteredDate = try container.decode(String?.self, forKey: .entered_date)
-        if let enteredDate {
-            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime)!
-        } else {
-            fatalError("Could not determine enteredDate date")
+        if let enteredById = try container.decode(Int?.self, forKey: .entered_by_id) {
+            self.enteredBy = AppState.shared.getUserBy(id: enteredById) ?? CBUser()
         }
         
-        let updatedDate = try container.decode(String?.self, forKey: .updated_date)
-        if let updatedDate {
-            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
-        } else {
-            fatalError("Could not determine updatedDate date")
+        if let updatedById = try container.decode(Int?.self, forKey: .updated_by_id) {
+            self.updatedBy = AppState.shared.getUserBy(id: updatedById) ?? CBUser()
         }
+
+        
+        enteredDate = try container.decode(Date.self, forKey: .entered_date)
+        updatedDate = try container.decode(Date.self, forKey: .updated_date)
+        
+//        let enteredDate = try container.decode(String?.self, forKey: .entered_date)
+//        if let enteredDate {
+//            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime)!
+//        } else {
+//            fatalError("Could not determine enteredDate date")
+//        }
+//        
+//        let updatedDate = try container.decode(String?.self, forKey: .updated_date)
+//        if let updatedDate {
+//            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
+//        } else {
+//            fatalError("Could not determine updatedDate date")
+//        }
         
         
         self.topTitles = try container.decodeIfPresent(Array<CBSuggestedTitle>.self, forKey: .top_titles) ?? []
@@ -241,6 +267,12 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
             self.appSuiteKey = AppSuiteKey.fromString(appSuiteKey)
         }
         
+                        
+        /// For the dashboard
+        self.budgetAmount = try container.decodeIfPresent(Double.self, forKey: .budget_amount) ?? 0.0
+        self.debitAmounts = try container.decodeIfPresent(DashboardAmounts.self, forKey: .debit_amounts)
+        self.creditAmounts = try container.decodeIfPresent(DashboardAmounts.self, forKey: .credit_amounts)
+        self.allAmounts = try container.decodeIfPresent(DashboardAmounts.self, forKey: .all_amounts)
     }
     
     
@@ -323,6 +355,11 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         self.enteredDate = category.enteredDate
         self.updatedDate = category.updatedDate
         self.appSuiteKey = category.appSuiteKey
+        
+        self.budgetAmount = category.budgetAmount
+        self.debitAmounts = category.debitAmounts
+        self.creditAmounts = category.creditAmounts
+        self.allAmounts = category.allAmounts
     }
     
     

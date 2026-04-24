@@ -171,7 +171,7 @@ struct SplashScreen: View {
             }
             
             var attempts = 0
-            let maxAttempts = 120
+            let maxAttempts = 300
              /// Wait for up to a minute for the login to succeed.
             while attempts < maxAttempts {
                 attempts += 1
@@ -181,13 +181,21 @@ struct SplashScreen: View {
                 //print(AppState.shared.shouldShowSplash, AuthState.shared.isThinking, AuthState.shared.isLoggedIn, AuthState.shared.keychainCredentialsExist)
                 
                 
-                print("Should be all 'true'", !AppState.shared.shouldShowSplash, !AuthState.shared.isThinking, (AuthState.shared.isLoggedIn || !AuthState.shared.keychainCredentialsExist))
+                print(
+                    "Should be all 'true'",
+                    !AppState.shared.shouldShowSplash,
+                    !AuthState.shared.isThinking,
+                    (AuthState.shared.isLoggedIn || !AuthState.shared.keychainCredentialsExist)
+                )
                 
-                if !AppState.shared.shouldShowSplash && !AuthState.shared.isThinking && (AuthState.shared.isLoggedIn || !AuthState.shared.keychainCredentialsExist) {
+                if !AppState.shared.shouldShowSplash
+                    && !AuthState.shared.isThinking
+                    && (AuthState.shared.isLoggedIn || !AuthState.shared.keychainCredentialsExist)
+                {
                     break
                 }
 
-                try? await Task.sleep(for: .milliseconds(500))
+                try? await Task.sleep(for: .milliseconds(100))
             }
 
             let success = attempts < maxAttempts

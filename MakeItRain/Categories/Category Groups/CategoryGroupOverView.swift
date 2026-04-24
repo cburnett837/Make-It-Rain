@@ -112,11 +112,15 @@ struct CategoryGroupOverView: View {
             model.fetchHistoryTime = Date()
             model.fetchHistory(setChartAsNew: true)
         }
-        .onChange(of: groupEditID) { oldValue, newValue in
-            if let newValue {
-                editGroup = catModel.getCategoryGroup(by: newValue)
+        .onChange(of: groupEditID) { oldId, newId in
+            if let newId {
+                if let group = catModel.getCategoryGroup(by: newId) {
+                    editGroup = group
+                } else {
+                    editGroup = CBCategoryGroup(uuid: newId)
+                }
             } else {
-                catModel.saveCategoryGroup(id: oldValue!)
+                catModel.saveCategoryGroup(id: oldId!)
                 
                 if group.action == .delete || group.action == .add {
                     if AppState.shared.isIphone {

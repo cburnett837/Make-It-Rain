@@ -8,119 +8,6 @@
 import SwiftUI
 
 
-//
-//struct MultiCategorySheetLite: View {
-//    @Environment(\.colorScheme) var colorScheme
-//    @Environment(\.dismiss) var dismiss
-//    
-//    @Environment(CalendarModel.self) private var calModel
-//    @Environment(CategoryModel.self) private var catModel
-//    @Environment(KeywordModel.self) private var keyModel
-//    
-//    @Binding var categories: Array<CBCategory>
-//    @Binding var categoryGroups: Array<CBCategoryGroup>
-//    var includeHidden: Bool = false
-//    
-//    var showAnalyticSpecificOptions = false
-//                
-//    @FocusState private var focusedField: Int?
-//    @State private var searchText = ""
-//    @State private var labelWidth: CGFloat = 20.0
-//    @State private var newGroupTitle = ""
-//    @State private var showDeleteAlert = false
-//    @State private var showInfo = false
-//    @State private var editGroup: CBCategoryGroup?
-//    @State private var groupEditID: CBCategoryGroup.ID?
-//    
-//    var body: some View {
-//        //let _ = Self._printChanges()
-//        //Text("hi")
-//        NavigationStack {
-//            StandardContainerWithToolbar(.list) {
-//                Section("My Categories") {
-//                    ForEach(catModel.categories) { cat in
-//                        multiCategoryPickerLineItem(cat: cat)
-//                    }
-//                }
-//            }
-//            .searchable(text: $searchText, prompt: Text("Search"))
-//            .navigationTitle("Categories")
-//            #if os(iOS)
-//            .navigationBarTitleDisplayMode(.inline)
-////            .toolbar {
-////                //ToolbarItem(placement: .topBarLeading) { selectButton }
-////                //DefaultToolbarItem(kind: .search, placement: .bottomBar)
-////                                
-////                ToolbarSpacer(.flexible, placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar)
-////                ToolbarItem(placement: AppState.shared.isIpad ? .topBarTrailing : .bottomBar) { CategorySortMenu() }
-////                if AppState.shared.isIpad {
-////                    ToolbarSpacer(.fixed, placement: .topBarTrailing)
-////                }
-////                                
-//////                ToolbarSpacer(.flexible, placement: .bottomBar)
-//////                ToolbarItem(placement: .bottomBar) { CategorySortMenu() }
-////                ToolbarItem(placement: .topBarTrailing) { closeButton }
-////            }
-//            #endif
-//        }
-//        .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
-//    }
-//    
-//    
-//    
-//    var closeButton: some View {
-//        Button {
-//            dismiss()
-//        } label: {
-//            Image(systemName: "xmark")
-//                .schemeBasedForegroundStyle()
-//        }
-//        //.buttonStyle(.glassProminent)
-//        //.tint(confirmButtonTint)
-//        //.background(confirmButtonTint)
-//        //.foregroundStyle(confirmButtonTint)
-//        //}
-//    }
-//    
-//    
-//    var selectButton: some View {
-//        Button {
-//            withAnimation {
-//                categories = categories.isEmpty ? catModel.categories : []
-//            }
-//        } label: {
-//            //Image(systemName: categories.isEmpty ? "checklist.checked" : "checklist.unchecked")
-//            Text(categories.isEmpty ? "Select All" : "Deselect All")
-//            //Image(systemName: categories.isEmpty ? "checkmark.rectangle.stack" : "checklist.checked")
-//                .schemeBasedForegroundStyle()
-//        }
-//    }
-//    
-//    
-//    @ViewBuilder
-//    func multiCategoryPickerLineItem(cat: CBCategory) -> some View {
-//        StandardCategoryLabel(
-//            cat: cat,
-//            labelWidth: labelWidth,
-//            showCheckmarkCondition: categories.filter{ $0.active }.contains(cat)
-//        )
-//        .onTapGesture {
-//            withAnimation { doit(cat) }
-//        }
-//    }
-//    
-//    
-//    func doit(_ category: CBCategory) {
-//        if categories.map({ $0.id }).contains(category.id) {
-//            categories.removeAll(where: { $0.id == category.id })
-//        } else {
-//            categories.append(category)
-//        }
-//    }
-//}
-
-
-
 struct MultiCategorySheet: View {
     @AppStorage("hiddenCategoriesSectionIsExpanded") private var storedIsHiddenSectionExpanded: Bool = false
     @Environment(\.colorScheme) var colorScheme
@@ -130,7 +17,7 @@ struct MultiCategorySheet: View {
     @Environment(KeywordModel.self) private var keyModel
     
     @Binding var categories: Array<CBCategory>
-    @Binding var categoryGroup: Array<CBCategoryGroup>
+    @Binding var categoryGroups: Array<CBCategoryGroup>
 
     var includeHidden: Bool = false
     
@@ -168,7 +55,8 @@ struct MultiCategorySheet: View {
     var filteredSpecialCategories: Array<CBCategory> {
         catModel.categories
             .filter { !$0.isNil }
-            .filter { !$0.isHidden && $0.appSuiteKey != nil }
+            //.filter { !$0.isHidden && $0.appSuiteKey != nil }
+            .filter { $0.appSuiteKey != nil }
             .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
             .sorted(by: Helpers.categorySorter())
     }
@@ -224,15 +112,6 @@ struct MultiCategorySheet: View {
                             Section("Category Groups") {
                                 ForEach(filteredCategoryGroups) { group in
                                     categoryGroupLine(group: group)
-//                                    CategoryGroupLine(
-//                                        categories: $categories,
-//                                        group: group,
-//                                        showDeleteAlert: $showDeleteAlert,
-//                                        groupEditID: $groupEditID,
-//                                        selectedCategoryIds: selectedCategoryIds,
-//                                        labelWidth: labelWidth,
-//                                        getReversedColors: getReversedColors
-//                                    )
                                 }
                                 
                                 if searchText.isEmpty {
@@ -245,8 +124,6 @@ struct MultiCategorySheet: View {
                                     if showAnalyticSpecificOptions {
                                         anythingWithAnAmountButton
                                     }
-                                    
-                                    //addNewGroupButton
                                 }
                             }
                         }
@@ -410,12 +287,8 @@ struct MultiCategorySheet: View {
             
         } label: {
             HStack {
-                Group {
-                    Circle()
-                        .fill(AngularGradient(gradient: Gradient(stops: getReversedColors(categories)), center: .center))
-                        .frame(width: 20, height: 20)
-                }
-                .frame(minWidth: labelWidth, alignment: .center)
+                GradientCircleDot(colors: categories.map { $0.color })
+                    .frame(minWidth: labelWidth, alignment: .center)
                 
                 Text("Expenses")
                 Spacer()
@@ -448,12 +321,8 @@ struct MultiCategorySheet: View {
             withAnimation { self.categories = categories }
         } label: {
             HStack {
-                Group {
-                    Circle()
-                        .fill(AngularGradient(gradient: Gradient(stops: getReversedColors(categories)), center: .center))
-                        .frame(width: 20, height: 20)
-                }
-                .frame(minWidth: labelWidth, alignment: .center)
+                GradientCircleDot(colors: categories.map { $0.color })
+                    .frame(minWidth: labelWidth, alignment: .center)
                 
                 Text("Income")
                 Spacer()
@@ -474,16 +343,46 @@ struct MultiCategorySheet: View {
     
     @ViewBuilder
     var anythingWithAnAmountButton: some View {
-        let categories = calModel.sMonth.justTransactions
-            .filter ({ $0.active })
-            .filter ({ $0.amount != 0 && $0.category != nil })
-            .compactMap ({ $0.category })
-            .filter ({ !$0.isIncome })
-            .sorted(by: Helpers.categorySorter())
-            .uniqued(on: \.id)
+//        let categories = calModel.sMonth.justTransactions
+//            .filter ({ $0.active })
+//            .filter ({ $0.amount != 0 && $0.category != nil })
+//            .compactMap ({ $0.category })
+//            //.filter ({ !$0.isIncome })
+//            .sorted(by: Helpers.categorySorter())
+//            .uniqued(on: \.id)
         
         Button {
-            withAnimation { self.categories = categories }
+            withAnimation {
+                //self.categories = categories
+                
+                for group in catModel.categoryGroups {
+                    if categoryGroups.map({ $0.id }).contains(group.id) { continue }
+                    
+                    let groupCatIds = group.categories.map { $0.id }
+                    let hasTrans = !calModel.sMonth.justTransactions
+                        .filter ({ $0.active })
+                        .filter ({ $0.amount != 0 && groupCatIds.contains($0.category?.id ?? "0") })
+                        .isEmpty
+                    
+                    if hasTrans {
+                        self.categoryGroups.append(group)
+                    }
+                }
+                
+                //categoryGroups = catModel.categoryGroups
+                for cat in catModel.categories.filter({ $0.appSuiteKey == nil }) {
+                    if categoryGroups
+                        .flatMap({ $0.categories })
+                        .map({ $0.id })
+                        .contains(cat.id) {
+                            continue
+                        }
+                    
+                    if categories.map({ $0.id }).contains(cat.id) { continue }
+                    
+                    self.categories.append(cat)
+                }
+            }
         } label: {
             HStack {
                 Group {
@@ -522,86 +421,6 @@ struct MultiCategorySheet: View {
     }
     
     
-//    var anythingWithAnAmountButton: some View {
-//        return Button {
-//            withAnimation {
-//                self.categories = calModel.sMonth.justTransactions
-//                    .filter ({ $0.active })
-//                    .filter ({ $0.amount != 0 && $0.category != nil })
-//                    .compactMap ({ $0.category })
-//                    .sorted(by: {$0.id > $1.id})
-//                    .uniqued(on: \.id)
-//            }
-//        } label: {
-//            HStack {
-//                Group {
-//                    Image(systemName: "dollarsign.circle")
-//                }
-//                .frame(minWidth: labelWidth, alignment: .center)
-//                
-//                Text("Any category that has transactions")
-//                Spacer()
-//                
-//                if selectedCategoryIds == calModel.sMonth.justTransactions
-//                    .filter ({ $0.active })
-//                    .filter ({ $0.amount != 0 && $0.category != nil })
-//                    .compactMap ({ $0.category })
-//                    .sorted(by: {$0.id > $1.id})
-//                    .uniqued(on: \.id)
-//                    .compactMap(\.id)
-//                {
-//                    Image(systemName: "checkmark")
-//                }
-//            }
-//            .schemeBasedForegroundStyle()
-//            .contentShape(Rectangle())
-//        }
-//        #if os(macOS)
-//        .buttonStyle(.plain)
-//        #endif
-//    }
-    
-    
-    
-    
-    
-    var addNewGroupButton: some View {
-        Button("New Group") {
-            groupEditID = UUID().uuidString
-        }
-        #if os(macOS)
-        .buttonStyle(.plain)
-        #endif
-    }
-    
-    
-//    var sortMenu: some View {
-//        Menu {
-//            Button {
-//                categorySortMode = .title
-//            } label: {
-//                Label {
-//                    Text("Title")
-//                } icon: {
-//                    Image(systemName: categorySortMode == .title ? "checkmark" : "textformat.abc")
-//                }
-//            }
-//            
-//            Button {
-//                categorySortMode = .listOrder
-//            } label: {
-//                Label {
-//                    Text("Custom")
-//                } icon: {
-//                    Image(systemName: categorySortMode == .listOrder ? "checkmark" : "list.bullet")
-//                }
-//            }
-//        } label: {
-//            Image(systemName: "arrow.up.arrow.down")
-//                .schemeBasedForegroundStyle()
-//        }
-//    }
-    
     
     var closeButton: some View {
         Button {
@@ -613,71 +432,58 @@ struct MultiCategorySheet: View {
         #if os(macOS)
         .buttonStyle(.roundMacButton)
         #endif
-        //.buttonStyle(.glassProminent)
-        //.tint(confirmButtonTint)
-        //.background(confirmButtonTint)
-        //.foregroundStyle(confirmButtonTint)
-        //}
-    }
-    
-    
-    var groupMenu: some View {
-        Menu {
-            ForEach(catModel.categoryGroups) { group in
-                Button(group.title) {
-                    self.categories = []
-                    for each in group.categories {
-                        self.categories.append(each)
-                    }
-                }
-            }
-            Section {
-                Button("Save As Group") {
-                    let alertConfig = AlertConfig(
-                        title: "Create New Group",
-                        subtitle: "Enter a title for the group",
-                        symbol: .init(name: "rectangle.3.group", color: Color.theme),
-                        primaryButton:
-                            AlertConfig.AlertButton(closeOnFunction: false, showSpinnerOnClick: false, config: .init(text: "Create", role: .primary, function: {
-                                Task {
-                                    let group = CBCategoryGroup()
-                                    group.title = newGroupTitle
-                                    for each in categories {
-                                        group.categories.append(each)
-                                    }
-                                    
-                                    catModel.upsert(group)
-                                    let _ = await catModel.submit(group)
-                                }
-                                
-                                AppState.shared.closeAlert()
-                            })),
-                        views: [
-                            AlertConfig.ViewConfig(content: AnyView(textField))
-                        ]
-                    )
-                    
-                    AppState.shared.showAlert(config: alertConfig)
-                }
-            }
-        } label: {
-            Image(systemName: "checklist.checked")
-        }
-    }
-    
-    
-    var textField: some View {
-        TextField("Title", text: $newGroupTitle)
-            .multilineTextAlignment(.center)
     }
     
     
     var selectButton: some View {
         Button {
             withAnimation {
-                categories = categories.isEmpty ? catModel.categories : []
-                categoryGroup = []
-                //calModel.sCategoryGroupsForAnalysis
+//                for each in catModel.categoryGroups {
+//                    categoryGroups
+//                }
+                if categoryGroups.isEmpty || categories.isEmpty {
+                    categoryGroups = catModel.categoryGroups
+                    for cat in catModel.categories.filter({ $0.appSuiteKey == nil }) {
+                        if categoryGroups
+                            .flatMap({ $0.categories })
+                            .map({ $0.id })
+                            .contains(cat.id) {
+                                continue
+                            }
+                        
+                        categories.append(cat)
+                    }
+                } else {
+                    categoryGroups = []
+                    categories = []
+                }
+                
+                
+//                if categories.isEmpty {
+//                    for cat in catModel.categories.filter({ $0.appSuiteKey == nil }) {
+//                        if categoryGroups
+//                            .flatMap({ $0.categories })
+//                            .map({ $0.id })
+//                            .contains(cat.id) {
+//                                continue
+//                            }
+//                        
+//                        categories.append(cat)
+//                    }
+//                } else {
+//                    categories = []
+//                }
+                
+                
+                
+//                
+//                let groupCatIds =
+//                
+//                categories = catModel.categories.filter {}
+//                
+//                categories = categories.isEmpty ? catModel.categories : []
+//                categoryGroups = []
+//                //calModel.sCategoryGroupsForAnalysis
             }
         } label: {
             //Image(systemName: categories.isEmpty ? "checklist.checked" : "checklist.unchecked")
@@ -691,16 +497,24 @@ struct MultiCategorySheet: View {
     }
     
     
+    var disabledCategoryIds: [String] {
+        categoryGroups.flatMap { $0.categories }.map { $0.id }
+    }
+    
+    
     @ViewBuilder
     func multiCategoryPickerLineItem(cat: CBCategory) -> some View {
         StandardCategoryLabel(
             cat: cat,
             labelWidth: labelWidth,
-            showCheckmarkCondition: categories.filter{ $0.active }.contains(cat)
+            showCheckmarkCondition: categories.filter{ $0.active }.contains(cat),
+            isDisabled: disabledCategoryIds.contains(cat.id)
         )
         .onTapGesture {
             withAnimation { doit(cat) }
         }
+        //.foregroundStyle(disabledCategoryIds.contains(cat.id) ? .gray : .primary)
+        .disabled(disabledCategoryIds.contains(cat.id))
     }
 
 
@@ -708,16 +522,25 @@ struct MultiCategorySheet: View {
     
     
     func doit(_ category: CBCategory) {
-        if !calModel.sCategoryGroupsForAnalysis.isEmpty {
-            calModel.sCategoryGroupsForAnalysis.removeAll()
-            categories.removeAll()
-        }
-        
-        
         if categories.map({ $0.id }).contains(category.id) {
             categories.removeAll(where: { $0.id == category.id })
         } else {
             categories.append(category)
+        }
+    }
+    
+    func doit(_ group: CBCategoryGroup) {
+        print("-- \(#function)")
+        
+        categories.removeAll(where: { group.categories.map({ $0.id }).contains($0.id) })
+        
+        
+        if categoryGroups.map({ $0.id }).contains(group.id) {
+            print("Removing")
+            categoryGroups.removeAll(where: { $0.id == group.id })
+        } else {
+            print("Adding")
+            categoryGroups.append(group)
         }
     }
     
@@ -729,54 +552,26 @@ struct MultiCategorySheet: View {
     }
     
     
-    func getReversedColors(_ categories: Array<CBCategory>) -> Array<Gradient.Stop> {
-         let colors = categories
-            .filter({ $0.active })
-            .sorted(by: Helpers.categorySorter())            
-            .map {$0.color}
-        
-        
-        let count = colors.count
-        let step = 1.0 / Double(count)
-        let epsilon = 0.00001
-
-        // For sharp edges, we give each color two stops: start and end.
-        let stops: [Gradient.Stop] = colors.enumerated().flatMap { index, color in
-            let start = Double(index) * step
-            let end = start + step - epsilon // Slightly before the next color's start
-            return [
-                Gradient.Stop(color: color, location: start),
-                Gradient.Stop(color: color, location: end)
-            ]
-        }
-        
-        return stops
-    }
     
     
-    @ViewBuilder func categoryGroupLine(group: CBCategoryGroup) -> some View {
+    @ViewBuilder
+    func categoryGroupLine(group: CBCategoryGroup) -> some View {
         Button {
             withAnimation {
-                self.categories = group.categories.filter({ $0.active })
-                self.categoryGroup = [group]
-                dismiss()
+                doit(group)
             }
         } label: {
             HStack {
                 Group {
-                    Circle()
-                        .fill(AngularGradient(gradient: Gradient(stops: getReversedColors(group.categories)), center: .center))
-                        .frame(width: 20, height: 20)
+                    let colors = group.categories.filter({ $0.active }).sorted(by: Helpers.categorySorter()).map(\.color)
+                    GradientCircleDot(colors: colors)
                 }
                 .frame(minWidth: labelWidth, alignment: .center)
                 
                 
                 Text(group.title)
                 Spacer()
-                if selectedCategoryIds == group.categories
-                    //.sorted(by: {$0.id > $1.id})
-                    .sorted(by: Helpers.categorySorter())
-                    .compactMap(\.id) {
+                if self.categoryGroups.map({ $0.id }).contains(group.id) {
                     Image(systemName: "checkmark")
                 }
             }
@@ -786,58 +581,8 @@ struct MultiCategorySheet: View {
         #if os(macOS)
         .buttonStyle(.plain)
         #endif
-//        .swipeActions(allowsFullSwipe: false) {
-//            EditGroupButton(group: group, groupEditID: $groupEditID)
-//        }
     }
     
-//    struct CategoryGroupLine: View {
-//        @Environment(\.colorScheme) var colorScheme
-//        
-//        @Binding var categories: Array<CBCategory>
-//        @Bindable var group: CBCategoryGroup
-//        @Binding var showDeleteAlert: Bool
-//        @Binding var groupEditID: String?
-//        var selectedCategoryIds: [String]
-//        var labelWidth: CGFloat
-//        
-//        var getReversedColors: (_ for: Array<CBCategory>) -> Array<Gradient.Stop>
-//        
-//        var body: some View {
-//            Button {
-//                withAnimation {
-//                    self.categories = group.categories.filter({ $0.active })
-//                }
-//            } label: {
-//                HStack {
-//                    Group {
-//                        Circle()
-//                            .fill(AngularGradient(gradient: Gradient(stops: getReversedColors(group.categories)), center: .center))
-//                            .frame(width: 20, height: 20)
-//                    }
-//                    .frame(minWidth: labelWidth, alignment: .center)
-//                    
-//                    
-//                    Text(group.title)
-//                    Spacer()
-//                    if selectedCategoryIds == group.categories
-//                        //.sorted(by: {$0.id > $1.id})
-//                        .sorted(by: Helpers.categorySorter())
-//                        .compactMap(\.id) {
-//                        Image(systemName: "checkmark")
-//                    }
-//                }
-//                .schemeBasedForegroundStyle()
-//                .contentShape(Rectangle())
-//            }
-//            #if os(macOS)
-//            .buttonStyle(.plain)
-//            #endif
-//            .swipeActions(allowsFullSwipe: false) {
-//                EditGroupButton(group: group, groupEditID: $groupEditID)
-//            }
-//        }
-//    }
             
     
     struct EditGroupButton: View {
@@ -857,27 +602,3 @@ struct MultiCategorySheet: View {
         }
     }
 }
-
-
-
-//
-//
-//struct MultiCategoryPickerLineItem: View {
-//    var cat: CBCategory
-//    @Binding var categories: [CBCategory]
-//    var labelWidth: CGFloat
-//    var selectFunction: () -> Void
-//    
-//    var body: some View {
-//        StandardCategoryLabel(
-//            cat: cat,
-//            labelWidth: labelWidth,
-//            showCheckmarkCondition: categories.filter{ $0.active }.contains(cat)
-//        )
-//        .onTapGesture {
-//            withAnimation { selectFunction() }
-//        }
-//    }
-//}
-//
-//

@@ -337,6 +337,7 @@ struct PlaidBankView: View {
         .disabled(isForceSyncingTransactions)
     }
     
+    
     var fetchAvailableHistoryButton: some View {
         Button {
             Task {
@@ -439,6 +440,15 @@ struct PlaidBankView: View {
             dismiss()
             //await plaidModel.delete(bank, andSubmit: true)
         //}
+        
+        /// Prevent from going to the server and trying to delete something that isn't there.
+//        if bank.action == .add {
+//            plaidModel.delete(bank, andSubmit: false, calModel: calModel)
+//        } else {
+//            bank.action = .delete
+//        }
+//        
+//        dismiss()
     }
 }
 #endif

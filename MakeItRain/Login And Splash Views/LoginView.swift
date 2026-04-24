@@ -126,7 +126,7 @@ struct LoginView: View {
                 .uiIsSecure(true)
                 .focused($focusedField, equals: 1)
                 #else
-                TextField("Email", text: $password)
+                SecureField("Password", text: $password)
                 #endif
             }
             .frame(width: 250)

@@ -89,11 +89,15 @@ struct KeywordsTable: View {
                 .presentationSizing(.fitted)
                 #endif                
         }
-        .onChange(of: keywordEditID) {
-            if $1 != nil {
-                editKeyword = keyModel.getKeyword(by: $1!)
+        .onChange(of: keywordEditID) { oldId, newId in
+            if let newId {
+                if let keyword = keyModel.getKeyword(by: newId) {
+                    editKeyword = keyword
+                } else {
+                    editKeyword = CBKeyword(uuid: newId)
+                }
             } else {
-                keyModel.saveKeyword(id: $0!)
+                keyModel.saveKeyword(id: oldId!)
             }
         }
         .onChange(of: sortOrder) {

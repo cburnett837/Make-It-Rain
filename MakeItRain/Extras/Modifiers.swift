@@ -491,6 +491,15 @@ struct SchemeBasedForegroundStyle: ViewModifier {
     }
 }
 
+struct SchemeBasedReversedForegroundStyle: ViewModifier {
+    var isDisabled: Bool
+    @Environment(\.colorScheme) var colorScheme
+    func body(content: Content) -> some View {
+        content
+            .foregroundStyle(isDisabled ? .gray : (colorScheme == .dark ? .black : .white))
+    }
+}
+
 struct SchemeBasedTint: ViewModifier {
     @Environment(\.colorScheme) var colorScheme
     func body(content: Content) -> some View {

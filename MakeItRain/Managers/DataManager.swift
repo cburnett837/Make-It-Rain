@@ -1,6 +1,6 @@
 //
 //  DataManager.swift
-//  JarvisPhoneApp
+//  MakeItRain
 //
 //  Created by Cody Burnett on 7/30/24.
 //

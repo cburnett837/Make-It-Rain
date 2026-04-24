@@ -27,25 +27,32 @@ class CalendarModel {
     var isShowingFullScreenCoverOnIpad = false
     #endif
     var categoryFilterWasSetByCategoryPage = false
-    var sCategoriesForAnalysis: [CBCategory] = []
-    var sCategoryGroupsForAnalysis: [CBCategoryGroup] = []
     var transactionViewHasBeenWarmedUp = false
     var isFirstCalendarLoad = true
     var windowMonth: NavDestination?
     
     var sMonth: CBMonth = CBMonth(num: 1)
     var sYear: Int = AppState.shared.todayYear
+    
     var sPayMethodBeforeFilterWasSetByCategoryPage: CBPaymentMethod?
     var sPayMethod: CBPaymentMethod? {
         didSet {
             let _ = calculateTotal(for: self.sMonth)
         }
     }
+    
     var sCategory: CBCategory?
     var sCategories: [CBCategory] = []
+    var sCategoryGroups: [CBCategoryGroup] = []
+    var sCategoriesForAnalysis: [CBCategory] = []
+    var sCategoryGroupsForAnalysis: [CBCategoryGroup] = []
+    
     var isPlayground: Bool { sYear == 1900 }
     var searchText = ""
     var searchWhat = CalendarSearchWhat.titles
+    
+    @ObservationIgnored lazy var dashboardModel = DashboardViewModel(calModel: self)
+    //var dashboardIsDirty = false
     
     var appSuiteBudgets: [CBBudget] = []
     
@@ -161,6 +168,28 @@ class CalendarModel {
             }
         }
         
+//        if let budgets = model.budgets {
+//            for budget in budgets {
+//                if let group = budget.categoryGroup {
+//                    if month.budgetGroups.contains(where: { $0.id == budget.id }) {
+//                        let index = month.budgetGroups.firstIndex(where: { $0.id == budget.id })!
+//                        month.budgetGroups[index] = budget
+//                    } else {
+//                        month.budgetGroups.append(budget)
+//                    }
+//                } else {
+//                    if month.budgets.contains(where: { $0.id == budget.id }) {
+//                        let index = month.budgets.firstIndex(where: { $0.id == budget.id })!
+//                        month.budgets[index] = budget
+//                    } else {
+//                        month.budgets.append(budget)
+//                    }
+//                }
+//                
+//            }
+//        }
+        
+        
         let _ = calculateTotal(for: month)
         
         /// Run this when switching years.
@@ -203,7 +232,7 @@ class CalendarModel {
 //                        await self.handleTransactions(model.transactions, for: month, refreshTechnique: refreshTechnique)
 //                    } else {
 //                        for trans in model.transactions {
-//                            
+//
 //                            /// Handle smart transactions that may have been added
 //                            if let isSmartTransaction = trans.isSmartTransaction {
 //                                if isSmartTransaction && !(trans.smartTransactionIsAcknowledged ?? true) {
@@ -308,52 +337,21 @@ class CalendarModel {
             /// Filter by search term & category.
             .filter { trans in
                 if searchText.isEmpty {
-                    if !sCategories.isEmpty {
-                        return sCategories.map { $0.id }.contains { trans.categoryIdsInCurrentAndDeepCopy.contains($0) }
+                    if !sCategories.isEmpty || !sCategoryGroups.isEmpty {
+                        let categoryIds = (sCategories + sCategoryGroups.flatMap(\.categories)).map(\.id)
+                        return categoryIds.contains { trans.categoryIdsInCurrentAndDeepCopy.contains($0) }
                     } else {
                         return true
                     }
                 } else {
-                    if !sCategories.isEmpty {
+                    if !sCategories.isEmpty || !sCategoryGroups.isEmpty {
+                        let categoryIds = (sCategories + sCategoryGroups.flatMap(\.categories)).map(\.id)
                         return
                             (trans.title.localizedCaseInsensitiveContains(searchText) || !trans.tags.filter { $0.tag.localizedCaseInsensitiveContains(searchText) }.isEmpty)
-                            && sCategories.map{ $0.id }.contains { trans.categoryIdsInCurrentAndDeepCopy.contains($0) }
+                            && categoryIds.contains { trans.categoryIdsInCurrentAndDeepCopy.contains($0) }
                         
-                        
-//                        if searchText.first == "#" {
-//                            let actualSearch = searchText.replacing("#", with: "")
-//                            return
-//                                !trans.tags.filter { $0.tag.localizedCaseInsensitiveContains(actualSearch) }.isEmpty
-//                                && sCategories.map{ $0.id }.contains { trans.categoryIdsInCurrentAndDeepCopy.contains($0) }
-//                        } else {
-//                            return
-//                                trans.title.localizedCaseInsensitiveContains(searchText)
-//                                && sCategories.map{ $0.id }.contains { trans.categoryIdsInCurrentAndDeepCopy.contains($0) }
-//                        }
-                        
-//                        if searchWhat == .titles {
-//                            return
-//                                trans.title.localizedCaseInsensitiveContains(searchText)
-//                                && sCategories.map{ $0.id }.contains { trans.categoryIdsInCurrentAndDeepCopy.contains($0) }
-//                        } else {
-//                            return
-//                                !trans.tags.filter { $0.tag.localizedCaseInsensitiveContains(searchText) }.isEmpty
-//                                && sCategories.map{ $0.id }.contains { trans.categoryIdsInCurrentAndDeepCopy.contains($0) }
-//                        }
                     } else {
                         return (trans.title.localizedCaseInsensitiveContains(searchText) || !trans.tags.filter { $0.tag.localizedCaseInsensitiveContains(searchText) }.isEmpty)
-//                        if searchText.first == "#" {
-//                            let actualSearch = searchText.replacing("#", with: "")
-//                            return !trans.tags.filter { $0.tag.localizedCaseInsensitiveContains(actualSearch) }.isEmpty
-//                        } else {
-//                            return trans.title.localizedCaseInsensitiveContains(searchText)
-//                        }
-                        
-//                        if searchWhat == .titles {
-//                            return trans.title.localizedCaseInsensitiveContains(searchText)
-//                        } else {
-//                            return !trans.tags.filter { $0.tag.localizedCaseInsensitiveContains(searchText) }.isEmpty
-//                        }
                     }
                 }
             }
@@ -580,18 +578,22 @@ class CalendarModel {
             }
             
             /// Check if transaction is in the search results
-            if let index = self.searchedTransactions.firstIndex(where: {$0.id == incomingTrans.id}) {
+            if let index = self.searchedTransactions.firstIndex(where: { $0.id == incomingTrans.id }) {
                 searchedTransactions[index].setFromAnotherInstance(transaction: incomingTrans)
                 searchedTransactions[index].deepCopy?.setFromAnotherInstance(transaction: incomingTrans)
             }
             
             /// Check if transaction is in the receipts list
-            if let index = self.receiptTransactions.firstIndex(where: {$0.id == incomingTrans.id}) {
+            if let index = self.receiptTransactions.firstIndex(where: { $0.id == incomingTrans.id }) {
                 receiptTransactions[index].setFromAnotherInstance(transaction: incomingTrans)
                 receiptTransactions[index].deepCopy?.setFromAnotherInstance(transaction: incomingTrans)
             } else {
                 if let files = incomingTrans.files, !files.isEmpty {
-                    receiptTransactions.insert(incomingTrans, at: 0)
+                    /// You have to make a copy, otherwise you will end up with a referenced object in both the main transaction list, and the receipt transaction list. This will cause additional photos that you add to a new smart transaction to be duplicated.
+                    let copy = CBTransaction()
+                    copy.setFromAnotherInstance(transaction: incomingTrans)
+                    copy.deepCopy?.setFromAnotherInstance(transaction: incomingTrans)
+                    receiptTransactions.insert(copy, at: 0)
                 }
             }
             
@@ -670,7 +672,9 @@ class CalendarModel {
             if !exists {
                 ogObject = incomingTrans
             }
-                          
+            
+            
+            //print("PROCESSING LOCAQLLY")
             /// If the transaction was not found locally, or the date changed, add it to the applicable day if the month and year match the local scope.
             if !exists || dateChanged {
                 //if !dateChanged {
@@ -727,7 +731,7 @@ class CalendarModel {
     }
           
     
-    func getTransaction(by id: String, from transactionLocation: WhereToLookForTransaction = .normalList) -> CBTransaction {
+    func getTransaction(by id: String, from transactionLocation: WhereToLookForTransaction = .normalList) -> CBTransaction? {
         let theList = switch transactionLocation {
             case .normalList:           justTransactions
             case .tempList, .smartList: tempTransactions
@@ -736,10 +740,9 @@ class CalendarModel {
         }
         #warning("ServerID")
         
-        if let trans = theList.first(where: { ($0.id == id || $0.serverID == id) }) {
-            return trans
-        }
-        return CBTransaction(uuid: id)
+        if let trans = theList.first(where: { ($0.id == id || $0.serverID == id) }) { return trans }
+        return nil
+    
     }
     
     
@@ -910,9 +913,8 @@ class CalendarModel {
     @MainActor
     @discardableResult
     func saveTransaction(id: String, /*day: CBDay? = nil,*/ location: WhereToLookForTransaction = .normalList) async -> Bool {
-        //cleanTags()
-                
-        let trans = getTransaction(by: id, from: location)
+        guard let trans = getTransaction(by: id, from: location) else { return true }
+        
         print("-- \(#function) id: \(id) - looking in \(location) - \(trans.title) - \(trans.id)")
         
         trans.intendedServerAction = trans.action
@@ -929,147 +931,160 @@ class CalendarModel {
         }
                 
         
-        if transactionIsValid(trans: trans/*, day: day*/) {
-            print("✅ Trans is valid to save")
-            
-            /// Go update the normal transaction list if changing that transaction via the smart list (temp list) or search result list.
-            if location == .smartList || location == .searchResultList {
-                await self.handleTransactions([trans], refreshTechnique: nil)
-            }
-                                    
-            var saveResultToReturn: Bool = false
-            /// Set the updated by user and date.
-            trans.updatedBy = AppState.shared.user!
-            trans.updatedDate = Date()
-            trans.status = .inFlight
-            
-            /// Update the searched transactions if they are in the search list and you update them like normal.
-            if let index = searchedTransactions.firstIndex(where: { $0.id == id }) {
-                let otherTrans = searchedTransactions[index]
-                otherTrans.setFromAnotherInstance(transaction: trans)
-            }
-            
-            /// Update the temp transactions if they are in the search list and you update them like normal. (I don't think this would be very common though).
-            if let index = tempTransactions.firstIndex(where: { $0.id == id }) {
-                let otherTrans = tempTransactions[index]
-                otherTrans.setFromAnotherInstance(transaction: trans)
-            }
-            
-            
-            /// Move the transaction if applicable.
-            if trans.dateChanged() {
-                print("Date check 1")
-                changeDate(trans)
-            }
-            
-            /// Move the transaction if applicable.
-//            if trans.dateChangeViaLongPoll {
-//                changeDataViaLongPoll(trans)
-//            }
-            
-                        
-            if trans.action == .delete {
-                /// Check if the transaction has a related ID (like from a transfer or payment).
-                if trans.relatedTransactionID != nil
-                    && trans.relatedTransactionType == XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
-                {
-                    let trans2 = getTransaction(by: trans.relatedTransactionID!, from: .normalList)
-                    trans2.intendedServerAction = .delete
-                                        
-                    saveResultToReturn = await self.delete(trans)
-                    _ = await self.delete(trans2)
-                } else {
-                    saveResultToReturn = await self.delete(trans)
-                }
-                // Only a data change trigger is after this code.
-                
-            } else {
-                /// Recalculate totals for each day.
-                Task { let _ = calculateTotal(for: sMonth) }
-                
-                //let toastLingo = "Successfully \(trans.action == .add ? "Added" : "Updated")"
-                
-                /// Check if the transaction has a related ID (like from a transfer or payment).
-                /// This will not handle event transactions!
-                if trans.relatedTransactionID != nil
-                && trans.intendedServerAction != .add
-                && trans.relatedTransactionType == XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction) {
-                                        
-                    
-                    //print("the paymethod is \(trans.payMethod?.title)")
-                    //print("the deep paymethod is \(trans.deepCopy?.payMethod?.title)")
-                    
-                    let trans2 = getTransaction(by: trans.relatedTransactionID!, from: .normalList)
-                    trans.status = .inFlight
-                    trans2.deepCopy(.create)
-                    trans2.updatedBy = AppState.shared.user!
-                    trans2.updatedDate = Date()
-                    trans2.intendedServerAction = trans.intendedServerAction
-                    trans2.factorInCalculations = trans.factorInCalculations
-                    //trans2.color = trans.color
-                    
-                    /// Update the linked date.
-                    if trans.dateChanged() {
-                        print("Date check 2")
-                        trans2.date = trans.date
-                        changeDate(trans2)
-                    }
-                    
-                    /// Update the dollar amounts accordingly.
-                    if trans.payMethod?.accountType != .credit && trans.payMethod?.accountType != .loan {
-                        if trans2.payMethod?.accountType == .credit || trans2.payMethod?.accountType == .loan {
-                            trans2.amountString = (trans.amount * 1).currencyWithDecimals()
-                        } else {
-                            trans2.amountString = (trans.amount * -1).currencyWithDecimals()
-                        }
-                        
-                    } else if trans2.payMethod?.accountType == .credit || trans2.payMethod?.accountType == .loan {
-                        trans2.amountString = (trans.amount * -1).currencyWithDecimals()
-                    } else {
-                        trans2.amountString = (trans.amount * 1).currencyWithDecimals()
-                    }
-                    
-                    /// If we filter transactions by category or by payment method, and change it on the transaction, we need the line below to cause the transaction to disappear when closing it.
-                    /// The transaction filter function that provides the views with the transactions looks for both the transaction and it's deep copy. When changing a category for example, the trans will remain due to the deep copy still having the old reference.
-                    withAnimation {
-                        trans.deepCopy(.clear)
-                        trans2.deepCopy(.clear)
-                    }
-                    
-                    /// Submit to the server.
-                    await withTaskGroup(of: Void.self) { group in
-                        group.addTask { saveResultToReturn = await self.submit(trans) }
-                        group.addTask { let _ = await self.submit(trans2) }
-                    }
-                } else {
-                    trans.actionBeforeSave = trans.action
-                    /// If we filter transactions by category or by payment method, and change it on the transaction, we need the line below to cause the transaction to disappear when closing it.
-                    /// The transaction filter function that provides the views with the transactions looks for both the transaction and it's deep copy. When changing a category for example, the trans will remain due to the deep copy still having the old reference.
-                    withAnimation {
-                        trans.deepCopy(.clear)
-                    }
-                    
-                    saveResultToReturn = await submit(trans)
-                    showToastsForTransactionSave(showSmartTransAlert: location == .smartList, trans: trans)
-                }
-                
-                
-                if location == .smartList {
-                    tempTransactions.removeAll(where: { $0.id == trans.id })
-                }
-            }
-            
-            /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
-            /// So we use the ``DataChangeTriggers`` class to send a notification to the view to tell it to recalculate.
-            DataChangeTriggers.shared.viewDidChange(.calendar)
-            return saveResultToReturn
-            
-        } else {
+        if !transactionIsValid(trans: trans/*, day: day*/) {
             print("❌ Trans is not valid to save")
-            
             trans.status = nil
             return false
         }
+            
+        print("✅ Trans is valid to save")
+            
+        /// Go update the normal transaction list if changing that transaction via the smart list (temp list) or search result list.
+        if location == .smartList || location == .searchResultList {
+            await self.handleTransactions([trans], refreshTechnique: nil)
+        }
+                                
+        var saveResultToReturn: Bool = false
+        /// Set the updated by user and date.
+        trans.updatedBy = AppState.shared.user!
+        trans.updatedDate = Date()
+        trans.status = .inFlight
+        
+        /// Update the searched transactions if they are in the search list and you update them like normal.
+        if let index = searchedTransactions.firstIndex(where: { $0.id == id }) {
+            let otherTrans = searchedTransactions[index]
+            otherTrans.setFromAnotherInstance(transaction: trans)
+        }
+        
+        /// Update the temp transactions if they are in the search list and you update them like normal. (I don't think this would be very common though).
+        if let index = tempTransactions.firstIndex(where: { $0.id == id }) {
+            let otherTrans = tempTransactions[index]
+            otherTrans.setFromAnotherInstance(transaction: trans)
+        }
+        
+        
+        /// Move the transaction if applicable.
+        if trans.dateChanged() {
+            print("Date check 1")
+            changeDate(trans)
+        }
+        
+        /// Move the transaction if applicable.
+//            if trans.dateChangeViaLongPoll {
+//                changeDataViaLongPoll(trans)
+//            }
+        
+                    
+        if trans.action == .delete {
+            /// Check if the transaction has a related ID (like from a transfer or payment).
+            if trans.relatedTransactionID != nil
+                && trans.relatedTransactionType == XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
+            {
+                if let trans2 = getTransaction(by: trans.relatedTransactionID!, from: .normalList) {
+                    trans2.intendedServerAction = .delete
+                    await self.delete(trans2, andSubmit: true)
+                }
+                
+                saveResultToReturn = await self.delete(trans, andSubmit: true)
+                
+            } else {
+                saveResultToReturn = await self.delete(trans, andSubmit: true)
+            }
+            // Only a data change trigger is after this code.
+            
+        } else {
+            /// Recalculate totals for each day.
+            Task { let _ = calculateTotal(for: sMonth) }
+            
+            //let toastLingo = "Successfully \(trans.action == .add ? "Added" : "Updated")"
+            
+            /// Check if the transaction has a related ID (like from a transfer or payment).
+            /// This will not handle event transactions!
+            if trans.relatedTransactionID != nil
+            && trans.intendedServerAction != .add
+            && trans.relatedTransactionType == XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction),
+                let trans2 = getTransaction(by: trans.relatedTransactionID!, from: .normalList) {
+                                    
+                
+                //print("the paymethod is \(trans.payMethod?.title)")
+                //print("the deep paymethod is \(trans.deepCopy?.payMethod?.title)")
+                
+                
+                trans.status = .inFlight
+                trans2.deepCopy(.create)
+                trans2.updatedBy = AppState.shared.user!
+                trans2.updatedDate = Date()
+                trans2.intendedServerAction = trans.intendedServerAction
+                trans2.factorInCalculations = trans.factorInCalculations
+                //trans2.color = trans.color
+                
+                /// Update the linked date.
+                if trans.dateChanged() {
+                    print("Date check 2")
+                    trans2.date = trans.date
+                    changeDate(trans2)
+                }
+                
+                /// Update the dollar amounts accordingly.
+                if trans.payMethod?.accountType != .credit && trans.payMethod?.accountType != .loan {
+                    if trans2.payMethod?.accountType == .credit || trans2.payMethod?.accountType == .loan {
+                        trans2.amountString = (trans.amount * 1).currencyWithDecimals()
+                    } else {
+                        trans2.amountString = (trans.amount * -1).currencyWithDecimals()
+                    }
+                    
+                } else if trans2.payMethod?.accountType == .credit || trans2.payMethod?.accountType == .loan {
+                    trans2.amountString = (trans.amount * -1).currencyWithDecimals()
+                } else {
+                    trans2.amountString = (trans.amount * 1).currencyWithDecimals()
+                }
+                
+                /// If we filter transactions by category or by payment method, and change it on the transaction, we need the line below to cause the transaction to disappear when closing it.
+                /// The transaction filter function that provides the views with the transactions looks for both the transaction and it's deep copy. When changing a category for example, the trans will remain due to the deep copy still having the old reference.
+                withAnimation {
+                    trans.deepCopy(.clear)
+                    trans2.deepCopy(.clear)
+                }
+                
+                /// Submit to the server.
+                await withTaskGroup(of: Void.self) { group in
+                    group.addTask { saveResultToReturn = await self.submit(trans) }
+                    group.addTask { let _ = await self.submit(trans2) }
+                }
+            } else {
+                trans.actionBeforeSave = trans.action
+                /// If we filter transactions by category or by payment method, and change it on the transaction, we need the line below to cause the transaction to disappear when closing it.
+                /// The transaction filter function that provides the views with the transactions looks for both the transaction and it's deep copy. When changing a category for example, the trans will remain due to the deep copy still having the old reference.
+                withAnimation {
+                    trans.deepCopy(.clear)
+                }
+                
+                saveResultToReturn = await submit(trans)
+                showToastsForTransactionSave(showSmartTransAlert: location == .smartList, trans: trans)
+            }
+            
+            
+            if location == .smartList {
+                tempTransactions.removeAll(where: { $0.id == trans.id })
+            }
+        }
+        
+        /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
+        /// So we use the ``DataChangeTriggers`` class to send a notification to the view to tell it to recalculate.
+        DataChangeTriggers.shared.viewDidChange(.calendar)
+        
+        /// Check to see if the transaction was part of the data that powers the dashboard.
+        /// If so, tell the dashboard to reload itself from the server.
+        if let date = trans.date {
+            let range = min(dashboardModel.beginDate, dashboardModel.endDate)...max(dashboardModel.beginDate, dashboardModel.endDate)
+            let transIsPartOfDashboard = range.contains(date)
+            if transIsPartOfDashboard {
+                self.dashboardModel.isDirty = true
+            }
+        }
+        
+        
+        return saveResultToReturn
     }
     
     
@@ -1232,28 +1247,51 @@ class CalendarModel {
     
     
     /// Only called via `saveTransaction(id: day:)`.
+//    @discardableResult
+//    private func delete(_ trans: CBTransaction) async -> Bool {
+//        print("-- \(#function)")
+//        trans.action = .delete
+//        trans.actionBeforeSave = trans.action
+//        trans.intendedServerAction = .delete
+//        withAnimation {
+////            if let targetMonth = months.filter({ $0.actualNum == trans.dateComponents?.month && $0.year == trans.dateComponents?.year }).first {
+////                if let day = targetMonth.days.filter({ $0.dateComponents?.day == trans.dateComponents?.day }).first {
+////                    day.remove(trans)
+////                    let _ = calculateTotal(for: sMonth)
+////                }
+////            }
+//            
+//            tempTransactions.removeAll { $0.id == trans.id }
+//        }
+//           
+//        //Task { @MainActor in
+//        let saveResult = await submit(trans)
+//        return saveResult
+//            //self.handleSavingOfEventTransaction(trans: trans, eventModel: eventModel)
+//        //}
+//    }
+    
+    
     @discardableResult
-    private func delete(_ trans: CBTransaction) async -> Bool {
+    func delete(_ trans: CBTransaction, andSubmit: Bool) async -> Bool {
         print("-- \(#function)")
         trans.action = .delete
         trans.actionBeforeSave = trans.action
         trans.intendedServerAction = .delete
-        withAnimation {
-//            if let targetMonth = months.filter({ $0.actualNum == trans.dateComponents?.month && $0.year == trans.dateComponents?.year }).first {
-//                if let day = targetMonth.days.filter({ $0.dateComponents?.day == trans.dateComponents?.day }).first {
-//                    day.remove(trans)
-//                    let _ = calculateTotal(for: sMonth)
-//                }
-//            }
-            
-            tempTransactions.removeAll { $0.id == trans.id }
-        }
+        tempTransactions.removeAll { $0.id == trans.id }
            
-        //Task { @MainActor in
-        let saveResult = await submit(trans)
-        return saveResult
-            //self.handleSavingOfEventTransaction(trans: trans, eventModel: eventModel)
-        //}
+        if andSubmit {
+            let saveResult = await submit(trans)
+            return saveResult
+        } else {
+            if let targetMonth = months.filter({ $0.actualNum == trans.dateComponents?.month && $0.year == trans.dateComponents?.year }).first {
+                if let day = targetMonth.days.filter({ $0.dateComponents?.day == trans.dateComponents?.day }).first {
+                    day.remove(trans)
+                    let _ = calculateTotal(for: sMonth)
+                }
+            }
+            return false
+        }
     }
     
     
@@ -1290,6 +1328,8 @@ class CalendarModel {
             //budgetGroups: budgetGroups,
             isTransfer: isTransfer
         )
+        
+        print("GO!")
         let model = RequestModel(requestType: "add_populated_transactions_and_budgets", model: repModel)
         
         typealias ResultResponse = Result<Array<ReturnIdModel>?, AppError>
@@ -1362,6 +1402,110 @@ class CalendarModel {
         //self.refreshTask = nil
         
     }
+    
+    
+    
+    @MainActor
+    func addMultiple2(trans: Array<CBRepTransactionCreateModel>, budgets: Array<CBBudget>, isTransfer: Bool) async {
+        #if os(iOS)
+        var backgroundTaskId = AppState.shared.beginBackgroundTask()
+        #endif
+        /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
+        /// So we use the ``DataChangeTriggers`` class to send a notification to the view to tell it to recalculate.
+        DataChangeTriggers.shared.viewDidChange(.calendar)
+        
+        
+//        for each in trans {
+//            each.status = .inFlight
+//        }
+        
+        
+        //LoadingManager.shared.startDelayedSpinner()
+        LogManager.log()
+        
+        let repModel = RepeatingAndBudgetSubmissionModel2(
+            month: sMonth.actualNum,
+            year: sMonth.year,
+            transactions: trans,
+            budgets: budgets,
+            //budgetGroups: budgetGroups,
+            isTransfer: isTransfer
+        )
+        
+        print("GO!")
+        let model = RequestModel(requestType: "add_populated_transactions_and_budgets", model: repModel)
+        
+        typealias ResultResponse = Result<Array<ReturnIdModel>?, AppError>
+        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+                    
+        switch await result {
+        case .success(let model):
+            LogManager.networkingSuccessful()
+            if let model {
+                
+                //var transferTransactions: Array<CBTransaction> = []
+                for idModel in model {
+                    let type = idModel.type
+                    
+                    let targetMonth = months.filter { $0.enumID == sMonth.enumID }.first!
+                    
+                    if type == "transaction" {
+                        //print("TYPE IS TRANSACTION - isTransfer \(isTransfer)")
+                        let targetDays = targetMonth.days
+                        let transactions = targetDays.flatMap({ $0.transactions })
+                                                                        
+                        let index = transactions.firstIndex(where: { $0.id == idModel.uuid ?? "" })
+                        if let index {
+                            #warning("serverID Change")
+                            transactions[index].serverID = String(idModel.id)
+                            if let relatedID = idModel.relatedID {
+                                transactions[index].relatedTransactionID = String(relatedID)
+                            }
+                            
+                            //transactions[index].id = String(model?.transactionID ?? "0")
+                            //transactions[index].uuid = nil
+                            transactions[index].action = .edit
+                            transactions[index].intendedServerAction = .edit
+                            transactions[index].status = .saveSuccess
+                            performLineItemAnimations(for: transactions[index])
+                            
+//                            if isTransfer {
+//                                transferTransactions.append(transactions[index])
+//                            }
+                            
+                        }
+                    } else {
+                        let index = targetMonth.budgets.firstIndex(where: { $0.id == idModel.uuid })
+                        if let index {
+                            targetMonth.budgets[index].id = idModel.id
+                            targetMonth.budgets[index].action = .edit
+                        }
+                    }
+                }
+            }
+            
+            #if os(iOS)
+            AppState.shared.endBackgroundTask(&backgroundTaskId)
+            #endif
+            
+        case .failure(let error):
+            LogManager.error(error.localizedDescription)
+            AppState.shared.showAlert("There was a problem trying to add multiple transactions.")
+            
+//            for each in trans {
+//                each.status = .saveFail
+//                performLineItemAnimations(for: each)
+//            }
+            
+            #if os(iOS)
+            AppState.shared.endBackgroundTask(&backgroundTaskId)
+            #endif
+        }
+        //LoadingManager.shared.stopDelayedSpinner()
+        //self.refreshTask = nil
+        
+    }
+    
     
     
     @MainActor
@@ -1687,8 +1831,8 @@ class CalendarModel {
                 
                 day.upsert(trans)
                 
-                if let relatedId = trans.relatedTransactionID {
-                    let relatedTrans = self.getTransaction(by: relatedId)
+                if let relatedId = trans.relatedTransactionID,
+                    let relatedTrans = self.getTransaction(by: relatedId) {
                     
                     let trans2 = CBTransaction(uuid: UUID().uuidString)
                     trans2.title = relatedTrans.title
@@ -1783,6 +1927,8 @@ class CalendarModel {
     func fetchReceiptsFromServer(funcModel: FuncModel) async {
         let fetchModel = GenericUserInfoModel()
         
+        let start = CFAbsoluteTimeGetCurrent()
+        
         let model = RequestModel(requestType: "fetch_receipts", model: fetchModel)
         typealias ResultResponse = Result<Array<CBTransaction>?, AppError>
         async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
@@ -1818,6 +1964,8 @@ class CalendarModel {
                 
                 currentReceiptId = model.first?.id
             }
+            
+            print("⏰It took \(CFAbsoluteTimeGetCurrent() - start) seconds to fetch the receipts.")
                 
         case .failure (let error):
             switch error {
@@ -2114,15 +2262,17 @@ class CalendarModel {
         let expenses = getSpend(from: transactions)
         let income = getIncome(from: transactions)
         let incomeMinusPayments = getIncomeMinusPayments(from: transactions)
+        //let expensesMinusIncome = getSpendMinusIncome(from: transactions)
         
         var chartPer = 0.0
         var actualPer = 0.0
-        let expensesMinusIncome = (expenses + income) * -1
+        let expensesMinusIncome = (expenses * -1) - income
+        //let expensesMinusIncome = getSpendMinusIncome(from: transactions)
         
         if categoricalBudgetAmount == 0 {
             actualPer = expensesMinusIncome
         } else {
-            actualPer = (expensesMinusIncome / categoricalBudgetAmount) * 100
+            actualPer = (expensesMinusIncome * -1 / categoricalBudgetAmount) * 100
         }
                                         
         if actualPer > 100 {
@@ -2392,6 +2542,9 @@ class CalendarModel {
             }
         }
     }
+    
+    
+    
     
     
     
@@ -2926,7 +3079,8 @@ class CalendarModel {
         print("-- \(#function)")
         //let dateFormatter = DateFormatter()
         
-        var repTransToServer: Array<CBTransaction> = []
+        var repsToServer: Array<CBRepTransactionCreateModel> = []
+        //var repTransToServer: Array<CBTransaction> = []
         var budgetsToServer: Array<CBBudget> = []
         //var budgetGroupsToServer: Array<CBBudgetGroup> = []
         
@@ -2935,6 +3089,7 @@ class CalendarModel {
             if meth.doIt {
                 for repTrans in repTransactions.filter({ $0.payMethod?.id == meth.id && $0.include }) {
                     let repID = repTrans.id
+                    let uuid = UUID().uuidString
                     
 //                    var monthID = 0
 //                    if sMonth.enumID == .nextJanuary {
@@ -2945,7 +3100,7 @@ class CalendarModel {
 //                        monthID = sMonth.num
 //                    }
                                         
-                    let isRelevantToSelectedMonth = !repTrans.when.filter({ $0.active && $0.whenType == .month && $0.monthNum == sMonth.actualNum}).isEmpty
+                    let isRelevantToSelectedMonth = !repTrans.when.filter({ $0.active && $0.whenType == .month && $0.monthNum == sMonth.actualNum }).isEmpty
                     
                     /// Only if the month checkbox in the repeating is checked.
                     if isRelevantToSelectedMonth {
@@ -2963,16 +3118,31 @@ class CalendarModel {
                                     let addedTrans = targetDay.transactions.filter { $0.repID == repID }.first
                                     if addedTrans == nil {
                                         if repTrans.repeatingTransactionType.enumID != XrefEnum.regular {
-                                            processThing(repTrans: repTrans, targetDay: targetDay, repTransToServer: &repTransToServer)
+                                            processThing(
+                                                uuid: uuid,
+                                                repTrans: repTrans,
+                                                targetDay: targetDay,
+                                                //repTransToServer: &repTransToServer,
+                                                toServer: &repsToServer
+                                            )
                                         } else {
                                             let newTrans = CBTransaction(
+                                                uuid: uuid,
                                                 repTrans: repTrans,
                                                 date: targetDay.date!,
                                                 payMethod: repTrans.payMethod,
                                                 amountString: repTrans.amountString
                                             )
                                             targetDay.transactions.append(newTrans)
-                                            repTransToServer.append(newTrans)
+                                            //repTransToServer.append(newTrans)
+                                            repsToServer.append(
+                                                CBRepTransactionCreateModel(
+                                                    uuid: uuid,
+                                                    repID: repTrans.id,
+                                                    payMethodID: repTrans.payMethod?.id,
+                                                    date: targetDay.date!
+                                                )
+                                            )
                                         }
                                     }
                                 } else {
@@ -2982,17 +3152,32 @@ class CalendarModel {
                                         if repTrans.repeatingTransactionType.enumID == XrefEnum.regular {
                                             if let targetDay = targetMonth.days.last {
                                                 let newTrans = CBTransaction(
+                                                    uuid: uuid,
                                                     repTrans: repTrans,
                                                     date: targetDay.date!,
                                                     payMethod: repTrans.payMethod,
                                                     amountString: repTrans.amountString
                                                 )
                                                 targetDay.transactions.append(newTrans)
-                                                repTransToServer.append(newTrans)
+                                                //repTransToServer.append(newTrans)
+                                                repsToServer.append(
+                                                    CBRepTransactionCreateModel(
+                                                        uuid: uuid,
+                                                        repID: repTrans.id,
+                                                        payMethodID: repTrans.payMethod?.id,
+                                                        date: targetDay.date!
+                                                    )
+                                                )
                                             }
                                         } else {
                                             if let targetDay = targetMonth.days.last {
-                                                processThing(repTrans: repTrans, targetDay: targetDay, repTransToServer: &repTransToServer)
+                                                processThing(
+                                                    uuid: uuid,
+                                                    repTrans: repTrans,
+                                                    targetDay: targetDay,
+                                                    //repTransToServer: &repTransToServer,
+                                                    toServer: &repsToServer
+                                                )
                                             }
                                         }
                                     }
@@ -3009,13 +3194,22 @@ class CalendarModel {
                                     let addedTrans = weekday.transactions.filter { $0.repID == repID }.first
                                     if addedTrans == nil {
                                         let newTrans = CBTransaction(
+                                            uuid: uuid,
                                             repTrans: repTrans,
                                             date: weekday.date!,
                                             payMethod: repTrans.payMethod,
                                             amountString: repTrans.amountString
                                         )
                                         weekday.transactions.append(newTrans)
-                                        repTransToServer.append(newTrans)
+                                        //repTransToServer.append(newTrans)
+                                        repsToServer.append(
+                                            CBRepTransactionCreateModel(
+                                                uuid: uuid,
+                                                repID: repTrans.id,
+                                                payMethodID: repTrans.payMethod?.id,
+                                                date: weekday.date!
+                                            )
+                                        )
                                     }
                                 }
                             }
@@ -3026,20 +3220,6 @@ class CalendarModel {
         }
         
         if options.budget {
-            for cat in categories {
-                let budgetExists = !sMonth.budgets.filter { $0.category?.id == cat.id }.isEmpty
-                if !budgetExists {
-                    let budget = CBBudget()
-                    budget.month = sMonth.actualNum
-                    budget.year = sMonth.year
-                    budget.amountString = cat.amountString ?? ""
-                    budget.category = cat
-                    
-                    budgetsToServer.append(budget)
-                    sMonth.budgets.append(budget)
-                }
-            }
-            
             for group in categoryGroups {
                 let budgetExists = !sMonth.budgetGroups.filter { $0.id == group.id }.isEmpty
                 if !budgetExists {
@@ -3053,9 +3233,31 @@ class CalendarModel {
                     sMonth.budgets.append(budget)
                 }
             }
+            
+            for cat in categories {
+                /// Ignore any categories that are in a group, or are of type income.
+                let catExistsInGroup = !categoryGroups.filter { $0.categories.contains(where: { $0.id == cat.id }) }.isEmpty
+                let budgetExists = !sMonth.budgets.filter { $0.category?.id == cat.id }.isEmpty
+                let isIncomeCategory = cat.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .income)
+                
+                if !budgetExists, !catExistsInGroup, !isIncomeCategory {
+                    let budget = CBBudget()
+                    budget.month = sMonth.actualNum
+                    budget.year = sMonth.year
+                    budget.amountString = cat.amountString ?? ""
+                    budget.category = cat
+                    
+                    budgetsToServer.append(budget)
+                    sMonth.budgets.append(budget)
+                }
+            }
         }
         
-        if repTransToServer.isEmpty && budgetsToServer.isEmpty {
+//        if repTransToServer.isEmpty && budgetsToServer.isEmpty {
+//            return
+//        }
+        
+        if repsToServer.isEmpty && budgetsToServer.isEmpty {
             return
         }
         
@@ -3063,48 +3265,70 @@ class CalendarModel {
         sMonth.hasBeenPopulated = true
         
         Task {
-            await addMultiple(trans: repTransToServer, budgets: budgetsToServer, isTransfer: false)
+            //await addMultiple(trans: repTransToServer, budgets: budgetsToServer, isTransfer: false)
+            await addMultiple2(trans: repsToServer, budgets: budgetsToServer, isTransfer: false)
         }
         
         
         
-        func processThing(repTrans: CBRepeatingTransaction, targetDay: CBDay, repTransToServer: inout [CBTransaction]) {
+        func processThing(
+            uuid: String,
+            repTrans: CBRepeatingTransaction,
+            targetDay: CBDay,
+            //repTransToServer: inout [CBTransaction],
+            toServer: inout [CBRepTransactionCreateModel]
+        ) {
             let fromTrans = CBTransaction(
+                uuid: uuid,
                 repTrans: repTrans,
                 date: targetDay.date!,
                 payMethod: repTrans.payMethod,
                 amountString: repTrans.amountString
             )
             
+            let secondUUID = UUID().uuidString
             let toTrans = CBTransaction(
+                uuid: secondUUID,
                 repTrans: repTrans,
                 date: targetDay.date!,
                 payMethod: repTrans.payMethodPayTo,
                 amountString: repTrans.amountString
             )
             
+            var fromTranz = CBRepTransactionCreateModel(uuid: uuid, repID: repTrans.id, payMethodID: repTrans.payMethod?.id, date: targetDay.date!)
+            
+            var toTranz = CBRepTransactionCreateModel(uuid: secondUUID, repID: repTrans.id, payMethodID: repTrans.payMethodPayTo?.id, date: targetDay.date!)
+            
+            
+            
             
             fromTrans.relatedTransactionID = toTrans.id
             fromTrans.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
+            fromTranz.relatedID = toTranz.id
                                                                                                     
             if repTrans.repeatingTransactionType.enumID == XrefEnum.payment {
                 fromTrans.title = "Payment to \(repTrans.payMethodPayTo?.title ?? "")"
                 fromTrans.isPaymentOrigin = true
+                fromTranz.isPaymentOrigin = true
             } else {
                 fromTrans.title = "Transfer to \(repTrans.payMethodPayTo?.title ?? "")"
                 fromTrans.isTransferOrigin = true
+                fromTranz.isTransferOrigin = true
             }
             
             toTrans.relatedTransactionID = fromTrans.id
             toTrans.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
+            toTranz.relatedID = fromTranz.id
             
             
             if repTrans.repeatingTransactionType.enumID == XrefEnum.payment {
                 toTrans.title = "Payment from \(repTrans.payMethod?.title ?? "")"
                 toTrans.isPaymentDest = true
+                toTranz.isPaymentDest = true
             } else {
                 toTrans.title = "Transfer from \(repTrans.payMethod?.title ?? "")"
                 toTrans.isTransferDest = true
+                toTranz.isTransferDest = true
             }
                                                         
             if fromTrans.isExpense && repTrans.repeatingTransactionType.enumID != XrefEnum.payment {
@@ -3113,10 +3337,14 @@ class CalendarModel {
             
             
             targetDay.transactions.append(fromTrans)
-            repTransToServer.append(fromTrans)
+            //repTransToServer.append(fromTrans)
             
             targetDay.transactions.append(toTrans)
-            repTransToServer.append(toTrans)
+            //repTransToServer.append(toTrans)
+            
+            
+            toServer.append(toTranz)
+            toServer.append(fromTranz)
         }
     }
     

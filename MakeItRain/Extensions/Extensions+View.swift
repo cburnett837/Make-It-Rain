@@ -122,6 +122,10 @@ extension View {
         modifier(SchemeBasedForegroundStyle(isDisabled: isDisabled))
     }
     
+    func schemeBasedReversedForegroundStyle(isDisabled: Bool = false) -> some View {
+        modifier(SchemeBasedReversedForegroundStyle(isDisabled: isDisabled))
+    }
+    
     func schemeBasedTint() -> some View {
         modifier(SchemeBasedTint())
     }

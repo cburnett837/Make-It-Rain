@@ -158,7 +158,7 @@ struct CalendarToolbar: ToolbarContent {
         }
         
         if AppState.shared.isIphone {
-            Group {
+            Group {                
                 ToolbarItem(placement: .bottomBar) { analysisSheetButton }
                 ToolbarSpacer(.fixed, placement: .bottomBar)
                 DefaultToolbarItem(kind: .search, placement: .bottomBar)
@@ -212,6 +212,7 @@ struct CalendarToolbar: ToolbarContent {
         .schemeBasedTint()
         //.schemeBasedForegroundStyle()
     }
+    
     
     
     var refeshingIndicator: some View {
@@ -352,6 +353,7 @@ struct CalendarToolbar: ToolbarContent {
                     Button("Reset", role: .destructive) {
                         withAnimation {
                             calModel.sCategories.removeAll()
+                            calModel.sCategoryGroups.removeAll()
                         }
                     }
                 }
@@ -387,7 +389,7 @@ struct CalendarToolbar: ToolbarContent {
                 //.presentationSizing(.page)
         }
         .sheet(isPresented: $calProps.showCategorySheet) {
-            MultiCategorySheet(categories: $calModel.sCategories, categoryGroup: .constant([]))
+            MultiCategorySheet(categories: $calModel.sCategories, categoryGroups: $calModel.sCategoryGroups)
         }
     }
     

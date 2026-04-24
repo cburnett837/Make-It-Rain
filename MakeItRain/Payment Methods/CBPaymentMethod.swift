@@ -54,6 +54,11 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     var holderFour: CBUser?
     var holderFourType: XrefItem?
     
+    var holderOneId: Int?
+    var holderTwoId: Int?
+    var holderThreeId: Int?
+    var holderFourId: Int?
+    
     var fallbackImage: String {
         accountType == .checking || accountType == .cash ? "banknote.fill" : "creditcard.fill"
     }
@@ -70,6 +75,8 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     
     var enteredBy: CBUser = AppState.shared.user!
     var updatedBy: CBUser = AppState.shared.user!
+    var enteredById: Int?
+    var updatedById: Int?
     var enteredDate: Date
     var updatedDate: Date
     
@@ -313,7 +320,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     /// If the method goes from private to public, update the starting amount records so the long poll will push them to other users on the account.
     var viewingYear: Int?
     
-    enum CodingKeys: CodingKey { case id, uuid, title, due_date, limit, account_type_id, hex_code, is_viewing_default, is_editing_default, active, user_id, account_id, device_uuid, notification_offset, notify_on_due_date, last_4_digits, entered_by, updated_by, entered_date, updated_date, breakdowns, interest_rate, loan_duration, is_hidden, is_private, logo, list_order, viewing_year, holder_one, holder_two, holder_three, holder_four, holder_one_type_id, holder_two_type_id, holder_three_type_id, holder_four_type_id, transaction_count }
+    enum CodingKeys: CodingKey { case id, uuid, title, due_date, limit, account_type_id, hex_code, is_viewing_default, is_editing_default, active, user_id, account_id, device_uuid, notification_offset, notify_on_due_date, last_4_digits, entered_by, updated_by, entered_date, updated_date, breakdowns, interest_rate, loan_duration, is_hidden, is_private, logo, list_order, viewing_year, holder_one, holder_two, holder_three, holder_four, holder_one_type_id, holder_two_type_id, holder_three_type_id, holder_four_type_id, transaction_count, entered_by_id, updated_by_id, holder_one_id, holder_two_id, holder_three_id, holder_four_id }
     
     
     func encode(to encoder: Encoder) throws {
@@ -340,23 +347,31 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         try container.encode(logo, forKey: .logo)
         try container.encode(interestRate, forKey: .interest_rate)
         try container.encode(loanDuration, forKey: .loan_duration)
-        try container.encode(enteredBy, forKey: .entered_by) // for the Transferable protocol
-        try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
-        try container.encode(enteredDate.string(to: .serverDateTime), forKey: .entered_date) // for the Transferable protocol
-        try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date) // for the Transferable protocol
+        //try container.encode(enteredBy, forKey: .entered_by) // for the Transferable protocol
+        //try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
+        try container.encode(enteredById, forKey: .entered_by_id) // for the Transferable protocol
+        try container.encode(updatedById, forKey: .updated_by_id) // for the Transferable protocol
+        try container.encode(enteredDate, forKey: .entered_date) // for the Transferable protocol
+        try container.encode(updatedDate, forKey: .updated_date) // for the Transferable protocol
         
         try container.encode(listOrder, forKey: .list_order)
         
         //print("going to encode holder id1 \(holderOne?.id)")
         
-        try container.encode(holderOne, forKey: .holder_one)
-        try container.encode(holderTwo, forKey: .holder_two)
-        try container.encode(holderThree, forKey: .holder_three)
-        try container.encode(holderFour, forKey: .holder_four)
+        try container.encode(holderOne?.id, forKey: .holder_one_id)
+        try container.encode(holderTwo?.id, forKey: .holder_two_id)
+        try container.encode(holderThree?.id, forKey: .holder_three_id)
+        try container.encode(holderFour?.id, forKey: .holder_four_id)
         try container.encode(holderOneType?.id, forKey: .holder_one_type_id)
         try container.encode(holderTwoType?.id, forKey: .holder_two_type_id)
         try container.encode(holderThreeType?.id, forKey: .holder_three_type_id)
         try container.encode(holderFourType?.id, forKey: .holder_four_type_id)
+        
+        
+        //try container.encode(holderOne, forKey: .holder_one) // for the Transferable protocol
+        //try container.encode(holderTwo, forKey: .holder_two) // for the Transferable protocol
+        //try container.encode(holderThree, forKey: .holder_three) // for the Transferable protocol
+        //try container.encode(holderFour, forKey: .holder_four) // for the Transferable protocol
         
         /// Send the current year to the server when updating a payment method for 1 use case:
         /// If the method goes from private to public, update the starting amount records so the long poll will push them to other users on the account.
@@ -524,10 +539,10 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         notifyOnDueDate = (try container.decode(Int?.self, forKey: .notify_on_due_date)) == 1
         last4 = try container.decode(String?.self, forKey: .last_4_digits)
 
-        holderOne = try container.decode(CBUser?.self, forKey: .holder_one)
-        holderTwo = try container.decode(CBUser?.self, forKey: .holder_two)
-        holderThree = try container.decode(CBUser?.self, forKey: .holder_three)
-        holderFour = try container.decode(CBUser?.self, forKey: .holder_four)
+        //holderOne = try container.decode(CBUser?.self, forKey: .holder_one)
+        //holderTwo = try container.decode(CBUser?.self, forKey: .holder_two)
+        //holderThree = try container.decode(CBUser?.self, forKey: .holder_three)
+        //holderFour = try container.decode(CBUser?.self, forKey: .holder_four)
 
         if let id = try container.decode(Int?.self, forKey: .holder_one_type_id) { holderOneType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: id) }
         if let id = try container.decode(Int?.self, forKey: .holder_two_type_id) { holderTwoType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: id) }
@@ -542,20 +557,46 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         }
 
         action = .edit
-        enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
-        updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
-
-        if let enteredDate = try container.decode(String?.self, forKey: .entered_date) {
-            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime) ?? Date()
-        } else {
-            self.enteredDate = Date()
+        //enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
+        //updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
+        enteredDate = try container.decode(Date.self, forKey: .entered_date)
+        updatedDate = try container.decode(Date.self, forKey: .updated_date)
+        
+        if let enteredById = try container.decode(Int?.self, forKey: .entered_by_id) {
+            self.enteredBy = AppState.shared.getUserBy(id: enteredById) ?? CBUser()
+        }
+        
+        if let updatedById = try container.decode(Int?.self, forKey: .updated_by_id) {
+            self.updatedBy = AppState.shared.getUserBy(id: updatedById) ?? CBUser()
+        }
+        
+        if let holderOneId = try container.decode(Int?.self, forKey: .holder_one_id) {
+            self.holderOne = AppState.shared.getUserBy(id: holderOneId) ?? CBUser()
+        }
+        
+        if let holderTwoId = try container.decode(Int?.self, forKey: .holder_two_id) {
+            self.holderTwo = AppState.shared.getUserBy(id: holderTwoId) ?? CBUser()
+        }
+        
+        if let holderThreeId = try container.decode(Int?.self, forKey: .holder_three_id) {
+            self.holderThree = AppState.shared.getUserBy(id: holderThreeId) ?? CBUser()
+        }
+        
+        if let holderFourId = try container.decode(Int?.self, forKey: .holder_four_id) {
+            self.holderFour = AppState.shared.getUserBy(id: holderFourId) ?? CBUser()
         }
 
-        if let updatedDate = try container.decode(String?.self, forKey: .updated_date) {
-            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime) ?? Date()
-        } else {
-            self.updatedDate = Date()
-        }
+//        if let enteredDate = try container.decode(String?.self, forKey: .entered_date) {
+//            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime) ?? Date()
+//        } else {
+//            self.enteredDate = Date()
+//        }
+//
+//        if let updatedDate = try container.decode(String?.self, forKey: .updated_date) {
+//            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime) ?? Date()
+//        } else {
+//            self.updatedDate = Date()
+//        }
 
         breakdowns = try container.decodeIfPresent([PayMethodMonthlyBreakdown].self, forKey: .breakdowns) ?? []
 
@@ -564,6 +605,8 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
 
         listOrder = try container.decode(Int?.self, forKey: .list_order)
         recentTransactionCount = try container.decodeIfPresent(Int.self, forKey: .transaction_count) ?? 0
+        
+        //print("\(self.title) - isEditingDefault - \(self.isEditingDefault)")
     }
 
     
@@ -915,6 +958,7 @@ extension CBPaymentMethod {
                 entity.hexCode = snapshot.hexCode
                 //entity.hexCode = payMethod.color.description
                 entity.isViewingDefault = snapshot.isViewingDefault
+                entity.isEditingDefault = snapshot.isEditingDefault
                 entity.notificationOffset = snapshot.notificationOffset
                 entity.notifyOnDueDate = snapshot.notifyOnDueDate
                 entity.last4 = snapshot.last4

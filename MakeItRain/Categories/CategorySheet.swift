@@ -119,11 +119,15 @@ struct CategorySheet: View {
                 #endif
         })
         
-        .onChange(of: categoryEditID) { oldValue, newValue in
-            if let newValue {
-                editCategory = catModel.getCategory(by: newValue)
+        .onChange(of: categoryEditID) { oldId, newId in
+            if let newId {
+                if let category = catModel.getCategory(by: newId) {
+                    editCategory = category
+                } else {
+                    editCategory = CBCategory(uuid: newId)
+                }
             } else {
-                catModel.saveCategory(id: oldValue!, calModel: calModel, keyModel: keyModel)
+                catModel.saveCategory(id: oldId!, calModel: calModel, keyModel: keyModel)
             }
         }
     }

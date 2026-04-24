@@ -23,6 +23,8 @@ extension Date? {
 
 
 extension Date {
+    private var calendar: Calendar { Calendar.current }
+
     #warning("for sqlite")
 //    func string(to format: DateFormat) -> String {
 //        let dateFormatter = DateFormatter()
@@ -62,18 +64,31 @@ extension Date {
     }
     
     var startDateOfMonth: Date {
-        guard let date = Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: self)) else {
-            fatalError("Unable to get start date from date")
-        }
-        return date
+        calendar.date(from: calendar.dateComponents([.year, .month], from: self))!
     }
 
+//    var endDateOfMonth: Date {
+//        guard let date = Calendar.current.date(byAdding: DateComponents(month: 1, day: -1), to: self) else {
+//            fatalError("Unable to get end date from date")
+//        }
+//        return date
+//    }
+    
     var endDateOfMonth: Date {
-        guard let date = Calendar.current.date(byAdding: DateComponents(month: 1, day: -1), to: self) else {
-            fatalError("Unable to get end date from date")
+            let startOfNextMonth = calendar.date(byAdding: .month, value: 1, to: startDateOfMonth)!
+            return calendar.date(byAdding: .second, value: -1, to: startOfNextMonth)!
         }
-        return date
+    
+    
+    var startDateOfYear: Date {
+        calendar.date(from: calendar.dateComponents([.year], from: self))!
     }
+    
+    var endDateOfYear: Date {
+        let startOfNextYear = calendar.date(byAdding: .year, value: 1, to: startDateOfYear)!
+        return calendar.date(byAdding: .second, value: -1, to: startOfNextYear)!
+    }
+    
     
 //    var startOfDay: Date {
 //        return Calendar.current.startOfDay(for: self)
@@ -103,43 +118,70 @@ extension Date {
 //        return Calendar.current.date(from: components)!
 //    }
     
-    var startOfQuarter: Date {
-        let calendar = Calendar.current
-        let year = calendar.component(.year, from: self)
-        let month = calendar.component(.month, from: self)
-
-        let quarter = (month - 1) / 3 + 1
-        let firstMonthOfQuarter = (quarter - 1) * 3 + 1
-
-        var components = DateComponents()
-        components.year = year
-        components.month = firstMonthOfQuarter
-        components.day = 1
-
-        return calendar.date(from: components)!
+    var quarter: Int {
+        (calendar.component(.month, from: self) - 1) / 3 + 1
     }
     
-    var endOfQuarter: Date {
-        let calendar = Calendar.current
+    
+    var startDateOfQuarter: Date {
         let year = calendar.component(.year, from: self)
-        let quarter = (calendar.component(.month, from: self) - 1) / 3 + 1
-
-        // Determine the last month of the quarter
-        let lastMonthOfQuarter = quarter * 3
-
-        // Create a date for the first day of the next month
-        var components = DateComponents()
-        components.year = year
-        components.month = lastMonthOfQuarter + 1
-        components.day = 1
-
-        // Get the first day of the next month
-        guard let startOfNextMonth = calendar.date(from: components) else {
-            return self // fallback
-        }
-
-        // Subtract one day to get the last day of the quarter
-        return calendar.date(byAdding: .day, value: -1, to: startOfNextMonth)!
+        let startMonth = (quarter - 1) * 3 + 1
+        return calendar.date(from: DateComponents(year: year, month: startMonth, day: 1))!
+    }
+    
+    var endDateOfQuarter: Date {
+        let start = startDateOfQuarter
+        let startOfNextQuarter = calendar.date(byAdding: .month, value: 3, to: start)!
+        return calendar.date(byAdding: .second, value: -1, to: startOfNextQuarter)!
+    }
+    
+//    var startOfQuarter: Date {
+//        let calendar = Calendar.current
+//        let year = calendar.component(.year, from: self)
+//        let month = calendar.component(.month, from: self)
+//
+//        let quarter = (month - 1) / 3 + 1
+//        let firstMonthOfQuarter = (quarter - 1) * 3 + 1
+//
+//        var components = DateComponents()
+//        components.year = year
+//        components.month = firstMonthOfQuarter
+//        components.day = 1
+//
+//        return calendar.date(from: components)!
+//    }
+//    
+//    var endOfQuarter: Date {
+//        let calendar = Calendar.current
+//        let year = calendar.component(.year, from: self)
+//        let quarter = (calendar.component(.month, from: self) - 1) / 3 + 1
+//
+//        // Determine the last month of the quarter
+//        let lastMonthOfQuarter = quarter * 3
+//
+//        // Create a date for the first day of the next month
+//        var components = DateComponents()
+//        components.year = year
+//        components.month = lastMonthOfQuarter + 1
+//        components.day = 1
+//
+//        // Get the first day of the next month
+//        guard let startOfNextMonth = calendar.date(from: components) else {
+//            return self // fallback
+//        }
+//
+//        // Subtract one day to get the last day of the quarter
+//        return calendar.date(byAdding: .day, value: -1, to: startOfNextMonth)!
+//    }
+    
+    func datesForQuarter(_ quarter: Int) -> (start: Date, end: Date) {
+        let year = calendar.component(.year, from: self)
+        let startMonth = (quarter - 1) * 3 + 1
+        
+        let start = calendar.date(from: DateComponents(year: year, month: startMonth, day: 1))!
+        let end = calendar.date(byAdding: DateComponents(month: 3, second: -1), to: start)!
+        
+        return (start, end)
     }
     
     var quarterString: String {

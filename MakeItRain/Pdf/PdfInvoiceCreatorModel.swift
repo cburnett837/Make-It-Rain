@@ -50,7 +50,7 @@ class PdfInvoiceCreatorModel {
         let contactString = contactName.isEmpty ? "" : " \(contactName)"
         //let lingoLower = invoiceTypeLingo.lowercased()
         let lingo = invoiceType == .invoice ? "an invoice" : "a receipt"
-        let title = trans?.title ?? "N/A"
+        let title = self.title
         let date = trans?.date?.string(to: .monthDayShortYear) ?? "N/A"
         return "Hey\(contactString), here is \(lingo) for \(title) from \(date)"
     }

@@ -41,6 +41,13 @@ struct KeywordView: View {
                 categorySection
                 renameSection
                 
+                Section {
+                    Toggle(isOn: $keyword.isIgnoredSuggestion) {
+                        Text("Ignore")
+                    }
+                } footer: {
+                    Text("The app will look for combinations of titles and categories that happen often and suggest that you create a rule, if you haven't done so already. Use this toggle to prevent suggestions for **\(keyword.keyword.isEmpty ? "N/A" : keyword.keyword)** and **\(keyword.category?.title ?? "N/A")** in the future.")
+                }
             }
             .navigationTitle(title)
             #if os(iOS)
@@ -198,11 +205,18 @@ struct KeywordView: View {
                 Text("give it a category of…")
             }
         } else {
-            Button("Add Category") {
-                withAnimation {
-                    showCategorySection = true
+            Section {
+                Button("Automatically give it a category") {
+                    withAnimation {
+                        showCategorySection = true
+                    }
                 }
+            } header: {
+                Text("…then…")
+            } footer: {
+                Text("Choose a category to add to the criteria of this rule.")
             }
+            
         }
     }
     
@@ -237,11 +251,16 @@ struct KeywordView: View {
                 Text("When accepting a transaction from Plaid, choose to rename it to something more friendly.")
             }
         } else {
-            Button("Add Rename") {
-                withAnimation {
-                    showRenameSection = true
+            Section {
+                Button("Rename its title") {
+                    withAnimation {
+                        showRenameSection = true
+                    }
                 }
+            } footer: {
+                Text("Choose to rename a transaction that matches the above criteria. For example, Plaid may send a transaction with the title 'ZELLE CONF #123455'. You can choose to rename it simply to 'Zelle'.")
             }
+            
         }
     }
     
@@ -290,11 +309,14 @@ struct KeywordView: View {
         .tint(.none)
         .confirmationDialog("Delete \"\(keyword.keyword)\"?", isPresented: $showDeleteAlert, actions: {
             Button("Yes", role: .destructive) {
-                //Task {
+                /// Prevent from going to the server and trying to delete something that isn't there.
+                if keyword.action == .add {
+                    keyModel.delete(keyword, andSubmit: false)
+                } else {
                     keyword.action = .delete
-                    dismiss()
-                    //await keyModel.delete(keyword, andSubmit: true)
-                //}
+                }
+                
+                dismiss()                
             }
             #if os(iOS)
             Button("No", role: .close) { showDeleteAlert = false }

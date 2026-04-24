@@ -216,11 +216,14 @@ struct CategoryGroupEditView: View {
     
     
     func deleteGroup() {
-        //Task {
+        /// Prevent from going to the server and trying to delete something that isn't there.
+        if group.action == .add {
+            catModel.delete(group, andSubmit: false)
+        } else {
             group.action = .delete
-            dismiss()
-            //await catModel.delete(category, andSubmit: true, calModel: calModel, keyModel: keyModel, eventModel: eventModel)
-        //}
+        }
+        
+        dismiss()
     }
     
     

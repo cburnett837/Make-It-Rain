@@ -80,6 +80,9 @@ struct RecentReceiptsView: View {
             case .cards: cardScrollerContainer
             }
         }
+        .task {
+            await self.calModel.fetchReceiptsFromServer(funcModel: funcModel)
+        }
         .listStyle(.plain)
         .navigationTitle("Receipts\(AppState.shared.devMode ? " (Dev)" : "")")
         .toolbar { toolbar }

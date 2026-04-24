@@ -35,7 +35,8 @@ struct PayMethodsTable: View {
     @State private var showDefaultViewingSheet = false
     @State private var showDefaultEditingSheet = false
     
-    @State private var navPath = NavigationPath()
+    @Binding var navPath: NavigationPath
+    //@State private var navPath = NavigationPath()
     
     var listOrders: [Int] {
         payModel.paymentMethods.map { $0.listOrder ?? 0 }.sorted { $0 > $1 }
@@ -97,7 +98,7 @@ struct PayMethodsTable: View {
     
     var body: some View {
         @Bindable var payModel = payModel
-        NavigationStack(path: $navPath) {
+        //NavigationStack(path: $navPath) {
             VStack {
                 if !payModel.paymentMethods.filter({ !$0.isUnified }).isEmpty {
                     #if os(macOS)
@@ -124,7 +125,7 @@ struct PayMethodsTable: View {
             /// Setting this id forces the view to refresh and update the relevant payment method with the new ID.
             .id(payModel.fuckYouSwiftuiTableRefreshID)
             #endif
-            .navigationBarBackButtonHidden(true)
+            //.navigationBarBackButtonHidden(true)
             .task {
                 defaultViewingMethod = payModel.paymentMethods.filter { $0.isViewingDefault }.first
                 defaultEditingMethod = payModel.paymentMethods.filter { $0.isEditingDefault }.first
@@ -199,7 +200,7 @@ struct PayMethodsTable: View {
                     .presentationSizing(.page)
                     #endif
             }
-        }
+        //}
     }
     
     #if os(macOS)
@@ -597,8 +598,9 @@ struct PayMethodsTable: View {
             
             /// On iPhone, push the details page to the nav, which will auto-open the edit sheet.
             if AppState.shared.isIphone {
-                let newMeth = payModel.getPaymentMethod(by: newId)
-                navPath.append(newMeth)
+                //let newMeth = CBPaymentMethod(uuid: newId)
+                //let newMeth = payModel.getPaymentMethod(by: newId)
+                navPath.append(CBPaymentMethod(uuid: newId))
             } else {
                 /// On iPad, trigger the details sheet to open, which will then open the edit sheet.
                 //#error("On Ipad, when closing the edit sheet, the details sheet freaks out.")
@@ -770,7 +772,7 @@ struct PayMethodsTable: View {
     
     func setDefaultEditingMethod() {
         print("-- \(#function)")
-        Task { await payModel.setDefaultEditing(defaultViewingMethod) }
+        Task { await payModel.setDefaultEditing(defaultEditingMethod) }
         
         
 //        if let defaultEditingMethod = defaultEditingMethod {

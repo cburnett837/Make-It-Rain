@@ -127,6 +127,7 @@ class AuthState {
             
             switch error {
             case .incorrectCredentials, .accessRevoked:
+                print(".incorrectCredentials, .accessRevoked")
                 clearLoginState()
                 
             case .taskCancelled:
@@ -145,6 +146,7 @@ class AuthState {
             self.isLoggedIn = false
         }        
         do {
+            self.keychainCredentialsExist = false
             try keychainManager.removeFromKeychain(key: "user_api_key")
             AppState.shared.apiKey = nil
             UserDefaults.standard.set(nil, forKey: "user")

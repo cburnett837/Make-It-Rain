@@ -41,10 +41,12 @@ class CBLogo: Codable, Identifiable, Hashable {
     var active: Bool
     var enteredBy: CBUser = AppState.shared.user!
     var updatedBy: CBUser = AppState.shared.user!
+    var enteredById: Int?
+    var updatedById: Int?
     var enteredDate: Date
     var updatedDate: Date
     
-    enum CodingKeys: CodingKey { case id, related_id, related_type_id, base_string, active, user_id, account_id, device_uuid, entered_by, updated_by, entered_date, updated_date }
+    enum CodingKeys: CodingKey { case id, related_id, related_type_id, base_string, active, user_id, account_id, device_uuid, entered_by, updated_by, entered_date, updated_date, entered_by_id, updated_by_id }
     
     init(relatedID: String, baseString: String, fileType: XrefEnum) {
         self.id = UUID().uuidString
@@ -109,22 +111,34 @@ class CBLogo: Codable, Identifiable, Hashable {
         let relatedTypeID = try container.decode(Int.self, forKey: .related_type_id)
         self.relatedRecordType = XrefModel.getItem(from: .logoTypes, byID: relatedTypeID)
         
-        enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
-        updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
-        
-        let enteredDate = try container.decode(String?.self, forKey: .entered_date)
-        if let enteredDate {
-            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime)!
-        } else {
-            fatalError("Could not determine enteredDate date")
+        if let enteredById = try container.decode(Int?.self, forKey: .entered_by_id) {
+            self.enteredBy = AppState.shared.getUserBy(id: enteredById) ?? CBUser()
         }
         
-        let updatedDate = try container.decode(String?.self, forKey: .updated_date)
-        if let updatedDate {
-            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
-        } else {
-            fatalError("Could not determine updatedDate date")
+        if let updatedById = try container.decode(Int?.self, forKey: .updated_by_id) {
+            self.updatedBy = AppState.shared.getUserBy(id: updatedById) ?? CBUser()
         }
+
+        
+        enteredDate = try container.decode(Date.self, forKey: .entered_date)
+        updatedDate = try container.decode(Date.self, forKey: .updated_date)
+        
+//        enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
+//        updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
+//        
+//        let enteredDate = try container.decode(String?.self, forKey: .entered_date)
+//        if let enteredDate {
+//            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime)!
+//        } else {
+//            fatalError("Could not determine enteredDate date")
+//        }
+//        
+//        let updatedDate = try container.decode(String?.self, forKey: .updated_date)
+//        if let updatedDate {
+//            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
+//        } else {
+//            fatalError("Could not determine updatedDate date")
+//        }
     }
     
     func hash(into hasher: inout Hasher) {

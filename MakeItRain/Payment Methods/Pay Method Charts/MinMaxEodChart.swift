@@ -44,7 +44,7 @@ struct MinMaxEodChartDetails: View {
         if let raw = rawSelectedDate {
             let breakdowns = vm.payMethods.first?.breakdowns
             if vm.viewByQuarter {
-                return breakdowns?.first { $0.date.year == raw.year && $0.date.startOfQuarter == raw.startOfQuarter }?.date
+                return breakdowns?.first { $0.date.year == raw.year && $0.date.startDateOfQuarter == raw.startDateOfQuarter }?.date
             } else {
                 return breakdowns?.first { raw.matchesMonth(of: $0.date) }?.date
             }
@@ -186,8 +186,8 @@ struct MinMaxEodChart: View {
         
         if vm.viewByQuarter {
             RectangleMark(
-                xStart: .value("Start Date", breakdown.date.startOfQuarter, unit: .day),
-                xEnd: .value("End Date", breakdown.date.endOfQuarter.addingTimeInterval(-60 * 60 * 24 * 14), unit: .day),
+                xStart: .value("Start Date", breakdown.date.startDateOfQuarter, unit: .day),
+                xEnd: .value("End Date", breakdown.date.endDateOfQuarter.addingTimeInterval(-60 * 60 * 24 * 14), unit: .day),
                 yStart: .value("Min Eod", breakdown.minEod),
                 yEnd: .value("Max Eod", breakdown.maxEod),
             )

@@ -54,6 +54,7 @@ enum XrefEnum: String {
     /// Category Types
     case income
     case expense
+    case irregularIncome
     
     /// Account Types
     case unifiedChecking
@@ -170,6 +171,7 @@ struct XrefModel {
     
     static let categoryTypes: Array<XrefItem> = [
         XrefItem(id: 26, refType: "category_type", description: "Income", enumID: .income),
+        XrefItem(id: 64, refType: "category_type", description: "Irregular Income", enumID: .irregularIncome),
         XrefItem(id: 27, refType: "category_type", description: "Expense", enumID: .expense),
         XrefItem(id: 28, refType: "category_type", description: "Payment", enumID: .payment),
         XrefItem(id: 29, refType: "category_type", description: "Savings", enumID: .savings),

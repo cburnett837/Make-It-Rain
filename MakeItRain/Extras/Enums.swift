@@ -10,6 +10,11 @@ import Foundation
 import UIKit
 #endif
 
+
+enum ObjectStatus {
+    case editing, inFlight, saveSuccess, saveFail, dummy, deleteSucceess
+}
+
 enum CloseAction {
     case save, cancel
 }
@@ -501,6 +506,31 @@ enum AmountType: String, CaseIterable, Identifiable {
     }
     
 }
+
+
+enum GiftStatus: String, CaseIterable, Identifiable {
+    case idea, purchased, inTransit, inHand, wrapped
+    var id: String { return self.rawValue }
+    var string: String { String(describing: self).capitalized }
+    
+    var prettyValue: String {
+        switch self {
+        case .idea:
+            "Idea"
+        case .purchased:
+            "Bought"
+        case .inTransit:
+            "Shipped"
+        case .inHand:
+            "Have"
+        case .wrapped:
+            "Done"
+        }
+    }
+    
+    //var boughtArray: Array<GiftStatus> { [GiftStatus.purchased, GiftStatus.inTransit, GiftStatus.inHand, GiftStatus.wrapped] }
+}
+
 
 
 //MARK: Core Data Stuff

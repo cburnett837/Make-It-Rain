@@ -23,8 +23,8 @@ class RepeatingTransactionModel {
         return !repTransactions.filter { $0.id == repTransaction.id }.isEmpty
     }
     
-    func getRepeatingTransaction(by id: String) -> CBRepeatingTransaction {
-        return repTransactions.filter { $0.id == id }.first ?? CBRepeatingTransaction(uuid: id)
+    func getRepeatingTransaction(by id: String) -> CBRepeatingTransaction? {
+        return repTransactions.first(where: { $0.id == id })
     }
     
     func upsert(_ repTransaction: CBRepeatingTransaction) {
@@ -38,7 +38,7 @@ class RepeatingTransactionModel {
     }
     
     func saveTransaction(id: String) {
-        let repTransaction = getRepeatingTransaction(by: id)
+        guard let repTransaction = getRepeatingTransaction(by: id) else { return }
                 
         if repTransaction.action == .delete {
             repTransaction.updatedBy = AppState.shared.user!

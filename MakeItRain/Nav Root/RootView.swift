@@ -20,9 +20,7 @@ struct RootView: View {
     @Environment(WebSocketManager.self) var webSocketManager
     
     //@State private var warmUpTransactionView = false
-    
-    let monthNavigationNamespace: Namespace.ID
-        
+            
     var body: some View {
         //let _ = Self._printChanges()
         @Bindable var navManager = NavigationManager.shared
@@ -89,9 +87,9 @@ struct RootView: View {
             RootViewMac()
             #else
             if AppState.shared.isIpad {
-                RootViewPad(monthNavigationNamespace: monthNavigationNamespace)
+                RootViewPad()
             } else {
-                RootViewPhone(monthNavigationNamespace: monthNavigationNamespace)
+                RootViewPhone()
             }
             #endif
         }
@@ -225,7 +223,7 @@ struct RootView: View {
         
         if funcModel.refreshTask == nil {
             funcModel.refreshTask = Task {
-                if await AppState.shared.checkIfDownloadingDataIsNeeded() {
+                if await funcModel.checkIfDownloadingDataIsNeeded() {
                     print("🎃There is new data to download.")
                     await funcModel.downloadEverything(setDefaultPayMethod: false, createNewStructs: false, refreshTechnique: .viaSceneChange)
                 } else {

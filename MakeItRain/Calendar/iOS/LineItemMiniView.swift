@@ -303,7 +303,10 @@ struct LineItemMiniView: View {
     
     func selectTrans() {
         //DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-            trans.status = .editing
+        trans.status = .editing
+        /// Force this to `.normalList` since smart transactions will change the variable to look in the temp list.
+        /// If you add a smart transaction and have to fix it, close it, and then try and open it before it has completed its trip to the server, the app will try and look in the smart list by the ID, and won't find it, thus returning you a blank transaction. So whenever you touch a line item, force the app to look inside the normal list.
+        calProps.findTransactionWhere = .normalList
         //}
         /// Prevent a transaction from being opened while another one is trying to save.
         //if calModel.editLock { return }
@@ -321,8 +324,8 @@ struct LineItemMiniView: View {
                 calModel.multiSelectTransactions.append(trans)
                 
                 /// See if the transaction has a related record and add it if so.
-                if let relatedId = trans.relatedTransactionID {
-                    let relatedTrans = calModel.getTransaction(by: relatedId)
+                if let relatedId = trans.relatedTransactionID,
+                    let relatedTrans = calModel.getTransaction(by: relatedId) {
                     calModel.multiSelectTransactions.append(relatedTrans)
                 }
             }

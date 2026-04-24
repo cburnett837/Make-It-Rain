@@ -19,8 +19,8 @@ class CategoryModel {
         return !categories.filter { $0.id == category.id }.isEmpty
     }
     
-    func getCategory(by id: String) -> CBCategory {
-        return categories.filter { $0.id == id }.first ?? CBCategory(uuid: id)
+    func getCategory(by id: String) -> CBCategory? {
+        return categories.first(where: { $0.id == id })
     }
     
     func upsert(_ category: CBCategory) {
@@ -36,12 +36,12 @@ class CategoryModel {
     }
     
     func getNil() -> CBCategory? {
-        categories.filter { $0.isNil }.first
+        return categories.first(where: { $0.isNil })
     }
     
     
     func saveCategory(id: String, calModel: CalendarModel, keyModel: KeywordModel) {
-        let category = getCategory(by: id)
+        guard let category = getCategory(by: id) else { return }
         
         if category.action == .delete {
             category.updatedBy = AppState.shared.user!
@@ -246,7 +246,7 @@ class CategoryModel {
             return
         }
         
-        for category in categories.sorted(by: Helpers.categorySorter()) {
+        for category in cats.sorted(by: Helpers.categorySorter()) {
             if self.doesExist(category) {
                 if !category.active {
                     self.delete(category, andSubmit: false, calModel: calModel, keyModel: keyModel)
@@ -569,8 +569,8 @@ extension CategoryModel {
         return !categoryGroups.filter { $0.id == group.id }.isEmpty
     }
     
-    func getCategoryGroup(by id: String) -> CBCategoryGroup {
-        return categoryGroups.filter { $0.id == id }.first ?? CBCategoryGroup(uuid: id)
+    func getCategoryGroup(by id: String) -> CBCategoryGroup? {
+        return categoryGroups.first(where: { $0.id == id })
     }
     
     func upsert(_ group: CBCategoryGroup) {
@@ -587,7 +587,7 @@ extension CategoryModel {
     
     
     func saveCategoryGroup(id: String) {
-        let group = getCategoryGroup(by: id)
+        guard let group = getCategoryGroup(by: id) else { return }
         
         if group.action == .delete {
             group.updatedBy = AppState.shared.user!

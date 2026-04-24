@@ -59,13 +59,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>357</string>
+					<string>394</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>356</string>
+					<string>393</string>
 					<key>Timestamp</key>
-					<string>793380295.493642</string>
+					<string>798739717.8394721</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -84,7 +84,7 @@
 				<string>}
 </string>
 				<key>leading</key>
-				<string>        }
+				<string>        dashboardModel.isDirty = false
     }
 </string>
 				<key>trailing</key>

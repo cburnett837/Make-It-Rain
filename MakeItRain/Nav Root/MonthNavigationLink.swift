@@ -18,7 +18,6 @@ struct MonthNavigationLink: View {
     @State private var blinkTimer: Timer?
     
     var enumID: NavDestination
-    let monthNavigationNamespace: Namespace.ID
     
     var month: CBMonth {
         calModel.months.filter { $0.enumID == enumID }.first!
@@ -48,7 +47,7 @@ struct MonthNavigationLink: View {
             monthDayGrid
         }
         .contentShape(Rectangle())
-        .matchedTransitionSource(id: month.enumID, in: monthNavigationNamespace)
+        //.matchedTransitionSource(id: month.enumID, in: monthNavigationNamespace)
         
         .padding(.bottom, 10)
         .buttonStyle(.plain)

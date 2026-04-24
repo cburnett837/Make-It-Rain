@@ -1,6 +1,6 @@
 //
 //  NotificationToken.swift
-//  JarvisPhoneApp
+//  MakeItRain
 //
 //  Created by Cody Burnett on 8/17/24.
 //

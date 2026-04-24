@@ -116,8 +116,7 @@ struct TevLogSheet: View {
                 }
                 
             } else if log.field == .payMethod {
-                if let old = log.old {
-                    let meth = payModel.getPaymentMethod(by: old)
+                if let old = log.old, let meth = payModel.getPaymentMethod(by: old) {
                     HStack {
                         BusinessLogo(config: .init(parent: meth, fallBackType: .color, size: 20))
                         Text(meth.title)
@@ -127,8 +126,7 @@ struct TevLogSheet: View {
                         .foregroundStyle(.gray)
                 }
                 
-                if let new = log.new {
-                    let meth = payModel.getPaymentMethod(by: new)
+                if let new = log.new, let meth = payModel.getPaymentMethod(by: new) {
                     HStack {
                         BusinessLogo(config: .init(parent: meth, fallBackType: .color, size: 20))
                         Text(meth.title)
@@ -139,16 +137,14 @@ struct TevLogSheet: View {
                 }
                 
             } else if log.field == .category {
-                if let old = log.old {
-                    let cat = catModel.getCategory(by: old)
+                if let old = log.old, let cat = catModel.getCategory(by: old) {
                     StandardCategoryLabel(cat: cat, labelWidth: 20, showCheckmarkCondition: false)
                 } else {
                     Text("[Nothing]")
                         .foregroundStyle(.gray)
                 }
                 
-                if let new = log.new {
-                    let cat = catModel.getCategory(by: new)
+                if let new = log.new, let cat = catModel.getCategory(by: new) {
                     StandardCategoryLabel(cat: cat, labelWidth: 20, showCheckmarkCondition: false)
                 } else {
                     Text("[Nothing]")
@@ -174,8 +170,7 @@ struct TevLogSheet: View {
     func restoreLog(from log: CBLog) {
         switch log.logType {
         case .transaction:
-            
-            let trans = calModel.getTransaction(by: itemID)
+            guard let trans = calModel.getTransaction(by: itemID) else { break }
             
             switch log.field {
             case .title:

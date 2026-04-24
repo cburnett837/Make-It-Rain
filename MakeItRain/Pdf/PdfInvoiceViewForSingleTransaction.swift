@@ -70,7 +70,7 @@ struct PdfInvoiceViewForSingleTransaction: View {
                 .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.top] })
                                 
                 VStack(alignment: .trailing) {
-                    Text("\(trans.id)")
+                    Text("\(trans.serverID)")
                     Text("\(date.string(to: .monthDayShortYear))")
                     Text("N/A")
                 }

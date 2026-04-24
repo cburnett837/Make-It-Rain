@@ -77,15 +77,15 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
     
     
     
-    enum CodingKeys: CodingKey { case id, uuid, category, category_group, month, year, amount, amount2, active, user_id, account_id, device_uuid, app_suite_key, type_id }
+    enum CodingKeys: CodingKey { case id, uuid, category, category_group, category_id, category_group_id, month, year, amount, amount2, active, user_id, account_id, device_uuid, app_suite_key, type_id }
     
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(uuid, forKey: .uuid)
-        try container.encode(category, forKey: .category)
-        try container.encode(categoryGroup, forKey: .category_group)
+        try container.encode(category?.id, forKey: .category_id)
+        try container.encode(categoryGroup?.id, forKey: .category_group_id)
         try container.encode(month, forKey: .month)
         try container.encode(year, forKey: .year)
         try container.encode(amount, forKey: .amount)

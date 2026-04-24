@@ -166,13 +166,13 @@ class WebSocketManager {
             do {
                 while !Task.isCancelled {
                     let result = try await ws.receive()
-                    print("recv:", result)
+                    //print("recv:", result)
                     
                     switch result {
                     case .data(let data):
                         
                         let serverText = String(data: data, encoding: .utf8) ?? ""
-                        print(serverText)
+                        //print(serverText)
                         //print("GOT SERVER RESPONSE")
                         if AppState.shared.debugPrint { print(serverText) }
                         
@@ -187,9 +187,13 @@ class WebSocketManager {
                     case .string(let s):
                         let data: Data = Data(s.utf8)
                         #if targetEnvironment(simulator)
-                        let decodedData = try! JSONDecoder().decode(LongPollModel.self, from: data)
+                        let decoder = JSONDecoder()
+                        decoder.dateDecodingStrategy = .iso8601
+                        let decodedData = try! decoder.decode(LongPollModel.self, from: data)
                         #else
-                        let decodedData = try! JSONDecoder().decode(LongPollModel.self, from: data)
+                        let decoder = JSONDecoder()
+                        decoder.dateDecodingStrategy = .iso8601
+                        let decodedData = try! decoder.decode(LongPollModel.self, from: data)
                         #endif
 
                         await self.handleLongPollResult(model: decodedData)
@@ -228,7 +232,6 @@ class WebSocketManager {
     @MainActor
     func handleLongPollResult(model: LongPollModel) async {
         if model.transactions != nil
-        || model.fitTransactions != nil
         || model.startingAmounts != nil
         || model.repeatingTransactions != nil
         || model.payMethods != nil
@@ -252,54 +255,65 @@ class WebSocketManager {
             if let transactions = model.transactions {
                 await self.handleLongPollTransactions(transactions)
             }
-//                        if AppState.shared.user?.id == 1 {
-//                            if let fitTransactions = model.fitTransactions { self.handleLongPollFitTransactions(fitTransactions) }
-//                        }
-            if let startingAmounts = model.startingAmounts {
+
+            if let startingAmounts = model.startingAmounts, !startingAmounts.isEmpty {
                 self.handleLongPollStartingAmounts(startingAmounts)
             }
+            
             if let repeatingTransactions = model.repeatingTransactions, !repeatingTransactions.isEmpty {
                 await repModel.handleIncoming(reps: repeatingTransactions, incomingDataType: .viaLongPoll)
             }
-            if let payMethods = model.payMethods {
-                await payModel.handleLongPoll(payMethods, calModel: calModel, repModel: repModel)
+            
+            if let payMethods = model.payMethods, !payMethods.isEmpty {
+                await payModel.handleIncoming(meths: payMethods, calModel: calModel, repModel: repModel, incomingDataType: .viaLongPoll)
+                //await payModel.handleLongPoll(payMethods, calModel: calModel, repModel: repModel)
                 payModel.prepareStartingAmounts(for: calModel.sMonth, calModel: calModel)
             }
+            
             if let categories = model.categories, !categories.isEmpty {
                 await catModel.handleIncoming(cats: categories, calModel: calModel, keyModel: keyModel, repModel: repModel, incomingDataType: .viaLongPoll)
             }
+            
             if let categoryGroups = model.categoryGroups, !categoryGroups.isEmpty {
                 await catModel.handleIncoming(groups: categoryGroups, incomingDataType: .viaLongPoll)
             }
+            
             if let keywords = model.keywords, !keywords.isEmpty {
                 //await keyModel.handleLongPoll(keywords)
                 await keyModel.handleIncoming(keys: keywords, incomingDataType: .viaLongPoll)
             }
-            if let budgets = model.budgets {
+            
+            if let budgets = model.budgets, !budgets.isEmpty {
                 self.handleLongPollBudgets(budgets)
             }
+            
             if let openRecords = model.openRecords, !openRecords.isEmpty {
                 await self.handleLongPollOpenRecords(openRecords)
             }
-            if let logos = model.logos {
+            
+            if let logos = model.logos, !logos.isEmpty {
                 await self.handleLongPollLogos(logos)
             }
+            
             if let settings = model.settings {
                 self.handleLongPollSettings(settings)
             }
+            
             if let plaidBanks = model.plaidBanks, !plaidBanks.isEmpty {
                 await plaidModel.handleIncoming(banks: plaidBanks, incomingDataType: .viaLongPoll)
             }
-            if let plaidAccounts = model.plaidAccounts {
+            
+            if let plaidAccounts = model.plaidAccounts, !plaidAccounts.isEmpty {
                 await plaidModel.handleLongPollPlaidAccounts(plaidAccounts)
             }
+            
             if let plaidBalances = model.plaidBalances, !plaidBalances.isEmpty {
                 plaidModel.handleLongPollPlaidBalances(plaidBalances)
             }
+            
             if let plaidTransactionsWithCount = model.plaidTransactionsWithCount {
                 await plaidModel.handleIncoming(transactionsWithCount: plaidTransactionsWithCount, incomingDataType: .viaLongPoll)
             }
-            //if let receipts = model.receipts { self.handleLongPollReceipts(receipts) }
         }
     }
             
@@ -322,27 +336,6 @@ class WebSocketManager {
         
         DataChangeTriggers.shared.viewDidChange(.calendar)
     }
-    
-    
-//    @MainActor private func handleLongPollFitTransactions(_ transactions: Array<CBFitTransaction>) {
-//        print("-- \(#function)")
-//        for trans in transactions {
-//            if calModel.doesExist(trans) {
-//                if trans.isAcknowledged {
-//                    calModel.delete(trans)
-//                    continue
-//                } else {
-//                    if let index = calModel.getIndex(for: trans) {
-//                        calModel.fitTrans[index].setFromAnotherInstance(trans: trans)
-//                    }
-//                }
-//            } else {
-//                if !trans.isAcknowledged {
-//                    calModel.upsert(trans)
-//                }
-//            }
-//        }
-//    }
     
     
     @MainActor
@@ -387,192 +380,6 @@ class WebSocketManager {
     }
     
     
-//    @MainActor
-//    private func handleLongPollRepeatingTransactions(_ repeatingTransactions: Array<CBRepeatingTransaction>) async {
-//        print("-- \(#function)")
-//        for transaction in repeatingTransactions {
-//            if repModel.doesExist(transaction) {
-//                if !transaction.active {
-//                    repModel.delete(transaction, andSubmit: false)
-//                } else {
-//                    if let index = repModel.getIndex(for: transaction) {
-//                        repModel.repTransactions[index].setFromAnotherInstance(repTransaction: transaction)
-//                        repModel.repTransactions[index].deepCopy?.setFromAnotherInstance(repTransaction: transaction)
-//                    }
-//                }
-//            } else {
-//                if transaction.active {
-//                    withAnimation { repModel.upsert(transaction) }
-//                }
-//            }
-//        }
-//    }
-    
-    
-//    @MainActor private func handleLongPollPaymentMethods(_ payMethods: Array<CBPaymentMethod>) async {
-//        print("-- \(#function)")
-//
-//        //let ogListOrders = payModel.paymentMethods.map { $0.listOrder ?? 0 }.sorted()
-//        //var newListOrders: [Int] = []
-//
-//        let context = DataManager.shared.createContext()
-//        for payMethod in payMethods {
-//            //newListOrders.append(payMethod.listOrder ?? 0)
-//            if payModel.doesExist(payMethod) {
-//                if !payMethod.active {
-//                    payModel.delete(payMethod, andSubmit: false, calModel: calModel)
-//                    continue
-//                } else {
-//                    if let index = payModel.getIndex(for: payMethod) {
-//
-//
-////                        if let logoData = payMethod.logo {
-////                            let paymentMethodTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id
-////                            await ImageCache.shared.saveToCache(
-////                                parentTypeId: paymentMethodTypeID,
-////                                parentId: payMethod.id,
-////                                id: logo.id,
-////                                data: logoData
-////                            )
-////                        }
-//
-//
-//
-//                        payModel.paymentMethods[index].setFromAnotherInstance(payMethod: payMethod)
-//                        payModel.paymentMethods[index].deepCopy?.setFromAnotherInstance(payMethod: payMethod)
-//                    }
-//                }
-//            } else {
-//                if payMethod.active {
-//                    withAnimation { payModel.upsert(payMethod) }
-//                }
-//            }
-//
-//            if payMethod.isPermitted {
-//                let _ = await payModel.updateCache(for: payMethod)
-//            } else {
-//                DataManager.shared.delete(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)))
-//            }
-//            //print("SaveResult: \(saveResult)")
-//
-//            calModel.justTransactions
-//                .filter { $0.payMethod?.id == payMethod.id }
-//                .forEach { $0.payMethod?.setFromAnotherInstance(payMethod: payMethod) }
-//
-//            calModel.months
-//                .flatMap { $0.startingAmounts.compactMap { $0.payMethod } }
-//                .filter { $0.id == payMethod.id }
-//                .forEach { $0.setFromAnotherInstance(payMethod: payMethod) }
-//
-//            repModel.repTransactions
-//                .filter { $0.payMethod?.id == payMethod.id }
-//                .forEach { $0.payMethod?.setFromAnotherInstance(payMethod: payMethod) }
-//        }
-//
-//        payModel.determineIfUserIsRequiredToAddPaymentMethod()
-//
-//        self.prepareStartingAmounts(for: calModel.sMonth)
-//
-////        if newListOrders != ogListOrders {
-////            DataChangeTriggers.shared.viewDidChange(.paymentMethodListOrders)
-////        }
-//
-//    }
-    
-    
-//    @MainActor private func handleLongPollCategories(_ categories: Array<CBCategory>) async {
-//        print("-- \(#function)")
-//        for category in categories {
-//            if catModel.doesExist(category) {
-//                if !category.active {
-//                    catModel.delete(category, andSubmit: false, calModel: calModel, keyModel: keyModel)
-//                    continue
-//                } else {
-//                    if let index = catModel.getIndex(for: category) {
-//                        catModel.categories[index].setFromAnotherInstance(category: category)
-//                        catModel.categories[index].deepCopy?.setFromAnotherInstance(category: category)
-//                    }
-//                }
-//            } else {
-//                if category.active {
-//                    withAnimation { catModel.upsert(category) }
-//                }
-//            }
-//            let _ = await catModel.updateCache(
-//                for: category,
-//                createIfNotFound: false,
-//                findById: category.id,
-//                action: .edit,
-//                isPending: false
-//            )
-//            //print("SaveResult: \(saveResult)")
-//
-//            calModel.justTransactions.filter { $0.category?.id == category.id }.forEach { $0.category = category }
-//            repModel.repTransactions.filter { $0.category?.id == category.id }.forEach { $0.category = category }
-//        }
-//
-//        //let categorySortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
-//
-//        withAnimation {
-//            catModel.categories.sort(by: Helpers.categorySorter())
-//        }
-//    }
-    
-//
-//    @MainActor private func handleLongPollCategoryGroups(_ groups: Array<CBCategoryGroup>) async {
-//        print("-- \(#function)")
-//        for group in groups {
-//            if catModel.doesExist(group) {
-//                if !group.active {
-//                    catModel.delete(group, andSubmit: false)
-//                    continue
-//                } else {
-//                    if let index = catModel.getIndex(for: group) {
-//                        catModel.categoryGroups[index].setFromAnotherInstance(group: group)
-//                        catModel.categoryGroups[index].deepCopy?.setFromAnotherInstance(group: group)
-//                    }
-//                }
-//            } else {
-//                if group.active {
-//                    withAnimation { catModel.upsert(group) }
-//                }
-//            }
-//
-//            let _ = await catModel.updateCache(
-//                for: group,
-//                createIfNotFound: false,
-//                findById: group.id,
-//                action: .edit,
-//                isPending: false
-//            )
-//        }
-//    }
-//
-//
-//    @MainActor private func handleLongPollKeywords(_ keywords: Array<CBKeyword>) async {
-//        print("-- \(#function)")
-//        for keyword in keywords {
-//            if keyModel.doesExist(keyword) {
-//                if !keyword.active {
-//                    keyModel.delete(keyword, andSubmit: false)
-//                    continue
-//                } else {
-//                    if let index = keyModel.getIndex(for: keyword){
-//                        keyModel.keywords[index].setFromAnotherInstance(keyword: keyword)
-//                        keyModel.keywords[index].deepCopy?.setFromAnotherInstance(keyword: keyword)
-//                    }
-//                }
-//            } else {
-//                if keyword.active {
-//                    withAnimation { keyModel.upsert(keyword) }
-//                }
-//            }
-//            let _ = await keyModel.updateCoreData(for: CBKeyword.Snapshot(keyword))
-//            //print("SaveResult: \(saveResult)")
-//        }
-//    }
-    
-    
     @MainActor
     private func handleLongPollBudgets(_ budgets: Array<CBBudget>) {
         print("-- \(#function)")
@@ -602,58 +409,9 @@ class WebSocketManager {
                     calModel.appSuiteBudgets.append(budget)
                 }
             }
-            
-            
         }
     }
     
-    
-    
-    
-//    @MainActor
-//    private func handleLongPollLogos(_ logos: Array<CBLogo>) {
-//        print("-- \(#function)")
-//        let context = DataManager.shared.createContext()
-//
-//        for logo in logos {
-//            print("incoming base64 for logo \(String(describing: logo.baseString))")
-//
-//            /// Try and decode the data, if not, wipe out the logos.
-//            var logoData: Data?
-//            if let baseString = logo.baseString {
-//                logoData = Data(base64Encoded: baseString)
-//            }
-//
-//            if let perLogo = DataManager.shared.getOne(context: context, type: PersistentLogo.self, predicate: .byId(.string(logo.id)), createIfNotFound: false) {
-//                perLogo.photoData = logoData
-//                perLogo.serverUpdatedDate = logo.updatedDate
-//                perLogo.localUpdatedDate = logo.updatedDate
-//            }
-//
-//            if logo.relatedRecordType.enumID == .paymentMethod {
-//                let meth = payModel.getPaymentMethod(by: logo.relatedID)
-//                meth.logo = logoData
-//
-//                changePaymentMethodLogoLocally(meth: meth, logoData: logoData)
-//
-//                #warning("Need starting amounts")
-//            }
-//
-//            if logo.relatedRecordType.enumID == .plaidBank {
-//                if let bank = plaidModel.getBank(by: logo.relatedID) {
-//                    bank.logo = logoData
-//                }
-//            }
-//
-//            if logo.relatedRecordType.enumID == .avatar {
-//                let relatedID = logo.relatedID
-//                changeAvatarLocally(to: logoData, id: relatedID)
-//            }
-//        }
-//
-//        let _ = DataManager.shared.save(context: context)
-//    }
-//
     
     @MainActor
     private func handleLongPollLogos(_ logos: [CBLogo]) async {
@@ -723,9 +481,10 @@ class WebSocketManager {
             }
             
             if logo.typeID == paymentMethodTypeID {
-                let meth = payModel.getPaymentMethod(by: logo.relatedID)
-                meth.logo = logo.data
-                self.changePaymentMethodLogoLocally(meth: meth, logoData: logo.data)
+                if let meth = payModel.getPaymentMethod(by: logo.relatedID) {
+                    meth.logo = logo.data
+                    self.changePaymentMethodLogoLocally(meth: meth, logoData: logo.data)
+                }                
                 
             } else if logo.typeID == plaidBankTypeID {
                 plaidModel.getBank(by: logo.relatedID)?.logo = logo.data
@@ -766,110 +525,6 @@ class WebSocketManager {
             }
         }
     }
-    
-    
-//    @MainActor
-//    private func handleLongPollPlaidBanks(_ banks: Array<CBPlaidBank>) async {
-//        print("-- \(#function)")
-//        for bank in banks {
-//            if plaidModel.doesExist(bank) {
-//                if !bank.active {
-//                    plaidModel.delete(bank, andSubmit: false)
-//                    continue
-//                } else {
-//                    if let index = plaidModel.getIndex(for: bank) {
-//                        plaidModel.banks[index].setFromAnotherInstance(bank: bank)
-//                        plaidModel.banks[index].deepCopy?.setFromAnotherInstance(bank: bank)
-//                    }
-//                }
-//            } else {
-//                if bank.active {
-//                    plaidModel.upsert(bank)
-//                }
-//            }
-//        }
-//    }
-//    
-//    
-//    @MainActor
-//    private func handleLongPollPlaidAccounts(_ accounts: Array<CBPlaidAccount>) async {
-//        print("-- \(#function)")
-//        var eventIdsThatGotChanged: Array<String> = []
-//        
-//        for act in accounts {
-//            if let index = plaidModel.banks.firstIndex(where: { $0.id == act.bankID }) {
-//                let bank = plaidModel.banks[index]
-//                
-//                eventIdsThatGotChanged.append(bank.id)
-//                
-//                if bank.doesExist(act) {
-//                    if !act.active {
-//                        bank.deleteAccount(id: act.id)
-//                        continue
-//                    } else {
-//                        if let index = bank.getIndex(for: act) {
-//                            bank.accounts[index].setFromAnotherInstance(account: act)
-//                            bank.accounts[index].deepCopy?.setFromAnotherInstance(account: act)
-//                        }
-//                    }
-//                } else {
-//                    if act.active {
-//                        bank.upsert(act)
-//                    }
-//                }
-//            }
-//        }
-//    }
-//    
-//        
-//    @MainActor
-//    private func handleLongPollPlaidTransactions(_ transactionsWithCount: CBPlaidTransactionListWithCount) {
-//        print("-- \(#function)")
-//        plaidModel.totalTransCount = transactionsWithCount.count
-//        if let safeTrans = transactionsWithCount.trans {
-//            for trans in safeTrans {
-//                if plaidModel.doesExist(trans) {
-//                    if !trans.active {
-//                        plaidModel.delete(trans)
-//                        continue
-//                    } else {
-//                        if trans.isAcknowledged {
-//                            plaidModel.delete(trans)
-//                            continue
-//                        } else {
-//                            if let index = plaidModel.getIndex(for: trans) {
-//                                plaidModel.trans[index].setFromAnotherInstance(trans: trans)
-//                            }
-//                        }
-//                    }
-//                } else {
-//                    if !trans.isAcknowledged {
-//                        plaidModel.upsert(trans)
-//                    }
-//                }
-//            }
-//        }
-//    }
-//    
-//    
-//    @MainActor
-//    private func handleLongPollPlaidBalances(_ balances: Array<CBPlaidBalance>) {
-//        print("-- \(#function)")
-//        for bal in balances {
-//            if plaidModel.doesExist(bal) {
-//                if !bal.active {
-//                    plaidModel.delete(bal)
-//                    continue
-//                } else {
-//                    if let index = plaidModel.getIndex(for: bal) {
-//                        plaidModel.balances[index].setFromAnotherInstance(bal: bal)
-//                    }
-//                }
-//            } else {
-//                plaidModel.upsert(bal)
-//            }
-//        }
-//    }
     
     
     @MainActor
@@ -916,86 +571,5 @@ class WebSocketManager {
         if let user = AppState.shared.accountUsers.filter({ String($0.id) == id }).first {
             user.avatar = dataOrNil
         }
-        
-//        /// Payment methods.
-//        for each in payModel.paymentMethods {
-//            if String(each.enteredBy.id) == id { each.enteredBy.avatar = dataOrNil }
-//            if String(each.updatedBy.id) == id { each.updatedBy.avatar = dataOrNil }
-//            if let holderId = each.holderOne?.id, String(holderId) == id { each.holderOne?.avatar = dataOrNil }
-//            if let holderId = each.holderTwo?.id, String(holderId) == id { each.holderTwo?.avatar = dataOrNil }
-//            if let holderId = each.holderThree?.id, String(holderId) == id { each.holderThree?.avatar = dataOrNil }
-//            if let holderId = each.holderFour?.id, String(holderId) == id { each.holderFour?.avatar = dataOrNil }
-//        }
-//
-//        /// Categories.
-//        for each in catModel.categories {
-//            if String(each.enteredBy.id) == id { each.enteredBy.avatar = dataOrNil }
-//            if String(each.updatedBy.id) == id { each.updatedBy.avatar = dataOrNil }
-//        }
-//
-//        /// Repeating Transactions.
-//        for each in repModel.repTransactions {
-//            if String(each.enteredBy.id) == id { each.enteredBy.avatar = dataOrNil }
-//            if String(each.updatedBy.id) == id { each.updatedBy.avatar = dataOrNil }
-//        }
-//
-//        /// Transactions.
-//        for each in calModel.justTransactions {
-//            if String(each.enteredBy.id) == id { each.enteredBy.avatar = dataOrNil }
-//            if String(each.updatedBy.id) == id { each.updatedBy.avatar = dataOrNil }
-//        }
-//
-//        /// Temporary transactions.
-//        for each in calModel.tempTransactions {
-//            if String(each.enteredBy.id) == id { each.enteredBy.avatar = dataOrNil }
-//            if String(each.updatedBy.id) == id { each.updatedBy.avatar = dataOrNil }
-//        }
-//
-//        /// Advanced search results.
-//        for each in calModel.searchedTransactions {
-//            if String(each.enteredBy.id) == id { each.enteredBy.avatar = dataOrNil }
-//            if String(each.updatedBy.id) == id { each.updatedBy.avatar = dataOrNil }
-//        }
-//
-//        /// Keywords.
-//        for each in keyModel.keywords {
-//            if String(each.enteredBy.id) == id { each.enteredBy.avatar = dataOrNil }
-//            if String(each.updatedBy.id) == id { each.updatedBy.avatar = dataOrNil }
-//        }
-//
-//        /// Plaid banks.
-//        for each in plaidModel.banks {
-//            if String(each.enteredBy.id) == id { each.enteredBy.avatar = dataOrNil }
-//            if String(each.updatedBy.id) == id { each.updatedBy.avatar = dataOrNil }
-//
-//            /// Plaid accounts.
-//            for each in each.accounts {
-//                if String(each.enteredBy.id) == id { each.enteredBy.avatar = dataOrNil }
-//                if String(each.updatedBy.id) == id { each.updatedBy.avatar = dataOrNil }
-//            }
-//        }
-                                                            
-        
-        
-//        #warning("Need starting amonunts")
-//        #warning("Need budgets")
-        
-//        /// Starting Amounts
-//        calModel.months
-//            .flatMap { $0.startingAmounts }
-//            .forEach { amt in
-//                if String(amt.enteredBy.id) == id { amt.enteredBy.avatar = dataOrNil }
-//                if String(amt.updatedBy.id) == id { amt.updatedBy.avatar = dataOrNil }
-//            }
-//
-//        /// Budgets
-//        calModel.months
-//            .flatMap { $0.budgets }
-//            .forEach { budget in
-//                if String(budget.enteredBy.id) == id { budget.enteredBy.avatar = dataOrNil }
-//                if String(budget.updatedBy.id) == id { budget.updatedBy.avatar = dataOrNil }
-//            }
     }
 }
-
-

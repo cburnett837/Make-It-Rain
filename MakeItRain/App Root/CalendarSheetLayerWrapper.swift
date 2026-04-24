@@ -26,8 +26,6 @@ struct CalendarSheetLayerWrapper<Content: View>: View {
     #endif
     //@Environment(MapModel.self) private var mapModel
     
-    let monthNavigationNamespace: Namespace.ID
-    
     var content: Content
         
     #if os(iOS)
@@ -36,8 +34,7 @@ struct CalendarSheetLayerWrapper<Content: View>: View {
     @State private var window: NSWindow?
     #endif
     
-    init(monthNavigationNamespace: Namespace.ID, @ViewBuilder content: @escaping () -> Content) {
-        self.monthNavigationNamespace = monthNavigationNamespace
+    init(@ViewBuilder content: @escaping () -> Content) {
         self.content = content()
     }
                         
@@ -81,7 +78,7 @@ struct CalendarSheetLayerWrapper<Content: View>: View {
     private func createOverlayWindow() {
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene, window == nil {
             let rootVC = UIHostingController(rootView:
-                CalendarSheetLayerView(monthNavigationNamespace: monthNavigationNamespace)
+                CalendarSheetLayerView()
                     .environment(funcModel)
                     .environment(calModel)
                     .environment(payModel)

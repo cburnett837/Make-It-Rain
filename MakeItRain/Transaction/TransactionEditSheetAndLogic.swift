@@ -196,7 +196,7 @@ fileprivate struct TransactionEditSheetAndLogic: ViewModifier {
     @State private var editTrans: CBTransaction?
         
     func body(content: Content) -> some View {
-        return content
+        content
             .onChange(of: transEditID) { transEditIdChanged(oldValue: $0, newValue: $1) }
             .sensoryFeedback(.selection, trigger: transEditID) { $1 != nil }
             .sheet(item: $editTrans) { trans in
@@ -219,7 +219,7 @@ fileprivate struct TransactionEditSheetAndLogic: ViewModifier {
                     transEditID = nil
                 }
             }
-        }
+    }
     
 
     func transEditIdChanged(oldValue: String?, newValue: String?) {
@@ -236,29 +236,27 @@ fileprivate struct TransactionEditSheetAndLogic: ViewModifier {
         }
     }
     
+    
     func transactionSheetWasOpened(transId: String) {
-        print("-- \(#function)")
-        //if !calModel.editLock {
-            /// Prevent a transaction from being opened while another one is trying to save.
-            //calModel.editLock = true
-            editTrans = calModel.getTransaction(by: transId, from: findTransactionWhere)
-//            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-//                editTrans?.status = .editing
-//            }
-        
+        //print("-- \(#function)")
+        if let editTrans = calModel.getTransaction(by: transId, from: findTransactionWhere) {
+            self.editTrans = editTrans
+        } else {
+            self.editTrans = CBTransaction(uuid: transId)
+        }
         editTrans?.status = .editing
-        
-        //}
     }
     
     func transactionSheetWasClosed(transId: String) async {
         #if os(iOS)
         if presentTip {
             /// Present tip after trying to add 3 new transactions.
-            let trans = calModel.getTransaction(by: transId, from: findTransactionWhere)
-            if trans.action == .add {
-                TouchAndHoldPlusButtonTip.didTouchPlusButton.sendDonation()
+            if let trans = calModel.getTransaction(by: transId, from: findTransactionWhere) {
+                if trans.action == .add {
+                    TouchAndHoldPlusButtonTip.didTouchPlusButton.sendDonation()
+                }
             }
+            
         }
         #endif
         
@@ -293,10 +291,6 @@ fileprivate struct TransactionEditSheetAndLogic: ViewModifier {
         
         /// Force this to `.normalList` since smart transactions will change the variable to look in the temp list.
         findTransactionWhere = .normalList
-        
-        /// When true, prevents a transaction from being opened while another one is trying to save.
-        /// So unlock and allow further transactions to be edited.
-        //calModel.editLock = false
     }
 }
 

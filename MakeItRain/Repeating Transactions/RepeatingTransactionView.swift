@@ -568,10 +568,19 @@ struct RepeatingTransactionView: View {
         .confirmationDialog("Delete \"\(repTransaction.title)\"?", isPresented: $showDeleteAlert, actions: {
             Button("Yes", role: .destructive) {
                 //Task {
-                    repTransaction.action = .delete
-                    dismiss()
+//                    repTransaction.action = .delete
+//                    dismiss()
                     //await repModel.delete(repTransaction, andSubmit: true)
                 //}
+                
+                /// Prevent from going to the server and trying to delete something that isn't there.
+                if repTransaction.action == .add {
+                    repModel.delete(repTransaction, andSubmit: false)
+                } else {
+                    repTransaction.action = .delete
+                }
+                
+                dismiss()
             }
             #if os(iOS)
             Button("No", role: .close) { showDeleteAlert = false }

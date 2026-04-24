@@ -34,6 +34,9 @@ class CatChartViewModel {
     var calModel: CalendarModel
     var catModel: CategoryModel
     
+    var didForceToViewIncomeMetrics = false
+    var metricBeforeForceToIncomeHappened: CategoryAnalyticChartDisplayedMetric?
+    
     init(
         isForGroup: Bool,
         category: CBCategory? = nil,
@@ -64,7 +67,6 @@ class CatChartViewModel {
             withAnimation {
                 appStorageSetter(\.displayedMetric.rawValue, key: LocalKeys.Charts.CategoryAnalytics.displayedMetric, new: newValue.rawValue)
             }
-            
         }
     }
         

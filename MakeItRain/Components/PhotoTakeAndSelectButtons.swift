@@ -52,7 +52,7 @@ struct SelectPhotoButton: View {
             #endif
         } label: {
             Label {
-                Text("Select Reciept")
+                Text("Select Receipt")
             } icon: {
                 Image(systemName: "photo.badge.plus")
             }

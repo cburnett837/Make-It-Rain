@@ -541,7 +541,7 @@ struct TransactionEditView: View {
                 )
                 
                 /// Related payment method picker.
-                if let relatedID = trans.relatedTransactionID, let method = calModel.getTransaction(by: relatedID).payMethod {
+                if let relatedID = trans.relatedTransactionID, let method = calModel.getTransaction(by: relatedID)?.payMethod {
                     PayMethodSheetButton(
                         text: secondaryAccountLabelLingo,
                         logoFallBackType: .customImage(.init(

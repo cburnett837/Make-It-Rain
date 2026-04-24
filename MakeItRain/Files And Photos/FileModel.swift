@@ -120,6 +120,9 @@ class FileModel {
     
        
     func handleFileProgress(with data: Data, fileType: FileType, delegate: FileUploadCompletedDelegate, parentType: XrefItem) async {
+        
+        //try? await Task.sleep(for: .seconds(5))
+        
         //calModel.uploadFile(with: data)
         for await status in self.uploadFile(with: data, fileType: fileType, delegate: delegate) {
             switch status {
@@ -164,6 +167,8 @@ class FileModel {
     
     func uploadFile(with data: Data, fileType: FileType, delegate: FileUploadCompletedDelegate) -> AsyncStream<FileUploadProgress> {
         AsyncStream { continuation in
+            
+            print("-- \(#function)")
             //delegate.alertUploadingSmartReceiptIfApplicable()
             
             /// Capture the set variable because if you start uploading a file on a trans, and switch to another trans before the upload completes, you will change the fileTransactionID before the async task completes.
@@ -241,6 +246,7 @@ class FileModel {
         smartTransactionDate: Date? = nil,
         responseType: Result<U?, AppError>.Type
     ) async -> U? {
+        print("-- \(#function)")
         /// There's only 3 things that need to be changed to add photo abilities to another project - indicated by a **
             
         let application = "budget_app" /// ** 2. Change me to add to another project

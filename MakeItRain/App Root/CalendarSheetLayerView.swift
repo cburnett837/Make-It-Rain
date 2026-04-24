@@ -26,7 +26,7 @@ struct CalendarSheetLayerView: View {
     //@Local(\.colorTheme) var colorTheme
     @Environment(CalendarModel.self) private var calModel
     
-    let monthNavigationNamespace: Namespace.ID
+    @Namespace private var namespace
         
     var body: some View {
         Rectangle()
@@ -64,7 +64,7 @@ struct CalendarSheetLayerView: View {
                         CalendarViewPhone(enumID: selectedMonth)
                             //.environment(\.safeAreaInsets, geo.safeAreaInsets)
                             .tint(Color.theme)
-                            .navigationTransition(.zoom(sourceID: selectedMonth, in: monthNavigationNamespace))
+                            .navigationTransition(.zoom(sourceID: selectedMonth, in: namespace))
                             .if(AppState.shared.methsExist) {
                                 $0.calendarLoadingSpinner(id: selectedMonth, text: "Loading…")
                             }

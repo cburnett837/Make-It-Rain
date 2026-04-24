@@ -16,11 +16,8 @@ struct RootViewPhone: View {
     @Environment(CategoryModel.self) var catModel
     @Environment(KeywordModel.self) var keyModel
     @Environment(RepeatingTransactionModel.self) var repModel
-    
     @Environment(PlaidModel.self) var plaidModel
-    
-    let monthNavigationNamespace: Namespace.ID
-    
+        
     @State private var toolbarVisibility = Visibility.visible
     @State private var sel: NavDestination?
     
@@ -28,6 +25,8 @@ struct RootViewPhone: View {
     /// So use a navPath so we can append to the path via the settings button.
     @State private var calendarNavPath = NavigationPath()
     @State private var advancedSearchNavPath = NavigationPath()
+    @State private var dashboardNavPath: [CalendarNavDest] = []
+    @State private var moreNavPath = NavigationPath()
     
     var body: some View {
         @Bindable var navManager = NavigationManager.shared
@@ -39,19 +38,31 @@ struct RootViewPhone: View {
                 .toolbar(toolbarVisibility, for: .tabBar)
             }
             
+            Tab(NavDestination.dashboard.displayName, systemImage: NavDestination.dashboard.symbol, value: .dashboard) {
+                NavigationStack(path: $dashboardNavPath) {
+                    Dashboard(
+                        navPath: $dashboardNavPath,
+                        showAnalysisSheet: .constant(true),
+                        model: calModel.dashboardModel,
+                        isForSelectedMonth: false
+                    )
+                }
+                
+            }
+            
             Tab(NavDestination.categories.displayName, systemImage: NavDestination.categories.symbol, value: .categories) {
                 NavigationStack {
                     CategoriesTable()
                 }
             }
             
-            Tab(NavDestination.paymentMethods.displayName, systemImage: NavDestination.paymentMethods.symbol, value: .paymentMethods) {
-                /// NavStack is in the view.
-                PayMethodsTable()
-            }
+//            Tab(NavDestination.paymentMethods.displayName, systemImage: NavDestination.paymentMethods.symbol, value: .paymentMethods) {
+//                /// NavStack is in the view.
+//                PayMethodsTable()
+//            }
             
             Tab(NavDestination.more.displayName, systemImage: NavDestination.more.symbol, value: .more) {
-                NavigationStack {
+                NavigationStack(path: $moreNavPath) {
                     moreTabList/*.toolbar(toolbarVisibility, for: .tabBar)*/
                 }
             }
@@ -63,6 +74,11 @@ struct RootViewPhone: View {
                 }
             }
         }
+//        .tabViewBottomAccessory(isEnabled: sel == .dashboard) {
+//            showDateRangeSheetButton
+//        }
+        
+        
 //        .onChange(of: sel) { oldValue, newValue in
 //            if oldValue == NavDestination.categories {
 //                if calModel.categoryFilterWasSetByCategoryPage {
@@ -73,9 +89,21 @@ struct RootViewPhone: View {
 //        }
     }
     
+    var showDateRangeSheetButton: some View {
+        Button {
+            calModel.dashboardModel.showDateRangeSheet = true
+        } label: {
+            Text("\(calModel.dashboardModel.formattedDateRange)")
+        }
+        .tint(.none)
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
+    }
+    
     
     var calendarGridNavPhone: some View {
-        CalendarNavGridPhone(monthNavigationNamespace: monthNavigationNamespace, calendarNavPath: $calendarNavPath)
+        CalendarNavGridPhone(calendarNavPath: $calendarNavPath)
             .onAppear { toolbar(to: .visible) }
             .navigationDestination(for: NavDestination.self) { dest in
                 switch dest {
@@ -111,6 +139,7 @@ struct RootViewPhone: View {
     var moreTabList: some View {
         List {
             Section {
+                NavLinkPhone(destination: .paymentMethods)
                 if AppState.shared.methsExist {
                     NavLinkPhone(destination: .repeatingTransactions)
                     NavLinkPhone(destination: .keywords)
@@ -135,7 +164,7 @@ struct RootViewPhone: View {
         }
         .listStyle(.plain)
         .navigationTitle("More")
-        .navigationDestination(for: NavDestination.self) { NavDestination.view(for: $0) }
+        .navigationDestination(for: NavDestination.self) { NavDestination.view(for: $0, navPath: $moreNavPath) }
     }
     
     

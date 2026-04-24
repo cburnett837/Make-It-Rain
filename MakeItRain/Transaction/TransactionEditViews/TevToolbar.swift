@@ -278,9 +278,22 @@ struct TevToolbar: ToolbarContent {
                 }
                 
             } else {
+                /// Prevent from going to the server and trying to delete something that isn't there.
+                if trans.action == .add {
+                    Task {
+                        await calModel.delete(trans, andSubmit: false)
+                    }
+                } else {
+                    trans.christmasListDeletePreference = christmasListDeletePeference
+                    trans.action = .delete
+                }
+                
+                //dismiss()
+                
+                
                 //transEditID = nil
-                trans.christmasListDeletePreference = christmasListDeletePeference
-                trans.action = .delete
+                //trans.christmasListDeletePreference = christmasListDeletePeference
+                //trans.action = .delete
                 #if os(iOS)
                 dismiss()
                 #else
