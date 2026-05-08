@@ -43,13 +43,7 @@ struct CatChartRawDataListLine: View {
     var categoryLabel: some View {
         HStack {
             StandardCategoryLabel(cat: category, labelWidth: 30, showCheckmarkCondition: false)
-            let metricText = switch model.displayedMetric {
-            case .income: data.income
-            case .expenses: data.expenses
-            case .budget: data.budget
-            case .expensesMinusIncome: data.expensesMinusIncome
-            }
-            Text(metricText.currencyWithDecimals())
+            Text(model.getMetric(for: data).currencyWithDecimals())
         }
     }
     
@@ -57,14 +51,8 @@ struct CatChartRawDataListLine: View {
     var dateLabel: some View {
         HStack {
             Text("\(data.date, format: .dateTime.month(.wide)) \(String(data.year))")
-            Spacer()
-            let metricText = switch model.displayedMetric {
-            case .income: data.income
-            case .expenses: data.expenses
-            case .budget: data.budget
-            case .expensesMinusIncome: data.expensesMinusIncome
-            }
-            Text(metricText.currencyWithDecimals())
+            Spacer()            
+            Text(model.getMetric(for: data).currencyWithDecimals())
         }
     }
     

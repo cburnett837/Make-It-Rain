@@ -33,7 +33,7 @@ struct RepeatingTransactionView: View {
     @State private var showDeleteAlert = false
     @State private var labelWidth: CGFloat = 20.0
         
-    var title: String { repTransaction.action == .add ? "New Reoccuring" : "Edit Reoccuring" }
+    var title: String { repTransaction.action == .add ? "New Recurring" : "Edit Recurring" }
     
     @FocusState private var focusedField: Int?
     @State private var showKeyboardToolbar = false

@@ -57,12 +57,12 @@ struct RepeatingTransactionsTable: View {
                 ProgressView()
                     .tint(.none)
             } else {
-                ContentUnavailableView("No Reoccuring Transactions", systemImage: "repeat", description: Text("Click the plus button above to add a new repeating transaction."))
+                ContentUnavailableView("No Recurring Transactions", systemImage: "repeat", description: Text("Click the plus button above to add a new repeating transaction."))
             }
         }
-        //.calendarLoadingSpinner(id: .repeatingTransactions, text: "Loading Reoccuring Transactions…")
+        //.calendarLoadingSpinner(id: .repeatingTransactions, text: "Loading Recurring Transactions…")
         #if os(iOS)
-        .navigationTitle("Reoccuring Transactions\(AppState.shared.devMode ? " (Dev)" : "")")
+        .navigationTitle("Recurring Transactions\(AppState.shared.devMode ? " (Dev)" : "")")
         //.navigationBarTitleDisplayMode(.inline)
         #endif        
         /// There seems to be a bug in SwiftUI `Table` that prevents the view from refreshing when adding a new repTransaction, and then trying to edit it.

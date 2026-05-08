@@ -61,7 +61,7 @@ struct RootViewMac: View {
                         NavLinkMac(destination: .paymentMethods, title: "Accounts", image: "creditcard")
                         
                         if AppState.shared.methsExist {
-                            NavLinkMac(destination: .repeatingTransactions, title: "Reoccuring Transactions", image: "repeat")
+                            NavLinkMac(destination: .repeatingTransactions, title: "Recurring Transactions", image: "repeat")
                             NavLinkMac(destination: .keywords, title: "Rules", image: "textformat.abc.dottedunderline")
                             
                             if AppState.shared.user?.id == 1 {

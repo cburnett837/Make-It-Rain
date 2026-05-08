@@ -7,6 +7,31 @@
 
 import Foundation
 
+
+extension Double {
+    var axisCurrencyLabel: String {
+        let absValue = abs(self)
+        
+        // ≥ 1000 → use compact (1k, 1.5k, etc)
+        if absValue >= 1000 {
+            let formatted = self.formatted(
+                .number
+                    .notation(.compactName)
+                    .precision(.fractionLength(0...1))
+            )
+            
+            return "$" + formatted.replacingOccurrences(of: "K", with: "k")
+        }
+        
+        // < 1000 → show full number (no rounding to 1k!)
+        return "$" + self.formatted(
+            .number
+                .precision(.fractionLength(0))
+        )
+    }
+}
+
+
 extension Double {
     var isWholeNumber: Bool {
         return self.isZero || (self.isNormal && self.exponent >= 0)
@@ -16,20 +41,12 @@ extension Double {
         return self.sign == .minus
     }
     
+    func kVersion(_ fractions: Int = 0) -> String {
+        return "\(self.formatted(.number.notation(.compactName).precision(.fractionLength(fractions))))"
+    }
+    
     var kVersion: String {
-        let num = abs(self)
-        let sign = self < 0 ? "-" : ""
-        
-        switch num {
-        case 1_000_000_000...:
-            return String(format: "\(sign)%.1fB", num / 1_000_000_000)
-        case 1_000_000...:
-            return String(format: "\(sign)%.1fM", num / 1_000_000)
-        case 1_000...:
-            return String(format: "\(sign)%.1fK", num / 1_000)
-        default:
-            return "\(self)"
-        }
+        return "\(self.formatted(.number.notation(.compactName).precision(.fractionLength(0))))"        
     }
     
     func currencyWithDecimals(_ decimals: Int = AppSettings.shared.useWholeNumbers ? 0 : 2) -> String {

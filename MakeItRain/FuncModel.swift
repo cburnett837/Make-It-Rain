@@ -10,10 +10,12 @@ import SwiftUI
 //import LocalAuthentication
 //import GRDB
 import CoreData
+import WidgetKit
 
 
 @Observable
 class FuncModel {
+    @ObservationIgnored private let store: AppStore
     var calModel: CalendarModel
     var payModel: PayMethodModel
     var catModel: CategoryModel
@@ -21,6 +23,7 @@ class FuncModel {
     var repModel: RepeatingTransactionModel
     var plaidModel: PlaidModel
     var webSocketManager: WebSocketManager
+    var dashboardModel: DashboardModel
     
     //var longPollTask: Task<Void, Error>?
     var refreshTask: Task<Void, Error>?
@@ -29,14 +32,17 @@ class FuncModel {
     var loadTimes: [(id: UUID, date: Date, load: Double)] = []
         
     init(
+        store: AppStore,
         calModel: CalendarModel,
         payModel: PayMethodModel,
         catModel: CategoryModel,
         keyModel: KeywordModel,
         repModel: RepeatingTransactionModel,
         plaidModel: PlaidModel,
-        webSocketManager: WebSocketManager
+        webSocketManager: WebSocketManager,
+        dashboardModel: DashboardModel
     ) {
+        self.store = store
         self.calModel = calModel
         self.payModel = payModel
         self.catModel = catModel
@@ -44,6 +50,7 @@ class FuncModel {
         self.repModel = repModel
         self.plaidModel = plaidModel
         self.webSocketManager = webSocketManager
+        self.dashboardModel = dashboardModel
     }
     
 //    /// This is only for biometrics.
@@ -70,13 +77,23 @@ class FuncModel {
     /// Establish a UUID for each device for the long poll server. The long poll will not respond to the device that makes the change.
     @MainActor
     func setDeviceUUID() {
-        if let uuid = UserDefaults.fetchOneString(requestedKey: "deviceUUID") {
+        
+        
+        if let uuid = UserDefaults(suiteName: "group.dev.cburnett837.MakeItRain")?.string(forKey: "deviceUUID") {
             AppState.shared.deviceUUID = uuid
         } else {
             let uuid = UUID().uuidString
-            UserDefaults.updateStringValue(valueToUpdate: uuid, keyToUpdate: "deviceUUID")
+            UserDefaults(suiteName: "group.dev.cburnett837.MakeItRain")?.set(uuid, forKey: "deviceUUID")
             AppState.shared.deviceUUID = uuid
         }
+//        
+//        if let uuid = UserDefaults.fetchOneString(requestedKey: "deviceUUID") {
+//            AppState.shared.deviceUUID = uuid
+//        } else {
+//            let uuid = UUID().uuidString
+//            UserDefaults.updateStringValue(valueToUpdate: uuid, keyToUpdate: "deviceUUID")
+//            AppState.shared.deviceUUID = uuid
+//        }
     }
     
     
@@ -141,6 +158,8 @@ class FuncModel {
         
         await setUserAvatars()
         
+        
+        WidgetCenter.shared.reloadTimelines(ofKind: "PlaidWidget")
         
 //        /// Set user avatar.
 //        let context = DataManager.shared.createContext()
@@ -271,6 +290,7 @@ class FuncModel {
                         refreshTechnique: refreshTechnique
                     )
                     
+                    
                     /// Download Plaid stuff.
                     //await downloadPlaidStuff()
                     
@@ -333,6 +353,7 @@ class FuncModel {
 //        let plaidElapsed = CFAbsoluteTimeGetCurrent() - plaidStart
 //        print("⏰It took \(plaidElapsed) seconds to fetch the plaid data")
 //    }
+    
     
     
     @MainActor
@@ -477,6 +498,14 @@ class FuncModel {
         await withTaskGroup(of: Void.self) { group in
             //group.addTask { await self.downloadPlaidStuff() }
             
+            group.addTask {
+                let dm = self.dashboardModel
+                dm.beginDate = viewingMonth.legitDays.first!.date!.startDateOfMonth
+                dm.endDate = viewingMonth.legitDays.last!.date!.endDateOfMonth
+                await dm.initialFetchIfApplicable(calModel: self.calModel, catModel: self.catModel)
+                dm.isDirty = false
+            }
+            
             for month in calModel.months {
                 if month.num != viewingMonth.num {
                     group.addTask {
@@ -496,6 +525,15 @@ class FuncModel {
             
             /// Grab Categories, Category Groups, Keywords, Repeating Transactions, Plaid Banks, Christmas Budget, Suggested Titles, Tags.
             group.addTask { await self.fetchAccessorials() }
+            
+            
+//            group.addTask {
+//                let dm = await self.calModel.dashboardModel
+//                dm.beginDate = viewingMonth.legitDays.first!.date!.startDateOfMonth
+//                dm.endDate = viewingMonth.legitDays.last!.date!.endDateOfMonth
+//                await dm.initialFetchIfApplicable(catModel: self.catModel)
+//                dm.isDirty = false
+//            }
             
             /// Grab Receipts.
             //group.addTask { await self.calModel.fetchReceiptsFromServer(funcModel: self) }
@@ -536,13 +574,14 @@ class FuncModel {
                 }
                                 
                 await self.payModel.handleIncoming(meths: model.paymentMethods, calModel: calModel, repModel: repModel, incomingDataType: .viaStandardRefresh)
-                await self.catModel.handleIncoming(cats: model.categories, calModel: calModel, keyModel: keyModel, repModel: repModel, incomingDataType: .viaStandardRefresh)
+                await self.catModel.handleIncoming(cats: model.categories, repModel: repModel, incomingDataType: .viaStandardRefresh)
                 await self.catModel.handleIncoming(groups: model.categoryGroups, incomingDataType: .viaStandardRefresh)
                 await self.keyModel.handleIncoming(keys: model.keywords, incomingDataType: .viaStandardRefresh)
                 await self.repModel.handleIncoming(reps: model.repeatingTransactions, incomingDataType: .viaStandardRefresh)
                 await self.calModel.handleIncoming(tags: model.tags, incomingDataType: .viaStandardRefresh)
                 await self.calModel.handleIncoming(titles: model.suggestedTitles, incomingDataType: .viaStandardRefresh)
-                await self.calModel.handleIncoming(budgets: model.appSuiteBudgets, incomingDataType: .viaStandardRefresh)
+                await self.calModel.handleIncoming(appSuiteBudgets: model.appSuiteBudgets, incomingDataType: .viaStandardRefresh)
+                await self.calModel.handleIncoming(budgets: model.budgets, incomingDataType: .viaStandardRefresh)
                 await self.plaidModel.handleIncoming(banks: model.plaidBanks, incomingDataType: .viaStandardRefresh)
             }
             
@@ -1902,7 +1941,7 @@ class FuncModel {
     // MARK: - Misc
 //    @MainActor func prepareStartingAmounts(for month: CBMonth) {
 //        //print("-- \(#function)")
-//        for payMethod in payModel.paymentMethods.filter({ $0.isPermittedAndViewable }) {
+//        for payMethod in payModel.paymentMethods.filter({ $0.isPermittedAndNotHidden }) {
 //            /// Create a starting amount if it doesn't exist in the current month.
 //            if !month.startingAmounts.contains(where: { $0.payMethod.id == payMethod.id }) {
 //                let starting = CBStartingAmount()
@@ -1926,20 +1965,8 @@ class FuncModel {
     func getPlaidDebitSums() -> Double {
         let debits = payModel.paymentMethods
             .filter { $0.accountType == .checking }
-            .filter { $0.isPermittedAndViewable }
-            .filter {
-                switch AppSettings.shared.paymentMethodFilterMode {
-                case .all:
-                    return true
-                case .justPrimary:
-                    return $0.holderOne?.id == AppState.shared.user?.id
-                case .primaryAndSecondary:
-                    return $0.holderOne?.id == AppState.shared.user?.id
-                    || $0.holderTwo?.id == AppState.shared.user?.id
-                    || $0.holderThree?.id == AppState.shared.user?.id
-                    || $0.holderFour?.id == AppState.shared.user?.id
-                }
-            }
+            .filter { $0.isPermittedAndNotHidden }
+            .filter { $0.matchesFilter() }
         
         let debitIDs = debits.map { $0.id }
         
@@ -1970,20 +1997,8 @@ class FuncModel {
     func getPlaidCreditSums() -> Double {
         let creditIDs = payModel.paymentMethods
             .filter { $0.isCreditOrLoan }
-            .filter { $0.isPermittedAndViewable }
-            .filter {
-                switch AppSettings.shared.paymentMethodFilterMode {
-                case .all:
-                    return true                
-                case .justPrimary:
-                    return $0.holderOne?.id == AppState.shared.user?.id
-                case .primaryAndSecondary:
-                    return $0.holderOne?.id == AppState.shared.user?.id
-                    || $0.holderTwo?.id == AppState.shared.user?.id
-                    || $0.holderThree?.id == AppState.shared.user?.id
-                    || $0.holderFour?.id == AppState.shared.user?.id
-                }
-            }
+            .filter { $0.isPermittedAndNotHidden }
+            .filter { $0.matchesFilter() }
             .map { $0.id }
         
         return plaidModel.balances

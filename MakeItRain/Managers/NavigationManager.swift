@@ -51,6 +51,7 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
     case more
     case recentReceipts
     case dashboard
+    case budgets
     
     var id: NavDestination { return self }
     
@@ -110,8 +111,8 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
         case .october:                  "October"
         case .november:                 "November"
         case .december, .lastDecember:  "December"
-        case .repeatingTransactions:    "Reoccuring Transactions"
-        case .paymentMethods:           "Accounts"
+        case .repeatingTransactions:    "Recurring Transactions"
+        case .paymentMethods:           "Wallet"
         case .categories:               "Categories"
         case .keywords:                 "Rules"
         case .search:                   "Search"
@@ -125,6 +126,7 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
         case .more:                     "More"
         case .recentReceipts:           "Receipts"
         case .dashboard:                "Dashboard"
+        case .budgets:                  "Budgets"
         }
     }
     
@@ -143,7 +145,7 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
         case .november:                 ""
         case .december, .lastDecember:  ""
         case .repeatingTransactions:    "repeat"
-        case .paymentMethods:           "creditcard"
+        case .paymentMethods:           "wallet.bifold"
         case .categories:               "books.vertical"
         //case .keywords:                 "textformat.abc.dottedunderline"
         case .keywords:                 "ruler"
@@ -158,6 +160,7 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
         case .more:                     "ellipsis"
         case .recentReceipts:           "receipt"
         case .dashboard:                "chart.pie"
+        case .budgets:                  "chart.bar"
         }
     }
     
@@ -196,10 +199,10 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
             RepeatingTransactionsTable()
             
         case .paymentMethods:
-            PayMethodsTable(navPath: navPath) /// NavStack is in the view.
+            PayMethodsTable() /// NavStack is in the view.
             
         case .categories:
-            CategoriesTable()
+            CategoriesTable(navPath: navPath)
              
         case .keywords:
             KeywordsTable()
@@ -229,6 +232,8 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
         case .recentReceipts:
             RecentReceiptsView()
             
+        case .budgets:
+            AllBudgetsTable()
         default:
             EmptyView()
         }

@@ -87,8 +87,8 @@ class NetworkManager {
         let earl = String(format: "\(AppState.shared.devMode ? Keys.devBaseURL : Keys.prodBaseURL)/budget_app")
         //let earl = String(format: "\(Keys.devBaseURL)/budget_app")
         
-        let URL = URL(string: earl)
-        var request = URLRequest(url: URL!)
+        let url = URL(string: earl)
+        var request = URLRequest(url: url!)
         
         request.httpMethod = "POST"
         request.setValue("Application/json", forHTTPHeaderField: "Content-Type")

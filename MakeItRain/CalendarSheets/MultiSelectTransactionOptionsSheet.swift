@@ -179,10 +179,10 @@ struct MultiSelectTransactionOptionsSheet: View {
                 //calProps.showAnalysisSheet = true
                 
                 if AppState.shared.isIphone {
-                    calProps.navPath.append(CalendarNavDest.categoryInsights)
+                    calProps.navPath.append(CalendarNavDest.dashboard)
                     //calProps.showAnalysisSheet = true
                 } else {
-                    calProps.inspectorContent = .analysisSheet
+                    calProps.inspectorContent = .dashboard
                     calProps.showInspector = true
                 }
             }

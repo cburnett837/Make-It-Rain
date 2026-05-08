@@ -628,6 +628,62 @@ struct DeviceRotationViewModifier: ViewModifier {
 }
 
 
+struct StatusIndicatorOverlayModifier: ViewModifier {
+    let status: ObjectStatus?
+    
+    var opacity: Double {
+        switch status {
+        case .editing, .none: 1
+        case .inFlight, .dummy, .saveSuccess, .saveFail, .deleteSuccess: 0.3
+        }
+    }
+    
+    func body(content: Content) -> some View {
+        content
+            .opacity(opacity)
+            .transition(.scale)
+            .overlay(alignment: .center) { overlayView }
+    }
+    
+    @ViewBuilder
+    var overlayView: some View {
+        ZStack {
+            switch status {
+            case nil, .dummy, .editing:
+                EmptyView()
+
+            case .inFlight:
+                //EmptyView()
+                Image(systemName: "circle", variableValue: 0.8)
+                    .symbolRenderingMode(.palette)
+                    .symbolVariableValueMode(.draw)
+                    .foregroundStyle(Color.primary, Color.gray)
+                    .symbolEffect(.rotate, options: .repeat(.continuous).speed(8))
+
+            case .saveSuccess:
+                Image(systemName: "checkmark.circle")
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(Color.primary, Color.green.gradient)
+                    .transition(.symbolEffect(.drawOn.individually))
+
+            case .saveFail:
+                Image(systemName: "exclamationmark.triangle")
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(Color.primary, Color.orange.gradient)
+                    .transition(.symbolEffect(.drawOn.individually))
+                
+            case .deleteSuccess:
+                Image(systemName: "trash.circle")
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(Color.primary, Color.red.gradient)
+                    .transition(.symbolEffect(.drawOn.individually))
+            }
+        }
+        .contentTransition(.symbolEffect(.replace))
+        .animation(.easeInOut, value: status)
+    }
+}
+
 
 #endif
 

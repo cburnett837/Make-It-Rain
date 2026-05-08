@@ -25,6 +25,7 @@ import UIKit
 struct CalendarSheetLayerView: View {
     //@Local(\.colorTheme) var colorTheme
     @Environment(CalendarModel.self) private var calModel
+    @Environment(AppStore.self) private var store
     
     @Namespace private var namespace
         
@@ -61,7 +62,7 @@ struct CalendarSheetLayerView: View {
             if let selectedMonth = NavigationManager.shared.selectedMonth {
                 if NavDestination.justMonths.contains(selectedMonth) {
                     //GeometryReader { geo in
-                        CalendarViewPhone(enumID: selectedMonth)
+                    CalendarViewPhone(enumID: selectedMonth, store: store)
                             //.environment(\.safeAreaInsets, geo.safeAreaInsets)
                             .tint(Color.theme)
                             .navigationTransition(.zoom(sourceID: selectedMonth, in: namespace))

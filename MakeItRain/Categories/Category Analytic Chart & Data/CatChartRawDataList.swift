@@ -31,7 +31,7 @@ struct CatChartRawDataList: View {
         }
         .tint(Color.theme)
         .navigationTitle(model.category!.title)
-        .navigationSubtitle(model.displayedMetric.prettyValue)
+        .navigationSubtitle((model.category ?? CBCategory()).isIncome ? "Income" : model.displayedMetric.prettyValue)
         //.navigationSubtitle("\(String(model.fetchYearStart)) - \(String(AppState.shared.todayYear))")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)

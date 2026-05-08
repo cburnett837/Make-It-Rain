@@ -7,6 +7,21 @@
 
 import Foundation
 
+
+extension DateFormatter {
+    static let monthFull: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMMM"
+        return f
+    }()
+    
+    static let monthShort: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMM"
+        return f
+    }()
+}
+
 extension Date? {
     public var isToday: Bool {
         //let now = Date()
@@ -127,6 +142,10 @@ extension Date {
         let year = calendar.component(.year, from: self)
         let startMonth = (quarter - 1) * 3 + 1
         return calendar.date(from: DateComponents(year: year, month: startMonth, day: 1))!
+    }
+    
+    var middleDateOfQuarter: Date {
+        calendar.date(byAdding: .month, value: 1, to: startDateOfQuarter)!
     }
     
     var endDateOfQuarter: Date {
@@ -444,7 +463,9 @@ enum DateFormat {
     monthDayShortYear,
     swiftDefault,
     datePickerDateOnlyDefault,
-    invoiceDate
+    invoiceDate,
+    mm,
+    yy
 }
 
 func getDateFormat(_ format: DateFormat) -> String {
@@ -465,6 +486,8 @@ func getDateFormat(_ format: DateFormat) -> String {
     case .swiftDefault:                 return "y-MM-dd H:mm:ss z"
     case .datePickerDateOnlyDefault:    return "MMM dd, yyyy"
     case .invoiceDate:                  return "MM-dd-y"
+    case .mm:                           return "MM"
+    case .yy:                           return "yy"
     }
 }
 

@@ -8,19 +8,82 @@
 import Foundation
 import SwiftUI
 
+
+protocol BudgetItem: AnyObject, Identifiable, Hashable {
+    var id: String { get }
+    var title: String { get }
+    var budgetType: BudgetItemType { get }
+}
+
+enum BudgetItemType: Int, CaseIterable {
+    case categoryGroup = 52
+    case category = 51
+    case tag = 65
+    
+    var prettyValue: String {
+        switch self {
+        case .categoryGroup:
+            "Category Group"
+        case .category:
+            "Category"
+        case .tag:
+            "Tag"
+        }
+    }
+}
+
+extension CBCategory: BudgetItem {
+    var budgetType: BudgetItemType { .category }
+}
+
+extension CBCategoryGroup: BudgetItem {
+    var budgetType: BudgetItemType { .categoryGroup }
+}
+
+extension CBTag: BudgetItem {
+    var budgetType: BudgetItemType { .tag }
+}
+
 @Observable
 class CBBudget: Codable, Identifiable, Hashable, Equatable {
     var id: String
     var uuid: String?
-    var category: CBCategory?
-    var categoryGroup: CBCategoryGroup?
-    var type: XrefItem {
-        if category == nil {
-            XrefModel.getItem(from: .budgetTypes, byEnumID: .categoryGroup)
-        } else {
-            XrefModel.getItem(from: .budgetTypes, byEnumID: .category)
-        }
+    var item: (any BudgetItem)?
+    var category: CBCategory? {
+        get { item as? CBCategory }
+        set { item = newValue }
     }
+
+    var categoryGroup: CBCategoryGroup? {
+        get { item as? CBCategoryGroup }
+        set { item = newValue }
+    }
+    
+    var tag: CBTag? {
+        get { item as? CBTag }
+        set { item = newValue }
+    }
+    
+//    var category: CBCategory?
+//    var categoryGroup: CBCategoryGroup?
+    var type: BudgetItemType {
+        item?.budgetType ?? .category
+    }
+//    var type: XrefItem {
+//        switch item?.budgetType {
+//        case .category:
+//            XrefModel.getItem(from: .budgetTypes, byEnumID: .category)
+//
+//        case .categoryGroup:
+//            XrefModel.getItem(from: .budgetTypes, byEnumID: .categoryGroup)
+//            
+//        case .tag:
+//            XrefModel.getItem(from: .budgetTypes, byEnumID: .tag)
+//
+//        case nil:
+//            XrefModel.getItem(from: .budgetTypes, byEnumID: .category)
+//        }
+//    }
     
     var month: Int?
     var year: Int
@@ -53,7 +116,7 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
         let uuid = UUID().uuidString
         self.id = uuid
         self.uuid = uuid        
-        self.category = nil
+        self.item = nil
         self.month = 0
         self.year = 0
         self.amountString = ""
@@ -66,7 +129,7 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
     init(uuid: String) {
         self.id = uuid
         self.uuid = uuid
-        self.category = nil
+        self.item = nil
         self.month = 0
         self.year = 0
         self.amountString = ""
@@ -77,15 +140,15 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
     
     
     
-    enum CodingKeys: CodingKey { case id, uuid, category, category_group, category_id, category_group_id, month, year, amount, amount2, active, user_id, account_id, device_uuid, app_suite_key, type_id }
+    enum CodingKeys: CodingKey { case id, uuid, category, category_group, category_id, category_group_id, month, year, amount, amount2, active, user_id, account_id, device_uuid, app_suite_key, type_id, item_id, tag }
     
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(uuid, forKey: .uuid)
-        try container.encode(category?.id, forKey: .category_id)
-        try container.encode(categoryGroup?.id, forKey: .category_group_id)
+        try container.encode(item?.id, forKey: .item_id)
+        //try container.encode(categoryGroup?.id, forKey: .category_group_id)
         try container.encode(month, forKey: .month)
         try container.encode(year, forKey: .year)
         try container.encode(amount, forKey: .amount)
@@ -94,7 +157,7 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
         try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
         try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
         try container.encode(appSuiteKey?.rawValue, forKey: .app_suite_key)
-        try container.encode(type.id, forKey: .type_id)
+        try container.encode(type.rawValue, forKey: .type_id)
     }
     
     
@@ -106,11 +169,14 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
             id = try container.decode(String.self, forKey: .id)
         }
         
+        let decodedCategory = try container.decodeIfPresent(CBCategory.self, forKey: .category)
+        let decodedGroup = try container.decodeIfPresent(CBCategoryGroup.self, forKey: .category_group)
+        let decodedTag = try container.decodeIfPresent(CBTag.self, forKey: .tag)
+        self.item = decodedCategory ?? decodedGroup ?? decodedTag
         
-        
-        self.category = try container.decodeIfPresent(CBCategory.self, forKey: .category)
+        //self.category = try container.decodeIfPresent(CBCategory.self, forKey: .category)
         //print(try container.decodeIfPresent(CBCategoryGroup.self, forKey: .category_group)?.title)
-        self.categoryGroup = try container.decodeIfPresent(CBCategoryGroup.self, forKey: .category_group)
+        //self.categoryGroup = try container.decodeIfPresent(CBCategoryGroup.self, forKey: .category_group)
         month = try container.decode(Int?.self, forKey: .month)
         year = try container.decode(Int.self, forKey: .year)
                 
@@ -149,9 +215,8 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
             && self.year == deepCopy.year
             && self.amount == deepCopy.amount
             && self.amount2 == deepCopy.amount2
-            && self.type.id == deepCopy.type.id
-            && self.category?.id == deepCopy.category?.id
-            && self.categoryGroup?.id == deepCopy.categoryGroup?.id {
+            && self.type.rawValue == deepCopy.type.rawValue
+            && self.item?.id == deepCopy.item?.id {
                 return false
             }
         }
@@ -217,8 +282,7 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
         && lhs.amount == rhs.amount
         && lhs.amount2 == rhs.amount2
         && lhs.type == rhs.type
-        && lhs.category?.id == rhs.category?.id
-        && lhs.categoryGroup?.id == rhs.categoryGroup?.id {
+        && lhs.item?.id == rhs.item?.id {
             return true
         }
         return false

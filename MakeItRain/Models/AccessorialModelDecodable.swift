@@ -18,8 +18,9 @@ struct AccessorialModelDecodable: Decodable {
     var appSuiteBudgets: [CBBudget]
     var plaidBanks: [CBPlaidBank]
     var settings: AppSettingsDecodable?
+    var budgets: [CBBudget]
     
-    enum CodingKeys: CodingKey { case payment_methods, categories, category_groups, repeating_transactions, keywords, tags, suggested_titles, app_suite_budgets, plaid_banks, settings }
+    enum CodingKeys: CodingKey { case payment_methods, categories, category_groups, repeating_transactions, keywords, tags, suggested_titles, app_suite_budgets, plaid_banks, settings, budgets }
     
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -34,5 +35,6 @@ struct AccessorialModelDecodable: Decodable {
         self.appSuiteBudgets = try container.decode(Array<CBBudget>.self, forKey: .app_suite_budgets)
         self.plaidBanks = try container.decode(Array<CBPlaidBank>.self, forKey: .plaid_banks)
         self.settings = try container.decode(AppSettingsDecodable?.self, forKey: .settings)
+        self.budgets = try container.decode(Array<CBBudget>.self, forKey: .budgets)
     }
 }

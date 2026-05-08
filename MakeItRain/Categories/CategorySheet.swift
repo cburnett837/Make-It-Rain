@@ -127,7 +127,7 @@ struct CategorySheet: View {
                     editCategory = CBCategory(uuid: newId)
                 }
             } else {
-                catModel.saveCategory(id: oldId!, calModel: calModel, keyModel: keyModel)
+                catModel.saveCategory(id: oldId!)
             }
         }
     }

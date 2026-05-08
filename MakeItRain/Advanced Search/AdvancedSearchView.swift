@@ -42,40 +42,15 @@ struct AdvancedSearchView: View {
     @State private var searchTerm = ""
     
     var categoryFilterTitle: String {
-        let cats = searchModel.categories
-        let groups = searchModel.categoryGroups
-        
-        let totalCount = cats.count + groups.count
-        
-        if cats.isEmpty && groups.isEmpty {
-            return ""
-            
-        } else if totalCount == 1 {
-            return cats.isEmpty ? groups.first!.title : cats.first!.title
-            
-        } else if totalCount == 2 {
-            if cats.count == 1 && groups.count == 1 {
-                return "\(groups[0].title), \(cats[0].title)"
-            } else if cats.count == 2 {
-                return "\(cats[0].title), \(cats[1].title)"
-            } else {
-                return "\(groups[0].title), \(groups[1].title)"
-            }
-            
-        } else {
-            if cats.count > 2 && groups.count < 2 {
-                return "\(cats[0].title), \(cats[1].title), \(cats.count - 2)+"
-            } else if groups.count > 2 {
-                return "\(groups[0].title), \(groups[1].title), \(groups.count - 2)+"
-            } else if cats.count > 2 {
-                return "\(cats[0].title), \(cats[1].title), \(totalCount - 2)+"
-            } else {
-                return "\(cats[0].title), \(groups[0].title), \(totalCount - 2)+"
-            }
-            
+        let titles = searchModel.categoryGroups.map(\.title) + searchModel.categories.map(\.title)
+        switch titles.count {
+        case 0:  return ""
+        case 1:  return titles[0]
+        case 2:  return "\(titles[0]), \(titles[1])"
+        default: return "\(titles[0]), \(titles[1]), \(titles.count - 2)+"
         }
     }
-    
+   
     var payMethodFilterTitle: String {
         let meths = searchModel.payMethods
         if meths.isEmpty {
@@ -800,10 +775,10 @@ struct AdvancedSearchView: View {
         case .success(let model):
             LogManager.networkingSuccessful()
             if let model {
+                for each in model {
+                    await each.payMethod?.loadLogoFromCoreDataIfNeeded()
+                }
                 if sortOrder == .forward {
-                    for each in model {
-                        await each.payMethod?.loadLogoFromCoreDataIfNeeded()
-                    }
                     calModel.searchedTransactions = model.sorted { $0.date ?? Date() > $1.date ?? Date() }
                 } else {
                     calModel.searchedTransactions = model.sorted { $0.date ?? Date() < $1.date ?? Date() }

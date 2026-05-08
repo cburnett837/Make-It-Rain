@@ -46,7 +46,8 @@ struct Take_Photo_ExtensionEntryView : View {
             Image(systemName: "camera")
                 .font(.largeTitle)
         }
-        .widgetURL(URL(string: "applinks://details?action=take_photo"))
+        //.widgetURL(URL(string: "applinks://details?action=take_photo"))
+        .widgetURL(URL(string: "makeitrain://take_photo"))
         .containerBackground(.background, for: .widget)
     }
 }

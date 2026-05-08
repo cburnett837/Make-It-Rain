@@ -119,7 +119,7 @@ struct CalendarToolbar: ToolbarContent {
         }
         
         if AppState.shared.isIpad {
-            ToolbarItem(placement: .topBarTrailing) { analysisSheetButton }
+            ToolbarItem(placement: .topBarTrailing) { dashboardSheetButton }
         }
         
         
@@ -159,7 +159,7 @@ struct CalendarToolbar: ToolbarContent {
         
         if AppState.shared.isIphone {
             Group {                
-                ToolbarItem(placement: .bottomBar) { analysisSheetButton }
+                ToolbarItem(placement: .bottomBar) { dashboardSheetButton }
                 ToolbarSpacer(.fixed, placement: .bottomBar)
                 DefaultToolbarItem(kind: .search, placement: .bottomBar)
                 ToolbarSpacer(.fixed, placement: .bottomBar)
@@ -193,21 +193,21 @@ struct CalendarToolbar: ToolbarContent {
     
     
     
-    var analysisSheetButton: some View {
+    var dashboardSheetButton: some View {
         Button {
             if AppState.shared.isIphone {
                 
-                calProps.navPath.append(CalendarNavDest.categoryInsights)
+                calProps.navPath.append(CalendarNavDest.dashboard)
                 
                 /// Sheet is in ``CalendarMoreMenu``.
                 //calProps.showAnalysisSheet = true
             } else {
                 /// Inspector is in ``RootViewPad``.
-                calProps.inspectorContent = .analysisSheet
+                calProps.inspectorContent = .dashboard
                 calProps.showInspector = true
             }
         } label: {
-            Label("Insights", systemImage: "chart.pie")
+            Label("Dashboard", systemImage: "chart.pie")
         }
         .schemeBasedTint()
         //.schemeBasedForegroundStyle()

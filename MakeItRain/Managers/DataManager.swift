@@ -8,12 +8,59 @@
 import Foundation
 import CoreData
 
+
+//MARK: Core Data Stuff
+enum IdType {
+    case int(Int)
+    case string(String)
+}
+
+enum Predicate {
+    case single(NSPredicate)
+    case compound(NSCompoundPredicate)
+    case byId(IdType)
+}
+
+enum CoreDataError: Error {
+    case notFound
+    case reason(String)
+}
+public extension URL {
+
+    /// Returns a URL for the given app group and database pointing to the sqlite database.
+    static func storeURL(for appGroup: String, databaseName: String) -> URL {
+        guard let fileContainer = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup) else {
+            fatalError("Shared file container could not be created.")
+        }
+
+        return fileContainer.appendingPathComponent("\(databaseName).sqlite")
+    }
+}
+
 class DataManager {
     static let shared: DataManager = DataManager()
     let container = NSPersistentContainer(name: "PersistentModel")
     let backgroundContext: NSManagedObjectContext
     
     private init() {
+        
+        // Get the shared container URL
+        let groupID = "group.dev.cburnett837.MakeItRain"
+//        guard let groupURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupID) else {
+//            fatalError("Shared container could not be found.")
+//        }
+
+        // Append the database filename
+        //let storeURL = groupURL.appendingPathComponent("MyDatabase.sqlite")
+
+        //let description = NSPersistentStoreDescription(url: storeURL)
+        
+        //let persistentContainer = NSPersistentContainer(name: "Collect")
+        let storeURL = URL.storeURL(for: "group.dev.cburnett837.MakeItRain", databaseName: "MakeItRain")
+        let storeDescription = NSPersistentStoreDescription(url: storeURL)
+        container.persistentStoreDescriptions = [storeDescription]
+
+        
         //#warning("🟣 Purple warning: Performing I/O on the main thread can cause hangs.")
         container.loadPersistentStores { description, error in
             if let error = error as NSError? {
@@ -63,7 +110,7 @@ class DataManager {
                 }
                 
                 
-                AppState.shared.showAlert("There was a problem saving the cache. Please try again. -- \(error.localizedDescription)")
+//                AppState.shared.showAlert("There was a problem saving the cache. Please try again. -- \(error.localizedDescription)")
                 LogManager.error("CoreData save failed - \(error.localizedDescription).")
                 print("CoreData save failed - \(error.localizedDescription).")
                 //fatalError()

@@ -11,8 +11,27 @@ import SwiftUI
 @MainActor
 @Observable
 class CategoryModel {
-    var categories: Array<CBCategory> = []
-    var categoryGroups: Array<CBCategoryGroup> = []
+    @ObservationIgnored private let store: AppStore
+    init(store: AppStore) {
+        self.store = store
+    }
+
+    var categories: [CBCategory] {
+        get { store.categories }
+        set { store.categories = newValue }
+    }
+    
+    var categoryGroups: [CBCategoryGroup] {
+        get { store.categoryGroups }
+        set { store.categoryGroups = newValue }
+    }
+    
+    var groupedCategoryIds: Set<String> {
+        Set(categoryGroups.flatMap(\.categories).map(\.id))
+    }
+    
+    //var categories: Array<CBCategory> = []
+    //var categoryGroups: Array<CBCategoryGroup> = []
     var fuckYouSwiftuiTableRefreshID: UUID = UUID()
     
     func doesExist(_ category: CBCategory) -> Bool {
@@ -40,13 +59,13 @@ class CategoryModel {
     }
     
     
-    func saveCategory(id: String, calModel: CalendarModel, keyModel: KeywordModel) {
+    func saveCategory(id: String) {
         guard let category = getCategory(by: id) else { return }
         
         if category.action == .delete {
             category.updatedBy = AppState.shared.user!
             category.updatedDate = Date()
-            delete(category, andSubmit: true, calModel: calModel, keyModel: keyModel)
+            delete(category, andSubmit: true)
             return
         }
         
@@ -80,14 +99,14 @@ class CategoryModel {
                     /// Update the category info on the associated keywords.
                     //let context = DataManager.shared.createContext()
                     
-                    for keyword in keyModel.keywords.filter({ $0.category?.id == category.id }) {
+                    for keyword in store.keywords.filter({ $0.category?.id == category.id }) {
                         keyword.category?.setFromAnotherInstance(category: category)
                     }
                     
                     await _updatePersistentKeywords(category: category)
                     
                     
-                    calModel.months.forEach { month in
+                    store.months.forEach { month in
                         /// Update the local transactions with the new category info.
                         month.days.forEach { day in
                             day.transactions.filter { $0.category?.id == category.id }.forEach { transaction in
@@ -121,14 +140,14 @@ class CategoryModel {
                             //                                calModel.appSuiteBudgets[index].category = category
                             //                            }
                             
-                            if let index = calModel.appSuiteBudgets.firstIndex(where: { $0.category?.id == category.id }) {
-                                calModel.appSuiteBudgets[index].category = category
+                            if let index = store.appSuiteBudgets.firstIndex(where: { $0.category?.id == category.id }) {
+                                store.appSuiteBudgets[index].category = category
                             }
                         }
                     }
                     
                     if !budgetsToServer.isEmpty {
-                        let _ = await submitNewBudgets(budgets: budgetsToServer, calModel: calModel)
+                        let _ = await submitNewBudgets(budgets: budgetsToServer)
                     }
                 }
             }
@@ -138,7 +157,7 @@ class CategoryModel {
         /// Updated for concurrency rules.
         func _updatePersistentKeywords(category: CBCategory) async {
             let categoryID = category.id
-            let keywordInfos = keyModel.keywords.map { (id: $0.id, categoryId: $0.category?.id) }
+            let keywordInfos = store.keywords.map { (id: $0.id, categoryId: $0.category?.id) }
             
             let context = DataManager.shared.createContext()
             await DataManager.shared.perform(context: context) {
@@ -240,7 +259,7 @@ class CategoryModel {
     
     
     @MainActor
-    func handleIncoming(cats: Array<CBCategory>, calModel: CalendarModel, keyModel: KeywordModel, repModel: RepeatingTransactionModel, incomingDataType: IncomingDataType) async {
+    func handleIncoming(cats: Array<CBCategory>, repModel: RepeatingTransactionModel, incomingDataType: IncomingDataType) async {
         if cats.isEmpty {
             categories.removeAll()
             return
@@ -249,7 +268,7 @@ class CategoryModel {
         for category in cats.sorted(by: Helpers.categorySorter()) {
             if self.doesExist(category) {
                 if !category.active {
-                    self.delete(category, andSubmit: false, calModel: calModel, keyModel: keyModel)
+                    self.delete(category, andSubmit: false)
                     continue
                 } else {
                     if let index = self.getIndex(for: category) {
@@ -265,7 +284,7 @@ class CategoryModel {
             
             await category.updateCoreData(action: .edit, isPending: false, createIfNotFound: incomingDataType == .viaStandardRefresh)
             
-            calModel.justTransactions.filter { $0.category?.id == category.id }.forEach { $0.category = category }
+            store.justTransactions.filter { $0.category?.id == category.id }.forEach { $0.category = category }
             repModel.repTransactions.filter { $0.category?.id == category.id }.forEach { $0.category = category }
         }
         
@@ -340,15 +359,15 @@ class CategoryModel {
     }
     
     
-    func delete(_ category: CBCategory, andSubmit: Bool, calModel: CalendarModel, keyModel: KeywordModel) {
+    func delete(_ category: CBCategory, andSubmit: Bool) {
         category.action = .delete
         category.deepCopy?.action = .delete
         withAnimation {
             categories.removeAll { $0.id == category.id }
-            keyModel.keywords.removeAll { $0.category?.id == category.id }
+            store.keywords.removeAll { $0.category?.id == category.id }
             
-            calModel.justTransactions.filter { $0.category?.id == category.id }.forEach { $0.category = nil }
-            calModel.months.forEach { $0.budgets.removeAll { $0.category?.id == category.id } }
+            store.justTransactions.filter { $0.category?.id == category.id }.forEach { $0.category = nil }
+            store.months.forEach { $0.budgets.removeAll { $0.category?.id == category.id } }
             //eventModel.events.forEach { $0.transactions.removeAll { $0.category?.id == category.id } }
         }
         
@@ -516,7 +535,7 @@ class CategoryModel {
     
     
     @MainActor
-    func submitNewBudgets(budgets: Array<CBBudget>, calModel: CalendarModel) async -> Bool {
+    func submitNewBudgets(budgets: Array<CBBudget>) async -> Bool {
         print("-- \(#function)")
         /// Allow more time to save if the user enters the background.
         #if os(iOS)
@@ -533,7 +552,7 @@ class CategoryModel {
             LogManager.networkingSuccessful()
             if let model {
                 for idModel in model {
-                    if let targetMonth = calModel.months.filter({$0.budgets.map {$0.id}.contains(idModel.uuid)}).first {
+                    if let targetMonth = store.months.filter({ $0.budgets.map({ $0.id }).contains(idModel.uuid) }).first {
                         let index = targetMonth.budgets.firstIndex(where: { $0.id == idModel.uuid })
                         if let index {
                             targetMonth.budgets[index].id = idModel.id

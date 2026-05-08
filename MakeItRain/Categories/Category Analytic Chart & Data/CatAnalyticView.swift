@@ -122,14 +122,17 @@ struct CatAnalyticView: View {
     
     var toggleSwitchSection: some View {
         Section {
-            Toggle("Show Budget", isOn: $showBudget.animation())
-                .tint(isForGroup ? Color.theme : category!.color)
+            if !catModel.groupedCategoryIds.contains(category?.id ?? "0") {
+                Toggle("Show Budget", isOn: $showBudget.animation())
+                    .tint(isForGroup ? Color.theme : category!.color)
+            }
+            
             
             Toggle("Show Average", isOn: $showAverage.animation())
                 .tint(isForGroup ? Color.theme : category!.color)
                          
-            if !model.isForGroup {
-                if model.category!.type != XrefModel.getItem(from: .categoryTypes, byEnumID: .income) {
+            if let cat = category {
+                if !cat.isIncome {
                     Picker("Metrics", selection: $model.displayedMetric.animation()) {
                         /// Filter out the budget options since we have a line dedicated to that
                         ForEach(CategoryAnalyticChartDisplayedMetric.allCases.filter { $0.id != .budget }) { opt in
@@ -137,8 +140,17 @@ struct CatAnalyticView: View {
                                 .tag(opt.id)
                         }
                     }
-                    .tint(isForGroup ? .gray : category!.color)
+                    .tint(cat.color)
+                }                
+            } else {
+                Picker("Metrics", selection: $model.displayedMetric.animation()) {
+                    /// Filter out the budget options since we have a line dedicated to that
+                    ForEach(CategoryAnalyticChartDisplayedMetric.allCases.filter { $0.id != .budget }) { opt in
+                        Text(opt.prettyValue)
+                            .tag(opt.id)
+                    }
                 }
+                .tint(.gray)
             }
         } header: {
             Text("Options")

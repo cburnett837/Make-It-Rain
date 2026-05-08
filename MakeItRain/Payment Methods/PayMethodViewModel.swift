@@ -402,9 +402,9 @@ class PayMethodViewModel {
                         //                        start: startingAmounts,
                         //                        end: breakdowns.map { $0.monthEnd }.reduce(0, +)
                         //                    )
-                        
-                        
-                        
+//                        
+//                        
+//                        
                         //let profitLossPercentage = breakdowns.map { $0.profitLossPercentage }.reduce(0, +)
                         
                         //                    if each.month == 6 && each.year == 2025 {
@@ -693,7 +693,7 @@ class PayMethodViewModel {
     
     func breakdownPerMethod(on selectedDate: Date) -> [PayMethodMonthlyBreakdown] {
         var returnMe: [PayMethodMonthlyBreakdown] = []
-        for pay in payMethods {
+        for pay in payMethods.filter({ $0.isPermittedAndNotHidden }) {
             for each in pay.breakdowns {
                 if Calendar.current.isDate(each.date, equalTo: selectedDate, toGranularity: .month) {
                     

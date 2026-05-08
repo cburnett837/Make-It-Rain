@@ -939,7 +939,7 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
                 self.log(field: .color, old: deepCopy.color.description, new: self.color.description, groupID: groupID)
             }
             if self.tags != deepCopy.tags {
-                self.log(field: .tags, old: deepCopy.tags.map { $0.tag }.joined(separator: ", "), new: self.tags.map { $0.tag }.joined(separator: ", "), groupID: groupID)
+                self.log(field: .tags, old: deepCopy.tags.map { $0.title }.joined(separator: ", "), new: self.tags.map { $0.title }.joined(separator: ", "), groupID: groupID)
             }
             if self.notificationOffset != deepCopy.notificationOffset {
                 self.log(field: .notificationOffset, old: String(deepCopy.notificationOffset), new: String(self.notificationOffset), groupID: groupID)
@@ -1157,7 +1157,7 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
             enteredDate.string(to: .monthDayShortYear),
             updatedDate.string(to: .monthDayShortYear),
             locations.map { $0.title }.joined(separator: "/"),
-            tags.map { $0.tag }.joined(separator: "/"),
+            tags.map { $0.title }.joined(separator: "/"),
             trackingNumber,
             orderNumber,
             url,

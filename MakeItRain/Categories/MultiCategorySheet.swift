@@ -394,10 +394,10 @@ struct MultiCategorySheet: View {
                 Text("Relevant Categories")
                 Spacer()
                 
-                if selectedCategoryIds.containsSameElements(as: categories.compactMap(\.id)) {
-                //if selectedCategoryIds == categories.compactMap(\.id) {
-                    Image(systemName: "checkmark")
-                }
+//                if selectedCategoryIds.containsSameElements(as: categories.compactMap(\.id)) {
+//                //if selectedCategoryIds == categories.compactMap(\.id) {
+//                    Image(systemName: "checkmark")
+//                }
                 
                 Button {
                     showInfo = true
@@ -507,7 +507,7 @@ struct MultiCategorySheet: View {
         StandardCategoryLabel(
             cat: cat,
             labelWidth: labelWidth,
-            showCheckmarkCondition: categories.filter{ $0.active }.contains(cat),
+            showCheckmarkCondition: categories.filter { $0.active }.map{$0.id}.contains(cat.id),
             isDisabled: disabledCategoryIds.contains(cat.id)
         )
         .onTapGesture {

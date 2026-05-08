@@ -11,8 +11,18 @@ import SwiftUI
 @MainActor
 @Observable
 class KeywordModel {
+    @ObservationIgnored private let store: AppStore
+    init(store: AppStore) {
+        self.store = store
+    }
+    
+    var keywords: [CBKeyword] {
+        get { store.keywords }
+        set { store.keywords = newValue }
+    }
+    
     var isThinking = false
-    var keywords: Array<CBKeyword> = []
+    //var keywords: Array<CBKeyword> = []
     var fuckYouSwiftuiTableRefreshID: UUID = UUID()
     
     func doesExist(_ keyword: CBKeyword) -> Bool {

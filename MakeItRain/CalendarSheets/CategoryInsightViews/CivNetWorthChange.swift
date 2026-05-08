@@ -22,7 +22,7 @@ struct CivNetWorthChange: View {
     
     var starts: Array<CBStartingAmount> {
         calModel.sMonth.startingAmounts
-            .filter { $0.payMethod.isPermittedAndViewable }
+            .filter { $0.payMethod.isPermittedAndNotHidden }
             .filter { !$0.payMethod.isUnified }
             .filter {
                 switch AppSettings.shared.paymentMethodFilterMode {
@@ -258,7 +258,7 @@ struct CivNetWorthChange: View {
                 let amounts = day.transactions
                     .filter { $0.active }
                     .filter { $0.factorInCalculations }
-                    .filter { ($0.payMethod?.isPermittedAndViewable ?? true) }
+                    .filter { ($0.payMethod?.isPermittedAndNotHidden ?? true) }
                     .map { ($0.payMethod?.isCreditOrLoan ?? false) ? $0.amount * -1 : $0.amount }
                     //.map { $0.amount }
                 

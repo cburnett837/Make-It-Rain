@@ -13,7 +13,7 @@ import SwiftUI
 class CBTag: Codable, Identifiable {
     var id: String
     var uuid: String
-    var tag: String
+    var title: String
     var active: Bool
     var action: TagAction
     var isNew = false
@@ -23,7 +23,7 @@ class CBTag: Codable, Identifiable {
         let uuid = UUID().uuidString
         self.id = uuid
         self.uuid = uuid
-        self.tag = ""
+        self.title = ""
         self.active = true
         self.action = .add
         self.isNew = true
@@ -33,20 +33,20 @@ class CBTag: Codable, Identifiable {
         let uuid = UUID().uuidString
         self.id = uuid
         self.uuid = uuid
-        self.tag = tag
+        self.title = tag
         self.active = true
         self.action = .add
         self.isNew = true
     }
     
-    enum CodingKeys: CodingKey { case id, uuid, tag, active, user_id, account_id, device_uuid, is_new, is_hidden }
+    enum CodingKeys: CodingKey { case id, uuid, title, active, user_id, account_id, device_uuid, is_new, is_hidden }
     
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(Int(id), forKey: .id) // This weird Int() thing is for the drag and drop
         try container.encode(uuid, forKey: .uuid)
-        try container.encode(tag, forKey: .tag)
+        try container.encode(title, forKey: .title)
         try container.encode(active ? 1 : 0, forKey: .active)
         try container.encode(isNew ? 1 : 0, forKey: .is_new)
         try container.encode(isHidden ? 1 : 0, forKey: .is_hidden)
@@ -66,7 +66,7 @@ class CBTag: Codable, Identifiable {
         }
         self.uuid = ""
         //uuid = try container.decode(String.self, forKey: .uuid)
-        tag = try container.decode(String.self, forKey: .tag)
+        title = try container.decode(String.self, forKey: .title)
         let isActive = try container.decode(Int?.self, forKey: .active)
         self.active = isActive == 1 ? true : false
         self.isNew = false
@@ -85,7 +85,7 @@ class CBTag: Codable, Identifiable {
     
     func hasChanges() -> Bool {
         if let deepCopy = deepCopy {
-            if self.tag == deepCopy.tag {
+            if self.title == deepCopy.title {
                 return false
             }
         }
@@ -99,14 +99,14 @@ class CBTag: Codable, Identifiable {
         case .create:
             let copy = CBTag.empty
             copy.id = self.id
-            copy.tag = self.tag
+            copy.title = self.title
             copy.isHidden = self.isHidden
             copy.active = self.active
             self.deepCopy = copy
         case .restore:
             if let deepCopy = self.deepCopy {
                 self.id = deepCopy.id
-                self.tag = deepCopy.tag
+                self.title = deepCopy.title
                 self.isHidden = deepCopy.isHidden
                 self.active = deepCopy.active
                 //self.action = deepCopy.action
@@ -118,7 +118,7 @@ class CBTag: Codable, Identifiable {
     
     
     func setFromAnotherInstance(tag: CBTag) {
-        self.tag = tag.tag
+        self.title = tag.title
         self.active = tag.active
         self.isHidden = tag.isHidden
     }
@@ -131,7 +131,7 @@ class CBTag: Codable, Identifiable {
 extension CBTag: Equatable, Hashable {
     static func == (lhs: CBTag, rhs: CBTag) -> Bool {
         if lhs.id == rhs.id
-        && lhs.tag == rhs.tag
+        && lhs.title == rhs.title
         && lhs.isHidden == rhs.isHidden
         && lhs.active == rhs.active {
             return true

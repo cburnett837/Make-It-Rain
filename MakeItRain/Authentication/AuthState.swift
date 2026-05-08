@@ -76,7 +76,8 @@ class AuthState {
                         AppState.shared.apiKey = apiKey
                         
                         let userData = try JSONEncoder().encode(model.user)
-                        UserDefaults.standard.set(userData, forKey: "user")
+                        UserDefaults(suiteName: "group.dev.cburnett837.MakeItRain")?.set(userData, forKey: "user")
+                        //UserDefaults.standard.set(userData, forKey: "user")
                         
                         AppSettings.shared.setFromServerData(setting: model.settings)
                         
@@ -149,7 +150,8 @@ class AuthState {
             self.keychainCredentialsExist = false
             try keychainManager.removeFromKeychain(key: "user_api_key")
             AppState.shared.apiKey = nil
-            UserDefaults.standard.set(nil, forKey: "user")
+            //UserDefaults.standard.set(nil, forKey: "user")
+            UserDefaults(suiteName: "group.dev.cburnett837.MakeItRain")?.set(nil, forKey: "user")
         } catch {
             print(error.localizedDescription)
         }

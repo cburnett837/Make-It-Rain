@@ -338,6 +338,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
     
     
     func setFromAnotherInstance(category: CBCategory) {
+        self.id = category.id
         self.title = category.title
         
         self.amountString = category.amount?.currencyWithDecimals()
@@ -349,6 +350,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         self.listOrder = category.listOrder
         self.topTitles = category.topTitles
         self.isHidden = category.isHidden
+        self.isNil = category.isNil
         
         self.enteredBy = category.enteredBy
         self.updatedBy = category.updatedBy

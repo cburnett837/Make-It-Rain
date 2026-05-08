@@ -8,7 +8,7 @@
 import SwiftUI
 
 enum CalendarInspectorContent {
-    case dashboard, analysisSheet, transactionList, plaidTransactions, multiSelectOptions, smartTransactionsWithIssues, budgets, overviewDay, paymentMethods
+    case dashboard, transactionList, plaidTransactions, multiSelectOptions, smartTransactionsWithIssues, budgets, overviewDay, paymentMethods, dashboardTransactionList
 }
 
 #if os(iOS)
@@ -20,8 +20,9 @@ struct RootViewPad: View {
     @Environment(CategoryModel.self) var catModel
     @Environment(KeywordModel.self) var keyModel
     @Environment(RepeatingTransactionModel.self) var repModel
-    
     @Environment(PlaidModel.self) var plaidModel
+    @Environment(AppStore.self) var store
+    
     
     //@FocusState private var focusedField: Int?
     //@FocusState private var searchFocus: Int?
@@ -45,7 +46,7 @@ struct RootViewPad: View {
             NavSidebarPad()
         } detail: {
             if let selectedMonth = navManager.selectedMonth, calModel.isShowingFullScreenCoverOnIpad == false {
-                CalendarViewPhone(enumID: selectedMonth)
+                CalendarViewPhone(enumID: selectedMonth, store: store)
                     .if(AppState.shared.methsExist) {
                         $0.calendarLoadingSpinner(id: selectedMonth, text: "Loading…")
                     }
@@ -76,12 +77,12 @@ struct RootViewPad: View {
         Group {
             switch content {
             case .dashboard:
-                Text("NO more")
-                //CalendarDashboard()
-                
-            case .analysisSheet:
-                CategoryInsightsViewWrapperIpad(showAnalysisSheet: $calProps.showInspector, model: categoryAnalysisModel, overviewModel: overviewAnalysisModel)
+                Text("Hey")
+                //CategoryInsightsViewWrapperIpad(showAnalysisSheet: $calProps.showInspector, model: categoryAnalysisModel, overviewModel: overviewAnalysisModel)
                     //.onDisappear { calModel.isInMultiSelectMode = false }
+                
+            case .dashboardTransactionList:
+                Text("Transaction List")
                 
             case .transactionList:
                 TransactionListView(showTransactionListSheet: $calProps.showInspector)
@@ -115,7 +116,6 @@ struct RootViewPad: View {
         NavigationStack {
             StandardContainerWithToolbar(.list) {
                 Button { calProps.inspectorContent = .dashboard } label: { Label("Dashboard", systemImage: "rectangle.grid.1x3.fill") }
-                Button { calProps.inspectorContent = .analysisSheet } label: { Label("Insights", systemImage: "chart.bar.doc.horizontal") }
                 Button { calProps.inspectorContent = .budgets } label: { Label("Budgets", systemImage: "chart.pie") }
                 Button { calProps.inspectorContent = .transactionList } label: { Label("All Transactions", systemImage: "list.bullet") }
                                 

@@ -19,7 +19,9 @@ struct PayMethodDashboard: View {
         
     let threeColumnGrid = Array(repeating: GridItem(.flexible(), spacing: 0, alignment: .topLeading), count: 3)
     
-    @Bindable var vm: PayMethodViewModel
+    @State private var vm = PayMethodViewModel()
+    //@State private var fetchHistoryTime = Date()
+    //@Bindable var vm: PayMethodViewModel
     var payMethod: CBPaymentMethod
     @Binding var navPath: NavigationPath
     
@@ -130,6 +132,18 @@ struct PayMethodDashboard: View {
                     }
                 }
             }
+        }
+        .opacity(vm.isLoadingHistory ? 0 : 1)
+        .overlay {
+            ProgressView("Loading Insights…")
+                .tint(.none)
+                .opacity(vm.isLoadingHistory ? 1 : 0)
+        }
+        .focusable(false)
+        .task {
+            if vm.rawData.isEmpty {
+                vm.fetchHistory(for: payMethod, payModel: payModel, setChartAsNew: true)
+            }            
         }
         #if os(iOS)
         .background(Color(uiColor: .systemGroupedBackground))

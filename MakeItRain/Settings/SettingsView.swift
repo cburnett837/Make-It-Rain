@@ -63,6 +63,18 @@ struct SettingsView: View {
     @State private var settingsModel = SettingsModel()
     @State private var showResetAllSettingsAlert = false
     @FocusState private var focusedField: Int?
+    
+    @State private var showCamera: Bool = false
+    #if os(iOS)
+    @State private var selectedAvatar: UIImage?
+    #else
+    @State private var selectedAvatar: NSImage?
+    #endif
+    @State private var showPhotosPicker: Bool = false
+    //@State private var imagesFromLibrary: Array<PhotosPickerItem> = []
+    #if os(iOS)
+    //@State private var imageFromCamera: UIImage?
+    #endif
                 
     var body: some View {
         VStack {
@@ -172,19 +184,7 @@ struct SettingsView: View {
             }
             accountNumberLine
         }
-    }
-    
-    @State private var showCamera: Bool = false
-    #if os(iOS)
-    @State private var selectedAvatar: UIImage?
-    #else
-    @State private var selectedAvatar: NSImage?
-    #endif
-    @State private var showPhotosPicker: Bool = false
-    //@State private var imagesFromLibrary: Array<PhotosPickerItem> = []
-    #if os(iOS)
-    //@State private var imageFromCamera: UIImage?
-    #endif
+    }        
     
     var myInfo: some View {
         Label {
@@ -303,7 +303,8 @@ struct SettingsView: View {
     }
     
     
-    @ViewBuilder func additionalUserLine(for user: CBUser) -> some View {
+    @ViewBuilder
+    func additionalUserLine(for user: CBUser) -> some View {
         let nameAndEmail = HStack {
             VStack(alignment: .leading) {
                 Text(user.name)

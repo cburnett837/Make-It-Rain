@@ -58,12 +58,12 @@ struct LineItemMiniView: View {
         (trans.category?.isNil ?? false) ? .gray : trans.category?.color ?? .gray
     }
         
-    var opacity: Double {
-        switch trans.status {
-        case .editing, .none: 1
-        case .inFlight, .dummy, .saveSuccess, .saveFail, .deleteSucceess: 0.3
-        }
-    }
+//    var opacity: Double {
+//        switch trans.status {
+//        case .editing, .none: 1
+//        case .inFlight, .dummy, .saveSuccess, .saveFail, .deleteSuccess: 0.3
+//        }
+//    }
     
     //#warning("REGARDING HITCH: All I did here was pull the appstorage properties up to the day view, and made the transaction sheet local.")
     var body: some View {
@@ -72,9 +72,7 @@ struct LineItemMiniView: View {
         @Bindable var calProps = calProps
         Group {
             detailsLineItem
-                .opacity(opacity)
-                .transition(.scale)
-                .overlay(alignment: .center) { overlayView }
+                .statusIndicatorOverlay(for: trans.status)
                 .padding(.horizontal, 2)
                 .background(RoundedRectangle(cornerRadius: 4).fill(lineColor))
         }
@@ -117,43 +115,43 @@ struct LineItemMiniView: View {
     
     
     
-    @ViewBuilder
-    var overlayView: some View {
-        ZStack {
-            switch trans.status {
-            case nil, .dummy, .editing:
-                EmptyView()
-
-            case .inFlight:
-                //EmptyView()
-                Image(systemName: "circle", variableValue: 0.8)
-                    .symbolRenderingMode(.palette)
-                    .symbolVariableValueMode(.draw)
-                    .foregroundStyle(Color.primary, Color.gray)
-                    .symbolEffect(.rotate, options: .repeat(.continuous).speed(8))
-
-            case .saveSuccess:
-                Image(systemName: "checkmark.circle")
-                    .symbolRenderingMode(.palette)
-                    .foregroundStyle(Color.primary, Color.green.gradient)
-                    .transition(.symbolEffect(.drawOn.individually))
-
-            case .saveFail:
-                Image(systemName: "exclamationmark.triangle")
-                    .symbolRenderingMode(.palette)
-                    .foregroundStyle(Color.primary, Color.orange.gradient)
-                    .transition(.symbolEffect(.drawOn.individually))
-                
-            case .deleteSucceess:
-                Image(systemName: "trash.circle")
-                    .symbolRenderingMode(.palette)
-                    .foregroundStyle(Color.primary, Color.red.gradient)
-                    .transition(.symbolEffect(.drawOn.individually))
-            }
-        }
-        .contentTransition(.symbolEffect(.replace))
-        .animation(.easeInOut, value: trans.status)
-    }
+//    @ViewBuilder
+//    var overlayView: some View {
+//        ZStack {
+//            switch trans.status {
+//            case nil, .dummy, .editing:
+//                EmptyView()
+//
+//            case .inFlight:
+//                //EmptyView()
+//                Image(systemName: "circle", variableValue: 0.8)
+//                    .symbolRenderingMode(.palette)
+//                    .symbolVariableValueMode(.draw)
+//                    .foregroundStyle(Color.primary, Color.gray)
+//                    .symbolEffect(.rotate, options: .repeat(.continuous).speed(8))
+//
+//            case .saveSuccess:
+//                Image(systemName: "checkmark.circle")
+//                    .symbolRenderingMode(.palette)
+//                    .foregroundStyle(Color.primary, Color.green.gradient)
+//                    .transition(.symbolEffect(.drawOn.individually))
+//
+//            case .saveFail:
+//                Image(systemName: "exclamationmark.triangle")
+//                    .symbolRenderingMode(.palette)
+//                    .foregroundStyle(Color.primary, Color.orange.gradient)
+//                    .transition(.symbolEffect(.drawOn.individually))
+//                
+//            case .deleteSuccess:
+//                Image(systemName: "trash.circle")
+//                    .symbolRenderingMode(.palette)
+//                    .foregroundStyle(Color.primary, Color.red.gradient)
+//                    .transition(.symbolEffect(.drawOn.individually))
+//            }
+//        }
+//        .contentTransition(.symbolEffect(.replace))
+//        .animation(.easeInOut, value: trans.status)
+//    }
     
     
     var detailsLineItem: some View {
@@ -216,7 +214,7 @@ struct LineItemMiniView: View {
     var accessoryIndicator: some View {
         Capsule()
             .fill(
-                calModel.isUnifiedPayMethod && lineItemIndicator == .paymentMethod
+                (calModel.isUnifiedPayMethod || calModel.sPayMethod == nil) && lineItemIndicator == .paymentMethod
                 ? (trans.payMethod?.color ?? .gray)//.gradient
                 : categoryColor//.gradient
             )

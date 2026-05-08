@@ -84,7 +84,7 @@ struct LineItemView: View {
     var opacity: Double {
         switch trans.status {
         case .editing, .none: 1
-        case .inFlight, .dummy, .saveSuccess, .saveFail, .deleteSucceess: 0.3
+        case .inFlight, .dummy, .saveSuccess, .saveFail, .deleteSuccess: 0.3
         }
     }
         
@@ -298,7 +298,7 @@ struct LineItemView: View {
                 
                 TagLayout(alignment: .leading, spacing: 5) {
                     ForEach(trans.tags) { tag in
-                        Text("#\(tag.tag)")
+                        Text("#\(tag.title)")
                             .foregroundStyle(.gray)
                             .font(.caption)
                             .padding(4)
@@ -429,7 +429,7 @@ struct LineItemView: View {
                     .transition(.symbolEffect(.drawOn.individually))
                     #endif
                 
-            case .deleteSucceess:
+            case .deleteSuccess:
                 Image(systemName: "trash.circle")
                     .symbolRenderingMode(.palette)
                     .foregroundStyle(Color.primary, Color.red.gradient)

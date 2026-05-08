@@ -16,9 +16,8 @@ struct PaymentDueNotification: Identifiable {
     var scheduledDate: Date
     var title: String
     var subtitle: String
-    
-    
 }
+
 
 @Observable
 class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
@@ -321,7 +320,7 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         AppState.shared.notificationToken = token
         
         let tokenModel = CBNotificationToken(user: AppState.shared.user!, token: token)
-        let model = RequestModel(requestType: "add_new_notification_token_for_budget_app", model: tokenModel)
+        let model = RequestModel(requestType: "add_new_notification_token_for_app", model: tokenModel)
         Task {
             typealias ResultResponse = Result<ResultCompleteModel?, AppError>
             async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)

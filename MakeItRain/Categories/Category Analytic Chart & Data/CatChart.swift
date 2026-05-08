@@ -10,7 +10,8 @@ import SwiftUI
 import Charts
 
 struct CatChart: View {
-    
+    @Environment(CategoryModel.self) private var catModel
+
     @Environment(\.colorScheme) var colorScheme
     @AppStorage("showAverageOnCategoryAnalyticChart") var showAverage: Bool = true
     @AppStorage("showBudgetOnCategoryAnalyticChart") var showBudget: Bool = true
@@ -63,6 +64,7 @@ struct CatChart: View {
             VStack(spacing: 0) {
                 Text("\(selectedMonth.first?.date ?? Date(), format: .dateTime.month(.wide)) \(String(selectedMonth.first?.date.year ?? 0))")
                     .bold()
+                
                 HStack {
                     let metricText = switch model.displayedMetric {
                     case .income: selectedMonth.map { $0.income }.reduce(0.0, +)
@@ -113,16 +115,16 @@ struct CatChart: View {
             }
                                                 
             ForEach(model.displayData) { data in
-                let metricToDisplay = switch model.displayedMetric {
-                case .income: data.income
-                case .expenses: data.expenses
-                case .budget: data.budget
-                case .expensesMinusIncome: data.expensesMinusIncome
-                }
+//                let metricToDisplay = switch model.displayedMetric {
+//                case .income: data.income
+//                case .expenses: data.expenses
+//                case .budget: data.budget
+//                case .expensesMinusIncome: data.expensesMinusIncome
+//                }
                 
                 BarMark(
                     x: .value("Date", data.date, unit: .month),
-                    y: .value("Amount", metricToDisplay),
+                    y: .value("Amount", model.getMetric(for: data)),
                     //stacking: .normalized
                 )
                 .zIndex(-1)
@@ -140,24 +142,26 @@ struct CatChart: View {
                     .lineStyle(StrokeStyle(lineWidth: 2, dash: [5, 3]))
             }
             
-            if showBudget {
-                ForEach(model.displayData) { data in
-                    RectangleMark(
-                        x: .value("Date", data.date, unit: .month),
-                        y: .value("Budget", data.budget),
-                        height: 2
-                    )
-                    .foregroundStyle(model.isForGroup ? (colorScheme == .dark ? .white : .black) : model.category!.color)
-//                    .foregroundStyle(category.color.darker(by: 30))
-                    //.foregroundStyle(Color.theme.lighter(by: 30))
-                    //.foregroundStyle(getBudgetColor())
-                    
-//                    LineMark(
-//                        x: .value("Date", data.date, unit: .month),
-//                        y: .value("Budget", data.budget),
-//                        series: .value("", "Budget")
-//                    )
-//                    .foregroundStyle(category.color.lighter(by: 20))
+            if !catModel.groupedCategoryIds.contains(model.category?.id ?? "0") {
+                if showBudget {
+                    ForEach(model.displayData) { data in
+                        RectangleMark(
+                            x: .value("Date", data.date, unit: .month),
+                            y: .value("Budget", data.budget),
+                            height: 2
+                        )
+                        .foregroundStyle(model.isForGroup ? (colorScheme == .dark ? .white : .black) : model.category!.color)
+                        //                    .foregroundStyle(category.color.darker(by: 30))
+                        //.foregroundStyle(Color.theme.lighter(by: 30))
+                        //.foregroundStyle(getBudgetColor())
+                        
+                        //                    LineMark(
+                        //                        x: .value("Date", data.date, unit: .month),
+                        //                        y: .value("Budget", data.budget),
+                        //                        series: .value("", "Budget")
+                        //                    )
+                        //                    .foregroundStyle(category.color.lighter(by: 20))
+                    }
                 }
             }
         }
@@ -202,7 +206,7 @@ struct CatChart: View {
         }
         .chartLegend(position: .top, alignment: .leading)
         .padding(.bottom, 10)
-    }
+    }            
     
     var chartLegend: some View {
         ScrollView(.horizontal) {

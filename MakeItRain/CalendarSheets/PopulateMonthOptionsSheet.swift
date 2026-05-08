@@ -114,8 +114,8 @@ struct PopulateMonthOptionsSheet: View {
             calModel.populate(
                 options: model,
                 repTransactions: repModel.repTransactions,
-                categories: catModel.categories,
-                categoryGroups: catModel.categoryGroups
+                //categories: catModel.categories,
+                //categoryGroups: catModel.categoryGroups
             )
         } label: {
             Text("Populate")

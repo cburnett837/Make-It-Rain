@@ -34,8 +34,8 @@ class CatChartViewModel {
     var calModel: CalendarModel
     var catModel: CategoryModel
     
-    var didForceToViewIncomeMetrics = false
-    var metricBeforeForceToIncomeHappened: CategoryAnalyticChartDisplayedMetric?
+    //var didForceToViewIncomeMetrics = false
+    //var metricBeforeForceToIncomeHappened: CategoryAnalyticChartDisplayedMetric?
     
     init(
         isForGroup: Bool,
@@ -394,6 +394,31 @@ class CatChartViewModel {
         self.fetchYearEnd -= 10
         print("fetching more history... \(self.fetchYearStart) - \(self.fetchYearEnd)")
         fetchHistory(setChartAsNew: false)
+    }
+    
+    
+    
+    func getMetric(for data: CategoryAnalyticData) -> Double {
+        if self.isForGroup {
+            return switch self.displayedMetric {
+            case .income: data.income
+            case .expenses: data.expenses
+            case .budget: data.budget
+            case .expensesMinusIncome: data.expensesMinusIncome
+            }
+        } else {
+            if self.category!.isIncome {
+                return data.income
+            } else {
+                return switch self.displayedMetric {
+                case .income: data.income
+                case .expenses: data.expenses
+                case .budget: data.budget
+                case .expensesMinusIncome: data.expensesMinusIncome
+                }
+            }
+        }
+        
     }
 }
 

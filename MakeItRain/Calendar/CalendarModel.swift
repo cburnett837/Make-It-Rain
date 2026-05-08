@@ -19,6 +19,16 @@ import UIKit
 @MainActor
 @Observable
 class CalendarModel {
+    @ObservationIgnored private let store: AppStore
+    init(store: AppStore) {
+        self.store = store
+    }
+
+//    var categories: [CBCategory] {
+//        store.categories
+//    }
+    
+    
     // MARK: - State Variables
     var isThinking = false
     var showMonth = false
@@ -51,11 +61,12 @@ class CalendarModel {
     var searchText = ""
     var searchWhat = CalendarSearchWhat.titles
     
-    @ObservationIgnored lazy var dashboardModel = DashboardViewModel(calModel: self)
-    //var dashboardIsDirty = false
+    //var appSuiteBudgets: [CBBudget] = []
     
-    var appSuiteBudgets: [CBBudget] = []
-    
+    var appSuiteBudgets: [CBBudget] {
+        get { store.appSuiteBudgets }
+        set { store.appSuiteBudgets = newValue }
+    }
     
     // MARK: - Visual things
     var transactionToCopy: CBTransaction?
@@ -70,34 +81,47 @@ class CalendarModel {
     
     
     // MARK: - Data Container Variables
-    var months: [CBMonth] = [
-        CBMonth(num: 0),
-        CBMonth(num: 1),
-        CBMonth(num: 2),
-        CBMonth(num: 3),
-        CBMonth(num: 4),
-        CBMonth(num: 5),
-        CBMonth(num: 6),
-        CBMonth(num: 7),
-        CBMonth(num: 8),
-        CBMonth(num: 9),
-        CBMonth(num: 10),
-        CBMonth(num: 11),
-        CBMonth(num: 12),
-        CBMonth(num: 13)
-    ]
+//    var months: [CBMonth] = [
+//        CBMonth(num: 0),
+//        CBMonth(num: 1),
+//        CBMonth(num: 2),
+//        CBMonth(num: 3),
+//        CBMonth(num: 4),
+//        CBMonth(num: 5),
+//        CBMonth(num: 6),
+//        CBMonth(num: 7),
+//        CBMonth(num: 8),
+//        CBMonth(num: 9),
+//        CBMonth(num: 10),
+//        CBMonth(num: 11),
+//        CBMonth(num: 12),
+//        CBMonth(num: 13)
+//    ]
+    
+    
+    var months: [CBMonth] {
+        get { store.months }
+        set { store.months = newValue }
+    }
+    
     var tempTransactions: [CBTransaction] = []
     var searchedTransactions: [CBTransaction] = []
+    var dashboardTransactions: [CBTransaction] = []
     var receiptTransactions: [CBTransaction] = []
-    var tags: Array<CBTag> = []
-    var suggestedTitles: Array<CBSuggestedTitle> = []
+    var tags: [CBTag] = []
+    var suggestedTitles: [CBSuggestedTitle] = []
+    var budgets: [CBBudget] = []
 
     
     
     
     // MARK: - Computed Helper Variables
+//    var justTransactions: Array<CBTransaction> {
+//        months.flatMap { $0.days }.flatMap { $0.transactions }
+//    }
+    
     var justTransactions: Array<CBTransaction> {
-        months.flatMap { $0.days }.flatMap { $0.transactions }
+        get { store.justTransactions }
     }
     
     var justBudgets: Array<CBBudget> {
@@ -347,11 +371,11 @@ class CalendarModel {
                     if !sCategories.isEmpty || !sCategoryGroups.isEmpty {
                         let categoryIds = (sCategories + sCategoryGroups.flatMap(\.categories)).map(\.id)
                         return
-                            (trans.title.localizedCaseInsensitiveContains(searchText) || !trans.tags.filter { $0.tag.localizedCaseInsensitiveContains(searchText) }.isEmpty)
+                            (trans.title.localizedCaseInsensitiveContains(searchText) || !trans.tags.filter { $0.title.localizedCaseInsensitiveContains(searchText) }.isEmpty)
                             && categoryIds.contains { trans.categoryIdsInCurrentAndDeepCopy.contains($0) }
                         
                     } else {
-                        return (trans.title.localizedCaseInsensitiveContains(searchText) || !trans.tags.filter { $0.tag.localizedCaseInsensitiveContains(searchText) }.isEmpty)
+                        return (trans.title.localizedCaseInsensitiveContains(searchText) || !trans.tags.filter { $0.title.localizedCaseInsensitiveContains(searchText) }.isEmpty)
                     }
                 }
             }
@@ -484,14 +508,14 @@ class CalendarModel {
                                 && sCategories.map{ $0.id }.contains { trans.categoryIdsInCurrentAndDeepCopy.contains($0) }
                         } else {
                             return
-                                !trans.tags.filter { $0.tag.localizedCaseInsensitiveContains(searchText) }.isEmpty
+                                !trans.tags.filter { $0.title.localizedCaseInsensitiveContains(searchText) }.isEmpty
                                 && sCategories.map{ $0.id }.contains { trans.categoryIdsInCurrentAndDeepCopy.contains($0) }
                         }
                     } else {
                         if searchWhat == .titles {
                             return trans.title.localizedCaseInsensitiveContains(searchText)
                         } else {
-                            return !trans.tags.filter { $0.tag.localizedCaseInsensitiveContains(searchText) }.isEmpty
+                            return !trans.tags.filter { $0.title.localizedCaseInsensitiveContains(searchText) }.isEmpty
                         }
                     }
                 }
@@ -627,7 +651,7 @@ class CalendarModel {
                             
                             /// Delete the transaction if applicable.
                             if !incomingTrans.active {
-                                trans.status = .deleteSucceess
+                                trans.status = .deleteSuccess
                                 
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                                     /// This triggers drawOff (reverse of drawOn)
@@ -737,6 +761,7 @@ class CalendarModel {
             case .tempList, .smartList: tempTransactions
             case .searchResultList:     searchedTransactions
             case .receiptsList:         receiptTransactions
+            case .dashboardList:        dashboardTransactions
         }
         #warning("ServerID")
         
@@ -1076,11 +1101,19 @@ class CalendarModel {
         /// Check to see if the transaction was part of the data that powers the dashboard.
         /// If so, tell the dashboard to reload itself from the server.
         if let date = trans.date {
-            let range = min(dashboardModel.beginDate, dashboardModel.endDate)...max(dashboardModel.beginDate, dashboardModel.endDate)
-            let transIsPartOfDashboard = range.contains(date)
-            if transIsPartOfDashboard {
-                self.dashboardModel.isDirty = true
-            }
+//            let range = min(dashboardModel.beginDate, dashboardModel.endDate)...max(dashboardModel.beginDate, dashboardModel.endDate)
+//            let transIsPartOfDashboard = range.contains(date)
+//            if transIsPartOfDashboard {
+//                self.dashboardModel.isDirty = true
+//            }
+//            
+//            
+//            let range2 = min(calendarDashboardModel.beginDate, calendarDashboardModel.endDate)...max(calendarDashboardModel.beginDate, calendarDashboardModel.endDate)
+//            let transIsPartOfDashboard2 = range2.contains(date)
+//            if transIsPartOfDashboard2 {
+//                self.calendarDashboardModel.isDirty = true
+//                await calendarDashboardModel.initialFetchIfApplicable(catModel: catModel)
+//            }
         }
         
         
@@ -1188,7 +1221,7 @@ class CalendarModel {
             isThinking = false
             if trans.action == .delete {
                 //trans.status = nil
-                trans.status = .deleteSucceess
+                trans.status = .deleteSuccess
             } else {
                 trans.status = .saveSuccess
             }
@@ -1519,7 +1552,7 @@ class CalendarModel {
         
         for each in trans {
             /// Due to the way animations are handled when deleting from the multi-select sheet, ignore them.
-            if each.status != .deleteSucceess {
+            if each.status != .deleteSuccess {
                 each.status = .inFlight
             }
             
@@ -1585,9 +1618,9 @@ class CalendarModel {
                             foundTrans.status = .saveSuccess
                             
                         } else if foundTrans.action == .delete {
-                            foundTrans.status = .deleteSucceess
+                            foundTrans.status = .deleteSuccess
                             tempTransactions.removeAll { $0.id == foundTrans.id }
-                            //foundTrans.status = .deleteSucceess
+                            //foundTrans.status = .deleteSuccess
 //                            withAnimation {
 //                                let day = sMonth.days.filter { $0.dateComponents?.day == foundTrans.dateComponents?.day }.first
 //                                if let day {
@@ -1750,6 +1783,8 @@ class CalendarModel {
 //    }
     
     
+    
+    
     @MainActor
     func handleIncoming(titles: [CBSuggestedTitle], incomingDataType: IncomingDataType) {
         self.suggestedTitles = titles
@@ -1757,7 +1792,12 @@ class CalendarModel {
     
     @MainActor
     func handleIncoming(budgets: [CBBudget], incomingDataType: IncomingDataType) {
-        self.appSuiteBudgets = budgets
+        self.budgets = budgets
+    }
+    
+    @MainActor
+    func handleIncoming(appSuiteBudgets: [CBBudget], incomingDataType: IncomingDataType) {
+        self.appSuiteBudgets = appSuiteBudgets
     }
     
     
@@ -2632,19 +2672,7 @@ class CalendarModel {
             .filter { targetAccountTypes.contains($0.payMethod.accountType) }
             .filter { $0.payMethod.isPermitted }
             .filter { !$0.payMethod.isHidden }
-            .filter {
-                switch AppSettings.shared.paymentMethodFilterMode {
-                case .all:
-                    return true
-                case .justPrimary:
-                    return $0.payMethod.holderOne?.id == AppState.shared.user?.id
-                case .primaryAndSecondary:
-                    return $0.payMethod.holderOne?.id == AppState.shared.user?.id
-                    || $0.payMethod.holderTwo?.id == AppState.shared.user?.id
-                    || $0.payMethod.holderThree?.id == AppState.shared.user?.id
-                    || $0.payMethod.holderFour?.id == AppState.shared.user?.id
-                }
-            }
+            .filter { $0.payMethod.matchesFilter() }
             .map { $0.amount }
             .reduce(0.0, +)
         
@@ -2693,24 +2721,15 @@ class CalendarModel {
         
         month.days.forEach { day in
             let amounts = day.transactions
-                .filter {
-                    ($0.payMethod?.isDebitOrCash ?? true)
-                    && $0.active
-                    && $0.factorInCalculations
-                    && ($0.payMethod?.isPermitted ?? true)
-                    && !($0.payMethod?.isHidden ?? true)
-                }
-                .filter {
-                    switch AppSettings.shared.paymentMethodFilterMode {
-                    case .all:
-                        return true
-                    case .justPrimary:
-                        return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
-                    case .primaryAndSecondary:
-                        return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
-                        || $0.payMethod?.holderTwo?.id == AppState.shared.user?.id
-                        || $0.payMethod?.holderThree?.id == AppState.shared.user?.id
-                        || $0.payMethod?.holderFour?.id == AppState.shared.user?.id
+                .filter { trans in
+                    if let meth = trans.payMethod {
+                        return meth.isDebitOrCash
+                        && trans.active
+                        && trans.factorInCalculations
+                        && meth.isPermittedAndNotHidden
+                        && meth.matchesFilter()
+                    } else {
+                        return false
                     }
                 }
                 .map { $0.amount }
@@ -2745,24 +2764,24 @@ class CalendarModel {
         switch creditEodView {
         case .availableCredit:
             /// To show available credit.
-            let cumulativeLimits = PayMethodModel.shared
+            let cumulativeLimits = store
                 .paymentMethods
                 .filter { $0.isCreditOrLoan }
-                .filter { $0.isPermitted }
-                .filter { !$0.isHidden }
-                .filter {
-                    switch AppSettings.shared.paymentMethodFilterMode {
-                    case .all:
-                        return true
-                    case .justPrimary:
-                        return $0.holderOne?.id == AppState.shared.user?.id
-                    case .primaryAndSecondary:
-                        return $0.holderOne?.id == AppState.shared.user?.id
-                        || $0.holderTwo?.id == AppState.shared.user?.id
-                        || $0.holderThree?.id == AppState.shared.user?.id
-                        || $0.holderFour?.id == AppState.shared.user?.id
-                    }
-                }
+                .filter { $0.isPermittedAndNotHidden }
+                .filter { $0.matchesFilter() }
+//                .filter {
+//                    switch AppSettings.shared.paymentMethodFilterMode {
+//                    case .all:
+//                        return true
+//                    case .justPrimary:
+//                        return $0.holderOne?.id == AppState.shared.user?.id
+//                    case .primaryAndSecondary:
+//                        return $0.holderOne?.id == AppState.shared.user?.id
+//                        || $0.holderTwo?.id == AppState.shared.user?.id
+//                        || $0.holderThree?.id == AppState.shared.user?.id
+//                        || $0.holderFour?.id == AppState.shared.user?.id
+//                    }
+//                }
                 .map { $0.limit ?? 0.0 }
                 .reduce(0.0, +)
             
@@ -2774,26 +2793,37 @@ class CalendarModel {
                             
         month.days.forEach { day in
             let amounts = day.transactions
-                .filter {
-                    ($0.payMethod?.isCreditOrLoan ?? false)
-                    && $0.active
-                    && $0.factorInCalculations
-                    && ($0.payMethod?.isPermitted ?? true)
-                    && !($0.payMethod?.isHidden ?? true)
-                }
-                .filter {
-                    switch AppSettings.shared.paymentMethodFilterMode {
-                    case .all:
-                        return true
-                    case .justPrimary:
-                        return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
-                    case .primaryAndSecondary:
-                        return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
-                        || $0.payMethod?.holderTwo?.id == AppState.shared.user?.id
-                        || $0.payMethod?.holderThree?.id == AppState.shared.user?.id
-                        || $0.payMethod?.holderFour?.id == AppState.shared.user?.id
+                .filter { trans in
+                    if let meth = trans.payMethod {
+                        return meth.isCreditOrLoan
+                        && trans.active
+                        && trans.factorInCalculations
+                        && meth.isPermittedAndNotHidden
+                        && meth.matchesFilter()
+                    } else {
+                        return false
                     }
                 }
+//                .filter {
+//                    ($0.payMethod?.isCreditOrLoan ?? false)
+//                    && $0.active
+//                    && $0.factorInCalculations
+//                    && ($0.payMethod?.isPermitted ?? true)
+//                    && !($0.payMethod?.isHidden ?? true)
+//                }
+//                .filter {
+//                    switch AppSettings.shared.paymentMethodFilterMode {
+//                    case .all:
+//                        return true
+//                    case .justPrimary:
+//                        return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
+//                    case .primaryAndSecondary:
+//                        return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
+//                        || $0.payMethod?.holderTwo?.id == AppState.shared.user?.id
+//                        || $0.payMethod?.holderThree?.id == AppState.shared.user?.id
+//                        || $0.payMethod?.holderFour?.id == AppState.shared.user?.id
+//                    }
+//                }
                 .map { $0.amount }
             
             switch creditEodView {
@@ -2836,26 +2866,38 @@ class CalendarModel {
             
             month.days.forEach { day in
                 let amounts = day.transactions
-                    .filter {
-                        $0.payMethod?.id == paymentMethod?.id
-                        && $0.active
-                        && $0.factorInCalculations
-                        && ($0.payMethod?.isPermitted ?? true)
-                        && !($0.payMethod?.isHidden ?? true)
-                    }
-                    .filter {
-                        switch AppSettings.shared.paymentMethodFilterMode {
-                        case .all:
-                            return true
-                        case .justPrimary:
-                            return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
-                        case .primaryAndSecondary:
-                            return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
-                            || $0.payMethod?.holderTwo?.id == AppState.shared.user?.id
-                            || $0.payMethod?.holderThree?.id == AppState.shared.user?.id
-                            || $0.payMethod?.holderFour?.id == AppState.shared.user?.id
+                    .filter { trans in
+                        if let meth = trans.payMethod {
+                            return meth.id == paymentMethod?.id
+                            && trans.active
+                            && trans.factorInCalculations
+                            && meth.isPermittedAndNotHidden
+                            && meth.matchesFilter()
+                        } else {
+                            return false
                         }
                     }
+                
+//                    .filter {
+//                        $0.payMethod?.id == paymentMethod?.id
+//                        && $0.active
+//                        && $0.factorInCalculations
+//                        && ($0.payMethod?.isPermitted ?? true)
+//                        && !($0.payMethod?.isHidden ?? true)
+//                    }
+//                    .filter {
+//                        switch AppSettings.shared.paymentMethodFilterMode {
+//                        case .all:
+//                            return true
+//                        case .justPrimary:
+//                            return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
+//                        case .primaryAndSecondary:
+//                            return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
+//                            || $0.payMethod?.holderTwo?.id == AppState.shared.user?.id
+//                            || $0.payMethod?.holderThree?.id == AppState.shared.user?.id
+//                            || $0.payMethod?.holderFour?.id == AppState.shared.user?.id
+//                        }
+//                    }
                     .map { $0.amount }
                 
                 switch creditEodView {
@@ -2892,26 +2934,38 @@ class CalendarModel {
         
         month.days.forEach { day in
             let amounts = day.transactions
-                .filter {
-                    $0.payMethod?.id == paymentMethod?.id
-                    && $0.active
-                    && $0.factorInCalculations
-                    && ($0.payMethod?.isPermitted ?? true)
-                    && !($0.payMethod?.isHidden ?? true)
-                }
-                .filter {
-                    switch AppSettings.shared.paymentMethodFilterMode {
-                    case .all:
-                        return true
-                    case .justPrimary:
-                        return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
-                    case .primaryAndSecondary:
-                        return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
-                        || $0.payMethod?.holderTwo?.id == AppState.shared.user?.id
-                        || $0.payMethod?.holderThree?.id == AppState.shared.user?.id
-                        || $0.payMethod?.holderFour?.id == AppState.shared.user?.id
+                .filter { trans in
+                    if let meth = trans.payMethod {
+                        return meth.id == paymentMethod?.id
+                        && trans.active
+                        && trans.factorInCalculations
+                        && meth.isPermittedAndNotHidden
+                        && meth.matchesFilter()
+                    } else {
+                        return false
                     }
                 }
+            
+//                .filter {
+//                    $0.payMethod?.id == paymentMethod?.id
+//                    && $0.active
+//                    && $0.factorInCalculations
+//                    && ($0.payMethod?.isPermitted ?? true)
+//                    && !($0.payMethod?.isHidden ?? true)
+//                }
+//                .filter {
+//                    switch AppSettings.shared.paymentMethodFilterMode {
+//                    case .all:
+//                        return true
+//                    case .justPrimary:
+//                        return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
+//                    case .primaryAndSecondary:
+//                        return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
+//                        || $0.payMethod?.holderTwo?.id == AppState.shared.user?.id
+//                        || $0.payMethod?.holderThree?.id == AppState.shared.user?.id
+//                        || $0.payMethod?.holderFour?.id == AppState.shared.user?.id
+//                    }
+//                }
                 .map { $0.amount }
             
             currentAmount += amounts.reduce(0.0, +)
@@ -2939,25 +2993,37 @@ class CalendarModel {
         
         month.days.forEach { day in
             let amount = day.transactions
-                .filter {
-                    $0.active
-                    && $0.factorInCalculations
-                    && $0.payMethod?.isPermittedAndViewable ?? true
-                    && (self.categoryFilterWasSetByCategoryPage ? self.sCategories.map({ $0.id }).contains($0.category?.id) : true)
-                }
-                .filter {
-                    switch AppSettings.shared.paymentMethodFilterMode {
-                    case .all:
-                        return true
-                    case .justPrimary:
-                        return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
-                    case .primaryAndSecondary:
-                        return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
-                        || $0.payMethod?.holderTwo?.id == AppState.shared.user?.id
-                        || $0.payMethod?.holderThree?.id == AppState.shared.user?.id
-                        || $0.payMethod?.holderFour?.id == AppState.shared.user?.id
+                .filter { trans in
+                    if let meth = trans.payMethod {
+                        return trans.active
+                        && trans.factorInCalculations
+                        && meth.isPermittedAndNotHidden
+                        && meth.matchesFilter()
+                        && (self.categoryFilterWasSetByCategoryPage ? self.sCategories.map({ $0.id }).contains(trans.category?.id) : true)
+                    } else {
+                        return false
                     }
                 }
+            
+//                .filter {
+//                    $0.active
+//                    && $0.factorInCalculations
+//                    && $0.payMethod?.isPermittedAndNotHidden ?? true
+//                    && (self.categoryFilterWasSetByCategoryPage ? self.sCategories.map({ $0.id }).contains($0.category?.id) : true)
+//                }
+//                .filter {
+//                    switch AppSettings.shared.paymentMethodFilterMode {
+//                    case .all:
+//                        return true
+//                    case .justPrimary:
+//                        return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
+//                    case .primaryAndSecondary:
+//                        return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
+//                        || $0.payMethod?.holderTwo?.id == AppState.shared.user?.id
+//                        || $0.payMethod?.holderThree?.id == AppState.shared.user?.id
+//                        || $0.payMethod?.holderFour?.id == AppState.shared.user?.id
+//                    }
+//                }
                 //.filter { ($0.payMethod?.isPermitted ?? true) }
                 //.filter { !($0.payMethod?.isHidden ?? true) }
                 .map { ($0.payMethod?.isCreditOrLoan ?? false) ? $0.amount * -1 : $0.amount }
@@ -3075,7 +3141,7 @@ class CalendarModel {
     }
     
     
-    func populate(options: PopulateOptions, repTransactions: Array<CBRepeatingTransaction>, categories: Array<CBCategory>, categoryGroups: Array<CBCategoryGroup>) {
+    func populate(options: PopulateOptions, repTransactions: Array<CBRepeatingTransaction>/*, categories: Array<CBCategory>, categoryGroups: Array<CBCategoryGroup>*/) {
         print("-- \(#function)")
         //let dateFormatter = DateFormatter()
         
@@ -3220,7 +3286,7 @@ class CalendarModel {
         }
         
         if options.budget {
-            for group in categoryGroups {
+            for group in store.categoryGroups {
                 let budgetExists = !sMonth.budgetGroups.filter { $0.id == group.id }.isEmpty
                 if !budgetExists {
                     let budget = CBBudget()
@@ -3234,13 +3300,12 @@ class CalendarModel {
                 }
             }
             
-            for cat in categories {
+            for cat in store.categories {
                 /// Ignore any categories that are in a group, or are of type income.
-                let catExistsInGroup = !categoryGroups.filter { $0.categories.contains(where: { $0.id == cat.id }) }.isEmpty
+                let catExistsInGroup = !store.categoryGroups.filter { $0.categories.contains(where: { $0.id == cat.id }) }.isEmpty
                 let budgetExists = !sMonth.budgets.filter { $0.category?.id == cat.id }.isEmpty
-                let isIncomeCategory = cat.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .income)
                 
-                if !budgetExists, !catExistsInGroup, !isIncomeCategory {
+                if !budgetExists, !catExistsInGroup, !cat.isIncome {
                     let budget = CBBudget()
                     budget.month = sMonth.actualNum
                     budget.year = sMonth.year

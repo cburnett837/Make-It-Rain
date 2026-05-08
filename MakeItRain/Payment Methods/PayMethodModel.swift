@@ -11,8 +11,18 @@ import SwiftUI
 @MainActor
 @Observable
 class PayMethodModel {
-    static let shared = PayMethodModel()
-    var paymentMethods: Array<CBPaymentMethod> = []
+    @ObservationIgnored private let store: AppStore
+    init(store: AppStore) {
+        self.store = store
+    }
+    
+    var paymentMethods: [CBPaymentMethod] {
+        get { store.paymentMethods }
+        set { store.paymentMethods = newValue }
+    }
+    
+    //static let shared = PayMethodModel()
+    //var paymentMethods: Array<CBPaymentMethod> = []
     var fuckYouSwiftuiTableRefreshID: UUID = UUID()
     
     /// Prevent downloading payment methods before other data if they're cached.
@@ -543,7 +553,7 @@ class PayMethodModel {
     
     @MainActor func prepareStartingAmounts(for month: CBMonth, calModel: CalendarModel) {
         //print("-- \(#function)")
-        for payMethod in self.paymentMethods.filter({ $0.isPermittedAndViewable }) {
+        for payMethod in self.paymentMethods.filter({ $0.isPermittedAndNotHidden }) {
             /// Create a starting amount if it doesn't exist in the current month.
             if !month.startingAmounts.contains(where: { $0.payMethod.id == payMethod.id }) {
                 let starting = CBStartingAmount()
@@ -831,21 +841,22 @@ class PayMethodModel {
                 && (includeHidden ? true : !$0.isHidden)
                 && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
             }
-            .filter {
-                switch AppSettings.shared.paymentMethodFilterMode {
-                case .all:
-                    return true
-                    
-                case .justPrimary:
-                    return $0.holderOne?.id == AppState.shared.user?.id
-                    
-                case .primaryAndSecondary:
-                    return $0.holderOne?.id == AppState.shared.user?.id
-                    || $0.holderTwo?.id == AppState.shared.user?.id
-                    || $0.holderThree?.id == AppState.shared.user?.id
-                    || $0.holderFour?.id == AppState.shared.user?.id
-                }
-            }
+            .filter { $0.matchesFilter() }
+//            .filter {
+//                switch AppSettings.shared.paymentMethodFilterMode {
+//                case .all:
+//                    return true
+//                    
+//                case .justPrimary:
+//                    return $0.holderOne?.id == AppState.shared.user?.id
+//                    
+//                case .primaryAndSecondary:
+//                    return $0.holderOne?.id == AppState.shared.user?.id
+//                    || $0.holderTwo?.id == AppState.shared.user?.id
+//                    || $0.holderThree?.id == AppState.shared.user?.id
+//                    || $0.holderFour?.id == AppState.shared.user?.id
+//                }
+//            }
             .sorted(by: Helpers.paymentMethodSorter())
     }
     

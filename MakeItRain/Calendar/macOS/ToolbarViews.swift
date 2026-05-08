@@ -107,7 +107,7 @@ struct CalendarToolbarLeading: View {
                 
             }
         } message: {
-            Text("You have already created a budget and populated this month with reoccuring transactions. If you proceed, reoccuring transactions will be duplicated.")
+            Text("You have already created a budget and populated this month with recurring transactions. If you proceed, recurring transactions will be duplicated.")
         }
         .sheet(isPresented: $toolbarAndCommandsCoordinator.showPopulateOptionsSheet) {
             PopulateMonthOptionsSheet()

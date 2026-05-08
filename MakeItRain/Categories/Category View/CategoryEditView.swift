@@ -162,17 +162,26 @@ struct CategoryEditView: View {
     }
     #endif
     
+    var isPartOfGroup: Bool {
+        catModel.groupedCategoryIds.contains(category.id)
+    }
     
+    @ViewBuilder
     var categoryPagePhone: some View {
         StandardContainerWithToolbar(.list) {
             Section {
                 titleRow
-                budgetRow
+                
+                //if !groupedIDs.contains(category.id) {
+                    budgetRow
+                        .disabled(isPartOfGroup)
+                //}
+                
             } header: {
                 Text("Title & Budget")
             } footer: {
-                Text("Set a budget to use for each month.")
-            }            
+                Text(isPartOfGroup ? "You cannot set a budget for a category that is part of a group." : "Set a budget to use for each month.")
+            }
                         
             Section("Details") {
                 typeRow
@@ -253,7 +262,7 @@ struct CategoryEditView: View {
             //.uiReturnKeyType(.next)
             //.uiKeyboardType(.decimalPad)
             .uiKeyboardType(.custom(.numpad))
-            //.uiTextColor(.secondaryLabel)
+            .uiTextColor(isPartOfGroup ? .secondaryLabel : .label)
             
             #else
             LabeledContent("") {
@@ -455,7 +464,7 @@ struct CategoryEditView: View {
     func deleteCategory() {
         /// Prevent from going to the server and trying to delete something that isn't there.
         if category.action == .add {
-            catModel.delete(category, andSubmit: false, calModel: calModel, keyModel: keyModel)
+            catModel.delete(category, andSubmit: false)
         } else {
             category.action = .delete
         }

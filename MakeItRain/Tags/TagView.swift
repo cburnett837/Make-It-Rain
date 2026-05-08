@@ -28,12 +28,12 @@ struct TagView: View {
     var gridTags: Array<CBTag> {
         var tags: [CBTag] = []
         var returnTags: [CBTag] = []
-        let allTags = calModel.tags.sorted(by: { $0.tag < $1.tag })
+        let allTags = calModel.tags.sorted(by: { $0.title < $1.title })
         let transTags = trans.tags
         print(allTags)
         
         for each in allTags {
-            print(each.tag)
+            print(each.title)
             tags.append(each)
             if !each.isHidden {
                 returnTags.append(each)
@@ -54,8 +54,8 @@ struct TagView: View {
     var allTags: Array<CBTag> {
         calModel.tags
             //.filter { !$0.isHidden }
-            .filter { searchText.isEmpty ? true : $0.tag.localizedCaseInsensitiveContains(searchText) }
-            .sorted(by: { $0.tag < $1.tag })
+            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+            .sorted(by: { $0.title < $1.title })
     }
     
 //    var header: some View {
@@ -146,7 +146,7 @@ struct TagView: View {
                 
         var body: some View {
             HStack {
-                TextField("Edit", text: $tag.tag)
+                TextField("Edit", text: $tag.title)
                 Button {
                     showDeleteAlert = true
                 } label: {
@@ -155,7 +155,7 @@ struct TagView: View {
                 .tint(tag.isHidden ? .green : .red)
                 .buttonStyle(.borderedProminent)
             }
-            .alert("\(tag.isHidden ? "Unhide" : "Hide") #\(tag.tag)", isPresented: $showDeleteAlert, actions: {
+            .alert("\(tag.isHidden ? "Unhide" : "Hide") #\(tag.title)", isPresented: $showDeleteAlert, actions: {
                 Button("Yes", role: .destructive) {
                     withAnimation {
                         calModel.tags.filter({ $0.id == tag.id }).first?.isHidden.toggle()
@@ -216,7 +216,7 @@ struct TagView: View {
                 Button {
                     addOrRemove(tag: tag)
                 } label: {
-                    Text("#\(tag.tag)")
+                    Text("#\(tag.title)")
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(exists ? Color.theme : .gray)
@@ -284,13 +284,13 @@ struct TagView: View {
     
     func addOrFind(tag: CBTag) {
         withAnimation {
-            if let modelTag = calModel.tags.filter({ $0.tag == tag.tag }).first {
+            if let modelTag = calModel.tags.filter({ $0.title == tag.title }).first {
                 modelTag.isHidden = false
             } else {
                 calModel.tags.append(tag)
             }
             
-            if let transTag = trans.tags.filter({ $0.tag == tag.tag }).first {
+            if let transTag = trans.tags.filter({ $0.title == tag.title }).first {
                 transTag.isHidden = false
             } else {
                 trans.tags.append(tag)

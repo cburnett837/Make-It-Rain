@@ -134,6 +134,10 @@ extension View {
         modifier(AnimatedLineChart(beginAnimation: beginAnimation, chart: chart))
     }
     
+    func statusIndicatorOverlay(for status: ObjectStatus?) -> some View {
+        modifier(StatusIndicatorOverlayModifier(status: status))
+    }
+    
     #if os(macOS)
     func questionCursor() -> some View {
         self.onHover { inside in

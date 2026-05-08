@@ -516,14 +516,14 @@ struct PayMethodOverView: View {
         if payMethod.action == .add {
             ContentUnavailableView("Insights are not available when adding a new account", systemImage: "square.stack.3d.up.slash.fill")
         } else {
-            PayMethodDashboard(vm: viewModel, payMethod: payMethod, navPath: $navPath)
-                .opacity(viewModel.isLoadingHistory ? 0 : 1)
-                .overlay {
-                    ProgressView("Loading Insights…")
-                        .tint(.none)
-                        .opacity(viewModel.isLoadingHistory ? 1 : 0)
-                }
-                .focusable(false)
+//            PayMethodDashboard(vm: viewModel, payMethod: payMethod, navPath: $navPath)
+//                .opacity(viewModel.isLoadingHistory ? 0 : 1)
+//                .overlay {
+//                    ProgressView("Loading Insights…")
+//                        .tint(.none)
+//                        .opacity(viewModel.isLoadingHistory ? 1 : 0)
+//                }
+//                .focusable(false)
         }
     }
     

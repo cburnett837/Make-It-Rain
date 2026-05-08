@@ -55,9 +55,13 @@ struct CategoryGroupEditView: View {
     var body: some View {
         NavigationStack {
             StandardContainerWithToolbar(.list) {
-                Section("Title & Budget") {
+                Section {
                     titleRow
                     budgetRow
+                } header: {
+                    Text("Title & Budget")
+                } footer: {
+                    Text("Set a budget to use for each month.")
                 }
                 
                 if !filteredSelectedCategories.isEmpty {

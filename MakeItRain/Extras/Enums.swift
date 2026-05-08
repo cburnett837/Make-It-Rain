@@ -12,7 +12,7 @@ import UIKit
 
 
 enum ObjectStatus {
-    case editing, inFlight, saveSuccess, saveFail, dummy, deleteSucceess
+    case editing, inFlight, saveSuccess, saveFail, dummy, deleteSuccess
 }
 
 enum CloseAction {
@@ -24,7 +24,7 @@ enum InAppAlertPreference {
 }
 
 enum WhereToLookForTransaction {
-    case normalList, tempList, searchResultList, /*eventList,*/ smartList, receiptsList
+    case normalList, tempList, searchResultList, /*eventList,*/ smartList, receiptsList, dashboardList
 }
 
 enum TransactionSaveActionToProcess {
@@ -529,23 +529,4 @@ enum GiftStatus: String, CaseIterable, Identifiable {
     }
     
     //var boughtArray: Array<GiftStatus> { [GiftStatus.purchased, GiftStatus.inTransit, GiftStatus.inHand, GiftStatus.wrapped] }
-}
-
-
-
-//MARK: Core Data Stuff
-enum IdType {
-    case int(Int)
-    case string(String)
-}
-
-enum Predicate {
-    case single(NSPredicate)
-    case compound(NSCompoundPredicate)
-    case byId(IdType)
-}
-
-enum CoreDataError: Error {
-    case notFound
-    case reason(String)
 }

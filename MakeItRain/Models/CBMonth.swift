@@ -283,6 +283,9 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
         }
     }
     
+    var isPlaceholder: Bool {
+        self.enumID == .placeholderMonth
+    }
     
     init(num: Int) {
         self.num = num

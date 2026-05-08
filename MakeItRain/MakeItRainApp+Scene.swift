@@ -20,9 +20,11 @@ extension MakeItRainApp {
                 .environment(keyModel)
                 .environment(repModel)
                 .environment(plaidModel)
+                .environment(dashboardModel)
                 .environment(calProps)
                 .environment(dataChangeTriggers)
                 .environment(webSocketManager)
+                .environment(store)
         }
         .windowStyle(.hiddenTitleBar)
         /// Prevent a blank in the "windows" menu in the toolbar from being present.
@@ -42,9 +44,11 @@ extension MakeItRainApp {
                 .environment(keyModel)
                 .environment(repModel)
                 .environment(plaidModel)
+                .environment(dashboardModel)
                 .environment(calProps)
                 .environment(dataChangeTriggers)
                 .environment(webSocketManager)
+                .environment(store)
         }
         .auxilaryWindow()
     }
@@ -56,12 +60,14 @@ extension MakeItRainApp {
                 .frame(minWidth: 200, minHeight: 200)
                 .environment(calModel)
                 .environment(payModel)
-                .environment(plaidModel)
                 .environment(catModel)
                 .environment(keyModel)
+                .environment(plaidModel)
+                .environment(dashboardModel)
                 .environment(calProps)
                 .environment(dataChangeTriggers)
                 .environment(webSocketManager)
+                .environment(store)
         }
         .auxilaryWindow()
     }
@@ -83,9 +89,11 @@ extension MakeItRainApp {
             .environment(keyModel)
             .environment(repModel)
             .environment(plaidModel)
+            .environment(dashboardModel)
             .environment(calProps)
             .environment(dataChangeTriggers)
             .environment(webSocketManager)
+            .environment(store)
 //            CategoryInsightsSheet(showAnalysisSheet: .constant(true))
 //                .frame(minWidth: 300, minHeight: 500)
 //                .environment(funcModel)
@@ -143,9 +151,11 @@ extension MakeItRainApp {
                     .environment(keyModel)
                     .environment(repModel)
                     .environment(plaidModel)
+                    .environment(dashboardModel)
                     .environment(calProps)
                     .environment(dataChangeTriggers)
                     .environment(webSocketManager)
+                    .environment(store)
                     //.environment(mapModel)
                     .onAppear {
                         if let window = NSApp.windows.first(where: { $0.title.contains("MonthlyWindowPlaceHolder") }) {
@@ -174,9 +184,11 @@ extension MakeItRainApp {
                 .environment(keyModel)
                 .environment(repModel)
                 .environment(plaidModel)
+                .environment(dashboardModel)
                 .environment(calProps)
                 .environment(dataChangeTriggers)
                 .environment(webSocketManager)
+                .environment(store)
                 //.environment(mapModel)
         }
     }

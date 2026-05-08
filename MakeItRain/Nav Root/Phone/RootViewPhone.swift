@@ -17,6 +17,7 @@ struct RootViewPhone: View {
     @Environment(KeywordModel.self) var keyModel
     @Environment(RepeatingTransactionModel.self) var repModel
     @Environment(PlaidModel.self) var plaidModel
+    @Environment(DashboardModel.self) var dashboardModel
         
     @State private var toolbarVisibility = Visibility.visible
     @State private var sel: NavDestination?
@@ -27,6 +28,7 @@ struct RootViewPhone: View {
     @State private var advancedSearchNavPath = NavigationPath()
     @State private var dashboardNavPath: [CalendarNavDest] = []
     @State private var moreNavPath = NavigationPath()
+    //@State private var dashboardModel = DashboardModel()
     
     var body: some View {
         @Bindable var navManager = NavigationManager.shared
@@ -43,23 +45,34 @@ struct RootViewPhone: View {
                     Dashboard(
                         navPath: $dashboardNavPath,
                         showAnalysisSheet: .constant(true),
-                        model: calModel.dashboardModel,
+                        model: dashboardModel,
                         isForSelectedMonth: false
                     )
+                    .navigationDestination(for: CalendarNavDest.self) { dest in
+                        switch dest {
+                        case .dashboardNumericBreakdown:
+                            DashboardNumericDetails(model: dashboardModel, isForSelectedMonth: false)
+                            
+                        case .dashboardTransactionList(let data, let category):
+                            DashboardTransactionList(data: data, category: category)
+                            
+                        default:
+                            Text("Unsupported destination")
+                        }
+                    }
                 }
-                
             }
             
-            Tab(NavDestination.categories.displayName, systemImage: NavDestination.categories.symbol, value: .categories) {
-                NavigationStack {
-                    CategoriesTable()
-                }
-            }
-            
-//            Tab(NavDestination.paymentMethods.displayName, systemImage: NavDestination.paymentMethods.symbol, value: .paymentMethods) {
-//                /// NavStack is in the view.
-//                PayMethodsTable()
+//            Tab(NavDestination.categories.displayName, systemImage: NavDestination.categories.symbol, value: .categories) {
+//                NavigationStack {
+//                    CategoriesTable()
+//                }
 //            }
+            
+            Tab(NavDestination.paymentMethods.displayName, systemImage: NavDestination.paymentMethods.symbol, value: .paymentMethods) {
+                /// NavStack is in the view.
+                PayMethodsTable()
+            }
             
             Tab(NavDestination.more.displayName, systemImage: NavDestination.more.symbol, value: .more) {
                 NavigationStack(path: $moreNavPath) {
@@ -87,18 +100,6 @@ struct RootViewPhone: View {
 //                }
 //            }
 //        }
-    }
-    
-    var showDateRangeSheetButton: some View {
-        Button {
-            calModel.dashboardModel.showDateRangeSheet = true
-        } label: {
-            Text("\(calModel.dashboardModel.formattedDateRange)")
-        }
-        .tint(.none)
-        #if os(macOS)
-        .buttonStyle(.roundMacButton)
-        #endif
     }
     
     
@@ -139,11 +140,13 @@ struct RootViewPhone: View {
     var moreTabList: some View {
         List {
             Section {
-                NavLinkPhone(destination: .paymentMethods)
+                NavLinkPhone(destination: .categories)
+                //NavLinkPhone(destination: .paymentMethods)
                 if AppState.shared.methsExist {
                     NavLinkPhone(destination: .repeatingTransactions)
                     NavLinkPhone(destination: .keywords)
                     NavLinkPhone(destination: .recentReceipts)
+                    NavLinkPhone(destination: .budgets)
                 }
             }
             
@@ -287,7 +290,7 @@ struct RootViewPhone: View {
 //                
 //                if AppState.shared.methsExist {
 //                    NavigationLink(value: NavDestination.repeatingTransactions) {
-//                        Label { Text("Reoccuring Transactions") } icon: { Image(systemName: "repeat") }
+//                        Label { Text("Recurring Transactions") } icon: { Image(systemName: "repeat") }
 //                    }
 //                    
 //                    NavigationLink(value: NavDestination.keywords) {

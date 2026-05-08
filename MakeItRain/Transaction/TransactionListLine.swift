@@ -36,8 +36,6 @@ struct TransactionListLine: View {
                 parent: trans.payMethod,
                 fallBackType: .color
             ))
-            
-            //BusinessLogo(parent: trans.payMethod, fallBackType: .color)
             .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
             
             VStack(spacing: 2) {
@@ -55,7 +53,6 @@ struct TransactionListLine: View {
                     if withPhotos {
                         photo
                     }
-                    
                 }
                 
                 if withTags && !trans.tags.isEmpty {
@@ -65,6 +62,7 @@ struct TransactionListLine: View {
                 }
             }
         }
+        .statusIndicatorOverlay(for: trans.status)
         .environment(fileProps)
         #if os(iOS)
         .sheet(item: $selectedFile) { file in
@@ -128,8 +126,8 @@ struct TransactionListLine: View {
     
     var tags: some View {
         TagLayout(alignment: .leading, spacing: 5) {
-            ForEach(trans.tags.sorted(by: { $0.tag < $1.tag })) { tag in
-                Text("#\(tag.tag)")
+            ForEach(trans.tags.sorted(by: { $0.title < $1.title })) { tag in
+                Text("#\(tag.title)")
                     .foregroundStyle(.gray)
                     .font(.caption)
                     .padding(4)

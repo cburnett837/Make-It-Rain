@@ -87,6 +87,7 @@ enum XrefEnum: String {
     /// For Budgets
     case category
     case categoryGroup
+    case tag
     
     /// For Settings
 //    case useWholeNumbers
@@ -212,6 +213,7 @@ struct XrefModel {
     static let budgetTypes: Array<XrefItem> = [
         XrefItem(id: 51, refType: "budget_type", description: "Category", enumID: .category),
         XrefItem(id: 52, refType: "budget_type", description: "Category Group", enumID: .categoryGroup),
+        XrefItem(id: 65, refType: "budget_type", description: "Tag", enumID: .tag),
     ]
     
 //    static let settingTypes: Array<XrefItem> = [

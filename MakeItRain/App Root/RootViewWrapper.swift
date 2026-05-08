@@ -22,6 +22,8 @@ struct RootViewWrapper<Content: View>: View {
     @Environment(RepeatingTransactionModel.self) private var repModel
     @Environment(WebSocketManager.self) private var webSocketManager    
     @Environment(PlaidModel.self) private var plaidModel
+    @Environment(DashboardModel.self) private var dashboardModel
+    @Environment(AppStore.self) private var store
     //@Environment(MapModel.self) private var mapModel
     
     @Binding var showCamera: Bool
@@ -83,9 +85,11 @@ struct RootViewWrapper<Content: View>: View {
                     .environment(keyModel)
                     .environment(repModel)
                     .environment(plaidModel)
+                    .environment(dashboardModel)
                     .environment(calProps)
                     .environment(dataChangeTriggers)
                     .environment(webSocketManager)
+                    .environment(store)
                     //.environment(mapModel)
             )
             rootVC.view.backgroundColor = .clear

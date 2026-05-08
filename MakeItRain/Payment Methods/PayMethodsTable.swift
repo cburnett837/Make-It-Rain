@@ -6,14 +6,1487 @@
 //
 
 import SwiftUI
+import LocalAuthentication
 
-//struct PaymentMethodSectionData: Identifiable {
-//    let id = UUID()
-//    var title: String
-//    var items: [CBPaymentMethod] // Optional: if sections also contain reorderable items
-//}
+
+var CARD_HEIGHT: CGFloat = 250
+
+@Observable
+class PayMethodTableViewModel {
+    var paymentMethodEditID: String?
+    var editPaymentMethod: CBPaymentMethod?
+    var transEditID: String?
+    var transDay: CBDay?
+    var selectedPaymentMethod: CBPaymentMethod?
+
+    var hideUnselectedCards: Bool = false
+    var walletSearchText = ""
+    var transSearchText = ""
+    var showOfflineCardDetailsSheet = false
+    
+    var info: Info = .init()
+
+    var isCardSelected: Bool {
+        return selectedPaymentMethod != nil
+    }
+    
+    var navTitle: String {
+        "\(isCardSelected ? selectedPaymentMethod!.title : "Wallet")\(AppState.shared.devMode ? " (Dev)" : "")"
+    }
+    
+    var animation: Animation = .interactiveSpring(response: 0.55, dampingFraction: 0.8)
+
+    
+    struct Info {
+        //var scrollOffset: CGFloat = 0
+        var containerSize: CGSize = .zero
+        var safeArea: EdgeInsets = .init()
+        var minY: CGFloat = 0
+        
+    }
+    
+}
 
 struct PayMethodsTable: View {
+    @Local(\.useBusinessLogos) var useBusinessLogos
+    @AppStorage("paymentMethodTableColumnOrder") private var columnCustomization: TableColumnCustomization<CBPaymentMethod>
+    @Environment(\.colorScheme) var colorScheme
+
+    //@Environment(\.dismiss) var dismiss
+    @Environment(FuncModel.self) var funcModel
+    @Environment(CalendarModel.self) private var calModel
+    @Environment(PayMethodModel.self) private var payModel
+    @Environment(PlaidModel.self) private var plaidModel
+    
+    @State private var model = PayMethodTableViewModel()
+    @State private var sortOrder = [KeyPathComparator(\CBPaymentMethod.title)]
+    
+    @State private var defaultViewingMethod: CBPaymentMethod?
+    @State private var defaultEditingMethod: CBPaymentMethod?
+    @State private var showDefaultViewingSheet = false
+    @State private var showDefaultEditingSheet = false
+    @State private var showReorderSheet = false
+    //@State private var showOfflineCardDetailsSheet = false
+    
+    @State private var navPath = NavigationPath()
+    //@Binding var navPath: NavigationPath /// only if in the more list
+        
+    var listOrders: [Int] {
+        payModel.paymentMethods.map { $0.listOrder ?? 0 }.sorted { $0 > $1 }
+    }
+    
+    var somethingChanged: Int {
+        var hasher = Hasher()
+        /// Update when the user searches.
+        hasher.combine(model.walletSearchText)
+        /// Update the sheet if viewing and something changes on another device.
+        hasher.combine(payModel.paymentMethods.filter { !$0.isHidden && !$0.isPrivate }.count)
+        /// Update when a new payment method gets added or deleted.
+        hasher.combine(payModel.paymentMethods.count)
+        /// Update when the list order changes via long poll.
+        hasher.combine(payModel.paymentMethods.map { $0.listOrder ?? 0 }.sorted { $0 > $1 })
+        return hasher.finalize()
+    }
+    
+    struct SortedSection {
+        let section: PaymentMethodSection
+        var methods: [CBPaymentMethod]
+    }
+    
+    var sortedMethods: [CBPaymentMethod] {
+        var sections = [
+            SortedSection(section: .debit, methods: []),
+            SortedSection(section: .credit, methods: []),
+            SortedSection(section: .other, methods: []),
+        ]
+        
+        for each in payModel.paymentMethods
+            .filter({
+                $0.isPermitted
+                && $0.matchesFilter()
+            })
+                
+//        .filter ({
+//            switch AppSettings.shared.paymentMethodFilterMode {
+//            case .all:
+//                return true
+//                
+//            case .justPrimary:
+//                return $0.holderOne?.id == AppState.shared.user?.id
+//                
+//            case .primaryAndSecondary:
+//                return $0.holderOne?.id == AppState.shared.user?.id
+//                || $0.holderTwo?.id == AppState.shared.user?.id
+//                || $0.holderThree?.id == AppState.shared.user?.id
+//                || $0.holderFour?.id == AppState.shared.user?.id
+//            }
+//        })
+        .sorted(by: Helpers.paymentMethodSorter()) {
+            if let index = sections.firstIndex(where: {$0.section == each.sectionType}) {
+                sections[index].methods.append(each)
+            }
+        }
+        
+        return sections.flatMap({ $0.methods })
+    }
+
+    
+    var body: some View {
+        let _ = Self._printChanges()
+        NavigationStack {
+            VStack {
+                ScrollView {
+                    ForEach(payModel.sections) { section in
+                        let methods = methodsBinding(for: section)
+                        if !methods.isEmpty {
+                            VStack {
+                                Text(model.isCardSelected ? "" : section.rawValue)
+                                    .font(.title3)
+                                    .foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .scenePadding(.horizontal)
+                                    .padding(.leading, 12)
+                                    .bold()
+                                
+                                VStack(spacing: -190) {
+                                    ForEach(methods) { meth in
+                                        Card(
+                                            meth: meth.wrappedValue,
+                                            model: model,
+                                            info: model.info,
+                                            navPath: $navPath,
+                                            sortedMethods: sortedMethods
+                                            //isCardSelected: model.isCardSelected
+                                        )
+                                    }
+                                }
+                            }
+                            
+                            /// Put some space between the sections.
+                            Spacer()
+                                .frame(height: 30)
+                        }
+                    }
+                }
+                .background(Color(.systemGroupedBackground))
+            }
+            .navigationTitle(model.navTitle)
+            .searchable(
+                text: model.isCardSelected ? $model.transSearchText : $model.walletSearchText,
+                placement: .toolbar,
+                prompt: model.isCardSelected ? "Search in \(model.selectedPaymentMethod!.title)" : "Search in Wallet"
+            )
+            .searchToolbarBehavior(.minimize)
+            .toolbar {
+                #if os(macOS)
+                macToolbar()
+                #else
+                if let meth = model.selectedPaymentMethod {
+                    cardToolbar(for: meth)
+                } else {
+                    tableToolbar()
+                }
+                #endif
+            }
+            .scrollDisabled(model.isCardSelected)
+            .navigationDestination(for: CBPaymentMethod.self) { meth in
+                PayMethodOverView(payMethod: meth, navPath: $navPath)
+            }
+            .onGeometryChange(for: CGSize.self) {
+                $0.size
+            } action: {
+                print("(container) info.containerSize is \($0)")
+                model.info.containerSize = $0
+            }
+            .onGeometryChange(for: EdgeInsets.self) {
+                $0.safeAreaInsets
+            } action: {
+                print("(container) info.safeArea is \($0)")
+                model.info.safeArea = $0
+            }
+            .onGeometryChange(for: CGFloat.self) {
+                $0.frame(in: .global).minY
+            } action: {
+                print("(scrollview) info.minY is \($0)")
+                model.info.minY = $0
+            }
+            .sheet(isPresented: $showReorderSheet) {
+                PayMethodTableReorderList()
+            }
+            .sheet(isPresented: $showDefaultViewingSheet, onDismiss: setDefaultViewingMethod) {
+                PayMethodSheet(payMethod: $defaultViewingMethod, whichPaymentMethods: .all, showNoneOption: true)
+                    #if os(macOS)
+                    .frame(minWidth: 300, minHeight: 500)
+                    .presentationSizing(.page)
+                    #endif
+            }
+            .sheet(isPresented: $showDefaultEditingSheet, onDismiss: setDefaultEditingMethod) {
+                PayMethodSheet(payMethod: $defaultEditingMethod, whichPaymentMethods: .allExceptUnified, showNoneOption: true)
+                    #if os(macOS)
+                    .frame(minWidth: 300, minHeight: 500)
+                    .presentationSizing(.page)
+                    #endif
+            }
+        }
+    }
+    
+    
+    @ToolbarContentBuilder
+    func tableToolbar() -> some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) { newAccountButton }
+        ToolbarItem(placement: .topBarTrailing) {
+            Menu {
+                PayMethodFilterMenu()
+                PayMethodSortMenu()
+                
+                showReorderSheetButton
+                
+                Section("Default Viewing Account") {
+                    showDefaultForViewingSheetButton
+                }
+                
+                Section("Default Editing Account") {
+                    showDefaultForEditingSheetButton
+                }
+                
+                Section("Appearance") {
+                    useBusinessLogosToggle
+                }
+                
+            } label: {
+                Image(systemName: "ellipsis")
+                    .schemeBasedForegroundStyle()
+            }
+        }
+    }
+    
+    
+    @ToolbarContentBuilder
+    func cardToolbar(for meth: CBPaymentMethod) -> some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            closeButton
+        }
+        
+        if !meth.isUnified {
+            ToolbarItem(placement: .topBarTrailing) {
+                editPaymentMethodButton(meth)
+            }
+            
+            if meth.accountType != .cash {
+                ToolbarSpacer(.fixed, placement: .topBarTrailing)
+                ToolbarItem(placement: .topBarTrailing) {
+                    offlineCardInfoButton
+                }
+            }
+        }
+    }
+    
+    
+    @ViewBuilder
+    func editPaymentMethodButton(_ meth: CBPaymentMethod) -> some View {
+        Button("Edit") {
+            model.paymentMethodEditID = meth.id
+        }
+        .schemeBasedForegroundStyle()
+    }
+    
+    
+    var offlineCardInfoButton: some View {
+        Button {
+            model.showOfflineCardDetailsSheet = true
+        } label: {
+            Image(systemName: "creditcard.and.numbers")
+        }
+        .schemeBasedForegroundStyle()
+    }
+    
+    
+    var newAccountButton: some View {
+        Button {
+            let newId = UUID().uuidString
+            
+            /// On iPhone, push the details page to the nav, which will auto-open the edit sheet.
+            if AppState.shared.isIphone {
+                //let newMeth = CBPaymentMethod(uuid: newId)
+                //let newMeth = payModel.getPaymentMethod(by: newId)
+                withAnimation {
+                    model.paymentMethodEditID = newId
+                }
+                //navPath.append(CBPaymentMethod(uuid: newId))
+            } else {
+                /// On iPad, trigger the details sheet to open, which will then open the edit sheet.
+                //#error("On Ipad, when closing the edit sheet, the details sheet freaks out.")
+                model.paymentMethodEditID = newId
+            }
+        } label: {
+            Image(systemName: "plus")
+        }
+        .tint(.none)
+        
+    }
+
+    
+    var useBusinessLogosToggle: some View {
+        Toggle(isOn: $useBusinessLogos) {
+            Text("Use Business Logos")
+        }
+    }
+    
+    
+    var moreMenu: some View {
+        Menu {
+            Section("Default Viewing Account") {
+                showDefaultForViewingSheetButton
+            }
+            
+            Section("Default Editing Account") {
+                showDefaultForEditingSheetButton
+            }
+            
+            Section("Appearance") {
+                useBusinessLogosToggle
+            }
+            
+//            Section("View") {
+//                Button("Card") {
+//                    selectedView = "card"
+//                }
+//                Button("List") {
+//                    selectedView = "list"
+//                }
+//            }
+            
+        } label: {
+            Label("More", systemImage: "ellipsis")
+        }
+        .tint(.none)
+    }
+    
+    
+    var showReorderSheetButton: some View {
+        Button {
+            showReorderSheet = true
+        } label: {
+            Label {
+                Text("Reorder")
+            } icon: {
+                Image(systemName: "list.number.badge.ellipsis")
+                    .tint(.primary)
+            }
+        }
+    }
+    
+    
+    var showDefaultForViewingSheetButton: some View {
+        Button {
+            showDefaultViewingSheet = true
+        } label: {
+            let defaultMeth = payModel.paymentMethods.filter { $0.isViewingDefault }.first
+            Label {
+                Text(defaultMeth?.title ?? "[Select]")
+            } icon: {
+                Image(systemName: "circle.fill")
+                    .tint(defaultMeth?.color ?? .primary)
+            }
+        }
+    }
+    
+    
+    var showDefaultForEditingSheetButton: some View {
+        Button {
+            showDefaultEditingSheet = true
+        } label: {
+            let defaultMeth = payModel.paymentMethods.filter { $0.isEditingDefault }.first
+            Label {
+                Text(defaultMeth?.title ?? "[Select]")
+            } icon: {
+                Image(systemName: "circle.fill")
+                    .tint(defaultMeth?.color ?? .primary)
+            }
+        }
+    }
+    
+    
+    var closeButton: some View {
+        Button {
+            withAnimation(model.animation) {
+                model.selectedPaymentMethod = nil
+                model.hideUnselectedCards = false
+//                model.blur = 0
+//                model.scale = 1
+//                model.zindex = 1
+                //scrollID = transactions.first?.id
+            }
+        } label: {
+            Image(systemName: "xmark")
+                .schemeBasedForegroundStyle()
+        }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
+    }
+    
+    
+    struct SetDefaultButtonPhone: View {
+        @Environment(PayMethodModel.self) private var payModel
+        var meth: CBPaymentMethod
+        
+        var body: some View {
+            Button {
+                meth.isViewingDefault.toggle()
+                if meth.isViewingDefault {
+                    Task { await payModel.setDefaultViewing(meth) }
+                }
+            } label: {
+                Label {
+                    Text("Set Default")
+                } icon: {
+                    Image(systemName: meth.isViewingDefault ? "checkmark.circle" : "circle")
+                }
+            }
+            .tint(meth.isViewingDefault ? Color.accentColor : .gray)
+        }
+    }
+    
+    
+    func setDefaultViewingMethod() {
+        print("-- \(#function)")
+        Task { await payModel.setDefaultViewing(defaultViewingMethod) }
+    }
+    
+    
+    func setDefaultEditingMethod() {
+        print("-- \(#function)")
+        Task { await payModel.setDefaultEditing(defaultEditingMethod) }
+    }
+        
+    
+    func methodsBinding(for section: PaymentMethodSection) -> Binding<[CBPaymentMethod]> {
+        Binding(
+            get: {
+                payModel.getMethodsFor(section: section, type: .all, sText: model.walletSearchText, includeHidden: true)
+                //payModel.paymentMethods
+//                    .filter { $0.sectionType == section }
+//                    .sorted { $0.listOrder ?? 0 < $1.listOrder ?? 0 }
+            },
+            set: { newValue in
+                for (index, method) in newValue.enumerated() {
+                    if let globalIndex = payModel.paymentMethods.firstIndex(where: { $0.id == method.id }) {
+                        payModel.paymentMethods[globalIndex].listOrder = index
+                    }
+                }
+            }
+        )
+    }
+}
+
+
+struct OfflineCardDetailsSheet: View {
+    @Environment(\.dismiss) var dismiss
+    @State private var isEditing = false
+    @State private var keychainCardNumber: String?
+    @State private var keychainExpirationMonth: String?
+    @State private var keychainExpirationYear: String?
+    @State private var keychainSecurityCode: String?
+    
+    
+    @State private var keychainCardNumberBackup: String?
+    @State private var keychainExpirationMonthBackup: String?
+    @State private var keychainExpirationYearBackup: String?
+    @State private var keychainSecurityCodeBackup: String?
+    
+    //@State private var keychainCardNumber2: String = ""
+    
+    @Bindable var payMethod: CBPaymentMethod
+    
+    let context = LAContext()
+    @State private var error: NSError?
+    @State private var isUnlocked = false
+    @State private var authImage: String = "faceid"
+    
+    @State private var expDate: Date?
+    @State private var showDatePicker = false
+    @FocusState private var focusedField: Int?
+    
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    fakeCardCardNumber
+                        .blur(radius: isUnlocked ? 0 : 20)
+                    fakeCardExpirationDate
+                        .blur(radius: isUnlocked ? 0 : 20)
+                    fakeCardSecurityCode
+                        .blur(radius: isUnlocked ? 0 : 20)
+                        
+                } footer: {
+                    Text("These card details are only for your convenience, are stored securely on-device, and are never transmitted to the server.")
+                }
+                //.privacySensitive()
+                
+                if !isUnlocked {
+                    Button {
+                        authenticate()
+                    } label: {
+                        Text("Unlock")
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    }
+                }
+                
+                if isEditing {
+                    clearButton
+                }
+            }
+            .navigationTitle("Physical Card Details")
+            .toolbar {
+                if isUnlocked {
+                    ToolbarItem(placement: .topBarLeading) {
+                        editCancelButton
+                    }
+                }
+                
+                ToolbarItem(placement: .topBarTrailing) {
+                    if isEditing {
+                        saveButton
+                    } else {
+                        closeButton
+                    }
+                }
+            }
+            .sheet(isPresented: $showDatePicker) {
+                YearMonthPicker(date: $expDate ?? Date())
+                    .presentationDetents([.height(200)])
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .task {
+            prepareAuth()
+            try? await Task.sleep(for: .seconds(0.5))
+            authenticate()
+        }
+        
+        .onChange(of: isUnlocked) {
+            if $1 { getCardDetailsFromKeychain() }
+        }
+        .onChange(of: isEditing) {
+            if !$1 { saveCardDetailsToKeychain() }
+        }
+        .onChange(of: expDate) {
+            if let new = $1 {
+                keychainExpirationMonth = new.string(to: .mm)
+                keychainExpirationYear = new.string(to: .yy)
+            }
+        }
+    }
+                 
+    
+    var fakeCardCardNumber: some View {
+        HStack {
+            Text("Card Number")
+            Spacer()
+            UITextFieldWrapper(placeholder: "Card Number", text: $keychainCardNumber ?? "", toolbar: {
+                KeyboardToolbarView(
+                    focusedField: $focusedField,
+                    removeNavButtons: true
+                )
+            })
+            .uiTag(0)
+            .uiClearButtonMode(.whileEditing)
+            .uiStartCursorAtEnd(true)
+            .uiTextAlignment(.right)
+            .uiKeyboardType(.system(.numberPad))
+            .uiDisabled(!isEditing)
+            .uiTextColor(isEditing ? .label : .clear)
+            .focused($focusedField, equals: 0)
+            .overlay(alignment: .trailing) {
+                Text(keychainCardNumber ?? "")
+                    .opacity(isEditing ? 0 : 1)
+                    .textSelection(.enabled)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+    
+    
+    var fakeCardExpirationDate: some View {
+        HStack {
+            Text("Expiration Date")
+            Spacer()
+            
+            if let keychainExpirationMonth, let keychainExpirationYear {
+                Text(keychainExpirationMonth.isEmpty || keychainExpirationYear.isEmpty
+                     ? "Expiration Date"
+                     : "\(keychainExpirationMonth)/\(keychainExpirationYear)"
+                )
+                .textSelection(.enabled)
+                .foregroundStyle(isEditing ? .primary : .secondary)
+                .onTapGesture {
+                    if isEditing {
+                        showDatePicker = true
+                        focusedField = nil
+                    }
+                }
+                
+            } else {
+                Text("Expiration Date")
+                    .foregroundStyle(Color(.placeholderText))
+                    .onTapGesture {
+                        if isEditing {
+                            showDatePicker = true
+                            focusedField = nil
+                        }
+                    }
+            }
+        }
+    }
+    
+    
+    var fakeCardSecurityCode: some View {
+        HStack {
+            Text("Security Code")
+            Spacer()
+            
+            UITextFieldWrapper(placeholder: "Security Code", text: $keychainSecurityCode ?? "", toolbar: {
+                KeyboardToolbarView(
+                    focusedField: $focusedField,
+                    removeNavButtons: true
+                )
+            })
+            .uiTag(1)
+            .uiClearButtonMode(.whileEditing)
+            .uiStartCursorAtEnd(true)
+            .uiTextAlignment(.right)
+            .uiKeyboardType(.system(.numberPad))
+            .uiDisabled(!isEditing)
+            .uiTextColor(isEditing ? .label : .clear)
+            .focused($focusedField, equals: 1)
+            .overlay(alignment: .trailing) {
+                Text(keychainSecurityCode ?? "")
+                    .opacity(isEditing ? 0 : 1)
+                    .textSelection(.enabled)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+    
+    
+    var clearButton: some View {
+        Button {
+            keychainCardNumber = nil
+            keychainExpirationMonth = nil
+            keychainExpirationYear = nil
+            keychainSecurityCode = nil
+            expDate = nil
+            isEditing = false
+        } label: {
+            Text("Clear")
+                .frame(maxWidth: .infinity, alignment: .center)
+        }
+        .foregroundStyle(.red)
+    }
+    
+    
+    var editCancelButton: some View {
+        Button {
+            if isEditing {
+                keychainCardNumber = keychainCardNumberBackup
+                keychainExpirationMonth = keychainExpirationMonthBackup
+                keychainExpirationYear = keychainExpirationYearBackup
+                keychainSecurityCode = keychainSecurityCodeBackup
+                isEditing = false
+            } else {
+                isEditing = true
+                keychainCardNumberBackup = keychainCardNumber
+                keychainExpirationMonthBackup = keychainExpirationMonth
+                keychainExpirationYearBackup = keychainExpirationYear
+                keychainSecurityCodeBackup = keychainSecurityCode
+            }
+        } label: {
+            Text(isEditing ? "Cancel" : "Edit")
+                .schemeBasedForegroundStyle()
+        }
+    }
+    
+    
+    var saveButton: some View {
+        Button {
+            isEditing = false
+            //focusedField = nil
+        } label: {
+            Text("Save")
+                .schemeBasedForegroundStyle()
+        }
+        .buttonStyle(.glassProminent)
+    }
+    
+    
+    var closeButton: some View {
+        Button {
+            saveCardDetailsToKeychain()
+            dismiss()
+        } label: {
+            Image(systemName: "xmark")
+                .schemeBasedForegroundStyle()
+        }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
+    }
+    
+    
+    func close() {
+        saveCardDetailsToKeychain()
+        dismiss()
+    }
+    
+    
+    func prepareAuth() {
+        var error: NSError?
+        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
+            authImage = switch context.biometryType {
+            case .faceID: "faceid"
+            case .touchID: "touchid"
+            case .none: "lock.trianglebadge.exclamationmark"
+            case .opticID: "opticid"
+            @unknown default: "lock.trianglebadge.exclamationmark"
+            }
+        } else {
+            authImage = "lock.trianglebadge.exclamationmark"
+        }
+    }
+    
+    
+    func authenticate() {
+        context.localizedCancelTitle = "Enter Password"
+        if context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) {
+            let reason = "Unlock to view your card information."
+            
+            //.deviceOwnerAuthenticationWithBiometrics
+            //.deviceOwnerAuthentication to fallback to passcode if bio fails
+            context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { success, authenticationError in
+                withAnimation {
+                    isUnlocked = success
+                }
+            }
+        } else {
+            // no biometrics
+        }
+    }
+    
+    
+    func getCardDetailsFromKeychain() {
+        print("-- \(#function)")
+        let keychainManager = KeychainManager()
+        do {
+            if let cardNumber = try keychainManager.getFromKeychain(key: "payment_method_card_number_\(payMethod.id)") {
+                self.keychainCardNumber = cardNumber
+            }
+            if let expirationMonth = try keychainManager.getFromKeychain(key: "payment_method_expiration_month_\(payMethod.id)") {
+                self.keychainExpirationMonth = expirationMonth
+            }
+            if let expirationYear = try keychainManager.getFromKeychain(key: "payment_method_expiration_year_\(payMethod.id)") {
+                self.keychainExpirationYear = expirationYear
+            }
+            if let securityCode = try keychainManager.getFromKeychain(key: "payment_method_security_code_\(payMethod.id)") {
+                self.keychainSecurityCode = securityCode
+            }
+        } catch {
+            print(error.localizedDescription)
+        }
+    }
+    
+    
+    func saveCardDetailsToKeychain() {
+        print("-- \(#function)")
+        let keychainManager = KeychainManager()
+                        
+        do {
+            if let keychainCardNumber = keychainCardNumber {
+                try keychainManager.addToKeychain(key: "payment_method_card_number_\(payMethod.id)", value: keychainCardNumber)
+            } else {
+                try keychainManager.removeFromKeychain(key: "payment_method_card_number_\(payMethod.id)")
+            }
+            
+            if let keychainExpirationMonth = keychainExpirationMonth {
+                try keychainManager.addToKeychain(key: "payment_method_expiration_month_\(payMethod.id)", value: keychainExpirationMonth)
+            } else {
+                try keychainManager.removeFromKeychain(key: "payment_method_expiration_month_\(payMethod.id)")
+            }
+            
+            if let keychainExpirationYear = keychainExpirationYear {
+                try keychainManager.addToKeychain(key: "payment_method_expiration_year_\(payMethod.id)", value: keychainExpirationYear)
+            } else {
+                try keychainManager.removeFromKeychain(key: "payment_method_expiration_year_\(payMethod.id)")
+            }
+            
+            if let keychainSecurityCode = keychainSecurityCode {
+                try keychainManager.addToKeychain(key: "payment_method_security_code_\(payMethod.id)", value: keychainSecurityCode)
+            } else {
+                try keychainManager.removeFromKeychain(key: "payment_method_security_code_\(payMethod.id)")
+            }
+
+        } catch {
+            print(error.localizedDescription)
+        }
+    }
+    
+    
+    
+    
+    struct YearMonthPicker: UIViewRepresentable {
+        @Binding var date: Date
+
+        func makeUIView(context: Context) -> UIDatePicker {
+            let picker = UIDatePicker()
+            picker.datePickerMode = .yearAndMonth
+            picker.preferredDatePickerStyle = .wheels
+            picker.addTarget(
+                context.coordinator,
+                action: #selector(Coordinator.dateChanged(_:)),
+                for: .valueChanged
+            )
+            return picker
+        }
+
+        func updateUIView(_ picker: UIDatePicker, context: Context) {
+            picker.date = date
+        }
+
+        func makeCoordinator() -> Coordinator {
+            Coordinator(date: $date)
+        }
+
+        final class Coordinator: NSObject {
+            @Binding var date: Date
+
+            init(date: Binding<Date>) {
+                self._date = date
+            }
+
+            @objc func dateChanged(_ sender: UIDatePicker) {
+                date = sender.date
+            }
+        }
+    }
+
+
+}
+
+
+struct Card: View {
+    @Environment(\.colorScheme) var colorScheme
+    @Environment(FuncModel.self) var funcModel
+    @Environment(CalendarModel.self) private var calModel
+    @Environment(PayMethodModel.self) private var payModel
+    @Environment(PlaidModel.self) private var plaidModel
+    
+
+    var meth: CBPaymentMethod
+    @Bindable var model: PayMethodTableViewModel
+    var info: PayMethodTableViewModel.Info
+    @Binding var navPath: NavigationPath
+    //var isCardSelected: Bool
+    var sortedMethods: [CBPaymentMethod]
+    
+    @State private var blur: CGFloat = 0
+    @State private var scale: CGFloat = 1
+    //@State private var showOfflineCardDetailsSheet = false
+
+    
+    var month: CBMonth? {
+        calModel.months.filter({ $0.actualNum == AppState.shared.todayMonth && $0.year == AppState.shared.todayYear }).first
+    }
+    
+    /// Even though this is a property in the model, we need it to be local so we can use it in the visual effects capture list.
+    var isCardSelected: Bool {
+        return model.isCardSelected
+    }
+        
+    var isCurrent: Bool {
+        meth.id == model.selectedPaymentMethod?.id
+    }
+    
+    var currentIndex: Int {
+        sortedMethods.firstIndex(where: { $0.id == meth.id }) ?? 0
+    }
+    
+    var selectedIndex: Int {
+        sortedMethods.firstIndex(where: { $0.id == model.selectedPaymentMethod?.id }) ?? 0
+    }
+    
+    var plaidBalance: CBPlaidBalance? {
+        plaidModel.balances.filter({ $0.payMethodID == meth.id }).first
+    }
+    
+    var plaidBalanceIsStale: Bool {
+        if let balance = plaidBalance, let entered = balance.enteredDate {
+            return Calendar.current.dateComponents([.day], from: entered, to: Date()).day! > 2
+        } else {
+            return false
+        }
+        
+    }
+
+    var body: some View {
+        let _ = Self._printChanges()
+        card
+            //.zIndex(Double(currentIndex))
+            .padding(14)
+            .frame(maxWidth: .infinity)
+            .frame(height: CARD_HEIGHT)
+            .background(fakeCardBackground)
+            //.shadow(radius: 10)
+            .scenePadding(.horizontal) /// Pad the card instead of the list since the transaction list is naturally padded.
+            .blur(radius: blur)
+            .scaleEffect(scale)
+            .onTapGesture(perform: touchCard)
+            .onChange(of: model.hideUnselectedCards) { old, new in
+                guard meth.id != model.selectedPaymentMethod?.id else { return }
+                if new {
+                    blur = 0
+                    scale = 0
+                } else {
+                    blur = 0
+                    scale = 1
+                }
+            }
+            .overlay(alignment: .top) {
+                if isCardSelected && isCurrent {
+                    CardAccessoryView(
+                        meth: meth,
+                        model: model,
+                        blur: $blur,
+                        scale: $scale,
+                        navPath: $navPath
+                    )
+                }
+            }
+            .visualEffect { [info, isCardSelected, selectedIndex, currentIndex, isCurrent] content, proxy in
+                let rect = proxy.frame(in: .scrollView)
+
+                let pushOffset = selectedIndex < currentIndex
+                ? info.containerSize.height + info.safeArea.bottom - rect.minY
+                : -rect.minY
+
+                let stackedScale = selectedIndex < currentIndex ? 1.0 : 0.95
+
+                return content
+                    /// use a tiny scale effect so we don't see the other cards bounce behind the selected card when animating.
+                    .scaleEffect(isCardSelected ? (isCurrent ? 1 : stackedScale) : 1, anchor: .top)
+                    .offset(y: isCardSelected ? pushOffset : 0)
+            }
+            .sheet(isPresented: $model.showOfflineCardDetailsSheet) {
+                if let meth = model.selectedPaymentMethod {
+                    OfflineCardDetailsSheet(payMethod: meth)
+                }
+            }
+            .sheet(item: $model.editPaymentMethod, onDismiss: {
+                model.paymentMethodEditID = nil
+                payModel.determineIfUserIsRequiredToAddPaymentMethod()
+            }) { meth in
+                PayMethodEditView(payMethod: meth, editID: $model.paymentMethodEditID)
+            }
+            .onChange(of: model.paymentMethodEditID) { oldId, newId in
+                if let newId {
+                    if let payMethod = payModel.getPaymentMethod(by: newId) {
+                        model.editPaymentMethod = payMethod
+                    } else {
+                        model.editPaymentMethod = CBPaymentMethod(uuid: newId)
+                    }
+
+                } else {
+                    if let meth = payModel.getPaymentMethod(by: oldId!) {
+                        let _ = payModel.savePaymentMethod(id: oldId!, calModel: calModel, plaidModel: plaidModel)
+                        payModel.determineIfUserIsRequiredToAddPaymentMethod()
+                        /// Close if deleting since it will be gone.
+                        /// Also close if adding, since the server will send back the real ID, and cause the list to redraw, which would cause the sheet to dismiss itself and reopen.
+                        /// iPhone: pop from nav.
+                        /// iPad: dismiss sheet.
+                        if meth.action == .delete || meth.action == .add {
+                            if AppState.shared.isIphone {
+                                withAnimation(model.animation) {
+                                    model.selectedPaymentMethod = nil
+                                    model.hideUnselectedCards = false
+                                }
+                                //navPath.removeLast()
+                            }
+    //                        else {
+    //                            dismiss()
+    //                        }
+                        }
+                    }
+                }
+            }
+    }
+    
+    @ViewBuilder
+    var card: some View {
+        VStack {
+            HStack {
+                HStack(spacing: 12) {
+                    BusinessLogo(config: .init(
+                        parent: meth,
+                        fallBackType: meth.isUnified ? .gradient : .color,
+                        size: 40
+                    ))
+                    .blur(radius: blur)
+                    
+                    Text(meth.title)
+                        .font(.title3)
+                        .bold()
+                }
+                
+                Spacer()
+                
+                if meth.isUnified {
+                    let ids = payModel.paymentMethods
+                        .filter({ filterMeth in
+                            if meth.isUnifiedDebit {
+                                return filterMeth.isDebitOrCash && filterMeth.isPermittedAndNotHidden
+                            } else if meth.isUnifiedCredit {
+                                return filterMeth.isCreditOrLoan && filterMeth.isPermittedAndNotHidden
+                            } else {
+                                return false
+                            }
+                        })
+                        .filter { $0.matchesFilter() }
+//                        .filter {
+//                            switch AppSettings.shared.paymentMethodFilterMode {
+//                            case .all:
+//                                return true
+//                                
+//                            case .justPrimary:
+//                                return $0.holderOne?.id == AppState.shared.user?.id
+//                                
+//                            case .primaryAndSecondary:
+//                                return $0.holderOne?.id == AppState.shared.user?.id
+//                                || $0.holderTwo?.id == AppState.shared.user?.id
+//                                || $0.holderThree?.id == AppState.shared.user?.id
+//                                || $0.holderFour?.id == AppState.shared.user?.id
+//                            }
+//                        }
+                        .map({ $0.id })
+                    
+                    let balance = plaidModel.balances
+                        .filter({ ids.contains($0.payMethodID) })
+                        .map({ $0.amount })
+                        .reduce(0, +)
+                    
+                    Text(balance.currencyWithDecimals())
+                        .bold()
+                
+                    
+                } else if let balance = plaidBalance {
+                    HStack {
+                        Text(balance.amount.currencyWithDecimals())
+                            .bold()
+                        
+                        if plaidBalanceIsStale {
+                            Image(systemName: "exclamationmark.triangle")
+                        }
+                    }
+                }
+            }
+            
+            HStack(alignment: .top) {
+                Spacer()
+                if let balance = plaidBalance {
+                    Text("\(Date().timeSince(balance.enteredDate))")
+                        .foregroundStyle(.gray)
+                        .font(.subheadline)
+                        .opacity(isCardSelected && meth.id == model.selectedPaymentMethod?.id ? 1 : 0)
+                        .offset(y: -14)
+                }
+            }
+            
+            
+            
+//            HStack {
+//                Text("**** **** **** \(meth.last4 ?? "****")")
+//                    .font(.title)
+//                Spacer()
+//            }
+                                            
+            Spacer()
+            
+            HStack {
+                VStack(alignment: .leading) {
+                    HStack {
+                        Text(meth.accountType.prettyValue)
+                        if meth.isPrivate { Image(systemName: "person.slash") }
+                        if meth.isHidden { Image(systemName: "eye.slash") }
+                        if meth.notifyOnDueDate { Image(systemName: "alarm") }
+                    }
+                                        
+                    Text(meth.holderDisplay)
+                        .lineLimit(1)
+                    
+                    Text("**** \(meth.last4 ?? "****")")
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                //Spacer()
+                
+                if let ccBrand = meth.ccBrand {
+                    Image(ccBrand.rawValue)
+                        .renderingMode(.original)
+                        .interpolation(.high)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 100, height: 60, alignment: .bottomTrailing)
+                        .offset(x:
+                            ccBrand.rawValue.contains("visa")
+                            ? 18
+                            : ccBrand.rawValue.contains("mastercard")
+                            ? 14
+                            : 0
+                        )
+                }
+            }
+        }
+    }
+    
+    
+    
+    @ViewBuilder
+    var fakeCardBackground: some View {
+        let colors: Array<Color> = meth.isUnified ? [
+            .purple, .red, .orange,
+            .blue, .red, .orange,
+            .blue, .orange, .orange
+        ] : [
+            meth.color, meth.color, meth.color,
+            meth.color.lighter(by: 30), meth.color, meth.color.lighter(by: 30),
+            meth.color, meth.color.lighter(by: 30), meth.color
+        ]
+        
+        RoundedRectangle(cornerRadius: 26)
+            //.fill(AngularGradient(gradient: rainbowGradient, center: .center))
+            .fill(
+                MeshGradient(
+                    width: 3,
+                    height: 3,
+                    points: [
+                        .init(0, 0), .init(0.5, 0), .init(1, 0),
+                        .init(0, 0.5), .init(0.9, 0.6), .init(1, 0.5),
+                        .init(0, 1), .init(0.5, 1), .init(1, 1),
+                    ],
+                    colors: colors
+                )
+            )
+    }
+    
+    
+    func touchCard() {
+        withAnimation(model.animation) {
+            if isCardSelected {
+                model.selectedPaymentMethod = nil
+                model.hideUnselectedCards = false
+            } else {
+                model.selectedPaymentMethod = meth
+            }
+        } completion: {
+            if isCardSelected {
+                model.hideUnselectedCards = true
+            }
+        }
+    }
+}
+
+
+
+
+
+
+struct CardAccessoryView: View {
+    @Environment(CalendarModel.self) private var calModel
+    @Environment(PayMethodModel.self) private var payModel
+    @Bindable var meth: CBPaymentMethod
+    @Bindable var model: PayMethodTableViewModel
+    @Binding var blur: CGFloat
+    @Binding var scale: CGFloat
+    @Binding var navPath: NavigationPath
+    
+    @State private var transactions: [CBTransaction] = []
+    
+    var filteredTransactions: [CBTransaction] {
+        transactions.filter {
+            model.transSearchText.isEmpty ? true : String($0.title).localizedCaseInsensitiveContains(model.transSearchText)
+        }
+    }
+    
+    var month: CBMonth? {
+        calModel.months.filter({ $0.actualNum == AppState.shared.todayMonth && $0.year == AppState.shared.todayYear }).first
+    }
+        
+    var noTransReasonText: String {
+        calModel.sYear == AppState.shared.todayYear ? "No Transactions" : "Transactions will only show here for \(AppState.shared.todayYear)"
+    }
+
+    var body: some View {
+        VStack {
+            List {
+                NavigationLink(value: "chart-page") {
+                    Label("Insights", systemImage: "chart.xyaxis.line")
+                        .schemeBasedForegroundStyle()
+                }
+                
+                if let month = month, !transactions.isEmpty {
+                    Section("Recent Transactions") {
+                        ForEach(filteredTransactions) { trans in
+                            TransactionListLine(trans: trans, withDate: true, withTags: true, withPhotos: true) {
+                                let day = month.days.filter { $0.id == trans.dateComponents?.day }.first
+                                model.transDay = day
+                                model.transEditID = trans.id
+                            }
+                            .id(trans.id)
+                        }
+                    }
+                } else {
+                    Section {
+                        ContentUnavailableView(noTransReasonText, systemImage: "square.slash.fill")
+                    }
+                }
+            }
+        }
+        .onScrollGeometryChange(for: CGFloat.self) {
+            $0.contentOffset.y + $0.contentInsets.top
+        } action: { _, newOffset in
+            guard model.isCardSelected else { return }
+
+            let collapseDistance: CGFloat = 200
+            let raw = 1 - (newOffset / collapseDistance)
+
+            blur = min(newOffset / 16, 8)
+            scale = max(min(raw, 1), 0)
+        }
+        
+        .navigationDestination(for: String.self) { _ in chartPage }
+        //.scrollPosition(id: $scrollID)
+        .scrollContentBackground(.hidden)
+        .frame(height: model.info.containerSize.height + model.info.safeArea.bottom)
+        .contentMargins(.top, CARD_HEIGHT + 10, for: .scrollContent)
+        .contentMargins(.bottom, model.info.safeArea.bottom, for: .scrollContent)
+        .task {
+            //await prepareView()
+            
+            guard let month = month, let meth = model.selectedPaymentMethod else { return }
+            self.transactions = calModel
+                .getTransactions(months: [month], meth: meth)
+                .filter { $0.dateComponents?.day ?? 0 <= AppState.shared.todayDay }
+                .filter { model.transSearchText.isEmpty ? true : String($0.title).localizedCaseInsensitiveContains(model.transSearchText) }
+        }
+        /// Make sure this stays under the other modifiers otherwise the frame will get appplied and cause weird scroll offset.
+        .transactionEditSheetAndLogic(transEditID: $model.transEditID, selectedDay: $model.transDay, extraDismissLogic: { didSave in
+//            if didSave {
+//                Task { await prepareView() }
+//            }
+        })
+    }
+    
+    @ViewBuilder
+    var chartPage: some View {
+        if meth.action == .add {
+            ContentUnavailableView("Insights are not available when adding a new account", systemImage: "square.stack.3d.up.slash.fill")
+        } else {
+            PayMethodDashboard(payMethod: meth, navPath: $navPath)
+        }
+    }
+    
+    
+//    func prepareView() async {
+//        if meth.action == .add {
+//            //payModel.upsert(payMethod)
+//            model.paymentMethodEditID = meth.id
+//            viewModel.isLoadingHistory = false
+//        } else {
+//            
+//            viewModel.fetchHistory(for: meth, payModel: payModel, setChartAsNew: true)
+//            
+////            /// iPhone: only fetch the new historical if it has been wiped out (by returning to the account list), or if a transaction has been updated since the history was fetched from the server.
+////            /// Due to the navigation stack, we can leave the chart open and go elsewhere in the app. Thus, no need to refresh the data unless a transaction changed in the meantime.
+////            /// Likewise, when returning to the account list, the viewmodel would be destroyed, and the history would need to be refetched.
+////            ///
+////            /// iPad: Always fetch the data since everything is inside a sheet, which must be closed before returning to the rest of the app. Thus the viewmodel would be destroyed, and the history would need to be refetched.
+////            let needsUpdates = calModel.transactionsUpdatesExistAfter(fetchHistoryTime)
+////            if meth.breakdownsRegardlessOfPaymentMethod.isEmpty || needsUpdates || AppState.shared.isIpad {
+////                fetchHistoryTime = Date()
+////                viewModel.fetchHistory(for: meth, payModel: payModel, setChartAsNew: true)
+////            }
+//        }
+//    }
+}
+
+//
+//struct CardAccessorySheet: View {
+//    @Environment(CalendarModel.self) private var calModel
+//    @Environment(PayMethodModel.self) private var payModel
+//    @Environment(PlaidModel.self) private var plaidModel
+//
+//    var payMethod: CBPaymentMethod
+//    let info: PayMethodsTable.Info
+//    @Binding var paymentMethodEditID: CBPaymentMethod.ID?
+//
+//    @Binding var navPath: NavigationPath
+//    var searchText: String
+//
+//    @State private var editPaymentMethod: CBPaymentMethod?
+//    @State private var transEditID: String?
+//    @State private var transDay: CBDay?
+//
+//    var maxSheetHeight: CGFloat {
+//        info.containerSize.height + info.safeArea.bottom - 10 /// Add the 10 because of some natural padding iOS does on sheets. (i think)
+//    }
+//    var minSheetHeight: CGFloat {
+//        maxSheetHeight - 10 - CARD_HEIGHT - 10 /// add another 10 for the sheet issue above, + the height of the card, + a little extra to give it. some space.
+//    }
+//
+//    var body: some View {
+//        PaymentMethodTransactionList(payMethod: payMethod, transEditID: $transEditID, transDay: $transDay, searchText: searchText)
+//            .transactionEditSheetAndLogic(transEditID: $transEditID, selectedDay: $transDay, extraDismissLogic: { didSave in
+//    //            if didSave {
+//    //                Task { await prepareView() }
+//    //            }
+//            })
+//            .presentationDragIndicator(.hidden)
+//            .presentationDetents([.height(minSheetHeight), .height(maxSheetHeight), .large])
+//            .presentationBackgroundInteraction(.enabled(upThrough: .height(minSheetHeight)))
+//            .interactiveDismissDisabled()
+//            .sheet(item: $editPaymentMethod, onDismiss: {
+//                paymentMethodEditID = nil
+//                payModel.determineIfUserIsRequiredToAddPaymentMethod()
+//            }) { meth in
+//                PayMethodEditView(payMethod: meth, editID: $paymentMethodEditID)
+//            }
+//            .onChange(of: paymentMethodEditID) { oldId, newId in
+//                if let newId {
+//                    if let payMethod = payModel.getPaymentMethod(by: newId) {
+//                        editPaymentMethod = payMethod
+//                    } else {
+//                        editPaymentMethod = CBPaymentMethod(uuid: newId)
+//                    }
+//
+//                } else {
+//                    let _ = payModel.savePaymentMethod(id: oldId!, calModel: calModel, plaidModel: plaidModel)
+//                    payModel.determineIfUserIsRequiredToAddPaymentMethod()
+//                    /// Close if deleting since it will be gone.
+//                    /// Also close if adding, since the server will send back the real ID, and cause the list to redraw, which would cause the sheet to dismiss itself and reopen.
+//                    /// iPhone: pop from nav.
+//                    /// iPad: dismiss sheet.
+//                    if payMethod.action == .delete || payMethod.action == .add {
+//                        if AppState.shared.isIphone {
+//                            navPath.removeLast()
+//                        }
+////                        else {
+////                            dismiss()
+////                        }
+//                    }
+//                }
+//            }
+//    }
+//}
+//
+
+
+
+struct PayMethodTableReorderList: View {
+    @Environment(FuncModel.self) var funcModel
+    @Environment(CalendarModel.self) private var calModel
+    @Environment(PayMethodModel.self) private var payModel
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(payModel.sections) { section in
+                    Section(section.rawValue) {
+                        ForEach(methodsBinding(for: section)) { meth in
+                            HStack {
+                                Label {
+                                    Text(meth.wrappedValue.title)
+                                } icon: {
+                                    BusinessLogo(config: .init(
+                                        parent: meth.wrappedValue,
+                                        fallBackType: .gradient
+                                    ))
+                                }
+                                
+                                Spacer()
+                                
+                                Image(systemName: "line.3.horizontal")
+                                    .foregroundStyle(.secondary)
+
+                            }
+                        }
+                        .if(AppSettings.shared.paymentMethodSortMode == .listOrder) {
+                            $0.onMove { indices, newOffset in
+                                methodsBinding(for: section)
+                                    .wrappedValue
+                                    .move(fromOffsets: indices, toOffset: newOffset)
+                                
+                                Task {
+                                    let updates = await payModel.setListOrders(calModel: calModel)
+                                    await funcModel.submitListOrders(items: updates, for: .paymentMethods)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            //.listStyle(.plain)
+            .navigationTitle("Reorder Accounts")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    closeButton
+                }
+            }
+        }
+    }
+    
+    var closeButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "xmark")
+                .schemeBasedForegroundStyle()
+        }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
+    }
+    
+    func methodsBinding(for section: PaymentMethodSection) -> Binding<[CBPaymentMethod]> {
+        Binding(
+            get: {
+                payModel.getMethodsFor(section: section, type: .all, sText: "", includeHidden: true)
+            },
+            set: { newValue in
+                for (index, method) in newValue.enumerated() {
+                    if let globalIndex = payModel.paymentMethods.firstIndex(where: { $0.id == method.id }) {
+                        payModel.paymentMethods[globalIndex].listOrder = index
+                    }
+                }
+            }
+        )
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct PayMethodsTableNORMAL: View {
     @Local(\.useBusinessLogos) var useBusinessLogos
     @AppStorage("paymentMethodTableColumnOrder") private var columnCustomization: TableColumnCustomization<CBPaymentMethod>
     
@@ -705,341 +2178,16 @@ struct PayMethodsTable: View {
     }
     
     
-//    func populateSections() {
-//        let newSections = payModel.getApplicablePayMethods(
-//            type: .all,
-//            calModel: calModel,
-//            plaidModel: plaidModel,
-//            searchText: $searchText,
-//            includeHidden: true
-//        )
-//        
-//        /// Use this to allow the animations to work when adding or removing a payment method.
-//        for newSection in newSections {
-//            if let index = payModel.sections.firstIndex(where: { $0.kind == newSection.kind }) {
-//                
-//                let oldSection = payModel.sections[index]
-//                
-//                for meth in newSection.payMethods {
-//                    if oldSection.doesExist(meth) {
-//                        if let index = oldSection.getIndex(for: meth) {
-//                            oldSection.payMethods[index].setFromAnotherInstance(payMethod: meth)
-//                        }
-//                    } else {
-//                        withAnimation {
-//                            oldSection.upsert(meth)
-//                        }
-//                    }
-//                }
-//                                                        
-//                for meth in oldSection.payMethods {
-//                    if !newSection.doesExist(meth) {
-//                        withAnimation {
-//                            oldSection.payMethods.removeAll { $0.id == meth.id }
-//                        }
-//                    }
-//                }
-//                
-//                withAnimation {
-//                    oldSection.payMethods.sort(by: Helpers.paymentMethodSorter())
-//                }
-//            }
-//        }
-//    
-//    }
-    
-    
     func setDefaultViewingMethod() {
-        
         print("-- \(#function)")
-        
         Task { await payModel.setDefaultViewing(defaultViewingMethod) }
-        
-//        if let defaultViewingMethod = defaultViewingMethod {
-//            if let currentDefaultID = payModel.paymentMethods.filter({ $0.isViewingDefault }).first?.id {
-//                if currentDefaultID != defaultViewingMethod.id {
-//                    defaultViewingMethod.isViewingDefault = true
-//                    Task { await payModel.setDefaultViewing(defaultViewingMethod) }
-//                }
-//            }
-//        } else {
-//            print("not set")
-//        }
-        
-        
     }
     
     
     func setDefaultEditingMethod() {
         print("-- \(#function)")
         Task { await payModel.setDefaultEditing(defaultEditingMethod) }
-        
-        
-//        if let defaultEditingMethod = defaultEditingMethod {
-//            if let currentDefaultID = payModel.paymentMethods.filter({ $0.isEditingDefault }).first?.id {
-//                if currentDefaultID != defaultEditingMethod.id {
-//                    defaultEditingMethod.isEditingDefault = true
-//                    Task { await payModel.setDefaultEditing(defaultEditingMethod) }
-//                }
-//            } else {
-//                defaultEditingMethod.isEditingDefault = true
-//                Task { await payModel.setDefaultEditing(defaultEditingMethod) }
-//            }
-//        } else {
-//            print("not set")
-//        }
     }
-    
-//    func move(from source: IndexSet, to destination: Int) {
-//        payModel.paymentMethods.move(fromOffsets: source, toOffset: destination)
-//
-//        
-////        /// Create an index map of non-nil items.
-////        let filteredIndices = payModel.paymentMethods.enumerated()
-////            .map { $0.offset }
-////
-////        /// Convert filtered indices to original indices.
-////        guard let sourceInFiltered = source.first, sourceInFiltered < filteredIndices.count, destination <= filteredIndices.count else { return }
-////
-////        let ogSourceIndex = filteredIndices[sourceInFiltered]
-////        let ogDestIndex = destination == filteredIndices.count ? payModel.paymentMethods.count : filteredIndices[destination]
-////
-////        /// Mutate the original array.
-////        payModel.paymentMethods.move(fromOffsets: IndexSet(integer: ogSourceIndex), toOffset: ogDestIndex)
-//                
-//         Task {
-//             let listOrderUpdates = await payModel.setListOrders(calModel: calModel)
-//             let _ = await funcModel.submitListOrders(items: listOrderUpdates, for: .paymentMethods)
-//         }
-//    }
 }
 
 
-
-//@State private var expandCards = false
-//@State private var currentPaymentMethod: CBPaymentMethod?
-//@State private var showDetailCard: Bool = false
-//@Namespace var animation
-//
-//@ViewBuilder
-//var phoneList2: some View {
-//    //List(selection: $paymentMethodEditID) {
-//    VStack(spacing: 0) {
-//        ScrollView {
-//        
-////                ForEach(payModel.paymentMethods.filter { $0.isUnified }) { meth in
-////                    cardView(for: meth)
-////                }
-//            
-//            ForEach(filteredPayMethods) { meth in
-//                
-//                Group {
-//                    if currentPaymentMethod?.id == meth.id && showDetailCard {
-//                        cardViewContainer(for: meth)
-//                            .opacity(0)
-//                    } else {
-//                        cardViewContainer(for: meth)
-//                            .matchedGeometryEffect(id: meth.id, in: animation)
-//                            
-//                    }
-//                }
-//                .padding(.horizontal, 20)
-//                
-//                
-//            }
-//        }
-//        .coordinateSpace(name: "PaymentMethodTableList")
-//    }
-//    //.listStyle(.plain)
-//    .frame(maxWidth: .infinity, maxHeight: .infinity)
-//    .overlay {
-//        if let currentPaymentMethod, showDetailCard {
-//            DetailView(currentPaymentMethod: currentPaymentMethod, showDetailCard: $showDetailCard, animation: animation)
-//        }
-//    }
-//}
-//
-//
-//
-//@ViewBuilder func cardViewContainer(for meth: CBPaymentMethod) -> some View {
-//    GeometryReader { geo in
-//        let rect = geo.frame(in: .named("PaymentMethodTableList"))
-//        let offset = CGFloat(getIndex(for: meth) * (expandCards ? 10 : 70))
-//        
-//        
-//        CardView(meth: meth)
-//        .offset(y: expandCards ? offset : -rect.minY + offset)
-//    }
-//    .frame(height: 200)
-//    .onTapGesture {
-//        //withAnimation(.interactiveSpring(response: 0.8, dampingFraction: 0.7, blendDuration: 0.7)) {
-//        withAnimation(.easeInOut(duration: 0.35)) {
-//            currentPaymentMethod = meth
-//            showDetailCard = true
-//            
-//            
-////                if expandCards {
-////                    expandCards = false
-////                } else {
-////                    expandCards = true
-////                }
-//        }
-//    }
-//}
-//
-//struct CardView: View {
-//    
-//    
-//    var meth: CBPaymentMethod
-//    var body: some View {
-//        ZStack {
-//            RoundedRectangle(cornerRadius: 20)
-//            //.fill(LinearGradient(gradient: Gradient(colors: [meth.color, .clear]), startPoint: .leading, endPoint: .trailing))
-//            
-//                .fill(meth.color.gradient)
-//                .frame(height: 200)
-//            
-//            VStack(alignment: .leading) {
-//                VStack(alignment: .leading) {
-//                    HStack {
-//                        Text(meth.title)
-//                            .font(.title)
-//                        Spacer()
-//                        Group {
-//                            if meth.accountType == .credit || meth.accountType == .checking {
-//                                Image(systemName: "creditcard.fill")
-//                            } else if meth.accountType == .cash {
-//                                Image(systemName: "banknote.fill")
-//                            } else {
-//                                Image(systemName: "building.columns.fill")
-//                            }
-//                        }
-//                        .font(.title)
-//                    }
-//                    
-//                    
-//                    if meth.accountType == .credit {
-//                        Group {
-//                            Text("Limit of \(meth.limit?.currencyWithDecimals() ?? "-")")
-//                            Text("Due on the \(meth.dueDate?.withOrdinal() ?? "N/A")")
-//                            if meth.notifyOnDueDate {
-//                                let text = meth.notificationOffset == 0 ? "on day of" : (meth.notificationOffset == 1 ? "the day before" : "2 days before")
-//                                Text("Remind me \(text)")
-//                            }
-//                            
-//                        }
-//                        .font(.subheadline)
-//                        
-//                    }
-//                }
-//                
-//                
-//                Spacer()
-//                
-//                HStack {
-//                    Text(AppState.shared.user!.name)
-//                    Spacer()
-//                }
-//                
-//                
-//                HStack {
-//                    if meth.accountType == .checking || meth.accountType == .credit {
-//                        if meth.last4 == nil {
-//                            Text("N/A")
-//                        } else {
-//                            Text("**** **** **** \(meth.last4 ?? "-")")
-//                        }
-//                    } else {
-//                        Text("N/A")
-//                    }
-//                    
-//                    Spacer()
-//                    Text(meth.accountType.rawValue.capitalized)
-//                        .bold()
-//                }
-//            }
-//            .padding()
-//            
-//        }
-//    }
-//}
-//
-//
-//
-//
-//func getIndex(for meth: CBPaymentMethod) -> Int {
-//    return filteredPayMethods.firstIndex { currentCard in
-//        return currentCard.id == meth.id
-//    } ?? 0
-//}
-//
-//
-//
-//struct DetailView: View {
-//    var currentPaymentMethod: CBPaymentMethod
-//    @Binding var showDetailCard: Bool
-//    
-//    var animation: Namespace.ID
-//        
-//    @State private var showExpenses = false
-//
-//    var body: some View {
-//        VStack {
-//            CardView(meth: currentPaymentMethod)
-//                .matchedGeometryEffect(id: currentPaymentMethod.id, in: animation)
-//                .frame(height: 200)
-//                .onTapGesture {
-//                    //withAnimation(.interactiveSpring(response: 0.8, dampingFraction: 0.7, blendDuration: 0.7)) {
-//                    
-//                    withAnimation(.easeInOut) {
-//                        showExpenses = false
-//                    }
-//                    
-//                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: {
-//                        withAnimation(.easeInOut(duration: 0.35)) {
-//                            showDetailCard = false
-//                        }
-//                    })
-//                    
-//                    
-//                    
-//                }
-//                .padding()
-//                .zIndex(10)
-//            
-//            
-//            GeometryReader { geo in
-//                
-//                let height = geo.size.height + 50
-//                
-//                ScrollView {
-//                    VStack(spacing: 20) {
-//                        
-//                    }
-//                    .padding()
-//                }
-//                .frame(maxWidth: .infinity)
-//                .background(
-//                    Color(.tertiarySystemBackground)
-//                        .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
-//                        .ignoresSafeArea()
-//                )
-//                .offset(y: showExpenses ? 0 : height)
-//                                    
-//            }
-//            .padding([.horizontal, .top])
-//            .zIndex(-10)
-//            
-//            
-//            
-//        }
-//        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-//        .background(Color(.secondarySystemBackground).ignoresSafeArea())
-//        .onAppear {
-//            withAnimation(.easeInOut.delay(0.1)) {
-//                showExpenses = true
-//            }
-//
-//        }
-//    }
-//}

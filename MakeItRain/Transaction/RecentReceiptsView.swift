@@ -29,31 +29,40 @@ struct RecentReceiptsView: View {
     
     var transactions: [CBTransaction] {
         calModel.receiptTransactions
-            .filter { $0.isPermitted }
-            .filter {
-                guard let payMethod = $0.payMethod else { return true }
-                return !payMethod.isHidden
-            }
-            .filter {
-                switch AppSettings.shared.paymentMethodFilterMode {
-                case .all:
-                    return true
-
-                case .justPrimary:
-                    return $0.payMethod?.holderOne?.id == AppState.shared.user?.id || $0.deepCopy?.payMethod?.holderOne?.id == AppState.shared.user?.id
-
-                case .primaryAndSecondary:
-                    let userId = AppState.shared.user?.id
-                    return $0.payMethod?.holderOne?.id == userId
-                        || $0.deepCopy?.payMethod?.holderOne?.id == userId
-                        || $0.payMethod?.holderTwo?.id == userId
-                        || $0.deepCopy?.payMethod?.holderTwo?.id == userId
-                        || $0.payMethod?.holderThree?.id == userId
-                        || $0.deepCopy?.payMethod?.holderThree?.id == userId
-                        || $0.payMethod?.holderFour?.id == userId
-                        || $0.deepCopy?.payMethod?.holderFour?.id == userId
+            .filter { trans in
+                if let meth = trans.payMethod {
+                    return meth.isPermittedAndNotHidden
+                    && meth.matchesFilter()
+                } else {
+                    return false
                 }
             }
+//            .filter { $0.payMethod.isPermitted }
+//            .filter {
+//                guard let payMethod = $0.payMethod else { return true }
+//                return !payMethod.isHidden
+//            }
+//            .filter { $0.matchesFilter() }
+//            .filter {
+//                switch AppSettings.shared.paymentMethodFilterMode {
+//                case .all:
+//                    return true
+//
+//                case .justPrimary:
+//                    return $0.payMethod?.holderOne?.id == AppState.shared.user?.id || $0.deepCopy?.payMethod?.holderOne?.id == AppState.shared.user?.id
+//
+//                case .primaryAndSecondary:
+//                    let userId = AppState.shared.user?.id
+//                    return $0.payMethod?.holderOne?.id == userId
+//                        || $0.deepCopy?.payMethod?.holderOne?.id == userId
+//                        || $0.payMethod?.holderTwo?.id == userId
+//                        || $0.deepCopy?.payMethod?.holderTwo?.id == userId
+//                        || $0.payMethod?.holderThree?.id == userId
+//                        || $0.deepCopy?.payMethod?.holderThree?.id == userId
+//                        || $0.payMethod?.holderFour?.id == userId
+//                        || $0.deepCopy?.payMethod?.holderFour?.id == userId
+//                }
+//            }
             .filter { ($0.isSmartTransaction ?? false) || !($0.files ?? []).isEmpty }
             .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedCaseInsensitiveContains(searchText) }
             //.sorted(by: Helpers.transactionSorter())

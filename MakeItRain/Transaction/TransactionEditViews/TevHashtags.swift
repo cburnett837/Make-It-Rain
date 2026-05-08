@@ -25,8 +25,8 @@ struct TevHashtags: View {
                         }
                     } else {
                         TagLayout(alignment: .leading, spacing: 5) {
-                            ForEach(trans.tags.sorted(by: { $0.tag < $1.tag })) { tag in
-                                Text("#\(tag.tag)")
+                            ForEach(trans.tags.sorted(by: { $0.title < $1.title })) { tag in
+                                Text("#\(tag.title)")
                                     .foregroundStyle(Color.theme)
                                     .bold()
                             }

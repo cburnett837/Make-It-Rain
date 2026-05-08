@@ -19,7 +19,9 @@ struct CalendarSheetLayerWrapper<Content: View>: View {
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
     @Environment(RepeatingTransactionModel.self) private var repModel
+    @Environment(DashboardModel.self) private var dashboardModel
     @Environment(WebSocketManager.self) private var webSocketManager
+    @Environment(AppStore.self) private var store
     
     #if os(iOS)
     @Environment(PlaidModel.self) private var plaidModel
@@ -86,9 +88,11 @@ struct CalendarSheetLayerWrapper<Content: View>: View {
                     .environment(keyModel)
                     .environment(repModel)
                     .environment(plaidModel)
+                    .environment(dashboardModel)
                     .environment(calProps)
                     .environment(dataChangeTriggers)
                     .environment(webSocketManager)
+                    .environment(store)
                     //.environment(mapModel)
             )
             rootVC.view.backgroundColor = .clear

@@ -16,6 +16,9 @@ struct KeychainManager {
         case missingEmail
         case unknown(OSStatus)
     }
+    
+    // Must match the shared Keychain group in both targets.
+    private let accessGroup = "N83B9B3ZN6.com.codyburnett.MakeItRain"
         
     
     func addToKeychain(key: String, value: String) throws {
@@ -28,7 +31,8 @@ struct KeychainManager {
             kSecAttrAccount as String: key,
             kSecValueData as String: valueData,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
-            kSecUseDataProtectionKeychain as String: true
+            kSecUseDataProtectionKeychain as String: true,
+            kSecAttrAccessGroup as String: accessGroup
         ]
 
         let status = SecItemAdd(query as CFDictionary, nil)
@@ -71,7 +75,8 @@ struct KeychainManager {
         let query: [String: Any] = [
             kSecClass as String: kSecClassInternetPassword,
             kSecAttrAccount as String: key,
-            kSecUseDataProtectionKeychain as String: true
+            kSecUseDataProtectionKeychain as String: true,
+            kSecAttrAccessGroup as String: accessGroup
         ]
         
         let attributesToUpdate: [String: Any] = [
@@ -98,7 +103,8 @@ struct KeychainManager {
         let query: [String: Any] = [
             kSecClass as String: kSecClassInternetPassword,
             kSecAttrAccount as String: key,
-            kSecUseDataProtectionKeychain as String: true
+            kSecUseDataProtectionKeychain as String: true,
+            kSecAttrAccessGroup as String: accessGroup
         ]
         
         let status = SecItemDelete(query as CFDictionary)
@@ -124,7 +130,8 @@ struct KeychainManager {
             kSecMatchLimit as String: kSecMatchLimitOne,
             kSecReturnAttributes as String: true,
             kSecReturnData as String: true,
-            kSecUseDataProtectionKeychain as String: true
+            kSecUseDataProtectionKeychain as String: true,
+            kSecAttrAccessGroup as String: accessGroup
         ]
         var item: CFTypeRef?
     
@@ -163,7 +170,8 @@ struct KeychainManager {
                 kSecMatchLimit as String: kSecMatchLimitOne,
                 kSecReturnAttributes as String: true,
                 kSecReturnData as String: true,
-                kSecUseDataProtectionKeychain as String: true
+                kSecUseDataProtectionKeychain as String: true,
+                kSecAttrAccessGroup as String: accessGroup
             ]
             var item: CFTypeRef?
         

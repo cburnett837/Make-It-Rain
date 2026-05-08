@@ -19,7 +19,8 @@ struct CategoriesTable: View {
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
     
-    @State private var navPath = NavigationPath()
+    @Binding var navPath: NavigationPath
+    //@State private var navPath = NavigationPath()
 
     @State private var searchText = ""
     @State private var editCategory: CBCategory?
@@ -61,7 +62,7 @@ struct CategoriesTable: View {
     var body: some View {
         //let _ = Self._printChanges()
         @Bindable var catModel = catModel
-        NavigationStack(path: $navPath) {
+        //NavigationStack(path: $navPath) {
             VStack {
                 if !catModel.categories.filter({ !$0.isNil }).isEmpty {
                     #if os(macOS)
@@ -123,7 +124,7 @@ struct CategoriesTable: View {
                         editCategory = CBCategory(uuid: newId)
                     }
                 } else {
-                    catModel.saveCategory(id: oldId!, calModel: calModel, keyModel: keyModel)
+                    catModel.saveCategory(id: oldId!)
                     //catModel.categories.sort(by: Helpers.categorySorter())
                 }
             }            
@@ -191,7 +192,7 @@ struct CategoriesTable: View {
                     .presentationSizing(.fitted)
                 #endif
             })
-        }
+        //}
     }
     
     
@@ -294,13 +295,13 @@ struct CategoriesTable: View {
     func phoneToolbar() -> some ToolbarContent {
         //ToolbarItem(placement: .topBarLeading) { CategorySortMenu() }
         //ToolbarSpacer(.fixed, placement: .topBarLeading)
-        ToolbarItem(placement: .topBarLeading) { moreMenu }
                         
         ToolbarItem(placement: .topBarTrailing) { ToolbarLongPollButton() }
                 
         //ToolbarSpacer(.fixed, placement: .topBarTrailing)
         ToolbarItem(placement: .topBarTrailing) { ToolbarRefreshButton() }
         ToolbarItem(placement: .topBarTrailing) { newCategoryButton }
+        ToolbarItem(placement: .topBarTrailing) { moreMenu }
         //ToolbarSpacer(.fixed, placement: .topBarTrailing)
 //        ToolbarItem(placement: .topBarTrailing) { moreMenu }
     }
@@ -417,6 +418,7 @@ struct CategoriesTable: View {
         .listStyle(.plain)
     }
     
+    
     @ViewBuilder
     func line(for cat: CBCategory) -> some View {
         Label {
@@ -426,7 +428,14 @@ struct CategoriesTable: View {
                     if cat.isHidden { Image(systemName: "eye.slash") }
                     
                     Spacer()
-                    Text(cat.amount?.currencyWithDecimals() ?? "-")
+                    let isPartOfGroup = catModel.groupedCategoryIds.contains(cat.id)
+                    if isPartOfGroup {
+                        Text("-")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text(cat.amount?.currencyWithDecimals() ?? "-")
+                    }
+                    
                 }
             }
         } icon: {

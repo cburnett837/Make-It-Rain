@@ -183,7 +183,10 @@ extension View {
 }
 
 fileprivate struct TransactionEditSheetAndLogic: ViewModifier {
+    @Environment(CalendarProps.self) private var calProps
     @Environment(CalendarModel.self) private var calModel
+    //@Environment(CategoryModel.self) private var catModel
+    @Environment(DashboardModel.self) private var dashboardModel
     
     @Binding var transEditID: String?
     @Binding var selectedDay: CBDay?
@@ -282,6 +285,24 @@ fileprivate struct TransactionEditSheetAndLogic: ViewModifier {
             //day: selectedDay!,
             location: findTransactionWhere
         )
+        
+        if didSave {
+            /// Update the calendar's dashboard
+            calProps.dashboardIsDirty = true
+            
+            /// Update the global dashboard (if applicable)
+            if let trans = calModel.getTransaction(by: transId, from: findTransactionWhere), let date = trans.date {
+                let range = min(dashboardModel.beginDate, dashboardModel.endDate)...max(dashboardModel.beginDate, dashboardModel.endDate)
+                let transIsPartOfDashboard = range.contains(date)
+                if transIsPartOfDashboard {
+                    //self.dashboardModel.isDirty = true
+                    Task {
+                        await dashboardModel.fetchDashboard()
+                    }
+                }
+            }
+            
+        }
         
         print("The final transaction didSaveResult: \(didSave)")
         

@@ -11,11 +11,7 @@ import SwiftUI
 
 @Observable
 class WebSocketManager {
-    var socketTask: URLSessionWebSocketTask?
-    var listeningTask: Task<Void, Never>?
-    var pingTask: Task<Void, Never>?
-    var lastPong: Date?
-    
+    @ObservationIgnored private let store: AppStore
     //var funcModel: FuncModel
     var calModel: CalendarModel
     var payModel: PayMethodModel
@@ -23,9 +19,15 @@ class WebSocketManager {
     var keyModel: KeywordModel
     var repModel: RepeatingTransactionModel
     var plaidModel: PlaidModel
+    
+    var socketTask: URLSessionWebSocketTask?
+    var listeningTask: Task<Void, Never>?
+    var pingTask: Task<Void, Never>?
+    var lastPong: Date?        
     var funcModelRefreshFunction: (() async -> Void)?
     
     init(
+        store: AppStore,
         calModel: CalendarModel,
         payModel: PayMethodModel,
         catModel: CategoryModel,
@@ -33,7 +35,7 @@ class WebSocketManager {
         repModel: RepeatingTransactionModel,
         plaidModel: PlaidModel
     ) {
-        //self.funcModel = funcModel
+        self.store = store
         self.calModel = calModel
         self.payModel = payModel
         self.catModel = catModel
@@ -271,7 +273,7 @@ class WebSocketManager {
             }
             
             if let categories = model.categories, !categories.isEmpty {
-                await catModel.handleIncoming(cats: categories, calModel: calModel, keyModel: keyModel, repModel: repModel, incomingDataType: .viaLongPoll)
+                await catModel.handleIncoming(cats: categories, repModel: repModel, incomingDataType: .viaLongPoll)
             }
             
             if let categoryGroups = model.categoryGroups, !categoryGroups.isEmpty {
@@ -384,8 +386,6 @@ class WebSocketManager {
     private func handleLongPollBudgets(_ budgets: Array<CBBudget>) {
         print("-- \(#function)")
         for budget in budgets {
-            
-            
             if budget.appSuiteKey == nil {
                 if let targetMonth = calModel.months.filter({ $0.actualNum == budget.month && budget.year == $0.year }).first {
                     if targetMonth.isExisting(budget) {

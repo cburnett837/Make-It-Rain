@@ -14,26 +14,25 @@ import UIKit
 import AppIntents
 #endif
 
+
 @main
 struct MakeItRainApp: App {
     #if os(macOS)
     @Environment(\.openWindow) var openWindow
-
     @NSApplicationDelegateAdaptor(AppDelegateMac.self) var appDelegate
-    //@State private var windowDelegate = MyWindowDelegate()
     #else
     @UIApplicationDelegateAdaptor(AppDelegatePhone.self) var appDelegate
     @Environment(\.scenePhase) var scenePhase
     #endif
     
     @Environment(\.colorScheme) var colorScheme
-    //@Local(\.colorTheme) var colorTheme
     @AppStorage("appScreenWidth") var screenWidth: Double = 0
     @AppStorage("appScreenHeight") var screenHeight: Double = 0
     @AppStorage("useBiometrics") var useBiometrics = false
     @Local(\.startInFullScreen) var startInFullScreen
     @Local(\.userColorScheme) var userColorScheme
     
+    @State private var store = AppStore()
     @State private var appState = AppState.shared
     @State private var authState = AuthState.shared
     @State private var undoManager = UndodoManager.shared
@@ -47,6 +46,7 @@ struct MakeItRainApp: App {
     @State var keyModel: KeywordModel
     @State var repModel: RepeatingTransactionModel
     @State var plaidModel: PlaidModel
+    @State var dashboardModel: DashboardModel
     
     @State private var photoModel = FileModel.shared
     @State private var locationManager = LocationManager.shared
@@ -69,28 +69,17 @@ struct MakeItRainApp: App {
             print("Running in UI stress test mode")
         }
         
-        let calModel = CalendarModel()
-                
-        /// This is now a singleton because the creditLimits are needed inside the calModel. 2/21/25
-        /// However, views still access this via the environment.
-        let payModel = PayMethodModel.shared
-        //let payModel = PayMethodModel()
-        
-        /// All singletons because of experimenting with single window groups on iPad os.
-        /// Should be find to leave them as such.
-        let catModel = CategoryModel()
-        let keyModel = KeywordModel()
-        let repModel = RepeatingTransactionModel()
-        let plaidModel = PlaidModel()
-        
-        self.calModel = calModel
-        self.payModel = payModel
-        self.catModel = catModel
-        self.keyModel = keyModel
-        self.repModel = repModel
-        self.plaidModel = plaidModel
+        let store = AppStore()
+        let calModel = CalendarModel(store: store)
+        let payModel = PayMethodModel(store: store)
+        let catModel = CategoryModel(store: store)
+        let keyModel = KeywordModel(store: store)
+        let repModel = RepeatingTransactionModel(store: store)
+        let plaidModel = PlaidModel(store: store)
+        let dashboardModel = DashboardModel(store: store)
         
         let webSocketManager = WebSocketManager(
+            store: store,
             calModel: calModel,
             payModel: payModel,
             catModel: catModel,
@@ -98,19 +87,54 @@ struct MakeItRainApp: App {
             repModel: repModel,
             plaidModel: plaidModel
         )
-        
+
         let funcModel = FuncModel(
+            store: store,
             calModel: calModel,
             payModel: payModel,
             catModel: catModel,
             keyModel: keyModel,
             repModel: repModel,
             plaidModel: plaidModel,
-            webSocketManager: webSocketManager
+            webSocketManager: webSocketManager,
+            dashboardModel: dashboardModel
         )
+
+        _store = State(initialValue: store)
+        _calModel = State(initialValue: calModel)
+        _payModel = State(initialValue: payModel)
+        _catModel = State(initialValue: catModel)
+        _keyModel = State(initialValue: keyModel)
+        _repModel = State(initialValue: repModel)
+        _plaidModel = State(initialValue: plaidModel)
+        _dashboardModel = State(initialValue: dashboardModel)
+        _webSocketManager = State(initialValue: webSocketManager)
+        _funcModel = State(initialValue: funcModel)
         
-        self.funcModel = funcModel
-        self.webSocketManager = webSocketManager
+        
+        
+//        let webSocketManager = WebSocketManager(
+//            calModel: calModel,
+//            payModel: payModel,
+//            catModel: catModel,
+//            keyModel: keyModel,
+//            repModel: repModel,
+//            plaidModel: plaidModel
+//        )
+//        
+//        let funcModel = FuncModel(
+//            calModel: calModel,
+//            payModel: payModel,
+//            catModel: catModel,
+//            keyModel: keyModel,
+//            repModel: repModel,
+//            plaidModel: plaidModel,
+//            webSocketManager: webSocketManager,
+//            dashboardModel: dashboardModel
+//        )
+//        
+//        self.funcModel = funcModel
+//        self.webSocketManager = webSocketManager
         
         do {
             try setupTips()
@@ -208,9 +232,11 @@ struct MakeItRainApp: App {
             .environment(keyModel)
             .environment(repModel)
             .environment(plaidModel)
+            .environment(dashboardModel)
             .environment(calProps)
             .environment(dataChangeTriggers)
             .environment(webSocketManager)
+            .environment(store)
             //.preferredColorScheme(colorScheme)
         }
         .defaultSize(width: 1000, height: 600)
@@ -381,19 +407,35 @@ struct MakeItRainApp: App {
     
     
     private func handleOpeningUrl(_ url: URL) {
-        print(url.absoluteString)
+        //print(url.absoluteString)
         
-        guard let urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
-            fatalError("Could not create URLComponents")
+        if url.host == "plaid_transactions" {
+            NavigationManager.shared.selectedMonth = calModel.months.filter {$0.actualNum == AppState.shared.todayMonth}.first?.enumID
+            NavigationManager.shared.selection = nil
+            
+            #if os(iOS)
+            if AppState.shared.isIphone {
+                calModel.showMonth = true
+            }
+            #endif
+            withAnimation { calProps.bottomPanelContent = .plaidTransactions }
+            return
         }
         
-        if let queryItems = urlComponents.queryItems {
+        if url.host == "take_photo" {
+            calModel.isUploadingSmartTransactionFile = true
+            showCamera = true
+            return
+        }
+        
+        if let urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: false),
+        let queryItems = urlComponents.queryItems {
             for item in queryItems {
-                print("Key: \(item.name), Value: \(item.value ?? "nil")")
+                //print("Key: \(item.name), Value: \(item.value ?? "nil")")
                 
                 if item.name == "action" {
                     if item.value == "take_photo" {
-                        print("should open camera")
+                        //print("should open camera")
                         calModel.isUploadingSmartTransactionFile = true
                         showCamera = true
                     }

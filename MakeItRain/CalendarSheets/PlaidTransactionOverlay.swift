@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import WidgetKit
 
 struct PlaidTransactionOverlay: View {
     //@Local(\.colorTheme) var colorTheme
@@ -556,8 +557,6 @@ struct PlaidTransactionOverlay: View {
         
         
         func accept() async {
-                                    
-            
             /// Animate for the toolbar button
             withAnimation {
                 trans.isAcknowledged = true
@@ -611,7 +610,7 @@ struct PlaidTransactionOverlay: View {
                                     
             
             await calModel.saveTransaction(id: realTrans.id, location: .tempList)
-            
+            WidgetCenter.shared.reloadTimelines(ofKind: "PlaidWidget")
         }
         
         
@@ -624,6 +623,7 @@ struct PlaidTransactionOverlay: View {
             Task {
                 await plaidModel.denyPlaidTransaction(trans)
                 plaidModel.trans.removeAll(where: { $0.id == trans.id })
+                WidgetCenter.shared.reloadTimelines(ofKind: "PlaidWidget")
             }
         }
     }

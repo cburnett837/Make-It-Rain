@@ -1823,7 +1823,7 @@ struct CategoryInsightsView: View {
                 
                 /// Get all individual category budgets for the selected months.
                 let categoricalBudgets = model.monthsForAnalysis.flatMap {
-                    $0.budgets.filter { $0.type == XrefModel.getItem(from: .budgetTypes, byEnumID: .category) }
+                    $0.budgets.filter { $0.type == .category }
                 }
                 
                 /// Filter the budgets from the selected months by the selected categories.
@@ -1841,7 +1841,7 @@ struct CategoryInsightsView: View {
                 
                 /// Get all group budgets for the selected months.
                 let groupBudgets = model.monthsForAnalysis.flatMap {
-                    $0.budgets.filter { $0.type == XrefModel.getItem(from: .budgetTypes, byEnumID: .categoryGroup) }
+                    $0.budgets.filter { $0.type == .categoryGroup }
                 }
                 
                 /// Filter the budgets from the selected months by the selected groups.
@@ -1947,7 +1947,7 @@ struct CategoryInsightsView: View {
                         }
                         let cost = await calModel.getSpendMinusIncome(from: trans)
                         
-                        let budgets = month.budgets.filter { $0.type == XrefModel.getItem(from: .budgetTypes, byEnumID: .category) && $0.category?.id == cat.id }
+                        let budgets = month.budgets.filter { $0.type == .category && $0.category?.id == cat.id }
                         
                         
                         var chartData = await calModel.createChartData(
@@ -1983,7 +1983,7 @@ struct CategoryInsightsView: View {
                                 && $0.category?.id == cat.id
                             }
                             let cost = await calModel.getSpendMinusIncome(from: trans)
-                            let budgets = month.budgets.filter { $0.type == XrefModel.getItem(from: .budgetTypes, byEnumID: .categoryGroup) && $0.categoryGroup?.id == group.id }
+                            let budgets = month.budgets.filter { $0.type == .categoryGroup && $0.categoryGroup?.id == group.id }
                             
                             //return CivActualSpendingBreakdownByCategoryChartData(month: month, category: cat, date: date, cost: cost)
                             

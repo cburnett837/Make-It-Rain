@@ -44,6 +44,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     var last4: String?
     var logo: Data?
     var logoParentType: XrefItem = XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod)
+    var ccBrand: CCBrand?
     
     var holderOne: CBUser?
     var holderOneType: XrefItem?
@@ -53,6 +54,21 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     var holderThreeType: XrefItem?
     var holderFour: CBUser?
     var holderFourType: XrefItem?
+    
+    var holderDisplay: String {
+        let holders = [holderOne, holderTwo, holderThree, holderFour].compactMap { $0 }
+        
+        switch holders.count {
+        case 0:
+            return ""
+        case 1:
+            return holders[0].name
+        case 2:
+            return "\(holders[0].name) & \(holders[1].name)"
+        default:
+            return "\(holders[0].name) + \(holders.count - 1) more"
+        }
+    }
     
     var holderOneId: Int?
     var holderTwoId: Int?
@@ -120,7 +136,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         isPrivate ? AppState.shared.user!.id == enteredBy.id : true
     }
     
-    var isPermittedAndViewable: Bool {
+    var isPermittedAndNotHidden: Bool {
         isPermitted && !isHidden
     }
     
@@ -320,7 +336,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     /// If the method goes from private to public, update the starting amount records so the long poll will push them to other users on the account.
     var viewingYear: Int?
     
-    enum CodingKeys: CodingKey { case id, uuid, title, due_date, limit, account_type_id, hex_code, is_viewing_default, is_editing_default, active, user_id, account_id, device_uuid, notification_offset, notify_on_due_date, last_4_digits, entered_by, updated_by, entered_date, updated_date, breakdowns, interest_rate, loan_duration, is_hidden, is_private, logo, list_order, viewing_year, holder_one, holder_two, holder_three, holder_four, holder_one_type_id, holder_two_type_id, holder_three_type_id, holder_four_type_id, transaction_count, entered_by_id, updated_by_id, holder_one_id, holder_two_id, holder_three_id, holder_four_id }
+    enum CodingKeys: CodingKey { case id, uuid, title, due_date, limit, account_type_id, hex_code, is_viewing_default, is_editing_default, active, user_id, account_id, device_uuid, notification_offset, notify_on_due_date, last_4_digits, entered_by, updated_by, entered_date, updated_date, breakdowns, interest_rate, loan_duration, is_hidden, is_private, logo, list_order, viewing_year, holder_one, holder_two, holder_three, holder_four, holder_one_type_id, holder_two_type_id, holder_three_type_id, holder_four_type_id, transaction_count, entered_by_id, updated_by_id, holder_one_id, holder_two_id, holder_three_id, holder_four_id, cc_brand }
     
     
     func encode(to encoder: Encoder) throws {
@@ -366,6 +382,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         try container.encode(holderTwoType?.id, forKey: .holder_two_type_id)
         try container.encode(holderThreeType?.id, forKey: .holder_three_type_id)
         try container.encode(holderFourType?.id, forKey: .holder_four_type_id)
+        try container.encode(ccBrand?.rawValue, forKey: .cc_brand)
         
         
         //try container.encode(holderOne, forKey: .holder_one) // for the Transferable protocol
@@ -602,6 +619,10 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
 
         // Do not hit Core Data here.
         logo = try container.decodeIfPresent(Data.self, forKey: .logo)
+        if let ccBrandString = try container.decodeIfPresent(String.self, forKey: .cc_brand) {
+            ccBrand = CCBrand(rawValue: ccBrandString)
+        }
+        
 
         listOrder = try container.decode(Int?.self, forKey: .list_order)
         recentTransactionCount = try container.decodeIfPresent(Int.self, forKey: .transaction_count) ?? 0
@@ -670,6 +691,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
             && self.holderTwoType == deepCopy.holderTwoType
             && self.holderThreeType == deepCopy.holderThreeType
             && self.holderFourType == deepCopy.holderFourType
+            && self.ccBrand == deepCopy.ccBrand
             {
                 return false
             }
@@ -710,6 +732,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
             copy.holderTwoType = self.holderTwoType
             copy.holderThreeType = self.holderThreeType
             copy.holderFourType = self.holderFourType
+            copy.ccBrand = self.ccBrand
             //copy.action = self.action
             self.deepCopy = copy
         case .restore:
@@ -741,6 +764,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
                 self.holderTwoType = deepCopy.holderTwoType
                 self.holderThreeType = deepCopy.holderThreeType
                 self.holderFourType = deepCopy.holderFourType
+                self.ccBrand = deepCopy.ccBrand
                 //self.action = deepCopy.action
             }
         case .clear:
@@ -784,6 +808,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         self.holderThreeType = payMethod.holderThreeType
         self.holderFourType = payMethod.holderFourType
         self.recentTransactionCount = payMethod.recentTransactionCount
+        self.ccBrand = payMethod.ccBrand
     }
             
     
@@ -830,6 +855,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         && lhs.holderTwoType == rhs.holderTwoType
         && lhs.holderThreeType == rhs.holderThreeType
         && lhs.holderFourType == rhs.holderFourType
+        && lhs.ccBrand == rhs.ccBrand
         {
             return true
         }
@@ -879,6 +905,7 @@ extension CBPaymentMethod {
         let recentTransactionCount: Int64
 
         let logoData: Data?
+        let ccBrand: String?
     }
     
     
@@ -930,6 +957,10 @@ extension CBPaymentMethod {
         self.listOrder = Int(s.listOrder)
         self.recentTransactionCount = Int(s.recentTransactionCount)
         self.logo = s.logoData
+        if let string = s.ccBrand {
+            self.ccBrand = CCBrand(rawValue: string)
+        }
+        
 
         let imageIsNotInCache = ImageCache.shared.loadFromCache(parentTypeId: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id, parentId: s.id, id: s.id) == nil
         if let data = s.logoData, imageIsNotInCache {
@@ -984,6 +1015,7 @@ extension CBPaymentMethod {
                 entity.holderTwoTypeID = snapshot.holderTwoTypeID
                 entity.holderThreeTypeID = snapshot.holderThreeTypeID
                 entity.holderFourTypeID = snapshot.holderFourTypeID
+                entity.ccBrand = snapshot.ccBrand
                 
                 
                 let pred1 = NSPredicate(format: "relatedID == %@", snapshot.id)
@@ -1106,7 +1138,8 @@ extension CBPaymentMethod {
                 isPrivate: entity.isPrivate,
                 listOrder: entity.listOrder,
                 recentTransactionCount: entity.recentTransactionCount,
-                logoData: logo
+                logoData: logo,
+                ccBrand: entity.ccBrand
             )
         }
     }
@@ -1150,6 +1183,7 @@ extension CBPaymentMethod.Snapshot {
         self.recentTransactionCount = Int64(payMethod.recentTransactionCount)
 
         self.logoData = payMethod.logo
+        self.ccBrand = payMethod.ccBrand?.rawValue
     }
 
     init(_ entity: PersistentPaymentMethod) {
@@ -1188,5 +1222,30 @@ extension CBPaymentMethod.Snapshot {
         self.recentTransactionCount = entity.recentTransactionCount
 
         self.logoData = nil
+        self.ccBrand = entity.ccBrand
+    }
+}
+
+extension CBPaymentMethod {
+    func matchesFilter() -> Bool {        
+        let mode: PaymentMethodFilterMode = AppSettings.shared.paymentMethodFilterMode
+        let userID: Int? = AppState.shared.user?.id
+        
+        switch mode {
+        case .all:
+            return true
+
+        case .justPrimary:
+            return holderOne?.id == userID
+
+        case .primaryAndSecondary:
+            return [
+                holderOne?.id,
+                holderTwo?.id,
+                holderThree?.id,
+                holderFour?.id
+            ]
+            .contains(userID)
+        }
     }
 }

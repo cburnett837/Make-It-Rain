@@ -95,6 +95,19 @@
 		FD3DFD112EDFDF08002C2051 /* TevDatePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD3DFD102EDFDF08002C2051 /* TevDatePicker.swift */; };
 		FD3DFD132EE0CDA9002C2051 /* CategoryOverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD3DFD122EE0CDA9002C2051 /* CategoryOverView.swift */; };
 		FD3DFD152EE0D1D7002C2051 /* CategoryAnalyticChartBackup.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD3DFD142EE0D1D7002C2051 /* CategoryAnalyticChartBackup.swift */; };
+		FD3EB4AE2FAA2E08008BAFD5 /* AttributedStringBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD3EB4AD2FAA2E08008BAFD5 /* AttributedStringBuilder.swift */; };
+		FD3EB4B62FAD20AB008BAFD5 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FD6D7ECA2D667B4A0026D39D /* WidgetKit.framework */; };
+		FD3EB4B72FAD20AB008BAFD5 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FD6D7ECC2D667B4A0026D39D /* SwiftUI.framework */; };
+		FD3EB4C22FAD20AC008BAFD5 /* Pending Plaid WidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = FD3EB4B52FAD20AB008BAFD5 /* Pending Plaid WidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		FD3EB4C82FAD236A008BAFD5 /* Keys.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD6168F42F33B78400FDA64D /* Keys.swift */; };
+		FD3EB4CF2FAD2431008BAFD5 /* CodablePlaceHolder.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD09FF4E2D9C311700795C28 /* CodablePlaceHolder.swift */; };
+		FD3EB4D02FAD2437008BAFD5 /* ResultCompleteModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD09FF522D9C313600795C28 /* ResultCompleteModel.swift */; };
+		FD3EB4D12FAD243F008BAFD5 /* LogManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DCF2D3E86D500B0A97C /* LogManager.swift */; };
+		FD3EB4D92FAD2DC7008BAFD5 /* RequestModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DEF2D3E86D500B0A97C /* RequestModel.swift */; };
+		FD3EB4DC2FAD65A4008BAFD5 /* DataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DB42D3E86D500B0A97C /* DataManager.swift */; };
+		FD3EB4DD2FAD65EE008BAFD5 /* PersistentModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = FDA579372C9E6FA9004E9B60 /* PersistentModel.xcdatamodeld */; };
+		FD3EB4DF2FAE7A4B008BAFD5 /* AllBudgetsTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD3EB4DE2FAE7A4B008BAFD5 /* AllBudgetsTable.swift */; };
+		FD3EB4E12FAEA7CF008BAFD5 /* AppStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD3EB4E02FAEA7CF008BAFD5 /* AppStore.swift */; };
 		FD43EA202EEB19E00004477B /* CatChartRawDataListForGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD43EA1F2EEB19E00004477B /* CatChartRawDataListForGroup.swift */; };
 		FD46D3E82EC632610039D4D4 /* PayMethodViewOG.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD46D3E72EC632610039D4D4 /* PayMethodViewOG.swift */; };
 		FD49F8832DD66AAE00A563C8 /* DebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD49F8822DD66AAE00A563C8 /* DebugView.swift */; };
@@ -380,6 +393,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		FD3EB4C02FAD20AC008BAFD5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = FD292E062C9B248B003C18D2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FD3EB4B42FAD20AB008BAFD5;
+			remoteInfo = "Pending Plaid WidgetExtension";
+		};
 		FDA8FA6F2EB91EA200D7C29B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = FD292E062C9B248B003C18D2 /* Project object */;
@@ -404,6 +424,7 @@
 			dstSubfolderSpec = 13;
 			files = (
 				FDA8FA712EB91EA200D7C29B /* Take-Photo-ExtensionExtension.appex in Embed Foundation Extensions */,
+				FD3EB4C22FAD20AC008BAFD5 /* Pending Plaid WidgetExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -510,6 +531,12 @@
 		FD3DFD102EDFDF08002C2051 /* TevDatePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TevDatePicker.swift; sourceTree = "<group>"; };
 		FD3DFD122EE0CDA9002C2051 /* CategoryOverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryOverView.swift; sourceTree = "<group>"; };
 		FD3DFD142EE0D1D7002C2051 /* CategoryAnalyticChartBackup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryAnalyticChartBackup.swift; sourceTree = "<group>"; };
+		FD3EB4AD2FAA2E08008BAFD5 /* AttributedStringBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributedStringBuilder.swift; sourceTree = "<group>"; };
+		FD3EB4B52FAD20AB008BAFD5 /* Pending Plaid WidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Pending Plaid WidgetExtension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		FD3EB4DA2FAD2EB7008BAFD5 /* Pending Plaid WidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Pending Plaid WidgetExtension.entitlements"; sourceTree = "<group>"; };
+		FD3EB4DB2FAD39BC008BAFD5 /* Pending Plaid WidgetExtensionDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Pending Plaid WidgetExtensionDebug.entitlements"; sourceTree = "<group>"; };
+		FD3EB4DE2FAE7A4B008BAFD5 /* AllBudgetsTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllBudgetsTable.swift; sourceTree = "<group>"; };
+		FD3EB4E02FAEA7CF008BAFD5 /* AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
 		FD43EA1F2EEB19E00004477B /* CatChartRawDataListForGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatChartRawDataListForGroup.swift; sourceTree = "<group>"; };
 		FD46D3E72EC632610039D4D4 /* PayMethodViewOG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PayMethodViewOG.swift; sourceTree = "<group>"; };
 		FD49F8822DD66AAE00A563C8 /* DebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugView.swift; sourceTree = "<group>"; };
@@ -796,6 +823,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		FD3EB4C32FAD20AC008BAFD5 /* Exceptions for "Pending Plaid Widget" folder in "Pending Plaid WidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = FD3EB4B42FAD20AB008BAFD5 /* Pending Plaid WidgetExtension */;
+		};
 		FDA8FA722EB91EA200D7C29B /* Exceptions for "Take-Photo-Extension" folder in "Take-Photo-ExtensionExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -806,6 +840,14 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		FD3EB4B82FAD20AB008BAFD5 /* Pending Plaid Widget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				FD3EB4C32FAD20AC008BAFD5 /* Exceptions for "Pending Plaid Widget" folder in "Pending Plaid WidgetExtension" target */,
+			);
+			path = "Pending Plaid Widget";
+			sourceTree = "<group>";
+		};
 		FDA8FA672EB91EA100D7C29B /* Take-Photo-Extension */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -828,6 +870,15 @@
 			files = (
 				FDB1ACFE2D779A29001CB2F6 /* Algorithms in Frameworks */,
 				FDFBC44E2DDE33C9006DE685 /* LinkKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FD3EB4B22FAD20AB008BAFD5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FD3EB4B72FAD20AB008BAFD5 /* SwiftUI.framework in Frameworks */,
+				FD3EB4B62FAD20AB008BAFD5 /* WidgetKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -920,21 +971,16 @@
 			path = ChristmasListSnow;
 			sourceTree = "<group>";
 		};
-		FD2822FD2F97A72600CA00B8 /* Dashboard */ = {
-			isa = PBXGroup;
-			children = (
-				FD2822FE2F97A73400CA00B8 /* Dashboard.swift */,
-			);
-			path = Dashboard;
-			sourceTree = "<group>";
-		};
 		FD292E052C9B248B003C18D2 = {
 			isa = PBXGroup;
 			children = (
+				FD3EB4DB2FAD39BC008BAFD5 /* Pending Plaid WidgetExtensionDebug.entitlements */,
+				FD3EB4DA2FAD2EB7008BAFD5 /* Pending Plaid WidgetExtension.entitlements */,
 				FDA579372C9E6FA9004E9B60 /* PersistentModel.xcdatamodeld */,
 				FDC26E102D3E86D500B0A97C /* MakeItRain */,
 				FDA8FA672EB91EA100D7C29B /* Take-Photo-Extension */,
 				FDEE20672F7AAE5100E51FA4 /* MakeItRainUITests */,
+				FD3EB4B82FAD20AB008BAFD5 /* Pending Plaid Widget */,
 				FD6D7EC92D667B4A0026D39D /* Frameworks */,
 				FD292E0F2C9B248B003C18D2 /* Products */,
 				FD49F8A52DDCCFC200A563C8 /* Junk */,
@@ -948,6 +994,7 @@
 				FD292E0E2C9B248B003C18D2 /* MakeItRain.app */,
 				FDA8FA642EB91EA100D7C29B /* Take-Photo-ExtensionExtension.appex */,
 				FDEE20662F7AAE5100E51FA4 /* MakeItRainUITests.xctest */,
+				FD3EB4B52FAD20AB008BAFD5 /* Pending Plaid WidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -1165,6 +1212,7 @@
 		FDAECC572DCE32A900C6EDA5 /* Dashboard */ = {
 			isa = PBXGroup;
 			children = (
+				FD2822FE2F97A73400CA00B8 /* Dashboard.swift */,
 				FDAECC582DCE32BA00C6EDA5 /* DashboardHeader.swift */,
 				FDAECC5A2DCE366700C6EDA5 /* WidgetLabel.swift */,
 			);
@@ -1229,6 +1277,7 @@
 				FD76DA442EA402CA002E30DA /* BudgetTable.swift */,
 				FDAECC532DCC12B200C6EDA5 /* BudgetTableOG.swift */,
 				FDC26DA32D3E86D500B0A97C /* CBBudget.swift */,
+				FD3EB4DE2FAE7A4B008BAFD5 /* AllBudgetsTable.swift */,
 			);
 			path = Budget;
 			sourceTree = "<group>";
@@ -1248,7 +1297,6 @@
 		FDC26D7D2D3E86D500B0A97C /* CalendarSheets */ = {
 			isa = PBXGroup;
 			children = (
-				FD2822FD2F97A72600CA00B8 /* Dashboard */,
 				FDA172592EF596EC00C113F2 /* CategoryInsightViews */,
 				FDC26D952D3E86D500B0A97C /* CalendarDashboard.swift */,
 				FDC26D982D3E86D500B0A97C /* CalendarOptionsSheet.swift */,
@@ -1337,6 +1385,7 @@
 		FDC26D812D3E86D500B0A97C /* Extras */ = {
 			isa = PBXGroup;
 			children = (
+				FD3EB4AD2FAA2E08008BAFD5 /* AttributedStringBuilder.swift */,
 				FDC26D962D3E86D500B0A97C /* ButtonStyles.swift */,
 				FDC26DBA2D3E86D500B0A97C /* Enums.swift */,
 				FDC26DC12D3E86D500B0A97C /* Helpers.swift */,
@@ -1520,6 +1569,7 @@
 				FD174D212ED5F9E600A01F67 /* MakeItRainApp+Scene.swift */,
 				FDC26D8D2D3E86D500B0A97C /* AppDelegate.swift */,
 				FDC26D8E2D3E86D500B0A97C /* AppState.swift */,
+				FD3EB4E02FAEA7CF008BAFD5 /* AppStore.swift */,
 				FD49F8A12DD9999500A563C8 /* LocalStorage.swift */,
 				FDC26DBF2D3E86D500B0A97C /* FuncModel.swift */,
 				FDAECC4B2DCA6E8D00C6EDA5 /* App Root */,
@@ -1671,6 +1721,7 @@
 			);
 			dependencies = (
 				FDA8FA702EB91EA200D7C29B /* PBXTargetDependency */,
+				FD3EB4C12FAD20AC008BAFD5 /* PBXTargetDependency */,
 			);
 			name = MakeItRain;
 			packageProductDependencies = (
@@ -1680,6 +1731,28 @@
 			productName = MakeItRain;
 			productReference = FD292E0E2C9B248B003C18D2 /* MakeItRain.app */;
 			productType = "com.apple.product-type.application";
+		};
+		FD3EB4B42FAD20AB008BAFD5 /* Pending Plaid WidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FD3EB4C42FAD20AC008BAFD5 /* Build configuration list for PBXNativeTarget "Pending Plaid WidgetExtension" */;
+			buildPhases = (
+				FD3EB4B12FAD20AB008BAFD5 /* Sources */,
+				FD3EB4B22FAD20AB008BAFD5 /* Frameworks */,
+				FD3EB4B32FAD20AB008BAFD5 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				FD3EB4B82FAD20AB008BAFD5 /* Pending Plaid Widget */,
+			);
+			name = "Pending Plaid WidgetExtension";
+			packageProductDependencies = (
+			);
+			productName = "Pending Plaid WidgetExtension";
+			productReference = FD3EB4B52FAD20AB008BAFD5 /* Pending Plaid WidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 		FDA8FA632EB91EA100D7C29B /* Take-Photo-ExtensionExtension */ = {
 			isa = PBXNativeTarget;
@@ -1740,6 +1813,9 @@
 						CreatedOnToolsVersion = 16.0;
 						LastSwiftMigration = 1620;
 					};
+					FD3EB4B42FAD20AB008BAFD5 = {
+						CreatedOnToolsVersion = 26.2;
+					};
 					FDA8FA632EB91EA100D7C29B = {
 						CreatedOnToolsVersion = 26.0.1;
 					};
@@ -1770,6 +1846,7 @@
 				FD292E0D2C9B248B003C18D2 /* MakeItRain */,
 				FDA8FA632EB91EA100D7C29B /* Take-Photo-ExtensionExtension */,
 				FDEE20652F7AAE5100E51FA4 /* MakeItRainUITests */,
+				FD3EB4B42FAD20AB008BAFD5 /* Pending Plaid WidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -1786,6 +1863,13 @@
 				FDC26E902D3E86D500B0A97C /* DollarPartical.sks in Resources */,
 				FDC26E912D3E86D500B0A97C /* Assets.xcassets in Resources */,
 				FDC26E922D3E86D500B0A97C /* gitignore in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FD3EB4B32FAD20AB008BAFD5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1962,6 +2046,7 @@
 				FD6D7F012D6682AB0026D39D /* NewTransactionAppIntent.swift in Sources */,
 				FDB066D12D4D40C40060568B /* UIDatePicker.swift in Sources */,
 				FDC26E462D3E86D500B0A97C /* Toasts.swift in Sources */,
+				FD3EB4AE2FAA2E08008BAFD5 /* AttributedStringBuilder.swift in Sources */,
 				FD07E28F2D72137800024B11 /* PayMethodRequiredView.swift in Sources */,
 				FD8F14672F1ED4B00098CC49 /* ContactPickerView.swift in Sources */,
 				FD09FF572D9C314300795C28 /* ParentChildIdModel.swift in Sources */,
@@ -2063,6 +2148,7 @@
 				FDC26E692D3E86D500B0A97C /* TagModel.swift in Sources */,
 				FD8F14612F1ECEB70098CC49 /* PdfMaker.swift in Sources */,
 				FD7F77232E900A4C0087F229 /* CalendarViewPhoneBackup.swift in Sources */,
+				FD3EB4E12FAEA7CF008BAFD5 /* AppStore.swift in Sources */,
 				FD09FF662D9D769400795C28 /* StandardNoteTextEditor.swift in Sources */,
 				FD07B2E72EA970BA00901601 /* CustomDecimalKeyboard.swift in Sources */,
 				FD25FF412E97EB010079E001 /* PaymentMethodChartVisibleYearPicker.swift in Sources */,
@@ -2112,6 +2198,7 @@
 				FDC26E7A2D3E86D500B0A97C /* ToolbarViews.swift in Sources */,
 				FDA8FA832EBAACAE00D7C29B /* ServerActions.swift in Sources */,
 				FD001B842D91952300E5D90D /* SmartTransactionsWithIssuesOverlay.swift in Sources */,
+				FD3EB4DF2FAE7A4B008BAFD5 /* AllBudgetsTable.swift in Sources */,
 				FDAECC5B2DCE366700C6EDA5 /* WidgetLabel.swift in Sources */,
 				FDE4E7D82D56AA0100A883EE /* FileModel.swift in Sources */,
 				FD49F8872DD77C8000A563C8 /* PayMethodDashboard.swift in Sources */,
@@ -2171,6 +2258,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FD3EB4B12FAD20AB008BAFD5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FD3EB4DD2FAD65EE008BAFD5 /* PersistentModel.xcdatamodeld in Sources */,
+				FD3EB4DC2FAD65A4008BAFD5 /* DataManager.swift in Sources */,
+				FD3EB4D12FAD243F008BAFD5 /* LogManager.swift in Sources */,
+				FD3EB4D02FAD2437008BAFD5 /* ResultCompleteModel.swift in Sources */,
+				FD3EB4C82FAD236A008BAFD5 /* Keys.swift in Sources */,
+				FD3EB4D92FAD2DC7008BAFD5 /* RequestModel.swift in Sources */,
+				FD3EB4CF2FAD2431008BAFD5 /* CodablePlaceHolder.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		FDA8FA602EB91EA100D7C29B /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -2188,6 +2289,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		FD3EB4C12FAD20AC008BAFD5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = FD3EB4B42FAD20AB008BAFD5 /* Pending Plaid WidgetExtension */;
+			targetProxy = FD3EB4C02FAD20AC008BAFD5 /* PBXContainerItemProxy */;
+		};
 		FDA8FA702EB91EA200D7C29B /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			platformFilters = (
@@ -2372,7 +2478,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
@@ -2385,6 +2491,7 @@
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_STRICT_CONCURRENCY = minimal;
@@ -2439,7 +2546,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
@@ -2452,11 +2559,86 @@
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_STRICT_CONCURRENCY = minimal;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
 				XROS_DEPLOYMENT_TARGET = 2.0;
+			};
+			name = Release;
+		};
+		FD3EB4C52FAD20AC008BAFD5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = "Pending Plaid WidgetExtensionDebug.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = N83B9B3ZN6;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Pending Plaid Widget/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Pending Plaid Widget";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.codyburnett.MakeItRain.Pending-Plaid-Widget";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "driverkit iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		FD3EB4C62FAD20AC008BAFD5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = "Pending Plaid WidgetExtension.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N83B9B3ZN6;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Pending Plaid Widget/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Pending Plaid Widget";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.codyburnett.MakeItRain.Pending-Plaid-Widget";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "driverkit iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
 		};
@@ -2591,6 +2773,15 @@
 			buildConfigurations = (
 				FD292E1E2C9B248C003C18D2 /* Debug */,
 				FD292E1F2C9B248C003C18D2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FD3EB4C42FAD20AC008BAFD5 /* Build configuration list for PBXNativeTarget "Pending Plaid WidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FD3EB4C52FAD20AC008BAFD5 /* Debug */,
+				FD3EB4C62FAD20AC008BAFD5 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

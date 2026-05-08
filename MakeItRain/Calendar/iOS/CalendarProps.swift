@@ -55,4 +55,6 @@ class CalendarProps {
     //var lastBalanceUpdateTimer: Timer?
     
     var phoneLineItemDisplayItemWhenMultiSelectWasOpened: PhoneLineItemDisplayItem?
+    
+    var dashboardIsDirty = false
 }

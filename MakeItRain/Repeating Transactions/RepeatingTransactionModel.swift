@@ -11,12 +11,22 @@ import SwiftUI
 @MainActor
 @Observable
 class RepeatingTransactionModel {
-    //static let shared = RepeatingTransactionModel()
+    @ObservationIgnored private let store: AppStore
+    init(store: AppStore) {
+        self.store = store
+    }
+    
+    
     var isThinking = false
     
-    //var repTransactionEditID: Int?
-    var repTransactions: Array<CBRepeatingTransaction> = []
-    //var refreshTask: Task<Void, Error>?
+    var repTransactions: [CBRepeatingTransaction] {
+        get { store.repTransactions }
+        set { store.repTransactions = newValue }
+    }
+    
+    
+    //var repTransactions: Array<CBRepeatingTransaction> = []
+    
     var fuckYouSwiftuiTableRefreshID: UUID = UUID()
         
     func doesExist(_ repTransaction: CBRepeatingTransaction) -> Bool {

@@ -9,6 +9,105 @@ import SwiftUI
 import Charts
 import LocalAuthentication
 
+
+enum CCBrand: String, CaseIterable, Identifiable {
+    var id: Self { self }
+    case visaBlue = "cc_logo_visa_blue"
+    case visaWhite = "cc_logo_visa_white"
+    case visaBlack = "cc_logo_visa_black"
+    case mastercard = "cc_logo_mastercard"
+    case amex = "cc_logo_amex"
+    case discover = "cc_logo_discover"
+    
+    static func fromString(_ theString: String) -> Self {
+        switch theString {
+        case "cc_logo_visa_blue": return .visaBlue
+        case "cc_logo_visa_white": return .visaWhite
+        case "cc_logo_visa_black": return .visaBlack
+        case "cc_logo_mastercard": return .mastercard
+        case "cc_logo_amex": return .amex
+        case "cc_logo_discover": return .discover
+        default: return .visaBlue
+        }
+    }
+    
+    var title: String {
+        switch self {
+        case .visaBlue: return "Visa (Blue)"
+        case .visaWhite: return "Visa (White)"
+        case .visaBlack: return "Visa (Black)"
+        case .mastercard: return "Mastercard"
+        case .amex: return "American Express"
+        case .discover: return "Discover"
+        }
+    }
+}
+
+
+struct CCBrandPickerPage: View {
+    @Environment(\.dismiss) var dismiss
+    
+    @Bindable var meth: CBPaymentMethod
+    
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(CCBrand.allCases) {
+                    ccImage(title: $0.title, imageName: $0.rawValue)
+                }
+                Button("Clear Logo") {
+                    meth.ccBrand = nil
+                    dismiss()
+                }
+            }
+            .navigationTitle("Credit Card Issuer")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    closeButton
+                }
+            }
+        }
+        
+    }
+    
+    @ViewBuilder func ccImage(title: String, imageName: String) -> some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Image(imageName)
+                .renderingMode(.original)
+                .interpolation(.high)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 200, height: 60, alignment: .trailing)
+                .offset(x:
+                            imageName.contains("visa")
+                    ? 18
+                    : imageName.contains("mastercard")
+                    ? 14
+                    : 0
+                )
+        }
+        .contentShape(.rect)
+        .onTapGesture {
+            meth.ccBrand = CCBrand(rawValue: imageName)
+            dismiss()
+        }
+    }
+    
+    var closeButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "xmark")
+                .schemeBasedForegroundStyle()
+        }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
+    }
+}
+
 struct PayMethodEditView: View {
     enum Offset: Int {
         case dayBack0 = 0
@@ -52,6 +151,7 @@ struct PayMethodEditView: View {
     
     @Namespace private var namespace
 
+    @State private var showCcBrandPickerPage = false
         
     var isValidToSave: Bool {
         (payMethod.action == .add && !payMethod.title.isEmpty)
@@ -87,6 +187,9 @@ struct PayMethodEditView: View {
                     .navigationTitle(title)
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar { toolbar }
+            }
+            .sheet(isPresented: $showCcBrandPickerPage) {
+                CCBrandPickerPage(meth: payMethod)
             }
             
             #else
@@ -156,69 +259,120 @@ struct PayMethodEditView: View {
     @ViewBuilder
     var editPagePhone: some View {
         List {
-        Section("Title") {
-            titleRow
-        }
-            
-        Section {
-            accountHolders
-            typeRowPhone
-            colorRow
-            
-            LogoPickerRow(parent: payMethod, parentType: .paymentMethod, fallbackType: payMethod.isUnified ? .gradient : .color)
-            
-            if payMethod.accountType == .checking || payMethod.accountType == .credit {
-                last4Row
+            Section("Title") {
+                titleRow
             }
-        } header: {
-            Text("Details")
-        } footer: {
-            if payMethod.accountType == .checking || payMethod.accountType == .credit {
-                Text("If you wish to use the smart receipt feature offered by ChatGPT, enter the last 4 digits of your card information. If not, you can leave this field blank.")
-                    .validate(payMethod.last4 ?? "", rules: .regex(.onlyNumbers, "Only numbers are allowed"))
-            }
-        }
-        
-        if payMethod.accountType == .credit || payMethod.accountType == .loan {
-            Section("Credit Details") {
-                dueDateRow
-                limitRow
-                interestRateRow
-                if payMethod.accountType == .loan {
-                    loanDurationRow
+                
+            Section {
+                accountHolders
+                typeRowPhone
+                
+                if payMethod.accountType != .cash {
+                    ccBrandRowPhone
+                }
+                
+                colorRow
+                
+                LogoPickerRow(parent: payMethod, parentType: .paymentMethod, fallbackType: payMethod.isUnified ? .gradient : .color)
+                
+                
+                if payMethod.accountType == .checking || payMethod.accountType == .credit {
+                    last4Row
+                }
+            } header: {
+                Text("Details")
+            } footer: {
+                if payMethod.accountType == .checking || payMethod.accountType == .credit {
+                    Text("If you wish to use the smart receipt feature offered by ChatGPT, enter the last 4 digits of your card information. If not, you can leave this field blank.")
+                        .validate(payMethod.last4 ?? "", rules: .regex(.onlyNumbers, "Only numbers are allowed"))
                 }
             }
-        }
-        
-        if (payMethod.accountType == .credit || payMethod.accountType == .loan) && payMethod.dueDate != nil && payMethod.notifyOnDueDate {
-            Section {
-                reminderRow
-            } footer: {
-                Text("Alerts will be sent out at 9:00 AM")
-            }
-        }
-                                
-        if !payMethod.isUnified {
-            Section {
-                isPrivateRow
-            } footer: {
-                Text("Transactions, Search Results, Etc. belonging to this account will only be visible to you.")
+            
+            if payMethod.accountType == .credit || payMethod.accountType == .loan {
+                Section("Credit Details") {
+                    dueDateRow
+                    limitRow
+                    interestRateRow
+                    if payMethod.accountType == .loan {
+                        loanDurationRow
+                    }
+                }
             }
             
-            Section {
-                isHiddenRow
-            } footer: {
-                Text("Hide this account from **my** menus. (This will not delete any data).")
+            if (payMethod.accountType == .credit || payMethod.accountType == .loan) && payMethod.dueDate != nil && payMethod.notifyOnDueDate {
+                Section {
+                    reminderRow
+                } footer: {
+                    Text("Alerts will be sent out at 9:00 AM")
+                }
+            }
+                                    
+            if !payMethod.isUnified {
+                Section {
+                    isPrivateRow
+                } footer: {
+                    Text("Transactions, Search Results, Etc. belonging to this account will only be visible to you.")
+                }
+                
+                Section {
+                    isHiddenRow
+                } footer: {
+                    Text("Hide this account from **my** menus. (This will not delete any data).")
+                }
+            }
+    //
+    //            Section {
+    //                colorRow
+    //            }
+            
+    //        Section {
+    //            deleteButton
+        }
+    }
+    
+    
+    
+    var ccBrandRowPhone: some View {
+        
+        Button {
+            showCcBrandPickerPage = true
+        } label: {
+            HStack {
+                Label {
+                    Text("Card Issuer")
+                        .schemeBasedForegroundStyle()
+                } icon: {
+                    Image(systemName: "creditcard")
+                        .foregroundStyle(.gray)
+                }
+                
+                Spacer()
+                
+                HStack(spacing: 4) {
+                    Text(payMethod.ccBrand?.title ?? "Select")
+                    Image(systemName: "chevron.up.chevron.down")
+                }
+                .foregroundStyle(.gray)
             }
         }
-//
-//            Section {
-//                colorRow
-//            }
         
-//        Section {
-//            deleteButton
-        }
+        
+//        Picker(selection: $payMethod.ccBrand) {
+//            
+//            Text("Visa").tag("cc_logo_visa_blue")
+//            Text("Mastercard").tag("cc_logo_mastercard")
+//            Text("Amex").tag("cc_logo_amex")
+//            Text("Discover").tag("cc_logo_discover")
+//        } label: {
+//            Label {
+//                Text("Brand Logo")
+//            } icon: {
+//                Image(systemName: "dollarsign.bank.building")
+//                    .foregroundStyle(.gray)
+//            }
+//        }
+//        .pickerStyle(.menu)
+//        .tint(.secondary)
     }
     
     

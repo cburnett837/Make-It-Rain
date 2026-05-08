@@ -987,9 +987,9 @@ struct UITextFieldWrapper</*Keyboard: View, */Toolbar: View>: UIViewRepresentabl
         DispatchQueue.main.async {
             textField.text = text
             textField.placeholder = placeholder
-//            textField.font = font
-//            textField.textColor = textColor
-//            textField.tintColor = tint
+            textField.font = font
+            textField.textColor = textColor
+            textField.tintColor = tint
 //            if let textAlignment { textField.textAlignment = textAlignment }
 //            textField.textContentType = contentType
 //            textField.autocorrectionType = autoCorrection
@@ -1021,7 +1021,7 @@ struct UITextFieldWrapper</*Keyboard: View, */Toolbar: View>: UIViewRepresentabl
 //            textField.isSecureTextEntry = isSecure
 //            textField.clearsOnBeginEditing = clearsOnBeginEditing
 //            if let clearButtonMode { textField.clearButtonMode = clearButtonMode }
-//            textField.isUserInteractionEnabled = isUserInteractionEnabled
+            textField.isUserInteractionEnabled = isUserInteractionEnabled
 //            if let tag { textField.tag = tag }
 //            
 //            
@@ -1427,7 +1427,7 @@ extension UITextFieldWrapper {
     
     func uiDisabled(_ disabled: Bool) -> UITextFieldWrapper {
         var view = self
-        view.isUserInteractionEnabled = disabled
+        view.isUserInteractionEnabled = !disabled
         return view
     }
     

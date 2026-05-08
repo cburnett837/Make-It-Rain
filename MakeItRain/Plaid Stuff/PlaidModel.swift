@@ -13,6 +13,26 @@ import LinkKit
 
 @Observable
 class PlaidModel {
+    @ObservationIgnored private let store: AppStore
+    init(store: AppStore) {
+        self.store = store
+    }
+    
+    var banks: [CBPlaidBank] {
+        get { store.banks }
+        set { store.banks = newValue }
+    }
+    
+    var trans: [CBPlaidTransaction] {
+        get { store.trans }
+        set { store.trans = newValue }
+    }
+    
+    var balances: [CBPlaidBalance] {
+        get { store.balances }
+        set { store.balances = newValue }
+    }
+    
     //var isPresentingLink = false
     var isThinking = false
     
@@ -27,9 +47,12 @@ class PlaidModel {
     }
     
     var totalTransCount = 0
-    var banks: Array<CBPlaidBank> = []
-    var trans: Array<CBPlaidTransaction> = []
-    var balances: Array<CBPlaidBalance> = []
+    
+    
+    
+//    var banks: Array<CBPlaidBank> = []
+//    var trans: Array<CBPlaidTransaction> = []
+//    var balances: Array<CBPlaidBalance> = []
     var fuckYouSwiftuiTableRefreshID: UUID = UUID()
     
     

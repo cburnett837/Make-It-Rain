@@ -80,7 +80,7 @@ struct CalendarOptionsSheet: View {
 //                
 //            }
 //        } message: {
-//            Text("You have already created a budget and populated this month with reoccuring transactions. If you proceed, reoccuring transactions will be duplicated.")
+//            Text("You have already created a budget and populated this month with recurring transactions. If you proceed, recurring transactions will be duplicated.")
 //        }
         
 //        .alert("Reset \(calModel.sMonth.name) \(String(calModel.sMonth.year))", isPresented: $showResetMonthAlert) {
@@ -230,7 +230,7 @@ struct CalendarOptionsSheet: View {
                 let buttonConfig = AlertConfig.ButtonConfig(text: "Options", role: .primary) { showPopulateOptionsSheet = true }
                 let config = AlertConfig(
                     title: "Woah!",
-                    subtitle: "You have already created a budget and populated this month with reoccuring transactions. If you proceed, reoccuring transactions will be duplicated.",
+                    subtitle: "You have already created a budget and populated this month with recurring transactions. If you proceed, recurring transactions will be duplicated.",
                     primaryButton: AlertConfig.AlertButton(config: buttonConfig)
                 )
                 
@@ -381,7 +381,7 @@ struct CalendarOptionsSheetOG: View {
                 
             }
         } message: {
-            Text("You have already created a budget and populated this month with reoccuring transactions. If you proceed, reoccuring transactions will be duplicated.")
+            Text("You have already created a budget and populated this month with recurring transactions. If you proceed, recurring transactions will be duplicated.")
         }
         
         .alert("Reset \(calModel.sMonth.name) \(String(calModel.sYear))", isPresented: $showResetMonthAlert) {

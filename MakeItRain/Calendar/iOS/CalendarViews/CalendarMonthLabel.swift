@@ -190,19 +190,20 @@ struct CalendarMonthLabel: View {
                 && (selMeth.isUnifiedDebit ? $0.accountType == .checking : $0.isCreditOrUnified)
                 && !$0.isUnified
             }
-            .filter {
-                switch AppSettings.shared.paymentMethodFilterMode {
-                case .all:
-                    return true
-                case .justPrimary:
-                    return $0.holderOne?.id == AppState.shared.user?.id
-                case .primaryAndSecondary:
-                    return $0.holderOne?.id == AppState.shared.user?.id
-                    || $0.holderTwo?.id == AppState.shared.user?.id
-                    || $0.holderThree?.id == AppState.shared.user?.id
-                    || $0.holderFour?.id == AppState.shared.user?.id
-                }
-            }
+            .filter { $0.matchesFilter() }
+//            .filter {
+//                switch AppSettings.shared.paymentMethodFilterMode {
+//                case .all:
+//                    return true
+//                case .justPrimary:
+//                    return $0.holderOne?.id == AppState.shared.user?.id
+//                case .primaryAndSecondary:
+//                    return $0.holderOne?.id == AppState.shared.user?.id
+//                    || $0.holderTwo?.id == AppState.shared.user?.id
+//                    || $0.holderThree?.id == AppState.shared.user?.id
+//                    || $0.holderFour?.id == AppState.shared.user?.id
+//                }
+//            }
             
             .map { meth in
                 let theView = HStack {

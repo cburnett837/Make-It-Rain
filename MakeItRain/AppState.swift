@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+internal import Combine
 
 @Observable
 class AppState {
@@ -102,7 +103,7 @@ class AppState {
           
     
     init() {
-        if let ud = UserDefaults.standard.data(forKey: "user") {
+        if let ud = UserDefaults(suiteName: "group.dev.cburnett837.MakeItRain")?.data(forKey: "user") {
             do {
                 self.user = try JSONDecoder().decode(CBUser.self, from: ud)
             } catch {

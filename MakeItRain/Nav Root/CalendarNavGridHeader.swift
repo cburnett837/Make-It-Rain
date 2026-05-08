@@ -44,6 +44,10 @@ struct CalendarNavGridHeader: View {
         }
         
         ToolbarItem(placement: .topBarTrailing) {
+            ToolbarRefreshButton()
+        }
+        
+        ToolbarItem(placement: .topBarTrailing) {
             Button {
                 if AppState.shared.isIphone {
                     calendarNavPath.append(NavDestination.toasts)
@@ -62,10 +66,6 @@ struct CalendarNavGridHeader: View {
                 .badge(AppState.shared.unreadToasts.count)
             }
             
-        }
-        
-        ToolbarItem(placement: .topBarTrailing) {
-            ToolbarRefreshButton()
         }
         
         if AppState.shared.isIphone {

@@ -50,11 +50,12 @@ struct BudgetEditView: View {
     }
     
     var title: String {
-        if budget.type == XrefModel.getItem(from: .budgetTypes, byEnumID: .category) {
-            budget.category?.title ?? "N/A"
-        } else {
-            budget.categoryGroup?.title ?? "N/A"
-        }
+        budget.item?.title ?? "N/A"
+//        if budget.type == XrefModel.getItem(from: .budgetTypes, byEnumID: .category) {
+//            budget.category?.title ?? "N/A"
+//        } else {
+//            budget.categoryGroup?.title ?? "N/A"
+//        }
     }
 
     
@@ -79,9 +80,26 @@ struct BudgetEditView: View {
                     titleRow
                 }
                 
-                Section("Details") {
-                    theChart
+                if budget.action == .add {
+                    ForEach(calModel.tags) { tag in
+                        Button {
+                            budget.item = tag
+                        } label: {
+                            HStack {
+                                Text(tag.title)
+                                Spacer()
+                                if budget.item?.id == tag.id {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Section("Details") {
+                        theChart
+                    }
                 }
+                
                                 
                 transactionList
             }
@@ -98,6 +116,12 @@ struct BudgetEditView: View {
             /// Just for formatting.
             budget.amountString = budget.amount.currencyWithDecimals()
             prepareData()
+            
+            if budget.action == .add {
+                budget.month = calModel.sMonth.actualNum
+                budget.year = calModel.sMonth.year
+                calModel.sMonth.upsert(budget)
+            }
         }
     
         #endif
@@ -251,18 +275,24 @@ struct BudgetEditView: View {
     
     
     func prepareData() {
-        if budget.type == XrefModel.getItem(from: .budgetTypes, byEnumID: .category) {
+        if budget.type == .category {
             if let cat = budget.category {
                 transactions = calModel.getTransactions(cats: [cat])
                     .filter { $0.dateComponents?.month == calModel.sMonth.actualNum }
                     .filter { $0.dateComponents?.year == calModel.sMonth.year }
             }
-        } else {
+        } else if budget.type == .categoryGroup {
             if let cats = budget.categoryGroup?.categories {
                 transactions = calModel.getTransactions(cats: cats)
                     .filter { $0.dateComponents?.month == calModel.sMonth.actualNum }
                     .filter { $0.dateComponents?.year == calModel.sMonth.year }
             }
+        } else {
+//            if let cats = budget.categoryGroup?.categories {
+//                transactions = calModel.getTransactions(cats: cats)
+//                    .filter { $0.dateComponents?.month == calModel.sMonth.actualNum }
+//                    .filter { $0.dateComponents?.year == calModel.sMonth.year }
+//            }
         }
                 
         /// Get how much has been spend up until each day.
