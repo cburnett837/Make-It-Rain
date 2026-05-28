@@ -40,7 +40,7 @@ struct DebugView: View {
             
             
             Section {
-                printAllBudgetsButton
+                //printAllBudgetsButton
                 //documentTester
                 NavigationLink("Cache") { CoreDataList() }
             }
@@ -246,16 +246,16 @@ struct DebugView: View {
     }
     
     
-    var printAllBudgetsButton: some View {
-        Button("Print Budgets") {
-            for month in calModel.months {
-                let budgets = month.budgets
-                for budget in budgets {
-                    print("budget for \(month.actualNum)-\(month.year) --- \(String(describing: budget.category?.title))-\(String(describing: budget.month))-\(budget.year)")
-                }                
-            }
-        }
-    }
+//    var printAllBudgetsButton: some View {
+//        Button("Print Budgets") {
+//            for month in calModel.months {
+//                let budgets = month.budgets
+//                for budget in budgets {
+//                    print("budget for \(month.actualNum)-\(month.year) --- \(String(describing: budget.category?.title))-\(String(describing: budget.month))-\(budget.year)")
+//                }                
+//            }
+//        }
+//    }
     
     
     var consolePrintToggle: some View {

@@ -92,6 +92,12 @@ class AuthState {
                         withAnimation {
                             AppState.shared.shouldShowSplash = true
                         }
+                        
+                        Cody.shared.id = model.user.id
+                        Cody.shared.accountID = model.user.accountID
+                        Cody.shared.name = model.user.name
+                        Cody.shared.initials = model.user.initials
+                        Cody.shared.email = model.user.email
                                             
                         self.isLoggedIn = true
                         self.isThinking = false                        

@@ -14,7 +14,7 @@ struct NavLinkMac: View {
     //@Local(\.colorTheme) var colorTheme
     @Local(\.showIndividualLoadingSpinner) var showIndividualLoadingSpinner
     
-    let destination: NavDestination
+    let destination: NavDest
     let title: String
     let image: String
             

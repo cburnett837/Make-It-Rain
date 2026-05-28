@@ -1,5 +1,5 @@
 //
-//  CBBudget.swift
+//  CBBudgetItem.swift
 //  MakeItRain
 //
 //  Created by Cody Burnett on 10/30/24.
@@ -12,7 +12,10 @@ import SwiftUI
 protocol BudgetItem: AnyObject, Identifiable, Hashable {
     var id: String { get }
     var title: String { get }
+    var amountString: String? { get set }
     var budgetType: BudgetItemType { get }
+    
+    func hasChanges() -> Bool
 }
 
 enum BudgetItemType: Int, CaseIterable {
@@ -45,10 +48,12 @@ extension CBTag: BudgetItem {
 }
 
 @Observable
-class CBBudget: Codable, Identifiable, Hashable, Equatable {
+class CBBudgetItem: Codable, Identifiable, Hashable, Equatable, IsEditableBudget {
     var id: String
     var uuid: String?
+    var monthId: Int?
     var item: (any BudgetItem)?
+    
     var category: CBCategory? {
         get { item as? CBCategory }
         set { item = newValue }
@@ -64,37 +69,10 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
         set { item = newValue }
     }
     
-//    var category: CBCategory?
-//    var categoryGroup: CBCategoryGroup?
     var type: BudgetItemType {
         item?.budgetType ?? .category
     }
-//    var type: XrefItem {
-//        switch item?.budgetType {
-//        case .category:
-//            XrefModel.getItem(from: .budgetTypes, byEnumID: .category)
-//
-//        case .categoryGroup:
-//            XrefModel.getItem(from: .budgetTypes, byEnumID: .categoryGroup)
-//            
-//        case .tag:
-//            XrefModel.getItem(from: .budgetTypes, byEnumID: .tag)
-//
-//        case nil:
-//            XrefModel.getItem(from: .budgetTypes, byEnumID: .category)
-//        }
-//    }
-    
-    var month: Int?
-    var year: Int
-    var date: Date? {
-        if let month {
-            Helpers.createDate(month: month, year: year)!
-        } else {
-            nil
-        }
-    }
-    
+        
     var amount: Double {
         Double(amountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
     }
@@ -107,7 +85,7 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
     var amountString2: String
         
     var active: Bool
-    var action: BudgetAction
+    var action: BudgetItemAction
     
     var appSuiteKey: AppSuiteKey?
 
@@ -117,8 +95,6 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
         self.id = uuid
         self.uuid = uuid        
         self.item = nil
-        self.month = 0
-        self.year = 0
         self.amountString = ""
         self.amountString2 = ""
         self.active = true
@@ -130,8 +106,6 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
         self.id = uuid
         self.uuid = uuid
         self.item = nil
-        self.month = 0
-        self.year = 0
         self.amountString = ""
         self.amountString2 = ""
         self.active = true
@@ -140,22 +114,21 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
     
     
     
-    enum CodingKeys: CodingKey { case id, uuid, category, category_group, category_id, category_group_id, month, year, amount, amount2, active, user_id, account_id, device_uuid, app_suite_key, type_id, item_id, tag }
+    enum CodingKeys: CodingKey { case id, uuid, category, category_group, category_id, category_group_id, amount, amount2, active, user_id, account_id, device_uuid, app_suite_key, type_id, item_id, tag, budget_month_id, item_title }
     
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(uuid, forKey: .uuid)
+        try container.encode(monthId, forKey: .budget_month_id)
         try container.encode(item?.id, forKey: .item_id)
-        //try container.encode(categoryGroup?.id, forKey: .category_group_id)
-        try container.encode(month, forKey: .month)
-        try container.encode(year, forKey: .year)
+        try container.encode(item?.title, forKey: .item_title)
         try container.encode(amount, forKey: .amount)
         try container.encode(active ? 1 : 0, forKey: .active)
-        try container.encode(AppState.shared.user?.id, forKey: .user_id)
-        try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
-        try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
+        try container.encode(Cody.shared.id, forKey: .user_id)
+        try container.encode(Cody.shared.accountID, forKey: .account_id)
+        try container.encode(Cody.shared.deviceUUID, forKey: .device_uuid)
         try container.encode(appSuiteKey?.rawValue, forKey: .app_suite_key)
         try container.encode(type.rawValue, forKey: .type_id)
     }
@@ -169,16 +142,12 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
             id = try container.decode(String.self, forKey: .id)
         }
         
+        monthId = try container.decode(Int?.self, forKey: .budget_month_id)
+        
         let decodedCategory = try container.decodeIfPresent(CBCategory.self, forKey: .category)
         let decodedGroup = try container.decodeIfPresent(CBCategoryGroup.self, forKey: .category_group)
         let decodedTag = try container.decodeIfPresent(CBTag.self, forKey: .tag)
         self.item = decodedCategory ?? decodedGroup ?? decodedTag
-        
-        //self.category = try container.decodeIfPresent(CBCategory.self, forKey: .category)
-        //print(try container.decodeIfPresent(CBCategoryGroup.self, forKey: .category_group)?.title)
-        //self.categoryGroup = try container.decodeIfPresent(CBCategoryGroup.self, forKey: .category_group)
-        month = try container.decode(Int?.self, forKey: .month)
-        year = try container.decode(Int.self, forKey: .year)
                 
         let amount = try container.decode(Double.self, forKey: .amount)
         self.amountString = amount.currencyWithDecimals()
@@ -191,31 +160,19 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
         self.active = isActive == 1 ? true : false
         
         action = .edit
-        
-        if let appSuiteKey = try container.decode(String?.self, forKey: .app_suite_key) {
-            self.appSuiteKey = AppSuiteKey.fromString(appSuiteKey)
-        }
-        
-//        let typeID = try container.decode(Int?.self, forKey: .type_id)
-//        if let typeID = typeID {
-//            self.type = XrefModel.getItem(from: .budgetTypes, byID: typeID)
-//        }
     }
     
     
-    static var empty: CBBudget {
-        CBBudget()
+    static var empty: CBBudgetItem {
+        CBBudgetItem()
     }
     
     
     
     func hasChanges() -> Bool {
         if let deepCopy = deepCopy {
-            if self.month == deepCopy.month
-            && self.year == deepCopy.year
-            && self.amount == deepCopy.amount
+            if self.amount == deepCopy.amount
             && self.amount2 == deepCopy.amount2
-            && self.type.rawValue == deepCopy.type.rawValue
             && self.item?.id == deepCopy.item?.id {
                 return false
             }
@@ -224,32 +181,33 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
     }
     
     
-    var deepCopy: CBBudget?
+    var deepCopy: CBBudgetItem?
     func deepCopy(_ mode: ShadowCopyAction) {
         switch mode {
         case .create:
-            let budget = CBBudget.empty
+            let budget = CBBudgetItem.empty
             budget.id = self.id
-            budget.month = self.month
-            budget.year = self.year
+            budget.monthId = self.monthId
             budget.amountString = self.amountString
             budget.amountString2 = self.amountString2
             budget.category = self.category
             budget.categoryGroup = self.categoryGroup
+            budget.tag = self.tag
+            budget.item = self.item
             budget.active = self.active
-            //budget.type = self.type
             budget.appSuiteKey = self.appSuiteKey
             self.deepCopy = budget
             
         case .restore:
             if let deepCopy = self.deepCopy {
                 self.id = deepCopy.id
-                self.month = deepCopy.month
-                self.year = deepCopy.year
+                self.monthId = deepCopy.monthId
                 self.amountString = deepCopy.amountString
                 self.amountString2 = deepCopy.amountString2
                 self.category = deepCopy.category
                 self.categoryGroup = deepCopy.categoryGroup
+                self.tag = deepCopy.tag
+                self.item = deepCopy.item
                 self.active = deepCopy.active
                 //self.type = deepCopy.type
                 self.appSuiteKey = deepCopy.appSuiteKey
@@ -259,26 +217,28 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
         }
     }
     
-    func setFromAnotherInstance(budget: CBBudget) {
-        self.month = budget.month
-        self.year = budget.year
-                
+    func setFromAnotherInstance(budget: CBBudgetItem) {
+        self.monthId = budget.monthId
         self.amountString = budget.amount.currencyWithDecimals()
         self.amountString2 = budget.amount2.currencyWithDecimals()
-        
         self.category = budget.category
         self.categoryGroup = budget.categoryGroup
+        self.tag = budget.tag
         self.active = budget.active
         self.appSuiteKey = budget.appSuiteKey
         //self.type = budget.type
+        self.item = budget.item
+        
+        //print(category?.title)
+        //print(categoryGroup?.title)
+        //print(tag?.title)
     }
     
    
     
-    static func == (lhs: CBBudget, rhs: CBBudget) -> Bool {
+    static func == (lhs: CBBudgetItem, rhs: CBBudgetItem) -> Bool {
         if lhs.id == rhs.id
-        && lhs.month == rhs.month
-        && lhs.year == rhs.year
+        && lhs.monthId == rhs.monthId
         && lhs.amount == rhs.amount
         && lhs.amount2 == rhs.amount2
         && lhs.type == rhs.type
@@ -291,14 +251,13 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
-    
 }
 
 
 
 //
 //@Observable
-//class CBBudgetGroup: Codable, Identifiable, Hashable, Equatable {
+//class CBBudgetItemGroup: Codable, Identifiable, Hashable, Equatable {
 //    var id: String
 //    var uuid: String?
 //    var group: CBCategoryGroup?
@@ -370,9 +329,9 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
 //        try container.encode(year, forKey: .year)
 //        try container.encode(amount, forKey: .amount)
 //        try container.encode(active ? 1 : 0, forKey: .active)
-//        try container.encode(AppState.shared.user?.id, forKey: .user_id)
-//        try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
-//        try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
+//        try container.encode(Cody.shared.id, forKey: .user_id)
+//        try container.encode(Cody.shared.accountID, forKey: .account_id)
+//        try container.encode(Cody.shared.deviceUUID, forKey: .device_uuid)
 //        try container.encode(appSuiteKey?.rawValue, forKey: .app_suite_key)
 //        try container.encode(type.id, forKey: .type_id)
 //    }
@@ -412,8 +371,8 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
 //    }
 //    
 //    
-//    static var empty: CBBudgetGroup {
-//        CBBudgetGroup()
+//    static var empty: CBBudgetItemGroup {
+//        CBBudgetItemGroup()
 //    }
 //    
 //    
@@ -433,11 +392,11 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
 //    }
 //    
 //    
-//    var deepCopy: CBBudgetGroup?
+//    var deepCopy: CBBudgetItemGroup?
 //    func deepCopy(_ mode: ShadowCopyAction) {
 //        switch mode {
 //        case .create:
-//            let budget = CBBudgetGroup.empty
+//            let budget = CBBudgetItemGroup.empty
 //            budget.id = self.id
 //            budget.month = self.month
 //            budget.year = self.year
@@ -466,7 +425,7 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
 //        }
 //    }
 //    
-//    func setFromAnotherInstance(budget: CBBudgetGroup) {
+//    func setFromAnotherInstance(budget: CBBudgetItemGroup) {
 //        self.month = budget.month
 //        self.year = budget.year
 //                
@@ -481,7 +440,7 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable {
 //    
 //   
 //    
-//    static func == (lhs: CBBudgetGroup, rhs: CBBudgetGroup) -> Bool {
+//    static func == (lhs: CBBudgetItemGroup, rhs: CBBudgetItemGroup) -> Bool {
 //        if lhs.id == rhs.id
 //        && lhs.month == rhs.month
 //        && lhs.year == rhs.year

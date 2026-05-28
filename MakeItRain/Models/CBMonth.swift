@@ -9,68 +9,16 @@ import Foundation
 import UniformTypeIdentifiers
 import SwiftUI
 
-extension UTType {
-    static let transaction = UTType(exportedAs: "com.codyburnett.MakeItRain")
-}
-
-//struct EndOfDayAmounts {
-//    var day: Int
-//    var amounts: [EndOfDayAmount]
-//}
-//
-//struct EndOfDayAmount {
-//    var paymentMethod: CBPaymentMethod
-//    var amount: Double
-//}
-
-
-enum PrevNext {
-    case prev, next
-}
-
-extension [CBMonth] {
-//    func get(actualNum: Int, year: Int) -> CBMonth? {
-//        first(where: { $0.actualNum == actualNum && $0.year == year })
-//    }
-    
-    func get(by pair: (Int, Int)) -> CBMonth? {
-        first(where: { $0.actualNum == pair.0 && $0.year == pair.1 })
-    }
-    
-    func get(byNum num: Int) -> CBMonth? {
-        first(where: { $0.num == num })
-    }
-    
-    func get(byEnumId enumId: NavDestination) -> CBMonth {
-        first(where: { $0.enumID == enumId })!
-    }
-    
-    func getDay(by date: Date) -> CBDay? {
-        
-        let targetMonth = first(where: { $0.actualNum == date.month && $0.year == date.year })
-        //print("targetMonth is \(targetMonth)")
-        let targetDay = targetMonth?.getDay(by: date.day)
-        //print("targetDay is \(targetDay)")
-        return targetDay
-    }
-    
-    func getAdjacent(num: Int, direction: PrevNext) -> CBMonth? {
-        switch direction {
-        case .prev:
-            first(where: { $0.num == num + 1 })
-        case .next:
-            first(where: { $0.num == num - 1 })
-        }
-    }
-}
 
 @Observable
-class CBMonth: Identifiable, Hashable, Equatable, Encodable {
+class CBMonth: Identifiable, Hashable, Equatable, Codable, IsEditableBudget {
     var id: UUID = UUID()
+    var populatedId: Int
     var num: Int = 0
     var actualNum: Int {
         num == 13 ? 1 : num == 0 ? 12 : num
     }
+    
 //    var actualYear: Int {
 //        num == 13 ? self.year + 1 : num == 0 ? self.year - 1 : year
 //    }
@@ -78,8 +26,18 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
     var year: Int
     var days: Array<CBDay> = []
     var startingAmounts: Array<CBStartingAmount> = []
-    var budgets: Array<CBBudget> = []
-    var budgetGroups: Array<CBBudget> = []
+    /// This is the budget amount. It has to be called amount in order for this class to conform to ``IsEditableBudget``.
+    var amount: Double { Double(amountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
+    var amountString: String
+    
+    /// Just a helper since the variable `amount` is ambigious.
+    /// However, the variable `amount` is required for conformance to ``IsEditableBudget``.
+    var budget: Double {
+        return amount
+    }
+    
+    var budgets: Array<CBBudgetItem> = []
+    var budgetGroups: Array<CBBudgetItem> = []
     var hasBeenPopulated = false
     /// Control the main spinner that covers the calendar during initial download, and during a user-initiated refresh.
     /// When refreshing via long poll or scene change, this spinner is ignored.
@@ -88,11 +46,14 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
     /// Control the secondary loading spinner. This is used on the insights sheet month picker, for example.
     /// It should always show when a download is happening - regardless of the download technique.
     var showSecondaryLoadingSpinner = false
+
+    
+    /// Use this to determine when we can navigate away from the splash screen when cold-launching from the plaid widget.
+    var hasBeenLoadedFromServer = false
     
     var isTodayMonth: Bool {
         self.actualNum == AppState.shared.todayMonth && self.year == AppState.shared.todayYear
     }
-    
     
     var prettyName: String {
         if (year == 1901 && actualNum == 1) || (year == 1899 && actualNum == 12) || year == 1900 {
@@ -102,66 +63,16 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
         }
     }
     
-    func changeLoadingSpinners(toShowing: Bool, includeCalendar: Bool) {
-        if toShowing {
-            if includeCalendar {
-                showCalendarLoadingSpinner = true
-            }
-            showSecondaryLoadingSpinner = true
-        } else {
-            showSecondaryLoadingSpinner = false
-            showCalendarLoadingSpinner = false
-            
-        }
-    }
-    
     var legitDays: Array<CBDay> {
         days.filter { !$0.isPlaceholder }
     }
-    
-//    @MainActor var eods: Array<EndOfDayAmounts> {
-//        var returns: Array<EndOfDayAmounts> = []
-//        
-//        for payMeth in PayMethodModel.shared.paymentMethods {
-//            let startingAmount = startingAmounts.filter { $0.payMethod.id == payMeth.id }.first ?? CBStartingAmount()
-//            var currentAmount = startingAmount.amount
-//            
-//            for day in days {
-//                var amounts: Array<EndOfDayAmount> = []
-//                
-//                if payMeth.accountType == .checking {
-//                    let dayTotal = day.transactions
-//                        .filter { $0.payMethod?.id == payMeth.id }
-//                        .filter { $0.active }
-//                        .filter { $0.factorInCalculations == true }
-//                        .map { $0.amount }
-//                        
-//                    currentAmount += dayTotal.reduce(0.0, +)
-//                    
-//                    let thing = EndOfDayAmount(paymentMethod: payMeth, amount: currentAmount)
-//                    amounts.append(thing)
-//                }
-//                
-//                let final = EndOfDayAmounts(day: day.id, amounts: amounts)
-//                returns.append(final)
-//            }
-//                                    
-//        }
-//        
-//        return returns
-//    }
-    
     
     var justTransactions: Array<CBTransaction> {
         self.days.flatMap { $0.transactions }
     }
     
-//    var transactionCount: Int {
-//        justTransactions.count
-//    }
-    
     var transactionTotals: Double {
-        justTransactions.map {$0.amount}.reduce(0.0, +)
+        justTransactions.map { $0.amount }.reduce(0.0, +)
     }
     
     var dayCount: Int {
@@ -246,7 +157,7 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
         }
     }
     
-    var enumID: NavDestination {
+    var enumID: NavDest {
         switch num {
         case 0:
             return .lastDecember
@@ -279,7 +190,7 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
         case 100000:
             return .placeholderMonth
         default:
-            return .january
+            return .placeholderMonth
         }
     }
     
@@ -296,10 +207,13 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
         } else {
             self.year = Calendar.current.component(.year, from: Date())
         }
+        
+        self.amountString = "0"
+        self.populatedId = 0
     }
     
     
-    enum CodingKeys: CodingKey { case month, year, user_id, account_id, device_uuid, is_today_month }
+    enum CodingKeys: CodingKey { case month, year, user_id, account_id, device_uuid, is_today_month, budget, populated_id, id, budget_amount }
         
     func encode(to encoder: Encoder) throws {
         let formatter = NumberFormatter()
@@ -310,10 +224,22 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(optionalString, forKey: .month)
         try container.encode(String(year), forKey: .year)
-        try container.encode(AppState.shared.user?.id, forKey: .user_id)
-        try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
-        try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
+        try container.encode(amount, forKey: .budget)
+        try container.encode(populatedId, forKey: .populated_id)
+        try container.encode(Cody.shared.id, forKey: .user_id)
+        try container.encode(Cody.shared.accountID, forKey: .account_id)
+        try container.encode(Cody.shared.deviceUUID, forKey: .device_uuid)
         try container.encode(isTodayMonth ? 1 : 0, forKey: .is_today_month)
+    }
+    
+    
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        num = try container.decode(Int.self, forKey: .month)
+        year = try container.decode(Int.self, forKey: .year)
+        amountString = String(try container.decode(Double.self, forKey: .budget_amount))
+        populatedId = try container.decode(Int.self, forKey: .id)
     }
                 
     
@@ -335,13 +261,51 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
         hasher.combine(id)
     }
     
-    
     func getDay(by date: Date) -> CBDay? {
         return days.first(where: { $0.date == date })
     }
     
     func getDay(by dayNum: Int) -> CBDay? {
         return days.first(where: { $0.dateComponents?.day == dayNum })
+    }
+    
+    func hasChanges() -> Bool {
+        if let deepCopy = deepCopy {
+            if self.amount == deepCopy.amount {
+                return false
+            }
+        }
+        return true
+    }
+        
+    var deepCopy: CBMonth?
+    func deepCopy(_ mode: ShadowCopyAction) {
+        switch mode {
+        case .create:
+            let month = CBMonth(num: self.num)
+            month.amountString = self.amountString
+            self.deepCopy = month
+            
+        case .restore:
+            if let deepCopy = self.deepCopy {
+                self.amountString = deepCopy.amountString
+            }
+        case .clear:
+            break
+        }
+    }
+    
+    func changeLoadingSpinners(toShowing: Bool, includeCalendar: Bool) {
+        if toShowing {
+            if includeCalendar {
+                showCalendarLoadingSpinner = true
+            }
+            showSecondaryLoadingSpinner = true
+        } else {
+            showSecondaryLoadingSpinner = false
+            showCalendarLoadingSpinner = false
+            
+        }
     }
     
 //    static var empty: CBMonth {
@@ -388,25 +352,55 @@ class CBMonth: Identifiable, Hashable, Equatable, Encodable {
 //    }
 
     // MARK: - Budgets
-    func isExisting(_ budget: CBBudget) -> Bool {
+    func isExisting(_ budget: CBBudgetItem) -> Bool {
         return !budgets.filter { $0.id == budget.id }.isEmpty
     }
     
-    func getBudget(by id: String) -> CBBudget {
-        return budgets.filter { $0.id == id }.first ?? CBBudget.empty
+    func getBudget(by id: String) -> CBBudgetItem {
+        return budgets.filter { $0.id == id }.first ?? CBBudgetItem.empty
     }
     
-    func getIndex(for budget: CBBudget) -> Int? {
+    func getIndex(for budget: CBBudgetItem) -> Int? {
         return budgets.firstIndex(where: { $0.id == budget.id })
     }
 
-    func upsert(_ budget: CBBudget) {
+    func upsert(_ budget: CBBudgetItem) {
         if !isExisting(budget) {
             budgets.append(budget)
         }
     }
     
-    func delete(_ budget: CBBudget) {
+    func delete(_ budget: CBBudgetItem) {
         budgets.removeAll(where: { $0.id == budget.id })
     }            
+}
+
+
+extension [CBMonth] {
+    func get(by monthAndYear: (Int, Int)) -> CBMonth? {
+        first(where: { $0.actualNum == monthAndYear.0 && $0.year == monthAndYear.1 })
+    }
+    
+    func get(byNum num: Int) -> CBMonth? {
+        first(where: { $0.num == num })
+    }
+    
+    func get(byEnumId enumId: NavDest) -> CBMonth {
+        first(where: { $0.enumID == enumId })!
+    }
+    
+    func getDay(by date: Date) -> CBDay? {
+        let targetMonth = first(where: { $0.actualNum == date.month && $0.year == date.year })
+        let targetDay = targetMonth?.getDay(by: date.day)
+        return targetDay
+    }
+    
+    func getAdjacent(num: Int, direction: PrevNext) -> CBMonth? {
+        switch direction {
+        case .prev:
+            first(where: { $0.num == num + 1 })
+        case .next:
+            first(where: { $0.num == num - 1 })
+        }
+    }
 }

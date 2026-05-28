@@ -16,6 +16,7 @@ struct CatChartRawDataListLine: View {
     @Environment(\.dismissWindow) private var dismissWindow
     #endif
     @Environment(CalendarModel.self) var calModel
+    @Environment(AppStore.self) var store
     
     @Bindable var category: CBCategory
     var data: CategoryAnalyticData
@@ -62,8 +63,8 @@ struct CatChartRawDataListLine: View {
         calModel.sPayMethod = nil
         calModel.sCategories = [category]
         
-        calModel.categoryFilterWasSetByCategoryPage = true
-        let monthEnum = NavDestination.getMonthFromInt(data.month)
+        store.categoryFilterWasSetByCategoryPage = true
+        let monthEnum = NavDest.getMonthFromInt(data.month)
         calModel.sYear = data.year
         
         #if os(iOS)

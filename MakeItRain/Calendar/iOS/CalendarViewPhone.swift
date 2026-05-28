@@ -10,16 +10,27 @@ import PhotosUI
 import Charts
 import TipKit
 
-enum BottomPanelContent {
-    case overviewDay, smartTransactionsWithIssues, categoryAnalysis, multiSelectOptions, plaidTransactions, transactionList
-}
-
 fileprivate let BOTTOM_PANEL_HEIGHT: CGFloat = 260
 
-
-enum CalendarNavDest: Hashable {
-    case plaidRejectPage, budgets, dashboard, transactionList, multiTransChangeDate, dashboardNumericBreakdown, dashboardTransactionList(DashboardData, CBCategory)
+enum BottomPanelContent {
+    case overviewDay,
+         smartTransactionsWithIssues,
+         categoryAnalysis,
+         multiSelectOptions,
+         plaidTransactions,
+         transactionList
 }
+//
+//enum CalendarNavDest: Hashable {
+//    case plaidRejectPage,
+//         budgets,
+//         dashboard,
+//         transactionList,
+//         multiTransChangeDate,
+//         dashboardNumericBreakdown,
+//         dashboardTransactionList(DashboardData, CBCategory),
+//         budgetOverview(CBBudgetItem)
+//}
 
 
 #if os(iOS)
@@ -38,33 +49,21 @@ struct CalendarViewPhone: View {
     @Environment(PlaidModel.self) private var plaidModel
     @Environment(AppStore.self) private var store
     
-    @State private var dashboardModel: DashboardModel
+    //@State private var dashboardModel: DashboardModel
     
     #warning("NOTE BINDINGS ARE NOT ALLOWED TO BE PASSED TO THE CALENDAR VIEW")
-    let enumID: NavDestination
+    let enumID: NavDest
     
-    init(enumID: NavDestination, store: AppStore) {
-        self.enumID = enumID
-        let dashboardModel = DashboardModel(store: store)
-        self._dashboardModel = State(initialValue: dashboardModel)
-    }
+//    init(enumID: NavDest, store: AppStore) {
+//        self.enumID = enumID
+//        let dashboardModel = DashboardModel(store: store)
+//        self._dashboardModel = State(initialValue: dashboardModel)
+//    }
     
     @FocusState private var searchFocused: Int?
     @State private var lastBalanceUpdateTimer: Timer?
     @State private var showDemoSheet = false
-    /// Used to navigate to additional pages in the bottom panel. (I.E. Plaid transactions reject all before date)
-    @State private var navPath: [CalendarNavDest] = []
-    //@State private var showSearchBar = true
-    
-    /// Retain this here so we don't lose the data when we leave the sheet
-    @State private var categoryAnalysisModel = CivViewModel()
-    @State private var overviewAnalysisModel = CivViewModel()
     @State private var selectedPlaidFilterMeth: CBPaymentMethod?
-        
-    
-    //@State private var oldNavPath: [CalendarNavDest] = []
-    //@State private var newNavPath: [CalendarNavDest] = []
-
     @State private var shouldLoadDashboard = true
     
     var searchPrompt: String {
@@ -85,7 +84,7 @@ struct CalendarViewPhone: View {
         /// Wrap in a geoReader so I can get the safe area insets and adjust the calendar accordingly.
         GeometryReader { geo in
             NavigationStack(path: $calProps.navPath) {
-                VStack {
+                VStack {                    
                     if calModel.sMonth.enumID == enumID {
                         if AppState.shared.isIphone {
                             calChunkIphone
@@ -100,13 +99,13 @@ struct CalendarViewPhone: View {
 //                            .frame(maxWidth: .infinity, maxHeight: .infinity)
 //                    }
                 }
-                .navigationDestination(for: CalendarNavDest.self) { dest in
+                .navigationDestination(for: NavDest.self) { dest in
                     switch dest {
                     case .dashboard:
                         Dashboard(
                             navPath: $calProps.navPath,
                             showAnalysisSheet: $calProps.showAnalysisSheet,
-                            model: dashboardModel,
+                            model: calModel.dashboardModel,
                             isForSelectedMonth: true
                         )
                         
@@ -114,22 +113,47 @@ struct CalendarViewPhone: View {
                         DashboardTransactionList(data: data, category: category)
                         
                     case .dashboardNumericBreakdown:
-                        DashboardNumericDetails(model: dashboardModel, isForSelectedMonth: true)
+                        DashboardNumericDetails(model: calModel.dashboardModel, isForSelectedMonth: true)
                         
                     case .plaidRejectPage:
-                        ClearPlaidBeforeDateView(
-                            selectedMeth: $selectedPlaidFilterMeth,
-                            navPath: $calProps.navPath
-                        )
+                        ClearPlaidBeforeDateView(selectedMeth: $selectedPlaidFilterMeth, navPath: $calProps.navPath)
                         
                     case .budgets:
-                        BudgetTable()
+                        MonthlyBudgetTable()
                         
                     case .transactionList:
                         TransactionListView(showTransactionListSheet: $calProps.showTransactionListSheet)
                         
                     case .multiTransChangeDate:
                         MultiSelectChangeDatePage(navPath: $calProps.navPath)
+                        
+                    case .budgetOverview(let budget):
+                        BudgetOverview(budget: budget, location: .monthList)
+                        
+                    default:
+                        Text("That destination is not supported from the calendar.")
+                    }
+                }
+                .onChange(of: calModel.dashboardModel.data) { oldValue, newValue in
+                    print("🤪 DATA CHANGED \(newValue.categoryGroups.map {$0.budgetAmount})")
+                }
+                .onChange(of: searchFocused) { old, new in
+                    withAnimation {
+                        if new == 0 {
+                            store.sPayMethodWhenSearchWasFocused = store.sPayMethod
+                            store.sPayMethod = nil
+                        } else if calModel.searchText.isEmpty {
+                            store.sPayMethod = store.sPayMethodWhenSearchWasFocused
+                            store.sPayMethodWhenSearchWasFocused = nil
+                        }
+                    }
+                }
+                .onChange(of: calModel.searchText) { old, new in
+                    withAnimation {
+                        if new.isEmpty {
+                            store.sPayMethod = store.sPayMethodWhenSearchWasFocused
+                            store.sPayMethodWhenSearchWasFocused = nil
+                        }
                     }
                 }
                 .searchable(text: $calModel.searchText, prompt: searchPrompt)
@@ -141,14 +165,15 @@ struct CalendarViewPhone: View {
                 //.navigationBarBackButtonHidden(true)
                 //.navigationTitle("Calendar")
                 .toolbar { CalendarToolbar() }
-                /// Prevent the dashboard for loading again after coming back to the calendar from the dashboard.
-                .onChange(of: calProps.navPath) { if $1.first == CalendarNavDest.dashboard { shouldLoadDashboard = false } }
-                .onChange(of: calProps.dashboardIsDirty) { if $1 { Task { await loadDashboard() } } }
+                /// Prevent the dashboard from loading again after coming back to the calendar from the dashboard.
+                .onChange(of: calProps.navPath) { if $1.first == NavDest.dashboard { shouldLoadDashboard = false } }
+                //.onChange(of: calProps.dashboardIsDirty) { if $1 { Task { await loadDashboard() } } }
                 /// Using this instead of a task because the iPad doesn't reload `CalendarView`. It just changes the data source.
                 .onChange(of: enumID, initial: true, onChangeOfMonthEnumID)
+                /// When searching, clear the seleted payment method so everything for the month is visible.
                 .onShake {
                     /// Prevent "shake to reset" from happening when viewing the month via the analytic page.
-                    if !calModel.categoryFilterWasSetByCategoryPage {
+                    if !store.categoryFilterWasSetByCategoryPage {
                         /// Prevent resetting when shaking to undo on a transaction.
                         if calProps.transEditID == nil {
                             resetMonthState()
@@ -361,7 +386,7 @@ struct CalendarViewPhone: View {
             let month = calModel.months.filter { $0.enumID == enumID }.first!
             
             payModel.prepareStartingAmounts(for: month, calModel: calModel)
-            calModel.setSelectedMonthFromNavigation(navID: enumID, calculateStartingAndEod: true)
+            await calModel.setSelectedMonthFromNavigation(navID: enumID, calculateStartingAndEod: true)
             
             /// Set the selected day so new transactions have a default date.
             /// If in the current month, set to today.
@@ -369,29 +394,34 @@ struct CalendarViewPhone: View {
             let targetDay = month.days.filter { $0.dateComponents?.day == (month.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
             calProps.selectedDay = targetDay
             
-            /// Run this when switching months.
+            /// Run this when switching months.xz
             /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
             /// So we use the ``DataChangeTriggers`` class to send a notification to the view to tell it to recalculate.
             DataChangeTriggers.shared.viewDidChange(.calendar)
             
-            if shouldLoadDashboard {
-                await loadDashboard()
-            }
+//            if shouldLoadDashboard {
+//                await loadDashboard()
+//            }
         }
     }
     
     
-    func loadDashboard() async {
-        dashboardModel.resetSelf()
-        
-        let month = calModel.months.filter { $0.enumID == enumID }.first!
-        
-        dashboardModel.beginDate = month.legitDays.first!.date!//.startDateOfMonth// ?? Date().startDateOfMonth
-        dashboardModel.endDate = month.legitDays.last!.date!//.endDateOfMonth// ?? Date().endDateOfMonth
-                
-        await dashboardModel.initialFetchIfApplicable(calModel: calModel, catModel: catModel)
-        calProps.dashboardIsDirty = false
-    }
+//    func loadDashboard() async {
+//        //try? await Task.sleep(for: .seconds(5))
+//        calModel.dashboardModel.resetSelf()
+//        
+//        let month = calModel.months.filter { $0.enumID == enumID }.first!
+//        
+//        if let firstDate = month.legitDays.first?.date,
+//           let lastDate = month.legitDays.last?.date {
+//            
+//            calModel.dashboardModel.beginDate = firstDate
+//            calModel.dashboardModel.endDate = lastDate
+//            
+//            await calModel.dashboardModel.initialFetchIfApplicable(calModel: calModel, isForSelectedMonth: true)
+//            //calProps.dashboardIsDirty = false
+//        }
+//    }
 }
 
 #endif

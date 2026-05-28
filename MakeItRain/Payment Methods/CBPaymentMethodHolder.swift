@@ -58,9 +58,9 @@
 //        try container.encode(updatedBy, forKey: .updated_by)
 //        try container.encode(enteredDate.string(to: .serverDateTime), forKey: .entered_date)
 //        try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date)
-//        try container.encode(AppState.shared.user?.id, forKey: .user_id)
-//        try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
-//        try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
+//        try container.encode(Cody.shared.id, forKey: .user_id)
+//        try container.encode(Cody.shared.accountID, forKey: .account_id)
+//        try container.encode(Cody.shared.deviceUUID, forKey: .device_uuid)
 //    }
 //    
 //    

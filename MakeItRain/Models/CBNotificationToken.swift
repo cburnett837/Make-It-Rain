@@ -25,7 +25,7 @@ class CBNotificationToken: Encodable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(accountID, forKey: .account_id)
-        try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
+        try container.encode(Cody.shared.deviceUUID, forKey: .device_uuid)
         try container.encode(notificationToken, forKey: .notification_token)
 
     }

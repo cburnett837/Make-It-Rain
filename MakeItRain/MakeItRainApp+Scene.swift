@@ -25,6 +25,8 @@ extension MakeItRainApp {
                 .environment(dataChangeTriggers)
                 .environment(webSocketManager)
                 .environment(store)
+                .environment(budgetModel)
+                .environment(tagModel)
         }
         .windowStyle(.hiddenTitleBar)
         /// Prevent a blank in the "windows" menu in the toolbar from being present.
@@ -49,6 +51,8 @@ extension MakeItRainApp {
                 .environment(dataChangeTriggers)
                 .environment(webSocketManager)
                 .environment(store)
+                .environment(budgetModel)
+                .environment(tagModel)
         }
         .auxilaryWindow()
     }
@@ -68,6 +72,8 @@ extension MakeItRainApp {
                 .environment(dataChangeTriggers)
                 .environment(webSocketManager)
                 .environment(store)
+                .environment(budgetModel)
+                .environment(tagModel)
         }
         .auxilaryWindow()
     }
@@ -94,6 +100,8 @@ extension MakeItRainApp {
             .environment(dataChangeTriggers)
             .environment(webSocketManager)
             .environment(store)
+            .environment(budgetModel)
+            .environment(tagModel)
 //            CategoryInsightsSheet(showAnalysisSheet: .constant(true))
 //                .frame(minWidth: 300, minHeight: 500)
 //                .environment(funcModel)
@@ -131,7 +139,7 @@ extension MakeItRainApp {
 
     @SceneBuilder
     var monthlyPlaceholderWindow: some Scene {
-        WindowGroup("MonthlyWindowPlaceHolder", id: "monthlyWindow", for: NavDestination?.self) { dest in
+        WindowGroup("MonthlyWindowPlaceHolder", id: "monthlyWindow", for: NavDest?.self) { dest in
             let width = ((NSScreen.main?.visibleFrame.width ?? 500) / 3) * 2
             let height = ((NSScreen.main?.visibleFrame.height ?? 500) / 4) * 3
                         
@@ -156,6 +164,8 @@ extension MakeItRainApp {
                     .environment(dataChangeTriggers)
                     .environment(webSocketManager)
                     .environment(store)
+                    .environment(budgetModel)
+                    .environment(tagModel)
                     //.environment(mapModel)
                     .onAppear {
                         if let window = NSApp.windows.first(where: { $0.title.contains("MonthlyWindowPlaceHolder") }) {
@@ -189,6 +199,8 @@ extension MakeItRainApp {
                 .environment(dataChangeTriggers)
                 .environment(webSocketManager)
                 .environment(store)
+                .environment(budgetModel)
+                .environment(tagModel)
                 //.environment(mapModel)
         }
     }

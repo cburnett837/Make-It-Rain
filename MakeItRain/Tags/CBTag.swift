@@ -18,6 +18,7 @@ class CBTag: Codable, Identifiable {
     var action: TagAction
     var isNew = false
     var isHidden: Bool = false
+    var amountString: String? /// Just here for ``BudgetItem`` Protocol Conformance
     
     init() {
         let uuid = UUID().uuidString
@@ -50,9 +51,9 @@ class CBTag: Codable, Identifiable {
         try container.encode(active ? 1 : 0, forKey: .active)
         try container.encode(isNew ? 1 : 0, forKey: .is_new)
         try container.encode(isHidden ? 1 : 0, forKey: .is_hidden)
-        try container.encode(AppState.shared.user?.id, forKey: .user_id)
-        try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
-        try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
+        try container.encode(Cody.shared.id, forKey: .user_id)
+        try container.encode(Cody.shared.accountID, forKey: .account_id)
+        try container.encode(Cody.shared.deviceUUID, forKey: .device_uuid)
         
     }
     
@@ -77,12 +78,6 @@ class CBTag: Codable, Identifiable {
         action = .edit
     }
     
-    
-    static var empty: CBTag {
-        CBTag()
-    }
-    
-    
     func hasChanges() -> Bool {
         if let deepCopy = deepCopy {
             if self.title == deepCopy.title {
@@ -97,7 +92,7 @@ class CBTag: Codable, Identifiable {
     func deepCopy(_ mode: ShadowCopyAction) {
         switch mode {
         case .create:
-            let copy = CBTag.empty
+            let copy = CBTag()
             copy.id = self.id
             copy.title = self.title
             copy.isHidden = self.isHidden
@@ -118,17 +113,14 @@ class CBTag: Codable, Identifiable {
     
     
     func setFromAnotherInstance(tag: CBTag) {
+        self.id = tag.id
         self.title = tag.title
         self.active = tag.active
+        self.isNew = tag.isNew
         self.isHidden = tag.isHidden
     }
     
     
-    
-}
-
-
-extension CBTag: Equatable, Hashable {
     static func == (lhs: CBTag, rhs: CBTag) -> Bool {
         if lhs.id == rhs.id
         && lhs.title == rhs.title
@@ -143,6 +135,3 @@ extension CBTag: Equatable, Hashable {
         hasher.combine(id)
     }
 }
-
-
-import Foundation

@@ -147,14 +147,14 @@ struct TempTransactionList: View {
         /// Populate each month object with its day objects.
         calModel.prepareMonths()
         
-        let targetMonth = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+        let targetMonth = NavDest.getMonthFromInt(AppState.shared.todayMonth)
         
         if let month = calModel.months.filter({ $0.enumID == targetMonth }).first {
             payModel.prepareStartingAmounts(for: month, calModel: calModel)
         }
         
         /// Set the selected month so the app functions normally.
-        calModel.setSelectedMonthFromNavigation(navID: targetMonth!, calculateStartingAndEod: false)
+        await calModel.setSelectedMonthFromNavigation(navID: targetMonth!, calculateStartingAndEod: false)
         
         /// Get today from the current selected month and set it to the selected day for the transaction.
         let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first

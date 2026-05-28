@@ -49,9 +49,9 @@ class CBPlaidTransaction: Codable, Identifiable {
         try container.encode(id, forKey: .id)
         try container.encode(plaidID, forKey: .plaid_id)
         try container.encode(isAcknowledged ? 1 : 0, forKey: .is_acknowledged)
-        try container.encode(AppState.shared.user?.id, forKey: .user_id)
-        try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
-        try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
+        try container.encode(Cody.shared.id, forKey: .user_id)
+        try container.encode(Cody.shared.accountID, forKey: .account_id)
+        try container.encode(Cody.shared.deviceUUID, forKey: .device_uuid)
     }
     
     required init(from decoder: Decoder) throws {

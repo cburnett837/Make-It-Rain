@@ -20,9 +20,9 @@
 //    @Environment(CalendarModel.self) private var calModel
 //    @Environment(CategoryModel.self) private var catModel
 //    
-//    @State private var deleteBudget: CBBudget?
-//    @State private var editBudget: CBBudget?
-//    @State private var budgetEditID: CBBudget.ID?
+//    @State private var deleteBudget: CBBudgetItem?
+//    @State private var editBudget: CBBudgetItem?
+//    @State private var budgetEditID: CBBudgetItem.ID?
 //    
 //    @State private var selectedBudget: String?
 //    @State private var selectedAngle: Double?
@@ -253,16 +253,16 @@
 //        @AppStorage("threshold") var threshold = "500.0"
 //        @Environment(CalendarModel.self) private var calModel
 //        
-//        @Binding var budgetEditID: CBBudget.ID?
+//        @Binding var budgetEditID: CBBudgetItem.ID?
 //        @Binding var selectedBudget: String?
 //                
-//        //@State private var sortOrder = [KeyPathComparator(\CBBudget.category?.title)]
+//        //@State private var sortOrder = [KeyPathComparator(\CBBudgetItem.category?.title)]
 //        @State private var labelWidth: CGFloat = 20.0
 //        
 //                        
 //        var body: some View {
 //            VStack(spacing: 0) {
-//                Table(of: CBBudget.self, selection: $budgetEditID/*, sortOrder: $sortOrder*/) {
+//                Table(of: CBBudgetItem.self, selection: $budgetEditID/*, sortOrder: $sortOrder*/) {
 //                    TableColumn("Category") { budget in
 //                        HStack(spacing: 4) {
 //                            if let emoji = budget.category?.emoji {
@@ -355,7 +355,7 @@
 //        @AppStorage("threshold") var threshold = "500.0"
 //        @Environment(CalendarModel.self) private var calModel
 //    
-//        @Binding var budgetEditID: CBBudget.ID?
+//        @Binding var budgetEditID: CBBudgetItem.ID?
 //        @Binding var selectedBudget: String?
 //        
 //        @State private var labelWidth: CGFloat = 20.0

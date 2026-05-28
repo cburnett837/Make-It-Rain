@@ -94,7 +94,7 @@ class CategoryModel {
                 
                 let wasSuccessful = await submit(category)
                 if wasSuccessful {
-                    var budgetsToServer: Array<CBBudget> = []
+                    var budgetsToServer: Array<CBBudgetItem> = []
                     
                     /// Update the category info on the associated keywords.
                     //let context = DataManager.shared.createContext()
@@ -110,44 +110,31 @@ class CategoryModel {
                         /// Update the local transactions with the new category info.
                         month.days.forEach { day in
                             day.transactions.filter { $0.category?.id == category.id }.forEach { transaction in
-                                transaction.category = category
+                                transaction.category?.setFromAnotherInstance(category: category)
                             }
                         }
                         
-                        /// Handle normal categories.
-                        if category.appSuiteKey == nil {
-                            if let index = month.budgets.firstIndex(where: { $0.category?.id == category.id }) {
-                                /// Update the months budget with the new category info (if applicable).
-                                month.budgets[index].category = category
-                                
-                            } else if !month.budgets.isEmpty {
-                                /// If a budget has already been created for the month, add the new category (if applicable).
-                                
-                                let budget = CBBudget()
-                                budget.month = month.actualNum
-                                budget.year = month.year
-                                budget.amountString = category.amountString ?? ""
-                                budget.category = category
-                                
-                                budgetsToServer.append(budget)
-                                month.budgets.append(budget)
-                            }
-                        }
-                        /// Handle special categories (Like the christmas budget)
-                        else {
-                            //print("HERE!!!!")
-                            //                            if let index = month.budgets.firstIndex(where: { $0.category?.id == category.id }) {
-                            //                                calModel.appSuiteBudgets[index].category = category
-                            //                            }
+                        if let index = month.budgets.firstIndex(where: { $0.category?.id == category.id }) {
+                            /// Update the months budget with the new category info (if applicable).
+                            //month.budgets[index].category = category
                             
-                            if let index = store.appSuiteBudgets.firstIndex(where: { $0.category?.id == category.id }) {
-                                store.appSuiteBudgets[index].category = category
-                            }
+                        } else if !month.budgets.isEmpty {
+                            /// If a budget has already been created for the month, add the new category (if applicable).
+                            
+                            let budget = CBBudgetItem()
+                            budget.monthId = month.populatedId
+                            //budget.month = month.actualNum
+                            //budget.year = month.year
+                            budget.amountString = category.amountString ?? ""
+                            budget.category = category
+                            
+                            budgetsToServer.append(budget)
+                            month.budgets.append(budget)
                         }
                     }
                     
                     if !budgetsToServer.isEmpty {
-                        let _ = await submitNewBudgets(budgets: budgetsToServer)
+                        let _ = await submitNewBudgetsOnBehalfOfCategory(budgets: budgetsToServer)
                     }
                 }
             }
@@ -535,7 +522,7 @@ class CategoryModel {
     
     
     @MainActor
-    func submitNewBudgets(budgets: Array<CBBudget>) async -> Bool {
+    private func submitNewBudgetsOnBehalfOfCategory(budgets: Array<CBBudgetItem>) async -> Bool {
         print("-- \(#function)")
         /// Allow more time to save if the user enters the background.
         #if os(iOS)

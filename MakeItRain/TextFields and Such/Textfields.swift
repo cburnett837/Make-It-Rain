@@ -899,6 +899,7 @@ struct UITextFieldWrapper</*Keyboard: View, */Toolbar: View>: UIViewRepresentabl
             switch customType {
             case .numpad:
                 let keyboardView = CustomDecimalKeyboard(text: $text)
+                    .padding(.top, 14) /// iOS 26.4.2 seemed to mess up the framing calculations
                 let inputController = UIHostingController(rootView: keyboardView)
                 inputController.view.backgroundColor = .clear
                 inputController.view.frame = .init(origin: .zero, size: inputController.view.intrinsicContentSize)
@@ -907,6 +908,7 @@ struct UITextFieldWrapper</*Keyboard: View, */Toolbar: View>: UIViewRepresentabl
                 textField.inputAssistantItem.trailingBarButtonGroups = []
             case .calculator:
                 let keyboardView = CustomCalculatorKeyboard(text: $text)
+                    .padding(.top, 14) /// iOS 26.4.2 seemed to mess up the framing calculations
                 let inputController = UIHostingController(rootView: keyboardView)
                 inputController.view.backgroundColor = .clear
                 inputController.view.frame = .init(origin: .zero, size: inputController.view.intrinsicContentSize)

@@ -239,7 +239,7 @@ struct CatChartRawDataListForGroup: View {
             var monthlyResult: [MonthlyData] = []
 
             for (month, monthItems) in groupedByMonth {
-                let monthName = NavDestination.getMonthFromInt(month)?.displayName ?? "N/A"
+                let monthName = NavDest.getMonthFromInt(month)?.displayName ?? "N/A"
                 let income = monthItems.reduce(0.0) { $0 + $1.income }
                 let expenses = monthItems.reduce(0.0) { $0 + $1.expenses }
                 let budget = monthItems.reduce(0.0) { $0 + $1.budget }

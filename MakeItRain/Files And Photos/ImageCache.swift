@@ -81,4 +81,8 @@ class ImageCache {
             ImageCache.shared.cache.removeObject(forKey: NSString(string: key))
         }
     }
+    
+    func empty() {
+        ImageCache.shared.cache.removeAllObjects()
+    }
 }

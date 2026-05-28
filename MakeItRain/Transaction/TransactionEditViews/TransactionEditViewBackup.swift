@@ -18,7 +18,7 @@
 //    case location, history
 //}
 //
-//enum TransNavDestination: Hashable {
+//enum TransNavDest: Hashable {
 //    case options, logs, titleColorMenu
 //}
 //
@@ -228,7 +228,7 @@
 //                    .if(trans.relatedTransactionID != nil || trans.christmasListGiftID != nil) { $0.navigationSubtitle(linkedLingo!) }
 //                    .navigationBarTitleDisplayMode(.inline)
 //                    .toolbar { toolbar }
-//                    .navigationDestination(for: TransNavDestination.self) { dest in
+//                    .navigationDestination(for: TransNavDest.self) { dest in
 //                        switch dest {
 //                        case .options:
 //                            TransactionEditViewMoreOptions(
@@ -354,7 +354,7 @@
 //        }
 //        
 //        ToolbarItem(placement: .bottomBar) {
-//            NavigationLink(value: TransNavDestination.logs) {
+//            NavigationLink(value: TransNavDest.logs) {
 //                EnteredByAndUpdatedByView(
 //                    enteredBy: trans.enteredBy,
 //                    updatedBy: trans.updatedBy,
@@ -1224,7 +1224,7 @@
 ////                .schemeBasedForegroundStyle()
 ////        }
 //        
-//        NavigationLink(value: TransNavDestination.options) {
+//        NavigationLink(value: TransNavDest.options) {
 //            Image(systemName: "ellipsis")
 //                .schemeBasedForegroundStyle()
 //        }

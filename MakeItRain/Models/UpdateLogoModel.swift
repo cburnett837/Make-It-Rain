@@ -26,9 +26,9 @@ class UpdateLogoModel: Encodable {
         try container.encode(parentID, forKey: .parent_id)
         try container.encode(parentType?.rawValue, forKey: .parent_type)
         try container.encode(logoString, forKey: .logo_string)
-        try container.encode(AppState.shared.user?.id, forKey: .user_id)
-        try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
-        try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
+        try container.encode(Cody.shared.id, forKey: .user_id)
+        try container.encode(Cody.shared.accountID, forKey: .account_id)
+        try container.encode(Cody.shared.deviceUUID, forKey: .device_uuid)
 
     }
 }

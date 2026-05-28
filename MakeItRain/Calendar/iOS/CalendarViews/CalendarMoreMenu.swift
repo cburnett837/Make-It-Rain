@@ -72,7 +72,7 @@ struct CalendarMoreMenu: View {
             if AppState.shared.isIphone {
                 /// Sheet is in ``CalendarMoreMenu``.
                 //calProps.showDashboardSheet = true
-                calProps.navPath.append(CalendarNavDest.dashboard)
+                calProps.navPath.append(NavDest.dashboard)
             } else {
                 /// Inspector is in ``RootViewPad``.
                 calProps.inspectorContent = .dashboard
@@ -89,7 +89,7 @@ struct CalendarMoreMenu: View {
             if AppState.shared.isIphone {
                 /// Sheet is in ``CalendarMoreMenu``.
                 //calProps.showBudgetSheet = true
-                calProps.navPath.append(CalendarNavDest.budgets)
+                calProps.navPath.append(NavDest.budgets)
             } else {
                 /// Inspector is in ``RootViewPad``.
                 calProps.inspectorContent = .budgets
@@ -122,7 +122,7 @@ struct CalendarMoreMenu: View {
             if AppState.shared.isIphone {
                 /// Sheet is in ``CalendarMoreMenu``.
                 //calProps.showTransactionListSheet = true
-                calProps.navPath.append(CalendarNavDest.transactionList)
+                calProps.navPath.append(NavDest.transactionList)
             } else {
                 /// Inspector is in ``RootViewPad``.
                 calProps.inspectorContent = .transactionList

@@ -81,6 +81,7 @@ struct CategoryGroupOverView: View {
                     calModel: calModel,
                     catModel: catModel
                 )
+                
                 TransactionList(group: group, transEditID: $transEditID, transDay: $transDay)
             }
         }
@@ -112,40 +113,24 @@ struct CategoryGroupOverView: View {
             model.fetchHistoryTime = Date()
             model.fetchHistory(setChartAsNew: true)
         }
-        .onChange(of: groupEditID) { oldId, newId in
-            if let newId {
-                if let group = catModel.getCategoryGroup(by: newId) {
-                    editGroup = group
+        .categoryGroupEditSheetAndLogic(editId: $groupEditID) { didSave in
+            /// Close if deleting since it will be gone.
+            /// Also close if adding, since the server will send back the real ID, and cause the list to redraw, which would cause the sheet to dismiss itself and reopen.
+            /// iPhone: pop from nav.
+            /// iPad: dismiss sheet.
+            if group.action == .delete || group.action == .add {
+                if AppState.shared.isIphone {
+                    navPath.removeLast()
                 } else {
-                    editGroup = CBCategoryGroup(uuid: newId)
-                }
-            } else {
-                catModel.saveCategoryGroup(id: oldId!)
-                
-                if group.action == .delete || group.action == .add {
-                    if AppState.shared.isIphone {
-                        navPath.removeLast()
-                    } else {
-                        dismiss()
-                    }
+                    dismiss()
                 }
             }
         }
-        
-        .sheet(item: $editGroup, onDismiss: {
-            groupEditID = nil
-        }, content: { group in
-            CategoryGroupEditView(group: group, editID: $groupEditID)
-            #if os(macOS)
-                .frame(minWidth: 500, minHeight: 700)
-                .presentationSizing(.fitted)
-            #endif
-        })
-        .transactionEditSheetAndLogic(transEditID: $transEditID, selectedDay: $transDay, extraDismissLogic: { didSave in
+        .transactionEditSheetAndLogic(transEditID: $transEditID, selectedDay: $transDay) { didSave in
             if didSave {
                 Task { await prepareView() }
             }
-        })
+        }
     }
     
     

@@ -65,7 +65,7 @@ struct TevTitle: View {
         
             /// Clear map & history suggestions when unfocusing from the title field.
             .onChange(of: focusedField.wrappedValue) { old, new in
-                print("focusedField.wrappedValue changed from \(String(describing: old)) to \(String(describing: new))")
+                //print("focusedField.wrappedValue changed from \(String(describing: old)) to \(String(describing: new))")
                 if old == 0 && new != 0 {
                     resetTitleSuggestionState()
                 }

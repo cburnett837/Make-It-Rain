@@ -15,7 +15,7 @@ struct NowButton: View {
         Button {
             withAnimation {
                 NavigationManager.shared.selection = nil
-                NavigationManager.shared.selectedMonth = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+                NavigationManager.shared.selectedMonth = NavDest.getMonthFromInt(AppState.shared.todayMonth)
                 calModel.sYear = AppState.shared.todayYear
                 if !AppState.shared.isIpad {
                     calModel.showMonth = true

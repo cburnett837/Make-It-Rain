@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-enum RepTransNavDestination: Hashable {
+enum RepTransNavDest: Hashable {
     case titleColorMenu
 }
 
@@ -282,7 +282,7 @@ struct RepeatingTransactionView: View {
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
-            .navigationDestination(for: RepTransNavDestination.self) { _ in
+            .navigationDestination(for: RepTransNavDest.self) { _ in
                 TitleColorList(color: $repTransaction.color, navPath: $navPath)
             }
             .toolbar {
@@ -450,7 +450,7 @@ struct RepeatingTransactionView: View {
     
     
     var colorRow: some View {
-        NavigationLink(value: RepTransNavDestination.titleColorMenu) {
+        NavigationLink(value: RepTransNavDest.titleColorMenu) {
             HStack {
                 Label {
                     Text("Title Color")

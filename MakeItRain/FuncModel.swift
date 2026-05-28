@@ -24,6 +24,8 @@ class FuncModel {
     var plaidModel: PlaidModel
     var webSocketManager: WebSocketManager
     var dashboardModel: DashboardModel
+    var budgetModel: BudgetModel
+    var tagModel: TagModel
     
     //var longPollTask: Task<Void, Error>?
     var refreshTask: Task<Void, Error>?
@@ -40,7 +42,9 @@ class FuncModel {
         repModel: RepeatingTransactionModel,
         plaidModel: PlaidModel,
         webSocketManager: WebSocketManager,
-        dashboardModel: DashboardModel
+        dashboardModel: DashboardModel,
+        budgetModel: BudgetModel,
+        tagModel: TagModel
     ) {
         self.store = store
         self.calModel = calModel
@@ -51,6 +55,8 @@ class FuncModel {
         self.plaidModel = plaidModel
         self.webSocketManager = webSocketManager
         self.dashboardModel = dashboardModel
+        self.budgetModel = budgetModel
+        self.tagModel = tagModel
     }
     
 //    /// This is only for biometrics.
@@ -77,14 +83,14 @@ class FuncModel {
     /// Establish a UUID for each device for the long poll server. The long poll will not respond to the device that makes the change.
     @MainActor
     func setDeviceUUID() {
-        
-        
         if let uuid = UserDefaults(suiteName: "group.dev.cburnett837.MakeItRain")?.string(forKey: "deviceUUID") {
             AppState.shared.deviceUUID = uuid
+            Cody.shared.deviceUUID = uuid
         } else {
             let uuid = UUID().uuidString
             UserDefaults(suiteName: "group.dev.cburnett837.MakeItRain")?.set(uuid, forKey: "deviceUUID")
             AppState.shared.deviceUUID = uuid
+            Cody.shared.deviceUUID = uuid
         }
 //        
 //        if let uuid = UserDefaults.fetchOneString(requestedKey: "deviceUUID") {
@@ -229,13 +235,13 @@ class FuncModel {
         /// If the user is not looking at a month or accessorial view (such as when looking at the yearly grid), set nav selection to the current month.
         #if os(iOS)
         if currentNavSelection == nil {
-            currentNavSelection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+            currentNavSelection = NavDest.getMonthFromInt(AppState.shared.todayMonth)
         }
         #endif
         
         if let currentNavSelection {
             /// If viewing a month, determine current and adjacent months.
-            if NavDestination.justMonths.contains(currentNavSelection) {
+            if NavDest.justMonths.contains(currentNavSelection) {
                 
                 /// Grab Payment Methods (only when logging in. We need this to have a payment method in place before the viewing month loads.)
                 /// If not logging in, methods will be downloaded the accessory download function.
@@ -273,7 +279,7 @@ class FuncModel {
                 #warning("Fix this")
                 /// Run this code if we come back from a sceneChange and are not viewing a month.
                 /// If we're not viewing a month, then we must be viewing an accessorial view, so download those first.
-                if NavDestination.justAccessorials.contains(currentNavSelection) {
+                if NavDest.justAccessorials.contains(currentNavSelection) {
                     
                     /// Download user settings.
                     if refreshTechnique != .viaInitial {
@@ -502,7 +508,7 @@ class FuncModel {
                 let dm = self.dashboardModel
                 dm.beginDate = viewingMonth.legitDays.first!.date!.startDateOfMonth
                 dm.endDate = viewingMonth.legitDays.last!.date!.endDateOfMonth
-                await dm.initialFetchIfApplicable(calModel: self.calModel, catModel: self.catModel)
+                await dm.initialFetchIfApplicable(calModel: self.calModel)
                 dm.isDirty = false
             }
             
@@ -578,11 +584,12 @@ class FuncModel {
                 await self.catModel.handleIncoming(groups: model.categoryGroups, incomingDataType: .viaStandardRefresh)
                 await self.keyModel.handleIncoming(keys: model.keywords, incomingDataType: .viaStandardRefresh)
                 await self.repModel.handleIncoming(reps: model.repeatingTransactions, incomingDataType: .viaStandardRefresh)
-                await self.calModel.handleIncoming(tags: model.tags, incomingDataType: .viaStandardRefresh)
+                await self.tagModel.handleIncoming(tags: model.tags, incomingDataType: .viaStandardRefresh)
                 await self.calModel.handleIncoming(titles: model.suggestedTitles, incomingDataType: .viaStandardRefresh)
-                await self.calModel.handleIncoming(appSuiteBudgets: model.appSuiteBudgets, incomingDataType: .viaStandardRefresh)
-                await self.calModel.handleIncoming(budgets: model.budgets, incomingDataType: .viaStandardRefresh)
-                await self.plaidModel.handleIncoming(banks: model.plaidBanks, incomingDataType: .viaStandardRefresh)
+                //await self.budgetModel.handleIncoming(appSuiteBudgets: model.appSuiteBudgets, incomingDataType: .viaStandardRefresh)
+                await self.budgetModel.handleIncoming(budgets: model.budgets, incomingDataType: .viaStandardRefresh)
+                await self.budgetModel.handleIncoming(globalBudget: model.globalBudget, incomingDataType: .viaStandardRefresh)
+                await self.plaidModel.handleIncoming(banks: model.plaidBanks, incomingDataType: .viaStandardRefresh)                
             }
             
             print("⏰It took \(CFAbsoluteTimeGetCurrent() - start) seconds to fetch the accessorials")
@@ -603,7 +610,7 @@ class FuncModel {
     // MARK: - Fetch From Server
     @MainActor
     func fetchMonthlyData(month: CBMonth, createNewStructs: Bool, refreshTechnique: RefreshTechnique) async {
-        print("-- \(#function) \(month.actualNum) \(month.year) -- \(Date())")
+        //print("-- \(#function) \(month.actualNum) \(month.year) -- \(Date())")
         LogManager.log()
         
         //let start = CFAbsoluteTimeGetCurrent()
@@ -617,6 +624,9 @@ class FuncModel {
         switch await result {
         case .success(let model):
             if let model {
+                month.amountString = model.budget.currencyWithDecimals()
+                month.populatedId = model.populatedId
+                
                 if let plaidTrans = model.plaidTransactionsWithCount {
                     await self.plaidModel.handleIncoming(transactionsWithCount: plaidTrans, incomingDataType: .viaStandardRefresh)
                 }
@@ -626,6 +636,7 @@ class FuncModel {
                 }
                 
                 await self.calModel.handleIncomingData(for: month, using: model, createNewStructs: createNewStructs, refreshTechnique: refreshTechnique)
+                month.hasBeenLoadedFromServer = true
             }
             
             
@@ -1640,7 +1651,7 @@ class FuncModel {
 ////    }
 //    
 //    
-//    @MainActor private func handleLongPollBudgets(_ budgets: Array<CBBudget>) {
+//    @MainActor private func handleLongPollBudgets(_ budgets: Array<CBBudgetItem>) {
 //        print("-- \(#function)")
 //        for budget in budgets {
 //            
@@ -2262,7 +2273,7 @@ class FuncModel {
                     let pred1 = NSPredicate(format: "relatedID == %@", logo.relatedID)
                     let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: logo.relatedRecordType.id))
                     let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
-
+                    
                     if let perLogo = DataManager.shared.getOne(
                         context: context,
                         type: PersistentLogo.self,
@@ -2425,8 +2436,10 @@ class FuncModel {
         for user in AppState.shared.accountUsers {
             user.avatar = avatarMap[user.id]
         }
+        
         if let current = AppState.shared.user {
             current.avatar = avatarMap[current.id]
+            Cody.shared.avatar = avatarMap[current.id]
         }
     }
 
@@ -2471,6 +2484,7 @@ class FuncModel {
     func changeAvatarLocally(to dataOrNil: Data?, id: String) {
         /// Logged in user.
         AppState.shared.user?.avatar = dataOrNil
+        Cody.shared.avatar = dataOrNil
         
         /// Account users.
         if let user = AppState.shared.accountUsers.filter({ String($0.id) == id }).first {
@@ -2564,28 +2578,28 @@ class FuncModel {
         @Bindable var navManager = NavigationManager.shared
         /// Set navigation destination to current month
         #if os(iOS)
-        navManager.selectedMonth = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+        navManager.selectedMonth = NavDest.getMonthFromInt(AppState.shared.todayMonth)
         #else
-        navManager.selection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+        navManager.selection = NavDest.getMonthFromInt(AppState.shared.todayMonth)
         #endif
                             
         refreshTask = Task {
-            /// populate all months with their days.
+            /// Populate all months with their days.
             await calModel.prepareMonths()
             #if os(iOS)
             if let selectedMonth = navManager.selectedMonth {
-                /// set the calendar model to use the current month (ignore starting amounts and calculations)
+                /// Set the calendar model to use the current month (ignore starting amounts and calculations).
                 await calModel.setSelectedMonthFromNavigation(navID: selectedMonth, calculateStartingAndEod: false)
-                /// download everything, and populate the days in the respective months with transactions.
+                /// Download everything, and populate the days in the respective months with transactions.
                 await downloadEverything(setDefaultPayMethod: true, createNewStructs: true, refreshTechnique: .viaInitial)
             } else {
                 print("Selected Month Not Set")
             }
             #else
             if let selectedMonth = navManager.selection {
-                /// set the calendar model to use the current month (ignore starting amounts and calculations)
+                /// Set the calendar model to use the current month (ignore starting amounts and calculations).
                 await calModel.setSelectedMonthFromNavigation(navID: selectedMonth, calculateStartingAndEod: false)
-                /// download everything, and populate the days in the respective months with transactions.
+                /// Download everything, and populate the days in the respective months with transactions.
                 await downloadEverything(setDefaultPayMethod: true, createNewStructs: true, refreshTechnique: .viaInitial)
             }
             #endif
@@ -2616,33 +2630,33 @@ class FuncModel {
     }
     
     
-    @MainActor
-    @discardableResult
-    func fetchAppSuiteBudgets() async -> Bool {
-        print("-- \(#function)")
-        LogManager.log()
-        /// Use the reset month model since it contains the year property.
-        let reqModel = ResetMonthModel(month: 20, year: calModel.sYear)
-        let model = RequestModel(requestType: "fetch_app_suite_budgets", model: reqModel)
-        
-        typealias ResultResponse = Result<Array<CBBudget>?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
-                    
-        switch await result {
-        case .success(let model):
-            if let model {
-                calModel.appSuiteBudgets = model
-            }
-            
-            LogManager.networkingSuccessful()
-            return true
-            
-        case .failure(let error):
-            LogManager.error(error.localizedDescription)
-            AppState.shared.showAlert("There was a problem syncing the category. Will try again at a later time.")
-            return false
-        }
-    }
+//    @MainActor
+//    @discardableResult
+//    func fetchAppSuiteBudgets() async -> Bool {
+//        print("-- \(#function)")
+//        LogManager.log()
+//        /// Use the reset month model since it contains the year property.
+//        let reqModel = ResetMonthModel(month: 20, year: calModel.sYear)
+//        let model = RequestModel(requestType: "fetch_app_suite_budgets", model: reqModel)
+//        
+//        typealias ResultResponse = Result<Array<CBBudgetItem>?, AppError>
+//        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+//                    
+//        switch await result {
+//        case .success(let model):
+//            if let model {
+//                budgetModel.appSuiteBudgets = model
+//            }
+//            
+//            LogManager.networkingSuccessful()
+//            return true
+//            
+//        case .failure(let error):
+//            LogManager.error(error.localizedDescription)
+//            AppState.shared.showAlert("There was a problem syncing the category. Will try again at a later time.")
+//            return false
+//        }
+//    }
     
     
     // MARK: - Logout
@@ -2670,25 +2684,10 @@ class FuncModel {
             refreshTask = nil
         }
         
-        /// Remove all transactions and starting amounts for all months.
-        calModel.months.forEach { month in
-            month.startingAmounts.removeAll()
-            month.days.forEach { $0.transactions.removeAll() }
-            month.budgets.removeAll()
-        }
-        
-        /// Remove all extra downloaded data.
-        repModel.repTransactions.removeAll()
-        payModel.paymentMethods.removeAll()
-        catModel.categories.removeAll()
-        catModel.categoryGroups.removeAll()
-        keyModel.keywords.removeAll()
-        calModel.tags.removeAll()
-        calModel.searchedTransactions.removeAll()
-        calModel.tempTransactions.removeAll()
-        plaidModel.balances.removeAll()
-        plaidModel.banks.removeAll()
-        plaidModel.trans.removeAll()
+        /// Clear all the downloaded data.
+        store.removeAll()
+        Cody.shared.reset()
+        ImageCache.shared.empty()
         
         NavigationManager.shared.selectedMonth = nil
         NavigationManager.shared.selection = nil
@@ -2703,11 +2702,8 @@ class FuncModel {
             let _ = DataManager.shared.deleteAll(context: context, for: PersistentToast.self)
             let _ = DataManager.shared.deleteAll(context: context, for: PersistentLogo.self)
             let _ = DataManager.shared.deleteAll(context: context, for: TempTransaction.self)
-            
-            // Save once after all deletions
             let _ = DataManager.shared.save(context: context)
         }
-        
     }
     
     

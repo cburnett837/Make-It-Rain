@@ -15,6 +15,7 @@ struct TransferSheet: View {
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
     @Environment(CategoryModel.self) private var catModel
+    @Environment(AppStore.self) private var store
         
     var defaultDate: Date
     
@@ -434,7 +435,7 @@ struct TransferSheet: View {
             toTrans.status = .editing
             
             
-            let _ = calModel.calculateTotal(for: calModel.sMonth)
+            CalcHelper.calculateTotal(for: calModel.sMonth, store: store)
             
             await calModel.addMultiple(
                 trans: [fromTrans, toTrans],

@@ -94,11 +94,11 @@ extension View {
         modifier(ViewHeightObserver())
     }
     
-    func calendarLoadingSpinner(id: NavDestination, text: String) -> some View {
+    func calendarLoadingSpinner(id: NavDest, text: String) -> some View {
         modifier(CalendarLoadingSpinner(id: id, text: text))
     }
     
-    func calendarLoadingSpinner(id: NavDestination) -> some View {
+    func calendarLoadingSpinner(id: NavDest) -> some View {
         modifier(CalendarLoadingSpinner(id: id))
     }
     

@@ -50,7 +50,7 @@ struct CalendarViewMac: View {
     
     @State private var pulse = false
     
-    let enumID: NavDestination
+    let enumID: NavDest
     var isInWindow: Bool = false
 
     
@@ -253,7 +253,7 @@ struct CalendarViewMac: View {
                 SmartTransactionsWithIssuesOverlay(showInspector: $calProps.showInspector)
                 
             case .budgets:
-                BudgetTable()
+                MonthlyBudgetTable()
                 
             case .overviewDay:
                 Text("not available")

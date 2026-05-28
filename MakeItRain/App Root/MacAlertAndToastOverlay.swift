@@ -23,6 +23,8 @@ struct MacAlertAndToastOverlay: View {
     @Environment(WebSocketManager.self) private var webSocketManager
     @Environment(DashboardModel.self) private var dashboardModel
     @Environment(AppStore.self) private var store
+    @Environment(BudgetModel.self) private var budgetModel
+    @Environment(TagModel.self) private var tagModel
     
     @State private var isInitial = true
 
@@ -49,6 +51,8 @@ struct MacAlertAndToastOverlay: View {
             .environment(dataChangeTriggers)
             .environment(webSocketManager)
             .environment(store)
+            .environment(budgetModel)
+            .environment(tagModel)
             //.frame(width: NSScreen.main?.frame.size.width, height: NSScreen.main?.frame.size.height)
     }
 }

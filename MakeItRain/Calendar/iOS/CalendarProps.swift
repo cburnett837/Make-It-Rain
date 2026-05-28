@@ -45,7 +45,7 @@ class CalendarProps {
     var inspectorContent: CalendarInspectorContent?
     ///
     
-    var navPath: [CalendarNavDest] = []//NavigationPath()
+    var navPath: [NavDest] = []//NavigationPath()
     
     var bottomPanelContent: BottomPanelContent?
                 

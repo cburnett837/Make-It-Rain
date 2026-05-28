@@ -44,9 +44,9 @@ struct CalendarSheetLayerView: View {
             #if os(iOS)
             .fullScreenCover(isPresented: $calModel.showMonth, onDismiss: {
                 //print("Cal sheet onDismiss")
-                if calModel.categoryFilterWasSetByCategoryPage {
+                if store.categoryFilterWasSetByCategoryPage {
                     calModel.sCategories.removeAll()
-                    calModel.categoryFilterWasSetByCategoryPage = false
+                    store.categoryFilterWasSetByCategoryPage = false
                     calModel.sPayMethod = calModel.sPayMethodBeforeFilterWasSetByCategoryPage
                     calModel.sPayMethodBeforeFilterWasSetByCategoryPage = nil
                 }
@@ -57,20 +57,17 @@ struct CalendarSheetLayerView: View {
     }
     
     #if os(iOS)
+    @ViewBuilder
     var calendarSheet: some View {
-        Group {
-            if let selectedMonth = NavigationManager.shared.selectedMonth {
-                if NavDestination.justMonths.contains(selectedMonth) {
-                    //GeometryReader { geo in
-                    CalendarViewPhone(enumID: selectedMonth, store: store)
-                            //.environment(\.safeAreaInsets, geo.safeAreaInsets)
-                            .tint(Color.theme)
-                            .navigationTransition(.zoom(sourceID: selectedMonth, in: namespace))
-                            .if(AppState.shared.methsExist) {
-                                $0.calendarLoadingSpinner(id: selectedMonth, text: "Loading…")
-                            }
-                    //}
-                }
+        if let selectedMonth = NavigationManager.shared.selectedMonth {
+            if NavDest.justMonths.contains(selectedMonth) {
+                //CalendarViewPhone(enumID: selectedMonth, store: store)
+                CalendarViewPhone(enumID: selectedMonth)
+                    .tint(Color.theme)
+                    .navigationTransition(.zoom(sourceID: selectedMonth, in: namespace))
+                    .if(AppState.shared.methsExist) {
+                        $0.calendarLoadingSpinner(id: selectedMonth, text: "Loading…")
+                    }
             }
         }
     }

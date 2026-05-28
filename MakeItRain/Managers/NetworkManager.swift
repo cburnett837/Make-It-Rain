@@ -39,29 +39,29 @@ final class NetworkLogger: NSObject, URLSessionTaskDelegate, URLSessionDataDeleg
 
         if totalBytesExpectedToSend > 0 {
             let percent = (Double(totalBytesSent) / Double(totalBytesExpectedToSend)) * 100
-            print(String(format: "[upload][task %d] %.1f%% (%lld / %lld bytes) after %.2fs",
-                         task.taskIdentifier,
-                         percent,
-                         totalBytesSent,
-                         totalBytesExpectedToSend,
-                         elapsed))
+//            print(String(format: "[upload][task %d] %.1f%% (%lld / %lld bytes) after %.2fs",
+//                         task.taskIdentifier,
+//                         percent,
+//                         totalBytesSent,
+//                         totalBytesExpectedToSend,
+//                         elapsed))
         } else {
-            print("[upload][task \(task.taskIdentifier)] \(totalBytesSent) bytes sent after \(elapsed)s")
+//            print("[upload][task \(task.taskIdentifier)] \(totalBytesSent) bytes sent after \(elapsed)s")
         }
     }
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         let elapsed = elapsed(for: dataTask)
-        print("[response][task \(dataTask.taskIdentifier)] received \(data.count) bytes after \(elapsed)s")
+        //print("[response][task \(dataTask.taskIdentifier)] received \(data.count) bytes after \(elapsed)s")
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         let elapsed = elapsed(for: task)
 
         if let error {
-            print("[complete][task \(task.taskIdentifier)] failed after \(elapsed)s: \(error)")
+            //print("[complete][task \(task.taskIdentifier)] failed after \(elapsed)s: \(error)")
         } else {
-            print("[complete][task \(task.taskIdentifier)] finished after \(elapsed)s")
+            //print("[complete][task \(task.taskIdentifier)] finished after \(elapsed)s")
         }
 
         cleanup(for: task)

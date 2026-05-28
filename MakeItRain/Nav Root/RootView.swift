@@ -18,6 +18,7 @@ struct RootView: View {
     @Environment(KeywordModel.self) var keyModel
     @Environment(RepeatingTransactionModel.self) var repModel
     @Environment(WebSocketManager.self) var webSocketManager
+    @Environment(AppStore.self) var store
     
     //@State private var warmUpTransactionView = false
             
@@ -109,14 +110,14 @@ struct RootView: View {
     // MARK: - OnChange Functions
     
     #if os(macOS)
-    func peformNavigationOnMac(_ old: NavDestination?, _ new: NavDestination?) {
+    func peformNavigationOnMac(_ old: NavDest?, _ new: NavDest?) {
         /// Set ``sMonth`` in ``CalendarModel`` so the model is aware.
         
         calModel.sMonth = CBMonth(num: 100000)
         //calModel.hilightTrans = nil
         
         if let selection = NavigationManager.shared.selection {
-            if NavDestination.justMonths.contains(selection) {
+            if NavDest.justMonths.contains(selection) {
                 Task {
                     let targetMonth = calModel.months.filter { $0.enumID == selection }.first
                     if let targetMonth {
@@ -140,7 +141,7 @@ struct RootView: View {
     }
            
     
-    func clearMonthWhenNavSetToNil(_ old: NavDestination?, _ new: NavDestination?) {
+    func clearMonthWhenNavSetToNil(_ old: NavDest?, _ new: NavDest?) {
         /// Clear out `calModel.sMonth` when `NavigationManager.selectedMonth` is set to nil, which will happen when closing the months fullScreenCover.
         
         //calModel.hilightTrans = nil
@@ -208,7 +209,7 @@ struct RootView: View {
             }
                             
             calModel.sMonth.startingAmounts.removeAll(where: { !allowMeths.contains($0.payMethod.id) })
-            let _ = calModel.calculateTotal(for: calModel.sMonth)
+            let _ = CalcHelper.calculateTotal(for: calModel.sMonth, store: store)
         }
     }
     
@@ -344,7 +345,7 @@ struct RootView: View {
 //            calModel.hilightTrans = nil
 //            
 //            if let selection = navManager.selection {
-//                if NavDestination.justMonths.contains(selection) {
+//                if NavDest.justMonths.contains(selection) {
 //                    Task {
 //                        let targetMonth = calModel.months.filter{ $0.enumID == selection }.first
 //                        if let targetMonth {

@@ -7,30 +7,6 @@
 
 import SwiftUI
 
-public enum PaymentMethodFilterMode: String, CaseIterable {
-    case all, justPrimary, primaryAndSecondary
-    
-    var prettyValue: String {
-        switch self {
-        case .all:
-            "All Accounts"
-        case .justPrimary:
-            "Primary Accounts"
-        case .primaryAndSecondary:
-            "Primary & Secondary Accounts"
-        }
-    }
-    
-    static func fromString(_ theString: String) -> Self {
-        switch theString {
-        case "all": return .all
-        case "justPrimary": return .justPrimary
-        case "primaryAndSecondary": return .primaryAndSecondary
-        default: return .all
-        }
-    }
-}
-
 struct PayMethodSheet: View {
     private enum WhichView: String { case select, edit }
         
@@ -364,6 +340,7 @@ fileprivate struct StartingAmountLine: View {
     @Environment(\.layoutDirection) private var layoutDirection: LayoutDirection
     @Environment(CalendarModel.self) var calModel
     @Environment(PayMethodModel.self) var payModel
+    @Environment(AppStore.self) private var store
     
     @Bindable var startingAmount: CBStartingAmount
     var payMethod: CBPaymentMethod
@@ -459,7 +436,7 @@ fileprivate struct StartingAmountLine: View {
     func autoFillAmount() {
         if calModel.sMonth.num != 0 {
             let targetMonth = calModel.months.filter { $0.num == calModel.sMonth.num - 1 }.first!            
-            let eod = calModel.calculateTotal(for: targetMonth, using: payMethod, and: .giveMeLastDayEod)
+            let eod = CalcHelper.calculateTotal(for: targetMonth, using: payMethod, and: .giveMeLastDayEod, store: store)
             let eodTotal = eod//targetMonth.days.last!.eodTotal
             startingAmount.amountString = eodTotal.currencyWithDecimals()
         }

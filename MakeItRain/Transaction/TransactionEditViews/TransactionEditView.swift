@@ -20,7 +20,7 @@ enum TitleSuggestionType: String {
     
 }
 
-enum TransNavDestination: Hashable {
+enum TransNavDest: Hashable {
     case options, logs, titleColorMenu, tracking, tags
 }
 
@@ -41,10 +41,13 @@ struct TransactionEditView: View {
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
+    @Environment(AppStore.self) private var store
     
     @Bindable var trans: CBTransaction
     //@Binding var transEditID: String?
     @Bindable var day: CBDay
+    /// Add the tag to the transaction if adding a new transaction from the tag budget view.
+    var tag: CBTag?
     
     var isTemp: Bool
     var transLocation: WhereToLookForTransaction = .normalList
@@ -197,7 +200,7 @@ struct TransactionEditView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 #endif
                 .toolbar { toolbar }
-                .navigationDestination(for: TransNavDestination.self) { determineNavDest(for: $0) }
+                .navigationDestination(for: TransNavDest.self) { determineNavDest(for: $0) }
                 .scrollContentBackground(trans.christmasListGiftID == nil ? .visible : .hidden)
                 .background(
                     SnowyBackground(blurred: true, withSnow: true)
@@ -325,7 +328,7 @@ struct TransactionEditView: View {
         
         if showExpensiveViews {
             if !isTemp {
-                TevHashtags(trans: trans)
+                TevHashtags(tags: trans.tags)
             }
         } else {
             ProgressView()
@@ -355,7 +358,7 @@ struct TransactionEditView: View {
     // MARK: - SubViews
     
     @ViewBuilder
-    func determineNavDest(for dest: TransNavDestination) -> some View {
+    func determineNavDest(for dest: TransNavDest) -> some View {
         switch dest {
         case .options:
             TevMoreOptions(
@@ -397,7 +400,7 @@ struct TransactionEditView: View {
             #endif
             
         case .tags:
-            TagView(trans: trans)
+            TagView(tags: $trans.tags)
         }
     }
     
@@ -748,6 +751,9 @@ struct TransactionEditView: View {
                 trans.payMethod = payModel.getEditingDefault()
             }
             
+            if transLocation == .tagBudgetList, let tag = self.tag {
+                trans.tags.append(tag)
+            }
             
 //            /// If the unified editing payment method is set, use it.
 //            if calModel.sPayMethod?.accountType == .unifiedChecking && payModel.editingDefaultAccountType == .checking {
@@ -767,7 +773,20 @@ struct TransactionEditView: View {
                 /// Wait a split second before adding to the day so we don't see it happen.
                 try await Task.sleep(for: .seconds(0.5))
                 /// Pre-add the transaction to the day so we can add photos to it before saving. Get's removed on cancel if title and payment method are blank.
-                day.upsert(trans)
+                //day.upsert(trans)
+                
+                
+                switch transLocation {
+                case .normalList:       day.upsert(trans)
+                case .tempList:         break /// Handled above store.tempTransactions.append(trans)
+                case .tagBudgetList:    store.tagBudgetTransactions.append(trans)
+                case .searchResultList,
+                     .smartList,
+                     .receiptsList,
+                     .dashboardList:    break /// Can't manually add a transaction via those pages.
+                }
+                
+                
             }
             #else
             /// Pre-add the transaction to the day so we can add photos to it before saving. Get's removed on cancel if title and payment method are blank.
@@ -779,12 +798,12 @@ struct TransactionEditView: View {
             /// Set the dummy nil category to the trans so it's not a real nil.
             trans.category = catModel.getNil()
             
-            calModel.tempTransactions.append(trans)
+            store.tempTransactions.append(trans)
             trans.amountString = ""
             trans.payMethod = payModel.getEditingDefault()
             trans.action = .add
         }
-                     
+        
         /// Copy it so we can compare for smart saving.
         trans.deepCopy(.create)
                 

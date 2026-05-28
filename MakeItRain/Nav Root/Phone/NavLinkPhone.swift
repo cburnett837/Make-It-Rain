@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct NavLinkPhone: View {
-    let destination: NavDestination
+    let destination: NavDest
     
     var body: some View {
         NavigationLink(value: destination) {

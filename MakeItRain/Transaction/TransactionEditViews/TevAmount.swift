@@ -70,14 +70,50 @@ struct TevAmount: View {
         Group {
             #if os(iOS)
             UITextFieldWrapper(placeholder: "Amount", text: $trans.amountString, toolbar: {
-                KeyboardToolbarView(
+                KeyboardToolbarView2(
                     focusedField: focusedField.projectedValue,
                     disableDown: true,
-                    accessoryImage3: useCalculator ? "numbers" : "square.grid.4x3.fill",
-                    accessoryFunc3: { changeView() },
-                    accessoryImage4: useCalculator ? nil : "plus.forwardslash.minus",
-                    accessoryFunc4: useCalculator ? nil : { Helpers.plusMinus($trans.amountString) }
+                    view1: {
+                        AnyView(
+                            Menu {
+                                Button("USD") {}
+                                Button("COP") {}
+                            } label: {
+                                Image(systemName: "dollarsign")
+                            }
+                            .schemeBasedTint()
+                        )
+                    },
+                    view2: {
+                        AnyView(
+                            Button {
+                                changeView()
+                            } label: {
+                                Image(systemName: useCalculator ? "numbers" : "square.grid.4x3.fill")
+                            }
+                            .schemeBasedTint()
+                        )
+                    },
+                    view4: {
+                        AnyView(
+                            Button {
+                                Helpers.plusMinus($trans.amountString)
+                            } label: {
+                                Image(systemName: "plus.forwardslash.minus")
+                            }
+                            .schemeBasedTint()
+                        )
+                    }
                 )
+//                
+//                KeyboardToolbarView(
+//                    focusedField: focusedField.projectedValue,
+//                    disableDown: true,
+//                    accessoryImage3: useCalculator ? "numbers" : "square.grid.4x3.fill",
+//                    accessoryFunc3: { changeView() },
+//                    accessoryImage4: useCalculator ? nil : "plus.forwardslash.minus",
+//                    accessoryFunc4: useCalculator ? nil : { Helpers.plusMinus($trans.amountString) }
+//                )
             })
             .uiTag(1)
             .uiClearButtonMode(.whileEditing)
@@ -102,8 +138,27 @@ struct TevAmount: View {
     }
     
     
+    var calculatorToggleButton: some View {
+        Button {
+            changeView()
+        } label: {
+            Image(systemName: useCalculator ? "numbers" : "square.grid.4x3.fill")
+        }
+        .schemeBasedTint()
+    }
+    
+    var plequalsButton: some View {
+        Button {
+            Helpers.plusMinus($trans.amountString)
+        } label: {
+            Image(systemName: "plus.forwardslash.minus")
+        }
+        .schemeBasedTint()
+    }
+    
+    
     func changeView() {
-        print("-- \(#function)")
+        //print("-- \(#function)")
         useCalculator.toggle()
         DispatchQueue.main.async/*After(deadline: .now() + 0.2)*/ {
             focusedField.wrappedValue = 1

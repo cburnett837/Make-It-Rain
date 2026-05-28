@@ -97,7 +97,7 @@ import MapKit
 //                .if(trans.relatedTransactionID != nil) { $0.navigationSubtitle("(Linked)") }
 //                .navigationBarTitleDisplayMode(.inline)
 //                .toolbar { toolbar }
-//                .navigationDestination(for: TransNavDestination.self) { dest in
+//                .navigationDestination(for: TransNavDest.self) { dest in
 //                    switch dest {
 //                    case .options:
 //                        TevMoreOptions(
@@ -135,7 +135,7 @@ import MapKit
 //    var toolbar: some ToolbarContent {
 //        ToolbarSpacer(.fixed, placement: .topBarLeading)
 //        ToolbarItem(placement: .bottomBar) {
-//            NavigationLink(value: TransNavDestination.logs) {
+//            NavigationLink(value: TransNavDest.logs) {
 //                EnteredByAndUpdatedByView(enteredBy: trans.enteredBy, updatedBy: trans.updatedBy, enteredDate: trans.enteredDate, updatedDate: trans.updatedDate)
 //            }
 //        }

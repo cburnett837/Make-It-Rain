@@ -37,10 +37,6 @@ struct CalendarToolbar: ToolbarContent {
         calModel.isPlayground ? "\(calModel.sMonth.name) Playground" : "\(calModel.sMonth.name) \(calModel.sMonth.year)"
     }
     
-    var isCurrentMonth: Bool {
-        calModel.sMonth.actualNum == AppState.shared.todayMonth && calModel.sMonth.year == AppState.shared.todayYear
-    }
-    
     var body: some ToolbarContent {
         @Bindable var calProps = calProps
         
@@ -197,7 +193,7 @@ struct CalendarToolbar: ToolbarContent {
         Button {
             if AppState.shared.isIphone {
                 
-                calProps.navPath.append(CalendarNavDest.dashboard)
+                calProps.navPath.append(NavDest.dashboard)
                 
                 /// Sheet is in ``CalendarMoreMenu``.
                 //calProps.showAnalysisSheet = true
@@ -363,7 +359,7 @@ struct CalendarToolbar: ToolbarContent {
                 if AppState.shared.isIphone {
                     Image(systemName: "creditcard")
                 } else {
-                    if isCurrentMonth {
+                    if calModel.sMonth.isTodayMonth {
                         let finalText: String = "\(calModel.sPayMethod?.title ?? "Select Account")\(balanceText)"
                         Text(finalText)
                     } else {

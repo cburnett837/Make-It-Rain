@@ -24,7 +24,12 @@ enum InAppAlertPreference {
 }
 
 enum WhereToLookForTransaction {
-    case normalList, tempList, searchResultList, /*eventList,*/ smartList, receiptsList, dashboardList
+    case normalList, tempList, searchResultList, /*eventList,*/ smartList, receiptsList, dashboardList, tagBudgetList
+}
+
+
+enum WhereToLookForBudget {
+    case globalList, monthList
 }
 
 enum TransactionSaveActionToProcess {
@@ -529,4 +534,33 @@ enum GiftStatus: String, CaseIterable, Identifiable {
     }
     
     //var boughtArray: Array<GiftStatus> { [GiftStatus.purchased, GiftStatus.inTransit, GiftStatus.inHand, GiftStatus.wrapped] }
+}
+
+enum PrevNext {
+    case prev, next
+}
+
+
+public enum PaymentMethodFilterMode: String, CaseIterable {
+    case all, justPrimary, primaryAndSecondary
+    
+    var prettyValue: String {
+        switch self {
+        case .all:
+            "All Accounts"
+        case .justPrimary:
+            "Primary Accounts"
+        case .primaryAndSecondary:
+            "Primary & Secondary Accounts"
+        }
+    }
+    
+    static func fromString(_ theString: String) -> Self {
+        switch theString {
+        case "all": return .all
+        case "justPrimary": return .justPrimary
+        case "primaryAndSecondary": return .primaryAndSecondary
+        default: return .all
+        }
+    }
 }

@@ -17,7 +17,7 @@ struct MonthNavigationLink: View {
     @State private var blinkView = false
     @State private var blinkTimer: Timer?
     
-    var enumID: NavDestination
+    var enumID: NavDest
     
     var month: CBMonth {
         calModel.months.filter { $0.enumID == enumID }.first!

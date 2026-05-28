@@ -9,7 +9,7 @@ import SwiftUI
 
 #if os(iOS)
 struct NavLinkPad: View {        
-    let destination: NavDestination
+    let destination: NavDest
     var linkWidth: CGFloat
     var linkHeight: CGFloat
     

@@ -818,7 +818,7 @@
 //            calModel.sCategories = [category]
 //            
 //            calModel.categoryFilterWasSetByCategoryPage = true
-//            let monthEnum = NavDestination.getMonthFromInt(data.month)
+//            let monthEnum = NavDest.getMonthFromInt(data.month)
 //            calModel.sYear = data.year
 //            
 //            #if os(iOS)

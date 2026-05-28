@@ -15,7 +15,7 @@ struct SplashScreen: View {
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) var calModel
 
-    @State private var logoScale: Double = 1
+    //@State private var logoScale: Double = 1
     @State private var titleProgress: CGFloat = 0
     //@State private var hang = ""
     let timer = Timer.publish(every: 5, on: .main, in: .common).autoconnect()
@@ -23,7 +23,14 @@ struct SplashScreen: View {
     @State private var showSlowLoadingButton = false
     @State private var warmUpTransactionView = false
     @State private var waitToGoToMainViewTask: Task<Void, Never>? = nil
+    @State private var doneAnimating = false
 
+    var isReadyForMainApp: Bool {
+        doneAnimating
+        && !AppState.shared.shouldShowSplash
+        && !AuthState.shared.isThinking
+        && (AuthState.shared.isLoggedIn || !AuthState.shared.keychainCredentialsExist)
+    }
     
     var body: some View {
         ZStack {
@@ -42,11 +49,11 @@ struct SplashScreen: View {
         .onReceive(timer) { _ in
             showOfflineButton()
         }
-        .onChange(of: AppState.shared.hasBadConnection) {
-            if !$1 {
+        .onChange(of: AppState.shared.hasBadConnection) { _, isBad in
+            if !isBad {
                 AppState.shared.shouldShowSplash = false
                 showSlowLoadingButton = false
-                waitToShowMainApp()
+                //waitToShowMainApp()
                 Task {
                     if AuthState.shared.isLoggedIn {
                         funcModel.downloadInitial()
@@ -55,6 +62,29 @@ struct SplashScreen: View {
                             funcModel.downloadInitial()
                         }
                     }
+                }
+            }
+        }
+        .onChange(of: isReadyForMainApp, initial: true) { _, isReady in
+            guard isReady else { return }
+
+            Task { @MainActor in
+                if shouldWarmUpTransactionViewDuringSplash {
+                    try? await Task.sleep(for: .milliseconds(1500))
+                }
+
+                #if os(iOS)
+                if AppState.shared.isIphone,
+                   AuthState.shared.isLoggedIn,
+                   !AppState.shared.showPaymentMethodNeededSheet {
+                    calModel.showMonth = true
+                }
+                #endif
+
+                try? await Task.sleep(for: .milliseconds(500))
+
+                withAnimation(.easeOut(duration: 1)) {
+                    AppState.shared.splashIsAnimating = false
                 }
             }
         }
@@ -98,7 +128,7 @@ struct SplashScreen: View {
     
     var makeItRainLogo: some View {
         Text("Make It Rain")
-            .scaleEffect(logoScale)
+            //.scaleEffect(logoScale)
             .font(.largeTitle)
             .foregroundStyle(.primary)
             .textRenderer(TitleTextRenderer(progress: titleProgress))
@@ -147,7 +177,7 @@ struct SplashScreen: View {
 //        }
 //    }
     
-    
+
     func startLogoAnimation() {
         if shouldWarmUpTransactionViewDuringSplash {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
@@ -158,12 +188,16 @@ struct SplashScreen: View {
         withAnimation(.smooth(duration: 1.5, extraBounce: 0)) {
             titleProgress = 1
         } completion: {
-            waitToShowMainApp()
+            doneAnimating = true
+            //AppState.shared.splashIsAnimating = false
+            //waitToShowMainApp()
         }
     }
     
     
-    func waitToShowMainApp() {
+    
+    
+    func waitToShowMainAppOG() {
         self.waitToGoToMainViewTask = Task { @MainActor in
             if shouldWarmUpTransactionViewDuringSplash {
                 /// Let the transaction view warm up

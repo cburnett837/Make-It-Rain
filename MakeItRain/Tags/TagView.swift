@@ -14,9 +14,12 @@ struct TagView: View {
     //@Environment(\.colorScheme) var colorScheme
 
     @Environment(CalendarModel.self) private var calModel
+    @Environment(TagModel.self) private var tagModel
     
     //@Environment(TagModel.self) private var tagModel
-    @Bindable var trans: CBTransaction
+    //@Bindable var trans: CBTransaction
+    @Binding var tags: [CBTag]
+    var tagLimit: Int?
     
     @State private var searchText = ""
     @State private var newTag = ""
@@ -26,21 +29,18 @@ struct TagView: View {
     
     
     var gridTags: Array<CBTag> {
-        var tags: [CBTag] = []
+        //var theTags: [CBTag] = []
         var returnTags: [CBTag] = []
-        let allTags = calModel.tags.sorted(by: { $0.title < $1.title })
-        let transTags = trans.tags
-        print(allTags)
+        let allTags = tagModel.tags.sorted(by: { $0.title < $1.title })
         
         for each in allTags {
-            print(each.title)
-            tags.append(each)
+            //theTags.append(each)
             if !each.isHidden {
                 returnTags.append(each)
             }
         }
         
-        for each in transTags {
+        for each in tags {
             if !returnTags.contains(each) {
                 returnTags.append(each)
             }
@@ -52,20 +52,12 @@ struct TagView: View {
     
     
     var allTags: Array<CBTag> {
-        calModel.tags
+        tagModel.tags
             //.filter { !$0.isHidden }
             .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
             .sorted(by: { $0.title < $1.title })
     }
     
-//    var header: some View {
-//        Group {
-//            SheetHeader(title: "Tags", close: { dismiss() })
-//                .padding(.bottom, 12)
-//                .padding(.horizontal)
-//                .padding(.top)
-//        }
-//    }
     
     
     var body: some View {
@@ -74,7 +66,7 @@ struct TagView: View {
                 if isEditMode {
                     editList
                 } else {
-                    if !calModel.tags.isEmpty {
+                    if !tagModel.tags.isEmpty {
                         if gridTags.isEmpty {
                             VStack {
                                 Text("No Tags…")
@@ -140,6 +132,7 @@ struct TagView: View {
     
     private struct EditLine: View {
         @Environment(CalendarModel.self) private var calModel
+        @Environment(TagModel.self) private var tagModel
         @Bindable var tag: CBTag
         
         @State private var showDeleteAlert = false
@@ -158,10 +151,10 @@ struct TagView: View {
             .alert("\(tag.isHidden ? "Unhide" : "Hide") #\(tag.title)", isPresented: $showDeleteAlert, actions: {
                 Button("Yes", role: .destructive) {
                     withAnimation {
-                        calModel.tags.filter({ $0.id == tag.id }).first?.isHidden.toggle()
+                        tagModel.tags.filter({ $0.id == tag.id }).first?.isHidden.toggle()
                     }
                     Task {
-                        await calModel.submit(tag)
+                        await tagModel.submit(tag)
                     }
                 }
             }, message: {
@@ -180,15 +173,6 @@ struct TagView: View {
                 KeyboardToolbarView(
                     focusedField: $focusedField,
                     removeNavButtons: true
-//                                accessoryText1: "Add",
-//                                accessoryFunc1: {
-//                                    if !newTag.isEmpty {
-//                                        let newTag = CBTag(tag: newTag)
-//                                        addOrFind(tag: newTag)
-//                                    }
-//                                    //focusedField = nil
-//                                    newTag = ""
-//                                }
                 )
             })
             .uiTag(0)
@@ -211,7 +195,7 @@ struct TagView: View {
     var tagGrid: some View {
         TagLayout(alignment: .leading, spacing: 10) {
             ForEach(gridTags) { tag in
-                let exists = !trans.tags.filter { $0.id == tag.id }.isEmpty
+                let exists = !tags.filter { $0.id == tag.id }.isEmpty
                 
                 Button {
                     addOrRemove(tag: tag)
@@ -224,6 +208,7 @@ struct TagView: View {
             }
         }
     }
+    
     
     var addFirstTagButton: some View {
         Button("Add") {
@@ -240,6 +225,7 @@ struct TagView: View {
         .focusable(false)
     }
     
+    
     var addNewTagButton: some View {
         Button("Add") {
             let newTag = CBTag(tag: newTag)
@@ -247,6 +233,7 @@ struct TagView: View {
             self.newTag = ""
         }
     }
+    
     
     var editButton: some View {
         Button {
@@ -284,16 +271,16 @@ struct TagView: View {
     
     func addOrFind(tag: CBTag) {
         withAnimation {
-            if let modelTag = calModel.tags.filter({ $0.title == tag.title }).first {
+            if let modelTag = tagModel.tags.filter({ $0.title == tag.title }).first {
                 modelTag.isHidden = false
             } else {
-                calModel.tags.append(tag)
+                tagModel.tags.append(tag)
             }
             
-            if let transTag = trans.tags.filter({ $0.title == tag.title }).first {
+            if let transTag = tags.filter({ $0.title == tag.title }).first {
                 transTag.isHidden = false
             } else {
-                trans.tags.append(tag)
+                tags.append(tag)
             }
         }
         
@@ -308,11 +295,15 @@ struct TagView: View {
     
     func addOrRemove(tag: CBTag) {
         withAnimation {
-            let exists = !trans.tags.filter { $0.id == tag.id }.isEmpty
+            let exists = !tags.filter { $0.id == tag.id }.isEmpty
             if exists {
-                trans.tags.removeAll(where: { $0.id == tag.id })
+                tags.removeAll(where: { $0.id == tag.id })
             } else {
-                trans.tags.append(tag)
+                if let limit = tagLimit {
+                    tags.appendWithLimit(tag, limit: limit)
+                } else {
+                    tags.append(tag)
+                }
             }
         }
     }

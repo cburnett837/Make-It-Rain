@@ -8,62 +8,46 @@
 import SwiftUI
 
 struct TevHashtags: View {
-    var trans: CBTransaction
-    @State private var showTagSheet = false
+    //var trans: CBTransaction
+    var tags: [CBTag]
+    var header: String?
+    var footer: String?
         
     var body: some View {
         Section {
-            HStack {
-                NavigationLink(value: TransNavDestination.tags) {
-                    if trans.tags.isEmpty {
-                        Label {
-                            Text("Tags")
-                                .schemeBasedForegroundStyle()
-                        } icon: {
-                            Image(systemName: "number")
-                                .foregroundStyle(.gray)
-                        }
-                    } else {
-                        TagLayout(alignment: .leading, spacing: 5) {
-                            ForEach(trans.tags.sorted(by: { $0.title < $1.title })) { tag in
-                                Text("#\(tag.title)")
-                                    .foregroundStyle(Color.theme)
-                                    .bold()
-                            }
-                        }
-                        .contentShape(Rectangle())
-                    }
-                }
-//                Button {
-//                    showTagSheet = true
-//                } label: {
-//                    if trans.tags.isEmpty {
-//                        Label {
-//                            Text("Tags")
-//                                .schemeBasedForegroundStyle()
-//                        } icon: {
-//                            Image(systemName: "number")
-//                                .foregroundStyle(.gray)
-//                        }
-//                    } else {
-//                        TagLayout(alignment: .leading, spacing: 5) {
-//                            ForEach(trans.tags.sorted(by: { $0.tag < $1.tag })) { tag in
-//                                Text("#\(tag.tag)")
-//                                    .foregroundStyle(Color.theme)
-//                                    .bold()
-//                            }
-//                        }
-//                        .contentShape(Rectangle())
-//                    }
-//                }
+            content
+        } header: {
+            if let header {
+                Text(header)
+            }
+        } footer: {
+            if let footer {
+                Text(footer)
             }
         }
-//        .sheet(isPresented: $showTagSheet) {
-//            TagView(trans: trans)
-//            #if os(macOS)
-//                .frame(minWidth: 300, minHeight: 500)
-//                .presentationSizing(.fitted)
-//            #endif
-//        }
+    }
+    
+    
+    var content: some View {
+        NavigationLink(value: TransNavDest.tags) {
+            if tags.isEmpty {
+                Label {
+                    Text("Tags")
+                        .schemeBasedForegroundStyle()
+                } icon: {
+                    Image(systemName: "number")
+                        .foregroundStyle(.gray)
+                }
+            } else {
+                TagLayout(alignment: .leading, spacing: 5) {
+                    ForEach(tags.sorted(by: { $0.title < $1.title })) { tag in
+                        Text("#\(tag.title)")
+                            .foregroundStyle(Color.theme)
+                            .bold()
+                    }
+                }
+                .contentShape(Rectangle())
+            }
+        }
     }
 }

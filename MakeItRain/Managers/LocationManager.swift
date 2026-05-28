@@ -18,6 +18,8 @@ class LocationManager: NSObject, CLLocationManagerDelegate  {
     var region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: 51.507222, longitude: -0.1275), span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05))
     
     var authIsAllowed: Bool = false
+    var currentCountry: String?
+    var isThinking: Bool = true
     
     override init() {
         super.init()
@@ -52,14 +54,19 @@ class LocationManager: NSObject, CLLocationManagerDelegate  {
         }
         //print(currentLocation?.latitude)
         //print(currentLocation?.longitude)
+        Task {
+            await getCountryFromLocation()
+            isThinking = false
+        }
     }
     
     
     func requestLocation() {
+        isThinking = true
         //print("-- \(#function)")
         manager.requestLocation()
     }
-        
+    
     
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         //print("-- \(#function)")
@@ -76,13 +83,13 @@ class LocationManager: NSObject, CLLocationManagerDelegate  {
         case .authorizedAlways:
             print("Location authorization authorizedAlways")
             authIsAllowed = true
-            manager.requestLocation()
+            requestLocation()
             //fetchCoreLocations()
             
         case .authorizedWhenInUse:
             print("Location authorization authorizedWhenInUse")
             authIsAllowed = true
-            manager.requestLocation()
+            requestLocation()
             //fetchCoreLocations()
             
         @unknown default:
@@ -94,5 +101,23 @@ class LocationManager: NSObject, CLLocationManagerDelegate  {
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         //print("-- \(#function)")
         print(error.localizedDescription)
+    }
+    
+    
+    func getCountryFromLocation() async {
+        guard let currentLocation = self.currentLocation else { return }
+        do {
+            let location = CLLocation(latitude: currentLocation.latitude, longitude: currentLocation.longitude)
+            if let request = MKReverseGeocodingRequest(location: location) {
+                let mapItems = try await request.mapItems
+                let item = mapItems.first!
+                
+                if let country = item.addressRepresentations?.region?.identifier {
+                    self.currentCountry = country
+                }
+            }
+        } catch {
+            print(error.localizedDescription)
+        }
     }
 }

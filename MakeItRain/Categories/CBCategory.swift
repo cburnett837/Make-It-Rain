@@ -164,9 +164,9 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         //try container.encode(color.description, forKey: .hex_code)
         try container.encode(emoji, forKey: .emoji)
         try container.encode(active ? 1 : 0, forKey: .active)
-        try container.encode(AppState.shared.user?.id, forKey: .user_id)
-        try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
-        try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
+        try container.encode(Cody.shared.id, forKey: .user_id)
+        try container.encode(Cody.shared.accountID, forKey: .account_id)
+        try container.encode(Cody.shared.deviceUUID, forKey: .device_uuid)
         try container.encode(type.id, forKey: .type_id)
         try container.encode(listOrder, forKey: .list_order)
         //try container.encode(enteredBy, forKey: .entered_by) // for the Transferable protocol

@@ -23,7 +23,7 @@ struct CalendarGridPhone: View {
     @Environment(CalendarModel.self) private var calModel
     @Environment(CalendarProps.self) private var calProps
     
-    let enumID: NavDestination
+    let enumID: NavDest
     
     let sevenColumnGrid = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
     

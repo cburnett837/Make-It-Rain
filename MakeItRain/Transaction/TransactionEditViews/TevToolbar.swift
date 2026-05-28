@@ -61,7 +61,7 @@ struct TevToolbar: ToolbarContent {
         
         if showExpensiveViews {
             ToolbarItem(placement: .bottomBar) {
-                NavigationLink(value: TransNavDestination.logs) {
+                NavigationLink(value: TransNavDest.logs) {
                     EnteredByAndUpdatedByView(
                         enteredBy: trans.enteredBy,
                         updatedBy: trans.updatedBy,
@@ -75,7 +75,7 @@ struct TevToolbar: ToolbarContent {
         #else
         ToolbarItemGroup(placement: .destructiveAction) {
             HStack {
-                NavigationLink(value: TransNavDestination.logs) {
+                NavigationLink(value: TransNavDest.logs) {
                     EnteredByAndUpdatedByView(
                         enteredBy: trans.enteredBy,
                         updatedBy: trans.updatedBy,
@@ -117,7 +117,7 @@ struct TevToolbar: ToolbarContent {
     
         
     var moreMenu: some View {
-        NavigationLink(value: TransNavDestination.options) {
+        NavigationLink(value: TransNavDest.options) {
             Image(systemName: "ellipsis")
                 .schemeBasedForegroundStyle()
         }

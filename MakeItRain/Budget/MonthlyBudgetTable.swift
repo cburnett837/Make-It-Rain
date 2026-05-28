@@ -25,22 +25,30 @@ extension GaugeStyle where Self == VariableSizeCircularStyle {
     static var variableSizeCircular: VariableSizeCircularStyle { .init() }
 }
 
-struct BudgetTable: View {
+struct MonthlyBudgetTable: View {
     @Environment(\.dismiss) var dismiss
     @Environment(CalendarModel.self) private var calModel
     @Environment(CategoryModel.self) private var catModel
+    @Environment(BudgetModel.self) private var budgetModel
     
-    @State private var budgetEditID: CBBudget.ID?
-    @State private var editBudget: CBBudget?
+    @State private var populateModel = PopulateOptions()
+    @State private var budgetItemEditId: CBBudgetItem.ID?
+    //@State private var editBudgetItem: CBBudgetItem?
     
-    //@State private var budgetGroupEditID: CBBudgetGroup.ID?
-    //@State private var editBudgetGroup: CBBudgetGroup?
+    //@State private var budgetEditId: Int?
+    @State private var editBudget: CBMonth?
+    
+    //@State private var budgetGroupEditID: CBBudgetItemGroup.ID?
+    //@State private var editBudgetItemGroup: CBBudgetItemGroup?
     
     @State private var labelWidth: CGFloat = 20.0
     
     @State private var searchText = ""
-//    
-//    var filteredBudgets: Array<CBBudget> {
+    @State private var cumTotals: [BudgetCumTotal] = []
+    @State private var transactions: [CBTransaction] = []
+
+//
+//    var filteredBudgets: Array<CBBudgetItem> {
 //        if searchText.isEmpty {
 //            return calModel.sMonth.budgets
 //                //.filter { $0.category != nil }
@@ -67,7 +75,7 @@ struct BudgetTable: View {
 //    
     
     
-    func filteredBudgets(for type: BudgetItemType) -> Array<CBBudget> {
+    func filteredBudgets(for type: BudgetItemType) -> Array<CBBudgetItem> {
         return calModel.sMonth.budgets
             .filter { $0.type == type }
             .filter {
@@ -82,7 +90,7 @@ struct BudgetTable: View {
     }
     
     
-//    var filteredBudgetGroups: Array<CBBudget> {
+//    var filteredBudgetGroups: Array<CBBudgetItem> {
 //        if searchText.isEmpty {
 //            return calModel.sMonth.budgets
 //                .filter { $0.categoryGroup != nil }
@@ -108,6 +116,21 @@ struct BudgetTable: View {
 //    }
 
     
+    //@State private var totalExpenses: Double = 0
+    
+    var totalExpenses: Double {
+        let trans = calModel.getTransactions()
+            .filter { $0.dateComponents?.month == calModel.sMonth.actualNum }
+            .filter { $0.dateComponents?.year == calModel.sMonth.year }
+        return TransactionHelper.All.Amount.actualSpend(from: trans)
+        //TransactionHelper.getSpend(from: transactions) - TransactionHelper.getSpendMinusIncome(from: transactions)
+//        transactions
+//            .filter { !$0.isPaymentDest }
+//            .map { ($0.payMethod?.isCreditOrLoan ?? false) ? $0.amount : $0.amount * -1 }
+//            .reduce(0.0, +)
+    }
+    
+    
     var body: some View {
         if AppState.shared.isIphone {
             content
@@ -121,20 +144,18 @@ struct BudgetTable: View {
     
     @ViewBuilder
     var content: some View {
+        @Bindable var calModel = calModel
         Group {
-            if filteredBudgets(for: .category).isEmpty
-                && filteredBudgets(for: .categoryGroup).isEmpty
-                && filteredBudgets(for: .tag).isEmpty
-            {
+            if filteredBudgets(for: .category).isEmpty && filteredBudgets(for: .categoryGroup).isEmpty {
                 ContentUnavailableView {
                     Text("No Budget")
                 } description: {
                     Text("A budget has not been created for \(calModel.sMonth.prettyName). Please create one below.")
                 } actions: {
                     Button("Create Budget") {
-                        model.budget = true
+                        populateModel.budget = true
                         calModel.populate(
-                            options: model,
+                            options: populateModel,
                             repTransactions: [],
                             //categories: catModel.categories,
                             //categoryGroups: catModel.categoryGroups
@@ -145,31 +166,6 @@ struct BudgetTable: View {
             } else {
                 StandardContainerWithToolbar(.list) {
                     bodyPhone
-                    
-                    if !calModel.appSuiteBudgets.isEmpty {
-                        Section("Special Budgets for \(String(calModel.sMonth.year))") {
-                            ForEach(calModel.appSuiteBudgets) { budget in
-                                if let cat = budget.category {
-                                    HStack {
-                                        ChartCircleDot(
-                                            budget: budget.amount,
-                                            expenses: getExpenseAmount(for: cat),
-                                            color: cat.color,
-                                            size: 22
-                                        )
-                                        Text(cat.title)
-                                        
-                                        Spacer()
-                                        Text(budget.amount.currencyWithDecimals())
-                                    }
-                                    .contentShape(Rectangle())
-                                    .onTapGesture {
-                                        budgetEditID = budget.id
-                                    }
-                                }
-                            }
-                        }
-                    }
                 }
                 .searchable(text: $searchText, prompt: Text("Search"))
                 .toolbar {
@@ -177,8 +173,29 @@ struct BudgetTable: View {
                     if AppState.shared.isIpad {
                         ToolbarItem(placement: .topBarTrailing) { closeButton }
                     }
+                    
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            editBudget = calModel.sMonth
+                        } label: {
+                            Text("Edit")
+                                .schemeBasedForegroundStyle()
+                        }
+                    }
+                    
+                    ToolbarSpacer(.flexible, placement: .topBarTrailing)
                                         
-                    ToolbarItem(placement: .topBarTrailing) { newBudgetButton }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            AppState.shared.showAlert("This feature is not yet available.")
+                        } label: {
+                            Image(systemName: "plus")
+                                .schemeBasedForegroundStyle()
+                        }
+                    }
+                    
+                    
+                    
                     DefaultToolbarItem(kind: .search, placement: .bottomBar)
                     ToolbarSpacer(.flexible, placement: .bottomBar)
                     ToolbarItem(placement: .bottomBar) { CategorySortMenu() }
@@ -188,113 +205,93 @@ struct BudgetTable: View {
                 }
             }
         }
-        .navigationTitle("Budgets")
+        .task {
+            prepareData(calModel: calModel)
+        }
+        .navigationTitle("Budget")
         .navigationSubtitle("\(calModel.sMonth.name) \(String(calModel.sYear))")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
-        .onChange(of: budgetEditID) { oldId, newId in
-            if let newId {
-                if let editBudget = calModel.sMonth.budgets.first(where: { $0.id == newId }) {
-                    self.editBudget = editBudget
-                    
-                } else if let editBudget = calModel.appSuiteBudgets.first(where: { $0.id == newId }) {
-                    self.editBudget = editBudget
-                    
-                } else {
-                    self.editBudget = CBBudget(uuid: newId)
-                }
-                
-            } else if newId == nil && oldId != nil {
-                var budget: CBBudget?
-                
-                if let editBudget = calModel.sMonth.budgets.first(where: { $0.id == oldId! }) {
-                    budget = editBudget
-                    
-                } else if let editBudget = calModel.appSuiteBudgets.first(where: { $0.id == oldId! }) {
-                    budget = editBudget
-                    
-                } else {
-                 
-                }
-                
-                if let budget = budget {
-                    guard let item = budget.item else {
-                        calModel.sMonth.budgets.removeAll(where: { $0.id == oldId! })
-                        return
-                    }
-                    
-                    if item.title.isEmpty {
-                        print("Title is empty, deleting budget")
-                        calModel.sMonth.budgets.removeAll(where: { $0.id == oldId! })
-                    } else {
-                        Task {
-                            if budget.hasChanges() || budget.action == .add {
-                                calModel.budgets.append(budget)
-                                await calModel.submit(budget)
-                            }
-                        }
-                    }
-                } else {
-                    print("cant find budget or item")
+        .sheet(item: $editBudget, onDismiss: {
+            if calModel.sMonth.hasChanges() {
+                Task {
+                    await budgetModel.submit(calModel.sMonth)
                 }
             }
-        }
-        .sheet(item: $editBudget, onDismiss: {
-            budgetEditID = nil
-            //calculateDataFunction()
-        }) { budget in
-            BudgetEditView(budget: budget, calModel: calModel)
-                .presentationSizing(.page)
+        }) { budgetId in
+            MonthlyBudgetEditView(month: calModel.sMonth)
         }
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
     }
     
     
-    @State private var model = PopulateOptions()
-    
     @ViewBuilder
     var bodyPhone: some View {
+        @Bindable var calModel = calModel
         
-        ForEach(BudgetItemType.allCases, id: \.self) { type in
+        Section {
+            Button {
+                editBudget = calModel.sMonth
+            } label: {
+                BudgetChart(budgetAmount: calModel.sMonth.amount, expenseAmount: totalExpenses)
+            }
+        } header: {
+            Text("Budget - \(calModel.sMonth.amount.currencyWithDecimals())")
+        } footer: {
+            Text("Touch to edit")
+        }
+
+        
+        
+//        Section("Cumulative Spending") {
+//            BudgetCumSpendingChart(budgetAmount: calModel.sMonth.amount, cumTotals: cumTotals)
+//        }
+//        Section("Spending By Day") {
+//            BudgetSpendingByDayChart(transactions: transactions)
+//        }
+                                
+        ForEach(BudgetItemType.allCases.filter({ $0 != .tag }), id: \.self) { type in
             Section(type.prettyValue) {
                 ForEach(filteredBudgets(for: type)) { budget in
-                    Label {
-                        VStack(alignment: .leading) {
-                            HStack {
-                                Text(budget.item?.title ?? "N/A")
-                                Spacer()
-                                Text(budget.amount.currencyWithDecimals())
+                    NavigationLink(value: NavDest.budgetOverview(budget)) {
+                        Label {
+                            VStack(alignment: .leading) {
+                                HStack {
+                                    Text(budget.item?.title ?? "N/A")
+                                    Spacer()
+                                    Text(budget.amount.currencyWithDecimals())
+                                }
                             }
+                        } icon: {
+                            switch budget.type {
+                            case .category:
+                                if let cat = budget.category {
+                                    ChartCircleDot(
+                                        budget: budget.amount,
+                                        expenses: getExpenseAmount(for: cat),
+                                        color: cat.color,
+                                        size: 20
+                                    )
+                                }
+                                
+                            case .categoryGroup:
+                                if let group = budget.categoryGroup {
+                                    let colors = group.categories.filter({ $0.active }).sorted(by: Helpers.categorySorter()).map { $0.color }
+                                    GradientCircleDot(colors: colors)
+                                }
+                                
+                            case .tag:
+                                EmptyView()
+                            }
+                            
                         }
-                    } icon: {
-                        switch budget.type {
-                        case .category:
-                            if let cat = budget.category {
-                                ChartCircleDot(
-                                    budget: budget.amount,
-                                    expenses: getExpenseAmount(for: cat),
-                                    color: cat.color,
-                                    size: 20
-                                )
-                            }
-                            
-                            
-                        case .categoryGroup:
-                            if let group = budget.categoryGroup {
-                                let colors = group.categories.filter({ $0.active }).sorted(by: Helpers.categorySorter()).map { $0.color }
-                                GradientCircleDot(colors: colors)
-                            }
-                            
-                        case .tag:
-                            Text("Hey")
-                        }
-                        
                     }
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        budgetEditID = budget.id
-                    }
+//                    
+//                    .contentShape(Rectangle())
+//                    .onTapGesture {
+//                        budgetItemEditId = budget.id
+//                    }
                 }
             }
         }
@@ -317,7 +314,7 @@ struct BudgetTable: View {
 //                    }
 //                    .contentShape(Rectangle())
 //                    .onTapGesture {
-//                        budgetEditID = budget.id
+//                        budgetItemEditId = budget.id
 //                    }
 //                }
 //            }
@@ -345,7 +342,7 @@ struct BudgetTable: View {
 //                    }
 //                    .contentShape(Rectangle())
 //                    .onTapGesture {
-//                        budgetEditID = budget.id
+//                        budgetItemEditId = budget.id
 //                    }
 //                    
 ////                    Gauge(value: display, in: 0...budget.amount) {
@@ -363,19 +360,19 @@ struct BudgetTable: View {
 //        }
     }
     
-    var newBudgetButton: some View {
-        Button {
-            budgetEditID = UUID().uuidString
-        } label: {
-            Image(systemName: "plus")
-        }
-        .tint(.none)
-    }
+//    var newBudgetButton: some View {
+//        Button {
+//            budgetItemEditId = UUID().uuidString
+//        } label: {
+//            Image(systemName: "plus")
+//        }
+//        .tint(.none)
+//    }
     
     
     
     func getExpenseAmount(for category: CBCategory) -> Double {
-        calModel.sMonth.justTransactions
+        calModel.getTransactions()
             .filter { ($0.payMethod?.isPermitted ?? true) }
             .filter { !($0.payMethod?.isHidden ?? false) }
             .filter { $0.category?.id == category.id }
@@ -392,6 +389,58 @@ struct BudgetTable: View {
         }
         .tint(.none)
         //.buttonStyle(.glassProminent)
+    }
+    
+//    func prepareData() {
+//        let trans = calModel.getTransactions()
+//        transactions = TransactionHelper.All.Transactions.spend(from: trans)
+//            .filter { $0.dateComponents?.month == calModel.sMonth.actualNum }
+//            .filter { $0.dateComponents?.year == calModel.sMonth.year }
+//                                
+//        let newCumTotals = BudgetHelper.calculateCumTotals(
+//            calModel: calModel,
+//            transactions: transactions,
+//            budgetAmount: calModel.sMonth.amount
+//        )
+//        
+//        withAnimation {
+//            self.cumTotals = newCumTotals
+//        }
+//    }
+    
+    
+    @MainActor
+    func prepareData(calModel: CalendarModel) {
+        let month = calModel.sMonth.actualNum
+        let year = calModel.sMonth.year
+        let budgetAmount = calModel.sMonth.amount
+
+        let trans = calModel.getTransactions()
+        let days = calModel.sMonth.days
+
+        let filteredTransactions = trans//TransactionHelper.All.Transactions.spend(from: trans)
+            .filter {
+                $0.dateComponents?.month == month &&
+                $0.dateComponents?.year == year
+            }
+
+        self.transactions = filteredTransactions
+
+        Task {
+            let newCumTotals = await Task.detached(priority: .userInitiated) {
+                await BudgetHelper.calculateCumTotals(
+                    days: days,
+                    transactions: filteredTransactions,
+                    budgetAmount: budgetAmount
+                )
+            }.value
+
+            await MainActor.run {
+                withAnimation {
+                    self.cumTotals = newCumTotals
+                }
+            }
+        }
     }
     
     

@@ -567,7 +567,7 @@ class PayMethodModel {
             }
                                                 
             if payMethod.isUnified {
-                let _ = calModel.updateUnifiedStartingAmount(month: month, for: payMethod.accountType)
+                CalcHelper.updateUnifiedStartingAmount(month: month, for: payMethod.accountType)
             }
         }
     }

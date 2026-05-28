@@ -22,7 +22,11 @@ class CalendarModel {
     @ObservationIgnored private let store: AppStore
     init(store: AppStore) {
         self.store = store
+        self.dashboardModel = DashboardModel(store: store, isForSelectedMonth: true)
     }
+    
+    var dashboardModel: DashboardModel
+
 
 //    var categories: [CBCategory] {
 //        store.categories
@@ -36,37 +40,77 @@ class CalendarModel {
     #if os(iOS)
     var isShowingFullScreenCoverOnIpad = false
     #endif
-    var categoryFilterWasSetByCategoryPage = false
+    
+//    var categoryFilterWasSetByCategoryPage: Bool {
+//        get { store.categoryFilterWasSetByCategoryPage }
+//        set { store.categoryFilterWasSetByCategoryPage = newValue }
+//    }
+//    
+    
     var transactionViewHasBeenWarmedUp = false
     var isFirstCalendarLoad = true
-    var windowMonth: NavDestination?
+    var windowMonth: NavDest?
     
-    var sMonth: CBMonth = CBMonth(num: 1)
-    var sYear: Int = AppState.shared.todayYear
+//    var sMonth: CBMonth = CBMonth(num: 1)
+//    var sYear: Int = AppState.shared.todayYear
     
     var sPayMethodBeforeFilterWasSetByCategoryPage: CBPaymentMethod?
+//    var sPayMethod: CBPaymentMethod? {
+//        didSet {
+//            let _ = calculateTotal(for: self.sMonth)
+//        }
+//    }
+    
+    var sMonth: CBMonth {
+        get { store.sMonth }
+        set { store.sMonth = newValue }
+    }
+    var sYear: Int {
+        get { store.sYear }
+        set { store.sYear = newValue }
+    }
     var sPayMethod: CBPaymentMethod? {
-        didSet {
-            let _ = calculateTotal(for: self.sMonth)
-        }
+        get { store.sPayMethod }
+        set { store.sPayMethod = newValue }
+    }
+    var sCategory: CBCategory? {
+        get { store.sCategory }
+        set { store.sCategory = newValue }
+    }
+    var sCategories: [CBCategory] {
+        get { store.sCategories }
+        set { store.sCategories = newValue }
+    }
+    var sCategoryGroups: [CBCategoryGroup] {
+        get { store.sCategoryGroups }
+        set { store.sCategoryGroups = newValue }
+    }
+    var sCategoriesForAnalysis: [CBCategory] {
+        get { store.sCategoriesForAnalysis }
+        set { store.sCategoriesForAnalysis = newValue }
+    }
+    var sCategoryGroupsForAnalysis: [CBCategoryGroup] {
+        get { store.sCategoryGroupsForAnalysis }
+        set { store.sCategoryGroupsForAnalysis = newValue }
     }
     
-    var sCategory: CBCategory?
-    var sCategories: [CBCategory] = []
-    var sCategoryGroups: [CBCategoryGroup] = []
-    var sCategoriesForAnalysis: [CBCategory] = []
-    var sCategoryGroupsForAnalysis: [CBCategoryGroup] = []
+    
+//    var sCategory: CBCategory?
+//    var sCategories: [CBCategory] = []
+//    var sCategoryGroups: [CBCategoryGroup] = []
+//    var sCategoriesForAnalysis: [CBCategory] = []
+//    var sCategoryGroupsForAnalysis: [CBCategoryGroup] = []
     
     var isPlayground: Bool { sYear == 1900 }
     var searchText = ""
     var searchWhat = CalendarSearchWhat.titles
     
-    //var appSuiteBudgets: [CBBudget] = []
+    //var appSuiteBudgets: [CBBudgetItem] = []
     
-    var appSuiteBudgets: [CBBudget] {
-        get { store.appSuiteBudgets }
-        set { store.appSuiteBudgets = newValue }
-    }
+//    var appSuiteBudgets: [CBBudgetItem] {
+//        get { store.appSuiteBudgets }
+//        set { store.appSuiteBudgets = newValue }
+//    }
     
     // MARK: - Visual things
     var transactionToCopy: CBTransaction?
@@ -104,13 +148,43 @@ class CalendarModel {
         set { store.months = newValue }
     }
     
-    var tempTransactions: [CBTransaction] = []
-    var searchedTransactions: [CBTransaction] = []
-    var dashboardTransactions: [CBTransaction] = []
-    var receiptTransactions: [CBTransaction] = []
-    var tags: [CBTag] = []
-    var suggestedTitles: [CBSuggestedTitle] = []
-    var budgets: [CBBudget] = []
+    var tempTransactions: [CBTransaction] {
+        get { store.tempTransactions }
+        set { store.tempTransactions = newValue }
+    }
+    
+    var searchedTransactions: [CBTransaction] {
+        get { store.searchedTransactions }
+        set { store.searchedTransactions = newValue }
+    }
+    
+    var dashboardTransactions: [CBTransaction] {
+        get { store.dashboardTransactions }
+        set { store.dashboardTransactions = newValue }
+    }
+    
+    var receiptTransactions: [CBTransaction] {
+        get { store.receiptTransactions }
+        set { store.receiptTransactions = newValue }
+    }
+    
+//    var tags: [CBTag] {
+//        get { store.tags }
+//        set { store.tags = newValue }
+//    }
+    
+    var suggestedTitles: [CBSuggestedTitle] {
+        get { store.suggestedTitles }
+        set { store.suggestedTitles = newValue }
+    }
+    
+//    var tempTransactions: [CBTransaction] = []
+//    var searchedTransactions: [CBTransaction] = []
+//    var dashboardTransactions: [CBTransaction] = []
+//    var receiptTransactions: [CBTransaction] = []
+//    var tags: [CBTag] = []
+//    var suggestedTitles: [CBSuggestedTitle] = []
+//    var budgets: [CBBudgetItem] = []
 
     
     
@@ -124,7 +198,7 @@ class CalendarModel {
         get { store.justTransactions }
     }
     
-    var justBudgets: Array<CBBudget> {
+    var justBudgets: Array<CBBudgetItem> {
         months.flatMap { $0.budgets }
     }
     
@@ -141,90 +215,7 @@ class CalendarModel {
     
     
     
-    @MainActor
-    func handleIncomingData(for month: CBMonth, using model: TransactionAndStartingAmountModel, createNewStructs: Bool, refreshTechnique: RefreshTechnique) async {
-        month.hasBeenPopulated = model.hasPopulated
-        
-        if !createNewStructs {
-            await self.handleTransactions(model.transactions, for: month, refreshTechnique: refreshTechnique)
-        } else {
-            for trans in model.transactions {
-                
-                /// Handle smart transactions that may have been added
-                if let isSmartTransaction = trans.isSmartTransaction {
-                    if isSmartTransaction && !(trans.smartTransactionIsAcknowledged ?? true) {
-                        if trans.smartTransactionIssue != nil {
-                            if tempTransactions.filter({ $0.id == trans.id }).isEmpty {
-                                tempTransactions.append(trans)
-                            }
-                            continue
-                        }
-                    }
-                }
-                
-                await trans.payMethod?.loadLogoFromCoreDataIfNeeded()
-                
-                let day = month.days.filter { $0.date == trans.date }.first
-                day?.transactions.append(trans)
-            }
-        }
-        
-        for startingAmount in model.startingAmounts {
-            /// When navigation changes, a new `CBStartingAmount` that corresponds to `self.sPayMethod` gets added to the newly selected month. (for when we navigate to a month that does not yet have one on the server.)
-            await startingAmount.payMethod.loadLogoFromCoreDataIfNeeded()
-            if month.startingAmounts.contains(where: { $0.payMethod.id == startingAmount.payMethod.id }) {
-                let index = month.startingAmounts.firstIndex(where: { $0.payMethod.id == startingAmount.payMethod.id })!
-                month.startingAmounts[index] = startingAmount
-            } else {
-                month.startingAmounts.append(startingAmount)
-            }
-        }
-        
-        
-        if let budgets = model.budgets {
-            for budget in budgets {
-                if month.budgets.contains(where: { $0.id == budget.id }) {
-                    let index = month.budgets.firstIndex(where: { $0.id == budget.id })!
-                    month.budgets[index] = budget
-                } else {
-                    month.budgets.append(budget)
-                }
-            }
-        }
-        
-//        if let budgets = model.budgets {
-//            for budget in budgets {
-//                if let group = budget.categoryGroup {
-//                    if month.budgetGroups.contains(where: { $0.id == budget.id }) {
-//                        let index = month.budgetGroups.firstIndex(where: { $0.id == budget.id })!
-//                        month.budgetGroups[index] = budget
-//                    } else {
-//                        month.budgetGroups.append(budget)
-//                    }
-//                } else {
-//                    if month.budgets.contains(where: { $0.id == budget.id }) {
-//                        let index = month.budgets.firstIndex(where: { $0.id == budget.id })!
-//                        month.budgets[index] = budget
-//                    } else {
-//                        month.budgets.append(budget)
-//                    }
-//                }
-//                
-//            }
-//        }
-        
-        
-        let _ = calculateTotal(for: month)
-        
-        /// Run this when switching years.
-        if month.enumID == self.sMonth.enumID {
-            /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
-            /// So we use the ``DataChangeTriggers`` class to send a notification to the view to tell it to recalculate.
-            DataChangeTriggers.shared.viewDidChange(.calendar)
-        }
-        
-        month.changeLoadingSpinners(toShowing: false, includeCalendar: true)
-    }
+
     
     
     // MARK: - Fetch From Server
@@ -557,8 +548,15 @@ class CalendarModel {
     }
     
     
+    /// Called from..
+    /// 1. the long poll when new transactions arrive
+    /// 2. when you save a transaction from a non standard location [.smartList, .searchResultList, .receiptsList, .dashboardList, .tagBudgetList]
+    /// 3. from `self.handleIncomingData` when it is not supposed to create new structs.
     func handleTransactions(_ transactions: Array<CBTransaction>, for month: CBMonth? = nil, refreshTechnique: RefreshTechnique?) async {
+        print("-- \(#function)")
         let pendingSmartTransactionCount = tempTransactions.filter({ $0.isSmartTransaction ?? false }).count
+        
+        var shouldReloadDashboard = false
         
         for incomingTrans in transactions {
             let id = incomingTrans.id
@@ -664,7 +662,7 @@ class CalendarModel {
                                         withAnimation(.easeOut(duration: 0.6)) {
                                             trans.status = nil
                                             day.remove(trans)
-                                            let _ = self.calculateTotal(for: month)
+                                            CalcHelper.calculateTotal(for: month, store: self.store)
                                         }
                                     }
                                 }
@@ -727,6 +725,15 @@ class CalendarModel {
                         .forEach { $0.transactions.removeAll { $0.id == id } }
                 }
             }
+            
+            
+            /// Update the calendar dashboard (if applicable)
+            if let incomingDate = incomingTrans.date {
+                let range = min(dashboardModel.beginDate, dashboardModel.endDate)...max(dashboardModel.beginDate, dashboardModel.endDate)
+                if range.contains(incomingDate) {
+                    shouldReloadDashboard = true
+                }
+            }
         }
         
                 
@@ -751,9 +758,123 @@ class CalendarModel {
         if newPendingSmartTransactionCount > pendingSmartTransactionCount {
             AppState.shared.showToast(title: "Smart Transaction Issues", subtitle: "\(newPendingSmartTransactionCount) require attention", body: "", symbol: "exclamationmark.triangle", symbolColor: .orange)
         }
-                        
+        
+        if shouldReloadDashboard && (refreshTechnique == .viaLongPoll || refreshTechnique == nil) {
+            print("SHOULD RELOAD DATA FOR LOCAL DASHBOARD 1")
+            Task {
+                dashboardModel.localVersionOfServerCode(calModel: self)
+                dashboardModel.prepareData(calModel: self)
+            }
+        }
     }
-          
+        
+    
+    /// Only called from `funcModel.fetchMonthlyData()`
+    @MainActor
+    func handleIncomingData(for month: CBMonth, using model: TransactionAndStartingAmountModel, createNewStructs: Bool, refreshTechnique: RefreshTechnique) async {
+        //print("-- \(#function)")
+        month.hasBeenPopulated = model.hasPopulated
+        
+        var shouldReloadDashboard = false
+        
+        if !createNewStructs {
+            await self.handleTransactions(model.transactions, for: month, refreshTechnique: refreshTechnique)
+        } else {
+            for trans in model.transactions {
+                
+                /// Handle smart transactions that may have been added
+                if let isSmartTransaction = trans.isSmartTransaction {
+                    if isSmartTransaction && !(trans.smartTransactionIsAcknowledged ?? true) {
+                        if trans.smartTransactionIssue != nil {
+                            if tempTransactions.filter({ $0.id == trans.id }).isEmpty {
+                                tempTransactions.append(trans)
+                            }
+                            continue
+                        }
+                    }
+                }
+                
+                /// Update the calendar dashboard (if applicable)
+                if let incomingDate = trans.date {
+                    let range = min(dashboardModel.beginDate, dashboardModel.endDate)...max(dashboardModel.beginDate, dashboardModel.endDate)
+                    if range.contains(incomingDate) {
+                        shouldReloadDashboard = true
+                    }
+                }
+                
+                await trans.payMethod?.loadLogoFromCoreDataIfNeeded()
+                
+                let day = month.days.filter { $0.date == trans.date }.first
+                day?.transactions.append(trans)
+            }
+        }
+        
+        for startingAmount in model.startingAmounts {
+            /// When navigation changes, a new `CBStartingAmount` that corresponds to `self.sPayMethod` gets added to the newly selected month. (for when we navigate to a month that does not yet have one on the server.)
+            await startingAmount.payMethod.loadLogoFromCoreDataIfNeeded()
+            if month.startingAmounts.contains(where: { $0.payMethod.id == startingAmount.payMethod.id }) {
+                let index = month.startingAmounts.firstIndex(where: { $0.payMethod.id == startingAmount.payMethod.id })!
+                month.startingAmounts[index] = startingAmount
+            } else {
+                month.startingAmounts.append(startingAmount)
+            }
+        }
+        
+        
+        if let budgets = model.budgets {
+            for budget in budgets {
+                if month.budgets.contains(where: { $0.id == budget.id }) {
+                    let index = month.budgets.firstIndex(where: { $0.id == budget.id })!
+                    month.budgets[index] = budget
+                } else {
+                    month.budgets.append(budget)
+                }
+            }
+        }
+        
+        if shouldReloadDashboard && createNewStructs {
+            print("SHOULD RELOAD DATA FOR LOCAL DASHBOARD 2")
+            Task {
+                dashboardModel.localVersionOfServerCode(calModel: self)
+                //await dashboardModel.fetchDashboard()
+                dashboardModel.prepareData(calModel: self)
+            }
+        }
+        
+//        if let budgets = model.budgets {
+//            for budget in budgets {
+//                if let group = budget.categoryGroup {
+//                    if month.budgetGroups.contains(where: { $0.id == budget.id }) {
+//                        let index = month.budgetGroups.firstIndex(where: { $0.id == budget.id })!
+//                        month.budgetGroups[index] = budget
+//                    } else {
+//                        month.budgetGroups.append(budget)
+//                    }
+//                } else {
+//                    if month.budgets.contains(where: { $0.id == budget.id }) {
+//                        let index = month.budgets.firstIndex(where: { $0.id == budget.id })!
+//                        month.budgets[index] = budget
+//                    } else {
+//                        month.budgets.append(budget)
+//                    }
+//                }
+//
+//            }
+//        }
+        
+        
+        CalcHelper.calculateTotal(for: month, store: store)
+        
+        /// Run this when switching years.
+        if month.enumID == self.sMonth.enumID {
+            /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
+            /// So we use the ``DataChangeTriggers`` class to send a notification to the view to tell it to recalculate.
+            DataChangeTriggers.shared.viewDidChange(.calendar)
+        }
+        
+        month.changeLoadingSpinners(toShowing: false, includeCalendar: true)
+    }
+    
     
     func getTransaction(by id: String, from transactionLocation: WhereToLookForTransaction = .normalList) -> CBTransaction? {
         let theList = switch transactionLocation {
@@ -762,12 +883,12 @@ class CalendarModel {
             case .searchResultList:     searchedTransactions
             case .receiptsList:         receiptTransactions
             case .dashboardList:        dashboardTransactions
+            case .tagBudgetList:        store.tagBudgetTransactions
         }
         #warning("ServerID")
         
         if let trans = theList.first(where: { ($0.id == id || $0.serverID == id) }) { return trans }
         return nil
-    
     }
     
     
@@ -868,12 +989,8 @@ class CalendarModel {
         /// Check for blank title or missing payment method
         if trans.title.isEmpty || trans.payMethod == nil /*&& day.date == nil*/ {
             print("-- \(#function) -- Title or payment method missing 1")
-            if trans.title.isEmpty {
-                print("Title is empty")
-            }
-            if trans.payMethod == nil {
-                print("payMethod is nil")
-            }
+            if trans.title.isEmpty { print("Title is empty") }
+            if trans.payMethod == nil { print("payMethod is nil") }
             /// If a transaction is already existing, and you wipe out the title, put the title back and alert the user.
             if trans.intendedServerAction == .edit && trans.title.isEmpty {
                 trans.title = trans.deepCopy?.title ?? ""
@@ -882,14 +999,21 @@ class CalendarModel {
                     title: "Removing a title from a transaction is not allowed",
                     subtitle: "If you want to delete \"\(trans.title)\", please use the delete button instead."
                 )
-            }
-            else {
-                /// Remove the dud that is in `.add` mode since it's being upserted into the list on creation.
-                let day = sMonth.days.filter { $0.dateComponents?.day == trans.dateComponents?.day }.first
-                if let day {
+            } else {
+                /// Remove the dud that is in `.add` mode since it was upserted into the list on creation.
+                if let transDay = trans.day,
+                   let day = sMonth.getDay(by: transDay) {
                     withAnimation {
                         day.remove(trans)
                     }
+                }
+                
+                withAnimation {
+                    tempTransactions.removeAll { $0.id == trans.id }
+                    store.tagBudgetTransactions.removeAll { $0.id == trans.id }
+                    receiptTransactions.removeAll { $0.id == trans.id }
+                    searchedTransactions.removeAll { $0.id == trans.id }
+                    dashboardTransactions.removeAll { $0.id == trans.id }
                 }
             }
             
@@ -897,7 +1021,13 @@ class CalendarModel {
                 Task {
                     try await Task.sleep(for: .seconds(0.5))
                     //try? await Task.sleep(nanoseconds: UInt64(0.5 * Double(NSEC_PER_SEC)))
-                    AppState.shared.showToast(title: "Failed To Save", subtitle: "Account was missing", body: "", symbol: "exclamationmark.triangle", symbolColor: .orange)
+                    AppState.shared.showToast(
+                        title: "Failed To Save",
+                        subtitle: "Account was missing",
+                        body: "",
+                        symbol: "exclamationmark.triangle",
+                        symbolColor: .orange
+                    )
                 }
             }
             return false
@@ -909,7 +1039,13 @@ class CalendarModel {
             Task {
                 try await Task.sleep(for: .seconds(0.5))
                 //try? await Task.sleep(nanoseconds: UInt64(0.5 * Double(NSEC_PER_SEC)))
-                AppState.shared.showToast(title: "Failed To Save", subtitle: "Date was missing", body: "", symbol: "exclamationmark.triangle", symbolColor: .orange)
+                AppState.shared.showToast(
+                    title: "Failed To Save",
+                    subtitle: "Date was missing",
+                    body: "",
+                    symbol: "exclamationmark.triangle",
+                    symbolColor: .orange
+                )
             }
             return false
         }
@@ -918,7 +1054,7 @@ class CalendarModel {
 //            return true
 //        }
         
-        /// If there is no changes
+        /// If there is no changes.
         if !trans.hasChanges() && trans.action != .delete {
             print("-- \(#function) -- No changed detected")
             LogManager.log("No changed detected")
@@ -964,8 +1100,8 @@ class CalendarModel {
             
         print("✅ Trans is valid to save")
             
-        /// Go update the normal transaction list if changing that transaction via the smart list (temp list) or search result list.
-        if location == .smartList || location == .searchResultList {
+        /// Go update the normal transaction list if changing that transaction via one of the various other transaction locations.
+        if [.smartList, .searchResultList, .receiptsList, .dashboardList, .tagBudgetList].contains(location) {
             await self.handleTransactions([trans], refreshTechnique: nil)
         }
                                 
@@ -975,16 +1111,34 @@ class CalendarModel {
         trans.updatedDate = Date()
         trans.status = .inFlight
         
-        /// Update the searched transactions if they are in the search list and you update them like normal.
-        if let index = searchedTransactions.firstIndex(where: { $0.id == id }) {
-            let otherTrans = searchedTransactions[index]
-            otherTrans.setFromAnotherInstance(transaction: trans)
+        if location != .searchResultList {
+            if let index = searchedTransactions.firstIndex(where: { $0.id == id }) {
+                searchedTransactions[index].setFromAnotherInstance(transaction: trans)
+            }
         }
         
-        /// Update the temp transactions if they are in the search list and you update them like normal. (I don't think this would be very common though).
-        if let index = tempTransactions.firstIndex(where: { $0.id == id }) {
-            let otherTrans = tempTransactions[index]
-            otherTrans.setFromAnotherInstance(transaction: trans)
+        if location != .tempList {
+            if let index = tempTransactions.firstIndex(where: { $0.id == id }) {
+                tempTransactions[index].setFromAnotherInstance(transaction: trans)
+            }
+        }
+        
+        if location != .receiptsList {
+            if let index = receiptTransactions.firstIndex(where: { $0.id == id }) {
+                receiptTransactions[index].setFromAnotherInstance(transaction: trans)
+            }
+        }
+        
+        if location != .tagBudgetList {
+            if let index = store.tagBudgetTransactions.firstIndex(where: { $0.id == id }) {
+                store.tagBudgetTransactions[index].setFromAnotherInstance(transaction: trans)
+            }
+        }
+        
+        if location != .dashboardList {
+            if let index = dashboardTransactions.firstIndex(where: { $0.id == id }) {
+                dashboardTransactions[index].setFromAnotherInstance(transaction: trans)
+            }
         }
         
         
@@ -1019,7 +1173,9 @@ class CalendarModel {
             
         } else {
             /// Recalculate totals for each day.
-            Task { let _ = calculateTotal(for: sMonth) }
+            Task {
+                CalcHelper.calculateTotal(for: sMonth, store: store)
+            }
             
             //let toastLingo = "Successfully \(trans.action == .add ? "Added" : "Updated")"
             
@@ -1097,6 +1253,25 @@ class CalendarModel {
         /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
         /// So we use the ``DataChangeTriggers`` class to send a notification to the view to tell it to recalculate.
         DataChangeTriggers.shared.viewDidChange(.calendar)
+        
+        if let date = trans.date {
+            let range = min(dashboardModel.beginDate, dashboardModel.endDate)...max(dashboardModel.beginDate, dashboardModel.endDate)
+            let transIsPartOfDashboard = range.contains(date)
+            if range.contains(date) {
+                
+                print("SHOULD RELOAD DATA FOR LOCAL DASHBOARD 2")
+                Task {
+                    dashboardModel.localVersionOfServerCode(calModel: self)
+                    //await dashboardModel.fetchDashboard()
+                    dashboardModel.prepareData(calModel: self)
+                }
+                
+//                Task {
+//                    await dashboardModel.fetchDashboard()
+//                    dashboardModel.prepareData(calModel: self)
+//                }
+            }
+        }
         
         /// Check to see if the transaction was part of the data that powers the dashboard.
         /// If so, tell the dashboard to reload itself from the server.
@@ -1206,9 +1381,9 @@ class CalendarModel {
             /// Update any tags / locations that were added for the first time via this transaction with their new DBID.
             for each in model?.childIDs ?? [] {
                 if each.type == "tag" {
-                    let index = tags.firstIndex(where: { $0.uuid == each.uuid })
+                    let index = store.tags.firstIndex(where: { $0.uuid == each.uuid })
                     if let index {
-                        tags[index].id = String(each.id)
+                        store.tags[index].id = String(each.id)
                     }
                 } else if each.type == "transaction_location" {
                     let index = trans.locations.firstIndex(where: { $0.uuid == each.uuid })
@@ -1311,18 +1486,32 @@ class CalendarModel {
         trans.action = .delete
         trans.actionBeforeSave = trans.action
         trans.intendedServerAction = .delete
-        tempTransactions.removeAll { $0.id == trans.id }
+        withAnimation {
+            tempTransactions.removeAll { $0.id == trans.id }
+            store.tagBudgetTransactions.removeAll { $0.id == trans.id }
+            receiptTransactions.removeAll { $0.id == trans.id }
+            searchedTransactions.removeAll { $0.id == trans.id }
+            dashboardTransactions.removeAll { $0.id == trans.id }
+        }
            
         if andSubmit {
-            let saveResult = await submit(trans)
-            return saveResult
+            return await submit(trans)
         } else {
-            if let targetMonth = months.filter({ $0.actualNum == trans.dateComponents?.month && $0.year == trans.dateComponents?.year }).first {
-                if let day = targetMonth.days.filter({ $0.dateComponents?.day == trans.dateComponents?.day }).first {
-                    day.remove(trans)
-                    let _ = calculateTotal(for: sMonth)
-                }
+            if let transMonth = trans.month,
+               let transYear = trans.year,
+               let transDay = trans.day,
+               let targetMonth = months.get(by: (transMonth, transYear)),
+               let targetDay = targetMonth.getDay(by: transDay)
+            {
+                targetDay.remove(trans)
+                CalcHelper.calculateTotal(for: sMonth, store: store)
             }
+//            if let targetMonth = months.filter({ $0.actualNum == trans.dateComponents?.month && $0.year == trans.dateComponents?.year }).first {
+//                if let day = targetMonth.days.filter({ $0.dateComponents?.day == trans.dateComponents?.day }).first {
+//                    day.remove(trans)
+//                    CalcHelper.calculateTotal(for: sMonth, store: store)
+//                }
+//            }
             return false
         }
     }
@@ -1336,21 +1525,18 @@ class CalendarModel {
         
     
     @MainActor
-    func addMultiple(trans: Array<CBTransaction>, budgets: Array<CBBudget>, isTransfer: Bool) async {
+    func addMultiple(trans: Array<CBTransaction>, budgets: Array<CBBudgetItem>, isTransfer: Bool) async {
         #if os(iOS)
         var backgroundTaskId = AppState.shared.beginBackgroundTask()
         #endif
         /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
         /// So we use the ``DataChangeTriggers`` class to send a notification to the view to tell it to recalculate.
         DataChangeTriggers.shared.viewDidChange(.calendar)
-        
-        
+                
         for each in trans {
             each.status = .inFlight
         }
-        
-        
-        //LoadingManager.shared.startDelayedSpinner()
+                
         LogManager.log()
         
         let repModel = RepeatingAndBudgetSubmissionModel(
@@ -1358,55 +1544,37 @@ class CalendarModel {
             year: sMonth.year,
             transactions: trans,
             budgets: budgets,
-            //budgetGroups: budgetGroups,
             isTransfer: isTransfer
         )
         
-        print("GO!")
         let model = RequestModel(requestType: "add_populated_transactions_and_budgets", model: repModel)
         
-        typealias ResultResponse = Result<Array<ReturnIdModel>?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+        typealias ResultResponse = Result<PopulatedMonthResultModel?, AppError>
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
         switch await result {
         case .success(let model):
             LogManager.networkingSuccessful()
             if let model {
-                
-                //var transferTransactions: Array<CBTransaction> = []
-                for idModel in model {
-                    let type = idModel.type
+                for idModel in model.recordInfos {
+                    let targetMonth = months.get(byEnumId: sMonth.enumID)
                     
-                    let targetMonth = months.filter { $0.enumID == sMonth.enumID }.first!
-                    
-                    if type == "transaction" {
-                        //print("TYPE IS TRANSACTION - isTransfer \(isTransfer)")
+                    if idModel.type == "transaction" {
                         let targetDays = targetMonth.days
                         let transactions = targetDays.flatMap({ $0.transactions })
                                                                         
-                        let index = transactions.firstIndex(where: { $0.id == idModel.uuid ?? "" })
-                        if let index {
-                            #warning("serverID Change")
+                        if let index = transactions.firstIndex(where: { $0.id == idModel.uuid ?? "" }) {
                             transactions[index].serverID = String(idModel.id)
-                            if let relatedID = idModel.relatedID {
-                                transactions[index].relatedTransactionID = String(relatedID)
-                            }
-                            
-                            //transactions[index].id = String(model?.transactionID ?? "0")
-                            //transactions[index].uuid = nil
                             transactions[index].action = .edit
                             transactions[index].intendedServerAction = .edit
                             transactions[index].status = .saveSuccess
+                            if let relatedID = idModel.relatedID {
+                                transactions[index].relatedTransactionID = String(relatedID)
+                            }
                             performLineItemAnimations(for: transactions[index])
-                            
-//                            if isTransfer {
-//                                transferTransactions.append(transactions[index])
-//                            }
-                            
                         }
                     } else {
-                        let index = targetMonth.budgets.firstIndex(where: { $0.id == idModel.uuid })
-                        if let index {
+                        if let index = targetMonth.budgets.firstIndex(where: { $0.id == idModel.uuid }) {
                             targetMonth.budgets[index].id = idModel.id
                             targetMonth.budgets[index].action = .edit
                         }
@@ -1431,85 +1599,62 @@ class CalendarModel {
             AppState.shared.endBackgroundTask(&backgroundTaskId)
             #endif
         }
-        //LoadingManager.shared.stopDelayedSpinner()
-        //self.refreshTask = nil
-        
     }
     
     
     
     @MainActor
-    func addMultiple2(trans: Array<CBRepTransactionCreateModel>, budgets: Array<CBBudget>, isTransfer: Bool) async {
+    private func sendPopulatedTransactionsAndBudgetsToServer(trans: Array<CBRepTransactionCreateModel>, budgets: Array<CBBudgetItem>, isTransfer: Bool) async {
         #if os(iOS)
         var backgroundTaskId = AppState.shared.beginBackgroundTask()
         #endif
         /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
         /// So we use the ``DataChangeTriggers`` class to send a notification to the view to tell it to recalculate.
         DataChangeTriggers.shared.viewDidChange(.calendar)
-        
-        
-//        for each in trans {
-//            each.status = .inFlight
-//        }
-        
-        
-        //LoadingManager.shared.startDelayedSpinner()
+                
         LogManager.log()
         
-        let repModel = RepeatingAndBudgetSubmissionModel2(
+        let repModel = PopulateSubmissionModel(
             month: sMonth.actualNum,
             year: sMonth.year,
             transactions: trans,
             budgets: budgets,
-            //budgetGroups: budgetGroups,
-            isTransfer: isTransfer
+            isTransfer: isTransfer,
+            budget: store.globalBudget.amount
         )
         
-        print("GO!")
         let model = RequestModel(requestType: "add_populated_transactions_and_budgets", model: repModel)
         
-        typealias ResultResponse = Result<Array<ReturnIdModel>?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+        typealias ResultResponse = Result<PopulatedMonthResultModel?, AppError>
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
         switch await result {
         case .success(let model):
             LogManager.networkingSuccessful()
             if let model {
+                if let populatedId = model.populatedId {
+                    self.sMonth.populatedId = populatedId
+                }
                 
-                //var transferTransactions: Array<CBTransaction> = []
-                for idModel in model {
-                    let type = idModel.type
+                for idModel in model.recordInfos {
+                    let targetMonth = months.get(byEnumId: sMonth.enumID)
                     
-                    let targetMonth = months.filter { $0.enumID == sMonth.enumID }.first!
-                    
-                    if type == "transaction" {
-                        //print("TYPE IS TRANSACTION - isTransfer \(isTransfer)")
+                    if idModel.type == "transaction" {
                         let targetDays = targetMonth.days
                         let transactions = targetDays.flatMap({ $0.transactions })
                                                                         
-                        let index = transactions.firstIndex(where: { $0.id == idModel.uuid ?? "" })
-                        if let index {
-                            #warning("serverID Change")
+                        if let index = transactions.firstIndex(where: { $0.id == idModel.uuid ?? "" }) {
                             transactions[index].serverID = String(idModel.id)
-                            if let relatedID = idModel.relatedID {
-                                transactions[index].relatedTransactionID = String(relatedID)
-                            }
-                            
-                            //transactions[index].id = String(model?.transactionID ?? "0")
-                            //transactions[index].uuid = nil
                             transactions[index].action = .edit
                             transactions[index].intendedServerAction = .edit
                             transactions[index].status = .saveSuccess
+                            if let relatedID = idModel.relatedID {
+                                transactions[index].relatedTransactionID = String(relatedID)
+                            }
                             performLineItemAnimations(for: transactions[index])
-                            
-//                            if isTransfer {
-//                                transferTransactions.append(transactions[index])
-//                            }
-                            
                         }
                     } else {
-                        let index = targetMonth.budgets.firstIndex(where: { $0.id == idModel.uuid })
-                        if let index {
+                        if let index = targetMonth.budgets.firstIndex(where: { $0.id == idModel.uuid }) {
                             targetMonth.budgets[index].id = idModel.id
                             targetMonth.budgets[index].action = .edit
                         }
@@ -1525,18 +1670,10 @@ class CalendarModel {
             LogManager.error(error.localizedDescription)
             AppState.shared.showAlert("There was a problem trying to add multiple transactions.")
             
-//            for each in trans {
-//                each.status = .saveFail
-//                performLineItemAnimations(for: each)
-//            }
-            
             #if os(iOS)
             AppState.shared.endBackgroundTask(&backgroundTaskId)
             #endif
         }
-        //LoadingManager.shared.stopDelayedSpinner()
-        //self.refreshTask = nil
-        
     }
     
     
@@ -1596,9 +1733,9 @@ class CalendarModel {
                             /// Update any tags / locations / files that were added for the first time via this transaction with their new DBID.
                             for each in parent.childIDs {
                                 if each.type == "tag" {
-                                    let index = tags.firstIndex(where: { $0.uuid == each.uuid })
+                                    let index = store.tags.firstIndex(where: { $0.uuid == each.uuid })
                                     if let index {
-                                        tags[index].id = String(each.id)
+                                        store.tags[index].id = String(each.id)
                                     }
                                 } else if each.type == "transaction_location" {
                                     let index = foundTrans.locations.firstIndex(where: { $0.uuid == each.uuid })
@@ -1642,6 +1779,10 @@ class CalendarModel {
                 #endif
                                 
                 print("Multi-update successful")
+                print("SHOULD RELOAD DATA FOR LOCAL DASHBOARD 5")
+                dashboardModel.localVersionOfServerCode(calModel: self)
+                dashboardModel.prepareData(calModel: self)
+            
             }
         case .failure(let error):
             LogManager.error(error.localizedDescription)
@@ -1741,7 +1882,7 @@ class CalendarModel {
                         if let targetMonth = self.months.filter({ $0.actualNum == trans.dateComponents?.month && $0.year == trans.dateComponents?.year }).first {
                             if let day = targetMonth.days.filter({ $0.dateComponents?.day == trans.dateComponents?.day }).first {
                                 day.remove(trans)
-                                let _ = self.calculateTotal(for: self.sMonth)
+                                CalcHelper.calculateTotal(for: self.sMonth, store: self.store)
                             }
                         }
                     }
@@ -1790,15 +1931,15 @@ class CalendarModel {
         self.suggestedTitles = titles
     }
     
-    @MainActor
-    func handleIncoming(budgets: [CBBudget], incomingDataType: IncomingDataType) {
-        self.budgets = budgets
-    }
-    
-    @MainActor
-    func handleIncoming(appSuiteBudgets: [CBBudget], incomingDataType: IncomingDataType) {
-        self.appSuiteBudgets = appSuiteBudgets
-    }
+//    @MainActor
+//    func handleIncoming(budgets: [CBBudgetItem], incomingDataType: IncomingDataType) {
+//        self.budgets = budgets
+//    }
+//    
+//    @MainActor
+//    func handleIncoming(appSuiteBudgets: [CBBudgetItem], incomingDataType: IncomingDataType) {
+//        self.appSuiteBudgets = appSuiteBudgets
+//    }
     
     
     @MainActor
@@ -2056,6 +2197,7 @@ class CalendarModel {
         day: Int? = nil,
         meth: CBPaymentMethod? = nil,
         cats: Array<CBCategory>? = nil,
+        includeHiddenPaymentMethods: Bool = false
     ) -> Array<CBTransaction> {
         
         let theMonths: Array<CBMonth> = months ?? [self.sMonth]
@@ -2071,7 +2213,7 @@ class CalendarModel {
                 && $0.isPermitted
                 /// This will look at both the transaction, and its deepCopy.
                 /// The reason being - in case we change a transaction category or payment method from what is currently being viewed. This will allow the transaction sheet to remain on screen until we close it, at which point the save function will clear the deepCopy.
-                && !$0.hasHiddenMethodInCurrentOrDeepCopy
+                && (includeHiddenPaymentMethods ? true : !$0.hasHiddenMethodInCurrentOrDeepCopy)
                 /// Only transactions that are not excluded from calculations.
                 && $0.factorInCalculations
                 
@@ -2120,362 +2262,8 @@ class CalendarModel {
     }
     
     
-    
-    
-    // MARK: - Debit Summary Helpers
-    func getDebitTransactions(from transactions: Array<CBTransaction>) -> Array<CBTransaction> {
-        return transactions
-            /// Only debit or cash accounts.
-            .filter { ($0.payMethod?.isDebitOrCash ?? false) }
-            /// Is not the origination transaction from the transfer utility.
-            .filter { !$0.isTransferOrigin }
-            /// Is not the destination transaction from the transfer utility.
-            .filter { !$0.isTransferDest }
-    }
-    
-    func getDebitIncomeTransactions(from transactions: Array<CBTransaction>) -> Array<CBTransaction> {
-        return getDebitTransactions(from: transactions)
-            /// Anything that has a negative dollar amount (expenses).
-            .filter { $0.isIncome }
-    }
-    
-    func getDebitSpendTransactions(from transactions: Array<CBTransaction>) -> Array<CBTransaction> {
-        return getDebitTransactions(from: transactions)
-            /// Anything that has a positive dollar amount (income).
-            .filter { $0.isExpense }
-    }
-    
-    func getDebitSpend(from transactions: Array<CBTransaction>) -> Double {
-        return getDebitTransactions(from: transactions)
-            /// Anything that has a negative dollar amount (expenses).
-            .filter { $0.isExpense }
-            .map { $0.amount }
-            .reduce(0.0, +)
-    }
-    
-    func getDebitIncome(from transactions: Array<CBTransaction>) -> Double {
-        return getDebitTransactions(from: transactions)
-            /// Anything that has a positive dollar amount (income).
-            .filter { $0.isIncome }
-            .map { $0.amount }
-            .reduce(0.0, +)
-    }
-    
-    
-    
-    
-    // MARK: - Credit Summary Helpers
-    func getCreditTransactions(from transactions: Array<CBTransaction>) -> Array<CBTransaction> {
-        return transactions
-        /// Only credit or loans.
-            .filter { $0.payMethod?.isCreditOrLoan ?? false }
-    }
-    
-    func getCreditSpendTransactions(from transactions: Array<CBTransaction>) -> Array<CBTransaction> {
-        return getCreditTransactions(from: transactions)
-            /// Anything that has a positive dollar amount (expenses).
-            .filter { $0.isExpense }
-            /// Exclude cash advances
-            .filter { !$0.isTransferOrigin }
-    }
-    
-    func getCreditPaymentTransactions(from transactions: Array<CBTransaction>) -> Array<CBTransaction> {
-        return getCreditTransactions(from: transactions)
-            /// Anything that has a negative dollar amount (payments).
-            .filter { $0.isIncome }
-            /// Is the destination transaction from the transfer utility.
-            .filter { $0.isPaymentDest }
-    }
-    
-    func getCreditRefundsOrPerkTransactions(from transactions: Array<CBTransaction>) -> Array<CBTransaction> {
-        return getCreditTransactions(from: transactions)
-            /// Anything that has a negative dollar amount (refunds, rewards, etc.).
-            .filter { $0.isIncome }
-            /// Is not the destination transaction from the transfer utility.
-            .filter { !$0.isPaymentDest }
-    }
-    
-    func getCreditSpend(from transactions: Array<CBTransaction>) -> Double {
-        return getCreditSpendTransactions(from: transactions)
-            .map { $0.amount * -1 }
-            .reduce(0.0, +)
-    }
-    
-    func getCreditPayments(from transactions: Array<CBTransaction>) -> Double {
-        return getCreditPaymentTransactions(from: transactions)
-            .map { $0.amount }
-            .reduce(0.0, +)
-    }
-    
-    func getCreditRefundsOrPerks(from transactions: Array<CBTransaction>) -> Double {
-        return getCreditRefundsOrPerkTransactions(from: transactions)
-            .map { $0.amount * -1 }
-            .reduce(0.0, +)
-    }
-
-    
-    
-    
-    // MARK: - All Transactions Helpers
-    func getIncomeTransactions(from transactions: Array<CBTransaction>) -> Array<CBTransaction> {
-        return getCreditRefundsOrPerkTransactions(from: transactions) + getDebitIncomeTransactions(from: transactions)
-    }
-    
-    func getSpendTransactions(from transactions: Array<CBTransaction>) -> Array<CBTransaction> {
-        return getDebitSpendTransactions(from: transactions) + getCreditSpendTransactions(from: transactions)
-    }
-        
-//    func getSpendMinusPaymentTransactions(from transactions: Array<CBTransaction>) -> Array<CBTransaction> {
-//        return getSpendTransactions(from: transactions) - getCreditPaymentTransactions(from: transactions)
-//    }
-//    
-//    func getIncomeMinusPaymentTransactions(from transactions: Array<CBTransaction>) -> Array<CBTransaction> {
-//        let debitIncome = getDebitIncomeTransactions(from: transactions)
-//        let creditIncome = getCreditRefundsOrPerkTransactions(from: transactions)
-//        let payments = getCreditPaymentTransactions(from: transactions)
-//        return (debitIncome + creditIncome) - payments
-//    }
-                            
-    func getIncome(from transactions: Array<CBTransaction>) -> Double {
-        let refunds = getCreditRefundsOrPerks(from: transactions)
-        let debitIncome = getDebitIncome(from: transactions)
-        
-        print(refunds, debitIncome)
-        return refunds + debitIncome
-        
-        
-        //return getCreditRefundsOrPerks(from: transactions) + getDebitIncome(from: transactions)
-    }
-    
-    func getSpend(from transactions: Array<CBTransaction>) -> Double {
-        return getDebitSpend(from: transactions) + getCreditSpend(from: transactions)
-    }
-        
-    func getSpendMinusPayments(from transactions: Array<CBTransaction>) -> Double {
-        return getSpend(from: transactions) - getCreditPayments(from: transactions)
-    }
-    
-    func getIncomeMinusPayments(from transactions: Array<CBTransaction>) -> Double {
-        let debitIncome = getDebitIncome(from: transactions)
-        let creditIncome = getCreditRefundsOrPerks(from: transactions)
-        let payments = getCreditPayments(from: transactions)
-        return (debitIncome + creditIncome) - payments
-    }
-    
-    func getSpendMinusIncome(from transactions: Array<CBTransaction>) -> Double {
-        let expenses = getSpend(from: transactions)
-        let income = getIncome(from: transactions)
-        return (expenses + income)
-    }
-    
-//    func getChartPercentage(expenses: Double, income: Double, budget: Double) -> ChartPercentage {
-//        var chartPer = 0.0
-//        var actualPer = 0.0
-//        let expensesMinusIncome = (expenses + income) * -1
-//        
-//        if budget == 0 {
-//            actualPer = expensesMinusIncome
-//        } else {
-//            actualPer = (expensesMinusIncome / budget) * 100
-//        }
-//                                        
-//        if actualPer > 100 {
-//            chartPer = 100
-//        } else if actualPer < 0 {
-//            chartPer = 0
-//        } else {
-//            chartPer = actualPer
-//        }
-//        
-//        return ChartPercentage(actual: actualPer, chart: chartPer, expensesMinusIncome: expensesMinusIncome)
-//    }
-    
-    func createChartData(
-        transactions: Array<CBTransaction>,
-        category: CBCategory,
-        categoricalBudgetAmount: Double,
-        categoryGroup: CBCategoryGroup?,
-        groupBudgetAmount: Double?,
-        budgets: Array<CBBudget>?
-    ) -> ChartData {
-        //let categoricalBudgetAmount = budgets?.map { $0.amount }.reduce(0.0, +) ?? 0.0
-        let expenses = getSpend(from: transactions)
-        let income = getIncome(from: transactions)
-        let incomeMinusPayments = getIncomeMinusPayments(from: transactions)
-        //let expensesMinusIncome = getSpendMinusIncome(from: transactions)
-        
-        var chartPer = 0.0
-        var actualPer = 0.0
-        let expensesMinusIncome = (expenses * -1) - income
-        //let expensesMinusIncome = getSpendMinusIncome(from: transactions)
-        
-        if categoricalBudgetAmount == 0 {
-            actualPer = expensesMinusIncome
-        } else {
-            actualPer = (expensesMinusIncome * -1 / categoricalBudgetAmount) * 100
-        }
-                                        
-        if actualPer > 100 {
-            chartPer = 100
-        } else if actualPer < 0 {
-            chartPer = 0
-        } else {
-            chartPer = actualPer
-        }
-        
-        
-        return ChartData(
-            category: category,
-            budgetForCategory: categoricalBudgetAmount,
-            categoryGroup: categoryGroup,
-            budgetForCategoryGroup: groupBudgetAmount,
-            income: income,
-            incomeMinusPayments: incomeMinusPayments,
-            expenses: expenses,
-            expensesMinusIncome: expensesMinusIncome,
-            chartPercentage: chartPer,
-            actualPercentage: actualPer,
-            budgetObjects: budgets
-        )
-    }
-    
-    
-    
-    
-    // MARK: - Budget Stuff
-    @MainActor
-    func submit(_ budget: CBBudget) async {
-        print("-- \(#function)")
-        
-        /// Allow more time to save if the user enters the background.
-        #if os(iOS)
-        var backgroundTaskId = AppState.shared.beginBackgroundTask()
-        #endif
-        
-        //LoadingManager.shared.startDelayedSpinner()
-        LogManager.log()
-        print("\(budget.action.serverKey.capitalized) BUDGET!")
-        let model = RequestModel(requestType: budget.action.serverKey, model: budget)
-            
-        /// Used to test the snapshot data race
-        //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
-        
-        typealias ResultResponse = Result<ReturnIdModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
-                    
-        switch await result {
-        case .success(let model):
-            LogManager.networkingSuccessful()
-                        
-            if budget.action == .add {                
-                budget.id = model?.id ?? "0"
-                budget.uuid = nil
-                budget.action = .edit
-            }
-            
-            /// End the background task.
-            #if os(iOS)
-            AppState.shared.endBackgroundTask(&backgroundTaskId)
-            #endif
-            
-        case .failure(let error):
-            switch error {
-            case .taskCancelled:
-                print("\(#function) Task Cancelled")
-            default:
-                LogManager.error(error.localizedDescription)
-                AppState.shared.showAlert("There was a problem trying to save the budget.")
-            }
-            
-            /// End the background task.
-            #if os(iOS)
-            AppState.shared.endBackgroundTask(&backgroundTaskId)
-            #endif
-        }
-    }
-    
-   
-    
         
     // MARK: - Starting Amount Stuff
-    
-    /// Handle the submission of new starting amounts with this timer..
-    /// Called via ``CalendarToolbarLeading`` `.onChange(of: calendarModel.sMonth.startingAmounts.filter { $0.payMethod.id == calendarModel.sPayMethod?.id }.first?.amountString)`
-//    var startingAmountSubmitTimer: Timer?
-//    
-//    @objc func submitStartingAmountViaTimer() {
-//        Task {
-//            let start = sMonth.startingAmounts.filter { $0.payMethod.id == sPayMethod?.id && ($0.payMethod.accountType != .unifiedChecking && $0.payMethod.accountType != .unifiedCredit) }.first
-//            if let start {
-//                await submit(start)
-//            }
-//        }
-//    }
-//    
-//    func startDelayedStartingAmountTimer() {
-//        startingAmountSubmitTimer = Timer(fireAt: Date.now.addingTimeInterval(2), interval: 0, target: self, selector: #selector(submitStartingAmountViaTimer), userInfo: nil, repeats: false)
-//        if let startingAmountSubmitTimer {
-//            RunLoop.main.add(startingAmountSubmitTimer, forMode: .common)
-//        }
-//    }
-//    
-//    func stopDelayedStartingAmountTimer() {
-//        if let startingAmountSubmitTimer = self.startingAmountSubmitTimer {
-//            startingAmountSubmitTimer.invalidate()
-//        }
-//    }
-    
-    /// For Mac.
-//    func prepareStartingAmount() {
-//        /// Called via  ``setSelectedMonthFromNavigation(navID:calculateStartingAndEod:)`` which is called via `.onChange(of: navManager.selection)` in ``RootView``
-//        /// Called via `self.sPayMethod.didSet{}`
-//        
-//        print("-- \(#function)")
-//        //print(sPayMethod?.title ?? "No Method selected")
-//        if !sMonth.startingAmounts.contains(where: { $0.payMethod.id == sPayMethod?.id }) {
-//            print("Creating Starting Amount Model for \(sPayMethod?.title ?? "No Method selected") for Month \(self.sMonth.num) \(self.sYear)")
-//            //print("🔴IT DOES NOT CONTAINS")
-//            let starting = CBStartingAmount()
-//            
-//            if let sPayMethod = self.sPayMethod {
-//                //print("🔴PAY METH GOOD")
-//                starting.payMethod = sPayMethod
-//                starting.action = .add
-//                starting.month = self.sMonth.num
-//                starting.year = self.sYear
-//                starting.amountString = "$0.00"
-//                sMonth.startingAmounts.append(starting)
-//                
-//            } else {
-//                //print("🔴PAY METH BAD")
-//            }
-//        } else {
-//            //print("🔴IT CONTAINS")
-//        }
-//    }
-//    
-//    func prepareStartingAmount(for payMethod: CBPaymentMethod?) {
-//        /// Called via  ``setSelectedMonthFromNavigation(navID:calculateStartingAndEod:)`` which is called via `.onChange(of: navManager.selection)` in ``RootView``
-//        /// Called via `self.sPayMethod.didSet{}`
-//        /// Called via  the button that activates the starting amount sheet in ``CalendarViewPhone``.
-//        
-//        //print("-- \(#function)")
-//        if !sMonth.startingAmounts.contains(where: { $0.payMethod.id == payMethod?.id }) {
-//            //print("\(#function) - Creating Starting Amount Model for \(String(describing: payMethod?.title)) for Month \(self.sMonth.num) \(self.sYear)")
-//            let starting = CBStartingAmount()
-//                        
-//            if let payMethod = payMethod {
-//                starting.payMethod = payMethod
-//                starting.action = .add
-//                starting.month = self.sMonth.num
-//                starting.year = self.sYear
-//                starting.amountString = ""
-//                sMonth.startingAmounts.append(starting)
-//            }
-//        }
-//    }
-    
-    
     @MainActor
     func submit(_ startingAmount: CBStartingAmount) async {
         print("-- \(#function)")
@@ -2539,523 +2327,15 @@ class CalendarModel {
             
     
     
-    // MARK: - Tags
-    @MainActor
-    func fetchTags() async {
-        tags.removeAll()
-        LogManager.log()
-
-        /// Do networking.
-        let model = RequestModel(requestType: "fetch_tags", model: AppState.shared.user)
-        typealias ResultResponse = Result<Array<CBTag>?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
-
-        switch await result {
-        case .success(let model):
-
-            /// For testing bad network connection.
-            //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
-
-            LogManager.networkingSuccessful()
-            
-            if let model {
-                if !model.isEmpty {
-                    for tag in model {
-                        let index = tags.firstIndex(where: { $0.id == tag.id })
-                        if let index {
-                            tags[index].setFromAnotherInstance(tag: tag)
-                        } else {
-                            tags.append(tag)
-                        }
-                    }
-                }
-            }
-
-        case .failure (let error):
-            switch error {
-            case .taskCancelled:
-                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
-                print("\(#function) Task Cancelled")
-            default:
-                LogManager.error(error.localizedDescription)
-                AppState.shared.showAlert("There was a problem trying to fetch the tags.")
-            }
-        }
-    }
     
     
     
     
     
-    
-    @MainActor
-    func handleIncoming(tags: Array<CBTag>, incomingDataType: IncomingDataType) async {
-        self.tags.removeAll()
-        for tag in tags {
-            let index = self.tags.firstIndex(where: { $0.id == tag.id })
-            if let index {
-                self.tags[index].setFromAnotherInstance(tag: tag)
-            } else {
-                self.tags.append(tag)
-            }
-        }
-    }
-    
-    
-    /// Only used to hide a tag.
-    @MainActor
-    func submit(_ tag: CBTag) async {
-        LogManager.log()
-        
-        /// Allow more time to save if the user enters the background.
-        #if os(iOS)
-        var backgroundTaskId = AppState.shared.beginBackgroundTask()
-        #endif
-
-        /// Do networking.
-        let model = RequestModel(requestType: "edit_cb_tag", model: tag)
-        typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
-
-        switch await result {
-        case .success:
-            LogManager.networkingSuccessful()
-            
-            /// End the background task.
-            #if os(iOS)
-            AppState.shared.endBackgroundTask(&backgroundTaskId)
-            #endif
-            
-        case .failure (let error):
-            switch error {
-            case .taskCancelled:
-                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
-                print("\(#function) Task Cancelled")
-            default:
-                LogManager.error(error.localizedDescription)
-                AppState.shared.showAlert("There was a problem trying to hide the tag.")
-            }
-            
-            /// End the background task.
-            #if os(iOS)
-            AppState.shared.endBackgroundTask(&backgroundTaskId)
-            #endif
-        }
-    }
-    
-    
-//    func cleanTags() {
-//        tags.forEach { tag in
-//            let count = justTransactions.filter { $0.tags.contains(tag) }.count
-//            if count == 0 {
-//                tags.removeAll(where: { $0 == tag })
-//            }
-//        }
-//    }
-    
-    
-    
-    
-    // MARK: - Calculate Total Functions
-    enum DoWhatWhenCalculating { case updateEod, giveMeLastDayEod, giveMeEodAsOfToday }
-    
-    func updateUnifiedStartingAmount(month: CBMonth, for unifiedAccountType: AccountType) -> Double {
-        /// This is called via `calculateTotal()` and via `PayMethodSheet.task{}`
-        var targetAccountTypes: [AccountType]
-        if unifiedAccountType == .unifiedCredit {
-            targetAccountTypes = [.credit]
-        } else {
-            targetAccountTypes = [.checking, .cash]
-        }
-        
-        let startingBalance = month.startingAmounts
-            .filter { targetAccountTypes.contains($0.payMethod.accountType) }
-            .filter { $0.payMethod.isPermitted }
-            .filter { !$0.payMethod.isHidden }
-            .filter { $0.payMethod.matchesFilter() }
-            .map { $0.amount }
-            .reduce(0.0, +)
-        
-        //print("\(#function) -- \(startingBalance)")
-                                
-        let index = month.startingAmounts.firstIndex(where: { $0.payMethod.accountType == unifiedAccountType })
-        if let index {
-            month.startingAmounts[index].amountString = startingBalance.currencyWithDecimals()
-        }
-        
-        return startingBalance
-    }
-                
-    
-    @discardableResult
-    func calculateTotal(for month: CBMonth, using paymentMethod: CBPaymentMethod? = nil, and doWhat: DoWhatWhenCalculating = .updateEod) -> Double {
-        var theMethod: CBPaymentMethod?
-        if paymentMethod == nil {
-            theMethod = sPayMethod
-        } else {
-            theMethod = paymentMethod
-        }
-
-        if theMethod?.accountType == .unifiedChecking {
-            return calculateUnifiedChecking(for: month, and: doWhat)
-            
-        } else if theMethod?.accountType == .unifiedCredit {
-            return calculateUnifiedCredit(for: month, and: doWhat)
-                                                
-        } else if [.credit, .loan].contains(theMethod?.accountType) {
-            return calculateCredit(for: month, using: theMethod, and: doWhat)
-            
-        } else if [.checking, .cash, .savings, .investment, .k401].contains(theMethod?.accountType) {
-            return calculateChecking(for: month, using: theMethod, and: doWhat)
-            
-        } else {
-            return calculateSumForDay(for: month, and: doWhat)
-        }
-    }
-    
-    
-    private func calculateUnifiedChecking(for month: CBMonth, and doWhat: DoWhatWhenCalculating) -> Double {
-        var finalEodTotal: Double = 0.0
-        let startingBalance = updateUnifiedStartingAmount(month: month, for: .unifiedChecking)
-        var currentAmount = startingBalance
-        
-        month.days.forEach { day in
-            let amounts = day.transactions
-                .filter { trans in
-                    if let meth = trans.payMethod {
-                        return meth.isDebitOrCash
-                        && trans.active
-                        && trans.factorInCalculations
-                        && meth.isPermittedAndNotHidden
-                        && meth.matchesFilter()
-                    } else {
-                        return false
-                    }
-                }
-                .map { $0.amount }
-            
-            currentAmount += amounts.reduce(0.0, +)
-            switch doWhat {
-            case .updateEod:
-                day.eodTotal = currentAmount
-                
-            case .giveMeLastDayEod:
-                if day.id == month.days.last?.id {
-                    finalEodTotal = currentAmount
-                }
-            case .giveMeEodAsOfToday:
-                if day.id == AppState.shared.todayDay && day.dateComponents?.month == AppState.shared.todayMonth && day.dateComponents?.year == AppState.shared.todayYear {
-                    finalEodTotal = currentAmount
-                }
-            }
-        }
-        return finalEodTotal
-    }
-    
-    
-    private func calculateUnifiedCredit(for month: CBMonth, and doWhat: DoWhatWhenCalculating) -> Double {
-        //let creditEodView = CreditEodView.fromString(UserDefaults.standard.string(forKey: "creditEodView") ?? "")
-        let creditEodView = LocalStorage.shared.creditEodView
-        
-        var finalEodTotal: Double = 0.0
-        let startingBalance = updateUnifiedStartingAmount(month: month, for: .unifiedCredit)
-        var currentAmount = 0.0
-        
-        switch creditEodView {
-        case .availableCredit:
-            /// To show available credit.
-            let cumulativeLimits = store
-                .paymentMethods
-                .filter { $0.isCreditOrLoan }
-                .filter { $0.isPermittedAndNotHidden }
-                .filter { $0.matchesFilter() }
-//                .filter {
-//                    switch AppSettings.shared.paymentMethodFilterMode {
-//                    case .all:
-//                        return true
-//                    case .justPrimary:
-//                        return $0.holderOne?.id == AppState.shared.user?.id
-//                    case .primaryAndSecondary:
-//                        return $0.holderOne?.id == AppState.shared.user?.id
-//                        || $0.holderTwo?.id == AppState.shared.user?.id
-//                        || $0.holderThree?.id == AppState.shared.user?.id
-//                        || $0.holderFour?.id == AppState.shared.user?.id
-//                    }
-//                }
-                .map { $0.limit ?? 0.0 }
-                .reduce(0.0, +)
-            
-            currentAmount = cumulativeLimits - startingBalance
-            
-        case .remainingBalance:
-            currentAmount = startingBalance
-        }
-                            
-        month.days.forEach { day in
-            let amounts = day.transactions
-                .filter { trans in
-                    if let meth = trans.payMethod {
-                        return meth.isCreditOrLoan
-                        && trans.active
-                        && trans.factorInCalculations
-                        && meth.isPermittedAndNotHidden
-                        && meth.matchesFilter()
-                    } else {
-                        return false
-                    }
-                }
-//                .filter {
-//                    ($0.payMethod?.isCreditOrLoan ?? false)
-//                    && $0.active
-//                    && $0.factorInCalculations
-//                    && ($0.payMethod?.isPermitted ?? true)
-//                    && !($0.payMethod?.isHidden ?? true)
-//                }
-//                .filter {
-//                    switch AppSettings.shared.paymentMethodFilterMode {
-//                    case .all:
-//                        return true
-//                    case .justPrimary:
-//                        return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
-//                    case .primaryAndSecondary:
-//                        return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
-//                        || $0.payMethod?.holderTwo?.id == AppState.shared.user?.id
-//                        || $0.payMethod?.holderThree?.id == AppState.shared.user?.id
-//                        || $0.payMethod?.holderFour?.id == AppState.shared.user?.id
-//                    }
-//                }
-                .map { $0.amount }
-            
-            switch creditEodView {
-            case .availableCredit: currentAmount -= amounts.reduce(0.0, +)
-            case .remainingBalance: currentAmount += amounts.reduce(0.0, +)
-            }
-                        
-            switch doWhat {
-            case .updateEod:
-                day.eodTotal = currentAmount
-                
-            case .giveMeLastDayEod:
-                if day.id == month.days.last?.id {
-                    finalEodTotal = currentAmount
-                }
-            case .giveMeEodAsOfToday:
-                if day.id == AppState.shared.todayDay && day.dateComponents?.month == AppState.shared.todayMonth && day.dateComponents?.year == AppState.shared.todayYear {
-                    finalEodTotal = currentAmount
-                }
-            }
-            
-        }
-        return finalEodTotal
-    }
-    
-    
-    private func calculateCredit(for month: CBMonth, using paymentMethod: CBPaymentMethod?, and doWhat: DoWhatWhenCalculating) -> Double {
-        //let creditEodView = CreditEodView.fromString(UserDefaults.standard.string(forKey: "creditEodView") ?? "")
-        let creditEodView = LocalStorage.shared.creditEodView
-        
-        var finalEodTotal: Double = 0.0
-        let startingBalance = month.startingAmounts.filter { $0.payMethod.id == paymentMethod?.id }.filter { !$0.payMethod.isHidden }.first
-        var currentAmount = 0.0
-        
-        if let startingBalance {
-            switch creditEodView {
-            case .availableCredit: currentAmount = (paymentMethod?.limit ?? 0.0) - startingBalance.amount
-            case .remainingBalance: currentAmount = startingBalance.amount
-            }
-            
-            month.days.forEach { day in
-                let amounts = day.transactions
-                    .filter { trans in
-                        if let meth = trans.payMethod {
-                            return meth.id == paymentMethod?.id
-                            && trans.active
-                            && trans.factorInCalculations
-                            && meth.isPermittedAndNotHidden
-                            && meth.matchesFilter()
-                        } else {
-                            return false
-                        }
-                    }
-                
-//                    .filter {
-//                        $0.payMethod?.id == paymentMethod?.id
-//                        && $0.active
-//                        && $0.factorInCalculations
-//                        && ($0.payMethod?.isPermitted ?? true)
-//                        && !($0.payMethod?.isHidden ?? true)
-//                    }
-//                    .filter {
-//                        switch AppSettings.shared.paymentMethodFilterMode {
-//                        case .all:
-//                            return true
-//                        case .justPrimary:
-//                            return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
-//                        case .primaryAndSecondary:
-//                            return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
-//                            || $0.payMethod?.holderTwo?.id == AppState.shared.user?.id
-//                            || $0.payMethod?.holderThree?.id == AppState.shared.user?.id
-//                            || $0.payMethod?.holderFour?.id == AppState.shared.user?.id
-//                        }
-//                    }
-                    .map { $0.amount }
-                
-                switch creditEodView {
-                case .availableCredit: currentAmount -= amounts.reduce(0.0, +)
-                case .remainingBalance: currentAmount += amounts.reduce(0.0, +)
-                }
-                                    
-                switch doWhat {
-                case .updateEod:
-                    day.eodTotal = currentAmount
-                    
-                case .giveMeLastDayEod:
-                    if day.id == month.days.last?.id {
-                        finalEodTotal = currentAmount
-                    }
-                    
-                case .giveMeEodAsOfToday:
-                    if day.id == AppState.shared.todayDay && day.dateComponents?.month == AppState.shared.todayMonth && day.dateComponents?.year == AppState.shared.todayYear {
-                        finalEodTotal = currentAmount
-                    }
-                }
-            }
-        } else {
-            print("COULDNT DETERMINE CURRENT BALANCE")
-        }
-        return finalEodTotal
-    }
-    
-    /// Not private so it can get the daily cash to show in the overall debit total at the top of the calendar.
-    /*private*/ func calculateChecking(for month: CBMonth, using paymentMethod: CBPaymentMethod?, and doWhat: DoWhatWhenCalculating) -> Double {
-        var finalEodTotal: Double = 0.0
-        let startingAmount = month.startingAmounts.filter { $0.payMethod.id == paymentMethod?.id }.filter { !$0.payMethod.isHidden }.first ?? CBStartingAmount()
-        var currentAmount = startingAmount.amount
-        
-        month.days.forEach { day in
-            let amounts = day.transactions
-                .filter { trans in
-                    if let meth = trans.payMethod {
-                        return meth.id == paymentMethod?.id
-                        && trans.active
-                        && trans.factorInCalculations
-                        && meth.isPermittedAndNotHidden
-                        && meth.matchesFilter()
-                    } else {
-                        return false
-                    }
-                }
-            
-//                .filter {
-//                    $0.payMethod?.id == paymentMethod?.id
-//                    && $0.active
-//                    && $0.factorInCalculations
-//                    && ($0.payMethod?.isPermitted ?? true)
-//                    && !($0.payMethod?.isHidden ?? true)
-//                }
-//                .filter {
-//                    switch AppSettings.shared.paymentMethodFilterMode {
-//                    case .all:
-//                        return true
-//                    case .justPrimary:
-//                        return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
-//                    case .primaryAndSecondary:
-//                        return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
-//                        || $0.payMethod?.holderTwo?.id == AppState.shared.user?.id
-//                        || $0.payMethod?.holderThree?.id == AppState.shared.user?.id
-//                        || $0.payMethod?.holderFour?.id == AppState.shared.user?.id
-//                    }
-//                }
-                .map { $0.amount }
-            
-            currentAmount += amounts.reduce(0.0, +)
-            switch doWhat {
-            case .updateEod:
-                day.eodTotal = currentAmount
-                
-            case .giveMeLastDayEod:
-                if day.id == month.days.last?.id {
-                    finalEodTotal = currentAmount
-                }
-                
-            case .giveMeEodAsOfToday:
-                if day.id == AppState.shared.todayDay && day.dateComponents?.month == AppState.shared.todayMonth && day.dateComponents?.year == AppState.shared.todayYear {
-                    finalEodTotal = currentAmount
-                }
-            }
-        }
-        return finalEodTotal
-    }
-    
-    
-    func calculateSumForDay(for month: CBMonth, and doWhat: DoWhatWhenCalculating) -> Double {
-        var finalEodTotal: Double = 0.0
-        
-        month.days.forEach { day in
-            let amount = day.transactions
-                .filter { trans in
-                    if let meth = trans.payMethod {
-                        return trans.active
-                        && trans.factorInCalculations
-                        && meth.isPermittedAndNotHidden
-                        && meth.matchesFilter()
-                        && (self.categoryFilterWasSetByCategoryPage ? self.sCategories.map({ $0.id }).contains(trans.category?.id) : true)
-                    } else {
-                        return false
-                    }
-                }
-            
-//                .filter {
-//                    $0.active
-//                    && $0.factorInCalculations
-//                    && $0.payMethod?.isPermittedAndNotHidden ?? true
-//                    && (self.categoryFilterWasSetByCategoryPage ? self.sCategories.map({ $0.id }).contains($0.category?.id) : true)
-//                }
-//                .filter {
-//                    switch AppSettings.shared.paymentMethodFilterMode {
-//                    case .all:
-//                        return true
-//                    case .justPrimary:
-//                        return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
-//                    case .primaryAndSecondary:
-//                        return $0.payMethod?.holderOne?.id == AppState.shared.user?.id
-//                        || $0.payMethod?.holderTwo?.id == AppState.shared.user?.id
-//                        || $0.payMethod?.holderThree?.id == AppState.shared.user?.id
-//                        || $0.payMethod?.holderFour?.id == AppState.shared.user?.id
-//                    }
-//                }
-                //.filter { ($0.payMethod?.isPermitted ?? true) }
-                //.filter { !($0.payMethod?.isHidden ?? true) }
-                .map { ($0.payMethod?.isCreditOrLoan ?? false) ? $0.amount * -1 : $0.amount }
-                .reduce(0.0, +)
-            
-            //print("\(#function) - \(day.date?.day) - \(amount)")
-                        
-            switch doWhat {
-            case .updateEod:
-                day.eodTotal = amount
-                
-            case .giveMeLastDayEod:
-                if day.id == month.days.last?.id {
-                    finalEodTotal = amount
-                }
-                
-            case .giveMeEodAsOfToday:
-                if day.id == AppState.shared.todayDay && day.dateComponents?.month == AppState.shared.todayMonth && day.dateComponents?.year == AppState.shared.todayYear {
-                    finalEodTotal = amount
-                }
-            }
-        }
-        /// This isn't used anywhere
-        return finalEodTotal
-    }
-    
-    
-    
-    // MARK: - Helpers
-    
+//    // MARK: - Helpers
+//    
     func startingAmountSheetDismissed() {
-        self.calculateTotal(for: self.sMonth)
+        CalcHelper.calculateTotal(for: self.sMonth, store: store)
         
         /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
         /// So we use the ``DataChangeTriggers`` class to send a notification to the view to tell it to recalculate.
@@ -3120,23 +2400,32 @@ class CalendarModel {
     }
                     
     
-    func setSelectedMonthFromNavigation(navID: NavDestination, calculateStartingAndEod: Bool) {
+    func setSelectedMonthFromNavigation(navID: NavDest, calculateStartingAndEod: Bool) async {
         //print("-- \(#function)")
-        if let month = months.filter({ $0.enumID == navID }).first {
-            sMonth = month
+        let month = months.get(byEnumId: navID)
+        sMonth = month
+                    
+        /// When a user performs navigation, this will run.
+        /// Likewise, when the ``FuncModel`` does the initial download, this will not run.
+        if calculateStartingAndEod {
+            /// Needed for the mac to show the unified starting amount
+            //prepareStartingAmount(for: self.sPayMethod)
+            
+            /// Get starting amounts, and refresh all the EOD totals.
+            /// For example, If I go to another month, and fill out a starting amount, and don't run this, the EOD totals would be wrong when going back to the current month.
+            CalcHelper.calculateTotal(for: sMonth, store: store)
+        }
                         
-            /// When a user performs navigation, this will run.
-            /// Likewise, when the ``FuncModel`` does the initial download, this will not run.
-            if calculateStartingAndEod {
-                /// Needed for the mac to show the unified starting amount
-                //prepareStartingAmount(for: self.sPayMethod)
-                
-                /// Get  starting amounts, and refresh all the EOD totals.
-                /// For example, If I go to another month, and fill out a starting amount, and don't run this, the EOD totals would be wrong when going back to the current month.
-                let _ = calculateTotal(for: sMonth)
-            }
-        } else {
-            fatalError("Could not determine month")
+        //try? await Task.sleep(for: .seconds(1))
+        self.dashboardModel.resetSelf()
+        
+        if let firstDate = month.legitDays.first?.date,
+           let lastDate = month.legitDays.last?.date {
+            
+            self.dashboardModel.beginDate = firstDate
+            self.dashboardModel.endDate = lastDate
+            
+            await self.dashboardModel.initialFetchIfApplicable(calModel: self)
         }
     }
     
@@ -3147,8 +2436,8 @@ class CalendarModel {
         
         var repsToServer: Array<CBRepTransactionCreateModel> = []
         //var repTransToServer: Array<CBTransaction> = []
-        var budgetsToServer: Array<CBBudget> = []
-        //var budgetGroupsToServer: Array<CBBudgetGroup> = []
+        var budgetsToServer: Array<CBBudgetItem> = []
+        //var budgetGroupsToServer: Array<CBBudgetItemGroup> = []
         
         
         for meth in options.paymentMethods {
@@ -3286,12 +2575,15 @@ class CalendarModel {
         }
         
         if options.budget {
+            sMonth.amountString = store.globalBudget.amountString
+            
             for group in store.categoryGroups {
                 let budgetExists = !sMonth.budgetGroups.filter { $0.id == group.id }.isEmpty
                 if !budgetExists {
-                    let budget = CBBudget()
-                    budget.month = sMonth.actualNum
-                    budget.year = sMonth.year
+                    let budget = CBBudgetItem()
+                    budget.monthId = sMonth.populatedId
+                    //budget.month = sMonth.actualNum
+                    //budget.year = sMonth.year
                     budget.amountString = group.amountString ?? ""
                     budget.categoryGroup = group
                     
@@ -3306,9 +2598,10 @@ class CalendarModel {
                 let budgetExists = !sMonth.budgets.filter { $0.category?.id == cat.id }.isEmpty
                 
                 if !budgetExists, !catExistsInGroup, !cat.isIncome {
-                    let budget = CBBudget()
-                    budget.month = sMonth.actualNum
-                    budget.year = sMonth.year
+                    let budget = CBBudgetItem()
+                    budget.monthId = sMonth.populatedId
+                    //budget.month = sMonth.actualNum
+                    //budget.year = sMonth.year
                     budget.amountString = cat.amountString ?? ""
                     budget.category = cat
                     
@@ -3326,12 +2619,12 @@ class CalendarModel {
             return
         }
         
-        let _ = calculateTotal(for: sMonth)
+        let _ = CalcHelper.calculateTotal(for: sMonth, store: store)
         sMonth.hasBeenPopulated = true
         
         Task {
             //await addMultiple(trans: repTransToServer, budgets: budgetsToServer, isTransfer: false)
-            await addMultiple2(trans: repsToServer, budgets: budgetsToServer, isTransfer: false)
+            await sendPopulatedTransactionsAndBudgetsToServer(trans: repsToServer, budgets: budgetsToServer, isTransfer: false)
         }
         
         
@@ -3428,7 +2721,7 @@ class CalendarModel {
         if resetModel.budget { sMonth.budgets.removeAll() }
         if resetModel.hasBeenPopulated { sMonth.hasBeenPopulated = false }
                 
-        let _ = calculateTotal(for: sMonth)
+        CalcHelper.calculateTotal(for: sMonth, store: store)
         
         resetModel.month = sMonth.actualNum
         resetModel.year = sMonth.year
@@ -3561,6 +2854,17 @@ extension CalendarModel: FileUploadCompletedDelegate {
         }
         
         
+        if let index = dashboardTransactions.firstIndex(where: { $0.id == recordID }) {
+            let trans = dashboardTransactions[index]
+            
+            if let _ = trans.files {
+                trans.files!.append(picture)
+            } else {
+                trans.files = [picture]
+            }
+        }
+        
+        
         
 //        if let targetMonth = months.filter { $0.actualNum == date.month && $0.year == date.year }.first {
 //            let targetDays = targetMonth.days
@@ -3617,6 +2921,12 @@ extension CalendarModel: FileUploadCompletedDelegate {
                 trans.files?[index].isPlaceholder = false
             }
         }
+        
+        if let trans = dashboardTransactions.filter({ $0.id == recordID }).first {
+            if let index = trans.files?.firstIndex(where: { $0.uuid == uuid }) {
+                trans.files?[index].isPlaceholder = false
+            }
+        }
     }
         
     
@@ -3654,6 +2964,12 @@ extension CalendarModel: FileUploadCompletedDelegate {
         
         /// Update the receipt transactions if they are in the search list and you update them like normal. (I don't think this would be very common though).
         if let trans = receiptTransactions.filter({ $0.id == recordID }).first {
+            if let index = trans.files?.firstIndex(where: { $0.uuid == uuid }) {
+                trans.files?[index].active = false
+            }
+        }
+        
+        if let trans = dashboardTransactions.filter({ $0.id == recordID }).first {
             if let index = trans.files?.firstIndex(where: { $0.uuid == uuid }) {
                 trans.files?[index].active = false
             }
@@ -3700,6 +3016,12 @@ extension CalendarModel: FileUploadCompletedDelegate {
                         
             /// Update the receipt transactions if they are in the search list and you update them like normal. (I don't think this would be very common though).
             if let trans = receiptTransactions.filter({ $0.id == file.relatedID }).first {
+                //if let _ = trans.files?.firstIndex(where: { $0.id == file.id }) {
+                    trans.files?.removeAll { $0.id == file.id || $0.uuid == file.uuid }
+                //}
+            }
+            
+            if let trans = dashboardTransactions.filter({ $0.id == file.relatedID }).first {
                 //if let _ = trans.files?.firstIndex(where: { $0.id == file.id }) {
                     trans.files?.removeAll { $0.id == file.id || $0.uuid == file.uuid }
                 //}

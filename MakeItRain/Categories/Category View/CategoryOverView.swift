@@ -136,53 +136,24 @@ struct CategoryOverView: View {
             }
             #endif
         }
-        .onChange(of: categoryEditID) { oldId, newId in
-            if let newId {
-                if let category = catModel.getCategory(by: newId) {
-                    editCategory = category
+        .categoryEditSheetAndLogic(editId: $categoryEditID) { didSave in
+            /// Close if deleting since it will be gone.
+            /// Also close if adding, since the server will send back the real ID, and cause the list to redraw, which would cause the sheet to dismiss itself and reopen.
+            /// iPhone: pop from nav.
+            /// iPad: dismiss sheet.
+            if category.action == .delete || category.action == .add {
+                if AppState.shared.isIphone {
+                    navPath.removeLast()
                 } else {
-                    editCategory = CBCategory(uuid: newId)
-                }                
-            } else {
-                catModel.saveCategory(id: oldId!)
-                
-                /// Close if deleting since it will be gone.
-                /// Also close if adding, since the server will send back the real ID, and cause the list to redraw, which would cause the sheet to dismiss itself and reopen.
-                /// iPhone: pop from nav.
-                /// iPad: dismiss sheet.
-                if category.action == .delete || category.action == .add {
-                    if AppState.shared.isIphone {
-                        navPath.removeLast()
-                    } else {
-                        dismiss()
-                    }
+                    dismiss()
                 }
             }
         }
-        .sheet(item: $editCategory, onDismiss: {
-            categoryEditID = nil
-            
-//            if calModel.categoryFilterWasSetByCategoryPage {
-//                calModel.sCategories.removeAll()
-//                calModel.categoryFilterWasSetByCategoryPage = false
-//            }
-            
-        }) { cat in
-            CategoryEditView(category: cat, editID: $categoryEditID)
-                #if os(macOS)
-                //.frame(minWidth: 500, minHeight: 700)
-                .presentationSizing(.page)
-                #else
-                //.presentationSizing(.page) // big sheet
-                //.presentationSizing(.fitted) // small sheet - resizable - doesn't work on iOS
-                //.presentationSizing(.form) // seems to be the same as a regular sheet
-                #endif
-        }
-        .transactionEditSheetAndLogic(transEditID: $transEditID, selectedDay: $transDay, extraDismissLogic: { didSave in
+        .transactionEditSheetAndLogic(transEditID: $transEditID, selectedDay: $transDay) { didSave in
             if didSave {
                 Task { await prepareView() }
             }
-        })
+        }
         .onChange(of: navPath) {
             if $1.isEmpty {
                 //print("killing refresh task")

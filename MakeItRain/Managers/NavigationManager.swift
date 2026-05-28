@@ -13,15 +13,15 @@ import SwiftUI
 class NavigationManager {
     static let shared: NavigationManager = NavigationManager()
     
-    var selection: NavDestination?
-    var selectedMonth: NavDestination?
+    var selection: NavDest?
+    var selectedMonth: NavDest?
     
-    var navPath: Array<NavDestination> = []
+    var navPath: Array<NavDest> = []
     
     var columnVisibility: NavigationSplitViewVisibility = .all
 }
 
-enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
+enum NavDest: Hashable, Identifiable {
     case january
     case february
     case march
@@ -42,7 +42,6 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
     case categories
     case keywords
     case search
-    case analytics
     case settings
     case placeholderMonth
     case debug
@@ -53,7 +52,14 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
     case dashboard
     case budgets
     
-    var id: NavDestination { return self }
+    case plaidRejectPage
+    case transactionList
+    case multiTransChangeDate
+    case dashboardNumericBreakdown
+    case dashboardTransactionList(DashboardData, CBCategory)
+    case budgetOverview(CBBudgetItem)
+    
+    var id: NavDest { return self }
     
     var monthNum: Int? {
         switch self {
@@ -99,34 +105,39 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
     
     var displayName: String {
         switch self {
-        case .january, .nextJanuary:    "January"
-        case .february:                 "February"
-        case .march:                    "March"
-        case .april:                    "April"
-        case .may:                      "May"
-        case .june:                     "June"
-        case .july:                     "July"
-        case .august:                   "August"
-        case .september:                "September"
-        case .october:                  "October"
-        case .november:                 "November"
-        case .december, .lastDecember:  "December"
-        case .repeatingTransactions:    "Recurring Transactions"
-        case .paymentMethods:           "Wallet"
-        case .categories:               "Categories"
-        case .keywords:                 "Rules"
-        case .search:                   "Search"
-        case .analytics:                "Analytics"
-        case .settings:                 "Settings"
-        case .debug:                    "Debug"
-        case .plaid:                    "Plaid"
-        case .placeholderMonth:         ""
-        case .toasts:                   "Notifications"
-        case .calendar:                 "Calendar"
-        case .more:                     "More"
-        case .recentReceipts:           "Receipts"
-        case .dashboard:                "Dashboard"
-        case .budgets:                  "Budgets"
+        case .january, .nextJanuary:        "January"
+        case .february:                     "February"
+        case .march:                        "March"
+        case .april:                        "April"
+        case .may:                          "May"
+        case .june:                         "June"
+        case .july:                         "July"
+        case .august:                       "August"
+        case .september:                    "September"
+        case .october:                      "October"
+        case .november:                     "November"
+        case .december, .lastDecember:      "December"
+        case .repeatingTransactions:        "Recurring Transactions"
+        case .paymentMethods:               "Wallet"
+        case .categories:                   "Categories"
+        case .keywords:                     "Rules"
+        case .search:                       "Search"
+        case .settings:                     "Settings"
+        case .debug:                        "Debug"
+        case .plaid:                        "Plaid"
+        case .placeholderMonth:             ""
+        case .toasts:                       "Notifications"
+        case .calendar:                     "Calendar"
+        case .more:                         "More"
+        case .recentReceipts:               "Receipts"
+        case .dashboard:                    "Dashboard"
+        case .budgets:                      "Budget"
+        case .plaidRejectPage:              "Plaid Reject"
+        case .transactionList:              "Transaction List"
+        case .multiTransChangeDate:         "Multi Trans Date Change"
+        case .dashboardNumericBreakdown:    "Dashboard Numeric Breakdown"
+        case .dashboardTransactionList(_, _): "Dashboard Transaction List"
+        case .budgetOverview(_):            "Budget Overview"
         }
     }
     
@@ -150,7 +161,6 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
         //case .keywords:                 "textformat.abc.dottedunderline"
         case .keywords:                 "ruler"
         case .search:                   "magnifyingglass"
-        case .analytics:                "chart"
         case .settings:                 "gear"
         case .debug:                    "ladybug"
         case .plaid:                    "building.columns"
@@ -161,18 +171,24 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
         case .recentReceipts:           "receipt"
         case .dashboard:                "chart.pie"
         case .budgets:                  "chart.bar"
+        case .plaidRejectPage:          ""
+        case .transactionList:          ""
+        case .multiTransChangeDate:     ""
+        case .dashboardNumericBreakdown:    ""
+        case .dashboardTransactionList(_, _):   ""
+        case .budgetOverview(_):    ""
         }
     }
     
-    static var justMonths: [NavDestination] {
+    static var justMonths: [NavDest] {
         [.january, .february, .march, .april, .may, .june, .july, .august, .september, .october, .november, .december, .lastDecember, .nextJanuary]
     }
     
-    static var justAccessorials: [NavDestination] {
-        [.repeatingTransactions, .paymentMethods, .categories, .keywords, .search, .analytics, .debug, .plaid, .toasts]
+    static var justAccessorials: [NavDest] {
+        [.repeatingTransactions, .paymentMethods, .categories, .keywords, .search, .debug, .plaid, .toasts]
     }
     
-    static func getMonthFromInt(_ int: Int) -> NavDestination? {
+    static func getMonthFromInt(_ int: Int) -> NavDest? {
         switch int {
         case 0:  .lastDecember
         case 1:  .january
@@ -192,8 +208,9 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
         }
     }
     
-    @MainActor @ViewBuilder
-    static func view(for destination: NavDestination, navPath: Binding<NavigationPath>) -> some View {
+    @MainActor
+    @ViewBuilder
+    static func view(for destination: NavDest, navPath: Binding<NavigationPath>) -> some View {
         switch destination {
         case .repeatingTransactions:
             RepeatingTransactionsTable()
@@ -206,12 +223,6 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
              
         case .keywords:
             KeywordsTable()
-            
-//        case .search:
-//            AdvancedSearchView()
-            
-        case .analytics:
-            Text("analytics")
             
         case .settings:
             SettingsView(showSettings: .constant(true))
@@ -233,7 +244,8 @@ enum NavDestination: LocalizedStringKey, Codable, Hashable, Identifiable {
             RecentReceiptsView()
             
         case .budgets:
-            AllBudgetsTable()
+            AllBudgetsTable(navPath: navPath)
+            
         default:
             EmptyView()
         }

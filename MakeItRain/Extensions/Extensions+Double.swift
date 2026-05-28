@@ -46,16 +46,23 @@ extension Double {
     }
     
     var kVersion: String {
-        return "\(self.formatted(.number.notation(.compactName).precision(.fractionLength(0))))"        
+        return "\(self.formatted(.number.notation(.compactName).precision(.fractionLength(0))))"
     }
     
     func currencyWithDecimals(_ decimals: Int = AppSettings.shared.useWholeNumbers ? 0 : 2) -> String {
-        let formatter = AppState.shared.numberFormatter
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "USD"
-        formatter.maximumFractionDigits = decimals
-        return formatter.string(from: NSNumber(value: self)) ?? ""
+        formatted(
+            .currency(code: "USD")
+            .precision(.fractionLength(0))
+        )
     }
+    
+//    func currencyWithDecimals(_ decimals: Int = AppSettings.shared.useWholeNumbers ? 0 : 2) -> String {
+//        let formatter = AppState.shared.numberFormatter
+//        formatter.numberStyle = .currency
+//        formatter.currencyCode = "USD"
+//        formatter.maximumFractionDigits = decimals
+//        return formatter.string(from: NSNumber(value: self)) ?? ""
+//    }
     
     
     func decimals(_ decimals: Int) -> String {

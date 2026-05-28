@@ -1,0 +1,143 @@
+//
+//  TagBudgetEditView.swift
+//  MakeItRain
+//
+//  Created by Cody Burnett on 5/10/26.
+//
+
+
+import SwiftUI
+import Charts
+
+struct TagBudgetEditView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) var dismiss
+    @Environment(PayMethodModel.self) private var payModel
+    @Environment(BudgetModel.self) private var budgetModel
+    @Environment(TagModel.self) private var tagModel
+    @Environment(AppStore.self) private var store
+    
+    @Bindable var budget: CBBudgetItem
+    @Bindable var calModel: CalendarModel
+    
+    @State private var showDeleteAlert = false
+    @FocusState private var focusedField: Int?
+    @State private var tags: [CBTag] = []
+    
+    var title: String {
+        budget.item?.title ?? "N/A"
+    }
+    
+
+    var body: some View {
+        #if os(iOS)
+        NavigationStack {
+            StandardContainerWithToolbar(.list) {
+                Section("Budget") {
+                    titleRow
+                }
+                
+                TevHashtags(
+                    tags: tags,
+                    header: "Tag",
+                    footer: "Choose a tag to associate with the budget. Any transactions that use this tag will factor into the overall expenses."
+                )
+            }
+            .navigationDestination(for: TransNavDest.self) { dest in
+                TagView(tags: $tags, tagLimit: 1)
+                    .onDisappear {
+                        budget.tag = self.tags.first
+                    }
+            }
+            //.searchable(text: $searchText, prompt: Text("Search"))
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) { deleteButton }
+                ToolbarItem(placement: AppState.shared.isIphone ? .topBarTrailing : .topBarLeading) { closeButton }
+            }            
+            .task {
+                budget.deepCopy(.create)
+                /// Just for formatting.
+                budget.amountString = budget.amount.currencyWithDecimals()
+                
+                if budget.action == .add {
+                    store.budgets.append(budget)
+                } else {
+                    if let tag = budget.tag {
+                        tags.append(tag)
+                    }
+                }
+            }
+        }
+        #endif
+    }
+    
+    
+    var closeButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "xmark")
+                .schemeBasedForegroundStyle()
+        }
+    }
+    
+    
+    var deleteButton: some View {
+        Button {
+            showDeleteAlert = true
+        } label: {
+            Image(systemName: "trash")
+        }
+        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
+        .tint(.none)
+        .confirmationDialog("Delete \"\(budget.item?.title ?? "N/A")\"?", isPresented: $showDeleteAlert, actions: {
+            Button("Yes", role: .destructive) {
+                /// Prevent from going to the server and trying to delete something that isn't there.
+                if budget.action == .add {
+                    budgetModel.delete(budget, andSubmit: false)
+                } else {
+                    budget.action = .delete
+                    budgetModel.delete(budget, andSubmit: true)
+                }
+                
+                dismiss()
+            }
+            #if os(iOS)
+            Button("No", role: .close) { showDeleteAlert = false }
+            #else
+            Button("No") { showDeleteAlert = false }
+            #endif
+        }, message: {
+            #if os(iOS)
+            Text("Delete \"\(budget.item?.title ?? "N/A")\"?")
+            #endif
+        })
+    }
+    
+    
+    var titleRow: some View {
+        HStack(spacing: 0) {
+            Label("", systemImage: "t.circle")
+                .foregroundStyle(.gray)
+            
+            #if os(iOS)
+            UITextFieldWrapper(placeholder: "Budget", text: $budget.amountString, toolbar: {
+                KeyboardToolbarView(focusedField: $focusedField)
+            })
+            .uiTag(0)
+            .uiClearButtonMode(.whileEditing)
+            .uiStartCursorAtEnd(true)
+            .uiTextAlignment(.left)
+            //.uiReturnKeyType(.next)
+            //.uiFont(UIFont.systemFont(ofSize: 24.0))
+            //.uiTextColor(.secondaryLabel)
+            #else
+            StandardTextField("Name", text: $budget.amountString, focusedField: $focusedField, focusValue: 0)
+                .onSubmit { focusedField = 1 }
+            #endif
+        }
+        .focused($focusedField, equals: 0)
+    }
+}

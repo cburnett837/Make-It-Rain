@@ -50,9 +50,9 @@ class ResetOptions: Encodable {
         try container.encode(paymentMethods, forKey: .payment_methods)
         try container.encode(budget ? 1 : 0, forKey: .budget)
         try container.encode(hasBeenPopulated ? 1 : 0, forKey: .has_been_populated)
-        try container.encode(AppState.shared.user?.id, forKey: .user_id)
-        try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
-        try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
+        try container.encode(Cody.shared.id, forKey: .user_id)
+        try container.encode(Cody.shared.accountID, forKey: .account_id)
+        try container.encode(Cody.shared.deviceUUID, forKey: .device_uuid)
     }
     
     

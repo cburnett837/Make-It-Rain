@@ -167,6 +167,7 @@ extension View {
         findTransactionWhere: Binding<WhereToLookForTransaction> = .constant(.normalList),
         presentTip: Bool = false,
         resetSelectedDayOnClose: Bool = false,
+        tag: CBTag? = nil,
         extraDismissLogic: ((_ didSave: Bool) -> ())? = nil
     ) -> some View {
         modifier(TransactionEditSheetAndLogic(
@@ -176,6 +177,7 @@ extension View {
             findTransactionWhere: findTransactionWhere,
             presentTip: presentTip,
             resetSelectedDayOnClose: resetSelectedDayOnClose,
+            tag: tag,
             extraDismissLogic: extraDismissLogic
             
         ))
@@ -194,19 +196,21 @@ fileprivate struct TransactionEditSheetAndLogic: ViewModifier {
     @Binding var findTransactionWhere: WhereToLookForTransaction
     var presentTip: Bool
     var resetSelectedDayOnClose: Bool
+    var tag: CBTag?
     var extraDismissLogic: ((_ didSave: Bool) -> ())?
     
     @State private var editTrans: CBTransaction?
         
     func body(content: Content) -> some View {
         content
-            .onChange(of: transEditID) { transEditIdChanged(oldValue: $0, newValue: $1) }
+            .onChange(of: transEditID) { transEditIdChanged(oldId: $0, newId: $1) }
             .sensoryFeedback(.selection, trigger: transEditID) { $1 != nil }
             .sheet(item: $editTrans) { trans in
                 TransactionEditView(
                     trans: trans,
                     //transEditID: $transEditID,
                     day: selectedDay!,
+                    tag: tag,
                     isTemp: false,
                     transLocation: findTransactionWhere
                 )
@@ -225,17 +229,25 @@ fileprivate struct TransactionEditSheetAndLogic: ViewModifier {
     }
     
 
-    func transEditIdChanged(oldValue: String?, newValue: String?) {
+    func transEditIdChanged(oldId: String?, newId: String?) {
         print("-- \(#function)")
         /// When `newValue` is nil, save to the server via the `oldValue`.
         /// We have to use this technique because on Mac, `.popover(isPresented:)` has no onDismiss option.
         /// In addition, even if I wanted to use a sheets onDismiss, I can't catch the transaction ID there.
-        if oldValue != nil && newValue == nil {
+//        if oldValue != nil && newValue == nil {
+//            Task {
+//                await transactionSheetWasClosed(transId: oldValue!)
+//            }
+//        } else if newValue != nil {
+//            transactionSheetWasOpened(transId: newValue!)
+//        }
+        
+        if let newId {
+            transactionSheetWasOpened(transId: newId)
+        } else {
             Task {
-                await transactionSheetWasClosed(transId: oldValue!)
+                await transactionSheetWasClosed(transId: oldId!)
             }
-        } else if newValue != nil {
-            transactionSheetWasOpened(transId: newValue!)
         }
     }
     
@@ -272,8 +284,8 @@ fileprivate struct TransactionEditSheetAndLogic: ViewModifier {
             if overviewDay != nil {
                 selectedDay = overviewDay
             } else {
-                let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
-                selectedDay = targetDay
+                let num = calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1
+                selectedDay = calModel.sMonth.getDay(by: num)
             }
         }
 
@@ -288,20 +300,21 @@ fileprivate struct TransactionEditSheetAndLogic: ViewModifier {
         
         if didSave {
             /// Update the calendar's dashboard
-            calProps.dashboardIsDirty = true
+            //calProps.dashboardIsDirty = true
+            
             
             /// Update the global dashboard (if applicable)
-            if let trans = calModel.getTransaction(by: transId, from: findTransactionWhere), let date = trans.date {
+            if let trans = calModel.getTransaction(by: transId, from: findTransactionWhere),
+                let date = trans.date {
                 let range = min(dashboardModel.beginDate, dashboardModel.endDate)...max(dashboardModel.beginDate, dashboardModel.endDate)
-                let transIsPartOfDashboard = range.contains(date)
-                if transIsPartOfDashboard {
-                    //self.dashboardModel.isDirty = true
+                if range.contains(date) {
                     Task {
+                        print("SHOULD RELOAD DATA FOR GLOBAL DASHBOARD 3")
                         await dashboardModel.fetchDashboard()
+                        dashboardModel.prepareData(calModel: calModel)
                     }
                 }
-            }
-            
+            }            
         }
         
         print("The final transaction didSaveResult: \(didSave)")

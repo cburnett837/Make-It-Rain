@@ -355,3 +355,27 @@ enum BudgetAction {
     }
 }
 
+
+enum BudgetMonthAction {
+    case add, edit, delete
+    
+    var serverKey: String {
+        switch self {
+        case .add: return "add_cb_budget_month"
+        case .edit: return "edit_cb_budget_month"
+        case .delete: return "delete_cb_budget_month"
+        }
+    }
+}
+
+enum BudgetItemAction {
+    case add, edit, delete
+    
+    var serverKey: String {
+        switch self {
+        case .add: return "add_cb_budget_item"
+        case .edit: return "edit_cb_budget_item"
+        case .delete: return "delete_cb_budget_item"
+        }
+    }
+}

@@ -100,7 +100,6 @@ struct SettingsView: View {
         #endif
     }
     
-    
     var settingsContent: some View {
         Group {
             locationErrorView
@@ -124,6 +123,8 @@ struct SettingsView: View {
                         
             SettingsViewInsert()
             
+            currentLocationSection
+            
             deviceInformationSection
             
             //resetAllTipsButton
@@ -132,6 +133,9 @@ struct SettingsView: View {
                 showResetAllSettingsAlert = true
             }
             .tint(.red)
+        }
+        .task {
+            LocationManager.shared.requestLocation()
         }
     }
                     
@@ -160,7 +164,8 @@ struct SettingsView: View {
     }
     
     
-    @ViewBuilder func errorMessage(_ message: String) -> some View {
+    @ViewBuilder
+    func errorMessage(_ message: String) -> some View {
         Section {
             HStack {
                 Image(systemName: "exclamationmark.triangle")
@@ -418,6 +423,33 @@ struct SettingsView: View {
     #endif
     
     
+    var currentLocationSection: some View {
+        Section {
+            HStack {
+                Text("Home Location")
+                Spacer()
+                Text(Locale.current.region?.identifier ?? "N/A")
+                    .foregroundStyle(.secondary)
+            }
+            HStack {
+                Text("Current Location")
+                Spacer()
+                if LocationManager.shared.isThinking {
+                    ProgressView()
+                        .tint(.none)
+                } else {
+                    Text(LocationManager.shared.currentCountry ?? "N/A")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            
+        } header: {
+            Text("Location Information")
+        } footer: {
+            Text("Make It Rain will use your location to assist in creating transactions by determining relevant businesses around you, and will suggest currency conversions when you are abroad.")
+        }
+    }
+    
     var deviceInformationSection: some View {
         Section {
             if let uuid = UserDefaults.fetchOneString(requestedKey: "deviceUUID") {
@@ -435,6 +467,7 @@ struct SettingsView: View {
             } else {
                 openSettingAppButton
             }
+            
         } header: {
             Text("Device Information")
         } footer: {
@@ -500,43 +533,39 @@ struct SettingsView: View {
         
         func performChange(dataOrNil: Data?) {
             let context = DataManager.shared.createContext()
-            
-            /// Set user avatar.
-            let pred1 = NSPredicate(format: "relatedID == %@", String(AppState.shared.user!.id))
-            let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: 47))
-            let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
-            
-            guard
-                let perLogo = DataManager.shared.getOne(
-                    context: context,
-                    type: PersistentLogo.self,
-                    predicate: .compound(comp),
-                    createIfNotFound: true
-                )
-            else {
-                return
-            }
-            if perLogo.id == nil {
-                perLogo.id = UUID().uuidString
-            }
-            perLogo.relatedID = String(AppState.shared.user!.id)
-            perLogo.relatedTypeID = Int64(47)
-            perLogo.photoData = dataOrNil
-            perLogo.serverUpdatedDate = Date()
-            perLogo.localUpdatedDate = Date()
-            
-            let _ = DataManager.shared.save(context: context)
-            
-            
-            funcModel.changeAvatarLocally(to: dataOrNil, id: String(AppState.shared.user!.id))
-            
-            //settingsModel.logo = logoData
-            Task {
-                await settingsModel.updateUserAvatar(user: AppState.shared.user!)
+            context.perform {
+                /// Set user avatar.
+                let pred1 = NSPredicate(format: "relatedID == %@", String(AppState.shared.user!.id))
+                let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: 47))
+                let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
+                
+                guard
+                    let perLogo = DataManager.shared.getOne(
+                        context: context,
+                        type: PersistentLogo.self,
+                        predicate: .compound(comp),
+                        createIfNotFound: true
+                    )
+                else {
+                    return
+                }
+                if perLogo.id == nil {
+                    perLogo.id = UUID().uuidString
+                }
+                perLogo.relatedID = String(AppState.shared.user!.id)
+                perLogo.relatedTypeID = Int64(47)
+                perLogo.photoData = dataOrNil
+                perLogo.serverUpdatedDate = Date()
+                perLogo.localUpdatedDate = Date()
+                
+                let _ = DataManager.shared.save(context: context)
+                
+                Task { @MainActor in
+                    funcModel.changeAvatarLocally(to: dataOrNil, id: String(AppState.shared.user!.id))
+                    await settingsModel.updateUserAvatar(user: AppState.shared.user!)
+                }
             }
         }
-        
-        
     }
     
     

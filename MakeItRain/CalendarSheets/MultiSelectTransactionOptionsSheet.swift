@@ -17,6 +17,7 @@ struct MultiSelectTransactionOptionsSheet: View {
     #endif
     @Environment(CalendarProps.self) private var calProps
     @Environment(CalendarModel.self) private var calModel
+    @Environment(AppStore.self) private var store
     
 //    @Binding var bottomPanelContent: BottomPanelContent?
 //    @Binding var bottomPanelHeight: CGFloat
@@ -31,7 +32,7 @@ struct MultiSelectTransactionOptionsSheet: View {
         
     @Binding var showInspector: Bool
     #if os(iOS)
-    @Binding var navPath: [CalendarNavDest]
+    @Binding var navPath: [NavDest]
     #else
     @State private var showDateChangerSheet = false
     #endif
@@ -179,7 +180,7 @@ struct MultiSelectTransactionOptionsSheet: View {
                 //calProps.showAnalysisSheet = true
                 
                 if AppState.shared.isIphone {
-                    calProps.navPath.append(CalendarNavDest.dashboard)
+                    calProps.navPath.append(NavDest.dashboard)
                     //calProps.showAnalysisSheet = true
                 } else {
                     calProps.inspectorContent = .dashboard
@@ -211,8 +212,8 @@ struct MultiSelectTransactionOptionsSheet: View {
             shouldSave = true
             
             Task {
-                let _ = calModel.calculateTotal(for: calModel.sMonth)
-            }            
+                CalcHelper.calculateTotal(for: calModel.sMonth, store: store)
+            }
         } label: {
             Text("Include in calculations")
         }
@@ -235,7 +236,7 @@ struct MultiSelectTransactionOptionsSheet: View {
             shouldSave = true
             
             Task {
-                let _ = calModel.calculateTotal(for: calModel.sMonth)
+                CalcHelper.calculateTotal(for: calModel.sMonth, store: store)
             }
         } label: {
             Text("Exclude from calculations")
@@ -285,7 +286,7 @@ struct MultiSelectTransactionOptionsSheet: View {
     var changeDateButton: some View {
         Button {
             #if os(iOS)
-            navPath.append(CalendarNavDest.multiTransChangeDate)
+            navPath.append(NavDest.multiTransChangeDate)
             #else
             showDateChangerSheet = true
             #endif
@@ -404,7 +405,7 @@ struct MultiSelectTransactionOptionsSheet: View {
 struct MultiSelectChangeDatePage: View {
     @Environment(CalendarModel.self) private var calModel
     #if os(iOS)
-    @Binding var navPath: [CalendarNavDest]
+    @Binding var navPath: [NavDest]
     #else
     @Binding var showDateChangerSheet: Bool
     #endif

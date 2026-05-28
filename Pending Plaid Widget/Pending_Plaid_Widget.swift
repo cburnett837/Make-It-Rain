@@ -141,7 +141,8 @@ struct PlaidTransLite: Identifiable, Codable {
         payMethodId = try container.decode(Int.self, forKey: .payment_method_id)
         logo = try container.decodeIfPresent(Data.self, forKey: .logo)
     }
-
+    
+    /// Needed to store in the cache.
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
@@ -155,14 +156,12 @@ struct PlaidTransLite: Identifiable, Codable {
 
 extension Double {
     func currencyWithDecimals() -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "USD"
-        formatter.maximumFractionDigits = 0
-        return formatter.string(from: NSNumber(value: self)) ?? ""
+        formatted(
+            .currency(code: "USD")
+            .precision(.fractionLength(0))
+        )
     }
 }
-
 
 
 
@@ -188,11 +187,16 @@ func loadLogoFromCoreDataIfNeeded(for id: String) async -> Data? {
 struct BudgetWidgetProvider: TimelineProvider {
     let placeholder = PlaidResult(
         isPlaceholder: true,
-        count: 3,
+        count: 8,
         trans: [
             PlaidTransLite(id: 0, title: "Apple", amount: "$123", payMethodId: 0),
             PlaidTransLite(id: 1, title: "Google", amount: "$456", payMethodId: 0),
-            PlaidTransLite(id: 2, title: "Samsung", amount: "$789", payMethodId: 0)
+            PlaidTransLite(id: 2, title: "Samsung", amount: "$789", payMethodId: 0),
+            PlaidTransLite(id: 3, title: "Microsoft", amount: "$987", payMethodId: 0),
+            PlaidTransLite(id: 4, title: "Lego", amount: "$1,000", payMethodId: 0),
+            PlaidTransLite(id: 5, title: "7/11", amount: "$321", payMethodId: 0),
+            PlaidTransLite(id: 7, title: "Publix", amount: "$321", payMethodId: 0),
+            PlaidTransLite(id: 8, title: "Target", amount: "$321", payMethodId: 0),
         ]
     )
     
@@ -287,6 +291,14 @@ struct BudgetWidgetView: View {
         }
     }
     
+    var limit: Int {
+        switch family {
+        case .systemSmall, .systemMedium: 3
+        case .systemLarge: 8
+        default: 3
+        }
+    }
+    
     var updatedDate: Text {
         Text(entry.date, style: .time)
             .font(.caption2)
@@ -296,13 +308,20 @@ struct BudgetWidgetView: View {
     var body: some View {
         VStack {
             if entry.data.trans.isEmpty {
-                ContentUnavailableView("No Pending Transactions", systemImage: "face.smiling.inverse", description: updatedDate)
+                ContentUnavailableView("No Pending Transactions", systemImage: "dollarsign.bank.building.fill", description: updatedDate)
                 
             } else {
                 VStack {
                     header
                     Divider()
-                    ForEach(entry.data.trans) { transLine($0) }
+                    GeometryReader { geo in
+                        VStack(spacing: 0) {
+                            ForEach(entry.data.trans.prefix(limit)) {
+                                transLine($0)
+                                    .frame(height: geo.size.height / CGFloat(limit))
+                            }
+                        }
+                    }
                 }
                 .frame(maxHeight: .infinity, alignment: .top)
             }
@@ -351,7 +370,7 @@ struct BudgetWidgetView: View {
             
             Text("\(trans.amount.currencyWithDecimals())")
         }
-        .frame(maxHeight: .infinity)
+        //.frame(maxHeight: .infinity)
         .font(.subheadline)
     }
 }
@@ -379,7 +398,7 @@ struct BudgetWidget: Widget {
         }
         .configurationDisplayName("Plaid Transactions")
         .description("Shows your latest plaid transactions that require action.")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
         .pushHandler(BudgetWidgetPushHandler.self)
     }
 }

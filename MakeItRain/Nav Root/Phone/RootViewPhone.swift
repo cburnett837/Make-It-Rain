@@ -20,27 +20,27 @@ struct RootViewPhone: View {
     @Environment(DashboardModel.self) var dashboardModel
         
     @State private var toolbarVisibility = Visibility.visible
-    @State private var sel: NavDestination?
+    @State private var sel: NavDest?
     
     /// Using a navigation link instead of a button for the settings button the toolbar causes the icon to be a tiny bit wider than a normal button.
     /// So use a navPath so we can append to the path via the settings button.
     @State private var calendarNavPath = NavigationPath()
     @State private var advancedSearchNavPath = NavigationPath()
-    @State private var dashboardNavPath: [CalendarNavDest] = []
+    @State private var dashboardNavPath: [NavDest] = []
     @State private var moreNavPath = NavigationPath()
     //@State private var dashboardModel = DashboardModel()
     
     var body: some View {
         @Bindable var navManager = NavigationManager.shared
         TabView(selection: $sel) {
-            Tab(NavDestination.calendar.displayName, systemImage: NavDestination.calendar.symbol, value: .calendar) {
+            Tab(NavDest.calendar.displayName, systemImage: NavDest.calendar.symbol, value: .calendar) {
                 NavigationStack(path: $calendarNavPath) {
                     calendarGridNavPhone
                 }
                 .toolbar(toolbarVisibility, for: .tabBar)
             }
             
-            Tab(NavDestination.dashboard.displayName, systemImage: NavDestination.dashboard.symbol, value: .dashboard) {
+            Tab(NavDest.dashboard.displayName, systemImage: NavDest.dashboard.symbol, value: .dashboard) {
                 NavigationStack(path: $dashboardNavPath) {
                     Dashboard(
                         navPath: $dashboardNavPath,
@@ -48,7 +48,7 @@ struct RootViewPhone: View {
                         model: dashboardModel,
                         isForSelectedMonth: false
                     )
-                    .navigationDestination(for: CalendarNavDest.self) { dest in
+                    .navigationDestination(for: NavDest.self) { dest in
                         switch dest {
                         case .dashboardNumericBreakdown:
                             DashboardNumericDetails(model: dashboardModel, isForSelectedMonth: false)
@@ -63,25 +63,25 @@ struct RootViewPhone: View {
                 }
             }
             
-//            Tab(NavDestination.categories.displayName, systemImage: NavDestination.categories.symbol, value: .categories) {
+//            Tab(NavDest.categories.displayName, systemImage: NavDest.categories.symbol, value: .categories) {
 //                NavigationStack {
 //                    CategoriesTable()
 //                }
 //            }
             
-            Tab(NavDestination.paymentMethods.displayName, systemImage: NavDestination.paymentMethods.symbol, value: .paymentMethods) {
+            Tab(NavDest.paymentMethods.displayName, systemImage: NavDest.paymentMethods.symbol, value: .paymentMethods) {
                 /// NavStack is in the view.
                 PayMethodsTable()
             }
             
-            Tab(NavDestination.more.displayName, systemImage: NavDestination.more.symbol, value: .more) {
+            Tab(NavDest.more.displayName, systemImage: NavDest.more.symbol, value: .more) {
                 NavigationStack(path: $moreNavPath) {
                     moreTabList/*.toolbar(toolbarVisibility, for: .tabBar)*/
                 }
             }
             .badge(plaidModel.banksWithIssues.count)
             
-            Tab(NavDestination.search.displayName, systemImage: NavDestination.search.symbol, value: .search, role: .search) {
+            Tab(NavDest.search.displayName, systemImage: NavDest.search.symbol, value: .search, role: .search) {
                 NavigationStack(path: $advancedSearchNavPath) {
                     AdvancedSearchView(navPath: $advancedSearchNavPath)
                 }
@@ -93,7 +93,7 @@ struct RootViewPhone: View {
         
         
 //        .onChange(of: sel) { oldValue, newValue in
-//            if oldValue == NavDestination.categories {
+//            if oldValue == NavDest.categories {
 //                if calModel.categoryFilterWasSetByCategoryPage {
 //                    calModel.sCategories.removeAll()
 //                    calModel.categoryFilterWasSetByCategoryPage = false
@@ -106,7 +106,7 @@ struct RootViewPhone: View {
     var calendarGridNavPhone: some View {
         CalendarNavGridPhone(calendarNavPath: $calendarNavPath)
             .onAppear { toolbar(to: .visible) }
-            .navigationDestination(for: NavDestination.self) { dest in
+            .navigationDestination(for: NavDest.self) { dest in
                 switch dest {
                 case .settings:
                     SettingsView(showSettings: .constant(false))
@@ -122,15 +122,15 @@ struct RootViewPhone: View {
     
     
     var plaidNavLink: some View {
-        NavigationLink(value: NavDestination.plaid) {
+        NavigationLink(value: NavDest.plaid) {
             Label {
-                Text(NavDestination.plaid.displayName)
+                Text(NavDest.plaid.displayName)
             } icon: {
                 if plaidModel.atLeastOneBankHasAnIssue {
                     Image(systemName: "creditcard.trianglebadge.exclamationmark")
                         .foregroundStyle(Color.theme == .orange ? .red : .orange)
                 } else {
-                    Image(systemName: NavDestination.plaid.symbol)
+                    Image(systemName: NavDest.plaid.symbol)
                 }
             }
         }
@@ -140,13 +140,13 @@ struct RootViewPhone: View {
     var moreTabList: some View {
         List {
             Section {
-                NavLinkPhone(destination: .categories)
                 //NavLinkPhone(destination: .paymentMethods)
                 if AppState.shared.methsExist {
+                    NavLinkPhone(destination: .budgets)
+                    NavLinkPhone(destination: .categories)
                     NavLinkPhone(destination: .repeatingTransactions)
                     NavLinkPhone(destination: .keywords)
                     NavLinkPhone(destination: .recentReceipts)
-                    NavLinkPhone(destination: .budgets)
                 }
             }
             
@@ -167,7 +167,7 @@ struct RootViewPhone: View {
         }
         .listStyle(.plain)
         .navigationTitle("More")
-        .navigationDestination(for: NavDestination.self) { NavDestination.view(for: $0, navPath: $moreNavPath) }
+        .navigationDestination(for: NavDest.self) { NavDest.view(for: $0, navPath: $moreNavPath) }
     }
     
     
@@ -208,7 +208,7 @@ struct RootViewPhone: View {
 //                NavigationStack {
 //                    CalendarNavGridPhone(monthNavigationNamespace: monthNavigationNamespace)
 //                        .onAppear { toolbar(to: .visible) }
-//                        .navigationDestination(for: NavDestination.self) { dest in
+//                        .navigationDestination(for: NavDest.self) { dest in
 //                            switch dest {
 //                            case .settings:
 //                                SettingsView(showSettings: .constant(false))
@@ -279,28 +279,28 @@ struct RootViewPhone: View {
 //    
 //    var moreTabList: some View {
 //        List {
-////            NavigationLink(value: NavDestination.paymentMethods) {
+////            NavigationLink(value: NavDest.paymentMethods) {
 ////                Label { Text("Payment Methods") } icon: { Image(systemName: "creditcard") }
 ////            }
 //            
 //            Section {
-////                NavigationLink(value: NavDestination.events) {
+////                NavigationLink(value: NavDest.events) {
 ////                    Label { Text("Events") } icon: { Image(systemName: "beach.umbrella") }
 ////                }
 //                
 //                if AppState.shared.methsExist {
-//                    NavigationLink(value: NavDestination.repeatingTransactions) {
+//                    NavigationLink(value: NavDest.repeatingTransactions) {
 //                        Label { Text("Recurring Transactions") } icon: { Image(systemName: "repeat") }
 //                    }
 //                    
-//                    NavigationLink(value: NavDestination.keywords) {
+//                    NavigationLink(value: NavDest.keywords) {
 //                        Label { Text("Rules") } icon: { Image(systemName: "textformat.abc.dottedunderline") }
 //                    }
 //                }
 //            }
 //            
 //            Section("Plaid Integration") {
-//                NavigationLink(value: NavDestination.plaid) {
+//                NavigationLink(value: NavDest.plaid) {
 //                    Label { Text("Plaid") } icon: {
 //                        if plaidModel.atLeastOneBankHasAnIssue {
 //                            Image(systemName: "creditcard.trianglebadge.exclamationmark")
@@ -313,19 +313,19 @@ struct RootViewPhone: View {
 //            }                        
 //            
 //            Section("Misc") {
-//                NavigationLink(value: NavDestination.toasts) {
+//                NavigationLink(value: NavDest.toasts) {
 //                    Label { Text("Notifications") } icon: { Image(systemName: "bell.badge") }
 //                }
 //                
 //                if AppState.shared.user?.id == 1 {
-//                    NavigationLink(value: NavDestination.debug) {
+//                    NavigationLink(value: NavDest.debug) {
 //                        Label { Text("Debug") } icon: { Image(systemName: "ladybug") }
 //                    }
 //                    .badge(funcModel.loadTimes.count)
 //                }
 //                
 //                
-//                NavigationLink(value: NavDestination.settings) {
+//                NavigationLink(value: NavDest.settings) {
 //                    Label { Text("Settings") } icon: { Image(systemName: "gear") }
 //                }
 //            }
@@ -334,7 +334,7 @@ struct RootViewPhone: View {
 //        .onAppear { toolbar(to: .visible) }
 //        .navigationTitle("More")
 //        //.navigationBarTitleDisplayMode(.inline)
-//        .navigationDestination(for: NavDestination.self) { dest in
+//        .navigationDestination(for: NavDest.self) { dest in
 //            switch dest {
 //            case .repeatingTransactions:
 //                RepeatingTransactionsTable()

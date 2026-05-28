@@ -11,8 +11,11 @@ internal import Combine
 
 @Observable
 class AppState {
+    
+    var avatar: Data?
+    
     static let shared = AppState()
-    //month.hasLoadedFromServer = falsevar downloadedMonths: Array<NavDestination> = []
+    //month.hasLoadedFromServer = falsevar downloadedMonths: Array<NavDest> = []
     var user: CBUser?
     var apiKey: String?
     var accountUsers: Array<CBUser> = []
@@ -74,13 +77,13 @@ class AppState {
     var lastNetworkTime: Date?
     
     var dragOnMonthTimer: Timer?
-    var dragMonthTarget: NavDestination?
+    var dragMonthTarget: NavDest?
     
     var showCustomAlert: Bool = false
     var alertConfig: AlertConfig?
     var toast: Toast?
     
-    func showDragTarget(for month: NavDestination) {
+    func showDragTarget(for month: NavDest) {
         self.dragMonthTarget = month
     }
         

@@ -19,6 +19,9 @@ class WebSocketManager {
     var keyModel: KeywordModel
     var repModel: RepeatingTransactionModel
     var plaidModel: PlaidModel
+    var budgetModel: BudgetModel
+    var tagModel: TagModel
+    var dashboardModel: DashboardModel
     
     var socketTask: URLSessionWebSocketTask?
     var listeningTask: Task<Void, Never>?
@@ -33,7 +36,10 @@ class WebSocketManager {
         catModel: CategoryModel,
         keyModel: KeywordModel,
         repModel: RepeatingTransactionModel,
-        plaidModel: PlaidModel
+        plaidModel: PlaidModel,
+        budgetModel: BudgetModel,
+        tagModel: TagModel,
+        dashboardModel: DashboardModel
     ) {
         self.store = store
         self.calModel = calModel
@@ -42,6 +48,9 @@ class WebSocketManager {
         self.keyModel = keyModel
         self.repModel = repModel
         self.plaidModel = plaidModel
+        self.budgetModel = budgetModel
+        self.tagModel = tagModel
+        self.dashboardModel = dashboardModel
     }
     
     
@@ -241,6 +250,8 @@ class WebSocketManager {
         || model.categoryGroups != nil
         || model.keywords != nil
         || model.budgets != nil
+        || model.monthlyBudgets != nil
+        || model.globalBudget != nil
         || model.openRecords != nil
         || model.plaidBanks != nil
         || model.plaidAccounts != nil
@@ -254,7 +265,7 @@ class WebSocketManager {
             #warning("This all needs to be fixed in regards to coredata. Right now, each update of the cache or delete from the cache uses its own context, and saves after each operation. If I used a single background context, when deleting a payment method via the long poll, the save operation will fail. It is recommended to perform all operations, and then call save at the end. But this will require some work to implement. 11/6/25")
             //try? await Task.sleep(nanoseconds: UInt64(5 * Double(NSEC_PER_SEC)))
             
-            if let transactions = model.transactions {
+            if let transactions = model.transactions, !transactions.isEmpty {
                 await self.handleLongPollTransactions(transactions)
             }
 
@@ -287,6 +298,14 @@ class WebSocketManager {
             
             if let budgets = model.budgets, !budgets.isEmpty {
                 self.handleLongPollBudgets(budgets)
+            }
+            
+            if let monthlyBudgets = model.monthlyBudgets, !monthlyBudgets.isEmpty {
+                self.handleLongPollMonthlyBudgets(monthlyBudgets)
+            }
+            
+            if let globalBudget = model.globalBudget {
+                self.handleLongPollGlobalBudget(globalBudget)
             }
             
             if let openRecords = model.openRecords, !openRecords.isEmpty {
@@ -323,6 +342,10 @@ class WebSocketManager {
     @MainActor
     private func handleLongPollTransactions(_ transactions: Array<CBTransaction>) async {
         print("-- \(#function)")
+        
+        print(transactions.count)
+        transactions.forEach {print($0.title)}
+        
         await calModel.handleTransactions(transactions, refreshTechnique: .viaLongPoll)
         
         let months = transactions
@@ -333,7 +356,7 @@ class WebSocketManager {
         months.forEach { month in
             //let montObj = calModel.months.filter{ $0.num == month }.first!
             let montObj = calModel.months.get(byNum: month)!
-            let _ = calModel.calculateTotal(for: montObj)
+            CalcHelper.calculateTotal(for: montObj, store: store)
         }
         
         DataChangeTriggers.shared.viewDidChange(.calendar)
@@ -377,17 +400,28 @@ class WebSocketManager {
             
             //let montObj = calModel.months.filter { $0.num == month }.first!
             let montObj = calModel.months.get(byNum: month)!
-            let _ = calModel.calculateTotal(for: montObj)
+            CalcHelper.calculateTotal(for: montObj, store: store)
         }
     }
     
     
     @MainActor
-    private func handleLongPollBudgets(_ budgets: Array<CBBudget>) {
+    private func handleLongPollBudgets(_ budgets: Array<CBBudgetItem>) {
         print("-- \(#function)")
         for budget in budgets {
-            if budget.appSuiteKey == nil {
-                if let targetMonth = calModel.months.filter({ $0.actualNum == budget.month && budget.year == $0.year }).first {
+            if budget.type == .tag {
+                if let index = store.budgets.firstIndex(where: { $0.id == budget.id }) {
+                    if !budget.active {
+                        store.budgets.removeAll(where: { $0.id == budget.id })
+                        continue
+                    } else {
+                        store.budgets[index].setFromAnotherInstance(budget: budget)
+                    }
+                } else {
+                    store.budgets.append(budget)
+                }
+            } else {
+                if let targetMonth = calModel.months.filter({ $0.populatedId == budget.monthId }).first {
                     if targetMonth.isExisting(budget) {
                         if !budget.active {
                             targetMonth.delete(budget)
@@ -400,16 +434,37 @@ class WebSocketManager {
                     } else {
                         targetMonth.upsert(budget)
                     }
-                }
-            } else {
-                print("Budget \(budget.id) incomign")
-                if let index = calModel.appSuiteBudgets.firstIndex(where: { $0.id == budget.id }) {
-                    calModel.appSuiteBudgets[index].setFromAnotherInstance(budget: budget)
                 } else {
-                    calModel.appSuiteBudgets.append(budget)
+                    print("Cant find month for budget: \(budget)")
                 }
             }
         }
+        
+        
+        Task {
+            calModel.dashboardModel.localVersionOfServerCode(calModel: calModel)
+            calModel.dashboardModel.prepareData(calModel: calModel)
+            
+            await dashboardModel.fetchDashboard()
+            dashboardModel.prepareData(calModel: calModel)
+        }
+    }
+    
+    
+    @MainActor
+    private func handleLongPollMonthlyBudgets(_ budgets: Array<CBMonth>) {
+        print("-- \(#function)")
+        for budget in budgets {
+            if let targetMonth = calModel.months.filter({ $0.populatedId == budget.populatedId }).first {
+                targetMonth.amountString = budget.amountString
+            }
+        }
+    }
+    
+    @MainActor
+    private func handleLongPollGlobalBudget(_ budget: CBBudget) {
+        print("-- \(#function)")
+        budgetModel.globalBudget.setFromAnotherInstance(budget: budget)
     }
     
     

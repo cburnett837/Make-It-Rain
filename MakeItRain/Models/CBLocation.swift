@@ -78,9 +78,9 @@ class CBLocation: Codable, Identifiable, Equatable, Hashable {
         try container.encode(action.serverKey, forKey: .action)
         try container.encode(lat, forKey: .lat)
         try container.encode(lon, forKey: .lon)
-        try container.encode(AppState.shared.user?.id, forKey: .user_id)
-        try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
-        try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
+        try container.encode(Cody.shared.id, forKey: .user_id)
+        try container.encode(Cody.shared.accountID, forKey: .account_id)
+        try container.encode(Cody.shared.deviceUUID, forKey: .device_uuid)
         try container.encode(relatedRecordType.id, forKey: .related_type_id)
         //try container.encode(enteredBy, forKey: .entered_by) // for the Transferable protocol
         //try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol

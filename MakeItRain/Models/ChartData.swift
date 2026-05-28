@@ -21,7 +21,7 @@ struct ChartData: Identifiable, Equatable {
     var expensesMinusIncome: Double
     var chartPercentage: Double /// Only used in ``CivBudgetBreakdown``, in a chart that isn't currently used
     var actualPercentage: Double /// Only used in ``CivBudgetBreakdown``, in a chart that isn't currently used
-    var budgetObjects: Array<CBBudget>?
+    var budgetObjects: Array<CBBudgetItem>?
     
     
     var month: CBMonth?

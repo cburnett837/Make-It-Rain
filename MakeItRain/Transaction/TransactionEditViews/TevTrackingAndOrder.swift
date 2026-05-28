@@ -69,7 +69,7 @@ struct TevTrackingAndOrder: View {
     
     var trackingNumberTextField: some View {
         GeometryReader { geo in
-            NavigationLink(value: TransNavDestination.tracking) {
+            NavigationLink(value: TransNavDest.tracking) {
                 HStack {
                     Label {
                         Text("Tracking #")

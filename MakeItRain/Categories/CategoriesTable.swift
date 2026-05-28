@@ -15,9 +15,9 @@ struct CategoriesTable: View {
 
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
-    
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
+    @Environment(AppStore.self) private var store
     
     @Binding var navPath: NavigationPath
     //@State private var navPath = NavigationPath()
@@ -52,12 +52,12 @@ struct CategoriesTable: View {
             /// NOTE: Sorting must be done in the task and not in the computed property. If done in the computed property, when reording, they get all messed up.
     }
     
-    var filteredSpecialCategories: [CBCategory] {
-        catModel.categories
-            .filter { !$0.isNil && $0.appSuiteKey != nil }
-            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedCaseInsensitiveContains(searchText) }
-            /// NOTE: Sorting must be done in the task and not in the computed property. If done in the computed property, when reording, they get all messed up.
-    }
+//    var filteredSpecialCategories: [CBCategory] {
+//        catModel.categories
+//            .filter { !$0.isNil && $0.appSuiteKey != nil }
+//            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedCaseInsensitiveContains(searchText) }
+//            /// NOTE: Sorting must be done in the task and not in the computed property. If done in the computed property, when reording, they get all messed up.
+//    }
     
     var body: some View {
         //let _ = Self._printChanges()
@@ -68,9 +68,7 @@ struct CategoriesTable: View {
                     #if os(macOS)
                     macTable
                     #else
-                    if filteredCategories.isEmpty
-                    && filteredCategoryGroups.isEmpty
-                    && filteredSpecialCategories.isEmpty {
+                    if filteredCategories.isEmpty && filteredCategoryGroups.isEmpty {
                         ContentUnavailableView("No categories found", systemImage: "exclamationmark.magnifyingglass")
                     } else {
                         if AppState.shared.isIphone {
@@ -116,41 +114,49 @@ struct CategoriesTable: View {
                 #endif
             }
             .searchable(text: $searchText)
-            .onChange(of: categoryEditID) { oldId, newId in
-                if let newId {
-                    if let category = catModel.getCategory(by: newId) {
-                        editCategory = category
-                    } else {
-                        editCategory = CBCategory(uuid: newId)
-                    }
-                } else {
-                    catModel.saveCategory(id: oldId!)
-                    //catModel.categories.sort(by: Helpers.categorySorter())
-                }
-            }            
-            .sheet(item: $editCategory, onDismiss: {
-                categoryEditID = nil
-                
-                if calModel.categoryFilterWasSetByCategoryPage {
+            .categoryGroupEditSheetAndLogic(editId: $groupEditID)
+            .categoryEditSheetAndLogic(editId: $categoryEditID) { didSave in
+                if store.categoryFilterWasSetByCategoryPage {
                     calModel.sCategories.removeAll()
-                    calModel.categoryFilterWasSetByCategoryPage = false
+                    store.categoryFilterWasSetByCategoryPage = false
                 }
-            }) { cat in
-                CategoryOverViewWrapperIpad(category: cat, calModel: calModel, catModel: catModel)
-                    #if os(macOS)
-                    .presentationSizing(.page)
-                    #endif
-
-//                CategoryView(category: cat, editID: $categoryEditID)
-//                    #if os(macOS)
-//                    .frame(minWidth: 500, minHeight: 700)
-//                    .presentationSizing(.fitted)
-//                    #else
-//                    .presentationSizing(.page) // big sheet
-//                    //.presentationSizing(.fitted) // small sheet - resizable - doesn't work on iOS
-//                    //.presentationSizing(.form) // seems to be the same as a regular sheet
-//                    #endif
             }
+        
+//            .onChange(of: categoryEditID) { oldId, newId in
+//                if let newId {
+//                    if let category = catModel.getCategory(by: newId) {
+//                        editCategory = category
+//                    } else {
+//                        editCategory = CBCategory(uuid: newId)
+//                    }
+//                } else {
+//                    catModel.saveCategory(id: oldId!)
+//                    //catModel.categories.sort(by: Helpers.categorySorter())
+//                }
+//            }            
+//            .sheet(item: $editCategory, onDismiss: {
+//                categoryEditID = nil
+//                
+//                if store.categoryFilterWasSetByCategoryPage {
+//                    calModel.sCategories.removeAll()
+//                    store.categoryFilterWasSetByCategoryPage = false
+//                }
+//            }) { cat in
+//                CategoryOverViewWrapperIpad(category: cat, calModel: calModel, catModel: catModel)
+//                    #if os(macOS)
+//                    .presentationSizing(.page)
+//                    #endif
+//
+////                CategoryView(category: cat, editID: $categoryEditID)
+////                    #if os(macOS)
+////                    .frame(minWidth: 500, minHeight: 700)
+////                    .presentationSizing(.fitted)
+////                    #else
+////                    .presentationSizing(.page) // big sheet
+////                    //.presentationSizing(.fitted) // small sheet - resizable - doesn't work on iOS
+////                    //.presentationSizing(.form) // seems to be the same as a regular sheet
+////                    #endif
+//            }
             #if os(macOS)
             .sheet(isPresented: $showReorderList) {
                 StandardContainer(.plainList) {
@@ -168,30 +174,30 @@ struct CategoriesTable: View {
             .onChange(of: sortOrder) { _, sortOrder in
                 catModel.categories.sort(using: sortOrder)
             }
-            .onChange(of: groupEditID) { oldId, newId in
-                if let newId {
-                    if let group = catModel.getCategoryGroup(by: newId) {
-                        editGroup = group
-                    } else {
-                        editGroup = CBCategoryGroup(uuid: newId)
-                    }
-                    
-                } else {
-                    catModel.saveCategoryGroup(id: oldId!)
-                }
-            }
-            
-            .sheet(item: $editGroup, onDismiss: {
-                groupEditID = nil
-            }, content: { group in
-                CategoryGroupOverViewWrapperIpad(group: group, calModel: calModel, catModel: catModel)
-                
-                //CategoryGroupEditView(group: group, editID: $groupEditID)
-                #if os(macOS)
-                    .frame(minWidth: 500, minHeight: 700)
-                    .presentationSizing(.fitted)
-                #endif
-            })
+//            .onChange(of: groupEditID) { oldId, newId in
+//                if let newId {
+//                    if let group = catModel.getCategoryGroup(by: newId) {
+//                        editGroup = group
+//                    } else {
+//                        editGroup = CBCategoryGroup(uuid: newId)
+//                    }
+//                    
+//                } else {
+//                    catModel.saveCategoryGroup(id: oldId!)
+//                }
+//            }
+//            
+//            .sheet(item: $editGroup, onDismiss: {
+//                groupEditID = nil
+//            }, content: { group in
+//                CategoryGroupOverViewWrapperIpad(group: group, calModel: calModel, catModel: catModel)
+//                
+//                //CategoryGroupEditView(group: group, editID: $groupEditID)
+//                #if os(macOS)
+//                    .frame(minWidth: 500, minHeight: 700)
+//                    .presentationSizing(.fitted)
+//                #endif
+//            })
         //}
     }
     
@@ -363,13 +369,13 @@ struct CategoriesTable: View {
             }
         }
         
-        Section("Special Categories") {
-            ForEach(filteredSpecialCategories) { cat in
-                NavigationLink(value: cat) {
-                    line(for: cat)
-                }
-            }
-        }
+//        Section("Special Categories") {
+//            ForEach(filteredSpecialCategories) { cat in
+//                NavigationLink(value: cat) {
+//                    line(for: cat)
+//                }
+//            }
+//        }
         
     }
     
@@ -406,14 +412,14 @@ struct CategoriesTable: View {
                 }
             }
             
-            Section("Special Categories") {
-                ForEach(filteredSpecialCategories) { cat in
-                    line(for: cat)
-                        .onTapGesture {
-                            categoryEditID = cat.id
-                        }
-                }
-            }
+//            Section("Special Categories") {
+//                ForEach(filteredSpecialCategories) { cat in
+//                    line(for: cat)
+//                        .onTapGesture {
+//                            categoryEditID = cat.id
+//                        }
+//                }
+//            }
         }
         .listStyle(.plain)
     }
@@ -611,3 +617,54 @@ struct CategoriesTable: View {
     }
 }
 
+
+struct CategoryLine: View {
+    @Environment(CategoryModel.self) private var catModel
+
+    var category: CBCategory
+    var labelWidth: Double
+    
+    var body: some View {
+        Label {
+            VStack(alignment: .leading) {
+                HStack {
+                    Text(category.title)
+                    if category.isHidden { Image(systemName: "eye.slash") }
+                    
+                    Spacer()
+                    let isPartOfGroup = catModel.groupedCategoryIds.contains(category.id)
+                    if isPartOfGroup {
+                        Text("-")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text(category.amount?.currencyWithDecimals() ?? "-")
+                    }
+                    
+                }
+            }
+        } icon: {
+            StandardCategorySymbol(cat: category, labelWidth: labelWidth)
+        }
+        #if os(macOS)
+        .selectionDisabled()
+        #endif
+    }
+}
+
+struct CategoryGroupLine: View {
+    var group: CBCategoryGroup
+    var body: some View {
+        Label {
+            VStack(alignment: .leading) {
+                HStack {
+                    Text(group.title)
+                    Spacer()
+                    Text(group.amount?.currencyWithDecimals() ?? "-")
+                }
+            }
+        } icon: {
+            let colors = group.categories.filter({ $0.active }).sorted(by: Helpers.categorySorter()).map { $0.color }
+            GradientCircleDot(colors: colors)
+        }
+    }
+}

@@ -61,6 +61,11 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
             return nil
         }
     }
+    
+    var day: Int? { self.dateComponents?.day }
+    var month: Int? { self.dateComponents?.month }
+    var year: Int? { self.dateComponents?.year }
+    
     var payMethod: CBPaymentMethod?
     var category: CBCategory?
     var notes: AttributedString = ""
@@ -100,6 +105,7 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
     var orderNumber: String
     var url: String
     var relatedTransactionType: XrefItem?
+    
     var christmasListGiftID: Int?
     var christmasListDeletePreference: ChristmasListDeletePreference?
     var christmasListStatus: GiftStatus?
@@ -116,9 +122,21 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
     var isOrigin: Bool { isPaymentOrigin || isTransferOrigin }
     var isDest: Bool { isPaymentDest || isTransferDest }
     
+    var isRegularIncome: Bool {
+        self.category?.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .income)
+    }
+    
+    var isIrregularIncome: Bool {
+        self.category?.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .irregularIncome)
+        || (self.payMethod?.isCreditOrLoan == true ? self.amount < 0 : (self.amount > 0 && !isRegularIncome))
+    }
+    
+//    (cats.type_id = 26 or cats.type_id = 64) as is_income,
+//                (cats.type_id = 26) as is_regular_income,
+    
     
     var isBudgetable: Bool { self.payMethod?.accountType == .cash || self.payMethod?.accountType == .checking }
-    var isIncome: Bool { (self.payMethod ?? CBPaymentMethod()).isCreditOrLoan ? self.amount < 0 : self.amount > 0 }
+    var isIncome: Bool { isRegularIncome || isIrregularIncome }
     var isExpense: Bool { (self.payMethod ?? CBPaymentMethod()).isCreditOrLoan ? self.amount > 0 : self.amount < 0 }
 //    var isExpense: Bool { self.amount < 0 }
     var logs: Array<CBLog> = []
@@ -397,9 +415,9 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
         try container.encode(color.description, forKey: .title_hex_code)
         try container.encode(factorInCalculations ? 1 : 0, forKey: .factor_in_calculations)
         try container.encode(active ? 1 : 0, forKey: .active) // for the Transferable protocol
-        try container.encode(AppState.shared.user?.id, forKey: .user_id)
-        try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
-        try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
+        try container.encode(Cody.shared.id, forKey: .user_id)
+        try container.encode(Cody.shared.accountID, forKey: .account_id)
+        try container.encode(Cody.shared.deviceUUID, forKey: .device_uuid)
         //try container.encode(enteredBy, forKey: .entered_by) // for the Transferable protocol
         //try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
         try container.encode(enteredById, forKey: .entered_by_id) // for the Transferable protocol

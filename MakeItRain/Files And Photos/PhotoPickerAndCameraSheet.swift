@@ -111,7 +111,7 @@ struct PhotoPickerAndCameraSheet: ViewModifier {
             .fullScreenCover(isPresented: $showCamera) {
                 CustomImageAndCameraPicker(imageSourceType: .camera, selectedImage: $photoModel.imageFromCamera)
                 //AccessCameraView(selectedImage: $photoModel.imageFromCamera)
-                    .background(.black)
+                    .background(.black)                    
             }
             /// Upload the picture from the camera when the camera sheet closes.
             .onChange(of: showCamera) {

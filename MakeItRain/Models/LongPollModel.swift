@@ -20,7 +20,9 @@ class LongPollModel: Decodable {
     let categories: Array<CBCategory>?
     let categoryGroups: Array<CBCategoryGroup>?
     let keywords: Array<CBKeyword>?
-    let budgets: Array<CBBudget>?
+    let budgets: Array<CBBudgetItem>?
+    let monthlyBudgets: Array<CBMonth>? /// Just for the budgets
+    let globalBudget: CBBudget?
     
     let openRecords: Array<CBOpenOrClosedRecord>?
     
@@ -33,7 +35,7 @@ class LongPollModel: Decodable {
     let settings: AppSettings?
     let receipts: Array<CBTransaction>?
     
-    enum CodingKeys: CodingKey { case return_time, transactions, starting_amounts, repeating_transactions, pay_methods, categories, category_groups, keywords, budgets, open_records, plaid_banks, plaid_accounts, plaid_transactions, plaid_balances, logos, settings, receipts }
+    enum CodingKeys: CodingKey { case return_time, transactions, starting_amounts, repeating_transactions, pay_methods, categories, category_groups, keywords, budgets, open_records, plaid_banks, plaid_accounts, plaid_transactions, plaid_balances, logos, settings, receipts, monthly_budgets, global_budget }
     
     init () {
         self.returnTime = nil
@@ -56,6 +58,8 @@ class LongPollModel: Decodable {
         self.logos = nil
         self.settings = nil
         self.receipts = nil
+        self.monthlyBudgets = nil
+        self.globalBudget = nil
     }
     
     
@@ -69,7 +73,7 @@ class LongPollModel: Decodable {
         self.categories = try container.decodeIfPresent(Array<CBCategory>.self, forKey: .categories)
         self.categoryGroups = try container.decodeIfPresent(Array<CBCategoryGroup>.self, forKey: .category_groups)
         self.keywords = try container.decodeIfPresent(Array<CBKeyword>.self, forKey: .keywords)
-        self.budgets = try container.decodeIfPresent(Array<CBBudget>.self, forKey: .budgets)
+        self.budgets = try container.decodeIfPresent(Array<CBBudgetItem>.self, forKey: .budgets)
                 
         self.openRecords = try container.decodeIfPresent(Array<CBOpenOrClosedRecord>.self, forKey: .open_records)
         
@@ -81,6 +85,8 @@ class LongPollModel: Decodable {
         self.logos = try container.decodeIfPresent(Array<CBLogo>.self, forKey: .logos)
         self.settings = try container.decodeIfPresent(AppSettings.self, forKey: .settings)
         self.receipts = try container.decodeIfPresent(Array<CBTransaction>.self, forKey: .receipts)
+        self.monthlyBudgets = try container.decodeIfPresent(Array<CBMonth>.self, forKey: .monthly_budgets)
+        self.globalBudget = try container.decodeIfPresent(CBBudget.self, forKey: .global_budget)
     }
 }
 
@@ -99,9 +105,9 @@ class LongPollSubscribeModel: Encodable {
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(lastReturnTime, forKey: .last_return_time)
-        try container.encode(AppState.shared.user?.id, forKey: .user_id)
-        try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
-        try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
+        try container.encode(Cody.shared.id, forKey: .user_id)
+        try container.encode(Cody.shared.accountID, forKey: .account_id)
+        try container.encode(Cody.shared.deviceUUID, forKey: .device_uuid)
                 
         #if os(macOS)
         try container.encode(String(ProcessInfo.processInfo.operatingSystemVersionString), forKey: .device_os)

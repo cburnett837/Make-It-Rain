@@ -32,7 +32,7 @@
 //    
 //    @Environment(PlaidModel.self) private var plaidModel
 //    
-//    let enumID: NavDestination
+//    let enumID: NavDest
 //    
 //    #warning("NOTE BINDINGS ARE NOT ALLOWED TO BE PASSED TO THE CALENDAR VIEW")
 //    let touchAndHoldPlusButtonTip = TouchAndHoldPlusButtonTip()

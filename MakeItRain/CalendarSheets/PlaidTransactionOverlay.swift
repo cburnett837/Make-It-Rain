@@ -31,7 +31,7 @@ struct PlaidTransactionOverlay: View {
     @State private var selectedMeth: CBPaymentMethod?
     
     @Binding var showInspector: Bool
-    @Binding var navPath: [CalendarNavDest]
+    @Binding var navPath: [NavDest]
     
     var plaidTransactions: [CBPlaidTransaction] {
         plaidModel.trans
@@ -229,7 +229,7 @@ struct PlaidTransactionOverlay: View {
     @ViewBuilder
     var moreMenu: some View {
         Menu {
-            NavigationLink(value: CalendarNavDest.plaidRejectPage) {
+            NavigationLink(value: NavDest.plaidRejectPage) {
             //NavigationLink(value: "reject-view") {
                 Text("Reject everything before date…")
             }
@@ -635,7 +635,7 @@ struct ClearPlaidBeforeDateView: View {
     @State private var clearDate: Date = Date()
     
     @Binding var selectedMeth: CBPaymentMethod?
-    @Binding var navPath: [CalendarNavDest]
+    @Binding var navPath: [NavDest]
     
     var body: some View {
         clearBeforeDateView

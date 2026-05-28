@@ -21,6 +21,7 @@ struct SettingsViewInsert: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(CategoryModel.self) var catModel
     @Environment(CalendarModel.self) var calModel
+    @Environment(AppStore.self) var store
     
     @State private var thresholdString: String = "500.00"
     @State private var demoDay = CBDay(date: Date())
@@ -462,7 +463,7 @@ struct SettingsViewInsert: View {
                     }
                 }
                 .onChange(of: creditEodView) {
-                    let _ = calModel.calculateTotal(for: calModel.sMonth)
+                    let _ = CalcHelper.calculateTotal(for: calModel.sMonth, store: store)
                 }
             }
         } header: {

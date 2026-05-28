@@ -23,7 +23,7 @@ struct UITextEditorWrapper<Toolbar: View>: UIViewRepresentable {
         self.placeholder = placeholder
         self._text = text
         self.toolbar = toolbar
-     }
+    }
     
     
     func makeCoordinator() -> Coordinator {

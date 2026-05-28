@@ -8,6 +8,19 @@
 
 import Foundation
 
+struct PopulatedMonthResultModel: Decodable {
+    var populatedId: Int?
+    var recordInfos: [ReturnIdModel]
+    
+    enum CodingKeys: CodingKey { case populated_id, record_infos }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        populatedId = try container.decode(Int?.self, forKey: .populated_id)
+        recordInfos = try container.decode(Array<ReturnIdModel>.self, forKey: .record_infos)
+    }
+}
+
 class ReturnIdModel: Decodable {
     let id: String
     let uuid: String?

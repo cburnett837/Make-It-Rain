@@ -47,7 +47,7 @@ struct TevMoreOptions: View {
     @ViewBuilder
     var content: some View {
         Section {
-            NavigationLink(value: TransNavDestination.titleColorMenu) {
+            NavigationLink(value: TransNavDest.titleColorMenu) {
                 HStack {
                     Label {
                         Text("Title Color")

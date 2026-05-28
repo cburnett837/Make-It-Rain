@@ -242,14 +242,14 @@ struct LoginView: View {
 //    func downloadInitial() {
 //        @Bindable var navManager = NavigationManager.shared
 //        /// Set navigation destination to current month
-//        //navManager.selection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+//        //navManager.selection = NavDest.getMonthFromInt(AppState.shared.todayMonth)
 //        #if os(iOS)
-//        navManager.selectedMonth = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+//        navManager.selectedMonth = NavDest.getMonthFromInt(AppState.shared.todayMonth)
 //        #else
-//        navManager.selection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+//        navManager.selection = NavDest.getMonthFromInt(AppState.shared.todayMonth)
 //        #endif
-//        //navManager.monthSelection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
-//        //navManager.navPath.append(NavDestination.getMonthFromInt(AppState.shared.todayMonth)!)
+//        //navManager.monthSelection = NavDest.getMonthFromInt(AppState.shared.todayMonth)
+//        //navManager.navPath.append(NavDest.getMonthFromInt(AppState.shared.todayMonth)!)
 //        
 //        LoadingManager.shared.showInitiallyLoadingSpinner = true
 //                    

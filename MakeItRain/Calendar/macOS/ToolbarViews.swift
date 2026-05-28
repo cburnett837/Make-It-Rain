@@ -39,7 +39,7 @@ struct CalendarToolbarLeading: View {
     var focusedField: FocusState<Int?>.Binding
     //@FocusState var focusedField: Int?
     
-    var enumID: NavDestination = NavigationManager.shared.selection ?? .placeholderMonth
+    var enumID: NavDest = NavigationManager.shared.selection ?? .placeholderMonth
     
     var isInWindow: Bool
         
@@ -132,7 +132,7 @@ struct CalendarToolbarLeading: View {
     
     var previousMonthButton: some View {
         Button {
-            var prev: NavDestination? {
+            var prev: NavDest? {
                 switch calModel.sMonth.enumID {
                 case .lastDecember: return nil
                 case .january:      return .lastDecember
@@ -164,7 +164,7 @@ struct CalendarToolbarLeading: View {
     
     var nextMonthButton: some View {
         Button {
-            var next: NavDestination? {
+            var next: NavDest? {
                 switch calModel.sMonth.enumID {
                 case .lastDecember: return .january
                 case .january:      return .february
@@ -403,7 +403,7 @@ struct CalendarToolbarLeading: View {
 struct ToolbarCenterView: View {
     @Environment(CalendarModel.self) private var calModel
     
-    var enumID: NavDestination
+    var enumID: NavDest
     
     var body: some View {
         @Bindable var navManager = NavigationManager.shared

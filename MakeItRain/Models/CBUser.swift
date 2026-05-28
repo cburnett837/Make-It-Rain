@@ -9,6 +9,29 @@
 import Foundation
 import SwiftUI
 
+struct Cody {
+    static var shared = Cody()
+    var id: Int = 0
+    var accountID: Int = 0
+    var name: String = ""
+    var initials: String = ""
+    var email: String = ""
+    var avatar: Data?
+    var deviceUUID: String = ""
+    
+    func reset() {
+        Cody.shared.id = 0
+        Cody.shared.accountID = 0
+        Cody.shared.name = ""
+        Cody.shared.initials = ""
+        Cody.shared.email = ""
+        Cody.shared.avatar = nil
+        Cody.shared.deviceUUID = ""
+        
+    }
+}
+
+
 @Observable
 class CBUser: Codable, Identifiable, Hashable, Equatable, CanHandleUserAvatar {
     var id: Int
@@ -40,7 +63,7 @@ class CBUser: Codable, Identifiable, Hashable, Equatable, CanHandleUserAvatar {
         try container.encode(name, forKey: .name)
         try container.encode(initials, forKey: .initials)
         try container.encode(email, forKey: .email)
-        try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
+        try container.encode(Cody.shared.deviceUUID, forKey: .device_uuid)
         try container.encode(avatar, forKey: .avatar)
         try container.encode(year, forKey: .year)
     }

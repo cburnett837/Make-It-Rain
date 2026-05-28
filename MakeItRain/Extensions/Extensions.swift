@@ -8,6 +8,12 @@
 import Foundation
 import SwiftUI
 import Charts
+import UniformTypeIdentifiers
+
+
+extension UTType {
+    static let transaction = UTType(exportedAs: "com.codyburnett.MakeItRain")
+}
 
 extension Notification.Name {
     static let updateCategoryAnalytics = Notification.Name("updateCategoryAnalytics")

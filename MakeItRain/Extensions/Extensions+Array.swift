@@ -32,3 +32,15 @@ extension Array where Element: FloatingPoint {
     }
 }
 
+
+
+extension Array {
+    mutating func appendWithLimit(_ newElement: Element, limit: Int) {
+        append(newElement)
+        
+        if count > limit {
+            removeFirst(count - limit)
+        }
+    }
+}
+

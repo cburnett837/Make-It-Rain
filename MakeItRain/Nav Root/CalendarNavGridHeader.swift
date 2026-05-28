@@ -50,7 +50,7 @@ struct CalendarNavGridHeader: View {
         ToolbarItem(placement: .topBarTrailing) {
             Button {
                 if AppState.shared.isIphone {
-                    calendarNavPath.append(NavDestination.toasts)
+                    calendarNavPath.append(NavDest.toasts)
                 } else {
                     NavigationManager.shared.selectedMonth = nil
                     NavigationManager.shared.selection = .toasts
@@ -100,18 +100,18 @@ struct CalendarNavGridHeader: View {
     
     var settingsButton: some View {
         Button {
-            calendarNavPath.append(NavDestination.settings)
+            calendarNavPath.append(NavDest.settings)
         } label: {
             Image(systemName: "gear")
                 .schemeBasedForegroundStyle()
         }
         
-//        NavigationLink(value: NavDestination.settings) {
+//        NavigationLink(value: NavDest.settings) {
 //            Image(systemName: "gear")
 //        }
 //        .navigationLinkIndicatorVisibility(.hidden)
 //        .tint(.none)
-        //.matchedTransitionSource(id: NavDestination.settings, in: monthNavigationNamespace)
+        //.matchedTransitionSource(id: NavDest.settings, in: monthNavigationNamespace)
     }
     
     

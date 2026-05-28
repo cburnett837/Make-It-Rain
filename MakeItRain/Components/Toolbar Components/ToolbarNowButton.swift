@@ -15,7 +15,7 @@ struct ToolbarNowButton: View {
         @Bindable var navManager = NavigationManager.shared
         Button("Now") {
             calModel.sYear = AppState.shared.todayYear
-            navManager.selection = NavDestination.getMonthFromInt(AppState.shared.todayMonth)
+            navManager.selection = NavDest.getMonthFromInt(AppState.shared.todayMonth)
             
             Task {
                 if let month = calModel.months.filter({ $0.enumID == navManager.selection }).first {

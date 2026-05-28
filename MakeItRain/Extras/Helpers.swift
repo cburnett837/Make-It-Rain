@@ -7,9 +7,33 @@
 
 import Foundation
 import SwiftUI
+import AVFoundation
 
 struct Helpers {
     #if os(iOS)
+    
+    static func toggleTorch(on: Bool) {
+        guard let device = AVCaptureDevice.default(for: .video) else { return }
+
+        if device.hasTorch {
+            do {
+                try device.lockForConfiguration()
+
+                if on == true {
+                    device.torchMode = .on
+                } else {
+                    device.torchMode = .off
+                }
+
+                device.unlockForConfiguration()
+            } catch {
+                print("Torch could not be used")
+            }
+        } else {
+            print("Torch is not available")
+        }
+    }
+    
     static func buzzPhone(_ type: UINotificationFeedbackGenerator.FeedbackType) {
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(type)
@@ -202,7 +226,7 @@ struct Helpers {
         
     }
     
-    static func budgetSorter() -> (CBBudget, CBBudget) -> Bool {
+    static func budgetSorter() -> (CBBudgetItem, CBBudgetItem) -> Bool {
         //let sortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
         return {
             switch AppSettings.shared.categorySortMode {

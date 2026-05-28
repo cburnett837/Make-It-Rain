@@ -37,11 +37,6 @@ struct CalendarMonthLabel: View {
     }
     
     
-    var isCurrentMonth: Bool {
-        calModel.sMonth.actualNum == AppState.shared.todayMonth && calModel.sMonth.year == AppState.shared.todayYear
-    }
-
-    
 //    var debitSum: Double {
 //        let debitIDs = payModel.paymentMethods
 //            .filter { $0.isDebit }
@@ -116,7 +111,7 @@ struct CalendarMonthLabel: View {
                         selectedCategoriesView
                     }
                                         
-                    if isCurrentMonth {
+                    if calModel.sMonth.isTodayMonth {
                         //currentBalanceView
                         if let meth = calModel.sPayMethod,
                             let balance = funcModel.getPlaidBalancePrettyString(meth) {

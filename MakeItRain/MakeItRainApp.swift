@@ -47,8 +47,10 @@ struct MakeItRainApp: App {
     @State var repModel: RepeatingTransactionModel
     @State var plaidModel: PlaidModel
     @State var dashboardModel: DashboardModel
+    @State var budgetModel: BudgetModel
+    @State var tagModel: TagModel
     
-    @State private var photoModel = FileModel.shared
+    @State private var fileModel = FileModel.shared
     @State private var locationManager = LocationManager.shared
     @State var dataChangeTriggers = DataChangeTriggers.shared
     //@State private var mapModel = MapModel()
@@ -56,6 +58,8 @@ struct MakeItRainApp: App {
     #if os(macOS)
     @State var categoryAnalysisModel = CivViewModel()
     #endif
+    
+    @State private var userIdentity = Cody.shared
     
     @State var calProps = CalendarProps()
     
@@ -76,7 +80,9 @@ struct MakeItRainApp: App {
         let keyModel = KeywordModel(store: store)
         let repModel = RepeatingTransactionModel(store: store)
         let plaidModel = PlaidModel(store: store)
-        let dashboardModel = DashboardModel(store: store)
+        let dashboardModel = DashboardModel(store: store, isForSelectedMonth: false)
+        let budgetModel = BudgetModel(store: store)
+        let tagModel = TagModel(store: store)
         
         let webSocketManager = WebSocketManager(
             store: store,
@@ -85,7 +91,10 @@ struct MakeItRainApp: App {
             catModel: catModel,
             keyModel: keyModel,
             repModel: repModel,
-            plaidModel: plaidModel
+            plaidModel: plaidModel,
+            budgetModel: budgetModel,
+            tagModel: tagModel,
+            dashboardModel: dashboardModel
         )
 
         let funcModel = FuncModel(
@@ -97,7 +106,9 @@ struct MakeItRainApp: App {
             repModel: repModel,
             plaidModel: plaidModel,
             webSocketManager: webSocketManager,
-            dashboardModel: dashboardModel
+            dashboardModel: dashboardModel,
+            budgetModel: budgetModel,
+            tagModel: tagModel
         )
 
         _store = State(initialValue: store)
@@ -110,7 +121,8 @@ struct MakeItRainApp: App {
         _dashboardModel = State(initialValue: dashboardModel)
         _webSocketManager = State(initialValue: webSocketManager)
         _funcModel = State(initialValue: funcModel)
-        
+        _budgetModel = State(initialValue: budgetModel)
+        _tagModel = State(initialValue: tagModel)
         
         
 //        let webSocketManager = WebSocketManager(
@@ -142,31 +154,46 @@ struct MakeItRainApp: App {
             print("Error initializing tips: \(error)")
         }
     }
+    
+    
+    @State private var plaidWouldLikeToShow = false
+    var isReadyToShowPlaidSheet: Bool {
+        if let targetMonth = calModel.months.get(by: (AppState.shared.todayMonth, AppState.shared.todayYear)) {
+            return plaidWouldLikeToShow
+            && !AppState.shared.shouldShowSplash
+            && !AuthState.shared.isThinking
+            && !AppState.shared.splashIsAnimating
+            && AuthState.shared.isLoggedIn
+            && targetMonth.hasBeenLoadedFromServer
+        } else {
+            return false
+        }
+    }
+    
+    
         
     var body: some Scene {
         WindowGroup {
             /// Allow for universal sheets. Such as payment method sheet when first downloading the app, universal alerts, universal camera, etc.
-            /// Views shown in this layer will be at the top-most part of the UI - Allowing for content on top of both sheets, and the universal calendar sheet.
+            /// Views shown in this layer will be at the top-most part of the UI - Allowing for content on top of both sheets, and allowing the universal calendar sheet.
             RootViewWrapper(showCamera: $showCamera) {
                 /// Allow for a universal calendar view.
                 CalendarSheetLayerWrapper() {
-                    @Bindable var appState = AppState.shared
                     Group {
-                        /// `AuthState.shared.isThinking` is always true when app launches from a fresh state.
-                        /// `AppState.shared.shouldShowSplash` is set to false in `downloadEverything()` when the current month completes, or if login fails.
+                        /// `AuthState.shared.isThinking` is true when launching from a fresh state.
+                        /// `AppState.shared.shouldShowSplash`is true when launching from a fresh state, and is set to false in either `downloadEverything()` when the current month completes, or in ``AuthState`` if login fails.
                         /// `AppState.shared.splashIsAnimating`is true when launching from a fresh state, and is set to false when the animation on the splash screen finishes.
                         /// *Once the 3 conditions above are met, the view will flip to the `rootView` or the `loginView` (depending on the apps overall state).*
-                        if AuthState.shared.isThinking || appState.shouldShowSplash || appState.splashIsAnimating {
+                        if AuthState.shared.isThinking || AppState.shared.shouldShowSplash || AppState.shared.splashIsAnimating {
                             /// Always the first view to be shown.
                             /// Starts the login process.
-                            /// Login flow descriptions are written in the `splashScreen` and `loginScreen` views,
+                            /// Login flow descriptions are written in the `splashScreen` and `loginScreen` views below.
                             splashScreen
                         } else {
-                            //let _ = print("ROOT VIEW IS BEING RENDERED")
                             if AuthState.shared.isLoggedIn {
                                 rootView                                    
                             } else {
-                                /// Login flow descriptions are written in the `splashScreen` and `loginScreen` views,
+                                /// Login flow descriptions are written in the `splashScreen` and `loginScreen` views below.
                                 loginView
                             }
                         }
@@ -237,7 +264,25 @@ struct MakeItRainApp: App {
             .environment(dataChangeTriggers)
             .environment(webSocketManager)
             .environment(store)
+            .environment(budgetModel)
+            .environment(tagModel)
             //.preferredColorScheme(colorScheme)
+            .onChange(of: isReadyToShowPlaidSheet, initial: true) { _, isReady in
+                guard isReady else { return }
+                
+                if let targetMonth = calModel.months.get(by: (AppState.shared.todayMonth, AppState.shared.todayYear)) {
+                    Task { @MainActor in
+                        if calModel.showMonth == false {
+                            NavigationManager.shared.selectedMonth = targetMonth.enumID
+                            NavigationManager.shared.selection = nil
+                            calModel.showMonth = true
+                        }
+                        
+                        withAnimation { calProps.bottomPanelContent = .plaidTransactions }
+                        plaidWouldLikeToShow = false
+                    }
+                }
+            }
         }
         .defaultSize(width: 1000, height: 600)
         
@@ -278,7 +323,7 @@ struct MakeItRainApp: App {
         /// It will check the keychain for an API key and call `AuthState.loginViaKeychain()`.
         
         /// If `AuthState.attemptLogin()` is successful, it will ...
-            /// 1. Return true to this task, which will run ``FuncModel.downloadInitial()``.
+            /// 1. Return true to this task, which will run `FuncModel.downloadInitial()`.
             /// Once...
             ///     1. We are logged in…
             ///     2. Splash animation has finished…
@@ -296,12 +341,13 @@ struct MakeItRainApp: App {
         SplashScreen()
             .transition(.opacity)
             .task {
-                //print("FLIPPED TO SPLASH SCREEN")
                 funcModel.setDeviceUUID()
                 
+                /// Download data when coming to the splash screen via the login screen.
                 if AuthState.shared.isLoggedIn {
                     funcModel.downloadInitial()
                 } else {
+                    /// Perform login when cold launching.
                     if await AuthState.shared.loginViaKeychain() {
                         funcModel.downloadInitial()
                     }
@@ -406,19 +452,69 @@ struct MakeItRainApp: App {
     }
     
     
+    
+    //@State private var waitToGoToMainViewTask: Task<Void, Never>? = nil
     private func handleOpeningUrl(_ url: URL) {
         //print(url.absoluteString)
         
         if url.host == "plaid_transactions" {
-            NavigationManager.shared.selectedMonth = calModel.months.filter {$0.actualNum == AppState.shared.todayMonth}.first?.enumID
-            NavigationManager.shared.selection = nil
-            
-            #if os(iOS)
-            if AppState.shared.isIphone {
-                calModel.showMonth = true
-            }
-            #endif
-            withAnimation { calProps.bottomPanelContent = .plaidTransactions }
+            plaidWouldLikeToShow = true
+//            self.waitToGoToMainViewTask = Task { @MainActor in
+//                if let targetMonth = calModel.months.filter({ $0.actualNum == AppState.shared.todayMonth }).first {
+//                    var attempts = 0
+//                    let maxAttempts = 300
+//                    /// Wait for up to a minute for the login to succeed.
+//                    while attempts < maxAttempts {
+//                        attempts += 1
+//                        
+//                        if let task = waitToGoToMainViewTask, task.isCancelled { return }
+//                        
+//                        print(
+//                            "Should be all 'true'",
+//                            !AppState.shared.shouldShowSplash,
+//                            !AuthState.shared.isThinking,
+//                            !AppState.shared.splashIsAnimating,
+//                            targetMonth.hasBeenLoadedFromServer,
+//                            (AuthState.shared.isLoggedIn || !AuthState.shared.keychainCredentialsExist)
+//                        )
+//                        
+//                        if !AppState.shared.shouldShowSplash
+//                            && !AuthState.shared.isThinking
+//                            && !AppState.shared.splashIsAnimating
+//                            && targetMonth.hasBeenLoadedFromServer
+//                            && (AuthState.shared.isLoggedIn || !AuthState.shared.keychainCredentialsExist)
+//                        {
+//                            break
+//                        }
+//                        
+//                        try? await Task.sleep(for: .milliseconds(100))
+//                    }
+//                    
+//                    let success = attempts < maxAttempts
+//                    
+//                    if success {
+//                        #if os(iOS)
+//                        if AppState.shared.isIphone,
+//                           AuthState.shared.isLoggedIn,
+//                           !AppState.shared.showPaymentMethodNeededSheet,
+//                           !AppState.shared.splashIsAnimating,
+//                           targetMonth.hasBeenLoadedFromServer {
+//                            
+//                            if calModel.showMonth == false {
+//                                NavigationManager.shared.selectedMonth = targetMonth.enumID
+//                                NavigationManager.shared.selection = nil
+//                                calModel.showMonth = true
+//                            }
+//                            
+//                            withAnimation { calProps.bottomPanelContent = .plaidTransactions }
+//                            
+//                            
+//                        }
+//                        #endif
+//                    }
+//                }
+//            }
+                                               
             return
         }
         
@@ -475,11 +571,11 @@ struct CalendarCommands: Commands {
     
     var body: some Commands {
         CommandMenu("Calendar") { // "Custom Actions" is the new menu title
-            if NavDestination.justMonths.contains(NavigationManager.shared.selection ?? .placeholderMonth) {
+            if NavDest.justMonths.contains(NavigationManager.shared.selection ?? .placeholderMonth) {
                 populateButton
-                    .disabled(!NavDestination.justMonths.contains(NavigationManager.shared.selection ?? .placeholderMonth))
+                    .disabled(!NavDest.justMonths.contains(NavigationManager.shared.selection ?? .placeholderMonth))
                 resetButton
-                    .disabled(!NavDestination.justMonths.contains(NavigationManager.shared.selection ?? .placeholderMonth))
+                    .disabled(!NavDest.justMonths.contains(NavigationManager.shared.selection ?? .placeholderMonth))
             }
             
             Divider()

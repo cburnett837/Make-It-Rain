@@ -8,15 +8,16 @@
 import SwiftUI
 
 struct CategorySheet: View {
+    @AppStorage("hiddenCategoriesSectionIsExpanded") private var storedIsHiddenSectionExpanded: Bool = false
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @Environment(CalendarModel.self) private var calModel    
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
     
-    @State private var editCategory: CBCategory?
     @State private var categoryEditID: CBCategory.ID?
     @State private var labelWidth: CGFloat = 20.0
+    @State private var isHiddenSectionExpanded = false
     
     @Binding var category: CBCategory?
     var trans: CBTransaction? = nil
@@ -106,30 +107,9 @@ struct CategorySheet: View {
                 ToolbarItem(placement: .confirmationAction) { closeButton }
                 #endif
             }
-            
         }
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }
-        .sheet(item: $editCategory, onDismiss: {
-            categoryEditID = nil
-        }, content: { cat in
-            CategoryEditView(category: cat, editID: $categoryEditID)
-                #if os(macOS)
-                .presentationSizing(.page)
-                //.frame(minWidth: 300, maxWidth: 300)
-                #endif
-        })
-        
-        .onChange(of: categoryEditID) { oldId, newId in
-            if let newId {
-                if let category = catModel.getCategory(by: newId) {
-                    editCategory = category
-                } else {
-                    editCategory = CBCategory(uuid: newId)
-                }
-            } else {
-                catModel.saveCategory(id: oldId!)
-            }
-        }
+        .categoryEditSheetAndLogic(editId: $categoryEditID)
     }
     
     @ViewBuilder
@@ -165,9 +145,6 @@ struct CategorySheet: View {
             }
         }
     }
-    
-    @AppStorage("hiddenCategoriesSectionIsExpanded") private var storedIsHiddenSectionExpanded: Bool = false
-    @State private var isHiddenSectionExpanded = false
     
     @ViewBuilder
     var hiddenCategoriesSections: some View {

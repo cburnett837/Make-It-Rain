@@ -20,9 +20,9 @@
 //    @Environment(CalendarModel.self) private var calModel
 //    @Environment(CategoryModel.self) private var catModel
 //    
-//    @State private var deleteBudget: CBBudget?
-//    @State private var editBudget: CBBudget?
-//    @State private var budgetEditID: CBBudget.ID?
+//    @State private var deleteBudget: CBBudgetItem?
+//    @State private var editBudget: CBBudgetItem?
+//    @State private var budgetEditID: CBBudgetItem.ID?
 //        
 //    @State private var selectedAngle: Double?
 //    @State private var whichView: WhichView = .chart

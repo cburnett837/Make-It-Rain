@@ -313,15 +313,15 @@ struct CalculateAndFormatCurrencyLiveAndOnUnFocus: ViewModifier {
 
 struct CalendarLoadingSpinner: ViewModifier {
     @Environment(CalendarModel.self) var calModel
-    let id: NavDestination
+    let id: NavDest
     let text: String?
     
-    init(id: NavDestination) {
+    init(id: NavDest) {
         self.id = id
         self.text = nil
     }
     
-    init(id: NavDestination, text: String) {
+    init(id: NavDest, text: String) {
         self.id = id
         self.text = text
     }

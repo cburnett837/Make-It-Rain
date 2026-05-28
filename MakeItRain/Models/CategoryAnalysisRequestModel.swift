@@ -32,9 +32,9 @@ class AnalysisRequestModel: Encodable {
         try container.encode(fetchYearStart, forKey: .fetch_year_start)
         try container.encode(fetchYearEnd, forKey: .fetch_year_end)
         try container.encode(isUnifiedRequest ? 1 : 0, forKey: .is_unified_request)
-        try container.encode(AppState.shared.user?.id, forKey: .user_id)
-        try container.encode(AppState.shared.user?.accountID, forKey: .account_id)
-        try container.encode(AppState.shared.deviceUUID, forKey: .device_uuid)
+        try container.encode(Cody.shared.id, forKey: .user_id)
+        try container.encode(Cody.shared.accountID, forKey: .account_id)
+        try container.encode(Cody.shared.deviceUUID, forKey: .device_uuid)
     }
 }
 

@@ -29,9 +29,9 @@ struct RootViewPad: View {
         
     /// Used to navigate to additional pages in the bottom panel. (Plaid transactions reject all before date)
     //@State private var navPath = NavigationPath()
-    @State private var navPath: [CalendarNavDest] = []
-    @State private var categoryAnalysisModel = CivViewModel()
-    @State private var overviewAnalysisModel = CivViewModel()
+    @State private var navPath: [NavDest] = []
+    //@State private var categoryAnalysisModel = CivViewModel()
+    //@State private var overviewAnalysisModel = CivViewModel()
     @State private var moreNavPath = NavigationPath()
 
     
@@ -46,13 +46,14 @@ struct RootViewPad: View {
             NavSidebarPad()
         } detail: {
             if let selectedMonth = navManager.selectedMonth, calModel.isShowingFullScreenCoverOnIpad == false {
-                CalendarViewPhone(enumID: selectedMonth, store: store)
+                //CalendarViewPhone(enumID: selectedMonth, store: store)
+                CalendarViewPhone(enumID: selectedMonth)
                     .if(AppState.shared.methsExist) {
                         $0.calendarLoadingSpinner(id: selectedMonth, text: "Loading…")
                     }
                 
             } else if let dest = navManager.selection {
-                NavDestination.view(for: dest, navPath: $moreNavPath)                
+                NavDest.view(for: dest, navPath: $moreNavPath)                
             }
         }
         .inspector(isPresented: $calProps.showInspector) {
@@ -97,7 +98,8 @@ struct RootViewPad: View {
                 SmartTransactionsWithIssuesOverlay(showInspector: $calProps.showInspector)
                 
             case .budgets:
-                BudgetTable()
+                Text("Budgets")
+                //BudgetTable(navPath: $navPath)
                 
             case .overviewDay:
                 DayOverviewView(day: $calProps.overviewDay, showInspector: $calProps.showInspector)
