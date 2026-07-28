@@ -13,7 +13,7 @@ struct StandardTitleTextField<T: CanEditTitleWithLocation & Observation.Observab
     var focusedField: FocusState<Int?>
     var focusID: Int
     var showSymbol: Bool = true
-    var parentType: XrefEnum
+    var parentType: XrefLocationType
     @Binding var showTitleSuggestions: Bool
     var titleSuggestions: Array<String> = []
     

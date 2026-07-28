@@ -15,8 +15,8 @@ struct DashboardActivityByCategoryPieChart: View {
     @Bindable var data: DashboardData
     @Binding var selectedCategory: CBCategory?
     
-    @State private var rawSelectedExpenseAngle: Double?
-    @State private var rawSelectedIncomeAngle: Double?
+    @State private var rawSelectedExpenseAngle: Decimal?
+    @State private var rawSelectedIncomeAngle: Decimal?
     
     var body: some View {
         HStack {
@@ -142,7 +142,7 @@ struct DashboardActivityByCategoryPieChart: View {
             selectedXAmount: rawSelectedExpenseAngle,
             categories: model.expenseCategories
         ) { cat in
-            max(0, (model.shouldUseTotalSpending ? cat.allAmounts?.totalSpend ?? 0 : cat.allAmounts?.actualSpend ?? 0))
+            max(Decimal(0), (model.shouldUseTotalSpending ? cat.allAmounts?.totalSpend ?? 0 : cat.allAmounts?.actualSpend ?? 0))
         }
     }
     
@@ -157,7 +157,7 @@ struct DashboardActivityByCategoryPieChart: View {
             selectedXAmount: rawSelectedIncomeAngle,
             categories: model.incomeCategories
         ) { cat in
-            max(0, DashboardUtils.incomeAmount(for: cat))
+            max(Decimal(0), DashboardUtils.incomeAmount(for: cat))
         }
     }
 }

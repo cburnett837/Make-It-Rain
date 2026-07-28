@@ -73,14 +73,16 @@ class CBBudgetItem: Codable, Identifiable, Hashable, Equatable, IsEditableBudget
         item?.budgetType ?? .category
     }
         
-    var amount: Double {
-        Double(amountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+    var amount: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(amountString) ?? 0.0
+        //Decimal(amountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
     }
     var amountString: String
     
     /// Amount 2 is only for fetching the analytics in the category sheet.
-    var amount2: Double {
-        Double(amountString2.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+    var amount2: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(amountString2) ?? 0.0
+        //Decimal(amountString2.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
     }
     var amountString2: String
         
@@ -149,11 +151,11 @@ class CBBudgetItem: Codable, Identifiable, Hashable, Equatable, IsEditableBudget
         let decodedTag = try container.decodeIfPresent(CBTag.self, forKey: .tag)
         self.item = decodedCategory ?? decodedGroup ?? decodedTag
                 
-        let amount = try container.decode(Double.self, forKey: .amount)
+        let amount = try container.decode(Decimal.self, forKey: .amount)
         self.amountString = amount.currencyWithDecimals()
         
         /// Amount 2 is only for fetching the analytics in the category sheet.
-        let amount2 = try container.decodeIfPresent(Double.self, forKey: .amount2)
+        let amount2 = try container.decodeIfPresent(Decimal.self, forKey: .amount2)
         self.amountString2 = amount2?.currencyWithDecimals() ?? ""
         
         let isActive = try container.decode(Int?.self, forKey: .active)

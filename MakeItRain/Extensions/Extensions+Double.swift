@@ -50,9 +50,11 @@ extension Double {
     }
     
     func currencyWithDecimals(_ decimals: Int = AppSettings.shared.useWholeNumbers ? 0 : 2) -> String {
-        formatted(
-            .currency(code: "USD")
-            .precision(.fractionLength(0))
+        let locale = AppState.shared.country.code
+        let country = Countries.fetch(by: locale)
+        return formatted(
+            .currency(code: country?.currencyCode ?? "USD")
+            .precision(.fractionLength(decimals))
         )
     }
     
@@ -74,6 +76,72 @@ extension Double {
 }
 
 
+extension Decimal {
+    var isWholeNumber: Bool {
+        return self.isZero || (self.isNormal && self.exponent >= 0)
+    }
+    
+    var isNegative: Bool {
+        return self.sign == .minus
+    }
+    
+    func kVersion(_ fractions: Int = 0) -> String {
+        return "\(self.formatted(.number.notation(.compactName).precision(.fractionLength(fractions))))"
+    }
+    
+    var kVersion: String {
+        return "\(self.formatted(.number.notation(.compactName).precision(.fractionLength(0))))"
+    }
+    
+    func kCurrency(_ currencyCode: String, _ fractions: Int = 0) -> String {
+        return "\(self.formatted(.currency(code: currencyCode).notation(.compactName).precision(.fractionLength(fractions))))"
+    }
+    
+//    func currencyWithDecimals(_ decimals: Int = AppSettings.shared.useWholeNumbers ? 0 : 2) -> String {
+//        let locale = AppState.shared.country.code
+//        let country = Countries.fetch(by: locale)
+//        return formatted(
+//            .currency(code: country?.currencyCode ?? "USD")
+//            .precision(.fractionLength(decimals))
+//        )
+//    }
+    
+    func currencyWithDecimals(_ decimals: Int = AppSettings.shared.useWholeNumbers ? 0 : 2, currencyCode: String? = "USD") -> String {
+        //let locale = AppState.shared.country.code
+        //let country = Countries.fetch(by: locale)
+        return formatted(
+            .currency(code: currencyCode ?? "USD")
+            .precision(.fractionLength(decimals))
+        )
+    }
+    
+//    func currencyWithDecimals(_ decimals: Int = AppSettings.shared.useWholeNumbers ? 0 : 2) -> String {
+//        let formatter = AppState.shared.numberFormatter
+//        formatter.numberStyle = .currency
+//        formatter.currencyCode = "USD"
+//        formatter.maximumFractionDigits = decimals
+//        return formatter.string(from: NSNumber(value: self)) ?? ""
+//    }
+    
+    
+    func decimals(_ decimals: Int) -> String {
+        let formatter = AppState.shared.numberFormatter
+        formatter.numberStyle = .decimal
+        formatter.maximumFractionDigits = decimals
+        return formatter.string(from: self as NSNumber) ?? ""
+    }
+    
+    func rounded(scale: Int = 2, mode: NSDecimalNumber.RoundingMode = .plain) -> Decimal {
+        var value = self
+        var result = Decimal()
+
+        NSDecimalRound(&result, &value, scale, mode)
+
+        return result
+    }
+}
+
+
 extension Optional where Wrapped == Double {
     var specialDefaultIfNil: Double {
         switch self {
@@ -83,3 +151,11 @@ extension Optional where Wrapped == Double {
     }
 }
 
+extension Optional where Wrapped == Decimal {
+    var specialDefaultIfNil: Decimal {
+        switch self {
+        case let .some(wrapped): wrapped
+        case .none: Decimal.greatestFiniteMagnitude
+        }
+    }
+}

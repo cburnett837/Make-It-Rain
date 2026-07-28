@@ -29,7 +29,7 @@ struct DashboardActivityByCategoryChart: View {
         case income = "Money In"
     }
     
-    var amount: Double {
+    var amount: Decimal {
         data.categoryAndGroupBudget - (model.shouldUseTotalSpending ? data.allAmounts.totalSpend : data.allAmounts.actualSpend)
     }
     
@@ -67,7 +67,7 @@ struct DashboardActivityByCategoryChart: View {
     
     
     func calculateLeftovers() -> (String, Bool) {
-        var amount: Double = 0.0
+        var amount: Decimal = 0.0
         if let start = calModel.sMonth.startingAmounts.filter({ $0.payMethod.isUnifiedDebit }).first {
             let eom = CalcHelper.calculateTotal(for: calModel.sMonth, using: start.payMethod, and: .giveMeLastDayEod, store: store)
             let change = eom - start.amount
@@ -112,18 +112,22 @@ struct DashboardActivityByCategoryChart: View {
                 }
             }
             .frame(height: 200)
+            #if os(iOS)
             .tabViewStyle(.page)
+            #endif
             .padding(.bottom, -20) /// Remove the padding under the page indicators
             .overlay(alignment: .top) {
                 if let category = selectedCategory {
                     DashboardActivityByCategoryAnnotation(category: category)
                 }
             }
+            #if os(iOS)
             /// Tab indicators don't show in light mode.
             .onAppear {
                 UIPageControl.appearance().currentPageIndicatorTintColor = UIColor.label
                 UIPageControl.appearance().pageIndicatorTintColor = UIColor.secondaryLabel.withAlphaComponent(0.35)
             }
+            #endif
         }
     }
 }

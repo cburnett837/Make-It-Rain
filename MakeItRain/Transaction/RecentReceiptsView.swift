@@ -32,7 +32,7 @@ struct RecentReceiptsView: View {
             .filter { trans in
                 if let meth = trans.payMethod {
                     return meth.isPermittedAndNotHidden
-                    && meth.matchesFilter()
+                    && meth.accountHolderFilter()
                 } else {
                     return false
                 }
@@ -119,7 +119,7 @@ struct RecentReceiptsView: View {
             for trans in transactions {
                 if let files = trans.files?.filter({ $0.active }), !files.isEmpty, let firstFile = files.first {
                     ImageCache.shared.removeFromCache(
-                        parentTypeId: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction).id,
+                        parentTypeId: XrefFileType.transaction.id,
                         parentId: firstFile.relatedID,
                         id: firstFile.id
                     )
@@ -291,7 +291,7 @@ struct RecentReceiptsView: View {
                         file: firstFile,
                         selectedFile: $selectedFile,
                         displayStyle: .standard,
-                        parentType: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction),
+                        parentType: .transaction,
                         fileUploadCompletedDelegate: calModel,
                         placeholderView: {
                             LoadingPlaceholder(text: "Uploading…", displayStyle: .standard)

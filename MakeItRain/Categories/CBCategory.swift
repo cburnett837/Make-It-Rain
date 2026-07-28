@@ -15,15 +15,18 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
     var uuid: String?
     var title: String
     //var titleLower: String { title.lowercased() }
-    var amount: Double? {
-        Double(amountString?.replacing("$", with: "").replacing(",", with: "") ?? "0.0") ?? 0.0
+    var amount: Decimal? {
+        CurrencyHelpers.parseAmountStringToDecimal(amountString ?? "0.0") ?? 0.0
+        //Decimal(amountString?.replacing("$", with: "").replacing(",", with: "") ?? "0.0") ?? 0.0
     }
     var amountString: String?
     var color: Color
     var emoji: String?
     var active: Bool
     var action: CategoryAction
-    var type: XrefItem = XrefModel.getItem(from: .categoryTypes, byEnumID: .expense)
+    var type: XrefCategoryType = XrefCategoryType.expense
+    
+    //var type: XrefItem = XrefModel.getItem(from: .categoryTypes, byEnumID: .expense)
     var listOrder: Int?
     //var unwrappedListOrder: Int { listOrder ?? 0 }
     var enteredBy: CBUser = AppState.shared.user!
@@ -36,18 +39,25 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
     var topTitles: [CBSuggestedTitle] = []
     
     var isIncome: Bool { self.isRegularIncome || self.isIrregularIncome }    
-    var isRegularIncome: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .income) }
-    var isIrregularIncome: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .irregularIncome) }
+    //var isRegularIncome: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .income) }
+    //var isIrregularIncome: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .irregularIncome) }
+    //var isPayment: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .payment) }
+    //var isExpense: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .expense) }
+    //var isSavings: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .savings) }
     
-    var isPayment: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .payment) }
-    var isExpense: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .expense) }
-    var isSavings: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .savings) }
+    
+    var isRegularIncome: Bool { self.type == XrefCategoryType.income }
+    var isIrregularIncome: Bool { self.type == XrefCategoryType.irregularIncome }
+    var isPayment: Bool { self.type == XrefCategoryType.payment }
+    var isExpense: Bool { self.type == XrefCategoryType.expense }
+    var isSavings: Bool { self.type == XrefCategoryType.savings }
+    
     var isHidden = false
     
     var appSuiteKey: AppSuiteKey?
     
     /// For the dashboard
-    var budgetAmount: Double = 0.0    
+    var budgetAmount: Decimal = 0.0
     var debitAmounts: DashboardAmounts?
     var creditAmounts: DashboardAmounts?
     var allAmounts: DashboardAmounts?
@@ -191,7 +201,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         }
         title = try container.decode(String.self, forKey: .title)
         
-        let amount = try container.decode(Double?.self, forKey: .amount)
+        let amount = try container.decode(Decimal?.self, forKey: .amount)
         self.amountString = amount?.currencyWithDecimals()
         
         //let colorDescription = try container.decode(String?.self, forKey: .hex_code)
@@ -213,7 +223,8 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         
         let typeID = try container.decode(Int?.self, forKey: .type_id)
         if let typeID = typeID {
-            self.type = XrefModel.getItem(from: .categoryTypes, byID: typeID)
+            self.type = XrefCategoryType.init(id: typeID)
+            //self.type = XrefModel.getItem(from: .categoryTypes, byID: typeID)
         }
         
         listOrder = try container.decode(Int?.self, forKey: .list_order)
@@ -269,7 +280,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
         
                         
         /// For the dashboard
-        self.budgetAmount = try container.decodeIfPresent(Double.self, forKey: .budget_amount) ?? 0.0
+        self.budgetAmount = try container.decodeIfPresent(Decimal.self, forKey: .budget_amount) ?? 0.0
         self.debitAmounts = try container.decodeIfPresent(DashboardAmounts.self, forKey: .debit_amounts)
         self.creditAmounts = try container.decodeIfPresent(DashboardAmounts.self, forKey: .credit_amounts)
         self.allAmounts = try container.decodeIfPresent(DashboardAmounts.self, forKey: .all_amounts)
@@ -401,7 +412,7 @@ extension CBCategory {
         let hexCode: String?
         let emoji: String?
         let actionRaw: String
-        let amount: Double
+        let amount: Decimal
         let typeID: Int
         let listOrder: Int?
         let enteredByID: Int
@@ -424,7 +435,8 @@ extension CBCategory {
         self.active = true
         self.action = CategoryAction.fromString(s.actionRaw)
         self.amountString = s.amount.currencyWithDecimals()
-        self.type = XrefModel.getItem(from: .categoryTypes, byID: s.typeID)
+        //self.type = XrefModel.getItem(from: .categoryTypes, byID: s.typeID)
+        self.type = XrefCategoryType.init(id: s.typeID)
         self.listOrder = s.listOrder
         self.enteredBy = AppState.shared.getUserBy(id: s.enteredByID) ?? AppState.shared.user!
         self.updatedBy = AppState.shared.getUserBy(id: s.updatedByID) ?? AppState.shared.user!
@@ -446,7 +458,7 @@ extension CBCategory {
                 
                 entity.id = snapshot.id
                 entity.title = snapshot.title
-                entity.amount = snapshot.amount
+                entity.amount = snapshot.amount as NSDecimalNumber
                 entity.hexCode = snapshot.hexCode
                 entity.emoji = snapshot.emoji
                 entity.action = action.rawValue
@@ -520,7 +532,7 @@ extension CBCategory {
                 hexCode: entity.hexCode,
                 emoji: entity.emoji,
                 actionRaw: entity.action ?? CategoryAction.edit.rawValue,
-                amount: entity.amount,
+                amount: entity.amount?.decimalValue ?? 0.0,
                 typeID: Int(entity.typeID),
                 listOrder: Int(entity.listOrder),
                 enteredByID: Int(entity.enteredByID),
@@ -561,7 +573,7 @@ extension CBCategory.Snapshot {
         self.hexCode = entity.hexCode
         self.emoji = entity.emoji
         self.actionRaw = entity.action ?? ""
-        self.amount = entity.amount
+        self.amount = entity.amount?.decimalValue ?? 0.0
         self.typeID = Int(entity.typeID)
         self.listOrder = Int(entity.listOrder)
         self.enteredByID = Int(entity.enteredByID)

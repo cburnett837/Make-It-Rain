@@ -16,7 +16,7 @@ extension Array where Element: Comparable {
 
 
 extension Array where Element == CBPaymentMethod {
-    func getAmount(for date: Date) -> Double {
+    func getAmount(for date: Date) -> Decimal {
         return self
             .flatMap { $0.breakdowns }
             .filter { Calendar.current.isDate(date, equalTo: $0.date, toGranularity: .month) }
@@ -32,7 +32,12 @@ extension Array where Element: FloatingPoint {
     }
 }
 
-
+extension Array where Element == Decimal {
+    func average() -> Decimal {
+        guard !isEmpty else { return 0 }
+        return reduce(0, +) / Decimal(count)
+    }
+}
 
 extension Array {
     mutating func appendWithLimit(_ newElement: Element, limit: Int) {

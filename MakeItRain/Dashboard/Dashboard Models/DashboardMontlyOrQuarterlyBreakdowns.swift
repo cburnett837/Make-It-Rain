@@ -10,6 +10,6 @@ import SwiftUI
 import Charts
 
 enum DashboardMontlyOrQuarterlyBreakdowns: String, CaseIterable {
-    case monthly = "Month"
-    case quarterly = "Quarter"
+    case monthly = "Monthly"
+    case quarterly = "Quarterly"
 }

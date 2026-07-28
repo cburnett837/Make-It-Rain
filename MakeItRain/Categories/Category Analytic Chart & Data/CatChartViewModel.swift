@@ -93,7 +93,7 @@ class CatChartViewModel {
         }
     }
     
-    var visibleTotal: Double {
+    var visibleTotal: Decimal {
         /// Calculate the total of the data currently in the chart visible range.
         displayData
             .map {
@@ -166,7 +166,7 @@ class CatChartViewModel {
 //        return chartScrolledToDate...endRange
 //    }
     
-    var average: Double {
+    var average: Decimal {
         if categoryGroup == nil {
             return displayData
                 .map {
@@ -181,14 +181,14 @@ class CatChartViewModel {
                 }
                 .average()
         } else {
-            var monthlySums: [(month: Date, total: Double)] {
+            var monthlySums: [(month: Date, total: Decimal)] {
                 let grouped = Dictionary(grouping: displayData) { item in
                     item.date.monthKey()
                 }
 
                 return grouped
                     .map { month, items in
-                        let sum = items.reduce(0.0) { partial, item in
+                        let sum = items.reduce(Decimal(0)) { partial, item in
                             let value = switch displayedMetric {
                             case .income: item.income
                             case .expenses: item.expenses
@@ -398,7 +398,7 @@ class CatChartViewModel {
     
     
     
-    func getMetric(for data: CategoryAnalyticData) -> Double {
+    func getMetric(for data: CategoryAnalyticData) -> Decimal {
         if self.isForGroup {
             return switch self.displayedMetric {
             case .income: data.income

@@ -64,7 +64,7 @@ struct TransactionAmountRow<Content: View>: View {
             }
         }
         .if(!isCalculator) {
-            $0.validate(amountString, rules: .regex(.currency, "The field contains invalid characters"))
+            $0.validate(amountString, rules: .currency("The field contains invalid characters"))
         }
     }
 }

@@ -21,9 +21,9 @@ struct TevDatePicker: View {
             #endif
         
         if (trans.isSmartTransaction ?? false) &&
-            (trans.smartTransactionIssue?.enumID == .missingDate
-             || trans.smartTransactionIssue?.enumID == .missingPaymentMethodAndDate
-             || trans.smartTransactionIssue?.enumID == .funkyDate)
+            (trans.smartTransactionIssue == .missingDate
+             || trans.smartTransactionIssue == .missingPaymentMethodAndDate
+             || trans.smartTransactionIssue == .funkyDate)
             && !(trans.smartTransactionIsAcknowledged ?? true) {
             
             dateFixerRow

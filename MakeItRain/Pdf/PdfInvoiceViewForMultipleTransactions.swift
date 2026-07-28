@@ -25,7 +25,7 @@ struct PdfInvoiceViewForMultipleTransactions: View {
             if let files = trans.files {
                 ForEach(files) { file in
                     if let image = ImageCache.shared.loadFromCache(
-                        parentTypeId: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction).id,
+                        parentTypeId: XrefFileType.transaction.id,
                         parentId: trans.id,
                         id: file.id
                     ) {

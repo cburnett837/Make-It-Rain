@@ -9,6 +9,11 @@
 			<key>orderHint</key>
 			<integer>1</integer>
 		</dict>
+		<key>Make It Rain Watch Watch App.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>4</integer>
+		</dict>
 		<key>MakeItRain.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
@@ -28,6 +33,11 @@
 		<dict>
 			<key>orderHint</key>
 			<integer>1</integer>
+		</dict>
+		<key>Pending Plaid WatchOSExtension.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>3</integer>
 		</dict>
 		<key>Pending Plaid WidgetExtension.xcscheme_^#shared#^_</key>
 		<dict>
@@ -58,6 +68,16 @@
 			<true/>
 		</dict>
 		<key>FD3EB4B42FAD20AB008BAFD5</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>FD6D47C72FF0645E005A8AE7</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>FD6D47DF2FF065F9005A8AE7</key>
 		<dict>
 			<key>primary</key>
 			<true/>

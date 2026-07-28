@@ -13,8 +13,9 @@ class CBCategoryGroup: Codable, Identifiable, Hashable, Equatable {
     var id: String
     var uuid: String?
     var title: String
-    var amount: Double? {
-        Double(amountString?.replacing("$", with: "").replacing(",", with: "") ?? "0.0") ?? 0.0
+    var amount: Decimal? {
+        CurrencyHelpers.parseAmountStringToDecimal(amountString ?? "0.0") ?? 0.0
+        //Decimal(amountString?.replacing("$", with: "").replacing(",", with: "") ?? "0.0") ?? 0.0
     }
     var amountString: String?
     var categories: [CBCategory] = []
@@ -28,7 +29,7 @@ class CBCategoryGroup: Codable, Identifiable, Hashable, Equatable {
     var updatedDate: Date
     
     /// For the dashboard
-    var budgetAmount: Double = 0.0    
+    var budgetAmount: Decimal = 0.0
     var debitAmounts: DashboardAmounts?
     var creditAmounts: DashboardAmounts?
     var allAmounts: DashboardAmounts?
@@ -115,7 +116,7 @@ class CBCategoryGroup: Codable, Identifiable, Hashable, Equatable {
         }
         title = try container.decode(String.self, forKey: .title)
         
-        let amount = try container.decode(Double?.self, forKey: .amount)
+        let amount = try container.decode(Decimal?.self, forKey: .amount)
         self.amountString = amount?.currencyWithDecimals()
                 
         self.categories = try container.decode(Array<CBCategory>.self, forKey: .categories)
@@ -140,7 +141,7 @@ class CBCategoryGroup: Codable, Identifiable, Hashable, Equatable {
         
         
         /// For the dashboard
-        self.budgetAmount = try container.decodeIfPresent(Double.self, forKey: .budget_amount) ?? 0.0
+        self.budgetAmount = try container.decodeIfPresent(Decimal.self, forKey: .budget_amount) ?? 0.0
         self.debitAmounts = try container.decodeIfPresent(DashboardAmounts.self, forKey: .debit_amounts)
         self.creditAmounts = try container.decodeIfPresent(DashboardAmounts.self, forKey: .credit_amounts)
         self.allAmounts = try container.decodeIfPresent(DashboardAmounts.self, forKey: .all_amounts)                
@@ -245,7 +246,7 @@ extension CBCategoryGroup {
     struct Snapshot: Sendable {
         let id: String
         let title: String
-        let amount: Double
+        let amount: Decimal
         let actionRaw: String
         let enteredByID: Int
         let updatedByID: Int
@@ -281,7 +282,7 @@ extension CBCategoryGroup {
                 
                 entity.id = snapshot.id
                 entity.title = snapshot.title
-                entity.amount = snapshot.amount
+                entity.amount = snapshot.amount as NSDecimalNumber
                 entity.action = action.rawValue
                 entity.enteredByID = Int64(snapshot.enteredByID)
                 entity.updatedByID = Int64(snapshot.updatedByID)
@@ -304,7 +305,7 @@ extension CBCategoryGroup {
                     // Update category (safe because we’re in the context queue)
                     catEntity.id = cat.id
                     catEntity.title = cat.title
-                    catEntity.amount = cat.amount
+                    catEntity.amount = cat.amount as NSDecimalNumber
                     catEntity.hexCode = cat.hexCode
                     catEntity.emoji = cat.emoji
                     catEntity.action = cat.actionRaw
@@ -395,7 +396,7 @@ extension CBCategoryGroup {
             return Snapshot(
                 id: entity.id ?? "0",
                 title: entity.title ?? "",
-                amount: entity.amount,
+                amount: entity.amount?.decimalValue ?? 0.0,
                 actionRaw: entity.action ?? CategoryGroupAction.edit.rawValue,
                 enteredByID: Int(entity.enteredByID),
                 updatedByID: Int(entity.updatedByID),
@@ -424,7 +425,7 @@ extension CBCategoryGroup.Snapshot {
     init(_ entity: PersistentCategoryGroup) {
         self.id = entity.id ?? ""
         self.title = entity.title ?? ""
-        self.amount = entity.amount
+        self.amount = entity.amount?.decimalValue ?? 0.0
         self.actionRaw = entity.action ?? ""
         self.enteredByID = Int(entity.enteredByID)
         self.updatedByID = Int(entity.updatedByID)

@@ -48,9 +48,9 @@ struct RepeatingTransactionView: View {
     @State private var navPath = NavigationPath()
     
     var paymentMethodTitle: String {
-        if repTransaction.repeatingTransactionType.enumID == .payment {
+        if repTransaction.repeatingTransactionType == .payment {
             "Pay From"
-        } else if repTransaction.repeatingTransactionType.enumID == .transfer {
+        } else if repTransaction.repeatingTransactionType == .transfer {
              "Transfer From"
         } else {
             "Account"
@@ -59,9 +59,9 @@ struct RepeatingTransactionView: View {
     
     
     var paymentMethod2Title: String {
-        if repTransaction.repeatingTransactionType.enumID == .payment {
+        if repTransaction.repeatingTransactionType == .payment {
             "Pay To"
-        } else if repTransaction.repeatingTransactionType.enumID == .transfer {
+        } else if repTransaction.repeatingTransactionType == .transfer {
              "Transfer To"
         } else {
             "Account"
@@ -69,7 +69,7 @@ struct RepeatingTransactionView: View {
     }
     
     var isRegularTransaction: Bool {
-        repTransaction.repeatingTransactionType.enumID == .regular
+        repTransaction.repeatingTransactionType == .regular
     }
     
     var isValidToSave: Bool {
@@ -144,16 +144,17 @@ struct RepeatingTransactionView: View {
             }
             
             LabeledRow("Type", labelWidth) {
-                Picker("", selection: $repTransaction.repeatingTransactionType) {
-                    Text("Regular")
-                        .tag(XrefModel.getItem(from: .repeatingTransactionType, byEnumID: .regular))
-                    Text("Payment")
-                        .tag(XrefModel.getItem(from: .repeatingTransactionType, byEnumID: .payment))
-                    Text("Transfer")
-                        .tag(XrefModel.getItem(from: .repeatingTransactionType, byEnumID: .transfer))
-                }
-                .labelsHidden()
-                .pickerStyle(.segmented)
+                typeRow
+//                Picker("", selection: $repTransaction.repeatingTransactionType) {
+//                    Text("Regular")
+//                        .tag(XrefModel.getItem(from: .repeatingTransactionType, byEnumID: .regular))
+//                    Text("Payment")
+//                        .tag(XrefModel.getItem(from: .repeatingTransactionType, byEnumID: .payment))
+//                    Text("Transfer")
+//                        .tag(XrefModel.getItem(from: .repeatingTransactionType, byEnumID: .transfer))
+//                }
+//                .labelsHidden()
+//                .pickerStyle(.segmented)
             }
             
             StandardDivider()
@@ -420,13 +421,11 @@ struct RepeatingTransactionView: View {
     
     
     var typeRow: some View {
-        Picker(selection: $repTransaction.repeatingTransactionType) {
-            Text("Regular")
-                .tag(XrefModel.getItem(from: .repeatingTransactionType, byEnumID: .regular))
-            Text("Payment")
-                .tag(XrefModel.getItem(from: .repeatingTransactionType, byEnumID: .payment))
-            Text("Transfer")
-                .tag(XrefModel.getItem(from: .repeatingTransactionType, byEnumID: .transfer))
+        Picker(selection: $repTransaction.repeatingTransactionType) {            
+            ForEach(XrefRepeatingTransactionType.allCases) {
+                Text($0.description)
+                    .tag($0)
+            }
         } label: {
             Label {
                 Text("Transaction Type")

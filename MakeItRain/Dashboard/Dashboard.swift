@@ -31,12 +31,13 @@ struct Dashboard: View {
     @Bindable var model: DashboardModel
     var isForSelectedMonth: Bool
     
+    @State private var showPayMethodSheet: Bool = false
     @State private var showCategorySheet = false
     @State private var showOptionsSheet = false
     @State private var showExpensiveViews = true
     
-    var totalExpenses: Double {
-        let trans = calModel.getTransactions()
+    var totalExpenses: Decimal {
+        let trans = calModel.getTransactions(meth: model.payMethod)
             .filter { $0.dateComponents?.month == calModel.sMonth.actualNum }
             .filter { $0.dateComponents?.year == calModel.sMonth.year }
         return TransactionHelper.All.Amount.actualSpend(from: trans)
@@ -44,7 +45,7 @@ struct Dashboard: View {
     
     
     var transWithAlerts: Array<CBTransaction> {
-        calModel.getTransactions()
+        calModel.getTransactions(meth: model.payMethod)
         .filter({
             $0.notifyOnDueDate
             && $0.date?.day == Date().day
@@ -65,9 +66,15 @@ struct Dashboard: View {
         @Bindable var calModel = calModel
         
         content
+            .onShake {
+                Task {
+                    await model.initialFetchIfApplicable(calModel: calModel)
+                }
+                
+            }
             .navigationTitle("Dashboard\(AppState.shared.devMode ? " (Dev)" : "")")
             .if(!isForSelectedMonth) {
-                $0.navigationSubtitle("\(model.formattedDateRange)")
+                $0.navigationSubtitle("\(model.formattedDateRange)\(model.payMethod == nil ? "" : " (\(model.payMethod!.title))")")
             }
             #if os(iOS)
             .navigationBarTitleDisplayMode(isForSelectedMonth ? .inline : .large)
@@ -80,9 +87,62 @@ struct Dashboard: View {
                 }
             }
             .toolbar {
+//                ToolbarItem(placement: isForSelectedMonth ? .subtitle : .largeSubtitle) {
+//                    HStack {
+//                        VStack(alignment: .leading) {
+//                            if !isForSelectedMonth {
+//                                Text(model.formattedDateRange)
+//                                    .font(.caption)
+//                                    .foregroundStyle(.secondary)
+//                            }
+//                            
+//                            
+//                            if let meth = model.payMethod {
+//                                HStack {
+//                                    BusinessLogo(config: .init(
+//                                        parent: meth,
+//                                        fallBackType: meth.isUnified ? .gradient : .color,
+//                                        size: 14
+//                                    ))
+//                                    
+//                                    Text(meth.title)
+//                                        .font(.caption)
+//                                        .foregroundStyle(.secondary)
+//                                }
+//                            }
+//                        }
+//                        
+//                        Spacer()
+//                    }
+//                                        
+//                }
+                
+                
+//                ToolbarItem(placement: isForSelectedMonth ? .subtitle : .largeSubtitle) {
+//                    HStack(spacing: 4) {
+//                        if let meth = model.payMethod {
+//                            BusinessLogo(config: .init(
+//                                parent: meth,
+//                                fallBackType: meth.isUnified ? .gradient : .color,
+//                                size: 14
+//                            ))
+//                        }
+//                        
+//                        if !isForSelectedMonth {
+//                            Text(model.formattedDateRange)
+//                                .font(.caption)
+//                                .foregroundStyle(.secondary)
+//                        }
+//                        
+//                        Spacer()
+//                    }
+//                                        
+//                }
+                
                 DashboardToolbar(
                     model: model,
                     showCategorySheet: $showCategorySheet,
+                    showPayMethodSheet: $showPayMethodSheet,
                     showAnalysisSheet: $showAnalysisSheet,
                     navPath: $navPath,
                     isForSelectedMonth: isForSelectedMonth
@@ -107,6 +167,18 @@ struct Dashboard: View {
                 .presentationSizing(.fitted)
                 #endif
             }
+            .sheet(isPresented: $showPayMethodSheet, onDismiss: {
+                model.setMethodIds(payModel: payModel)
+                model.fetchIfChange(calModel: calModel)
+            }) {
+                PayMethodSheet(
+                    payMethod: $model.payMethod,
+                    whichPaymentMethods: .all,
+                    showStartingAmountOption: false,
+                    showNoneOption: true,
+                    noneText: "Don't filter by any account and show all data."
+                )
+            }
     }
     
     
@@ -126,12 +198,17 @@ struct Dashboard: View {
                     if isForSelectedMonth {
                         if showExpensiveViews {
                             DashboardWidget(title: "\(calModel.sMonth.name)'s Overall Budget") {
-                                BudgetChart(budgetAmount: calModel.sMonth.budget, expenseAmount: totalExpenses)
-                                    .onTapGesture {
-                                        if isForSelectedMonth {
-                                            navPath.append(NavDest.budgets)
-                                        }
+                                HStack {
+                                    BudgetChart(budgetAmount: calModel.sMonth.budget, expenseAmount: totalExpenses)
+                                    Image(systemName: "chevron.right")
+                                        .foregroundStyle(.tertiary)
+                                        .font(.footnote)
+                                }
+                                .onTapGesture {
+                                    if isForSelectedMonth {
+                                        navPath.append(NavDest.budgets)
                                     }
+                                }
                             }
                         }
                         
@@ -222,6 +299,15 @@ struct Dashboard: View {
                             DashboardWidget(showFilterText: !model.allCatsSelected, title: "Spending By Day") {
                                 BudgetSpendingByDayChart(data: model.spendByDateTotals)
                             }
+                        } else {
+                            
+                            if model.payMethod != nil {
+                                DashboardStartingAmountByMonthChart(model: model, data: model.data)
+//                                DashboardWidget(showFilterText: !model.allCatsSelected, title: "Starting Amounts") {
+//                                    DashboardStartingAmountByMonthChart(model: model, data: model.data)
+//                                }
+                            }
+                            
                         }
                         
                         if model.data.monthlyBreakdowns.count > 1 {
@@ -236,7 +322,9 @@ struct Dashboard: View {
                 .scenePadding()
             }
             .scrollContentBackground(.hidden)
+            #if os(iOS)
             .background(Color(.systemGroupedBackground))
+            #endif
             .task {
                 showExpensiveViews = true
             }

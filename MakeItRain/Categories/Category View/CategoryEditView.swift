@@ -280,18 +280,10 @@ struct CategoryEditView: View {
         
     var typeRow: some View {
         Picker(selection: $category.type) {
-            ForEach(XrefModel.categoryTypes) { typ in
+            ForEach(XrefCategoryType.allCases) { typ in
                 Text(typ.description)
                     .tag(typ)
             }
-//            Text("Expense")
-//                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .expense))
-//            Text("Income")
-//                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .income))
-//            Text("Payment")
-//                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .payment))
-//            Text("Savings")
-//                .tag(XrefModel.getItem(from: .categoryTypes, byEnumID: .savings))
         } label: {
             Label {
                 Text("Category Type")

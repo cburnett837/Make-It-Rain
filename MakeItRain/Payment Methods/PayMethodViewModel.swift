@@ -52,9 +52,9 @@ class PayMethodViewModel {
     var dates: [Date] = []
     var minDate: Date = Date()
     var maxDate: Date = Date()
-    var incomes: [Double] = []
-    var minIncome: Double = 0
-    var maxIncome: Double = 0
+    var incomes: [Decimal] = []
+    var minIncome: Decimal = 0
+    var maxIncome: Decimal = 0
     
     
     var minVisibleDate: Date {
@@ -292,7 +292,7 @@ class PayMethodViewModel {
 //    }
     
     
-    var visibleIncome: Double {
+    var visibleIncome: Decimal {
         /// Calculate the total of the data currently in the chart visible range.
         mainPayMethod.breakdowns
             .filter { visibleDateRangeForHeader.contains($0.date) }
@@ -312,7 +312,7 @@ class PayMethodViewModel {
     }
     
     
-    var visibleExpenses: Double {
+    var visibleExpenses: Decimal {
         mainPayMethod.breakdowns
             .filter { visibleDateRangeForHeader.contains($0.date) }
             .map { $0.expenses }
@@ -320,7 +320,7 @@ class PayMethodViewModel {
     }
     
     
-    var visiblePayments: Double {
+    var visiblePayments: Decimal {
         /// Calculate the total of the data currently in the chart visible range.
         mainPayMethod.breakdowns
             .filter { visibleDateRangeForHeader.contains($0.date) }
@@ -395,7 +395,12 @@ class PayMethodViewModel {
                         let startingAmounts = breakdowns.map { $0.startingAmounts }.reduce(0, +)
                         let profitLoss = breakdowns.map { $0.profitLoss }.reduce(0, +)
                         
-                        breakdowns.forEach { $0.profitLossPercentage = Helpers.netWorthPercentageChange(start: $0.startingAmounts, end: $0.monthEnd) }
+                        breakdowns.forEach {
+                            $0.profitLossPercentage = Helpers.netWorthPercentageChange(
+                                start: $0.startingAmounts,
+                                end: $0.monthEnd
+                            )
+                        }
                         
                         
                         //                    breakdowns.profitLossPercentage = Helpers.netWorthPercentageChange(
@@ -447,22 +452,22 @@ class PayMethodViewModel {
                             payMethodID: payMethod.id,
                             month: each.month,
                             year: each.year,
-                            incomeString: String(incomes),
-                            incomeAndPositiveAmountsString: String(incomesAndPositiveAmounts),
-                            positiveAmountsString: String(positiveAmounts),
-                            startingAmountsAndPositiveAmountsString: String(startingAmountsAndPositiveAmounts),
-                            expensesString: String(expenses),
-                            paymentsString: String(payments),
-                            startingAmountsString: String(startingAmounts),
-                            profitLossString: String(profitLoss),
+                            incomeString: String(describing: incomes),
+                            incomeAndPositiveAmountsString: String(describing: incomesAndPositiveAmounts),
+                            positiveAmountsString: String(describing: positiveAmounts),
+                            startingAmountsAndPositiveAmountsString: String(describing: startingAmountsAndPositiveAmounts),
+                            expensesString: String(describing: expenses),
+                            paymentsString: String(describing: payments),
+                            startingAmountsString: String(describing: startingAmounts),
+                            profitLossString: String(describing: profitLoss),
                             profitLossPercentage: Helpers.netWorthPercentageChange(start: startingAmounts, end: breakdowns.map { $0.monthEnd }.reduce(0, +)),
                             //profitLossMinPercentageString: String(profitLossMinPercentage),
                             //profitLossMaxPercentageString: String(profitLossMaxPercentage),
                             //profitLossMinAmountString: String(profitLossMinAmount),
                             //profitLossMaxAmountString: String(profitLossMaxAmount),
-                            monthEndString: String(monthEnd),
-                            minEodString: String(minEod),
-                            maxEodString: String(maxEod)
+                            monthEndString: String(describing: monthEnd),
+                            minEodString: String(describing: minEod),
+                            maxEodString: String(describing: maxEod)
                         )
                         
                         summarizedBreakdowns.append(summarizedBreakdown)
@@ -473,7 +478,7 @@ class PayMethodViewModel {
                     //let profitLossMinAmount = breakdowns.map { $0.profitLoss }.min() ?? 0
                     //let profitLossMaxAmount = breakdowns.map { $0.profitLoss }.max() ?? 0
                     
-                    let percentages = summarizedBreakdowns.map {$0.profitLossPercentage}
+                    let percentages = summarizedBreakdowns.map { $0.profitLossPercentage }
                     let profitLossMinPercentage = percentages.min() ?? 0
                     let profitLossMaxPercentage = percentages.max() ?? 0
                     payMethod.profitLossMinPercentage = profitLossMinPercentage
@@ -482,13 +487,13 @@ class PayMethodViewModel {
                     let profitLosses = summarizedBreakdowns.map {$0.profitLoss}
                     let profitLossMinAmount = profitLosses.min() ?? 0
                     let profitLossMaxAmount = profitLosses.max() ?? 0
-                    payMethod.profitLossMinAmountString = String(profitLossMinAmount)
-                    payMethod.profitLossMaxAmountString = String(profitLossMaxAmount)
+                    payMethod.profitLossMinAmountString = String(describing: profitLossMinAmount)
+                    payMethod.profitLossMaxAmountString = String(describing: profitLossMaxAmount)
                     
-                    let minEod = summarizedBreakdowns.map {$0.minEod}.min() ?? 0
-                    let maxEod = summarizedBreakdowns.map {$0.maxEod}.min() ?? 0
-                    payMethod.minEodString = String(minEod)
-                    payMethod.maxEodString = String(maxEod)
+                    let minEod = summarizedBreakdowns.map { $0.minEod }.min() ?? 0
+                    let maxEod = summarizedBreakdowns.map { $0.maxEod }.min() ?? 0
+                    payMethod.minEodString = String(describing: minEod)
+                    payMethod.maxEodString = String(describing: maxEod)
                                                             
                     for breakdown in summarizedBreakdowns {
                         if setChartAsNew {
@@ -519,13 +524,13 @@ class PayMethodViewModel {
                         let profitLosses = payMethods.flatMap { $0.breakdowns.map { $0.profitLoss } }
                         let profitLossMinAmount = profitLosses.min() ?? 0
                         let profitLossMaxAmount = profitLosses.max() ?? 0
-                        payMethod.profitLossMinAmountString = String(profitLossMinAmount)
-                        payMethod.profitLossMaxAmountString = String(profitLossMaxAmount)
+                        payMethod.profitLossMinAmountString = String(describing: profitLossMinAmount)
+                        payMethod.profitLossMaxAmountString = String(describing: profitLossMaxAmount)
                         
                         let minEod = payMethods.flatMap { $0.breakdowns.map { $0.minEod } }.min() ?? 0
                         let maxEod = payMethods.flatMap { $0.breakdowns.map { $0.maxEod } }.max() ?? 0
-                        payMethod.minEodString = String(minEod)
-                        payMethod.maxEodString = String(maxEod)
+                        payMethod.minEodString = String(describing: minEod)
+                        payMethod.maxEodString = String(describing: maxEod)
                         
                         
                         
@@ -735,12 +740,12 @@ class PayMethodViewModel {
         if viewByQuarter {
             result = method.breakdowns.filter { $0.date.year == selectedDate.year && $0.date.startDateOfQuarter.month == selectedDate.month }
             
-            startingAmounts = method.isCreditOrUnified ? String(avg(\.startingAmounts)) : String(sum(\.startingAmounts))
+            startingAmounts = method.isCreditOrUnified ? String(describing: avg(\.startingAmounts)) : String(describing: sum(\.startingAmounts))
             
         } else {
             result = method.breakdowns.filter({ Calendar.current.isDate($0.date, equalTo: selectedDate, toGranularity: .month) })
             
-            startingAmounts = String(sum(\.startingAmounts))
+            startingAmounts = String(describing: sum(\.startingAmounts))
             
         }
                         
@@ -750,30 +755,30 @@ class PayMethodViewModel {
             payMethodID: method.id,
             month: selectedDate.month,
             year: selectedDate.year,
-            incomeString: String(sum(\.income)),
-            incomeAndPositiveAmountsString: String(sum(\.incomeAndPositiveAmounts)),
-            positiveAmountsString: String(sum(\.positiveAmounts)),
-            startingAmountsAndPositiveAmountsString: String(sum(\.startingAmountsAndPositiveAmounts)),
-            expensesString: String(sum(\.expenses)),
-            paymentsString: String(sum(\.payments)),
+            incomeString: String(describing: sum(\.income)),
+            incomeAndPositiveAmountsString: String(describing: sum(\.incomeAndPositiveAmounts)),
+            positiveAmountsString: String(describing: sum(\.positiveAmounts)),
+            startingAmountsAndPositiveAmountsString: String(describing: sum(\.startingAmountsAndPositiveAmounts)),
+            expensesString: String(describing: sum(\.expenses)),
+            paymentsString: String(describing: sum(\.payments)),
             startingAmountsString: startingAmounts,
-            profitLossString: String(sum(\.profitLoss)),
+            profitLossString: String(describing: sum(\.profitLoss)),
             profitLossPercentage: sum(\.profitLossPercentage),
             //profitLossMinPercentageString: String,
             //profitLossMaxPercentageString: String,
             //profitLossMinAmountString: String,
             //profitLossMaxAmountString: String,
-            monthEndString: String(sum(\.monthEnd)),
-            minEodString: String(sum(\.minEod)),
-            maxEodString: String(sum(\.maxEod))
+            monthEndString: String(describing: sum(\.monthEnd)),
+            minEodString: String(describing: sum(\.minEod)),
+            maxEodString: String(describing: sum(\.maxEod))
             
         )
         
-        func sum(_ keyPath: KeyPath<PayMethodMonthlyBreakdown, Double>) -> Double {
+        func sum(_ keyPath: KeyPath<PayMethodMonthlyBreakdown, Decimal>) -> Decimal {
             result.reduce(0) { $0 + $1[keyPath: keyPath] }
         }
         
-        func avg(_ keyPath: KeyPath<PayMethodMonthlyBreakdown, Double>) -> Double {
+        func avg(_ keyPath: KeyPath<PayMethodMonthlyBreakdown, Decimal>) -> Decimal {
             result.map { $0[keyPath: keyPath] }.average()
         }
         
@@ -849,24 +854,24 @@ class PayMethodViewModel {
             return nil
         }
 
-        func sum(_ keyPath: KeyPath<PayMethodMonthlyBreakdown, Double>) -> Double {
+        func sum(_ keyPath: KeyPath<PayMethodMonthlyBreakdown, Decimal>) -> Decimal {
             monthlyData.reduce(0) { $0 + $1[keyPath: keyPath] }
         }
         
-        func avg(_ keyPath: KeyPath<PayMethodMonthlyBreakdown, Double>) -> Double {
+        func avg(_ keyPath: KeyPath<PayMethodMonthlyBreakdown, Decimal>) -> Decimal {
             monthlyData.map { $0[keyPath: keyPath] }.average()
         }
 
-        func minValue(_ keyPath: KeyPath<PayMethodMonthlyBreakdown, Double>) -> Double {
+        func minValue(_ keyPath: KeyPath<PayMethodMonthlyBreakdown, Decimal>) -> Decimal {
             monthlyData.map { $0[keyPath: keyPath] }.min() ?? 0
         }
 
-        func maxValue(_ keyPath: KeyPath<PayMethodMonthlyBreakdown, Double>) -> Double {
+        func maxValue(_ keyPath: KeyPath<PayMethodMonthlyBreakdown, Decimal>) -> Decimal {
             monthlyData.map { $0[keyPath: keyPath] }.max() ?? 0
         }
         
         
-        let startingAmounts: String = payMethod.isCreditOrUnified ? String(avg(\.startingAmounts)) : String(sum(\.startingAmounts))
+        let startingAmounts: String = payMethod.isCreditOrUnified ? String(describing: avg(\.startingAmounts)) : String(describing: sum(\.startingAmounts))
 
         let summary = PayMethodMonthlyBreakdown(
             title: first.title,
@@ -874,25 +879,25 @@ class PayMethodViewModel {
             payMethodID: first.payMethodID,
             month: first.month,
             year: first.year,
-            incomeString: String(sum(\.income)),
-            incomeAndPositiveAmountsString: String(sum(\.incomeAndPositiveAmounts)),
-            positiveAmountsString: String(sum(\.positiveAmounts)),
-            startingAmountsAndPositiveAmountsString: String(sum(\.startingAmountsAndPositiveAmounts)),
-            expensesString: String(sum(\.expenses)),
-            paymentsString: String(sum(\.payments)),
+            incomeString: String(describing: sum(\.income)),
+            incomeAndPositiveAmountsString: String(describing: sum(\.incomeAndPositiveAmounts)),
+            positiveAmountsString: String(describing: sum(\.positiveAmounts)),
+            startingAmountsAndPositiveAmountsString: String(describing: sum(\.startingAmountsAndPositiveAmounts)),
+            expensesString: String(describing: sum(\.expenses)),
+            paymentsString: String(describing: sum(\.payments)),
             startingAmountsString: startingAmounts,
-            profitLossString: String(sum(\.profitLoss)),
-            profitLossPercentage: sum(\.profitLossPercentage) / Double(monthlyData.count),
-            monthEndString: String(sum(\.monthEnd)),
-            minEodString: String(minValue(\.minEod)),
-            maxEodString: String(maxValue(\.maxEod))
+            profitLossString: String(describing: sum(\.profitLoss)),
+            profitLossPercentage: sum(\.profitLossPercentage) / Decimal(monthlyData.count),
+            monthEndString: String(describing: sum(\.monthEnd)),
+            minEodString: String(describing: minValue(\.minEod)),
+            maxEodString: String(describing: maxValue(\.maxEod))
         )
 
         return summary
     }
     
     
-    func getIncomeText(for breakdown: PayMethodMonthlyBreakdown) -> Double {
+    func getIncomeText(for breakdown: PayMethodMonthlyBreakdown) -> Decimal {
         switch incomeType {
         case .income:
             breakdown.income
@@ -1022,7 +1027,7 @@ class PayMethodViewModel {
     //            xEnd: .value("End Date", viewByQuarter ? date.endOfQuarter : date.endDateOfMonth, unit: .day)
     //        )
         
-        RuleMark(x: .value("Start Date", viewByQuarter ? date.startOfQuarter : date, unit: .month))
+        RuleMark(x: .value("Start Date", viewByQuarter ? date.startDateOfQuarter : date, unit: .month))
         
         .foregroundStyle(color)
         .zIndex(-1)
@@ -1034,8 +1039,8 @@ class PayMethodViewModel {
     #endif
     
     
-    func getGradientPosition(for analyticType: GradientCalculationType, flipAt: Double, min: Double = 0, max: Double = 0) -> Double? {
-        var result: Double
+    func getGradientPosition(for analyticType: GradientCalculationType, flipAt: Decimal, min: Decimal = 0, max: Decimal = 0) -> Decimal? {
+        var result: Decimal
         switch analyticType {
         case .amount:
             let profitLosses = relevantBreakdowns().map { $0.profitLoss }

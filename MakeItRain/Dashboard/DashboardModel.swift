@@ -36,6 +36,42 @@ class DashboardModel {
     /// NOTE! These will not contain the data for the dashboard. These are just the selected options.
     var categories: [CBCategory] = []
     var groups: [CBCategoryGroup] = []
+    var payMethod: CBPaymentMethod?
+    var payMethodIds: Array<String>?
+        
+    @MainActor
+    func setMethodIds(payModel: PayMethodModel) {
+        if let meth = payMethod {
+            if meth.isUnifiedDebit {
+                payMethodIds = payModel.getMethodsFor(section: .debit, type: .allExceptUnified).map {$0.id}
+            } else if meth.isUnifiedCredit {
+                payMethodIds = payModel.getMethodsFor(section: .credit, type: .allExceptUnified).map {$0.id}
+            } else {
+                payMethodIds = [meth.id]
+            }
+        } else {
+            payMethodIds = nil
+        }
+    }
+    
+//    var methsIds: Array<String>? {
+//        
+//        
+//        
+//        if calModel?.sPayMethod?.accountType == .unifiedChecking { return meth.isDebitOrCash }
+//        else if calModel?.sPayMethod?.accountType == .unifiedCredit { return meth.isCreditOrLoan }
+//        else { return (!meth.isDebitOrUnified && !meth.isCreditOrUnified) }
+//        
+//        if let meth = payMethod {
+//            if meth.isUnified {
+//                return store.paymentMethods.map(\.id)
+//            } else {
+//                return [meth.id]
+//            }
+//        } else {
+//            return nil
+//        }
+//    }
     
     
     var cumTotals: [BudgetCumTotal] = []
@@ -44,7 +80,7 @@ class DashboardModel {
     
     var data = DashboardData() {
         didSet {
-            print("Dashbaord data set")
+            //print("Dashbaord data set")
         }
     }
     var isLoading = false
@@ -91,6 +127,8 @@ class DashboardModel {
         hasher.combine(endDate)
         hasher.combine(categories)
         hasher.combine(groups)
+        hasher.combine(payMethod)
+        hasher.combine(AppSettings.shared.paymentMethodFilterMode)
         return hasher.finalize()
     }
         
@@ -117,10 +155,16 @@ class DashboardModel {
         let start = min(beginDate, endDate)
         let end = max(beginDate, endDate)
         
+        let today = Date()
+        let todayDay = calendar.component(.day, from: today)
+        let todayMonth = calendar.component(.month, from: today)
+        let todayYear = calendar.component(.year, from: today)
+        
         let startDay = calendar.component(.day, from: start)
         let startMonth = calendar.component(.month, from: start)
         let startYear = calendar.component(.year, from: start)
         
+        let endDay = calendar.component(.day, from: end)
         let endMonth = calendar.component(.month, from: end)
         let endYear = calendar.component(.year, from: end)
         
@@ -167,6 +211,14 @@ class DashboardModel {
             return self.formatter.string(from: start)
         }
         
+        if sameYear,
+           startIsFirstDayOfMonth,
+           startMonth == 1,
+           endMonth == todayMonth,
+           endDay == todayDay {
+            return "YTD"
+        }
+        
         /// Fallback
         return "\(start.string(to: .datePickerDateOnlyDefault)) - \(end.string(to: .datePickerDateOnlyDefault))"
     }
@@ -175,7 +227,8 @@ class DashboardModel {
     @MainActor
     var isAnalyzingAtLeastOneCreditCategory: Bool {
         self.categories
-            .filter { $0.type.enumID == XrefModel.getItem(from: .categoryTypes, byEnumID: .payment).enumID }
+            .filter { $0.type == .payment }
+            //.filter { $0.type.enumID == XrefModel.getItem(from: .categoryTypes, byEnumID: .payment).enumID }
             .isEmpty
     }
       
@@ -245,6 +298,10 @@ class DashboardModel {
     @MainActor
     func initialFetchIfApplicable(calModel: CalendarModel) async {
         if !calModel.sMonth.isPlaceholder {
+            self.payMethod = nil
+            self.beginDate = Date().startDateOfMonth
+            self.endDate = Date().endDateOfMonth
+            
             for group in store.categoryGroups {
                 let groupCatIds = group.categories.map { $0.id }
                 let hasTrans = !calModel.sMonth.justTransactions
@@ -316,18 +373,20 @@ class DashboardModel {
     @MainActor
     func fetchDashboard(file: String = #file, line: Int = #line, function: String = #function) async {
         //print("-- \(#function)")
-        print("-- \(#function) - \(file):\(line) : \(function)")
+        //print("-- \(#function) - \(file):\(line) : \(function)")
         if categories.isEmpty && groups.isEmpty {
             //AppState.shared.showAlert("Please select some categories first.")
             return
         }
-        print("Loading \(beginDate) to \(endDate)")
+        //print("Loading \(beginDate) to \(endDate)")
         isLoading = true
         let requestModel = DashboardRequestModel(
             beginDate: beginDate,
             endDate: endDate,
             categories: self.categories,
-            categoryGroups: self.groups
+            categoryGroups: self.groups,
+            payMethod: self.payMethod,
+            payMethodIds: self.payMethodIds
         )
         
         /// Do networking.
@@ -383,14 +442,14 @@ class DashboardModel {
     
     @MainActor
     func prepareData(calModel: CalendarModel) {
-        print("-- \(#function)")
+        //print("-- \(#function)")
         let cats = self.categories + self.groups.flatMap(\.categories)
 
         let month = calModel.sMonth.actualNum
         let year = calModel.sMonth.year
         let budgetAmount = calModel.sMonth.amount
 
-        let trans = calModel.getTransactions(cats: cats)
+        let trans = calModel.getTransactions(meth: payMethod, cats: cats)
             .filter {
                 $0.dateComponents?.month == month &&
                 $0.dateComponents?.year == year
@@ -401,8 +460,10 @@ class DashboardModel {
 
         //self.transactions = filteredTransactions
         
-        /// For the spending by day charts
-        spendByDateTotals = BudgetHelper.calculateDailySpend(days: days, transactions: trans)
+        withAnimation {
+            /// For the spending by day charts
+            spendByDateTotals = BudgetHelper.calculateDailySpend(days: days, transactions: trans)
+        }
         
         /// For the cumulative spending chart
         Task {
@@ -421,7 +482,7 @@ class DashboardModel {
     
     @MainActor
     func localVersionOfServerCode(calModel: CalendarModel, file: String = #file, line: Int = #line, function: String = #function) {
-        print("-- \(#function)")
+        //print("-- \(#function)")
         //print("-- \(#function) - \(file):\(line) : \(function)")
         func buildData(for cat: CBCategory) -> CBCategory {
             let trans = transByCategory[cat.id] ?? []
@@ -472,7 +533,7 @@ class DashboardModel {
         }
         
         let allCats = (self.categories + self.groups.flatMap(\.categories)).uniqued(on: { $0.id })
-        let transactions = calModel.getTransactions(cats: allCats, includeHiddenPaymentMethods: true)
+        let transactions = calModel.getTransactions(meth: self.payMethod, cats: allCats, includeHiddenPaymentMethods: true)
         //let transCount = transactions.count
         let sMonth = calModel.sMonth
         

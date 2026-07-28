@@ -35,27 +35,27 @@ extension MakeItRainApp {
     }
     
     
-    @SceneBuilder
-    var dashboardWindow: some Scene {
-        Window("Budget", id: "budgetWindow") {
-            CalendarDashboard()
-                .frame(minWidth: 300, minHeight: 200)
-                .environment(calModel)
-                .environment(payModel)
-                .environment(catModel)
-                .environment(keyModel)
-                .environment(repModel)
-                .environment(plaidModel)
-                .environment(dashboardModel)
-                .environment(calProps)
-                .environment(dataChangeTriggers)
-                .environment(webSocketManager)
-                .environment(store)
-                .environment(budgetModel)
-                .environment(tagModel)
-        }
-        .auxilaryWindow()
-    }
+//    @SceneBuilder
+//    var dashboardWindow: some Scene {
+//        Window("Budget", id: "budgetWindow") {
+//            CalendarDashboard()
+//                .frame(minWidth: 300, minHeight: 200)
+//                .environment(calModel)
+//                .environment(payModel)
+//                .environment(catModel)
+//                .environment(keyModel)
+//                .environment(repModel)
+//                .environment(plaidModel)
+//                .environment(dashboardModel)
+//                .environment(calProps)
+//                .environment(dataChangeTriggers)
+//                .environment(webSocketManager)
+//                .environment(store)
+//                .environment(budgetModel)
+//                .environment(tagModel)
+//        }
+//        .auxilaryWindow()
+//    }
         
     @SceneBuilder
     var plaidWindow: some Scene {
@@ -78,45 +78,45 @@ extension MakeItRainApp {
         .auxilaryWindow()
     }
 
-    @SceneBuilder
-    var insightsWindow: some Scene {
-        Window("Category Analysis", id: "analysisSheet") {
-            //Text("not ready yet")
-            CategoryInsightsView(
-                //navPath: $calProps.navPath,
-                showAnalysisSheet: $calProps.showAnalysisSheet,
-                model: categoryAnalysisModel
-            )
-            .frame(minWidth: 300, minHeight: 500)
-            .environment(funcModel)
-            .environment(calModel)
-            .environment(payModel)
-            .environment(catModel)
-            .environment(keyModel)
-            .environment(repModel)
-            .environment(plaidModel)
-            .environment(dashboardModel)
-            .environment(calProps)
-            .environment(dataChangeTriggers)
-            .environment(webSocketManager)
-            .environment(store)
-            .environment(budgetModel)
-            .environment(tagModel)
-//            CategoryInsightsSheet(showAnalysisSheet: .constant(true))
-//                .frame(minWidth: 300, minHeight: 500)
-//                .environment(funcModel)
-//                .environment(calModel)
-//                .environment(payModel)
-//                .environment(catModel)
-//                .environment(keyModel)
-//                .environment(repModel)
-//                .environment(plaidModel)
-//                .environment(calProps)
-//                .environment(dataChangeTriggers)
-//                //.environment(mapModel)
-        }
-        .auxilaryWindow()
-    }
+//    @SceneBuilder
+//    var insightsWindow: some Scene {
+//        Window("Category Analysis", id: "analysisSheet") {
+//            //Text("not ready yet")
+//            CategoryInsightsView(
+//                //navPath: $calProps.navPath,
+//                showAnalysisSheet: $calProps.showAnalysisSheet,
+//                model: categoryAnalysisModel
+//            )
+//            .frame(minWidth: 300, minHeight: 500)
+//            .environment(funcModel)
+//            .environment(calModel)
+//            .environment(payModel)
+//            .environment(catModel)
+//            .environment(keyModel)
+//            .environment(repModel)
+//            .environment(plaidModel)
+//            .environment(dashboardModel)
+//            .environment(calProps)
+//            .environment(dataChangeTriggers)
+//            .environment(webSocketManager)
+//            .environment(store)
+//            .environment(budgetModel)
+//            .environment(tagModel)
+////            CategoryInsightsSheet(showAnalysisSheet: .constant(true))
+////                .frame(minWidth: 300, minHeight: 500)
+////                .environment(funcModel)
+////                .environment(calModel)
+////                .environment(payModel)
+////                .environment(catModel)
+////                .environment(keyModel)
+////                .environment(repModel)
+////                .environment(plaidModel)
+////                .environment(calProps)
+////                .environment(dataChangeTriggers)
+////                //.environment(mapModel)
+//        }
+//        .auxilaryWindow()
+//    }
 
 //    @SceneBuilder
 //    var multiSelectWindow: some Scene {

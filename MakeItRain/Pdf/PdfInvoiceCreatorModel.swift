@@ -41,8 +41,9 @@ class PdfInvoiceCreatorModel {
     }
     
     
-    var amount: Double {
-        Double(amountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+    var amount: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(amountString) ?? 0.0
+        //Double(amountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
     }
     
     

@@ -13,7 +13,7 @@ import SwiftUI
 extension View {
     func photoPickerAndCameraSheet(
         fileUploadCompletedDelegate: FileUploadCompletedDelegate,
-        parentType: XrefEnum,
+        parentType: XrefFileType,
         allowMultiSelection: Bool,
         showPhotosPicker: Binding<Bool>,
         showCamera: Binding<Bool>,
@@ -30,14 +30,15 @@ extension View {
 
 struct PhotoPickerAndCameraSheet: ViewModifier {
     var fileUploadCompletedDelegate: FileUploadCompletedDelegate
-    var parentType: XrefEnum
+    var parentType: XrefFileType
     var allowMultiSelection: Bool = false
     @Binding var showPhotosPicker: Bool
     @Binding var showCamera: Bool
     
-    var parentTypeXr: XrefItem {
-        XrefModel.getItem(from: .fileTypes, byEnumID: parentType)
-    }
+//    var parentTypeXr: XrefFileType {
+//        XrefFileType.init(id: parentType.id)
+//        //XrefModel.getItem(from: .fileTypes, byEnumID: parentType)
+//    }
     
     //XrefModel.getItem(from: .fileTypes, byEnumID: .transaction)
 
@@ -92,17 +93,17 @@ struct PhotoPickerAndCameraSheet: ViewModifier {
                     } else {
                         FileModel.shared.uploadPictureFromCamera(
                             delegate: fileUploadCompletedDelegate,
-                            parentType: parentTypeXr
+                            parentType: parentType
                         )
                     }
                     #else
                     if FileModel.shared.imagesFromLibrary.isEmpty {
                         fileUploadCompletedDelegate.cleanUpPhotoVariables()
                     } else {
-                        FileModel.shared.uploadPicturesFromLibrary(
-                            delegate: fileUploadCompletedDelegate,
-                            parentType: parentTypeXr
-                        )
+//                        FileModel.shared.uploadPicturesFromLibrary(
+//                            delegate: fileUploadCompletedDelegate,
+//                            parentType: parentTypeXr
+//                        )
                     }
                     #endif
                 }
@@ -118,7 +119,7 @@ struct PhotoPickerAndCameraSheet: ViewModifier {
                 if !$1 {
                     FileModel.shared.uploadPictureFromCamera(
                         delegate: fileUploadCompletedDelegate,
-                        parentType: parentTypeXr
+                        parentType: parentType
                     )
                 }
             }

@@ -62,7 +62,9 @@ struct TransactionListLine: View {
                 }
             }
         }
+        #if os(iOS)
         .statusIndicatorOverlay(for: trans.status)
+        #endif
         .environment(fileProps)
         #if os(iOS)
         .sheet(item: $selectedFile) { file in
@@ -149,7 +151,7 @@ struct TransactionListLine: View {
                     file: file,
                     selectedFile: $selectedFile,
                     displayStyle: .standard,
-                    parentType: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction),
+                    parentType: .transaction,
                     fileUploadCompletedDelegate: calModel,
                     placeholderView: {
                         LoadingPlaceholder(text: "Uploading…", displayStyle: .standard)

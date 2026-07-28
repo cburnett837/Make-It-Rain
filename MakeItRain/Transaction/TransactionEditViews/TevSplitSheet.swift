@@ -27,7 +27,7 @@ struct TevSplitSheet: View {
     @State private var additionalTrans: Array<CBTransaction> = []
     @FocusState private var focusedField: Int?
 
-    @State private var originalAmount = 0.0
+    @State private var originalAmount: Decimal = 0.0
     
     var isValidToSave: Bool {
         if additionalTrans.isEmpty {

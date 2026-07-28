@@ -201,7 +201,7 @@ struct MultiSelectTransactionOptionsSheet: View {
                 for trans in calModel.multiSelectTransactions {
                     trans.factorInCalculations = true
                     
-                    if trans.relatedTransactionID != nil && trans.relatedTransactionType?.enumID == .transaction {
+                    if trans.relatedTransactionID != nil && trans.relatedTransactionType == .transaction {
                         if let trans2 = calModel.getTransaction(by: trans.relatedTransactionID!, from: .normalList) {
                             trans2.factorInCalculations = true
                         }
@@ -226,7 +226,7 @@ struct MultiSelectTransactionOptionsSheet: View {
                 for trans in calModel.multiSelectTransactions {
                     trans.factorInCalculations = false
                     
-                    if trans.relatedTransactionID != nil && trans.relatedTransactionType?.enumID == .transaction {
+                    if trans.relatedTransactionID != nil && trans.relatedTransactionType == .transaction {
                         if let trans2 = calModel.getTransaction(by: trans.relatedTransactionID!, from: .normalList) {
                             trans2.factorInCalculations = false
                         }
@@ -257,7 +257,7 @@ struct MultiSelectTransactionOptionsSheet: View {
                     for trans in calModel.multiSelectTransactions {
                         trans.category = selectedCategory
                         
-                        if trans.relatedTransactionID != nil && trans.relatedTransactionType?.enumID == .transaction {
+                        if trans.relatedTransactionID != nil && trans.relatedTransactionType == .transaction {
                             if let trans2 = calModel.getTransaction(by: trans.relatedTransactionID!, from: .normalList) {
                                 trans2.category = selectedCategory
                             }
@@ -315,7 +315,7 @@ struct MultiSelectTransactionOptionsSheet: View {
                         
                         //trans.active = false
                         //calModel.performLineItemAnimations(for: trans)
-                        if trans.relatedTransactionID != nil && trans.relatedTransactionType?.enumID == .transaction {
+                        if trans.relatedTransactionID != nil && trans.relatedTransactionType == .transaction {
                             if let trans2 = calModel.getTransaction(by: trans.relatedTransactionID!, from: .normalList) {
                                 //trans2.deepCopy(.create)
                                 trans2.action = .delete
@@ -377,7 +377,7 @@ struct MultiSelectTransactionOptionsSheet: View {
                 
                 if shouldSave {
                     for trans in transToEdit {
-                        if trans.relatedTransactionID != nil && trans.relatedTransactionType?.enumID == .transaction {
+                        if trans.relatedTransactionID != nil && trans.relatedTransactionType == .transaction {
                             if let trans2 = calModel.getTransaction(by: trans.relatedTransactionID!, from: .normalList) {
                                 transToEdit.append(trans2)
                             }

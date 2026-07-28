@@ -49,9 +49,11 @@ struct AllBudgetsTable: View {
 //            ToolbarItem(placement: .topBarTrailing) {
 //                editGlobalBudgetButton
 //            }
+            #if os(iOS)
             ToolbarSpacer(placement: .topBarTrailing)
             ToolbarItem(placement: .topBarTrailing) { ToolbarRefreshButton() }
             ToolbarItem(placement: .topBarTrailing) { newBudgetButton }
+            #endif
         }
         .navigationTitle("Budget\(AppState.shared.devMode ? " (Dev)" : "")")
         .navigationDestination(for: CBBudgetItem.self) { budget in

@@ -59,8 +59,7 @@ struct Helpers {
         }
         return returnString
     }
-    
-    
+        
     static func plusMinus(_ amountString: Binding<String>) {
         if amountString.wrappedValue.hasPrefix("$") {
             amountString.wrappedValue.removeFirst()
@@ -79,7 +78,7 @@ struct Helpers {
         }
     }
     
-    static func formatCurrency(focusValue: Int, oldFocus: Int?, newFocus: Int?, amountString: String?, amount: Double?) -> String? {
+    static func formatCurrency(focusValue: Int, oldFocus: Int?, newFocus: Int?, amountString: String?, amount: Decimal?) -> String? {
         
         
         //let useWholeNumbers = UserDefaults.standard.bool(forKey: "useWholeNumbers")
@@ -104,8 +103,7 @@ struct Helpers {
             }
         }
     }
-    
-    
+        
     static func liveFormatCurrency(oldValue: String?, newValue: String?, text: Binding<String>) {
         //print(oldValue, newValue)
         if (oldValue ?? "").isEmpty && newValue == "-" { return }
@@ -130,8 +128,7 @@ struct Helpers {
             }
         }
     }
-    
-    
+        
     static func createDate(month: Int, year: Int) -> Date? {
         var components = DateComponents()
         components.year = year
@@ -141,8 +138,6 @@ struct Helpers {
         let calendar = Calendar.current
         return calendar.date(from: components)
     }
-    
-    
     
     static func generateCsv(fileName: String, headers: [String], rows: [[String]]) -> URL {
         var fileURL: URL!
@@ -184,18 +179,16 @@ struct Helpers {
 
         return escaped
     }
-    
-    
-    static func getPercentage(_ value: Double, of total: Double) -> Double {
+        
+    static func getPercentage(_ value: Decimal, of total: Decimal) -> Decimal {
         return total == 0 ? value : (value / total) * 100
     }
     
-    static func netWorthPercentageChange(start: Double, end: Double) -> Double {
+    static func netWorthPercentageChange(start: Decimal, end: Decimal) -> Decimal {
         guard start != 0 else { return 0 } // Avoid division by zero
         return ((end - start) / start) * 100
     }
-    
-    
+        
     static func categorySorter() -> (CBCategory, CBCategory) -> Bool {
         return {
             switch AppSettings.shared.categorySortMode {
@@ -272,7 +265,6 @@ struct Helpers {
         }
     }
     
-    
     static func decodeAttributedString(from base64: String) throws -> AttributedString {
         guard let data = Data(base64Encoded: base64) else {
             throw NSError(domain: "InvalidBase64", code: -1)
@@ -281,8 +273,7 @@ struct Helpers {
         let attributed = try JSONDecoder().decode(AttributedString.self, from: data)
         return attributed
     }
-    
-    
+        
     /// Turn a SwiftUI AttributedString into an NSAttributedString suitable for UITextView,
     /// applying default UIKit font/color if there is no NS styling.
     static func makeUITextViewString(from swiftAttr: AttributedString) -> NSAttributedString {
@@ -319,7 +310,18 @@ struct Helpers {
 
         return mutable
     }
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
 }
+
 
 func ??<T>(lhs: Binding<Optional<T>>, rhs: T) -> Binding<T> {
     Binding(
@@ -327,3 +329,6 @@ func ??<T>(lhs: Binding<Optional<T>>, rhs: T) -> Binding<T> {
         set: { lhs.wrappedValue = $0 }
     )
 }
+
+
+

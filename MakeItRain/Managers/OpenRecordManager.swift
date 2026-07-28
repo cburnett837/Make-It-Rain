@@ -144,24 +144,24 @@ class OpenRecordManager {
     }
     
     // MARK: - Open Events
-    func doesExist(_ open: CBOpenOrClosedRecord, what: XrefEnum) -> Bool {
-        return !openOrClosedRecords.filter { $0.id == open.id && $0.recordType.enumID == what }.isEmpty
+    func doesExist(_ open: CBOpenOrClosedRecord, what: XrefOpenRecordType) -> Bool {
+        return !openOrClosedRecords.filter { $0.id == open.id && $0.recordType == what }.isEmpty
     }
     
-    func deleteOpen(id openID: String, what: XrefEnum) {
+    func deleteOpen(id openID: String, what: XrefOpenRecordType) {
         /// If someone opens and closed a record quickly, allow time for the initial actions animation to complete before running the 2nd action. If now, this will lead to inconsistent state in the UI.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             withAnimation {
-                self.openOrClosedRecords.removeAll(where: { $0.id == openID && $0.recordType.enumID == what })
+                self.openOrClosedRecords.removeAll(where: { $0.id == openID && $0.recordType == what })
             }
         }
     }
     
-    func getIndex(for open: CBOpenOrClosedRecord, what: XrefEnum) -> Int? {
-        return openOrClosedRecords.firstIndex(where: { $0.id == open.id && $0.recordType.enumID == what })
+    func getIndex(for open: CBOpenOrClosedRecord, what: XrefOpenRecordType) -> Int? {
+        return openOrClosedRecords.firstIndex(where: { $0.id == open.id && $0.recordType == what })
     }
     
-    func upsert(_ open: CBOpenOrClosedRecord, what: XrefEnum) {
+    func upsert(_ open: CBOpenOrClosedRecord, what: XrefOpenRecordType) {
         if !doesExist(open, what: what) {
             /// If someone opens and closed a record quickly, allow time for the initial actions animation to complete before running the 2nd action. If now, this will lead to inconsistent state in the UI.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {

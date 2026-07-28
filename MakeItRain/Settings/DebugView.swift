@@ -67,6 +67,14 @@ struct DebugView: View {
             loadTimeSection
             
             plaidForceRefreshSection
+            
+            
+            #if os(iOS)
+            Section("Device Info") {
+                Text(String(UIDevice.current.systemVersion))
+                Text(String(UIDevice.current.name))
+            }
+            #endif
         }
         .navigationTitle("Debug")
         .toolbar {
@@ -137,7 +145,7 @@ struct DebugView: View {
                                 
                                 let result: ResultResponse = await NetworkManager().uploadFile(
                                     application: "budget_app",
-                                    fileParent: .init(id: "13372", type: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction)),
+                                    fileParent: .init(id: "13372", type: XrefFileType.transaction),
                                     uuid: UUID().uuidString,
                                     fileData: fileData,
                                     fileName: "file",

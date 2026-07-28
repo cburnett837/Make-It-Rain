@@ -151,7 +151,7 @@ struct TransactionEditView: View {
         } else if trans.isPaymentDest {
             return "Paid From"
         } else if trans.isTransferDest {
-            return "Transferred from"
+            return "Transferred From"
         } else {
             return trans.isOrigin ? "Pay-To" : "Pay-From"
         }
@@ -288,6 +288,12 @@ struct TransactionEditView: View {
                 trans: trans,
                 focusedField: $focusedField
             )
+        } footer: {
+            if AppState.shared.isAwayFromHomeCountry || (trans.country != nil && trans.country != AppState.shared.country) {
+                AlternativeCurrencyQuickPick(trans: trans)
+            } else {
+                EmptyView()
+            }
         }
                 
         paymentMethodAndCategorySection
@@ -317,6 +323,7 @@ struct TransactionEditView: View {
                 christmasListGiftStatusPicker
             }
         }
+        
         
         TevTrackingAndOrder(
             symbolWidth: symbolWidth,
@@ -515,6 +522,73 @@ struct TransactionEditView: View {
     }
     
     
+    
+    
+    
+    struct AlternativeCurrencyQuickPick: View {
+        @Bindable var trans: CBTransaction
+        
+        var altCountries: Array<Country> {
+            Countries.list.filter {
+                $0.code == LocationManager.shared.currentCountry
+                || $0.code == trans.payMethod?.country?.code
+            }
+        }
+        
+        
+        
+        var results: [Country] {
+            var countries = altCountries
+
+            if let country = trans.country {
+                countries.append(country)
+            }
+            countries.append(Countries.homeCountry)
+
+            return Array(Set(countries)).sorted { $0.name < $1.name }
+        }
+        
+        var body: some View {
+            ScrollView(.horizontal) {
+                HStack {
+                    ForEach(results) { button(for: $0) }
+                }
+            }
+            .scrollIndicators(.hidden)
+        }
+        
+        
+        @ViewBuilder
+        func button(for country: Country) -> some View {
+            Button {
+                trans.country = country
+                if !trans.amountString.isEmpty {
+                    trans.amountString = CurrencyHelpers.formatAmountText(
+                        amount: trans.amount,
+                        currencyCode: country.currencyCode
+                    )
+                }
+            } label: {
+                Text("\(country.flagEmoji) \(country.currencyCode)?")
+                    .foregroundStyle(.gray)
+                    .font(.subheadline)
+            }
+            #if os(iOS)
+            .padding(8)
+            .background(Capsule().foregroundStyle(.thickMaterial))
+            #else
+            .buttonStyle(.roundMacButton(horizontalPadding: 10))
+            #endif
+            .overlay(
+                Capsule()
+                    .strokeBorder(Color.theme, lineWidth: 1)
+                    .opacity(trans.country?.id == country.id ? 1 : 0)
+                    
+            )
+        }
+    }
+    
+    
     @ViewBuilder
     var paymentMethodAndCategorySection: some View {
         if !suggestedCategories.isEmpty {
@@ -578,7 +652,7 @@ struct TransactionEditView: View {
                     locations: $trans.locations,
                     parent: trans,
                     parentID: trans.id,
-                    parentType: XrefEnum.transaction,
+                    parentType: .transaction,
                     addCurrentLocation: false
                 )
                 .listRowInsets(EdgeInsets())
@@ -588,7 +662,7 @@ struct TransactionEditView: View {
                             Button {
                                 mapModel.completions.removeAll()
                                 Task {
-                                    if let location = await mapModel.saveCurrentLocation(parentID: trans.id, parentType: XrefEnum.transaction) {
+                                    if let location = await mapModel.saveCurrentLocation(parentID: trans.id, parentType: .transaction) {
                                         trans.upsert(location)
                                     }
                                 }
@@ -686,7 +760,7 @@ struct TransactionEditView: View {
         @ViewBuilder var deleteButton: DeleteButton
         
         var linkedLingo: String? {
-            if trans.relatedTransactionType == XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction) {
+            if trans.relatedTransactionType == .transaction {
                 return "(Linked to transaction)"
             } else {
                 return "(Linked to event)"
@@ -714,6 +788,9 @@ struct TransactionEditView: View {
         /// Clear undo history.
         UndodoManager.shared.clearHistory()
         UndodoManager.shared.commitChange(trans: trans)
+        Task {
+            LocationManager.shared.requestLocation()
+        }
         
         //calModel.hilightTrans = nil
             
@@ -725,17 +802,62 @@ struct TransactionEditView: View {
             trans.date = day.date!
         }
                 
-        /// Format the dollar amount.
-        if trans.action != .add && trans.tempAction != .add {
-            trans.amountString = trans.amount.currencyWithDecimals()
-        }
+//        let setCode = AppState.shared.country.currencyCode
+//        let methCode = trans.payMethod?.country?.currencyCode
+//        let cuntCode = trans.country?.currencyCode
+//        
+//        if methCode != cuntCode || methCode != setCode  {
+//            trans.requiresConversion = true
+//        }
+        
+        trans.requiresConversion = true
+        
+        /// Format the currency amount.
+        if trans.action != .add /*&& trans.tempAction != .add */{
+            
+            
+            //trans.amountString = trans.amount.currencyWithDecimals(currencyCode: trans.country?.currencyCode)
+            
+            /// Use the original amount in the textfield for editing.
+            if let code = trans.country?.currencyCode,
+               let ogAmount = trans.originalUnconvertedAmount {
+                trans.amountString = ogAmount.currencyWithDecimals(currencyCode: code)
+//                trans.amountString = CurrencyHelpers.formatAmountText(
+//                    amount: ogAmount,
+//                    currencyCode: code
+//                )
                 
+                //trans.requiresConversion = true
+            } else {
+                trans.amountString = trans.amount.currencyWithDecimals()
+            }
+            
+            
+//            if let code = trans.country?.currencyCode {
+//                trans.amountString = trans.amount.currencyWithDecimals(currencyCode: code)
+//            } else {
+//                trans.amountString = trans.amount.currencyWithDecimals()
+//            }
+            
+        }
+        
         /// Set a reference to the transactions ID so photos know where to go.
-        FileModel.shared.fileParent = FileParent(id: trans.id, type: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction))
+//        if let intId = Int(trans.serverID) {
+//            FileModel.shared.fileParent = FileParent(id: trans.serverID, type: .transaction)
+//        } else {
+//            FileModel.shared.fileParent = FileParent(id: trans.uuid == nil ? trans.serverID : trans.id, type: .transaction)
+//        }
+        
+        
+        FileModel.shared.fileParent = FileParent(id: trans.uuid == nil ? trans.serverID : trans.id, type: .transaction)
+        
+        
+        
 
         /// If the transaction is new.
         if trans.action == .add && !isTemp {
             trans.amountString = ""
+            trans.country = Countries.homeCountry
             
             /// Set the dummy nil category to the trans so it's not a real nil.
             trans.category = catModel.getNil()
@@ -746,7 +868,7 @@ struct TransactionEditView: View {
                 
             } else if let meth = calModel.sPayMethod, !meth.isUnified {
                 /// Add the selected viewing payment method to the transaction. (But only if it's not unified.)
-                trans.payMethod = calModel.sPayMethod
+                trans.payMethod = meth
             } else {
                 trans.payMethod = payModel.getEditingDefault()
             }

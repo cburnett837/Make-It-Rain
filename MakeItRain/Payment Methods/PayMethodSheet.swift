@@ -29,6 +29,7 @@ struct PayMethodSheet: View {
     var isPendingSmartTransaction: Bool = false
     var showStartingAmountOption: Bool = false
     var showNoneOption: Bool = false
+    var noneText: String = "Show all transactions and their daily sum."
     //let theSections: [PaymentMethodSection] = [.debit, .credit, .other]
     
     var monthText: String {
@@ -205,7 +206,7 @@ struct PayMethodSheet: View {
                 dismiss()
             }
         } footer: {
-            Text("Show all transactions and their daily sum.")
+            Text(noneText)
         }
     }
     
@@ -351,7 +352,7 @@ fileprivate struct StartingAmountLine: View {
     @FocusState private var focusedField: Int?
     
     var body: some View {
-        HStack {
+        HStack(alignment: .circleAndTitle) {
             Label {
                 Text("\(payMethod.title)")
             } icon: {
@@ -361,6 +362,7 @@ fileprivate struct StartingAmountLine: View {
                     fallBackType: payMethod.isUnified ? .gradient : .color
                 ))
             }
+            .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
             .contentShape(Rectangle())
             .onTapGesture {
                 selectPaymentMethod(payMethod)
@@ -368,30 +370,76 @@ fileprivate struct StartingAmountLine: View {
             
             Spacer()
             
-            Group {
-                #if os(iOS)
-                if payMethod.isUnified {
-                    Text(startingAmount.amountString.isEmpty ? (AppSettings.shared.useWholeNumbers ? "$0" : "$0.00") : startingAmount.amountString)
-                        .foregroundStyle(.secondary)
-                } else {
-                    iPhoneTextField
+            VStack(alignment: .trailing) {
+                Group {
+                    #if os(iOS)
+                    if payMethod.isUnified {
+                        Text(startingAmount.amountString.isEmpty ? (AppSettings.shared.useWholeNumbers ? "$0" : "$0.00") : startingAmount.amountString)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        iPhoneTextField
+                    }
+                    
+                    #else
+                    macTextField
+                    #endif
+                }
+                .focused($focusedField, equals: 0)
+                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                
+                #warning("CURRENCY! FIX ME")
+//                if let converted = startingAmount.convertedDisplayAmount {
+//                    let setCunt = AppState.shared.country
+//                    Text("Converted to \(CurrencyHelpers.formatAmountText(amount: converted, currencyCode: setCunt.currencyCode))")
+//                        .foregroundStyle(.secondary)
+//                        .font(.caption2)
+//                }
+            }
+            
+//            .formatCurrencyLiveAndOnUnFocus(
+//                focusValue: 0,
+//                focusedField: focusedField,
+//                amountString: startingAmount.amountString,
+//                amountStringBinding: $startingAmount.amountString,
+//                amount: startingAmount.amount
+//            )
+            .onChange(of: focusedField) { oldFocus, newFocus in
+                let didFocus = newFocus == 0
+                let didUnfocus = oldFocus == 0
+                let methCur = calModel.sPayMethod?.country?.currencyCode
+                let setCur = AppState.shared.country.currencyCode
+                
+                if didUnfocus {
+                    /// When unfocusing the field, format the currency with symbol & commas.
+                    startingAmount.amountString = CurrencyHelpers.formatAmountText(
+                        amount: startingAmount.amount,
+                        currencyCode: startingAmount.payMethod.country?.currencyCode ?? "USD"
+                    )
+                } else if didFocus {
+                    /// When focusing the field, remove the currency symbol and commas.
+//                    if let cleaned = CurrencyHelpers.cleanAmountString(startingAmount.amountString, currencyCode: methCur ?? setCur) {
+//                        startingAmount.amountString = cleaned
+//                    }
+                    startingAmount.amountString = CurrencyHelpers.cleanAmountString(startingAmount.amountString, currencyCode: methCur ?? setCur)
+                    
+                    /// If the field is blank, when switching between payment methods, toggle the "-" if applicable to respect an expense/payment.
+                    if startingAmount.amountString.isEmpty && startingAmount.payMethod.isDebitOrCash == true {
+                        startingAmount.amountString = "-"
+                    }
+                }
+            }
+            .onChange(of: startingAmount.amountString) { oldValue, newValue in
+                if startingAmount.payMethod.isDebitOrCash {
+                    CalcHelper.updateUnifiedStartingAmount(month: calModel.sMonth, for: .unifiedChecking, store: store)
+                } else if startingAmount.payMethod.isCreditOrLoan {
+                    CalcHelper.updateUnifiedStartingAmount(month: calModel.sMonth, for: .unifiedCredit, store: store)
                 }
                 
-                #else
-                macTextField
-                #endif
+                
             }
-            .focused($focusedField, equals: 0)
-            .formatCurrencyLiveAndOnUnFocus(
-                focusValue: 0,
-                focusedField: focusedField,
-                amountString: startingAmount.amountString,
-                amountStringBinding: $startingAmount.amountString,
-                amount: startingAmount.amount
-            )
-            .task {
-                startingAmount.amountString = startingAmount.amount.currencyWithDecimals()
-            }
+//            .task {
+//                startingAmount.amountString = startingAmount.amount.currencyWithDecimals()
+//            }
         }
     }
     
@@ -422,12 +470,13 @@ fileprivate struct StartingAmountLine: View {
             .multilineTextAlignment(.trailing)
             .contextMenu {
                 Button("AutoFill") {
-                    if calModel.sMonth.num != 0 {
-                        let targetMonth = calModel.months.filter { $0.num == calModel.sMonth.num - 1 }.first!
-                        let _ = calModel.calculateTotal(for: targetMonth, using: payMethod)
-                        let eodTotal = targetMonth.days.last!.eodTotal
-                        startingAmount.amountString = eodTotal.currencyWithDecimals()
-                    }
+                    autoFillAmount()
+//                    if calModel.sMonth.num != 0 {
+//                        let targetMonth = calModel.months.filter { $0.num == calModel.sMonth.num - 1 }.first!
+//                        let _ = calModel.calculateTotal(for: targetMonth, using: payMethod)
+//                        let eodTotal = targetMonth.days.last!.eodTotal
+//                        startingAmount.amountString = eodTotal.currencyWithDecimals()
+//                    }
                 }
             }
     }
@@ -435,11 +484,75 @@ fileprivate struct StartingAmountLine: View {
     
     func autoFillAmount() {
         if calModel.sMonth.num != 0 {
-            let targetMonth = calModel.months.filter { $0.num == calModel.sMonth.num - 1 }.first!            
-            let eod = CalcHelper.calculateTotal(for: targetMonth, using: payMethod, and: .giveMeLastDayEod, store: store)
-            let eodTotal = eod//targetMonth.days.last!.eodTotal
-            startingAmount.amountString = eodTotal.currencyWithDecimals()
+            //if let targetMonth = calModel.months.getAdjacent(num: calModel.sMonth.num , direction: .prev) {
+            if let targetMonth = calModel.months.filter({ $0.num == calModel.sMonth.num - 1 }).first {
+                let eod = CalcHelper.calculateTotal(
+                    for: targetMonth,
+                    using: payMethod,
+                    and: .giveMeLastDayEod,
+                    store: store
+                )
+                //let eodTotal = eod//targetMonth.days.last!.eodTotal
+                //startingAmount.amountString = eod.currencyWithDecimals()
+                
+                
+//                let USA = Countries.fetch(by: 225)!
+//                if let amountConverted = Countries.convert(amount: eod, from: USA, to: AppState.shared.country),
+//                   let country = payMethod.country {
+//        //            self.convertedDisplayAmount = Countries.convert(amount: amount, from: USA, to: AppState.shared.country)
+//                    self.amountString = CurrencyHelpers.formatAmountText(amount: amountConverted, currencyCode: country.currencyCode)
+                    
+                    
+                print("The EOD for \(startingAmount.payMethod.title) is \(eod)")
+                //startingAmount.amountString = eod.currencyWithDecimals()
+                
+//                if let cunt = startingAmount.payMethod.country {
+//                    startingAmount.amountString = CurrencyHelpers.formatAmountText(amount: eod, currencyCode: cunt.currencyCode)
+//                } else {
+//                    startingAmount.amountString = eod.currencyWithDecimals()
+//                }
+                
+                
+                /// Tackle App = USA, starting amount currency = COP
+                /// NOTE! EOD is always the app's currency type
+                //let setCunt = AppState.shared.country
+                
+                
+                startingAmount.amountString = eod.currencyWithDecimals(currencyCode: startingAmount.payMethod.country?.currencyCode)
+                return
+                
+//                if let methCunt = startingAmount.payMethod.country {
+//                    //let exchangeRate =
+//                    
+//                }
+//                
+//                
+//                
+//                
+//                if let cunt = startingAmount.payMethod.country {
+//                    let setCunt = AppState.shared.country
+//                    if cunt != setCunt {
+//                        print("🐶0.0")
+//                        if let converted = Countries.convert(
+//                            amount: eod,
+//                            from: setCunt,
+//                            to: cunt
+//                        ) {
+//                            print("🐶0.1")
+//                            startingAmount.amountString = CurrencyHelpers.formatAmountText(
+//                                amount: converted,
+//                                currencyCode: cunt.currencyCode
+//                            )
+//                        }
+//                    } else {
+//                        print("🐶0.2")
+//                        startingAmount.amountString = eod.currencyWithDecimals()
+//                    }
+//                } else {
+//                    print("🐶0.3")
+//                    startingAmount.amountString = eod.currencyWithDecimals()
+//                }
+            }
         }
     }
 }
-

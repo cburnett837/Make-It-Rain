@@ -107,6 +107,7 @@ struct PayMethodOverView: View {
                 PayMethodEditView(payMethod: meth, editID: $paymentMethodEditID)
             }
             .onChange(of: paymentMethodEditID) { oldId, newId in
+                //print("running attached to \(editPaymentMethod?.title)")
                 if let newId {
                     if let payMethod = payModel.getPaymentMethod(by: newId) {
                         editPaymentMethod = payMethod

@@ -218,8 +218,16 @@ struct DayViewPhone: View {
                         calModel.transactionIdToCopy = nil
                         
                         //DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                            trans.status = .editing
+                        trans.status = .editing
                         //}
+                        
+                        /// Set the amount to the original unconverted amount since the save function will convert it back
+//                        if let code = trans.country?.currencyCode,
+//                           let ogAmount = trans.originalUnconvertedAmount {
+//                            trans.amountString = ogAmount.currencyWithDecimals(currencyCode: code)
+//                        } else {
+//                            trans.amountString = trans.amount.currencyWithDecimals()
+//                        }
                         
                         Task {
                             await calModel.saveTransaction(id: transId)
@@ -401,28 +409,65 @@ struct DayViewPhone: View {
     }
     
     
-    var eodText: some View {
-        Group {
-            if AppSettings.shared.useWholeNumbers && AppSettings.shared.tightenUpEodTotals {
-                Text("\(String(format: "%.00f", day.eodTotal).replacing("$", with: "").replacing(",", with: ""))")
-                
-            } else if AppSettings.shared.useWholeNumbers {
-                Text(day.eodTotal.currencyWithDecimals(0))
-                
-            } else if !AppSettings.shared.useWholeNumbers && AppSettings.shared.tightenUpEodTotals {
-                Text(day.eodTotal.currencyWithDecimals(2).replacing("$", with: "").replacing(",", with: ""))
-                
+    
+    var eodTextString: String {
+        func strip(_ string: String, currencyCode: String) -> String {
+            //return string
+            return CurrencyHelpers.cleanAmountString(string, currencyCode: currencyCode)/* ?? string.replacing("$", with: "").replacing(",", with: "")*/
+        }
+        
+        let methCur = calModel.sPayMethod?.country?.currencyCode
+        let setCur = AppState.shared.country.currencyCode
+        
+        if AppSettings.shared.useWholeNumbers && AppSettings.shared.tightenUpEodTotals {
+//                "\(String(format: "%.0f", NSDecimalNumber(decimal: day.eodTotal).doubleValue))"
+            if day.eodTotal > 100000 || day.eodTotal < -100000 {
+                return strip(day.eodTotal.kVersion(2), currencyCode: methCur ?? setCur)
             } else {
-                Text(day.eodTotal.currencyWithDecimals(2))
+                return strip(String(describing: day.eodTotal.currencyWithDecimals(AppSettings.shared.useWholeNumbers ? 0 : 2, currencyCode: setCur)), currencyCode: setCur)
+                return strip("\(String(describing: day.eodTotal))", currencyCode: methCur ?? setCur)
+                
+                return strip("\(String(format: "%.0f", NSDecimalNumber(decimal: day.eodTotal).doubleValue))", currencyCode: methCur ?? setCur)
+                
+                //"\(String(format: "%.0f", NSDecimalNumber(decimal: day.eodTotal).doubleValue))"
+                //Text("\(String(format: "%.00f", day.eodTotal).replacing("$", with: "").replacing(",", with: ""))")
+            }
+            
+        } else if AppSettings.shared.useWholeNumbers {
+//                Text(day.eodTotal.currencyWithDecimals(0))
+            if day.eodTotal > 100000 || day.eodTotal < -100000 {
+                return day.eodTotal.kVersion(2)
+            } else {
+                return day.eodTotal.currencyWithDecimals(0)
+            }
+            
+        } else if !AppSettings.shared.useWholeNumbers && AppSettings.shared.tightenUpEodTotals {
+//                Text(day.eodTotal.currencyWithDecimals(2).replacing("$", with: "").replacing(",", with: ""))
+            if day.eodTotal > 100000 || day.eodTotal < -100000 {
+                return day.eodTotal.kVersion(2)
+            } else {
+                return strip(day.eodTotal.currencyWithDecimals(2), currencyCode: methCur ?? setCur)//.replacing("$", with: "").replacing(",", with: "")
+            }
+            
+        } else {
+//                Text(day.eodTotal.currencyWithDecimals(2))
+            if day.eodTotal > 100000 || day.eodTotal < -100000 {
+                return day.eodTotal.kVersion(2)
+            } else {
+                return day.eodTotal.currencyWithDecimals(2)
             }
         }
-        .contentTransition(.numericText())
-        .padding(.leading, AppState.shared.isIpad ? 8 : 0)
-        .font(.caption2)
-        .foregroundColor(eodColor)
-        .frame(maxWidth: .infinity, alignment: AppState.shared.isIpad ? .leading : .center) /// This causes each day to be the same size
-        .minimumScaleFactor(0.5)
-        .lineLimit(1)
+    }
+    
+    var eodText: some View {
+        Text(eodTextString)
+            .contentTransition(.numericText())
+            .padding(.leading, AppState.shared.isIpad ? 8 : 0)
+            .font(.caption2)
+            .foregroundColor(eodColor)
+            .frame(maxWidth: .infinity, alignment: AppState.shared.isIpad ? .leading : .center) /// This causes each day to be the same size
+            .minimumScaleFactor(0.5)
+            .lineLimit(1)
     }
             
     
@@ -451,6 +496,8 @@ struct DayViewPhone: View {
             calModel.transactionToCopy = trans
             calModel.transactionIdToCopy = trans.id
             showDropActions = true
+        } else {
+            print("Trans is not set for drop operation")
         }
         
         return true

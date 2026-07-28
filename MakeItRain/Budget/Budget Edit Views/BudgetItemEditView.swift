@@ -36,7 +36,7 @@ struct BudgetItemEditView<T: IsEditableBudget & Observation.Observable>: View {
     @State private var labelWidth: CGFloat = 20.0
 
     
-    var catAndGroupBudgetAmount: Double {
+    var catAndGroupBudgetAmount: Decimal {
         let catAmount = store.categories.map { $0.amount ?? 0 }.reduce(0, +)
         let groupAmount = store.categoryGroups.map { $0.amount ?? 0 }.reduce(0, +)
         return catAmount + groupAmount
@@ -56,7 +56,7 @@ struct BudgetItemEditView<T: IsEditableBudget & Observation.Observable>: View {
         }
     }
     
-    var monthlyIncome: Double {
+    var monthlyIncome: Decimal {
         return store.repTransactions.reduce(0.0) { total, rep in
             guard rep.category?.isIncome == true else { return total }
             
@@ -64,7 +64,7 @@ struct BudgetItemEditView<T: IsEditableBudget & Observation.Observable>: View {
                 [.dayOfMonth, .weekday, .specificDate].contains($0.whenType) && $0.active
             }
             
-            return total + rep.amount * Double(count)
+            return total + rep.amount * Decimal(count)
         }
     }
     
@@ -178,7 +178,7 @@ struct BudgetItemEditView<T: IsEditableBudget & Observation.Observable>: View {
             .uiStartCursorAtEnd(true)
             .uiTextAlignment(.left)
             #else
-            StandardTextField("Name", text: $amountString, focusedField: $focusedField, focusValue: 0)
+            StandardTextField("Name", text: $obj.amountString, focusedField: $focusedField, focusValue: 0)
                 .onSubmit { focusedField = 1 }
             #endif
         }

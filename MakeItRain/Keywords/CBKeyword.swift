@@ -288,7 +288,7 @@ extension CBKeyword {
         
         let categoryID: String?
         let categoryTitle: String?
-        let categoryAmount: Double?
+        let categoryAmount: Decimal?
         let categoryHexCode: String?
         let categoryEmoji: String?
         
@@ -339,7 +339,7 @@ extension CBKeyword {
                     if catEnt.id == nil {
                         catEnt.id = categoryID
                         catEnt.title = snapshot.categoryTitle
-                        catEnt.amount = snapshot.categoryAmount ?? 0.0
+                        catEnt.amount = (snapshot.categoryAmount ?? 0.0) as NSDecimalNumber
                         catEnt.hexCode = snapshot.categoryHexCode
                         catEnt.emoji = snapshot.categoryEmoji
                         catEnt.action = "edit"
@@ -419,7 +419,7 @@ extension CBKeyword {
                 isIgnoredSuggestion: entity.isIgnoredSuggestion,
                 categoryID: entity.category?.id,
                 categoryTitle: entity.category?.title,
-                categoryAmount: entity.category?.amount ?? 0.0,
+                categoryAmount: entity.category?.amount?.decimalValue ?? 0.0,
                 categoryHexCode: entity.category?.hexCode,
                 categoryEmoji: entity.category?.emoji
             )
@@ -461,7 +461,7 @@ extension CBKeyword.Snapshot {
         self.isIgnoredSuggestion = entity.isIgnoredSuggestion
         self.categoryID = entity.category?.id
         self.categoryTitle = entity.category?.title
-        self.categoryAmount = entity.category?.amount ?? 0.0
+        self.categoryAmount = entity.category?.amount?.decimalValue ?? 0.0
         self.categoryHexCode = entity.category?.hexCode
         self.categoryEmoji = entity.category?.emoji
     }

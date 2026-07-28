@@ -15,7 +15,7 @@ class CBLocation: Codable, Identifiable, Equatable, Hashable {
     var id: String
     var uuid: String?
     var relatedID: String
-    var relatedRecordType: XrefItem
+    var relatedRecordType: XrefLocationType
     var title: String
     var lat: Double
     var lon: Double
@@ -39,12 +39,12 @@ class CBLocation: Codable, Identifiable, Equatable, Hashable {
     enum CodingKeys: CodingKey { case id, uuid, related_id, related_type_id, title, lat, lon, active, user_id, account_id, device_uuid, entered_by, updated_by, entered_date, updated_date, action, identifier, entered_by_id, updated_by_id }
 
                 
-    init(relatedID: String, locationType: XrefEnum, title: String, mapItem: MKMapItem?) {
+    init(relatedID: String, locationType: XrefLocationType, title: String, mapItem: MKMapItem?) {
         let uuid = UUID().uuidString
         self.id = uuid
         self.uuid = uuid
         self.relatedID = relatedID
-        self.relatedRecordType = XrefModel.getItem(from: .locationTypes, byEnumID: locationType)
+        self.relatedRecordType = locationType// XrefModel.getItem(from: .locationTypes, byEnumID: locationType)
         self.title = title
         self.mapItem = mapItem
         
@@ -114,7 +114,7 @@ class CBLocation: Codable, Identifiable, Equatable, Hashable {
         self.active = active == 1 ? true : false
         
         let relatedID = try container.decode(Int.self, forKey: .related_type_id)
-        self.relatedRecordType = XrefModel.getItem(from: .locationTypes, byID: relatedID)
+        self.relatedRecordType = XrefLocationType.init(id: relatedID)// XrefModel.getItem(from: .locationTypes, byID: relatedID)
         
         action = .edit
         
@@ -166,7 +166,7 @@ class CBLocation: Codable, Identifiable, Equatable, Hashable {
     func deepCopy(_ mode: ShadowCopyAction) {
         switch mode {
         case .create:
-            let copy = CBLocation(relatedID: self.relatedID, locationType: self.relatedRecordType.enumID, title: self.title, mapItem: self.mapItem)
+            let copy = CBLocation(relatedID: self.relatedID, locationType: self.relatedRecordType, title: self.title, mapItem: self.mapItem)
             copy.id = self.id
             copy.uuid = self.uuid
             copy.title = self.title

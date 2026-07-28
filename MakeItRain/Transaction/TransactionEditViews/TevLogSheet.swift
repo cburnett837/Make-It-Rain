@@ -203,6 +203,8 @@ struct TevLogSheet: View {
                 break
             case .christmasGiftStatus:
                 break
+            case .country:
+                break
             }
         case .paymentMethod:
             break

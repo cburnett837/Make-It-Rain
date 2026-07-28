@@ -7,6 +7,9 @@
 
 import SwiftUI
 import WidgetKit
+#if os(iOS)
+import WatchConnectivity
+#endif
 
 struct PlaidTransactionOverlay: View {
     //@Local(\.colorTheme) var colorTheme
@@ -201,7 +204,8 @@ struct PlaidTransactionOverlay: View {
 //    }
     
     
-    @ViewBuilder var sheetHeader: some View {
+    @ViewBuilder
+    var sheetHeader: some View {
         @Bindable var calProps = calProps
         SheetHeader(
             title: "Pending Transactions",
@@ -225,6 +229,7 @@ struct PlaidTransactionOverlay: View {
 //        .bottomPanelAndScrollViewHeightAdjuster(bottomPanelHeight: $calProps.bottomPanelHeight, scrollContentMargins: $calProps.scrollContentMargins)
 //        #endif
     }
+    
     
     @ViewBuilder
     var moreMenu: some View {
@@ -562,7 +567,7 @@ struct PlaidTransactionOverlay: View {
                 trans.isAcknowledged = true
             }
             
-            plaidModel.totalTransCount -= 1
+            //plaidModel.totalTransCount -= 1
             
             if trans.payMethod?.isCreditOrUnified ?? false {
                 if trans.amountString.contains("-") {
@@ -611,6 +616,19 @@ struct PlaidTransactionOverlay: View {
             
             await calModel.saveTransaction(id: realTrans.id, location: .tempList)
             WidgetCenter.shared.reloadTimelines(ofKind: "PlaidWidget")
+            
+//            guard WCSession.default.isReachable else {
+//                print("Not reachable")
+//                return
+//            }
+//            WCSession.default.sendMessage(["action": "reloadWidget"], replyHandler: nil) { error in
+//                print("Error sending message to watch: \(error.localizedDescription)")
+//            }
+            
+            #if os(iOS)
+            let payload: [String: Any] = ["action": "reloadWidget"]
+            WCSession.default.transferUserInfo(payload)
+            #endif
         }
         
         
@@ -619,11 +637,24 @@ struct PlaidTransactionOverlay: View {
             withAnimation {
                 trans.isAcknowledged = true
             }
-            plaidModel.totalTransCount -= 1
+            //plaidModel.totalTransCount -= 1
             Task {
                 await plaidModel.denyPlaidTransaction(trans)
                 plaidModel.trans.removeAll(where: { $0.id == trans.id })
                 WidgetCenter.shared.reloadTimelines(ofKind: "PlaidWidget")
+                
+//                guard WCSession.default.isReachable else {
+//                    print("Not reachable")
+//                    return
+//                }
+//                WCSession.default.sendMessage(["action": "reloadWidget"], replyHandler: nil) { error in
+//                    print("Error sending message to watch: \(error.localizedDescription)")
+//                }
+                
+                #if os(iOS)
+                let payload: [String: Any] = ["action": "reloadWidget"]
+                WCSession.default.transferUserInfo(payload)
+                #endif
             }
         }
     }
@@ -665,7 +696,7 @@ struct ClearPlaidBeforeDateView: View {
                                 if date < clearDate {
                                     each.isAcknowledged = true
                                     plaidModel.delete(each)
-                                    plaidModel.totalTransCount -= 1
+                                    //plaidModel.totalTransCount -= 1
                                 }
                             }
                         }

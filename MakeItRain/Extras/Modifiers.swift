@@ -165,12 +165,26 @@ struct ToolbarBorder: ViewModifier {
 
 
 
-struct FormatCurrencyLiveAndOnUnFocus: ViewModifier {
+struct FormatCurrency2: ViewModifier {
     var focusValue: Int
     var focusedField: Int?
     var amountString: String?
     @Binding var amountStringBinding: String
     var amount: Double?
+    
+    func body(content: Content) -> some View {
+        content
+    }
+}
+
+
+
+struct FormatCurrencyLiveAndOnUnFocus: ViewModifier {
+    var focusValue: Int
+    var focusedField: Int?
+    var amountString: String?
+    @Binding var amountStringBinding: String
+    var amount: Decimal?
     
     func body(content: Content) -> some View {
         content
@@ -224,7 +238,7 @@ struct CalculateAndFormatCurrencyLiveAndOnUnFocus: ViewModifier {
     var focusedField: Int?
     var amountString: String?
     @Binding var amountStringBinding: String
-    var amount: Double?
+    var amount: Decimal?
     
     @State private var tokens: [CalcToken] = []
     @State private var currentNumber: String = ""

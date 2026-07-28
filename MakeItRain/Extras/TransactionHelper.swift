@@ -38,7 +38,7 @@ enum TransactionHelper {
         }
         
         enum Amount {
-            static func totalSpend(from t: Array<CBTransaction>) -> Double {
+            static func totalSpend(from t: Array<CBTransaction>) -> Decimal {
                 return Debit.Transactions.get(from: t)
                     /// Anything that has a negative dollar amount (expenses).
                     .filter { $0.isExpense }
@@ -46,25 +46,25 @@ enum TransactionHelper {
                     .reduce(0.0, +)
             }
             
-            static func actualSpend(from t: Array<CBTransaction>) -> Double {
+            static func actualSpend(from t: Array<CBTransaction>) -> Decimal {
                 let totalSpend = Debit.Amount.totalSpend(from: t)
                 let irregularIncome = Debit.Amount.irregularIncome(from: t)
                 return (totalSpend < 0 ? totalSpend * -1 : totalSpend) - irregularIncome
             }
             
-            static func totalSpendMinusRegularIncome(from t: Array<CBTransaction>) -> Double {
+            static func totalSpendMinusRegularIncome(from t: Array<CBTransaction>) -> Decimal {
                 let totalSpend = Debit.Amount.totalSpend(from: t)
                 let regularIncome = Debit.Amount.regularIncome(from: t)
                 return (totalSpend < 0 ? totalSpend * -1 : totalSpend) - regularIncome
             }
             
-            static func actualSpendMinusRegularIncome(from t: Array<CBTransaction>) -> Double {
+            static func actualSpendMinusRegularIncome(from t: Array<CBTransaction>) -> Decimal {
                 let actualSpend = Debit.Amount.actualSpend(from: t)
                 let regularIncome = Debit.Amount.regularIncome(from: t)
                 return (actualSpend < 0 ? actualSpend * -1 : actualSpend) - regularIncome
             }
             
-            static func regularIncome(from t: Array<CBTransaction>) -> Double {
+            static func regularIncome(from t: Array<CBTransaction>) -> Decimal {
                 return Debit.Transactions.get(from: t)
                     /// Anything that has a positive dollar amount (income).
                     //.filter { $0.isIncome || $0.isRegularIncome || $0.isIrregularIncome }
@@ -73,7 +73,7 @@ enum TransactionHelper {
                     .reduce(0.0, +)
             }
                 
-            static func irregularIncome(from t: Array<CBTransaction>) -> Double {
+            static func irregularIncome(from t: Array<CBTransaction>) -> Decimal {
                 return Debit.Transactions.get(from: t)
                     /// Anything that has a positive dollar amount (income).
                     //.filter { $0.isIncome || $0.isRegularIncome || $0.isIrregularIncome }
@@ -82,14 +82,14 @@ enum TransactionHelper {
                     .reduce(0.0, +)
             }
             
-            static func actualIncome(from t: Array<CBTransaction>) -> Double {
+            static func actualIncome(from t: Array<CBTransaction>) -> Decimal {
                 let totalSpend = Debit.Amount.totalSpend(from: t)
                 let regularIncome = Debit.Amount.regularIncome(from: t)
                 let irregularIncome = Debit.Amount.irregularIncome(from: t)
                 return totalSpend + regularIncome + irregularIncome
             }
             
-            static func actualSpendMinusPayment(from t: Array<CBTransaction>) -> Double {
+            static func actualSpendMinusPayment(from t: Array<CBTransaction>) -> Decimal {
                 let actualSpend = Debit.Amount.actualSpend(from: t)
                 let payment = Credit.Amount.payments(from: t)
                 return actualSpend - payment
@@ -135,31 +135,31 @@ enum TransactionHelper {
         }
         
         enum Amount {
-            static func totalSpend(from t: Array<CBTransaction>) -> Double {
+            static func totalSpend(from t: Array<CBTransaction>) -> Decimal {
                 return Credit.Transactions.totalSpend(from: t)
                     .map { $0.amount * -1 }
                     .reduce(0.0, +)
             }
             
-            static func actualSpend(from t: Array<CBTransaction>) -> Double {
+            static func actualSpend(from t: Array<CBTransaction>) -> Decimal {
                 let totalSpend = Credit.Amount.totalSpend(from: t)
                 let refundOrPerk = Credit.Amount.refundOrPerk(from: t)
                 return (totalSpend < 0 ? totalSpend * -1 : totalSpend) - refundOrPerk
             }
             
-            static func payments(from t: Array<CBTransaction>) -> Double {
+            static func payments(from t: Array<CBTransaction>) -> Decimal {
                 return Credit.Transactions.payments(from: t)
                     .map { $0.amount }
                     .reduce(0.0, +)
             }
             
-            static func refundOrPerk(from t: Array<CBTransaction>) -> Double {
+            static func refundOrPerk(from t: Array<CBTransaction>) -> Decimal {
                 return Credit.Transactions.refundOrPerk(from: t)
                     .map { $0.amount * -1 }
                     .reduce(0.0, +)
             }
             
-            static func actualSpendMinusPayment(from t: Array<CBTransaction>) -> Double {
+            static func actualSpendMinusPayment(from t: Array<CBTransaction>) -> Decimal {
                 let actualSpend = Credit.Amount.actualSpend(from: t)
                 let payments = Credit.Amount.payments(from: t)
                 return actualSpend + payments
@@ -184,46 +184,46 @@ enum TransactionHelper {
         }
         
         enum Amount {
-            static func regularIncome(from t: Array<CBTransaction>) -> Double {
+            static func regularIncome(from t: Array<CBTransaction>) -> Decimal {
                 return Debit.Amount.regularIncome(from: t)
             }
             
-            static func irregularIncome(from t: Array<CBTransaction>) -> Double {
+            static func irregularIncome(from t: Array<CBTransaction>) -> Decimal {
                 return Debit.Amount.irregularIncome(from: t) + Credit.Amount.refundOrPerk(from: t)
             }
             
-            static func totalSpend(from t: Array<CBTransaction>) -> Double {
+            static func totalSpend(from t: Array<CBTransaction>) -> Decimal {
                 let debitSpend = Debit.Amount.totalSpend(from: t)
                 let creditSpend = Credit.Amount.totalSpend(from: t)
                 return debitSpend + creditSpend
             }
             
-            static func spendMinusPayments(from t: Array<CBTransaction>) -> Double {
+            static func spendMinusPayments(from t: Array<CBTransaction>) -> Decimal {
                 let spend = All.Amount.totalSpend(from: t)
                 let payments = Credit.Amount.payments(from: t)
                 return spend - payments
             }
             
-            static func spendMinusRegularIncome(from t: Array<CBTransaction>) -> Double {
+            static func spendMinusRegularIncome(from t: Array<CBTransaction>) -> Decimal {
                 let totalSpend = All.Amount.totalSpend(from: t)
                 let income = All.Amount.regularIncome(from: t)
                 return (totalSpend < 0 ? totalSpend * -1 : totalSpend) - income
             }
             
-            static func incomeMinusPayments(from t: Array<CBTransaction>) -> Double {
+            static func incomeMinusPayments(from t: Array<CBTransaction>) -> Decimal {
                 let debitIncome = Debit.Amount.irregularIncome(from: t)
                 let creditIncome = Credit.Amount.refundOrPerk(from: t)
                 let payments = Credit.Amount.payments(from: t)
                 return (debitIncome + creditIncome) - payments
             }
             
-            static func actualSpend(from t: Array<CBTransaction>) -> Double {
+            static func actualSpend(from t: Array<CBTransaction>) -> Decimal {
                 let totalSpend = All.Amount.totalSpend(from: t)
                 let income = All.Amount.irregularIncome(from: t)
                 return (totalSpend < 0 ? totalSpend * -1 : totalSpend) - income
             }
             
-            static func actualIncome(from t: Array<CBTransaction>) -> Double {
+            static func actualIncome(from t: Array<CBTransaction>) -> Decimal {
                 let irrIncome = All.Amount.irregularIncome(from: t)
                 let regIncome = All.Amount.regularIncome(from: t)
                 return irrIncome + regIncome
@@ -467,9 +467,9 @@ enum TransactionHelper {
     static func createChartData(
         transactions: Array<CBTransaction>,
         category: CBCategory,
-        categoricalBudgetAmount: Double,
+        categoricalBudgetAmount: Decimal,
         categoryGroup: CBCategoryGroup?,
-        groupBudgetAmount: Double?,
+        groupBudgetAmount: Decimal?,
         budgets: Array<CBBudgetItem>?
     ) -> ChartData {
         //let categoricalBudgetAmount = budgets?.map { $0.amount }.reduce(0.0, +) ?? 0.0
@@ -478,8 +478,8 @@ enum TransactionHelper {
         let incomeMinusPayments =  TransactionHelper.All.Amount.incomeMinusPayments(from: transactions)
         //let expensesMinusIncome = getSpendMinusIncome(from: transactions)
         
-        var chartPer = 0.0
-        var actualPer = 0.0
+        var chartPer: Decimal = 0.0
+        var actualPer: Decimal = 0.0
         let expensesMinusIncome = (expenses * -1) - income
         //let expensesMinusIncome = getSpendMinusIncome(from: transactions)
         

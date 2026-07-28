@@ -9,6 +9,7 @@ import Foundation
 import SwiftUI
 import PhotosUI
 
+
 #if os(macOS)
 class AppDelegateMac: NSObject, NSApplicationDelegate, NSWindowDelegate {
 //    internal func applicationWillTerminate(_ aNotification: Notification) {
@@ -282,7 +283,5 @@ class AppDelegatePhone: UIResponder, UIApplicationDelegate {
 }
 
 #endif
-
-
 
 

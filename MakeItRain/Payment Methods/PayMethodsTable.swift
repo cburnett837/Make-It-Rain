@@ -103,7 +103,7 @@ struct PayMethodsTable: View {
         for each in payModel.paymentMethods
             .filter({
                 $0.isPermitted
-                && $0.matchesFilter()
+                && $0.accountHolderFilter()
             })
                 
 //        .filter ({
@@ -132,7 +132,7 @@ struct PayMethodsTable: View {
 
     
     var body: some View {
-        let _ = Self._printChanges()
+        //let _ = Self._printChanges()
         NavigationStack {
             VStack {
                 ScrollView {
@@ -168,7 +168,9 @@ struct PayMethodsTable: View {
                         }
                     }
                 }
+                #if os(iOS)
                 .background(Color(.systemGroupedBackground))
+                #endif
             }
             .navigationTitle(model.navTitle)
             .searchable(
@@ -176,10 +178,12 @@ struct PayMethodsTable: View {
                 placement: .toolbar,
                 prompt: model.isCardSelected ? "Search in \(model.selectedPaymentMethod!.title)" : "Search in Wallet"
             )
+            #if os(iOS)
             .searchToolbarBehavior(.minimize)
+            #endif
             .toolbar {
                 #if os(macOS)
-                macToolbar()
+                //macToolbar()
                 #else
                 if let meth = model.selectedPaymentMethod {
                     cardToolbar(for: meth)
@@ -227,12 +231,53 @@ struct PayMethodsTable: View {
                     .presentationSizing(.page)
                     #endif
             }
+            /// Change logic has to be here, as opposed to each individual card, otherwise it will end up running for each card and we will end up with a record for each card, even tho you only edited 1.
+            .sheet(item: $model.editPaymentMethod, onDismiss: {
+                model.paymentMethodEditID = nil
+                payModel.determineIfUserIsRequiredToAddPaymentMethod()
+            }) { meth in
+                PayMethodEditView(payMethod: meth, editID: $model.paymentMethodEditID)
+            }
+            .onChange(of: model.paymentMethodEditID) { oldId, newId in
+                print("running attached to \(model.editPaymentMethod?.title)")
+                if let newId {
+                    if let payMethod = payModel.getPaymentMethod(by: newId) {
+                        model.editPaymentMethod = payMethod
+                    } else {
+                        model.editPaymentMethod = CBPaymentMethod(uuid: newId)
+                    }
+
+                } else {
+                    if let meth = payModel.getPaymentMethod(by: oldId!) {
+                        let _ = payModel.savePaymentMethod(id: oldId!, calModel: calModel, plaidModel: plaidModel)
+                        payModel.determineIfUserIsRequiredToAddPaymentMethod()
+                        /// Close if deleting since it will be gone.
+                        /// Also close if adding, since the server will send back the real ID, and cause the list to redraw, which would cause the sheet to dismiss itself and reopen.
+                        /// iPhone: pop from nav.
+                        /// iPad: dismiss sheet.
+                        if meth.action == .delete || meth.action == .add {
+                            if AppState.shared.isIphone {
+                                withAnimation(model.animation) {
+                                    model.selectedPaymentMethod = nil
+                                    model.hideUnselectedCards = false
+                                }
+                                //navPath.removeLast()
+                            }
+    //                        else {
+    //                            dismiss()
+    //                        }
+                        }
+                    }
+                }
+            }
         }
     }
     
     
     @ToolbarContentBuilder
     func tableToolbar() -> some ToolbarContent {
+        #if os(iOS)
+        ToolbarItem(placement: .topBarTrailing) { ToolbarRefreshButton() }        
         ToolbarItem(placement: .topBarTrailing) { newAccountButton }
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
@@ -258,11 +303,39 @@ struct PayMethodsTable: View {
                     .schemeBasedForegroundStyle()
             }
         }
+        #else
+        ToolbarItem(placement: .principal) { newAccountButton }
+        ToolbarItem(placement: .principal) {
+            Menu {
+                PayMethodFilterMenu()
+                PayMethodSortMenu()
+                
+                showReorderSheetButton
+                
+                Section("Default Viewing Account") {
+                    showDefaultForViewingSheetButton
+                }
+                
+                Section("Default Editing Account") {
+                    showDefaultForEditingSheetButton
+                }
+                
+                Section("Appearance") {
+                    useBusinessLogosToggle
+                }
+                
+            } label: {
+                Image(systemName: "ellipsis")
+                    .schemeBasedForegroundStyle()
+            }
+        }
+        #endif
     }
     
     
     @ToolbarContentBuilder
     func cardToolbar(for meth: CBPaymentMethod) -> some ToolbarContent {
+        #if os(iOS)
         ToolbarItem(placement: .topBarLeading) {
             closeButton
         }
@@ -279,6 +352,24 @@ struct PayMethodsTable: View {
                 }
             }
         }
+        #else
+        ToolbarItem(placement: .principal) {
+            closeButton
+        }
+        
+        if !meth.isUnified {
+            ToolbarItem(placement: .principal) {
+                editPaymentMethodButton(meth)
+            }
+            
+            if meth.accountType != .cash {
+                //ToolbarSpacer(.fixed, placement: .principal)
+                ToolbarItem(placement: .principal) {
+                    offlineCardInfoButton
+                }
+            }
+        }
+        #endif
     }
     
     
@@ -480,7 +571,7 @@ struct PayMethodsTable: View {
     }
 }
 
-
+#if os(iOS)
 struct OfflineCardDetailsSheet: View {
     @Environment(\.dismiss) var dismiss
     @State private var isEditing = false
@@ -832,7 +923,6 @@ struct OfflineCardDetailsSheet: View {
     
     
     
-    
     struct YearMonthPicker: UIViewRepresentable {
         @Binding var date: Date
 
@@ -868,10 +958,8 @@ struct OfflineCardDetailsSheet: View {
             }
         }
     }
-
-
 }
-
+#endif
 
 struct Card: View {
     @Environment(\.colorScheme) var colorScheme
@@ -928,7 +1016,7 @@ struct Card: View {
     }
 
     var body: some View {
-        let _ = Self._printChanges()
+        //let _ = Self._printChanges()
         card
             //.zIndex(Double(currentIndex))
             .padding(14)
@@ -975,48 +1063,51 @@ struct Card: View {
                     .scaleEffect(isCardSelected ? (isCurrent ? 1 : stackedScale) : 1, anchor: .top)
                     .offset(y: isCardSelected ? pushOffset : 0)
             }
+        #if os(iOS)
             .sheet(isPresented: $model.showOfflineCardDetailsSheet) {
                 if let meth = model.selectedPaymentMethod {
                     OfflineCardDetailsSheet(payMethod: meth)
                 }
             }
-            .sheet(item: $model.editPaymentMethod, onDismiss: {
-                model.paymentMethodEditID = nil
-                payModel.determineIfUserIsRequiredToAddPaymentMethod()
-            }) { meth in
-                PayMethodEditView(payMethod: meth, editID: $model.paymentMethodEditID)
-            }
-            .onChange(of: model.paymentMethodEditID) { oldId, newId in
-                if let newId {
-                    if let payMethod = payModel.getPaymentMethod(by: newId) {
-                        model.editPaymentMethod = payMethod
-                    } else {
-                        model.editPaymentMethod = CBPaymentMethod(uuid: newId)
-                    }
-
-                } else {
-                    if let meth = payModel.getPaymentMethod(by: oldId!) {
-                        let _ = payModel.savePaymentMethod(id: oldId!, calModel: calModel, plaidModel: plaidModel)
-                        payModel.determineIfUserIsRequiredToAddPaymentMethod()
-                        /// Close if deleting since it will be gone.
-                        /// Also close if adding, since the server will send back the real ID, and cause the list to redraw, which would cause the sheet to dismiss itself and reopen.
-                        /// iPhone: pop from nav.
-                        /// iPad: dismiss sheet.
-                        if meth.action == .delete || meth.action == .add {
-                            if AppState.shared.isIphone {
-                                withAnimation(model.animation) {
-                                    model.selectedPaymentMethod = nil
-                                    model.hideUnselectedCards = false
-                                }
-                                //navPath.removeLast()
-                            }
-    //                        else {
-    //                            dismiss()
-    //                        }
-                        }
-                    }
-                }
-            }
+        #endif
+//            .sheet(item: $model.editPaymentMethod, onDismiss: {
+//                model.paymentMethodEditID = nil
+//                payModel.determineIfUserIsRequiredToAddPaymentMethod()
+//            }) { meth in
+//                PayMethodEditView(payMethod: meth, editID: $model.paymentMethodEditID)
+//            }
+//            .onChange(of: model.paymentMethodEditID) { oldId, newId in
+//                print("running attached to \(model.editPaymentMethod?.title)")
+//                if let newId {
+//                    if let payMethod = payModel.getPaymentMethod(by: newId) {
+//                        model.editPaymentMethod = payMethod
+//                    } else {
+//                        model.editPaymentMethod = CBPaymentMethod(uuid: newId)
+//                    }
+//
+//                } else {
+//                    if let meth = payModel.getPaymentMethod(by: oldId!) {
+//                        let _ = payModel.savePaymentMethod(id: oldId!, calModel: calModel, plaidModel: plaidModel)
+//                        payModel.determineIfUserIsRequiredToAddPaymentMethod()
+//                        /// Close if deleting since it will be gone.
+//                        /// Also close if adding, since the server will send back the real ID, and cause the list to redraw, which would cause the sheet to dismiss itself and reopen.
+//                        /// iPhone: pop from nav.
+//                        /// iPad: dismiss sheet.
+//                        if meth.action == .delete || meth.action == .add {
+//                            if AppState.shared.isIphone {
+//                                withAnimation(model.animation) {
+//                                    model.selectedPaymentMethod = nil
+//                                    model.hideUnselectedCards = false
+//                                }
+//                                //navPath.removeLast()
+//                            }
+//    //                        else {
+//    //                            dismiss()
+//    //                        }
+//                        }
+//                    }
+//                }
+//            }
     }
     
     @ViewBuilder
@@ -1049,7 +1140,7 @@ struct Card: View {
                                 return false
                             }
                         })
-                        .filter { $0.matchesFilter() }
+                        .filter { $0.accountHolderFilter() }
 //                        .filter {
 //                            switch AppSettings.shared.paymentMethodFilterMode {
 //                            case .all:
@@ -1436,9 +1527,15 @@ struct PayMethodTableReorderList: View {
             //.listStyle(.plain)
             .navigationTitle("Reorder Accounts")
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .topBarTrailing) {
                     closeButton
                 }
+                #else
+                ToolbarItem(placement: .principal) {
+                    closeButton
+                }
+                #endif
             }
         }
     }
@@ -1484,710 +1581,710 @@ struct PayMethodTableReorderList: View {
 
 
 
-
-
-struct PayMethodsTableNORMAL: View {
-    @Local(\.useBusinessLogos) var useBusinessLogos
-    @AppStorage("paymentMethodTableColumnOrder") private var columnCustomization: TableColumnCustomization<CBPaymentMethod>
-    
-    @Environment(\.dismiss) var dismiss
-    @Environment(FuncModel.self) var funcModel
-    @Environment(CalendarModel.self) private var calModel
-    @Environment(PayMethodModel.self) private var payModel
-    
-    @Environment(PlaidModel.self) private var plaidModel
-    
-    @State private var searchText = ""
-    @State private var selectedPaymentMethod: CBPaymentMethod?
-    @State private var editPaymentMethod: CBPaymentMethod?
-    @State private var paymentMethodEditID: CBPaymentMethod.ID?
-    @State private var sortOrder = [KeyPathComparator(\CBPaymentMethod.title)]
-    
-    @State private var defaultViewingMethod: CBPaymentMethod?
-    @State private var defaultEditingMethod: CBPaymentMethod?
-    @State private var showDefaultViewingSheet = false
-    @State private var showDefaultEditingSheet = false
-    
-    @Binding var navPath: NavigationPath
-    //@State private var navPath = NavigationPath()
-    
-    var listOrders: [Int] {
-        payModel.paymentMethods.map { $0.listOrder ?? 0 }.sorted { $0 > $1 }
-    }
-        
-//    var filteredPayMethods: [CBPaymentMethod] {
-//        payModel.paymentMethods
-//            .filter { !$0.isUnified }
-//            .filter { $0.isPermitted }
-//            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedCaseInsensitiveContains(searchText) }
-//            //.sorted { $0.title.lowercased() < $1.title.lowercased() }
-//    }
+//
+//
+//struct PayMethodsTableNORMAL: View {
+//    @Local(\.useBusinessLogos) var useBusinessLogos
+//    @AppStorage("paymentMethodTableColumnOrder") private var columnCustomization: TableColumnCustomization<CBPaymentMethod>
 //    
-//    var debitMethods: [CBPaymentMethod] {
-//        payModel.paymentMethods
-//            .filter { $0.isPermitted }
-//            .filter { $0.accountType == .checking || $0.accountType == .unifiedChecking }
-//            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
-//    }
+//    @Environment(\.dismiss) var dismiss
+//    @Environment(FuncModel.self) var funcModel
+//    @Environment(CalendarModel.self) private var calModel
+//    @Environment(PayMethodModel.self) private var payModel
 //    
-//    var creditMethods: [CBPaymentMethod] {
-//        payModel.paymentMethods
-//            .filter { $0.isPermitted }
-//            .filter { $0.accountType == .credit || $0.accountType == .unifiedCredit || $0.accountType == .loan }
-//            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
-//    }
+//    @Environment(PlaidModel.self) private var plaidModel
 //    
-//    var otherMethods: [CBPaymentMethod] {
-//        payModel.paymentMethods
-//            .filter { $0.isPermitted }
-//            .filter { $0.accountType != .checking && $0.accountType != .credit && $0.accountType != .loan && !$0.isUnified }
-//            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+//    @State private var searchText = ""
+//    @State private var selectedPaymentMethod: CBPaymentMethod?
+//    @State private var editPaymentMethod: CBPaymentMethod?
+//    @State private var paymentMethodEditID: CBPaymentMethod.ID?
+//    @State private var sortOrder = [KeyPathComparator(\CBPaymentMethod.title)]
+//    
+//    @State private var defaultViewingMethod: CBPaymentMethod?
+//    @State private var defaultEditingMethod: CBPaymentMethod?
+//    @State private var showDefaultViewingSheet = false
+//    @State private var showDefaultEditingSheet = false
+//    
+//    @Binding var navPath: NavigationPath
+//    //@State private var navPath = NavigationPath()
+//    
+//    var listOrders: [Int] {
+//        payModel.paymentMethods.map { $0.listOrder ?? 0 }.sorted { $0 > $1 }
 //    }
-//    var sections: Array<SectionData> {
-//        return [
-//            SectionData(title: "Debit", items: debitMethods),
-//            SectionData(title: "Credit", items: creditMethods),
-//            SectionData(title: "Other", items: otherMethods)
-//        ]
+//        
+////    var filteredPayMethods: [CBPaymentMethod] {
+////        payModel.paymentMethods
+////            .filter { !$0.isUnified }
+////            .filter { $0.isPermitted }
+////            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedCaseInsensitiveContains(searchText) }
+////            //.sorted { $0.title.lowercased() < $1.title.lowercased() }
+////    }
+////    
+////    var debitMethods: [CBPaymentMethod] {
+////        payModel.paymentMethods
+////            .filter { $0.isPermitted }
+////            .filter { $0.accountType == .checking || $0.accountType == .unifiedChecking }
+////            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+////    }
+////    
+////    var creditMethods: [CBPaymentMethod] {
+////        payModel.paymentMethods
+////            .filter { $0.isPermitted }
+////            .filter { $0.accountType == .credit || $0.accountType == .unifiedCredit || $0.accountType == .loan }
+////            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+////    }
+////    
+////    var otherMethods: [CBPaymentMethod] {
+////        payModel.paymentMethods
+////            .filter { $0.isPermitted }
+////            .filter { $0.accountType != .checking && $0.accountType != .credit && $0.accountType != .loan && !$0.isUnified }
+////            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+////    }
+////    var sections: Array<SectionData> {
+////        return [
+////            SectionData(title: "Debit", items: debitMethods),
+////            SectionData(title: "Credit", items: creditMethods),
+////            SectionData(title: "Other", items: otherMethods)
+////        ]
+////    }
+//    
+//    
+//    /// Keep the sections in the model so they don't flash every time you go to the account table on the iPad.
+//    //@State private var sections: Array<PaySection> = []
+//    
+//    var somethingChanged: Int {
+//        var hasher = Hasher()
+//        /// Update when the user searches.
+//        hasher.combine(searchText)
+//        /// Update the sheet if viewing and something changes on another device.
+//        hasher.combine(payModel.paymentMethods.filter { !$0.isHidden && !$0.isPrivate }.count)
+//        /// Update when a new payment method gets added or deleted.
+//        hasher.combine(payModel.paymentMethods.count)
+//        /// Update when the list order changes via long poll.
+//        hasher.combine(payModel.paymentMethods.map { $0.listOrder ?? 0 }.sorted { $0 > $1 })
+//        return hasher.finalize()
 //    }
-    
-    
-    /// Keep the sections in the model so they don't flash every time you go to the account table on the iPad.
-    //@State private var sections: Array<PaySection> = []
-    
-    var somethingChanged: Int {
-        var hasher = Hasher()
-        /// Update when the user searches.
-        hasher.combine(searchText)
-        /// Update the sheet if viewing and something changes on another device.
-        hasher.combine(payModel.paymentMethods.filter { !$0.isHidden && !$0.isPrivate }.count)
-        /// Update when a new payment method gets added or deleted.
-        hasher.combine(payModel.paymentMethods.count)
-        /// Update when the list order changes via long poll.
-        hasher.combine(payModel.paymentMethods.map { $0.listOrder ?? 0 }.sorted { $0 > $1 })
-        return hasher.finalize()
-    }
-
-    
-    var body: some View {
-        @Bindable var payModel = payModel
-        //NavigationStack(path: $navPath) {
-            VStack {
-                if !payModel.paymentMethods.filter({ !$0.isUnified }).isEmpty {
-                    #if os(macOS)
-                    macTable
-                    #else
-                    if AppState.shared.isIphone {
-                        phoneList
-                    } else {
-                        padList
-                    }
-                    #endif
-                } else {
-                    ContentUnavailableView("No Accounts", systemImage: "creditcard", description: Text("Click the plus button above to add a new account."))
-                }
-            }
-            #if os(iOS)
-            .navigationTitle("Accounts\(AppState.shared.devMode ? " (Dev)" : "")")
-            //.navigationBarTitleDisplayMode(.inline)
-            #endif
-            
-            #if os(macOS)
-            /// There seems to be a bug in SwiftUI `Table` that prevents the view from refreshing when adding a new payment method, and then trying to edit it.
-            /// When I add a new payment method, and then update `model.paymentMethods` with the new ID from the server, the table still contains an ID of 0 on the newly created payment method.
-            /// Setting this id forces the view to refresh and update the relevant payment method with the new ID.
-            .id(payModel.fuckYouSwiftuiTableRefreshID)
-            #endif
-            //.navigationBarBackButtonHidden(true)
-            .task {
-                defaultViewingMethod = payModel.paymentMethods.filter { $0.isViewingDefault }.first
-                defaultEditingMethod = payModel.paymentMethods.filter { $0.isEditingDefault }.first
-                /// NOTE: Sorting must be done here and not in the computed property. If done in the computed property, when reordering, they get all messed up.
-                payModel.paymentMethods.sort(by: Helpers.paymentMethodSorter())
-                //populateSections()
-            }
-            .navigationDestination(for: CBPaymentMethod.self) { meth in
-                PayMethodOverView(payMethod: meth, navPath: $navPath)
-            }
-            .toolbar {
-                #if os(macOS)
-                macToolbar()
-                #else
-                phoneToolbar()
-                #endif
-            }
-            .searchable(text: $searchText)
-            .onAppear {
-                print("Clear the breakdowns")
-                payModel.paymentMethods.forEach {
-                    $0.breakdowns.removeAll()
-                    $0.breakdownsRegardlessOfPaymentMethod.removeAll()
-                }
-            }
-            //.onChange(of: AppSettings.shared.paymentMethodFilterMode) { populateSections() }
-            //.onChange(of: AppSettings.shared.paymentMethodSortMode) { populateSections() }
-            //.onChange(of: somethingChanged) { populateSections() }
-            .onChange(of: sortOrder) { payModel.paymentMethods.sort(using: $1) }
-//            .sheet(item: $editPaymentMethod, onDismiss: {
+//
+//    
+//    var body: some View {
+//        @Bindable var payModel = payModel
+//        //NavigationStack(path: $navPath) {
+//            VStack {
+//                if !payModel.paymentMethods.filter({ !$0.isUnified }).isEmpty {
+//                    #if os(macOS)
+//                    macTable
+//                    #else
+//                    if AppState.shared.isIphone {
+//                        phoneList
+//                    } else {
+//                        padList
+//                    }
+//                    #endif
+//                } else {
+//                    ContentUnavailableView("No Accounts", systemImage: "creditcard", description: Text("Click the plus button above to add a new account."))
+//                }
+//            }
+//            #if os(iOS)
+//            .navigationTitle("Accounts\(AppState.shared.devMode ? " (Dev)" : "")")
+//            //.navigationBarTitleDisplayMode(.inline)
+//            #endif
+//            
+//            #if os(macOS)
+//            /// There seems to be a bug in SwiftUI `Table` that prevents the view from refreshing when adding a new payment method, and then trying to edit it.
+//            /// When I add a new payment method, and then update `model.paymentMethods` with the new ID from the server, the table still contains an ID of 0 on the newly created payment method.
+//            /// Setting this id forces the view to refresh and update the relevant payment method with the new ID.
+//            .id(payModel.fuckYouSwiftuiTableRefreshID)
+//            #endif
+//            //.navigationBarBackButtonHidden(true)
+//            .task {
+//                defaultViewingMethod = payModel.paymentMethods.filter { $0.isViewingDefault }.first
+//                defaultEditingMethod = payModel.paymentMethods.filter { $0.isEditingDefault }.first
+//                /// NOTE: Sorting must be done here and not in the computed property. If done in the computed property, when reordering, they get all messed up.
+//                payModel.paymentMethods.sort(by: Helpers.paymentMethodSorter())
+//                //populateSections()
+//            }
+//            .navigationDestination(for: CBPaymentMethod.self) { meth in
+//                PayMethodOverView(payMethod: meth, navPath: $navPath)
+//            }
+//            .toolbar {
+//                #if os(macOS)
+//                macToolbar()
+//                #else
+//                phoneToolbar()
+//                #endif
+//            }
+//            .searchable(text: $searchText)
+//            .onAppear {
+//                print("Clear the breakdowns")
+//                payModel.paymentMethods.forEach {
+//                    $0.breakdowns.removeAll()
+//                    $0.breakdownsRegardlessOfPaymentMethod.removeAll()
+//                }
+//            }
+//            //.onChange(of: AppSettings.shared.paymentMethodFilterMode) { populateSections() }
+//            //.onChange(of: AppSettings.shared.paymentMethodSortMode) { populateSections() }
+//            //.onChange(of: somethingChanged) { populateSections() }
+//            .onChange(of: sortOrder) { payModel.paymentMethods.sort(using: $1) }
+////            .sheet(item: $editPaymentMethod, onDismiss: {
+////                paymentMethodEditID = nil
+////                payModel.determineIfUserIsRequiredToAddPaymentMethod()
+////            }) { meth in
+////                PayMethodEditView(payMethod: meth, editID: $paymentMethodEditID)
+////                    #if os(macOS)
+////                    .frame(minWidth: 500, minHeight: 700)
+////                    .presentationSizing(.fitted)
+////                    #else
+////                    .presentationSizing(.page)
+////                    #endif
+////            }
+//            .onChange(of: paymentMethodEditID) { oldValue, newValue in
+//                if let newValue {
+//                    let payMethod = payModel.getPaymentMethod(by: newValue)
+//                    selectedPaymentMethod = payMethod
+//                } else {
+//                    selectedPaymentMethod = nil
+//                }
+//            }
+//            .sheet(item: $selectedPaymentMethod, onDismiss: {
 //                paymentMethodEditID = nil
 //                payModel.determineIfUserIsRequiredToAddPaymentMethod()
 //            }) { meth in
-//                PayMethodEditView(payMethod: meth, editID: $paymentMethodEditID)
+//                PayMethodOverViewWrapperIpad(payMethod: meth)
 //                    #if os(macOS)
-//                    .frame(minWidth: 500, minHeight: 700)
-//                    .presentationSizing(.fitted)
-//                    #else
+//                    .frame(minWidth: 300, minHeight: 500)
+//                    .presentationSizing(.page)
+//                    #endif
+//                    //.presentationSizing(.page)
+//            }
+//            .sheet(isPresented: $showDefaultViewingSheet, onDismiss: setDefaultViewingMethod) {
+//                PayMethodSheet(payMethod: $defaultViewingMethod, whichPaymentMethods: .all, showNoneOption: true)
+//                    #if os(macOS)
+//                    .frame(minWidth: 300, minHeight: 500)
 //                    .presentationSizing(.page)
 //                    #endif
 //            }
-            .onChange(of: paymentMethodEditID) { oldValue, newValue in
-                if let newValue {
-                    let payMethod = payModel.getPaymentMethod(by: newValue)
-                    selectedPaymentMethod = payMethod
-                } else {
-                    selectedPaymentMethod = nil
-                }
-            }
-            .sheet(item: $selectedPaymentMethod, onDismiss: {
-                paymentMethodEditID = nil
-                payModel.determineIfUserIsRequiredToAddPaymentMethod()
-            }) { meth in
-                PayMethodOverViewWrapperIpad(payMethod: meth)
-                    #if os(macOS)
-                    .frame(minWidth: 300, minHeight: 500)
-                    .presentationSizing(.page)
-                    #endif
-                    //.presentationSizing(.page)
-            }
-            .sheet(isPresented: $showDefaultViewingSheet, onDismiss: setDefaultViewingMethod) {
-                PayMethodSheet(payMethod: $defaultViewingMethod, whichPaymentMethods: .all, showNoneOption: true)
-                    #if os(macOS)
-                    .frame(minWidth: 300, minHeight: 500)
-                    .presentationSizing(.page)
-                    #endif
-            }
-            .sheet(isPresented: $showDefaultEditingSheet, onDismiss: setDefaultEditingMethod) {
-                PayMethodSheet(payMethod: $defaultEditingMethod, whichPaymentMethods: .allExceptUnified, showNoneOption: true)
-                    #if os(macOS)
-                    .frame(minWidth: 300, minHeight: 500)
-                    .presentationSizing(.page)
-                    #endif
-            }
-        //}
-    }
-    
-    #if os(macOS)
-    @ToolbarContentBuilder
-    func macToolbar() -> some ToolbarContent {
-        ToolbarItem(placement: .navigation) {
-            HStack {
-                Button {
-                    paymentMethodEditID = UUID().uuidString
-                } label: {
-                    Image(systemName: "plus")
-                }
-                .toolbarBorder()
-                //.disabled(payModel.isThinking)
-                
-                ToolbarNowButton()
-                    .disabled(!AppState.shared.methsExist)
-                ToolbarRefreshButton()
-                    .toolbarBorder()
-                    .disabled(!AppState.shared.methsExist)
-                
-                moreMenu
-                    .toolbarBorder()
-                    .disabled(!AppState.shared.methsExist)
-            }
-        }
-        ToolbarItem(placement: .principal) {
-            ToolbarCenterView(enumID: .paymentMethods)
-        }
-        ToolbarItem {
-            Spacer()
-        }
-    }
-      
-    
-    var macTable: some View {
-        Table(of: CBPaymentMethod.self, selection: $paymentMethodEditID, sortOrder: $sortOrder, columnCustomization: $columnCustomization) {
-            TableColumn("Title", value: \.title) { meth in
-                HStack {
-                    if meth.accountType != .unifiedChecking && meth.accountType != .unifiedCredit {
-                        Circle()
-                            .fill(meth.color)
-                            .frame(width: 12, height: 12)
-                    } else {
-                        Text("-")
-                    }
-                    Text(meth.title)
-                }
-            }
-            .customizationID("title")
-            
-            TableColumn("Account Type", value: \.accountType.rawValue) { meth in
-                Text(XrefModel.getItem(from: .accountTypes, byID: meth.accountType.rawValue).description)
-            }
-            .customizationID("accountType")
-            
-            TableColumn("Last 4", value: \.last4) { meth in
-                if meth.accountType == .checking || meth.accountType == .credit {
-                    Text(meth.last4 ?? "-")
-                } else {
-                    Text("-")
-                }
-            }
-            .customizationID("last4")
-            
-            TableColumn("Limit", value: \.limit.specialDefaultIfNil) { meth in
-                if meth.accountType == .credit {
-                    Text(meth.limit?.currencyWithDecimals() ?? "-")
-                } else {
-                    Text("-")
-                }
-            }
-            .customizationID("limit")
-            
-            TableColumn("Due Date", value : \.dueDate.specialDefaultIfNil) { meth in
-                if meth.accountType == .credit || meth.accountType == .loan {
-                    Text("The \(meth.dueDate?.withOrdinal() ?? "N/A") of every month")
-                    //Text("The \(String(meth.dueDate ?? 0)) of every month")
-                } else {
-                    Text("-")
-                }
-            }
-            .customizationID("dueDate")
-            
-//            TableColumn("Reminder", value: \.notificationOffset.specialDefaultIfNil) { meth in
-//                if meth.accountType == .credit || meth.accountType == .loan {
-//                    if meth.notifyOnDueDate {
-//                        Label {
-//                            let text = meth.notificationOffset == 0 ? "On day of" : (meth.notificationOffset == 1 ? "The day before" : "2 days before")
-//                            Text(text)
-//                        } icon: {
-//                            Image(systemName: "alarm")
-//                        }
+//            .sheet(isPresented: $showDefaultEditingSheet, onDismiss: setDefaultEditingMethod) {
+//                PayMethodSheet(payMethod: $defaultEditingMethod, whichPaymentMethods: .allExceptUnified, showNoneOption: true)
+//                    #if os(macOS)
+//                    .frame(minWidth: 300, minHeight: 500)
+//                    .presentationSizing(.page)
+//                    #endif
+//            }
+//        //}
+//    }
+//    
+//    #if os(macOS)
+//    @ToolbarContentBuilder
+//    func macToolbar() -> some ToolbarContent {
+//        ToolbarItem(placement: .navigation) {
+//            HStack {
+//                Button {
+//                    paymentMethodEditID = UUID().uuidString
+//                } label: {
+//                    Image(systemName: "plus")
+//                }
+//                .toolbarBorder()
+//                //.disabled(payModel.isThinking)
+//                
+//                ToolbarNowButton()
+//                    .disabled(!AppState.shared.methsExist)
+//                ToolbarRefreshButton()
+//                    .toolbarBorder()
+//                    .disabled(!AppState.shared.methsExist)
+//                
+//                moreMenu
+//                    .toolbarBorder()
+//                    .disabled(!AppState.shared.methsExist)
+//            }
+//        }
+//        ToolbarItem(placement: .principal) {
+//            ToolbarCenterView(enumID: .paymentMethods)
+//        }
+//        ToolbarItem {
+//            Spacer()
+//        }
+//    }
+//      
+//    
+//    var macTable: some View {
+//        Table(of: CBPaymentMethod.self, selection: $paymentMethodEditID, sortOrder: $sortOrder, columnCustomization: $columnCustomization) {
+//            TableColumn("Title", value: \.title) { meth in
+//                HStack {
+//                    if meth.accountType != .unifiedChecking && meth.accountType != .unifiedCredit {
+//                        Circle()
+//                            .fill(meth.color)
+//                            .frame(width: 12, height: 12)
+//                    } else {
+//                        Text("-")
 //                    }
+//                    Text(meth.title)
+//                }
+//            }
+//            .customizationID("title")
+//            
+//            TableColumn("Account Type", value: \.accountType.rawValue) { meth in
+//                Text(XrefModel.getItem(from: .accountTypes, byID: meth.accountType.rawValue).description)
+//            }
+//            .customizationID("accountType")
+//            
+//            TableColumn("Last 4", value: \.last4) { meth in
+//                if meth.accountType == .checking || meth.accountType == .credit {
+//                    Text(meth.last4 ?? "-")
 //                } else {
 //                    Text("-")
 //                }
 //            }
-//            .customizationID("reminder")
-            
-            TableColumn("Viewing (default)") { meth in
-                if meth.isViewingDefault {
-                    Image(systemName: "checkmark")
-                }
-            }
-            .width(min: 20, ideal: 30, max: 50)
-            .customizationID("defaultViewing")
-            
-            TableColumn("Editing (default)") { meth in
-                if meth.isEditingDefault {
-                    Image(systemName: "checkmark")
-                }
-            }
-            .width(min: 20, ideal: 30, max: 50)
-            .customizationID("defaultEditing")
-            
-            TableColumn("Private") { meth in
-                if meth.isPrivate {
-                    Image(systemName: "checkmark")
-                }
-            }
-            .width(min: 20, ideal: 30, max: 50)
-            .customizationID("private")
-            
-            TableColumn("Hidden") { meth in
-                if meth.isHidden {
-                    Image(systemName: "checkmark")
-                }
-            }
-            .width(min: 20, ideal: 30, max: 50)
-            .customizationID("hidden")
-        } rows: {
-//            Section("Combined Accounts") {
-//                ForEach(payModel.paymentMethods.filter { $0.isUnified }) { meth in
-//                    TableRow(meth)
-//                }
-//            }
+//            .customizationID("last4")
 //            
-//            Section("My Accounts") {
-//                ForEach(filteredPayMethods) { meth in
-//                    TableRow(meth)
+//            TableColumn("Limit", value: \.limit.specialDefaultIfNil) { meth in
+//                if meth.accountType == .credit {
+//                    Text(meth.limit?.currencyWithDecimals() ?? "-")
+//                } else {
+//                    Text("-")
 //                }
 //            }
-            
-            
-            ForEach(payModel.sections) { section in
-                Section(section.rawValue) {
-                    ForEach(payModel.getMethodsFor(section: section, type: .all, sText: searchText, includeHidden: true)) { meth in
-                        TableRow(meth)
-                    }
-                }
-            }
-            
-//            Section("Debit") {
-//                ForEach(debitMethods) { meth in
-//                    TableRow(meth)
-//                }
-//            }
+//            .customizationID("limit")
 //            
-//            Section("Credit") {
-//                ForEach(creditMethods) { meth in
-//                    TableRow(meth)
+//            TableColumn("Due Date", value : \.dueDate.specialDefaultIfNil) { meth in
+//                if meth.accountType == .credit || meth.accountType == .loan {
+//                    Text("The \(meth.dueDate?.withOrdinal() ?? "N/A") of every month")
+//                    //Text("The \(String(meth.dueDate ?? 0)) of every month")
+//                } else {
+//                    Text("-")
 //                }
 //            }
+//            .customizationID("dueDate")
 //            
-//            Section("Other") {
-//                ForEach(otherMethods) { meth in
-//                    TableRow(meth)
+////            TableColumn("Reminder", value: \.notificationOffset.specialDefaultIfNil) { meth in
+////                if meth.accountType == .credit || meth.accountType == .loan {
+////                    if meth.notifyOnDueDate {
+////                        Label {
+////                            let text = meth.notificationOffset == 0 ? "On day of" : (meth.notificationOffset == 1 ? "The day before" : "2 days before")
+////                            Text(text)
+////                        } icon: {
+////                            Image(systemName: "alarm")
+////                        }
+////                    }
+////                } else {
+////                    Text("-")
+////                }
+////            }
+////            .customizationID("reminder")
+//            
+//            TableColumn("Viewing (default)") { meth in
+//                if meth.isViewingDefault {
+//                    Image(systemName: "checkmark")
 //                }
 //            }
-        }
-        .clipped()
-
-    }   
-    #endif
-    
-    
-    #if os(iOS)
-    @ToolbarContentBuilder
-    func phoneToolbar() -> some ToolbarContent {
-        @Bindable var payModel = payModel
-        ToolbarItem(placement: .topBarLeading) {
-            Menu {
-                PayMethodFilterMenu()
-                PayMethodSortMenu()
-                //moreMenu
-                
-                Section("Default Viewing Account") {
-                    showDefaultForViewingSheetButton
-                }
-                
-                Section("Default Editing Account") {
-                    showDefaultForEditingSheetButton
-                }
-                
-                Section("Appearance") {
-                    useBusinessLogosToggle
-                }
-                
-            } label: {
-                Image(systemName: "ellipsis")
-                    .schemeBasedForegroundStyle()
-            }
-
-            
-        }
-        //ToolbarItem(placement: .topBarLeading) { PayMethodSortMenu(sections: $payModel.sections) }
-        //ToolbarSpacer(.fixed, placement: .topBarLeading)
-        //ToolbarItem(placement: .topBarLeading) { moreMenu }
-        
-        ToolbarItem(placement: .topBarTrailing) { ToolbarLongPollButton() }
-        ToolbarItem(placement: .topBarTrailing) { ToolbarRefreshButton().disabled(!AppState.shared.methsExist) }
-        //ToolbarSpacer(.fixed, placement: .topBarTrailing)
-        ToolbarItem(placement: .topBarTrailing) { newAccountButton }
-    }
-    
-        
-    /// On iPhone, use the navigation links directly in the list.
-    @ViewBuilder
-    var phoneList: some View {
-        @Bindable var payModel = payModel
-        
-        List {
-            ForEach(payModel.sections) { section in
-                Section(section.rawValue) {
-                    ForEach(methodsBinding(for: section)) { meth in
-                        NavigationLink(value: meth.wrappedValue) {
-                            line(for: meth.wrappedValue)
-                        }
-                    }
-                    .if(AppSettings.shared.paymentMethodSortMode == .listOrder) {
-                        $0.onMove { indices, newOffset in
-                            methodsBinding(for: section)
-                                .wrappedValue
-                                .move(fromOffsets: indices, toOffset: newOffset)
-                            
-                            Task {
-                                let updates = await payModel.setListOrders(calModel: calModel)
-                                await funcModel.submitListOrders(items: updates, for: .paymentMethods)
-                            }
-                        }
-                    }
-                }
-            }
-            
+//            .width(min: 20, ideal: 30, max: 50)
+//            .customizationID("defaultViewing")
+//            
+//            TableColumn("Editing (default)") { meth in
+//                if meth.isEditingDefault {
+//                    Image(systemName: "checkmark")
+//                }
+//            }
+//            .width(min: 20, ideal: 30, max: 50)
+//            .customizationID("defaultEditing")
+//            
+//            TableColumn("Private") { meth in
+//                if meth.isPrivate {
+//                    Image(systemName: "checkmark")
+//                }
+//            }
+//            .width(min: 20, ideal: 30, max: 50)
+//            .customizationID("private")
+//            
+//            TableColumn("Hidden") { meth in
+//                if meth.isHidden {
+//                    Image(systemName: "checkmark")
+//                }
+//            }
+//            .width(min: 20, ideal: 30, max: 50)
+//            .customizationID("hidden")
+//        } rows: {
+////            Section("Combined Accounts") {
+////                ForEach(payModel.paymentMethods.filter { $0.isUnified }) { meth in
+////                    TableRow(meth)
+////                }
+////            }
+////            
+////            Section("My Accounts") {
+////                ForEach(filteredPayMethods) { meth in
+////                    TableRow(meth)
+////                }
+////            }
+//            
+//            
 //            ForEach(payModel.sections) { section in
 //                Section(section.rawValue) {
 //                    ForEach(payModel.getMethodsFor(section: section, type: .all, sText: searchText, includeHidden: true)) { meth in
-//                        NavigationLink(value: meth) {
-//                            line(for: meth)
+//                        TableRow(meth)
+//                    }
+//                }
+//            }
+//            
+////            Section("Debit") {
+////                ForEach(debitMethods) { meth in
+////                    TableRow(meth)
+////                }
+////            }
+////            
+////            Section("Credit") {
+////                ForEach(creditMethods) { meth in
+////                    TableRow(meth)
+////                }
+////            }
+////            
+////            Section("Other") {
+////                ForEach(otherMethods) { meth in
+////                    TableRow(meth)
+////                }
+////            }
+//        }
+//        .clipped()
+//
+//    }   
+//    #endif
+//    
+//    
+//    #if os(iOS)
+//    @ToolbarContentBuilder
+//    func phoneToolbar() -> some ToolbarContent {
+//        @Bindable var payModel = payModel
+//        ToolbarItem(placement: .topBarLeading) {
+//            Menu {
+//                PayMethodFilterMenu()
+//                PayMethodSortMenu()
+//                //moreMenu
+//                
+//                Section("Default Viewing Account") {
+//                    showDefaultForViewingSheetButton
+//                }
+//                
+//                Section("Default Editing Account") {
+//                    showDefaultForEditingSheetButton
+//                }
+//                
+//                Section("Appearance") {
+//                    useBusinessLogosToggle
+//                }
+//                
+//            } label: {
+//                Image(systemName: "ellipsis")
+//                    .schemeBasedForegroundStyle()
+//            }
+//
+//            
+//        }
+//        //ToolbarItem(placement: .topBarLeading) { PayMethodSortMenu(sections: $payModel.sections) }
+//        //ToolbarSpacer(.fixed, placement: .topBarLeading)
+//        //ToolbarItem(placement: .topBarLeading) { moreMenu }
+//        
+//        ToolbarItem(placement: .topBarTrailing) { ToolbarLongPollButton() }
+//        ToolbarItem(placement: .topBarTrailing) { ToolbarRefreshButton().disabled(!AppState.shared.methsExist) }
+//        //ToolbarSpacer(.fixed, placement: .topBarTrailing)
+//        ToolbarItem(placement: .topBarTrailing) { newAccountButton }
+//    }
+//    
+//        
+//    /// On iPhone, use the navigation links directly in the list.
+//    @ViewBuilder
+//    var phoneList: some View {
+//        @Bindable var payModel = payModel
+//        
+//        List {
+//            ForEach(payModel.sections) { section in
+//                Section(section.rawValue) {
+//                    ForEach(methodsBinding(for: section)) { meth in
+//                        NavigationLink(value: meth.wrappedValue) {
+//                            line(for: meth.wrappedValue)
 //                        }
 //                    }
 //                    .if(AppSettings.shared.paymentMethodSortMode == .listOrder) {
 //                        $0.onMove { indices, newOffset in
-//                            payModel.paymentMethods.move(fromOffsets: indices, toOffset: newOffset)
+//                            methodsBinding(for: section)
+//                                .wrappedValue
+//                                .move(fromOffsets: indices, toOffset: newOffset)
+//                            
 //                            Task {
-//                                let listOrderUpdates = await payModel.setListOrders(calModel: calModel)
-//                                let _ = await funcModel.submitListOrders(items: listOrderUpdates, for: .paymentMethods)
+//                                let updates = await payModel.setListOrders(calModel: calModel)
+//                                await funcModel.submitListOrders(items: updates, for: .paymentMethods)
 //                            }
 //                        }
 //                    }
 //                }
 //            }
-        }
-        .listStyle(.plain)
-    }
-    
-    func methodsBinding(for section: PaymentMethodSection) -> Binding<[CBPaymentMethod]> {
-        Binding(
-            get: {
-                payModel.getMethodsFor(section: section, type: .all, sText: searchText, includeHidden: true)
-                //payModel.paymentMethods
-//                    .filter { $0.sectionType == section }
-//                    .sorted { $0.listOrder ?? 0 < $1.listOrder ?? 0 }
-            },
-            set: { newValue in
-                for (index, method) in newValue.enumerated() {
-                    if let globalIndex = payModel.paymentMethods.firstIndex(where: { $0.id == method.id }) {
-                        payModel.paymentMethods[globalIndex].listOrder = index
-                    }
-                }
-            }
-        )
-    }
-    
-    
-    /// On iPad, bind the list to a selection property, which will get caught in an onChange and open the details sheet.
-    /// For whatever reason, a button directly in the list was not opening the details sheet directly. I would have to go to another section in the app, and come back in order for it to work. Assume it's a `NavigationStack` issue.
-    @ViewBuilder
-    var padList: some View {
-        @Bindable var payModel = payModel
-        
-//        List(selection: $paymentMethodEditID) {
-//            ForEach($payModel.sections) { $section in
-//                Section(section.kind.rawValue) {
-//                    ForEach(section.payMethods) { meth in
-//                        line(for: meth)
-//                    }
-//                    .if(AppSettings.shared.paymentMethodSortMode == .listOrder) {
-//                        $0.onMove { indices, newOffset in
-//                            // Move within this section only
-//                            section.payMethods.move(fromOffsets: indices, toOffset: newOffset)
-//                            Task {
-//                                let listOrderUpdates = await payModel.setListOrders(sections: payModel.sections, calModel: calModel)
-//                                let _ = await funcModel.submitListOrders(items: listOrderUpdates, for: .paymentMethods)
-//                            }
-//                        }
-//                    }
-//                }
-//            }
+//            
+////            ForEach(payModel.sections) { section in
+////                Section(section.rawValue) {
+////                    ForEach(payModel.getMethodsFor(section: section, type: .all, sText: searchText, includeHidden: true)) { meth in
+////                        NavigationLink(value: meth) {
+////                            line(for: meth)
+////                        }
+////                    }
+////                    .if(AppSettings.shared.paymentMethodSortMode == .listOrder) {
+////                        $0.onMove { indices, newOffset in
+////                            payModel.paymentMethods.move(fromOffsets: indices, toOffset: newOffset)
+////                            Task {
+////                                let listOrderUpdates = await payModel.setListOrders(calModel: calModel)
+////                                let _ = await funcModel.submitListOrders(items: listOrderUpdates, for: .paymentMethods)
+////                            }
+////                        }
+////                    }
+////                }
+////            }
 //        }
 //        .listStyle(.plain)
-    }
-    
-    
-    @ViewBuilder func line(for meth: CBPaymentMethod) -> some View {
-        if meth.isUnified {
-            Label {
-                VStack(alignment: .leading) {
-                    HStack {
-                        Text(meth.title)
-                        Spacer()
-                        
-                        if meth.isDebitOrCash {
-                            Text("\(funcModel.getPlaidDebitSums().currencyWithDecimals())")
-                            
-                        } else if meth.isCreditOrLoan {
-                            Text("\(funcModel.getPlaidCreditSums().currencyWithDecimals())")
-                        }
-                    }
-                    
-                    HStack {
-                        Text(XrefModel.getItem(from: .accountTypes, byID: meth.accountType.rawValue).description)
-                            .foregroundStyle(.gray)
-                            .font(.caption)
-                        
-                        Spacer()
-                    }
-                    
-                }
-            } icon: {
-                //BusinessLogo(parent: meth, fallBackType: .gradient)
+//    }
+//    
+//    func methodsBinding(for section: PaymentMethodSection) -> Binding<[CBPaymentMethod]> {
+//        Binding(
+//            get: {
+//                payModel.getMethodsFor(section: section, type: .all, sText: searchText, includeHidden: true)
+//                //payModel.paymentMethods
+////                    .filter { $0.sectionType == section }
+////                    .sorted { $0.listOrder ?? 0 < $1.listOrder ?? 0 }
+//            },
+//            set: { newValue in
+//                for (index, method) in newValue.enumerated() {
+//                    if let globalIndex = payModel.paymentMethods.firstIndex(where: { $0.id == method.id }) {
+//                        payModel.paymentMethods[globalIndex].listOrder = index
+//                    }
+//                }
+//            }
+//        )
+//    }
+//    
+//    
+//    /// On iPad, bind the list to a selection property, which will get caught in an onChange and open the details sheet.
+//    /// For whatever reason, a button directly in the list was not opening the details sheet directly. I would have to go to another section in the app, and come back in order for it to work. Assume it's a `NavigationStack` issue.
+//    @ViewBuilder
+//    var padList: some View {
+//        @Bindable var payModel = payModel
+//        
+////        List(selection: $paymentMethodEditID) {
+////            ForEach($payModel.sections) { $section in
+////                Section(section.kind.rawValue) {
+////                    ForEach(section.payMethods) { meth in
+////                        line(for: meth)
+////                    }
+////                    .if(AppSettings.shared.paymentMethodSortMode == .listOrder) {
+////                        $0.onMove { indices, newOffset in
+////                            // Move within this section only
+////                            section.payMethods.move(fromOffsets: indices, toOffset: newOffset)
+////                            Task {
+////                                let listOrderUpdates = await payModel.setListOrders(sections: payModel.sections, calModel: calModel)
+////                                let _ = await funcModel.submitListOrders(items: listOrderUpdates, for: .paymentMethods)
+////                            }
+////                        }
+////                    }
+////                }
+////            }
+////        }
+////        .listStyle(.plain)
+//    }
+//    
+//    
+//    @ViewBuilder func line(for meth: CBPaymentMethod) -> some View {
+//        if meth.isUnified {
+//            Label {
+//                VStack(alignment: .leading) {
+//                    HStack {
+//                        Text(meth.title)
+//                        Spacer()
+//                        
+//                        if meth.isDebitOrCash {
+//                            Text("\(funcModel.getPlaidDebitSums().currencyWithDecimals())")
+//                            
+//                        } else if meth.isCreditOrLoan {
+//                            Text("\(funcModel.getPlaidCreditSums().currencyWithDecimals())")
+//                        }
+//                    }
+//                    
+//                    HStack {
+//                        Text(meth.accountType.prettyValue)
+//                            .foregroundStyle(.gray)
+//                            .font(.caption)
+//                        
+//                        Spacer()
+//                    }
+//                    
+//                }
+//            } icon: {
+//                //BusinessLogo(parent: meth, fallBackType: .gradient)
+////                BusinessLogo(config: .init(
+////                    parent: meth,
+////                    fallBackType: .gradient
+////                ))
 //                BusinessLogo(config: .init(
 //                    parent: meth,
 //                    fallBackType: .gradient
 //                ))
-                BusinessLogo(config: .init(
-                    parent: meth,
-                    fallBackType: .gradient
-                ))
-            }
-        } else {
-            Label {
-                VStack(alignment: .leading) {
-                    HStack {
-                        Text(meth.title)
-                        if meth.isPrivate { Image(systemName: "person.slash") }
-                        if meth.isHidden { Image(systemName: "eye.slash") }
-                        if meth.notifyOnDueDate { Image(systemName: "alarm") }
-                                                
-                        Spacer()
-                        
-                        if let balance = plaidModel.balances.filter({ $0.payMethodID == meth.id }).first {
-                            Text(balance.amount.currencyWithDecimals())
-                        }
-                    }
-                    
-                    HStack {
-                        Text(XrefModel.getItem(from: .accountTypes, byID: meth.accountType.rawValue).description)
-                            .foregroundStyle(.gray)
-                            .font(.caption)
-                        Spacer()
-                        
-                        if let balance = plaidModel.balances.filter({ $0.payMethodID == meth.id }).first {
-                            Text(Date().timeSince(balance.enteredDate))
-                                .foregroundStyle(.gray)
-                                .font(.caption)
-                        }
-                    }
-                }
-            } icon: {
-                BusinessLogo(config: .init(
-                    parent: meth,
-                    fallBackType: .color
-                ))
-                //BusinessLogo(parent: meth, fallBackType: .color)
-            }
-        }
-    }
-    
-   
-    var newAccountButton: some View {
-        Button {
-            let newId = UUID().uuidString
-            
-            /// On iPhone, push the details page to the nav, which will auto-open the edit sheet.
-            if AppState.shared.isIphone {
-                //let newMeth = CBPaymentMethod(uuid: newId)
-                //let newMeth = payModel.getPaymentMethod(by: newId)
-                navPath.append(CBPaymentMethod(uuid: newId))
-            } else {
-                /// On iPad, trigger the details sheet to open, which will then open the edit sheet.
-                //#error("On Ipad, when closing the edit sheet, the details sheet freaks out.")
-                paymentMethodEditID = newId
-            }
-        } label: {
-            Image(systemName: "plus")
-        }
-        .tint(.none)
-        
-    }
-
-    #endif
-    
-    var useBusinessLogosToggle: some View {
-        Toggle(isOn: $useBusinessLogos) {
-            Text("Use Business Logos")
-        }
-    }
-    
-    
-    
-    var moreMenu: some View {
-        Menu {
-            Section("Default Viewing Account") {
-                showDefaultForViewingSheetButton
-            }
-            
-            Section("Default Editing Account") {
-                showDefaultForEditingSheetButton
-            }
-            
-            Section("Appearance") {
-                useBusinessLogosToggle
-            }
-            
-//            Section("View") {
-//                Button("Card") {
-//                    selectedView = "card"
+//            }
+//        } else {
+//            Label {
+//                VStack(alignment: .leading) {
+//                    HStack {
+//                        Text(meth.title)
+//                        if meth.isPrivate { Image(systemName: "person.slash") }
+//                        if meth.isHidden { Image(systemName: "eye.slash") }
+//                        if meth.notifyOnDueDate { Image(systemName: "alarm") }
+//                                                
+//                        Spacer()
+//                        
+//                        if let balance = plaidModel.balances.filter({ $0.payMethodID == meth.id }).first {
+//                            Text(balance.amount.currencyWithDecimals())
+//                        }
+//                    }
+//                    
+//                    HStack {
+//                        Text(meth.accountType.prettyValue)
+//                            .foregroundStyle(.gray)
+//                            .font(.caption)
+//                        Spacer()
+//                        
+//                        if let balance = plaidModel.balances.filter({ $0.payMethodID == meth.id }).first {
+//                            Text(Date().timeSince(balance.enteredDate))
+//                                .foregroundStyle(.gray)
+//                                .font(.caption)
+//                        }
+//                    }
 //                }
-//                Button("List") {
-//                    selectedView = "list"
+//            } icon: {
+//                BusinessLogo(config: .init(
+//                    parent: meth,
+//                    fallBackType: .color
+//                ))
+//                //BusinessLogo(parent: meth, fallBackType: .color)
+//            }
+//        }
+//    }
+//    
+//   
+//    var newAccountButton: some View {
+//        Button {
+//            let newId = UUID().uuidString
+//            
+//            /// On iPhone, push the details page to the nav, which will auto-open the edit sheet.
+//            if AppState.shared.isIphone {
+//                //let newMeth = CBPaymentMethod(uuid: newId)
+//                //let newMeth = payModel.getPaymentMethod(by: newId)
+//                navPath.append(CBPaymentMethod(uuid: newId))
+//            } else {
+//                /// On iPad, trigger the details sheet to open, which will then open the edit sheet.
+//                //#error("On Ipad, when closing the edit sheet, the details sheet freaks out.")
+//                paymentMethodEditID = newId
+//            }
+//        } label: {
+//            Image(systemName: "plus")
+//        }
+//        .tint(.none)
+//        
+//    }
+//
+//    #endif
+//    
+//    var useBusinessLogosToggle: some View {
+//        Toggle(isOn: $useBusinessLogos) {
+//            Text("Use Business Logos")
+//        }
+//    }
+//    
+//    
+//    
+//    var moreMenu: some View {
+//        Menu {
+//            Section("Default Viewing Account") {
+//                showDefaultForViewingSheetButton
+//            }
+//            
+//            Section("Default Editing Account") {
+//                showDefaultForEditingSheetButton
+//            }
+//            
+//            Section("Appearance") {
+//                useBusinessLogosToggle
+//            }
+//            
+////            Section("View") {
+////                Button("Card") {
+////                    selectedView = "card"
+////                }
+////                Button("List") {
+////                    selectedView = "list"
+////                }
+////            }
+//            
+//        } label: {
+//            Label("More", systemImage: "ellipsis")            
+//        }
+//        .tint(.none)
+//    }
+//    
+//    
+//    var showDefaultForViewingSheetButton: some View {
+//        Button {
+//            showDefaultViewingSheet = true
+//        } label: {
+//            let defaultMeth = payModel.paymentMethods.filter { $0.isViewingDefault }.first
+//            Label {
+//                Text(defaultMeth?.title ?? "[Select]")
+//            } icon: {
+//                Image(systemName: "circle.fill")
+//                    .tint(defaultMeth?.color ?? .primary)
+//            }
+//        }
+//    }
+//    
+//    
+//    var showDefaultForEditingSheetButton: some View {
+//        Button {
+//            showDefaultEditingSheet = true
+//        } label: {
+//            let defaultMeth = payModel.paymentMethods.filter { $0.isEditingDefault }.first
+//            Label {
+//                Text(defaultMeth?.title ?? "[Select]")
+//            } icon: {
+//                Image(systemName: "circle.fill")
+//                    .tint(defaultMeth?.color ?? .primary)
+//            }
+//        }
+//    }
+//    
+//    
+//    struct SetDefaultButtonPhone: View {
+//        @Environment(PayMethodModel.self) private var payModel
+//        var meth: CBPaymentMethod
+//        
+//        var body: some View {
+//            Button {
+//                meth.isViewingDefault.toggle()
+//                if meth.isViewingDefault {
+//                    Task { await payModel.setDefaultViewing(meth) }
+//                }
+//            } label: {
+//                Label {
+//                    Text("Set Default")
+//                } icon: {
+//                    Image(systemName: meth.isViewingDefault ? "checkmark.circle" : "circle")
 //                }
 //            }
-            
-        } label: {
-            Label("More", systemImage: "ellipsis")            
-        }
-        .tint(.none)
-    }
-    
-    
-    var showDefaultForViewingSheetButton: some View {
-        Button {
-            showDefaultViewingSheet = true
-        } label: {
-            let defaultMeth = payModel.paymentMethods.filter { $0.isViewingDefault }.first
-            Label {
-                Text(defaultMeth?.title ?? "[Select]")
-            } icon: {
-                Image(systemName: "circle.fill")
-                    .tint(defaultMeth?.color ?? .primary)
-            }
-        }
-    }
-    
-    
-    var showDefaultForEditingSheetButton: some View {
-        Button {
-            showDefaultEditingSheet = true
-        } label: {
-            let defaultMeth = payModel.paymentMethods.filter { $0.isEditingDefault }.first
-            Label {
-                Text(defaultMeth?.title ?? "[Select]")
-            } icon: {
-                Image(systemName: "circle.fill")
-                    .tint(defaultMeth?.color ?? .primary)
-            }
-        }
-    }
-    
-    
-    struct SetDefaultButtonPhone: View {
-        @Environment(PayMethodModel.self) private var payModel
-        var meth: CBPaymentMethod
-        
-        var body: some View {
-            Button {
-                meth.isViewingDefault.toggle()
-                if meth.isViewingDefault {
-                    Task { await payModel.setDefaultViewing(meth) }
-                }
-            } label: {
-                Label {
-                    Text("Set Default")
-                } icon: {
-                    Image(systemName: meth.isViewingDefault ? "checkmark.circle" : "circle")
-                }
-            }
-            .tint(meth.isViewingDefault ? Color.accentColor : .gray)
-        }
-    }
-    
-    
-    func setDefaultViewingMethod() {
-        print("-- \(#function)")
-        Task { await payModel.setDefaultViewing(defaultViewingMethod) }
-    }
-    
-    
-    func setDefaultEditingMethod() {
-        print("-- \(#function)")
-        Task { await payModel.setDefaultEditing(defaultEditingMethod) }
-    }
-}
-
-
+//            .tint(meth.isViewingDefault ? Color.accentColor : .gray)
+//        }
+//    }
+//    
+//    
+//    func setDefaultViewingMethod() {
+//        print("-- \(#function)")
+//        Task { await payModel.setDefaultViewing(defaultViewingMethod) }
+//    }
+//    
+//    
+//    func setDefaultEditingMethod() {
+//        print("-- \(#function)")
+//        Task { await payModel.setDefaultEditing(defaultEditingMethod) }
+//    }
+//}
+//
+//

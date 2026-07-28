@@ -20,7 +20,7 @@ struct ConditionalFileView<Placeholder: View, PhotoView: View, PdfView: View, Cs
     //@Binding var safariUrl: URL?
     @Binding var selectedFile: CBFile?
     var displayStyle: FileSectionDisplayStyle
-    var parentType: XrefItem
+    var parentType: XrefFileType
     var fileUploadCompletedDelegate: FileUploadCompletedDelegate
     @State private var showDeleteFileAlert = false
     

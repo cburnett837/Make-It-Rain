@@ -12,6 +12,9 @@ import Charts
 protocol DashboardBreakdownSummary {
     var title: String { get }
     var date: Date { get }
+    var startingAmount: Decimal? { get }
+    var paymentAmount: Decimal? { get }
+    //var startingAmount: CBStartingAmount? { get }
     var categoryAndGroupBudget: Double { get }
     var allAmounts: DashboardAmounts? { get }
     var flatCats: [CBCategory] { get }

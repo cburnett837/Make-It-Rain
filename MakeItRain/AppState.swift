@@ -31,6 +31,7 @@ class AppState {
     var longPollFailed = false
     var isLoggingInForFirstTime = false
     var hasBadConnection = false
+    var country: Country = Countries.fetch(by: 225)!
     
     var deviceUUID: String?
     var notificationToken: String?
@@ -66,6 +67,15 @@ class AppState {
     var isIpad: Bool = false
     var isIphone: Bool = false
     #endif
+    
+    var isAwayFromHomeCountry: Bool {
+        if LocationManager.shared.currentCountry != nil {
+            return LocationManager.shared.currentCountry != country.code
+        } else {
+            return false
+        }
+        
+    }
 
     //var holdSplash = true
     //var splashTimer = Timer.publish(every: 3, tolerance: 0.5, on: .main, in: .common).autoconnect()

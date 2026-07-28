@@ -77,6 +77,11 @@ class AuthState {
                         
                         let userData = try JSONEncoder().encode(model.user)
                         UserDefaults(suiteName: "group.dev.cburnett837.MakeItRain")?.set(userData, forKey: "user")
+                        
+                        #if os(iOS)
+                        PhoneWatchSync.shared.syncUserDefaultsToWatch(apiKey: apiKey)
+                        #endif
+                        
                         //UserDefaults.standard.set(userData, forKey: "user")
                         
                         AppSettings.shared.setFromServerData(setting: model.settings)
@@ -88,10 +93,16 @@ class AuthState {
                         AppState.shared.isLoggingInForFirstTime = true
                         AppState.shared.hasBadConnection = false
                         
+                        if model.user.id == 1 {
+                            self.isAdmin = true
+                        }
+                        
                         AppState.shared.splashIsAnimating = true
                         withAnimation {
                             AppState.shared.shouldShowSplash = true
                         }
+                        
+                        AppState.shared.country = model.country
                         
                         Cody.shared.id = model.user.id
                         Cody.shared.accountID = model.user.accountID

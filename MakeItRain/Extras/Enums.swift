@@ -564,3 +564,36 @@ public enum PaymentMethodFilterMode: String, CaseIterable {
         }
     }
 }
+
+enum CCBrand: String, CaseIterable, Identifiable {
+    var id: Self { self }
+    case visaBlue = "cc_logo_visa_blue"
+    case visaWhite = "cc_logo_visa_white"
+    case visaBlack = "cc_logo_visa_black"
+    case mastercard = "cc_logo_mastercard"
+    case amex = "cc_logo_amex"
+    case discover = "cc_logo_discover"
+    
+    static func fromString(_ theString: String) -> Self {
+        switch theString {
+        case "cc_logo_visa_blue": return .visaBlue
+        case "cc_logo_visa_white": return .visaWhite
+        case "cc_logo_visa_black": return .visaBlack
+        case "cc_logo_mastercard": return .mastercard
+        case "cc_logo_amex": return .amex
+        case "cc_logo_discover": return .discover
+        default: return .visaBlue
+        }
+    }
+    
+    var title: String {
+        switch self {
+        case .visaBlue: return "Visa (Blue)"
+        case .visaWhite: return "Visa (White)"
+        case .visaBlack: return "Visa (Black)"
+        case .mastercard: return "Mastercard"
+        case .amex: return "American Express"
+        case .discover: return "Discover"
+        }
+    }
+}

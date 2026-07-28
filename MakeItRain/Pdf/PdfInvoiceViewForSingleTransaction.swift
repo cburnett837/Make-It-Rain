@@ -15,7 +15,7 @@ struct PdfInvoiceViewForSingleTransaction: View {
     var trans: CBTransaction
     var contact: CNContact?
     var title: String
-    var amount: Double
+    var amount: Decimal
     var date: Date
     var receipt: CBFile?
     var invoiceType: PdfInvoiceCreatorModel.InvoiceType
@@ -116,7 +116,7 @@ struct PdfInvoiceViewForSingleTransaction: View {
             
             if let receipt = receipt {
                 if let image = ImageCache.shared.loadFromCache(
-                    parentTypeId: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction).id,
+                    parentTypeId: XrefFileType.transaction.id,
                     parentId: trans.id,
                     id: receipt.id
                 ) {

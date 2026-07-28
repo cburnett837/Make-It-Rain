@@ -49,7 +49,9 @@ final class AppStore {
     var sPayMethodWhenSearchWasFocused: CBPaymentMethod? = nil
     var sPayMethod: CBPaymentMethod? {
         didSet {
-            let _ = CalcHelper.calculateTotal(for: self.sMonth, store: self)
+            Task { @MainActor in
+                let _ = await CalcHelper.calculateTotal(for: self.sMonth, store: self)
+            }
         }
     }
     
@@ -84,7 +86,6 @@ final class AppStore {
     var banks: Array<CBPlaidBank> = []
     var trans: Array<CBPlaidTransaction> = []
     var balances: Array<CBPlaidBalance> = []
-    
     
     
     func removeAll() {

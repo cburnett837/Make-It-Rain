@@ -192,44 +192,55 @@ struct RepeatingTransactionsTable: View {
     
     var phoneList: some View {
         List(filteredTransactions, selection: $repTransactionEditID) { repTrans in
-            HStack(alignment: .circleAndTitle, spacing: 4) {
-                
-                StandardCategorySymbol(cat: repTrans.category, labelWidth: labelWidth)
-                    .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-
-                VStack(alignment: .leading) {
-                    HStack {
-                        Text(repTrans.title)
-                        Spacer()
-                        Text(repTrans.amount.currencyWithDecimals())
-                            //.foregroundStyle(.gray)
-                            //.font(.caption)
-                    }
-                    .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-                    //.alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-                           
-                    HStack {
-                        Text(repTrans.payMethod?.title ?? "N/A")
-                            .foregroundStyle(.gray)
-                            .font(.caption)
-                        
-                        Spacer()
-                        
-                        Group {
-                            if repTrans.when.filter({ $0.whenType == .month }).allSatisfy({ $0.active }) {
-                                Text("Monthly")
-                                    
-                            } else if repTrans.when.filter({ $0.whenType == .month && $0.active }).count == 1 {
-                                Text("Annually")
-                            }
-                        }
-                        .foregroundStyle(.gray)
-                        .font(.caption)
-                    }
-                }
-            }            
+            RepeatingTransactionLine(repTrans: repTrans)
         }
         .listStyle(.plain)
     }
     #endif
+}
+
+struct RepeatingTransactionLine: View {
+    var repTrans: CBRepeatingTransaction
+    
+    @State private var labelWidth: CGFloat = 20.0
+    
+    var body: some View {
+        HStack(alignment: .circleAndTitle, spacing: 4) {
+            
+            StandardCategorySymbol(cat: repTrans.category, labelWidth: labelWidth)
+                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+
+            VStack(alignment: .leading) {
+                HStack {
+                    Text(repTrans.title)
+                    Spacer()
+                    Text(repTrans.amount.currencyWithDecimals())
+                        //.foregroundStyle(.gray)
+                        //.font(.caption)
+                }
+                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                //.alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                       
+                HStack {
+                    Text(repTrans.payMethod?.title ?? "N/A")
+                        .foregroundStyle(.gray)
+                        .font(.caption)
+                    
+                    Spacer()
+                    Text(repTrans.prettyRecurrence)
+//                    Group {
+//                        if repTrans.when.filter({ $0.whenType == .month }).allSatisfy({ $0.active }) {
+//                            let monthlyCount = repTrans.when.filter({ $0.whenType == .dayOfMonth && $0.active }).count
+//                            Text("Monthly (x\(monthlyCount))")
+//                                
+//                        } else if repTrans.when.filter({ $0.whenType == .month && $0.active }).count == 1 {
+//                            Text("Annually")
+//                        }
+//                    }
+                    .foregroundStyle(.gray)
+                    .font(.caption)
+                }
+            }
+        }
+    }
 }

@@ -118,7 +118,7 @@ struct MonthlyBudgetTable: View {
     
     //@State private var totalExpenses: Double = 0
     
-    var totalExpenses: Double {
+    var totalExpenses: Decimal {
         let trans = calModel.getTransactions()
             .filter { $0.dateComponents?.month == calModel.sMonth.actualNum }
             .filter { $0.dateComponents?.year == calModel.sMonth.year }
@@ -161,7 +161,9 @@ struct MonthlyBudgetTable: View {
                             //categoryGroups: catModel.categoryGroups
                         )
                     }
+                    #if os(iOS)
                     .buttonStyle(.glassProminent)
+                    #endif
                 }
             } else {
                 StandardContainerWithToolbar(.list) {
@@ -371,7 +373,7 @@ struct MonthlyBudgetTable: View {
     
     
     
-    func getExpenseAmount(for category: CBCategory) -> Double {
+    func getExpenseAmount(for category: CBCategory) -> Decimal {
         calModel.getTransactions()
             .filter { ($0.payMethod?.isPermitted ?? true) }
             .filter { !($0.payMethod?.isHidden ?? false) }

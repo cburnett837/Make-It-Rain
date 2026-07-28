@@ -23,6 +23,8 @@ struct DashboardDataByQuarter: Hashable, Identifiable, DashboardBreakdownSummary
     var categories: [CBCategory]
     var categoryGroups: [CBCategoryGroup]
     var flatCats: [CBCategory]
+    var startingAmount: Decimal?
+    var paymentAmount: Decimal?
 
     init(
         quarter: Int,
@@ -44,6 +46,16 @@ struct DashboardDataByQuarter: Hashable, Identifiable, DashboardBreakdownSummary
         self.flatCats = (categories + categoryGroups.flatMap(\.categories))
             .uniqued(on: { $0.id })
             .sorted(by: Helpers.categorySorter())
+        
+        self.startingAmount = months
+            .filter { [1,4,7,10].contains($0.month) }
+            .map { $0.startingAmount ?? 0}
+            .reduce(0, +)
+        
+        self.paymentAmount = months
+            .filter { [1,4,7,10].contains($0.month) }
+            .map { $0.paymentAmount ?? 0}
+            .reduce(0, +)
     }
 
     private static func summarizeAmounts(_ amounts: [DashboardAmounts?]) -> DashboardAmounts {

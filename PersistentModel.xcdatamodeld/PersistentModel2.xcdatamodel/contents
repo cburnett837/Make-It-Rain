@@ -2,7 +2,7 @@
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24512" systemVersion="24G517" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
     <entity name="PersistentCategory" representedClassName="PersistentCategory" syncable="YES" codeGenerationType="class">
         <attribute name="action" optional="YES" attributeType="String"/>
-        <attribute name="amount" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="amount" optional="YES" attributeType="Decimal" defaultValueString="0.0"/>
         <attribute name="appSuiteKey" optional="YES" attributeType="String"/>
         <attribute name="emoji" optional="YES" attributeType="String"/>
         <attribute name="enteredByID" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
@@ -27,7 +27,7 @@
     </entity>
     <entity name="PersistentCategoryGroup" representedClassName="PersistentCategoryGroup" syncable="YES" codeGenerationType="class">
         <attribute name="action" optional="YES" attributeType="String"/>
-        <attribute name="amount" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="amount" optional="YES" attributeType="Decimal" defaultValueString="0.0"/>
         <attribute name="enteredByID" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="enteredDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="id" optional="YES" attributeType="String"/>
@@ -71,6 +71,7 @@
         <attribute name="accountType" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="action" optional="YES" attributeType="String"/>
         <attribute name="ccBrand" optional="YES" attributeType="String"/>
+        <attribute name="countryID" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="dueDate" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="enteredByID" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="enteredDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
@@ -91,7 +92,7 @@
         <attribute name="isPrivate" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="isViewingDefault" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="last4" optional="YES" attributeType="String"/>
-        <attribute name="limit" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="limit" optional="YES" attributeType="Decimal" defaultValueString="0.0"/>
         <attribute name="listOrder" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="loanDuration" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="notificationOffset" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
@@ -119,8 +120,9 @@
     <entity name="TempTransaction" representedClassName="TempTransaction" syncable="YES" codeGenerationType="class">
         <attribute name="action" optional="YES" attributeType="String"/>
         <attribute name="active" optional="YES" attributeType="Boolean" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="amount" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="amount" optional="YES" attributeType="Decimal" defaultValueString="0.0"/>
         <attribute name="categoryID" optional="YES" attributeType="String"/>
+        <attribute name="countryID" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="enteredDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="factorInCalculations" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>

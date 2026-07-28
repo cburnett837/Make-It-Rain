@@ -49,6 +49,7 @@ struct SettingsView: View {
     
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
+    @Environment(AppStore.self) var store
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) var calModel
     @Environment(PayMethodModel.self) var payModel
@@ -188,6 +189,7 @@ struct SettingsView: View {
                 logoutButton
             }
             accountNumberLine
+            countryRow
         }
     }        
     
@@ -423,12 +425,107 @@ struct SettingsView: View {
     #endif
     
     
+    @State private var showCountrySheet = false
+    @State private var country: Country?
+
+    @ViewBuilder
+    var countryRow: some View {
+        @Bindable var appState = AppState.shared
+        
+        Button {
+            showCountrySheet = true
+        } label: {
+            HStack {
+                Label {
+                    Text("Currency")
+                } icon: {
+                    Image(systemName: "globe.americas")
+                        .foregroundStyle(.gray)
+                }
+                
+                Spacer()
+                
+                Text("\(appState.country.currencyCode) \(appState.country.flagEmoji)")
+                    .foregroundStyle(.secondary)
+            }
+            .schemeBasedForegroundStyle()
+        }
+        .onAppear {
+            country = AppState.shared.country
+        }
+        .onChange(of: country) { old, new in
+            guard let new else {return}
+            AppState.shared.country = new
+            Task {
+                await funcModel.changeCountry()
+            }
+        }
+        .onChange(of: AppState.shared.country) { old, new in
+            country = new
+            
+            let USA = Countries.fetch(by: 225)!
+            
+            
+            store.justTransactions.forEach { trans in
+                /// If switching to a country that matches the country of the transaction, just display the original amount.
+//                if let ogAmount = trans.originalUnconvertedAmount {
+//                    if new == trans.country {
+//                        trans.amountString = CurrencyHelpers.formatAmountText(amount: ogAmount, currencyCode: new.currencyCode)
+//                        return
+//                    }
+//                }
+//                
+//                /// If switching to USA, display the USD amount.
+//                if new == USA {
+//                    trans.amountString = CurrencyHelpers.formatAmountText(amount: trans.amountUsd, currencyCode: USA.currencyCode)
+//                    return
+//                }
+//                
+//                /// If switching to a country, grab the USD amount and convert it to the new country.
+//                if let usd = trans.amountUsd {
+//                    if let amount = Countries.convert(amount: usd, from: USA, to: new) {
+//                        trans.amountString = CurrencyHelpers.formatAmountText(amount: amount, currencyCode: new.currencyCode)
+//                    }
+//                }
+            }
+            
+            store.months.forEach { month in
+                month.startingAmounts.forEach { start in
+                    /// If switching to a country that matches the country of the payment method, just display the original amount.
+//                    if let ogAmount = start.originalUnconvertedAmount {
+//                        if new == start.payMethod.country {
+//                            start.amountString = CurrencyHelpers.formatAmountText(amount: ogAmount, currencyCode: new.currencyCode)
+//                            return
+//                        }
+//                    }
+//                    
+//                    /// If switching to USA, display the USD amount.
+//                    if new == USA {
+//                        start.amountString = CurrencyHelpers.formatAmountText(amount: start.amountUsd, currencyCode: USA.currencyCode)
+//                        return
+//                    }
+//                    
+//                    /// If switching to a country, grab the USD amount and convert it to the new country.
+//                    if let usd = start.amountUsd {
+//                        if let amount = Countries.convert(amount: usd, from: USA, to: new) {
+//                            start.amountString = CurrencyHelpers.formatAmountText(amount: amount, currencyCode: new.currencyCode)
+//                        }
+//                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showCountrySheet) {
+            CountryPicker(country: $country)
+        }
+    }
+    
     var currentLocationSection: some View {
         Section {
             HStack {
                 Text("Home Location")
                 Spacer()
-                Text(Locale.current.region?.identifier ?? "N/A")
+                Text(AppState.shared.country.code)
+                //Text(Locale.current.region?.identifier ?? "N/A")
                     .foregroundStyle(.secondary)
             }
             HStack {

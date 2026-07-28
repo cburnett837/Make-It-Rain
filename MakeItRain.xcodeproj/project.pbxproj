@@ -143,6 +143,20 @@
 		FD678EED2DBC2E8A00D6BC5E /* CategoryGroupEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD678EEC2DBC2E8A00D6BC5E /* CategoryGroupEditView.swift */; };
 		FD6CA8432EBD2DE300BC773B /* DataChangeTriggers.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD6CA8422EBD2DE300BC773B /* DataChangeTriggers.swift */; };
 		FD6CA84B2EBD5C5B00BC773B /* AnimatedCloseButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD6CA84A2EBD5C5B00BC773B /* AnimatedCloseButton.swift */; };
+		FD6D47D22FF0645F005A8AE7 /* Make It Rain Watch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = FD6D47C82FF0645E005A8AE7 /* Make It Rain Watch Watch App.app */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		FD6D47E12FF065F9005A8AE7 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FD6D7ECA2D667B4A0026D39D /* WidgetKit.framework */; };
+		FD6D47E22FF065F9005A8AE7 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FD6D7ECC2D667B4A0026D39D /* SwiftUI.framework */; };
+		FD6D47EE2FF065FB005A8AE7 /* Pending Plaid WatchOSExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = FD6D47E02FF065F9005A8AE7 /* Pending Plaid WatchOSExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		FD6D47FD2FF067AB005A8AE7 /* Keys.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD6168F42F33B78400FDA64D /* Keys.swift */; };
+		FD6D47FE2FF067BB005A8AE7 /* RequestModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DEF2D3E86D500B0A97C /* RequestModel.swift */; };
+		FD6D47FF2FF067D1005A8AE7 /* DataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DB42D3E86D500B0A97C /* DataManager.swift */; };
+		FD6D48002FF06803005A8AE7 /* LogManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DCF2D3E86D500B0A97C /* LogManager.swift */; };
+		FD6D48012FF06821005A8AE7 /* PersistentModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = FDA579372C9E6FA9004E9B60 /* PersistentModel.xcdatamodeld */; };
+		FD6D48072FF06B45005A8AE7 /* RequestModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DEF2D3E86D500B0A97C /* RequestModel.swift */; };
+		FD6D48082FF06B49005A8AE7 /* DataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DB42D3E86D500B0A97C /* DataManager.swift */; };
+		FD6D48092FF06B56005A8AE7 /* LogManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC26DCF2D3E86D500B0A97C /* LogManager.swift */; };
+		FD6D480B2FF06B8A005A8AE7 /* PersistentModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = FDA579372C9E6FA9004E9B60 /* PersistentModel.xcdatamodeld */; };
+		FD6D480E2FF06C89005A8AE7 /* Keys.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD6168F42F33B78400FDA64D /* Keys.swift */; };
 		FD6D7F012D6682AB0026D39D /* NewTransactionAppIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD6D7F002D6682AB0026D39D /* NewTransactionAppIntent.swift */; };
 		FD6D7F032D66CD0A0026D39D /* CBFitTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD6D7F022D66CD0A0026D39D /* CBFitTransaction.swift */; };
 		FD737B212D806B9A00B6A97B /* StandardRectangle.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD737B202D806B9A00B6A97B /* StandardRectangle.swift */; };
@@ -163,7 +177,7 @@
 		FD7F77292E900EF80087F229 /* CalendarProps.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD7F77282E900EF80087F229 /* CalendarProps.swift */; };
 		FD7F772B2E9019760087F229 /* CalendarMoreMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD7F772A2E9019760087F229 /* CalendarMoreMenu.swift */; };
 		FD7F772E2E901A6F0087F229 /* CalendarFakeNavHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD7F772D2E901A6F0087F229 /* CalendarFakeNavHeader.swift */; };
-		FD7F77302E901BFD0087F229 /* CalendarMonthLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD7F772F2E901BFD0087F229 /* CalendarMonthLabel.swift */; };
+		FD7F77302E901BFD0087F229 /* CalendarHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD7F772F2E901BFD0087F229 /* CalendarHeader.swift */; };
 		FD7F77322E901F8B0087F229 /* CalendarToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD7F77312E901F8B0087F229 /* CalendarToolbar.swift */; };
 		FD83716C2DEDE3660099C6F3 /* TransactionListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD83716B2DEDE3660099C6F3 /* TransactionListView.swift */; };
 		FD83716E2DEDEBEA0099C6F3 /* NewTransactionMenuButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD83716D2DEDEBEA0099C6F3 /* NewTransactionMenuButton.swift */; };
@@ -196,6 +210,8 @@
 		FDA172692EF5999200C113F2 /* CumTotal.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA172682EF5999200C113F2 /* CumTotal.swift */; };
 		FDA1726B2EF60BA500C113F2 /* CivCharts.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA1726A2EF60BA500C113F2 /* CivCharts.swift */; };
 		FDA1726D2EF993F900C113F2 /* RecentReceiptsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA1726C2EF993F900C113F2 /* RecentReceiptsView.swift */; };
+		FDA4156B30163CE7002E7A77 /* DashboardStartingAmountByMonthChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA4156A30163CE7002E7A77 /* DashboardStartingAmountByMonthChart.swift */; };
+		FDA4159D3018341C002E7A77 /* PayMethodLogoMashup.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA4159C3018341C002E7A77 /* PayMethodLogoMashup.swift */; };
 		FDA579392C9E6FA9004E9B60 /* PersistentModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = FDA579372C9E6FA9004E9B60 /* PersistentModel.xcdatamodeld */; };
 		FDA8FA442EB2947100D7C29B /* NavLinkPhone.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA8FA432EB2947100D7C29B /* NavLinkPhone.swift */; };
 		FDA8FA462EB51F1600D7C29B /* CBSuggestedTitle.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA8FA452EB51F1600D7C29B /* CBSuggestedTitle.swift */; };
@@ -404,7 +420,15 @@
 		FDEE4D382EB12AD500F16EEB /* ToastList.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDEE4D372EB12AD500F16EEB /* ToastList.swift */; };
 		FDF491E22F357913005B0ECC /* MacAlertAndToastOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDF491E12F357913005B0ECC /* MacAlertAndToastOverlay.swift */; };
 		FDF491E42F357934005B0ECC /* WindowAccessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDF491E32F357934005B0ECC /* WindowAccessor.swift */; };
+		FDF8F8292FF1815800BC05BF /* PhoneWatchSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDF8F8282FF1815800BC05BF /* PhoneWatchSync.swift */; };
+		FDF8F8322FF18BB600BC05BF /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDF8F8312FF18BB600BC05BF /* KeychainManager.swift */; };
+		FDF8F8332FF18D4A00BC05BF /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDF8F8312FF18BB600BC05BF /* KeychainManager.swift */; };
+		FDF8F8362FF18ECA00BC05BF /* WatchStuff.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDF8F8352FF18ECA00BC05BF /* WatchStuff.swift */; };
+		FDF8F8382FF18EF400BC05BF /* WatchStuff.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDF8F8352FF18ECA00BC05BF /* WatchStuff.swift */; };
 		FDFA49022FC742B400ADA872 /* Countries.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDFA49012FC742B400ADA872 /* Countries.swift */; };
+		FDFA49042FC8CA1D00ADA872 /* AlphaThreshold.metal in Sources */ = {isa = PBXBuildFile; fileRef = FDFA49032FC8CA1D00ADA872 /* AlphaThreshold.metal */; };
+		FDFA491D2FD1CF0400ADA872 /* ExchangeRate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDFA491C2FD1CF0400ADA872 /* ExchangeRate.swift */; };
+		FDFA49362FD31B8C00ADA872 /* CurrencyHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDFA49352FD31B8C00ADA872 /* CurrencyHelpers.swift */; };
 		FDFBC44E2DDE33C9006DE685 /* LinkKit in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = FDFBC44D2DDE33C9006DE685 /* LinkKit */; };
 		FDFBC4502DDE346C006DE685 /* PlaidLinkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDFBC44F2DDE346C006DE685 /* PlaidLinkView.swift */; };
 		FDFBC4522DDEB47D006DE685 /* PlaidServerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDFBC4512DDEB47D006DE685 /* PlaidServerModel.swift */; };
@@ -439,6 +463,20 @@
 			remoteGlobalIDString = FD3EB4B42FAD20AB008BAFD5;
 			remoteInfo = "Pending Plaid WidgetExtension";
 		};
+		FD6D47D02FF0645F005A8AE7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = FD292E062C9B248B003C18D2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FD6D47C72FF0645E005A8AE7;
+			remoteInfo = "Make It Rain Watch Watch App";
+		};
+		FD6D47EB2FF065FB005A8AE7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = FD292E062C9B248B003C18D2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FD6D47DF2FF065F9005A8AE7;
+			remoteInfo = "Pending Plaid WatchOSExtension";
+		};
 		FDA8FA6F2EB91EA200D7C29B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = FD292E062C9B248B003C18D2 /* Project object */;
@@ -456,6 +494,17 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		FD6D47ED2FF065FB005A8AE7 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				FD6D47EE2FF065FB005A8AE7 /* Pending Plaid WatchOSExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		FD6D7EDD2D667B4B0026D39D /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -474,6 +523,7 @@
 			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
 			dstSubfolderSpec = 16;
 			files = (
+				FD6D47D22FF0645F005A8AE7 /* Make It Rain Watch Watch App.app in Embed Watch Content */,
 			);
 			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -611,6 +661,9 @@
 		FD678EEC2DBC2E8A00D6BC5E /* CategoryGroupEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryGroupEditView.swift; sourceTree = "<group>"; };
 		FD6CA8422EBD2DE300BC773B /* DataChangeTriggers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataChangeTriggers.swift; sourceTree = "<group>"; };
 		FD6CA84A2EBD5C5B00BC773B /* AnimatedCloseButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedCloseButton.swift; sourceTree = "<group>"; };
+		FD6D47C12FF05F80005A8AE7 /* Pending Plaid WatchOSExtensionDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Pending Plaid WatchOSExtensionDebug.entitlements"; sourceTree = "<group>"; };
+		FD6D47C82FF0645E005A8AE7 /* Make It Rain Watch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Make It Rain Watch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		FD6D47E02FF065F9005A8AE7 /* Pending Plaid WatchOSExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Pending Plaid WatchOSExtension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		FD6D7ECA2D667B4A0026D39D /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		FD6D7ECC2D667B4A0026D39D /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		FD6D7F002D6682AB0026D39D /* NewTransactionAppIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTransactionAppIntent.swift; sourceTree = "<group>"; };
@@ -633,7 +686,7 @@
 		FD7F77282E900EF80087F229 /* CalendarProps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarProps.swift; sourceTree = "<group>"; };
 		FD7F772A2E9019760087F229 /* CalendarMoreMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarMoreMenu.swift; sourceTree = "<group>"; };
 		FD7F772D2E901A6F0087F229 /* CalendarFakeNavHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarFakeNavHeader.swift; sourceTree = "<group>"; };
-		FD7F772F2E901BFD0087F229 /* CalendarMonthLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarMonthLabel.swift; sourceTree = "<group>"; };
+		FD7F772F2E901BFD0087F229 /* CalendarHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarHeader.swift; sourceTree = "<group>"; };
 		FD7F77312E901F8B0087F229 /* CalendarToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarToolbar.swift; sourceTree = "<group>"; };
 		FD83716B2DEDE3660099C6F3 /* TransactionListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionListView.swift; sourceTree = "<group>"; };
 		FD83716D2DEDEBEA0099C6F3 /* NewTransactionMenuButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTransactionMenuButton.swift; sourceTree = "<group>"; };
@@ -667,6 +720,8 @@
 		FDA172682EF5999200C113F2 /* CumTotal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CumTotal.swift; sourceTree = "<group>"; };
 		FDA1726A2EF60BA500C113F2 /* CivCharts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CivCharts.swift; sourceTree = "<group>"; };
 		FDA1726C2EF993F900C113F2 /* RecentReceiptsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentReceiptsView.swift; sourceTree = "<group>"; };
+		FDA4156A30163CE7002E7A77 /* DashboardStartingAmountByMonthChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardStartingAmountByMonthChart.swift; sourceTree = "<group>"; };
+		FDA4159C3018341C002E7A77 /* PayMethodLogoMashup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PayMethodLogoMashup.swift; sourceTree = "<group>"; };
 		FDA8FA432EB2947100D7C29B /* NavLinkPhone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavLinkPhone.swift; sourceTree = "<group>"; };
 		FDA8FA452EB51F1600D7C29B /* CBSuggestedTitle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBSuggestedTitle.swift; sourceTree = "<group>"; };
 		FDA8FA472EB5334100D7C29B /* TevMoreOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TevMoreOptions.swift; sourceTree = "<group>"; };
@@ -874,7 +929,13 @@
 		FDEE4D372EB12AD500F16EEB /* ToastList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastList.swift; sourceTree = "<group>"; };
 		FDF491E12F357913005B0ECC /* MacAlertAndToastOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacAlertAndToastOverlay.swift; sourceTree = "<group>"; };
 		FDF491E32F357934005B0ECC /* WindowAccessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowAccessor.swift; sourceTree = "<group>"; };
+		FDF8F8282FF1815800BC05BF /* PhoneWatchSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneWatchSync.swift; sourceTree = "<group>"; };
+		FDF8F8312FF18BB600BC05BF /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
+		FDF8F8352FF18ECA00BC05BF /* WatchStuff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchStuff.swift; sourceTree = "<group>"; };
 		FDFA49012FC742B400ADA872 /* Countries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Countries.swift; sourceTree = "<group>"; };
+		FDFA49032FC8CA1D00ADA872 /* AlphaThreshold.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = AlphaThreshold.metal; sourceTree = "<group>"; };
+		FDFA491C2FD1CF0400ADA872 /* ExchangeRate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExchangeRate.swift; sourceTree = "<group>"; };
+		FDFA49352FD31B8C00ADA872 /* CurrencyHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyHelpers.swift; sourceTree = "<group>"; };
 		FDFBC44F2DDE346C006DE685 /* PlaidLinkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaidLinkView.swift; sourceTree = "<group>"; };
 		FDFBC4512DDEB47D006DE685 /* PlaidServerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaidServerModel.swift; sourceTree = "<group>"; };
 		FDFBC4532DDED96A006DE685 /* PlaidTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaidTable.swift; sourceTree = "<group>"; };
@@ -907,6 +968,20 @@
 			);
 			target = FD3EB4B42FAD20AB008BAFD5 /* Pending Plaid WidgetExtension */;
 		};
+		FD6D47EF2FF065FB005A8AE7 /* Exceptions for "Pending Plaid WatchOS" folder in "Pending Plaid WatchOSExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = FD6D47DF2FF065F9005A8AE7 /* Pending Plaid WatchOSExtension */;
+		};
+		FD6D48042FF06B1C005A8AE7 /* Exceptions for "Pending Plaid WatchOS" folder in "Make It Rain Watch Watch App" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Pending_Plaid_WatchOS.swift,
+			);
+			target = FD6D47C72FF0645E005A8AE7 /* Make It Rain Watch Watch App */;
+		};
 		FDA8FA722EB91EA200D7C29B /* Exceptions for "Take-Photo-Extension" folder in "Take-Photo-ExtensionExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -923,6 +998,20 @@
 				FD3EB4C32FAD20AC008BAFD5 /* Exceptions for "Pending Plaid Widget" folder in "Pending Plaid WidgetExtension" target */,
 			);
 			path = "Pending Plaid Widget";
+			sourceTree = "<group>";
+		};
+		FD6D47C92FF0645E005A8AE7 /* Make It Rain Watch Watch App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Make It Rain Watch Watch App";
+			sourceTree = "<group>";
+		};
+		FD6D47E32FF065F9005A8AE7 /* Pending Plaid WatchOS */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				FD6D48042FF06B1C005A8AE7 /* Exceptions for "Pending Plaid WatchOS" folder in "Make It Rain Watch Watch App" target */,
+				FD6D47EF2FF065FB005A8AE7 /* Exceptions for "Pending Plaid WatchOS" folder in "Pending Plaid WatchOSExtension" target */,
+			);
+			path = "Pending Plaid WatchOS";
 			sourceTree = "<group>";
 		};
 		FDA8FA672EB91EA100D7C29B /* Take-Photo-Extension */ = {
@@ -956,6 +1045,22 @@
 			files = (
 				FD3EB4B72FAD20AB008BAFD5 /* SwiftUI.framework in Frameworks */,
 				FD3EB4B62FAD20AB008BAFD5 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FD6D47C52FF0645E005A8AE7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FD6D47DD2FF065F9005A8AE7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FD6D47E22FF065F9005A8AE7 /* SwiftUI.framework in Frameworks */,
+				FD6D47E12FF065F9005A8AE7 /* WidgetKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1051,6 +1156,7 @@
 		FD292E052C9B248B003C18D2 = {
 			isa = PBXGroup;
 			children = (
+				FD6D47C12FF05F80005A8AE7 /* Pending Plaid WatchOSExtensionDebug.entitlements */,
 				FD3EB4DB2FAD39BC008BAFD5 /* Pending Plaid WidgetExtensionDebug.entitlements */,
 				FD3EB4DA2FAD2EB7008BAFD5 /* Pending Plaid WidgetExtension.entitlements */,
 				FDA579372C9E6FA9004E9B60 /* PersistentModel.xcdatamodeld */,
@@ -1058,6 +1164,8 @@
 				FDA8FA672EB91EA100D7C29B /* Take-Photo-Extension */,
 				FDEE20672F7AAE5100E51FA4 /* MakeItRainUITests */,
 				FD3EB4B82FAD20AB008BAFD5 /* Pending Plaid Widget */,
+				FD6D47C92FF0645E005A8AE7 /* Make It Rain Watch Watch App */,
+				FD6D47E32FF065F9005A8AE7 /* Pending Plaid WatchOS */,
 				FD6D7EC92D667B4A0026D39D /* Frameworks */,
 				FD292E0F2C9B248B003C18D2 /* Products */,
 				FD49F8A52DDCCFC200A563C8 /* Junk */,
@@ -1072,6 +1180,8 @@
 				FDA8FA642EB91EA100D7C29B /* Take-Photo-ExtensionExtension.appex */,
 				FDEE20662F7AAE5100E51FA4 /* MakeItRainUITests.xctest */,
 				FD3EB4B52FAD20AB008BAFD5 /* Pending Plaid WidgetExtension.appex */,
+				FD6D47C82FF0645E005A8AE7 /* Make It Rain Watch Watch App.app */,
+				FD6D47E02FF065F9005A8AE7 /* Pending Plaid WatchOSExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -1216,7 +1326,7 @@
 			isa = PBXGroup;
 			children = (
 				FD7F77262E900AA70087F229 /* CalendarGridPhone.swift */,
-				FD7F772F2E901BFD0087F229 /* CalendarMonthLabel.swift */,
+				FD7F772F2E901BFD0087F229 /* CalendarHeader.swift */,
 				FD7F77312E901F8B0087F229 /* CalendarToolbar.swift */,
 				FD7F772A2E9019760087F229 /* CalendarMoreMenu.swift */,
 			);
@@ -1366,6 +1476,7 @@
 				FDBD47CB2FB913E1004F34F5 /* DashboardNetWorthChange.swift */,
 				FDBD47C72FB913D1004F34F5 /* DashboardNumericDetails.swift */,
 				FDBD47B52FB9137E004F34F5 /* DashboardOptionsSheet.swift */,
+				FDA4156A30163CE7002E7A77 /* DashboardStartingAmountByMonthChart.swift */,
 				FDBD47B32FB91378004F34F5 /* DashboardToolbar.swift */,
 				FDBD47C92FB913D7004F34F5 /* DashboardTransactionList.swift */,
 				FDBD47CD2FB913E7004F34F5 /* DashboardWidget.swift */,
@@ -1377,7 +1488,6 @@
 			isa = PBXGroup;
 			children = (
 				FDC26D922D3E86D500B0A97C /* AuthState.swift */,
-				FDC26DC42D3E86D500B0A97C /* KeychainManager.swift */,
 				FDC26DF72D3E86D500B0A97C /* LoginModel.swift */,
 			);
 			path = Authentication;
@@ -1516,6 +1626,7 @@
 				FDA8FA822EBAACAE00D7C29B /* ServerActions.swift */,
 				FDFD8F262FAEC1CE00B9A98B /* TransactionHelper.swift */,
 				FDFD8F282FAEC30200B9A98B /* CalcHelper.swift */,
+				FDFA49352FD31B8C00ADA872 /* CurrencyHelpers.swift */,
 			);
 			path = Extras;
 			sourceTree = "<group>";
@@ -1536,6 +1647,7 @@
 			children = (
 				FD8F145B2F1ECE1B0098CC49 /* ContactManager.swift */,
 				FDC26DB42D3E86D500B0A97C /* DataManager.swift */,
+				FDC26DC42D3E86D500B0A97C /* KeychainManager.swift */,
 				FDC26DCD2D3E86D500B0A97C /* LoadingManager.swift */,
 				FDD6CDE02DA97BC8002B00E5 /* LocationManager.swift */,
 				FDC26DCF2D3E86D500B0A97C /* LogManager.swift */,
@@ -1569,6 +1681,7 @@
 				FDED0A7A2EC2872600FBD08C /* ChartData.swift */,
 				FD09FF502D9C312900795C28 /* CheckIfShouldDownloadModel.swift */,
 				FD09FF4E2D9C311700795C28 /* CodablePlaceHolder.swift */,
+				FDFA49012FC742B400ADA872 /* Countries.swift */,
 				FDA172682EF5999200C113F2 /* CumTotal.swift */,
 				FD6CA8422EBD2DE300BC773B /* DataChangeTriggers.swift */,
 				FD09FF4A2D9C30F100795C28 /* ListOrderUpdateModel.swift */,
@@ -1586,7 +1699,7 @@
 				FD7DDEA62F02BEE500753E53 /* IdSubmitModel.swift */,
 				FD502A852F17D892003BBF87 /* GenericUserInfoModel.swift */,
 				FDAEEDDA2F8089BC00FED197 /* AccessorialModelDecodable.swift */,
-				FDFA49012FC742B400ADA872 /* Countries.swift */,
+				FDFA491C2FD1CF0400ADA872 /* ExchangeRate.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -1609,6 +1722,7 @@
 				FDC26DE22D3E86D500B0A97C /* PayMethodSheet.swift */,
 				FDC26DE32D3E86D500B0A97C /* PayMethodSheetButton.swift */,
 				FDEE4D332EB0FFE300F16EEB /* PayMethodSortMenu.swift */,
+				FDA4159C3018341C002E7A77 /* PayMethodLogoMashup.swift */,
 			);
 			path = "Payment Methods";
 			sourceTree = "<group>";
@@ -1732,6 +1846,9 @@
 				FDC26DC22D3E86D500B0A97C /* Info.plist */,
 				FDC26DD22D3E86D500B0A97C /* MakeItRain.entitlements */,
 				FDC26D862D3E86D500B0A97C /* Preview Content */,
+				FDFA49032FC8CA1D00ADA872 /* AlphaThreshold.metal */,
+				FDF8F8282FF1815800BC05BF /* PhoneWatchSync.swift */,
+				FDF8F81E2FF17D5000BC05BF /* Shared Watch Stuff */,
 			);
 			path = MakeItRain;
 			sourceTree = "<group>";
@@ -1802,6 +1919,15 @@
 				FD4BABE02D9AD8B800384AB3 /* ToolbarLongPollButton.swift */,
 			);
 			path = "Toolbar Components";
+			sourceTree = "<group>";
+		};
+		FDF8F81E2FF17D5000BC05BF /* Shared Watch Stuff */ = {
+			isa = PBXGroup;
+			children = (
+				FDF8F8352FF18ECA00BC05BF /* WatchStuff.swift */,
+				FDF8F8312FF18BB600BC05BF /* KeychainManager.swift */,
+			);
+			path = "Shared Watch Stuff";
 			sourceTree = "<group>";
 		};
 		FDFBC45B2DDF5CF5006DE685 /* Link Stuff */ = {
@@ -1877,6 +2003,7 @@
 			dependencies = (
 				FDA8FA702EB91EA200D7C29B /* PBXTargetDependency */,
 				FD3EB4C12FAD20AC008BAFD5 /* PBXTargetDependency */,
+				FD6D47D12FF0645F005A8AE7 /* PBXTargetDependency */,
 			);
 			name = MakeItRain;
 			packageProductDependencies = (
@@ -1907,6 +2034,52 @@
 			);
 			productName = "Pending Plaid WidgetExtension";
 			productReference = FD3EB4B52FAD20AB008BAFD5 /* Pending Plaid WidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		FD6D47C72FF0645E005A8AE7 /* Make It Rain Watch Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FD6D47D32FF0645F005A8AE7 /* Build configuration list for PBXNativeTarget "Make It Rain Watch Watch App" */;
+			buildPhases = (
+				FD6D47C42FF0645E005A8AE7 /* Sources */,
+				FD6D47C52FF0645E005A8AE7 /* Frameworks */,
+				FD6D47C62FF0645E005A8AE7 /* Resources */,
+				FD6D47ED2FF065FB005A8AE7 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				FD6D47EC2FF065FB005A8AE7 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				FD6D47C92FF0645E005A8AE7 /* Make It Rain Watch Watch App */,
+			);
+			name = "Make It Rain Watch Watch App";
+			packageProductDependencies = (
+			);
+			productName = "Make It Rain Watch Watch App";
+			productReference = FD6D47C82FF0645E005A8AE7 /* Make It Rain Watch Watch App.app */;
+			productType = "com.apple.product-type.application";
+		};
+		FD6D47DF2FF065F9005A8AE7 /* Pending Plaid WatchOSExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FD6D47F02FF065FB005A8AE7 /* Build configuration list for PBXNativeTarget "Pending Plaid WatchOSExtension" */;
+			buildPhases = (
+				FD6D47DC2FF065F9005A8AE7 /* Sources */,
+				FD6D47DD2FF065F9005A8AE7 /* Frameworks */,
+				FD6D47DE2FF065F9005A8AE7 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				FD6D47E32FF065F9005A8AE7 /* Pending Plaid WatchOS */,
+			);
+			name = "Pending Plaid WatchOSExtension";
+			packageProductDependencies = (
+			);
+			productName = "Pending Plaid WatchOSExtension";
+			productReference = FD6D47E02FF065F9005A8AE7 /* Pending Plaid WatchOSExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 		FDA8FA632EB91EA100D7C29B /* Take-Photo-ExtensionExtension */ = {
@@ -1971,6 +2144,12 @@
 					FD3EB4B42FAD20AB008BAFD5 = {
 						CreatedOnToolsVersion = 26.2;
 					};
+					FD6D47C72FF0645E005A8AE7 = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					FD6D47DF2FF065F9005A8AE7 = {
+						CreatedOnToolsVersion = 26.2;
+					};
 					FDA8FA632EB91EA100D7C29B = {
 						CreatedOnToolsVersion = 26.0.1;
 					};
@@ -2002,6 +2181,8 @@
 				FDA8FA632EB91EA100D7C29B /* Take-Photo-ExtensionExtension */,
 				FDEE20652F7AAE5100E51FA4 /* MakeItRainUITests */,
 				FD3EB4B42FAD20AB008BAFD5 /* Pending Plaid WidgetExtension */,
+				FD6D47C72FF0645E005A8AE7 /* Make It Rain Watch Watch App */,
+				FD6D47DF2FF065F9005A8AE7 /* Pending Plaid WatchOSExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -2022,6 +2203,20 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		FD3EB4B32FAD20AB008BAFD5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FD6D47C62FF0645E005A8AE7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FD6D47DE2FF065F9005A8AE7 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -2109,7 +2304,7 @@
 				FD7F772B2E9019760087F229 /* CalendarMoreMenu.swift in Sources */,
 				FD25FF3B2E974F240079E001 /* ChartDateRangeHeader.swift in Sources */,
 				FDBD47AD2FB912E9004F34F5 /* DashboardNavDest.swift in Sources */,
-				FD7F77302E901BFD0087F229 /* CalendarMonthLabel.swift in Sources */,
+				FD7F77302E901BFD0087F229 /* CalendarHeader.swift in Sources */,
 				FDC26E252D3E86D500B0A97C /* CategorySheetButton.swift in Sources */,
 				FDC26E262D3E86D500B0A97C /* NetworkManager.swift in Sources */,
 				FDA1726B2EF60BA500C113F2 /* CivCharts.swift in Sources */,
@@ -2117,6 +2312,7 @@
 				FDBD47C22FB913BB004F34F5 /* DashboardActivityByCategoryAnnotation.swift in Sources */,
 				FDC26E272D3E86D500B0A97C /* SettingsView.swift in Sources */,
 				FDC26E282D3E86D500B0A97C /* PayMethodSheet.swift in Sources */,
+				FDFA49362FD31B8C00ADA872 /* CurrencyHelpers.swift in Sources */,
 				FDC26E292D3E86D500B0A97C /* LogManager.swift in Sources */,
 				FDAECC422DC938F400C6EDA5 /* StandardColorPicker.swift in Sources */,
 				FD174D4D2ED8755D00A01F67 /* UserAvatar.swift in Sources */,
@@ -2156,6 +2352,7 @@
 				FDC26E342D3E86D500B0A97C /* TransferSheet.swift in Sources */,
 				FDC26E352D3E86D500B0A97C /* AuthState.swift in Sources */,
 				FDC26E362D3E86D500B0A97C /* SheetHeader.swift in Sources */,
+				FDFA491D2FD1CF0400ADA872 /* ExchangeRate.swift in Sources */,
 				FDC26E372D3E86D500B0A97C /* DataManager.swift in Sources */,
 				FD737B412D835AAF00B6A97B /* AlertAndToastLayerView.swift in Sources */,
 				FD83716C2DEDE3660099C6F3 /* TransactionListView.swift in Sources */,
@@ -2184,6 +2381,7 @@
 				FDFD8F442FB5F96000B9A98B /* GlobalBudgetEditView.swift in Sources */,
 				FD174D552EDB77A000A01F67 /* SnowyBackground.swift in Sources */,
 				FDBD47CE2FB913E7004F34F5 /* DashboardWidget.swift in Sources */,
+				FDA4159D3018341C002E7A77 /* PayMethodLogoMashup.swift in Sources */,
 				FDBD47A12FB912A0004F34F5 /* DashboardBreakdownSummary.swift in Sources */,
 				FD174D562EDB77A000A01F67 /* SnowScene.swift in Sources */,
 				FD06F6BA2DEA4D2800753490 /* LittleBottomSheetContainer.swift in Sources */,
@@ -2242,6 +2440,7 @@
 				FDC26E4A2D3E86D500B0A97C /* MultiPayMethodSheet.swift in Sources */,
 				FD1AD7692ECB87F1006A807E /* PayMethodOverView.swift in Sources */,
 				FDFBC4502DDE346C006DE685 /* PlaidLinkView.swift in Sources */,
+				FDF8F8292FF1815800BC05BF /* PhoneWatchSync.swift in Sources */,
 				FDC26E4B2D3E86D500B0A97C /* RepeatingTransactionsTable.swift in Sources */,
 				FDAECC462DCA6E1D00C6EDA5 /* CalendarSheetLayerView.swift in Sources */,
 				FDA172612EF5971A00C113F2 /* CivMultiMonthSheet.swift in Sources */,
@@ -2257,6 +2456,7 @@
 				FD7DD9A82F0423B4008F3F71 /* AppSettings.swift in Sources */,
 				FDC26E4F2D3E86D500B0A97C /* ColorPickerView.swift in Sources */,
 				FDFD8F422FB4D29700B9A98B /* CategoryEditSheetAndLogic.swift in Sources */,
+				FDA4156B30163CE7002E7A77 /* DashboardStartingAmountByMonthChart.swift in Sources */,
 				FDFD8F3C2FB25BC200B9A98B /* BudgetChart.swift in Sources */,
 				FD2822E32F925B2C00CA00B8 /* Extensions+Sequence.swift in Sources */,
 				FD06F6B82DEA36BD00753490 /* ChartOptionToggle.swift in Sources */,
@@ -2409,6 +2609,7 @@
 				FDC26E7F2D3E86D500B0A97C /* DayContextMenu.swift in Sources */,
 				FD174D4B2ED74F4D00A01F67 /* StandardUserAvatar.swift in Sources */,
 				FDE202BE2E86D37E00848266 /* TransactionEditViewBackup.swift in Sources */,
+				FDFA49042FC8CA1D00ADA872 /* AlphaThreshold.metal in Sources */,
 				FDC26E802D3E86D500B0A97C /* TevLogSheet.swift in Sources */,
 				FDAEEDDB2F8089BC00FED197 /* AccessorialModelDecodable.swift in Sources */,
 				FDA8FA442EB2947100D7C29B /* NavLinkPhone.swift in Sources */,
@@ -2466,6 +2667,34 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FD6D47C42FF0645E005A8AE7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FD6D48072FF06B45005A8AE7 /* RequestModel.swift in Sources */,
+				FD6D48082FF06B49005A8AE7 /* DataManager.swift in Sources */,
+				FDF8F8362FF18ECA00BC05BF /* WatchStuff.swift in Sources */,
+				FDF8F8322FF18BB600BC05BF /* KeychainManager.swift in Sources */,
+				FD6D48092FF06B56005A8AE7 /* LogManager.swift in Sources */,
+				FD6D480B2FF06B8A005A8AE7 /* PersistentModel.xcdatamodeld in Sources */,
+				FD6D480E2FF06C89005A8AE7 /* Keys.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FD6D47DC2FF065F9005A8AE7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FD6D47FE2FF067BB005A8AE7 /* RequestModel.swift in Sources */,
+				FD6D47FF2FF067D1005A8AE7 /* DataManager.swift in Sources */,
+				FD6D48002FF06803005A8AE7 /* LogManager.swift in Sources */,
+				FDF8F8382FF18EF400BC05BF /* WatchStuff.swift in Sources */,
+				FD6D47FD2FF067AB005A8AE7 /* Keys.swift in Sources */,
+				FD6D48012FF06821005A8AE7 /* PersistentModel.xcdatamodeld in Sources */,
+				FDF8F8332FF18D4A00BC05BF /* KeychainManager.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		FDA8FA602EB91EA100D7C29B /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -2487,6 +2716,17 @@
 			isa = PBXTargetDependency;
 			target = FD3EB4B42FAD20AB008BAFD5 /* Pending Plaid WidgetExtension */;
 			targetProxy = FD3EB4C02FAD20AC008BAFD5 /* PBXContainerItemProxy */;
+		};
+		FD6D47D12FF0645F005A8AE7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			platformFilter = ios;
+			target = FD6D47C72FF0645E005A8AE7 /* Make It Rain Watch Watch App */;
+			targetProxy = FD6D47D02FF0645F005A8AE7 /* PBXContainerItemProxy */;
+		};
+		FD6D47EC2FF065FB005A8AE7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = FD6D47DF2FF065F9005A8AE7 /* Pending Plaid WatchOSExtension */;
+			targetProxy = FD6D47EB2FF065FB005A8AE7 /* PBXContainerItemProxy */;
 		};
 		FDA8FA702EB91EA200D7C29B /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -2773,6 +3013,9 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = N83B9B3ZN6;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Pending Plaid Widget/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Pending Plaid Widget";
@@ -2786,16 +3029,19 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.codyburnett.MakeItRain.Pending-Plaid-Widget";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "driverkit iphoneos iphonesimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
 			};
 			name = Debug;
 		};
@@ -2809,6 +3055,9 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = N83B9B3ZN6;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Pending Plaid Widget/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Pending Plaid Widget";
@@ -2822,17 +3071,162 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.codyburnett.MakeItRain.Pending-Plaid-Widget";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "driverkit iphoneos iphonesimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
+		FD6D47D42FF0645F005A8AE7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Make It Rain Watch Watch App/Make It Rain Watch Watch AppDebug.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = N83B9B3ZN6;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Make It Rain Watch";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.codyburnett.MakeItRain;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.codyburnett.MakeItRain.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Debug;
+		};
+		FD6D47D52FF0645F005A8AE7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N83B9B3ZN6;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Make It Rain Watch";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.codyburnett.MakeItRain;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.codyburnett.MakeItRain.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Release;
+		};
+		FD6D47F12FF065FB005A8AE7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = "Pending Plaid WatchOSExtensionDebug.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = N83B9B3ZN6;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Pending Plaid WatchOS/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Pending Plaid WatchOS";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.codyburnett.MakeItRain.watchkitapp.Pending-Plaid-WatchOS";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Debug;
+		};
+		FD6D47F22FF065FB005A8AE7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N83B9B3ZN6;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Pending Plaid WatchOS/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Pending Plaid WatchOS";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.codyburnett.MakeItRain.watchkitapp.Pending-Plaid-WatchOS";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
 			};
 			name = Release;
 		};
@@ -2976,6 +3370,24 @@
 			buildConfigurations = (
 				FD3EB4C52FAD20AC008BAFD5 /* Debug */,
 				FD3EB4C62FAD20AC008BAFD5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FD6D47D32FF0645F005A8AE7 /* Build configuration list for PBXNativeTarget "Make It Rain Watch Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FD6D47D42FF0645F005A8AE7 /* Debug */,
+				FD6D47D52FF0645F005A8AE7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FD6D47F02FF065FB005A8AE7 /* Build configuration list for PBXNativeTarget "Pending Plaid WatchOSExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FD6D47F12FF065FB005A8AE7 /* Debug */,
+				FD6D47F22FF065FB005A8AE7 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

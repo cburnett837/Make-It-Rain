@@ -10,19 +10,19 @@ import SwiftUI
 import Charts
 
 @Observable
-class DashboardAmounts: Decodable, Hashable, Equatable {
-    var regularIncome: Double = 0.0 /// Salary, calculated by any category that is of type "income".
-    var irregularIncome: Double = 0.0 /// Reimbursements, refunds, gifts, etc.
-    var actualIncome: Double = 0.0
+class DashboardAmounts: Codable, Hashable, Equatable {
+    var regularIncome: Decimal = 0.0 /// Salary, calculated by any category that is of type "income".
+    var irregularIncome: Decimal = 0.0 /// Reimbursements, refunds, gifts, etc.
+    var actualIncome: Decimal = 0.0
     
-    var totalSpend: Double = 0.0 /// Any normal expenses
-    var actualSpend: Double = 0.0 /// actual spending (totalSpend - irregularIncome)
-    var actualSpendMinusRegularIncome: Double = 0.0 /// left over money between salary and expenses
-    var actualSpendMinusPayment: Double = 0.0
+    var totalSpend: Decimal = 0.0 /// Any normal expenses
+    var actualSpend: Decimal = 0.0 /// actual spending (totalSpend - irregularIncome)
+    var actualSpendMinusRegularIncome: Decimal = 0.0 /// left over money between salary and expenses
+    var actualSpendMinusPayment: Decimal = 0.0
     
-    var creditPayment: Double?
+    var creditPayment: Decimal?
     
-    var variance: Double?
+    var variance: Decimal?
     
     init() {
         self.regularIncome = 0.0
@@ -36,20 +36,36 @@ class DashboardAmounts: Decodable, Hashable, Equatable {
     
     enum CodingKeys: CodingKey { case regular_income, irregular_income, actual_income, total_spend, actual_spend, actual_spend_minus_regular_income, actual_spend_minus_payment, variance, credit_payment }
     
+    /// For ``NavDest``
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(regularIncome, forKey: .regular_income)
+        try container.encode(irregularIncome, forKey: .irregular_income)
+        try container.encode(actualIncome, forKey: .actual_income)
+        
+        try container.encode(totalSpend, forKey: .total_spend)
+        try container.encode(actualSpend, forKey: .actual_spend)
+        try container.encode(actualSpendMinusRegularIncome, forKey: .actual_spend_minus_regular_income)
+        try container.encode(actualSpendMinusPayment, forKey: .actual_spend_minus_payment)
+        
+        try container.encode(variance, forKey: .variance)
+        try container.encode(creditPayment, forKey: .credit_payment)
+    }
+    
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
                         
-        self.regularIncome = try container.decode(Double.self, forKey: .regular_income)
-        self.irregularIncome = try container.decode(Double.self, forKey: .irregular_income)
-        self.actualIncome = try container.decodeIfPresent(Double.self, forKey: .actual_income) ?? 0.0
+        self.regularIncome = try container.decode(Decimal.self, forKey: .regular_income)
+        self.irregularIncome = try container.decode(Decimal.self, forKey: .irregular_income)
+        self.actualIncome = try container.decodeIfPresent(Decimal.self, forKey: .actual_income) ?? 0.0
         
-        self.totalSpend = try container.decode(Double.self, forKey: .total_spend)
-        self.actualSpend = try container.decode(Double.self, forKey: .actual_spend)
-        self.actualSpendMinusRegularIncome = try container.decode(Double.self, forKey: .actual_spend_minus_regular_income)
-        self.actualSpendMinusPayment = try container.decode(Double.self, forKey: .actual_spend_minus_payment)
+        self.totalSpend = try container.decode(Decimal.self, forKey: .total_spend)
+        self.actualSpend = try container.decode(Decimal.self, forKey: .actual_spend)
+        self.actualSpendMinusRegularIncome = try container.decode(Decimal.self, forKey: .actual_spend_minus_regular_income)
+        self.actualSpendMinusPayment = try container.decode(Decimal.self, forKey: .actual_spend_minus_payment)
         
-        self.variance = try container.decodeIfPresent(Double.self, forKey: .variance)
-        self.creditPayment = try container.decodeIfPresent(Double.self, forKey: .credit_payment)
+        self.variance = try container.decodeIfPresent(Decimal.self, forKey: .variance)
+        self.creditPayment = try container.decodeIfPresent(Decimal.self, forKey: .credit_payment)
     }
     
     convenience init(copying other: DashboardAmounts?) {

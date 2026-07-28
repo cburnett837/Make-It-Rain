@@ -10,7 +10,7 @@ import Charts
 
 
 protocol IsEditableBudget: AnyObject {
-    var amount: Double {get}
+    var amount: Decimal {get}
     var amountString: String {get set}
         
     func deepCopy(_ mode: ShadowCopyAction)
@@ -41,7 +41,7 @@ struct MonthlyBudgetEditView: View {
     @State private var labelWidth: CGFloat = 20.0
 
     
-    var catAndGroupBudgetAmount: Double {
+    var catAndGroupBudgetAmount: Decimal {
         let catAmount = month.budgets.filter({ $0.type == .category }).compactMap({ $0.amount }).reduce(0, +)
         let groupAmount = month.budgets.filter({ $0.type == .categoryGroup }).compactMap({ $0.amount }).reduce(0, +)
         //let catAmount = month.budget.categories.map({ $0.amount ?? 0 }).reduce(0, +)
@@ -63,7 +63,7 @@ struct MonthlyBudgetEditView: View {
         }
     }
     
-    var monthlyIncome: Double {
+    var monthlyIncome: Decimal {
         return store.repTransactions.reduce(0.0) { total, rep in
             guard rep.category?.isIncome == true else { return total }
             
@@ -71,7 +71,7 @@ struct MonthlyBudgetEditView: View {
                 [.dayOfMonth, .weekday, .specificDate].contains($0.whenType) && $0.active
             }
             
-            return total + rep.amount * Double(count)
+            return total + rep.amount * Decimal(count)
         }
     }
     
@@ -180,7 +180,7 @@ struct MonthlyBudgetEditView: View {
             .uiStartCursorAtEnd(true)
             .uiTextAlignment(.left)
             #else
-            StandardTextField("Name", text: $amountString, focusedField: $focusedField, focusValue: 0)
+            StandardTextField("Name", text: $month.amountString, focusedField: $focusedField, focusValue: 0)
                 .onSubmit { focusedField = 1 }
             #endif
         }

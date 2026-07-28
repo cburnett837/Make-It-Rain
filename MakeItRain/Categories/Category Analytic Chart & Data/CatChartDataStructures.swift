@@ -27,25 +27,28 @@ struct CategoryAnalyticData: Identifiable {
     }
     
     var budgetString: String
-    var budget: Double {
-        Double(budgetString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+    var budget: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(budgetString) ?? 0.0
+        //Double(budgetString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
     }
     
     var expensesString: String
-    var expenses: Double {
-        Double(expensesString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+    var expenses: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(expensesString) ?? 0.0
+        //Double(expensesString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
     }
     
     var incomeString: String
-    var income: Double {
-        Double(incomeString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+    var income: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(incomeString) ?? 0.0
+        //Double(incomeString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
     }
     
-    var incomeMinusExpenses: Double {
+    var incomeMinusExpenses: Decimal {
         income - expenses
     }
     
-    var expensesMinusIncome: Double {
+    var expensesMinusIncome: Decimal {
         expenses - income
     }
 }

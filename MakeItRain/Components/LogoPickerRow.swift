@@ -10,7 +10,7 @@ import SwiftUI
 struct LogoPickerRow<T: CanHandleLogo & Observation.Observable>: View {
     @State private var showLogoSearchPage = false
     let parent: T
-    let parentType: XrefEnum
+    let parentType: XrefLogoParentType
     let fallbackType: LogoFallBackType
     
     var body: some View {
@@ -33,7 +33,7 @@ struct LogoPickerRow<T: CanHandleLogo & Observation.Observable>: View {
                     Button("Clear Logo") {
                         parent.logo = nil
                         ImageCache.shared.removeFromCache(
-                            parentTypeId: XrefModel.getItem(from: .logoTypes, byEnumID: parentType).id,
+                            parentTypeId: parentType.id, //XrefLogoParentType.item(enumID: parentType).id,// XrefModel.getItem(from: .logoTypes, byEnumID: parentType).id,
                             parentId: parent.id,
                             id: parent.id
                         )

@@ -61,7 +61,7 @@ struct DashboardUtils {
         }
     }
 
-    static func incomeAmount(for cat: CBCategory) -> Double {
+    static func incomeAmount(for cat: CBCategory) -> Decimal {
         if cat.isRegularIncome {
             return cat.allAmounts?.regularIncome ?? 0.0
         } else {
@@ -70,11 +70,11 @@ struct DashboardUtils {
     }
 
     static func categoryOwningXRange(
-        selectedXAmount: Double,
+        selectedXAmount: Decimal,
         categories: [CBCategory],
-        amountForCategory: (CBCategory) -> Double
+        amountForCategory: (CBCategory) -> Decimal
     ) -> CBCategory? {
-        var runningTotal = 0.0
+        var runningTotal: Decimal = 0.0
         
         for category in categories {
             let amount = amountForCategory(category)

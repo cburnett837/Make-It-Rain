@@ -172,7 +172,7 @@ struct ProfitLossChart: View {
     @ViewBuilder func chart(showLines: Bool) -> some View {
         Chart {
             /// WARNING! This cannot be a computed property.
-            let positionForNewColor: Double? = vm.getGradientPosition(for: style == .amount ? .amount : .percentage, flipAt: 0)
+            let positionForNewColor: Decimal? = vm.getGradientPosition(for: style == .amount ? .amount : .percentage, flipAt: 0)
             
             if let selectedDate {
                 vm.selectionRectangle(for: selectedDate, color: Color.secondary)
@@ -201,7 +201,7 @@ struct ProfitLossChart: View {
     }
     
     @ChartContentBuilder
-    func profitLossLine(meth: CBPaymentMethod, breakdown: PayMethodMonthlyBreakdown, positionForNewColor: Double?, showLines: Bool) -> some ChartContent {
+    func profitLossLine(meth: CBPaymentMethod, breakdown: PayMethodMonthlyBreakdown, positionForNewColor: Decimal?, showLines: Bool) -> some ChartContent {
         let isGreaterThanZero = (style == .amount ? breakdown.profitLoss : breakdown.profitLossPercentage) >= 0
         
         if payMethod.isUnified {
@@ -216,23 +216,35 @@ struct ProfitLossChart: View {
     }
     
     @ChartContentBuilder
-    func summaryLine(meth: CBPaymentMethod, breakdown: PayMethodMonthlyBreakdown, positionForNewColor: Double?, isGreaterThanZero: Bool, showLines: Bool) -> some ChartContent {
+    func summaryLine(
+        meth: CBPaymentMethod,
+        breakdown: PayMethodMonthlyBreakdown,
+        positionForNewColor: Decimal?,
+        isGreaterThanZero: Bool,
+        showLines: Bool
+    ) -> some ChartContent {
+
+        let transition = CGFloat(
+            NSDecimalNumber(decimal: positionForNewColor ?? 0.5).doubleValue
+        )
+
         LineMark(
             x: .value("Date", breakdown.date, unit: .month),
-            y: .value("Amount5", style == .amount ? breakdown.profitLoss : breakdown.profitLossPercentage),
+            y: .value(
+                "Amount5",
+                style == .amount
+                    ? breakdown.profitLoss
+                    : breakdown.profitLossPercentage
+            ),
             series: .value("", "Amount5\(meth.id)")
         )
         .foregroundStyle(
             .linearGradient(
                 Gradient(
                     stops: [
-                        //.init(color: .red, location: 0),
-                        //.init(color: .red, location: positionForNewColor - 0.00001),
-                        //.init(color: .green, location: positionForNewColor + 0.00001),
-                        //.init(color: .green, location: 1)
                         .init(color: .red, location: 0),
-                        .init(color: .red, location: positionForNewColor ?? 0.5 - 0.00001),
-                        .init(color: .green, location: positionForNewColor ?? 0.5 + 0.00001),
+                        .init(color: .red, location: transition - 0.00001),
+                        .init(color: .green, location: transition + 0.00001),
                         .init(color: .green, location: 1)
                     ]
                 ),
@@ -251,7 +263,7 @@ struct ProfitLossChart: View {
     }
     
     @ChartContentBuilder
-    func individualLine(meth: CBPaymentMethod, breakdown: PayMethodMonthlyBreakdown, positionForNewColor: Double?, isGreaterThanZero: Bool, showLines: Bool) -> some ChartContent {
+    func individualLine(meth: CBPaymentMethod, breakdown: PayMethodMonthlyBreakdown, positionForNewColor: Decimal?, isGreaterThanZero: Bool, showLines: Bool) -> some ChartContent {
         LineMark(
             x: .value("Date", breakdown.date, unit: .month),
             y: .value("Amount5", style == .amount ? breakdown.profitLoss : breakdown.profitLossPercentage),

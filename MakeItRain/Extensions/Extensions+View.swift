@@ -10,6 +10,25 @@ import SwiftUI
 
 
 extension View {
+    func formatCurrency2(
+        focusValue: Int,
+        focusedField: Int?,
+        amountString: String?,
+        amountStringBinding: Binding<String>,
+        amount: Double?
+    ) -> some View {
+        /// This will format the text with a $ or a -$ on the front when typing, and then fully format the text with decimals, and commas when unfocusing the textfield, or when clicking enter (macOS).
+        modifier(FormatCurrency2(
+            focusValue: focusValue,
+            focusedField: focusedField,
+            amountString: amountString,
+            amountStringBinding: amountStringBinding,
+            amount: amount)
+        )
+    }
+}
+
+extension View {
     #if os(iOS)
     func disableZoomInteractiveDismiss() -> some View {
         self.background(RemoveZoomDismissGestures())
@@ -32,15 +51,39 @@ extension View {
     }
     #endif
     
-    func formatCurrencyLiveAndOnUnFocus(focusValue: Int, focusedField: Int?, amountString: String?, amountStringBinding: Binding<String>, amount: Double?) -> some View {
+    func formatCurrencyLiveAndOnUnFocus(
+        focusValue: Int,
+        focusedField: Int?,
+        amountString: String?,
+        amountStringBinding: Binding<String>,
+        amount: Decimal?
+    ) -> some View {
         /// This will format the text with a $ or a -$ on the front when typing, and then fully format the text with decimals, and commas when unfocusing the textfield, or when clicking enter (macOS).
-        modifier(FormatCurrencyLiveAndOnUnFocus(focusValue: focusValue, focusedField: focusedField, amountString: amountString, amountStringBinding: amountStringBinding, amount: amount))
+        modifier(FormatCurrencyLiveAndOnUnFocus(
+            focusValue: focusValue,
+            focusedField: focusedField,
+            amountString: amountString,
+            amountStringBinding: amountStringBinding,
+            amount: amount)
+        )
     }
     
     #if os(iOS)
-    func calculateAndFormatCurrencyLiveAndOnUnFocus(focusValue: Int, focusedField: Int?, amountString: String?, amountStringBinding: Binding<String>, amount: Double?) -> some View {
+    func calculateAndFormatCurrencyLiveAndOnUnFocus(
+        focusValue: Int,
+        focusedField: Int?,
+        amountString: String?,
+        amountStringBinding: Binding<String>,
+        amount: Decimal?
+    ) -> some View {
         /// This will format the text with a $ or a -$ on the front when typing, and then fully format the text with decimals, and commas when unfocusing the textfield, or when clicking enter (macOS).
-        modifier(CalculateAndFormatCurrencyLiveAndOnUnFocus(focusValue: focusValue, focusedField: focusedField, amountString: amountString, amountStringBinding: amountStringBinding, amount: amount))
+        modifier(CalculateAndFormatCurrencyLiveAndOnUnFocus(
+            focusValue: focusValue,
+            focusedField: focusedField,
+            amountString: amountString,
+            amountStringBinding: amountStringBinding,
+            amount: amount)
+        )
     }
     #endif
     
@@ -115,6 +158,10 @@ extension View {
     func onRotate(perform action: @escaping (UIDeviceOrientation) -> Void) -> some View {
         modifier(DeviceRotationViewModifier(action: action))
     }
+    
+    func statusIndicatorOverlay(for status: ObjectStatus?) -> some View {
+        modifier(StatusIndicatorOverlayModifier(status: status))
+    }
     #endif
    
     
@@ -132,10 +179,6 @@ extension View {
     
     func animatedLineChart<ChartContent: View>(beginAnimation: Bool, _ chart: @escaping (_ showLines: Bool) -> ChartContent) -> some View {
         modifier(AnimatedLineChart(beginAnimation: beginAnimation, chart: chart))
-    }
-    
-    func statusIndicatorOverlay(for status: ObjectStatus?) -> some View {
-        modifier(StatusIndicatorOverlayModifier(status: status))
     }
     
     #if os(macOS)

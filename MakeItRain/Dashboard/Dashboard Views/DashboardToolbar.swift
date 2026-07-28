@@ -10,13 +10,21 @@ import SwiftUI
 import Charts
 
 struct DashboardToolbar: ToolbarContent {
+    #if os(macOS)
+    @Environment(\.dismiss) var dismiss
+    #endif
+    
     @Environment(CalendarModel.self) private var calModel
+    @Environment(PayMethodModel.self) private var payModel
     
     @Bindable var model: DashboardModel
     @Binding var showCategorySheet: Bool
+    @Binding var showPayMethodSheet: Bool
     @Binding var showAnalysisSheet: Bool
     @Binding var navPath: [NavDest]
     var isForSelectedMonth: Bool
+    
+    
     
     //@ToolbarContentBuilder
     var body: some ToolbarContent {
@@ -35,21 +43,15 @@ struct DashboardToolbar: ToolbarContent {
         if AppState.shared.isIpad {
             ToolbarItem(placement: .topBarTrailing) { closeButton }
         } else {
+            ToolbarItem(placement: .topBarTrailing) { showPaymentMethodSheetButton }
+            ToolbarSpacer(.fixed, placement: .topBarTrailing)
+            
             if !isForSelectedMonth {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        Task {
-                            await model.fetchDashboard()
-                        }
-                    } label: {
-                        Image(systemName: "arrow.triangle.2.circlepath")
-                            .symbolEffect(.rotate, options: SymbolEffectOptions.repeat(.continuous).speed(3), isActive: model.isLoading)
-                    }
-                    .tint(.none)
-                    .disabled(model.isLoading)
-                }
+                ToolbarItem(placement: .topBarTrailing) { refreshButton }
+//                ToolbarSpacer(.fixed, placement: .topBarTrailing)
             }
             
+//            ToolbarItem(placement: .topBarTrailing) { showPaymentMethodSheetButton }
             ToolbarItem(placement: .topBarTrailing) { showCategorySheetButton }
             ToolbarItem(placement: .topBarTrailing) { showOptionsSheetButton }
         }
@@ -67,7 +69,6 @@ struct DashboardToolbar: ToolbarContent {
         ToolbarItemGroup(placement: .destructiveAction) {
             HStack {
                 showCategorySheetButton
-                showMonthsButton
             }
         }
         
@@ -80,6 +81,31 @@ struct DashboardToolbar: ToolbarContent {
         #endif
     }
     
+    var refreshButton: some View {
+        Button {
+            Task {
+                await model.fetchDashboard()
+            }
+        } label: {
+            Image(systemName: "arrow.triangle.2.circlepath")
+                .symbolEffect(.rotate, options: SymbolEffectOptions.repeat(.continuous).speed(3), isActive: model.isLoading)
+        }
+        .tint(.none)
+        .disabled(model.isLoading)
+    }
+    
+    var showPaymentMethodSheetButton: some View {
+        Button {
+            showPayMethodSheet = true
+        } label: {
+            PayMethodLogoMashup(meth: model.payMethod)
+        }
+        .tint(.none)
+        .disabled(model.isLoading)
+//        .if(model.payMethod != nil) {
+//            $0.badge(1)
+//        }
+    }
     
     var showCategorySheetButton: some View {
         Button {
@@ -90,6 +116,9 @@ struct DashboardToolbar: ToolbarContent {
             } icon: {
                 Image(systemName: "books.vertical")
             }
+        }
+        .if(!model.allCatsSelected) {
+            $0.badge(model.categories.count + model.groups.count)
         }
         .tint(.none)
         #if os(macOS)

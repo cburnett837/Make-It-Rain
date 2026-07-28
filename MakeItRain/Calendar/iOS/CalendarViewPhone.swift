@@ -134,28 +134,29 @@ struct CalendarViewPhone: View {
                         Text("That destination is not supported from the calendar.")
                     }
                 }
-                .onChange(of: calModel.dashboardModel.data) { oldValue, newValue in
-                    print("🤪 DATA CHANGED \(newValue.categoryGroups.map {$0.budgetAmount})")
-                }
-                .onChange(of: searchFocused) { old, new in
-                    withAnimation {
-                        if new == 0 {
-                            store.sPayMethodWhenSearchWasFocused = store.sPayMethod
-                            store.sPayMethod = nil
-                        } else if calModel.searchText.isEmpty {
-                            store.sPayMethod = store.sPayMethodWhenSearchWasFocused
-                            store.sPayMethodWhenSearchWasFocused = nil
-                        }
-                    }
-                }
-                .onChange(of: calModel.searchText) { old, new in
-                    withAnimation {
-                        if new.isEmpty {
-                            store.sPayMethod = store.sPayMethodWhenSearchWasFocused
-                            store.sPayMethodWhenSearchWasFocused = nil
-                        }
-                    }
-                }
+//                .onChange(of: searchFocused) { old, new in
+//                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+//                        withAnimation {
+//                            if new == 0 {
+//                                store.sPayMethodWhenSearchWasFocused = store.sPayMethod
+//                                store.sPayMethod = nil
+//                            } else if calModel.searchText.isEmpty {
+//                                store.sPayMethod = store.sPayMethodWhenSearchWasFocused
+//                                store.sPayMethodWhenSearchWasFocused = nil
+//                            }
+//                        }
+//                    }   
+//                }
+//                .onChange(of: calModel.searchText) { old, new in
+//                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+//                        withAnimation {
+//                            if new.isEmpty {
+//                                store.sPayMethod = store.sPayMethodWhenSearchWasFocused
+//                                store.sPayMethodWhenSearchWasFocused = nil
+//                            }
+//                        }
+//                    }
+//                }
                 .searchable(text: $calModel.searchText, prompt: searchPrompt)
                 .searchFocused($searchFocused, equals: 0)
                 .searchPresentationToolbarBehavior(.avoidHidingContent)
@@ -273,7 +274,7 @@ struct CalendarViewPhone: View {
     var calendarView: some View {
         VStack(spacing: 0) {
             if AppState.shared.isIphone {
-                CalendarMonthLabel()
+                CalendarHeader()
                     .padding(.bottom, 10)
                     .scenePadding(.horizontal)
                     .dropDestination(for: CBTransaction.self) { droppedTrans, location in

@@ -31,14 +31,14 @@ struct BudgetHelper {
     static func calculateCumTotals(
         days: [CBDay],
         transactions: Array<CBTransaction>,
-        budgetAmount: Double
+        budgetAmount: Decimal
     ) -> Array<BudgetCumTotal> {
         /// Get how much has been spend up until each day.
         //cumTotals.removeAll()
         
         var cumTotals: [BudgetCumTotal] = []
 
-        var total = 0.0
+        var total: Decimal = 0.0
 
         for day in days {
             guard let date = day.date else { continue }
@@ -50,7 +50,7 @@ struct BudgetHelper {
                 //let dailyIncome = TransactionHelper.All.Amount.actualIncome(from: trans)
                 let new = dailySpend// + dailyIncome
                 
-                print("\(day.date) - \(new)")
+                //print("\(day.date) - \(new)")
                 
                 total += new
             }
@@ -138,7 +138,7 @@ struct BudgetHelper {
     }
     
  
-    static func getBudgetGradientPosition(from points: [BudgetCumTotal], budget: Double) -> Double? {
+    static func getBudgetGradientPosition(from points: [BudgetCumTotal], budget: Decimal) -> Decimal? {
         
         let amounts = points.map { $0.total * -1 }
         

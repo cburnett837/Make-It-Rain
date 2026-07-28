@@ -73,7 +73,7 @@ struct CalendarViewMac: View {
                 /// Needed when selecting a month from a category analytic.
                 let viewingMonth = calModel.months.filter { $0.enumID == enumID }.first!
                 payModel.prepareStartingAmounts(for: viewingMonth, calModel: calModel)
-                calModel.setSelectedMonthFromNavigation(navID: enumID, calculateStartingAndEod: true)
+                await calModel.setSelectedMonthFromNavigation(navID: enumID, calculateStartingAndEod: true)
                 
                 let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
                 calProps.selectedDay = targetDay
@@ -233,10 +233,10 @@ struct CalendarViewMac: View {
         Group {
             switch content {
             case .dashboard:
-                CalendarDashboard()
-                
-            case .analysisSheet:
                 Text("not available")
+                
+//            case .analysisSheet:
+//                Text("not available")
                 //CategoryInsightsViewWrapperIpad(showAnalysisSheet: $calProps.showInspector, model: categoryAnalysisModel)
                     //.onDisappear { calModel.isInMultiSelectMode = false }
                 
@@ -261,6 +261,9 @@ struct CalendarViewMac: View {
                 
             case .paymentMethods:
                 PayMethodSheet(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all, showStartingAmountOption: true, showNoneOption: true)
+                
+            case .dashboardTransactionList:
+                Text("not available")
             }
         }
         //.toolbarRole(.navigationStack)
@@ -273,7 +276,7 @@ struct CalendarViewMac: View {
         NavigationStack {
             StandardContainerWithToolbar(.list) {
                 Button { calProps.inspectorContent = .dashboard } label: { Label("Dashboard", systemImage: "rectangle.grid.1x3.fill") }
-                Button { calProps.inspectorContent = .analysisSheet } label: { Label("Insights", systemImage: "chart.bar.doc.horizontal") }
+                //Button { calProps.inspectorContent = .analysisSheet } label: { Label("Insights", systemImage: "chart.bar.doc.horizontal") }
                 Button { calProps.inspectorContent = .budgets } label: { Label("Budgets", systemImage: "chart.pie") }
                 Button { calProps.inspectorContent = .transactionList } label: { Label("All Transactions", systemImage: "list.bullet") }
                                 

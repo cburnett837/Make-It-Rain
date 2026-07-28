@@ -35,7 +35,7 @@ struct StandardFileSection: View {
         
     @Binding var files: [CBFile]?
     var fileUploadCompletedDelegate: FileUploadCompletedDelegate
-    var parentType: XrefEnum
+    var parentType: XrefFileType
     var displayStyle: FileSectionDisplayStyle = .standard
     var showInScrollView: Bool = true
     
@@ -54,9 +54,9 @@ struct StandardFileSection: View {
     
     @State private var symbolHeight: CGFloat = 20.0
     
-    var parentTypeXr: XrefItem {
-        XrefModel.getItem(from: .fileTypes, byEnumID: parentType)
-    }
+//    var parentTypeXr: XrefItem {
+//        XrefModel.getItem(from: .fileTypes, byEnumID: parentType)
+//    }
     
     #if os(iOS)
     var fileButtons: Array<SelectFileButtonType> {[
@@ -161,7 +161,7 @@ struct StandardFileSection: View {
                     file: file,
                     selectedFile: $selectedFile,
                     displayStyle: displayStyle,
-                    parentType: parentTypeXr,
+                    parentType: parentType,
                     fileUploadCompletedDelegate: fileUploadCompletedDelegate,
                     placeholderView: {
                         LoadingPlaceholder(text: "Uploading…", displayStyle: displayStyle)
@@ -187,7 +187,7 @@ struct StandardFileSection: View {
                     file: file,
                     selectedFile: $selectedFile,
                     displayStyle: displayStyle,
-                    parentType: parentTypeXr,
+                    parentType: parentType,
                     fileUploadCompletedDelegate: fileUploadCompletedDelegate,
                     placeholderView: {
                         LoadingPlaceholder(text: "Uploading…", displayStyle: displayStyle)
@@ -299,7 +299,7 @@ struct StandardFileSection: View {
             }
             
             if files.isEmpty { return }
-            FileModel.shared.uploadFilesFromLibrary(files: files, delegate: fileUploadCompletedDelegate, parentType: parentTypeXr)
+            FileModel.shared.uploadFilesFromLibrary(files: files, delegate: fileUploadCompletedDelegate, parentType: parentType)
             
         case .failure(let error):
             print("Error selecting file: \(error.localizedDescription)")

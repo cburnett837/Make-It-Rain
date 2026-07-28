@@ -193,17 +193,7 @@ struct CategoryOverView: View {
         if category.action == .add {
             //catModel.upsert(category)
             categoryEditID = category.id
-        }
-        
-        
-//        if !model.isForGroup {
-//            if model.category!.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .income) {
-//                model.metricBeforeForceToIncomeHappened = model.displayedMetric
-//                model.displayedMetric = .income
-//                model.didForceToViewIncomeMetrics = true
-//            }
-//        }
-        
+        }                
         
         if category.action != .add {
             await model.prepareView()

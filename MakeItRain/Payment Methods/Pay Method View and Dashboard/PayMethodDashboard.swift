@@ -1112,7 +1112,7 @@ fileprivate struct BreakdownView: View {
         }
     }
     
-    @ViewBuilder func lineItem(title: String, value: Double, color: Color) -> some View {
+    @ViewBuilder func lineItem(title: String, value: Decimal, color: Color) -> some View {
         HStack {
             Circle()
                 .fill(color)

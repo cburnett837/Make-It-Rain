@@ -16,29 +16,19 @@ class CBDay: Identifiable, Hashable, Equatable {
     var dateComponents: DateComponents? {
         if let date = self.date {
             return Calendar.current.dateComponents(in: .current, from: date)
-        } else {
-            return nil
-        }        
+        }
+        return nil
     }
     
-    var isPlaceholder: Bool {
-        date == nil
-    }
-    
-    var weekday: String {
-        AppState.shared.dateFormatter.weekdaySymbols[Calendar.current.component(.weekday, from: self.date!) - 1]
-    }
-    
-    
+    var exchangeRates: [ExchangeRate] = []
+        
     var transactions: Array<CBTransaction> = []
-    var eodTotal: Double = 0.0
-    var dailySpend: Double {
-        return transactions.map{$0.amount}.reduce(0.0, +)
-    }
+    var eodTotal: Decimal = 0.0
     
-    var displayDate: String {
-        return "\(dateComponents?.month ?? 0)/" + "\(dateComponents?.day ?? 0)/" + "\(dateComponents?.year ?? 0)"
-    }
+    var isPlaceholder: Bool { date == nil }
+    var weekday: String { AppState.shared.dateFormatter.weekdaySymbols[Calendar.current.component(.weekday, from: self.date!) - 1] }
+    var dailySpend: Decimal { transactions.map{$0.amount}.reduce(0.0, +) }
+    var displayDate: String { "\(dateComponents?.month ?? 0)/" + "\(dateComponents?.day ?? 0)/" + "\(dateComponents?.year ?? 0)" }
     
     /// For real days
     init(date: Date, transactions: Array<CBTransaction> = []) {
@@ -65,7 +55,6 @@ class CBDay: Identifiable, Hashable, Equatable {
     }
     
     // MARK: - Transaction Object Functions
-#warning("serverID Change")
     func isExisting(_ transaction: CBTransaction) -> Bool {
         return !transactions.filter { $0.serverID == transaction.serverID }.isEmpty
     }
@@ -75,32 +64,37 @@ class CBDay: Identifiable, Hashable, Equatable {
             transactions.append(transaction)
         }
     }
-#warning("serverID Change")
+    
     func remove(_ transaction: CBTransaction) {
         transactions.removeAll(where: { $0.serverID == transaction.serverID })
     }
-#warning("serverID Change")
+    
     func getIndex(for transaction: CBTransaction) -> Int? {
         return transactions.firstIndex(where: { $0.serverID == transaction.serverID })
     }
     
     
     // MARK: - Transaction ID Functions
-#warning("serverID Change")
+
     func isExisting(_ id: String) -> Bool {
         return !transactions.filter { $0.serverID == id }.isEmpty
     }
-#warning("serverID Change")
+
     func removeTransaction(by id: String) {
         transactions.removeAll(where: { $0.serverID == id })
     }
-#warning("serverID Change")
+
     func getTransactionIndex(by id: String) -> Int? {
         return transactions.firstIndex(where: { $0.serverID == id })
     }
     
-#warning("serverID Change")
     func getTransaction(by id: String) -> CBTransaction {
         return transactions.first(where: { $0.serverID == id }) ?? CBTransaction(uuid: id)
+    }
+    
+    
+    // MARK: - Exchange Rates
+    func getRate(for currencyCode: String) -> Decimal? {
+        return exchangeRates.first(where: { $0.currencyCode == currencyCode })?.usdRate
     }
 }

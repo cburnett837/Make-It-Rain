@@ -27,12 +27,15 @@ class CBMonth: Identifiable, Hashable, Equatable, Codable, IsEditableBudget {
     var days: Array<CBDay> = []
     var startingAmounts: Array<CBStartingAmount> = []
     /// This is the budget amount. It has to be called amount in order for this class to conform to ``IsEditableBudget``.
-    var amount: Double { Double(amountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
+    var amount: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(amountString) ?? 0.0
+        //Decimal(amountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+    }
     var amountString: String
     
     /// Just a helper since the variable `amount` is ambigious.
     /// However, the variable `amount` is required for conformance to ``IsEditableBudget``.
-    var budget: Double {
+    var budget: Decimal {
         return amount
     }
     
@@ -71,7 +74,7 @@ class CBMonth: Identifiable, Hashable, Equatable, Codable, IsEditableBudget {
         self.days.flatMap { $0.transactions }
     }
     
-    var transactionTotals: Double {
+    var transactionTotals: Decimal {
         justTransactions.map { $0.amount }.reduce(0.0, +)
     }
     
@@ -89,6 +92,12 @@ class CBMonth: Identifiable, Hashable, Equatable, Codable, IsEditableBudget {
         let comps = DateComponents(calendar: cal, year: self.year, month: actualNum)
         let date = cal.date(from: comps)!
         return cal.component(.weekday, from: date)
+    }
+    
+    var firstDateOfMonth: Date {
+        let cal = Calendar.current
+        let comps = DateComponents(calendar: cal, year: self.year, month: actualNum)
+        return cal.date(from: comps)!
     }
     
     var name: String {

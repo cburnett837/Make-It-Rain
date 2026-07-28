@@ -10,8 +10,8 @@ import SwiftUI
 import Charts
 
 struct BudgetChart: View {
-    var budgetAmount: Double
-    var expenseAmount: Double
+    var budgetAmount: Decimal
+    var expenseAmount: Decimal
     
     var body: some View {
         Chart {
@@ -43,8 +43,8 @@ struct BudgetChartForGroup: View {
     @Environment(CalendarModel.self) var calModel
     
     var categories: [CBCategory]
-    var budgetAmount: Double
-    var expenseAmount: Double    
+    var budgetAmount: Decimal
+    var expenseAmount: Decimal
     
     var body: some View {
         Chart {

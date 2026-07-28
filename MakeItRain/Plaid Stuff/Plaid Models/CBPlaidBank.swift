@@ -30,7 +30,7 @@ class CBPlaidBank: Codable, Identifiable, Equatable, Hashable, CanHandleLogo {
     var plaidID: String?
     var requiresUpdate: Bool = false
     var logo: Data?
-    var logoParentType: XrefItem = XrefModel.getItem(from: .logoTypes, byEnumID: .plaidBank)
+    var logoParentType: XrefLogoParentType = .plaidBank
     var color: Color = .primary
     
     var numberOfAccounts: Int {
@@ -174,7 +174,7 @@ class CBPlaidBank: Codable, Identifiable, Equatable, Hashable, CanHandleLogo {
             let pred1 = NSPredicate(format: "relatedID == %@", self.id)
             let pred2 = NSPredicate(
                 format: "relatedTypeID == %@",
-                NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .plaidBank).id)
+                NSNumber(value: XrefLogoParentType.plaidBank.id)
             )
             let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
 

@@ -38,7 +38,7 @@ struct SearchSuggestions: View {
     //@Environment(\.dismissSearch) var dismissSearch
     var focusedField: FocusState<Int?>.Binding
     var parentID: String
-    var parentType: XrefEnum
+    var parentType: XrefLocationType
     var parent: CanHandleLocationsDelegate
     
     var body: some View {
@@ -170,7 +170,7 @@ struct StandardMapView: View {
     @Binding var locations: [CBLocation]
     var parent: CanHandleLocationsDelegate
     var parentID: String
-    var parentType: XrefEnum
+    var parentType: XrefLocationType
     
     
     //@Namespace var mapScope

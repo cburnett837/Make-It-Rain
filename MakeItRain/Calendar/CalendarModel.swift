@@ -217,6 +217,27 @@ class CalendarModel {
     
 
     
+//    func getExchangeRate(date: Date, currencyCode: String) -> Decimal? {
+//        if let rate = months.getDay(by: date)?.getRate(for: currencyCode) {
+//            return rate
+//        } else {
+//            return getMostRecentExchangeRate(for: currencyCode)
+//        }
+//    }
+//    
+//    func getMostRecentExchangeRate(for currencyCode: String) -> Decimal? {
+//        months
+//            .flatMap { $0.days }
+//            .flatMap { $0.exchangeRates }
+//            .filter { $0.currencyCode == currencyCode }
+//            .sorted(by: { $0.date ?? Date() > $1.date ?? Date() })
+//            .first?
+//            .usdRate
+//            //
+//            //.first?
+//            //.usdRate
+//    }
+    
     
     // MARK: - Fetch From Server
 //    @MainActor
@@ -820,6 +841,11 @@ class CalendarModel {
             }
         }
         
+        for day in month.legitDays {
+            if let rates = model.exchangeRates?.filter({ $0.date?.day == day.dateComponents?.day }) {
+                day.exchangeRates = rates
+            }
+        }
         
         if let budgets = model.budgets {
             for budget in budgets {
@@ -1077,7 +1103,7 @@ class CalendarModel {
         guard let trans = getTransaction(by: id, from: location) else { return true }
         
         print("-- \(#function) id: \(id) - looking in \(location) - \(trans.title) - \(trans.id)")
-        
+    
         trans.intendedServerAction = trans.action
         /// Immediately flip the action to edit so 1. the transaction will show on the calendar, and 2. The transaction won't do all its "I'm a new transaction" logic if you open it before it completes its very first round trip from the server.
         if trans.action == .add {
@@ -1095,9 +1121,92 @@ class CalendarModel {
         if !transactionIsValid(trans: trans/*, day: day*/) {
             print("❌ Trans is not valid to save")
             trans.status = nil
+            
+            if trans.requiresConversion {
+                
+                var code: String {
+                    let setCode = AppState.shared.country.currencyCode
+                    let methCode = trans.payMethod?.country?.currencyCode
+                    let cuntCode = trans.country?.currencyCode
+                    return "USD"
+                    if methCode != cuntCode, let methCode {
+                        return methCode
+                    } else if methCode != setCode, let methCode {
+                        return methCode
+                    } else if let cuntCode {
+                        return "USD"
+                        //return cuntCode
+                    } else {
+                        return "USD"
+                    }
+                }
+                
+                /// Since the app will convert the transAmount back to it's original form for editing, convert it back to the propery display format.
+                if let cunt = trans.country,
+                   let date = trans.date,
+                   let fromRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: cunt.currencyCode, months: months),
+                   let toRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: code, months: months),
+                   let converted = CurrencyHelpers.convert(amount: trans.amount, fromRate: fromRate, toRate: toRate) {
+                    trans.amountString = converted.currencyWithDecimals(currencyCode: AppState.shared.country.currencyCode)
+                }
+            }
+            
             return false
         }
-            
+        
+        if trans.requiresConversion {
+            trans.requiresConversion = false
+            if trans.country == AppState.shared.country {
+                if let cunt = trans.country,
+                   let date = trans.date,
+                   let fromRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: cunt.currencyCode, months: months),
+                   let toRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: AppState.shared.country.currencyCode, months: months),
+                   let usdRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: "USD", months: months),
+                   let usdAmount = CurrencyHelpers.convert(amount: trans.amount, fromRate: fromRate, toRate: usdRate),
+                   let converted = CurrencyHelpers.convert(amount: trans.amount, fromRate: fromRate, toRate: toRate) {
+                    trans.amountUsd = usdAmount
+                    trans.exchangeRate = fromRate
+                    trans.originalUnconvertedAmount = trans.amount
+//                    if trans.originalUnconvertedAmount == nil {
+//                        trans.originalUnconvertedAmount = trans.amount
+//                    }
+                    
+                    trans.amountString = converted.currencyWithDecimals(currencyCode: AppState.shared.country.currencyCode)
+                    
+                } else {
+                    trans.amountUsd = trans.amount
+                    trans.originalUnconvertedAmount = trans.amount
+                }
+                
+            } else if let cunt = trans.country,
+                      let date = trans.date,
+                      let fromRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: cunt.currencyCode, months: months),
+                      let toRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: AppState.shared.country.currencyCode, months: months),
+                      let usdRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: "USD", months: months),
+                      let usdAmount = CurrencyHelpers.convert(amount: trans.amount, fromRate: fromRate, toRate: usdRate),
+                      let converted = CurrencyHelpers.convert(amount: trans.amount, fromRate: fromRate, toRate: toRate)
+            {
+                print("Setting here 🐱, amount: \(trans.amount), fromRate: \(fromRate), toRate: \(toRate), usdRate: \(usdRate), usdAmount: \(usdAmount), converted: \(converted)")
+                trans.amountUsd = usdAmount
+                trans.exchangeRate = fromRate
+                trans.originalUnconvertedAmount = trans.amount
+//                if trans.originalUnconvertedAmount == nil {
+//                    trans.originalUnconvertedAmount = trans.amount
+//                }
+                   
+                trans.amountString = converted.currencyWithDecimals(currencyCode: AppState.shared.country.currencyCode)
+            } else {
+                trans.amountUsd = trans.amount
+                trans.originalUnconvertedAmount = trans.amount
+            }
+        } else {
+            trans.amountUsd = trans.amount
+            trans.originalUnconvertedAmount = trans.amount
+            //trans.amountString = trans.amount.currencyWithDecimals(currencyCode: AppState.shared.country.currencyCode)
+        }
+        
+        
+
         print("✅ Trans is valid to save")
             
         /// Go update the normal transaction list if changing that transaction via one of the various other transaction locations.
@@ -1157,7 +1266,8 @@ class CalendarModel {
         if trans.action == .delete {
             /// Check if the transaction has a related ID (like from a transfer or payment).
             if trans.relatedTransactionID != nil
-                && trans.relatedTransactionType == XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
+                && trans.relatedTransactionType == .transaction// XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
+                //&& trans.relatedTransactionType == XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
             {
                 if let trans2 = getTransaction(by: trans.relatedTransactionID!, from: .normalList) {
                     trans2.intendedServerAction = .delete
@@ -1183,7 +1293,7 @@ class CalendarModel {
             /// This will not handle event transactions!
             if trans.relatedTransactionID != nil
             && trans.intendedServerAction != .add
-            && trans.relatedTransactionType == XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction),
+                && trans.relatedTransactionType == .transaction, // XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction),
                 let trans2 = getTransaction(by: trans.relatedTransactionID!, from: .normalList) {
                                     
                 
@@ -1206,18 +1316,27 @@ class CalendarModel {
                     changeDate(trans2)
                 }
                 
+                
                 /// Update the dollar amounts accordingly.
                 if trans.payMethod?.accountType != .credit && trans.payMethod?.accountType != .loan {
                     if trans2.payMethod?.accountType == .credit || trans2.payMethod?.accountType == .loan {
-                        trans2.amountString = (trans.amount * 1).currencyWithDecimals()
+                        trans2.amountUsd = trans.amount * 1
+                        trans2.originalUnconvertedAmount = trans.amount * 1
+                        trans2.amountString = (trans.amountUsd ?? 0 * 1).currencyWithDecimals()
                     } else {
-                        trans2.amountString = (trans.amount * -1).currencyWithDecimals()
+                        trans2.amountUsd = trans.amount * -1
+                        trans2.originalUnconvertedAmount = trans.amount * -1
+                        trans2.amountString = (trans.amountUsd ?? 0 * -1).currencyWithDecimals()
                     }
                     
                 } else if trans2.payMethod?.accountType == .credit || trans2.payMethod?.accountType == .loan {
-                    trans2.amountString = (trans.amount * -1).currencyWithDecimals()
+                    trans2.amountUsd = trans.amount * -1
+                    trans2.originalUnconvertedAmount = trans.amount * -1
+                    trans2.amountString = (trans.amountUsd ?? 0 * -1).currencyWithDecimals()
                 } else {
-                    trans2.amountString = (trans.amount * 1).currencyWithDecimals()
+                    trans2.amountUsd = trans.amount * 1
+                    trans2.originalUnconvertedAmount = trans.amount * 1
+                    trans2.amountString = (trans.amountUsd ?? 0 * 1).currencyWithDecimals()
                 }
                 
                 /// If we filter transactions by category or by payment method, and change it on the transaction, we need the line below to cause the transaction to disappear when closing it.
@@ -1321,7 +1440,7 @@ class CalendarModel {
             if let entity = DataManager.shared.getOne(context: context, type: TempTransaction.self, predicate: .byId(.string(trans.id)), createIfNotFound: true)  {
                 entity.id = trans.id
                 entity.title = trans.title
-                entity.amount = trans.amount
+                entity.amount = trans.amount as NSDecimalNumber
                 entity.payMethodID = trans.payMethod?.id ?? "0"
                 entity.categoryID = trans.category?.id ?? "0"
                 entity.date = trans.date
@@ -1535,6 +1654,8 @@ class CalendarModel {
                 
         for each in trans {
             each.status = .inFlight
+            each.amountUsd = each.amount
+            each.originalUnconvertedAmount = each.amount
         }
                 
         LogManager.log()
@@ -1695,6 +1816,9 @@ class CalendarModel {
             
             each.updatedBy = AppState.shared.user!
             each.updatedDate = Date()
+            
+            each.amountUsd = each.amount
+            each.originalUnconvertedAmount = each.amount
         }
         
         //let backgroundTaskId = AppState.shared.beginBackgroundTask()
@@ -2217,6 +2341,8 @@ class CalendarModel {
                 /// Only transactions that are not excluded from calculations.
                 && $0.factorInCalculations
                 
+                && $0.payMethod?.accountHolderFilter() == true
+                
                 /// Only transactions related to the passed in payment method. (If applicable).
                 //&& meth == nil ? true : ($0.payMethod?.id == meth?.id)
                 
@@ -2335,6 +2461,8 @@ class CalendarModel {
 //    // MARK: - Helpers
 //    
     func startingAmountSheetDismissed() {
+        CalcHelper.updateUnifiedStartingAmount(month: self.sMonth, for: .unifiedChecking, store: store)
+        CalcHelper.updateUnifiedStartingAmount(month: self.sMonth, for: .unifiedCredit, store: store)
         CalcHelper.calculateTotal(for: self.sMonth, store: store)
         
         /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
@@ -2472,7 +2600,7 @@ class CalendarModel {
                                     /// Make sure transaction was not already added.
                                     let addedTrans = targetDay.transactions.filter { $0.repID == repID }.first
                                     if addedTrans == nil {
-                                        if repTrans.repeatingTransactionType.enumID != XrefEnum.regular {
+                                        if repTrans.repeatingTransactionType != .regular {
                                             processThing(
                                                 uuid: uuid,
                                                 repTrans: repTrans,
@@ -2504,7 +2632,7 @@ class CalendarModel {
                                     /// If the day can't be found above, the transaction exists on a day that this month doesn't have (like having a date of the 31st in February).
                                     /// Add to the last day of the month.
                                     if Int(when.when.replacing("day", with: "")) ?? 0 > targetMonth.dayCount {
-                                        if repTrans.repeatingTransactionType.enumID == XrefEnum.regular {
+                                        if repTrans.repeatingTransactionType == .regular {
                                             if let targetDay = targetMonth.days.last {
                                                 let newTrans = CBTransaction(
                                                     uuid: uuid,
@@ -2661,10 +2789,10 @@ class CalendarModel {
             
             
             fromTrans.relatedTransactionID = toTrans.id
-            fromTrans.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
+            fromTrans.relatedTransactionType = .transaction// XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
             fromTranz.relatedID = toTranz.id
                                                                                                     
-            if repTrans.repeatingTransactionType.enumID == XrefEnum.payment {
+            if repTrans.repeatingTransactionType == .payment {
                 fromTrans.title = "Payment to \(repTrans.payMethodPayTo?.title ?? "")"
                 fromTrans.isPaymentOrigin = true
                 fromTranz.isPaymentOrigin = true
@@ -2675,11 +2803,11 @@ class CalendarModel {
             }
             
             toTrans.relatedTransactionID = fromTrans.id
-            toTrans.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
+            toTrans.relatedTransactionType = .transaction //XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
             toTranz.relatedID = fromTranz.id
             
             
-            if repTrans.repeatingTransactionType.enumID == XrefEnum.payment {
+            if repTrans.repeatingTransactionType == .payment {
                 toTrans.title = "Payment from \(repTrans.payMethod?.title ?? "")"
                 toTrans.isPaymentDest = true
                 toTranz.isPaymentDest = true
@@ -2689,7 +2817,7 @@ class CalendarModel {
                 toTranz.isTransferDest = true
             }
                                                         
-            if fromTrans.isExpense && repTrans.repeatingTransactionType.enumID != XrefEnum.payment {
+            if fromTrans.isExpense && repTrans.repeatingTransactionType != .payment {
                 toTrans.amountString = toTrans.amountString.replacing("-", with: "")
             }
             
@@ -2767,7 +2895,7 @@ class CalendarModel {
 
 
 extension CalendarModel: FileUploadCompletedDelegate {
-    func displayCompleteAlert(recordID: String, parentType: XrefItem, fileType: FileType) {
+    func displayCompleteAlert(recordID: String, parentType: XrefFileType, fileType: FileType) {
         var transTitle: String?
         if let trans = justTransactions.filter({ $0.id == recordID }).first {
             transTitle = trans.title
@@ -2806,8 +2934,8 @@ extension CalendarModel: FileUploadCompletedDelegate {
     }
     
     
-    func addPlaceholderFile(recordID: String, uuid: String, parentType: XrefItem, fileType: FileType) {
-        let picture = CBFile(relatedID: recordID, uuid: uuid, parentType: parentType.enumID, fileType: fileType)
+    func addPlaceholderFile(recordID: String, uuid: String, parentType: XrefFileType, fileType: FileType) {
+        let picture = CBFile(relatedID: recordID, uuid: uuid, parentType: parentType, fileType: fileType)
         picture.isPlaceholder = true
         
         if let index = justTransactions.firstIndex(where: { $0.id == recordID }) {
@@ -2882,7 +3010,7 @@ extension CalendarModel: FileUploadCompletedDelegate {
     }
             
     
-    func markPlaceholderFileAsReadyForDownload(recordID: String, uuid: String, parentType: XrefItem, fileType: FileType) {
+    func markPlaceholderFileAsReadyForDownload(recordID: String, uuid: String, parentType: XrefFileType, fileType: FileType) {
 //        let targetMonth = months.filter { $0.enumID == sMonth.enumID }.first!
 //        let targetDays = targetMonth.days
 //        let transactions = targetDays.flatMap({ $0.transactions })
@@ -2930,7 +3058,7 @@ extension CalendarModel: FileUploadCompletedDelegate {
     }
         
     
-    func markFileAsFailedToUpload(recordID: String, uuid: String, parentType: XrefItem, fileType: FileType) {
+    func markFileAsFailedToUpload(recordID: String, uuid: String, parentType: XrefFileType, fileType: FileType) {
 //        let targetMonth = months.filter { $0.enumID == sMonth.enumID }.first!
 //        let targetDays = targetMonth.days
 //        let transactions = targetDays.flatMap({ $0.transactions })
@@ -2977,7 +3105,7 @@ extension CalendarModel: FileUploadCompletedDelegate {
     }
     
         
-    func delete(file: CBFile, parentType: XrefItem, fileType: FileType) async {
+    func delete(file: CBFile, parentType: XrefFileType, fileType: FileType) async {
 //        if await FileModel.shared.delete(picture) {
 //            let targetMonth = months.filter { $0.enumID == sMonth.enumID }.first!
 //            let targetDays = targetMonth.days

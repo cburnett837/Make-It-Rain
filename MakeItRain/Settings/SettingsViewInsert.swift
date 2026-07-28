@@ -15,6 +15,7 @@ struct SettingsViewInsert: View {
     @Local(\.showHashTagsOnLineItems) var showHashTagsOnLineItems
     @Local(\.showPaymentMethodIndicator) var showPaymentMethodIndicator
     @Local(\.updatedByOtherUserDisplayMode) var updatedByOtherUserDisplayMode
+    @Local(\.showDebuggingInfo) var showDebuggingInfo
     
     @Local(\.useBusinessLogos) var useBusinessLogos
     
@@ -34,6 +35,9 @@ struct SettingsViewInsert: View {
         @Bindable var appSettings = AppSettings.shared
         Group {
             Section("Options") {
+                if AuthState.shared.isAdmin {
+                    showDebuggingInfoToggle
+                }
                 useWholeNumbersToggle
                 tightenUpEodTotalsToggle
                 showShowHashTagToggle
@@ -131,13 +135,20 @@ struct SettingsViewInsert: View {
                     }
                     .focused($focusedField, equals: 1)
                     .onChange(of: thresholdString) {
-                        AppSettings.shared.lowBalanceThreshold = Double($1.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+                        AppSettings.shared.lowBalanceThreshold =
+                            Decimal(
+                                string: $1
+                                    .replacing("$", with: "")
+                                    .replacing(",", with: "")
+                            ) ?? 0
                         Helpers.liveFormatCurrency(oldValue: $0, newValue: $1, text: $thresholdString)
                     }
                     .onChange(of: focusedField) {
                         
                         if $0 == 1 && $1 != 1 {
-                            AppSettings.shared.sendToServer(setting: .init(settingId: 56, setting: String(AppSettings.shared.lowBalanceThreshold)))
+                            AppSettings.shared.sendToServer(
+                                setting: .init(settingId: 56, setting: String(describing: AppSettings.shared.lowBalanceThreshold))
+                            )
                         }
                         
                         if let string = Helpers.formatCurrency(focusValue: 1, oldFocus: $0, newFocus: $1, amountString: thresholdString, amount: AppSettings.shared.lowBalanceThreshold) {
@@ -220,7 +231,7 @@ struct SettingsViewInsert: View {
         Toggle(isOn: $showPaymentMethodIndicator) {
             VStack(alignment: .leading) {
                 Text("Show payment method indicator")
-                Text("Show an indicator when in a unified payment view to show which payment method was used on the transaction.")
+                Text("Show an indicator when in a unified account view to show which account was used on the transaction.")
                     .foregroundStyle(.gray)
                     .font(.footnote)
             }
@@ -237,7 +248,7 @@ struct SettingsViewInsert: View {
                     Text("Only whole numbers")
                 }
                 
-                Text("Round all dollar amounts and remove their decimals.")
+                Text("Round all amounts and remove their decimals.")
                     .foregroundStyle(.gray)
                     .font(.footnote)
                 
@@ -260,6 +271,18 @@ struct SettingsViewInsert: View {
         
     }
     
+    var showDebuggingInfoToggle: some View {
+        Toggle(isOn: $showDebuggingInfo) {
+            VStack(alignment: .leading) {
+                Text("Show debugging info")
+                Text("Show extra info.")
+                    .foregroundStyle(.gray)
+                    .font(.footnote)
+            }
+        }
+        
+    }
+    
     @ViewBuilder
     var tightenUpEodTotalsToggle: some View {
         @Bindable var appSettings = AppSettings.shared
@@ -269,7 +292,7 @@ struct SettingsViewInsert: View {
                     Image(systemName: "cloud")
                     Text("Trim totals")
                 }
-                Text("Remove dollar signs and commas from totals.")
+                Text("Remove symbols and commas from amounts.")
                     .foregroundStyle(.gray)
                     .font(.footnote)
             }

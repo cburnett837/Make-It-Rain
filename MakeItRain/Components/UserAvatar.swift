@@ -29,6 +29,14 @@ struct UserAvatar: View {
                 placeholder
             }
         }
+        .onChange(of: user) { old, new in
+            if let avatar = new?.avatar {
+                Task { await prepareAvatar(data: avatar) }
+            } else {
+                self.avatar = nil
+            }
+            
+        }
         .onChange(of: AppState.shared.accountUsers.filter { $0.id == user?.id }.first?.avatar, initial: true) { old, new in
             Task {
                 await prepareAvatar(data: new)

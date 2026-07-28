@@ -28,7 +28,7 @@ struct LogoSearchPage<T: CanHandleLogo & Observation.Observable>: View {
     @Environment(FuncModel.self) private var funcModel
 
     var parent: T
-    let parentType: XrefEnum
+    let parentType: XrefLogoParentType
     
     @FocusState private var focusedField: Int?
     
@@ -119,7 +119,7 @@ struct LogoSearchPage<T: CanHandleLogo & Observation.Observable>: View {
                         if let logoData = try? await downloadCompanyLogo(logoUrl: result.logoUrl) {
                             parent.logo = logoData
                             ImageCache.shared.saveToCache(
-                                parentTypeId: XrefModel.getItem(from: .logoTypes, byEnumID: parentType).id,
+                                parentTypeId: parentType.id, //XrefModel.getItem(from: .logoTypes, byEnumID: parentType).id,
                                 parentId: parent.id,
                                 id: parent.id,
                                 data: logoData

@@ -98,7 +98,7 @@ struct DashboardNumericDetails: View {
     }
     
     @ViewBuilder
-    func line(title: String, value: Double) -> some View {
+    func line(title: String, value: Decimal) -> some View {
         HStack {
             Text(title)
             Spacer()

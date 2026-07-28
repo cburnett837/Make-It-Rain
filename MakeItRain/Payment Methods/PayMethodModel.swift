@@ -567,7 +567,7 @@ class PayMethodModel {
             }
                                                 
             if payMethod.isUnified {
-                CalcHelper.updateUnifiedStartingAmount(month: month, for: payMethod.accountType)
+                CalcHelper.updateUnifiedStartingAmount(month: month, for: payMethod.accountType, store: store)
             }
         }
     }
@@ -841,7 +841,7 @@ class PayMethodModel {
                 && (includeHidden ? true : !$0.isHidden)
                 && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
             }
-            .filter { $0.matchesFilter() }
+            .filter { $0.accountHolderFilter() }
 //            .filter {
 //                switch AppSettings.shared.paymentMethodFilterMode {
 //                case .all:
@@ -857,6 +857,19 @@ class PayMethodModel {
 //                    || $0.holderFour?.id == AppState.shared.user?.id
 //                }
 //            }
+            .sorted(by: Helpers.paymentMethodSorter())
+    }
+    
+    
+    func getMethodsForUnified(type: PaymentMethodSection) -> Array<CBPaymentMethod> {
+        self.paymentMethods
+            .filter { !$0.isUnified }
+            .filter {
+                $0.sectionType == type
+                && $0.isPermitted
+                && !$0.isHidden
+            }
+            .filter { $0.accountHolderFilter() }
             .sorted(by: Helpers.paymentMethodSorter())
     }
     

@@ -17,7 +17,7 @@ struct StandardMiniMapContainerWithStatePosition: View {
     @Binding var locations: [CBLocation]
     var parent: CanHandleLocationsDelegate
     var parentID: String
-    var parentType: XrefEnum
+    var parentType: XrefLocationType
     var addCurrentLocation: Bool
     var openBigMapOnTap: Bool = true
     
@@ -60,7 +60,7 @@ struct StandardMiniMap: View {
     @Binding var locations: [CBLocation]
     var parent: CanHandleLocationsDelegate
     var parentID: String
-    var parentType: XrefEnum
+    var parentType: XrefLocationType
     var addCurrentLocation: Bool
     var openBigMapOnTap: Bool = true
     

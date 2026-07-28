@@ -85,9 +85,9 @@ struct DashboardExpenseByCategoryTable: View {
             .lineLimit(1)
             .textCase(nil)
         }
-        .task {
-            model.data.categoryGroups.forEach { print("\($0.title) - \($0.budgetAmount)")}
-        }
+//        .task {
+//            model.data.categoryGroups.forEach { print("\($0.title) - \($0.budgetAmount)")}
+//        }
     }
     
 
@@ -116,7 +116,7 @@ struct DashboardExpenseByCategoryTable: View {
         GridRow {
             HStack {
                 ChartCircleDot(
-                    budget: cat.isIncome ? 100 : cat.budgetAmount,
+                    budget: cat.isIncome ? Decimal(100) : cat.budgetAmount,
                     expenses: cat.isIncome ? 100 : (model.shouldUseTotalSpending ? cat.allAmounts?.totalSpend ?? 0 : cat.allAmounts?.actualSpend ?? 0),
                     color: cat.color,
                     size: 12

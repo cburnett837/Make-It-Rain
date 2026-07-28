@@ -10,9 +10,13 @@ import SwiftUI
 
 #if os(iOS)
 struct LineItemMiniView: View {
+    @Local(\.showDebuggingInfo) var showDebuggingInfo
+    
     @Environment(\.colorScheme) var colorScheme
     @Environment(CalendarModel.self) private var calModel
     @Environment(CalendarProps.self) private var calProps
+    @Environment(AppStore.self) private var store
+
         
     @Bindable var trans: CBTransaction
     @Bindable var day: CBDay
@@ -254,15 +258,44 @@ struct LineItemMiniView: View {
                         //.italic(trans.action == .add)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     
-                    if trans.notifyOnDueDate {
+                    if let cunt = trans.country, cunt != calModel.sPayMethod?.country, cunt != AppState.shared.country {
+                        Text(cunt.flagEmoji)
+                            .font(.caption2)
+                        
+                    } else if trans.notifyOnDueDate {
                         notificationIndicator
                     }
                 }
                 .overlay { ExcludeFromTotalsLine(trans: trans) }
                                 
                 totalText
-                    .font(.system(size: 10))
+                    //.font(.system(size: 10))
+                    //.font(.custom("AmountFont", size: 10, relativeTo: .caption2))
+                    .font(.caption2)
                     .overlay { ExcludeFromTotalsLine(trans: trans) }
+                
+                if showDebuggingInfo {
+                    VStack {
+                        VStack(alignment: .leading) {
+                            Text("unconv")
+                            Text("\(String(describing: trans.originalUnconvertedAmount))")
+                                .foregroundStyle(.secondary)
+                        }
+                        VStack(alignment: .leading) {
+                            Text("amount")
+                            Text("\(String(describing: trans.amount))")
+                                .foregroundStyle(.secondary)
+                        }
+                        VStack(alignment: .leading) {
+                            Text("usd")
+                            Text("\(String(describing: trans.amountUsd))")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .font(.system(size: 10))
+                    //.padding(.top, 10)
+                }
+                
             }
             .italic(wasUpdatedByAnotherUser)
             .bold(wasUpdatedByAnotherUser)
@@ -271,24 +304,80 @@ struct LineItemMiniView: View {
     }
     
     
-    var totalText: some View {
-        Group {
-            if AppSettings.shared.useWholeNumbers && AppSettings.shared.tightenUpEodTotals {
-                Text(trans.amount.currencyWithDecimals(0).replacing("$", with: "").replacing(",", with: ""))
-                
-            } else if AppSettings.shared.useWholeNumbers {
-                Text(trans.amount.currencyWithDecimals(0))
-                
-            } else if !AppSettings.shared.useWholeNumbers && AppSettings.shared.tightenUpEodTotals {
-                Text(trans.amount.currencyWithDecimals(2).replacing("$", with: "").replacing(",", with: ""))
-                
-            } else {
-                Text(trans.amount.currencyWithDecimals(2))
-            }
+    var totalTextString: String {
+        func strip(_ string: String, currencyCode: String) -> String {
+            //return string
+            //return CurrencyHelpers.cleanAmountString(string, currencyCode: currencyCode) ?? string.replacing("$", with: "").replacing(",", with: "")
+            return CurrencyHelpers.cleanAmountString(string, currencyCode: currencyCode)
         }
-        //.minimumScaleFactor(0.8)
-        .foregroundStyle(amountColor)
-        .lineLimit(1)
+        
+        let isUnified = calModel.sPayMethod?.isUnified == true
+        
+        var amount: String {
+            let transCur = trans.country?.currencyCode
+            let setCur = AppState.shared.country.currencyCode
+            
+            if isUnified || (transCur != setCur && transCur != calModel.sPayMethod?.country?.currencyCode) || transCur != calModel.sPayMethod?.country?.currencyCode {
+                if let amount = CurrencyHelpers.convertedDisplayAmountForTransLineItem(
+                    trans: trans,
+                    months: calModel.months,
+                    convertUsing: .originalUnconvertedAmount,
+                    convertTo: calModel.sPayMethod?.country?.currencyCode
+                ) {
+                    if amount > 10000 || amount < -10000 {
+                        let returnMe = amount.kVersion(AppSettings.shared.useWholeNumbers ? 0 : 2)
+                        return AppSettings.shared.tightenUpEodTotals ? strip(returnMe, currencyCode: setCur) : returnMe
+                    } else {
+                        let returnMe = amount.currencyWithDecimals(AppSettings.shared.useWholeNumbers ? 0 : 2, currencyCode: setCur)
+                        return AppSettings.shared.tightenUpEodTotals ? strip(returnMe, currencyCode: setCur) : returnMe
+                    }
+                    
+//                    let returnMe = amount.currencyWithDecimals(AppSettings.shared.useWholeNumbers ? 0 : 2, currencyCode: setCur)
+//                    return AppSettings.shared.tightenUpEodTotals ? strip(returnMe, currencyCode: setCur) : returnMe
+                } else {
+                    print("AMount is not set")
+                }
+            }
+            
+            if let ogAmount = trans.originalUnconvertedAmount {
+                if ogAmount > 10000 || ogAmount < -10000 {
+                    let returnMe = ogAmount.kVersion(AppSettings.shared.useWholeNumbers ? 0 : 2)
+                    return AppSettings.shared.tightenUpEodTotals ? strip(returnMe, currencyCode: setCur) : returnMe
+                } else {
+                    let returnMe = ogAmount.currencyWithDecimals(AppSettings.shared.useWholeNumbers ? 0 : 2, currencyCode: transCur)
+                    return AppSettings.shared.tightenUpEodTotals ? strip(returnMe, currencyCode: setCur) : returnMe
+                }
+                
+//                let returnMe = ogAmount.currencyWithDecimals(AppSettings.shared.useWholeNumbers ? 0 : 2, currencyCode: transCur)
+//                return AppSettings.shared.tightenUpEodTotals ? strip(returnMe, currencyCode: transCur ?? setCur) : returnMe
+                
+            }
+            
+            if trans.amount > 10000 || trans.amount < -10000 {
+                let returnMe = trans.amount.kVersion(AppSettings.shared.useWholeNumbers ? 0 : 2)
+                return AppSettings.shared.tightenUpEodTotals ? strip(returnMe, currencyCode: setCur) : returnMe
+            } else {
+                let returnMe = trans.amount.currencyWithDecimals(AppSettings.shared.useWholeNumbers ? 0 : 2, currencyCode: transCur)
+                return AppSettings.shared.tightenUpEodTotals ? strip(returnMe, currencyCode: setCur) : returnMe
+            }
+            
+//            let returnMe = trans.amount.currencyWithDecimals(AppSettings.shared.useWholeNumbers ? 0 : 2, currencyCode: transCur)
+//            return AppSettings.shared.tightenUpEodTotals ? strip(returnMe, currencyCode: transCur ?? setCur) : returnMe
+        }
+        
+        
+        
+        
+        return amount
+    }
+    
+    
+    var totalText: some View {
+        Text(totalTextString)
+            //.minimumScaleFactor(0.8)
+            .foregroundStyle(amountColor)
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
     }
       
     

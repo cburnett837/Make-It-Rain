@@ -35,7 +35,7 @@ struct BudgetOverview: View {
    
 
     
-    var totalExpenses: Double {
+    var totalExpenses: Decimal {
         if budget.type == .tag {
             return TransactionHelper.All.Amount.actualSpend(from: store.tagBudgetTransactions)
             //return store.tagBudgetTransactions.map { $0.amount * -1 }.reduce(0, +)
@@ -195,12 +195,20 @@ struct BudgetOverview: View {
     @ToolbarContentBuilder
     var toolbar: some ToolbarContent {
         if isLoading {
+            #if os(iOS)
             ToolbarItem(placement: .topBarTrailing) {
                 ProgressView()
                     .tint(.none)
             }
             .sharedBackgroundVisibility(.hidden)
+            #else
+            ToolbarItem(placement: .principal) {
+                ProgressView()
+                    .tint(.none)
+            }
+            #endif
         }
+        #if os(iOS)
         ToolbarSpacer(.fixed, placement: .topBarTrailing)
         ToolbarItem(placement: .topBarTrailing) { editButton }
         ToolbarSpacer(.flexible, placement: .topBarTrailing)
@@ -213,6 +221,7 @@ struct BudgetOverview: View {
                     .schemeBasedForegroundStyle()
             }
         }
+        #endif
     }
     
     
@@ -278,7 +287,7 @@ struct BudgetOverview: View {
     struct SectionFooter: View {
         var day: CBDay
         var dailyCount: Int
-        var dailyTotal: Double
+        var dailyTotal: Decimal
         var cumTotals: [BudgetCumTotal]
                 
         var body: some View {

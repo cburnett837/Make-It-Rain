@@ -35,7 +35,9 @@ class LongPollModel: Decodable {
     let settings: AppSettings?
     let receipts: Array<CBTransaction>?
     
-    enum CodingKeys: CodingKey { case return_time, transactions, starting_amounts, repeating_transactions, pay_methods, categories, category_groups, keywords, budgets, open_records, plaid_banks, plaid_accounts, plaid_transactions, plaid_balances, logos, settings, receipts, monthly_budgets, global_budget }
+    let countryId: Int?
+    
+    enum CodingKeys: CodingKey { case return_time, transactions, starting_amounts, repeating_transactions, pay_methods, categories, category_groups, keywords, budgets, open_records, plaid_banks, plaid_accounts, plaid_transactions, plaid_balances, logos, settings, receipts, monthly_budgets, global_budget, country_id }
     
     init () {
         self.returnTime = nil
@@ -60,6 +62,7 @@ class LongPollModel: Decodable {
         self.receipts = nil
         self.monthlyBudgets = nil
         self.globalBudget = nil
+        self.countryId = nil
     }
     
     
@@ -87,6 +90,7 @@ class LongPollModel: Decodable {
         self.receipts = try container.decodeIfPresent(Array<CBTransaction>.self, forKey: .receipts)
         self.monthlyBudgets = try container.decodeIfPresent(Array<CBMonth>.self, forKey: .monthly_budgets)
         self.globalBudget = try container.decodeIfPresent(CBBudget.self, forKey: .global_budget)
+        self.countryId = try container.decodeIfPresent(Int.self, forKey: .country_id)
     }
 }
 

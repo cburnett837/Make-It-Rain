@@ -9,41 +9,6 @@ import SwiftUI
 import Charts
 import LocalAuthentication
 
-
-enum CCBrand: String, CaseIterable, Identifiable {
-    var id: Self { self }
-    case visaBlue = "cc_logo_visa_blue"
-    case visaWhite = "cc_logo_visa_white"
-    case visaBlack = "cc_logo_visa_black"
-    case mastercard = "cc_logo_mastercard"
-    case amex = "cc_logo_amex"
-    case discover = "cc_logo_discover"
-    
-    static func fromString(_ theString: String) -> Self {
-        switch theString {
-        case "cc_logo_visa_blue": return .visaBlue
-        case "cc_logo_visa_white": return .visaWhite
-        case "cc_logo_visa_black": return .visaBlack
-        case "cc_logo_mastercard": return .mastercard
-        case "cc_logo_amex": return .amex
-        case "cc_logo_discover": return .discover
-        default: return .visaBlue
-        }
-    }
-    
-    var title: String {
-        switch self {
-        case .visaBlue: return "Visa (Blue)"
-        case .visaWhite: return "Visa (White)"
-        case .visaBlack: return "Visa (Black)"
-        case .mastercard: return "Mastercard"
-        case .amex: return "American Express"
-        case .discover: return "Discover"
-        }
-    }
-}
-
-
 struct CCBrandPickerPage: View {
     @Environment(\.dismiss) var dismiss
     
@@ -62,9 +27,15 @@ struct CCBrandPickerPage: View {
             }
             .navigationTitle("Credit Card Issuer")
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .topBarTrailing) {
                     closeButton
                 }
+                #else
+                ToolbarItem(placement: .principal) {
+                    closeButton
+                }
+                #endif
             }
         }
         
@@ -107,6 +78,7 @@ struct CCBrandPickerPage: View {
         #endif
     }
 }
+
 
 struct PayMethodEditView: View {
     enum Offset: Int {
@@ -267,25 +239,34 @@ struct PayMethodEditView: View {
                 accountHolders
                 typeRowPhone
                 
-                if payMethod.accountType != .cash {
-                    ccBrandRowPhone
-                }
-                
-                colorRow
-                
-                LogoPickerRow(parent: payMethod, parentType: .paymentMethod, fallbackType: payMethod.isUnified ? .gradient : .color)
-                
-                
-                if payMethod.accountType == .checking || payMethod.accountType == .credit {
-                    last4Row
-                }
+                countryRow
             } header: {
-                Text("Details")
+                Text("Account Details")
             } footer: {
-                if payMethod.accountType == .checking || payMethod.accountType == .credit {
-                    Text("If you wish to use the smart receipt feature offered by ChatGPT, enter the last 4 digits of your card information. If not, you can leave this field blank.")
-                        .validate(payMethod.last4 ?? "", rules: .regex(.onlyNumbers, "Only numbers are allowed"))
+                Text("Enter the country where the account is based to allow for currency conversions when creating transfers abroad.")
+            }
+            
+            
+            if payMethod.accountType == .checking || payMethod.accountType == .credit {
+                Section {
+                    ccBrandRowPhone
+                    last4Row
+                } header: {
+                    Text("Card Details")
+                } footer: {
+                    if payMethod.accountType == .checking || payMethod.accountType == .credit {
+                        Text("If you wish to use the smart receipt feature offered by ChatGPT, enter the last 4 digits of your card information. If not, you can leave this field blank.")
+                            .validate(payMethod.last4 ?? "", rules: .regex(.onlyNumbers, "Only numbers are allowed"))
+                    }
                 }
+            }
+            
+            Section {
+                colorRow
+                LogoPickerRow(parent: payMethod, parentType: .paymentMethod, fallbackType: payMethod.isUnified ? .gradient : .color)
+                                                
+            } header: {
+                Text("Customization")
             }
             
             if payMethod.accountType == .credit || payMethod.accountType == .loan {
@@ -560,7 +541,8 @@ struct PayMethodEditView: View {
                 } label: {
                     HStack {
                         //Text(payMethod.accountType.rawValue.capitalized)
-                        Text(XrefModel.getItem(from: .accountTypes, byID: payMethod.accountType.rawValue).description)
+                        Text(payMethod.accountType.prettyValue)
+                        //Text(XrefModel.getItem(from: .accountTypes, byID: payMethod.accountType.rawValue).description)
                             .schemeBasedForegroundStyle()
                         Spacer()
                     }
@@ -580,14 +562,12 @@ struct PayMethodEditView: View {
             AccountHolders(payMethod: payMethod)
         } label: {
             Label {
-                Text("Account Holders")
+                Text("Holders")
             } icon: {
                 Image(systemName: "person.2")
                     .foregroundStyle(.gray)
             }
-
         }
-
     }
     
     
@@ -612,7 +592,7 @@ struct PayMethodEditView: View {
             }
         } label: {
             Label {
-                Text("Account Type")
+                Text("Type")
             } icon: {
                 Image(systemName: "dollarsign.bank.building")
                     .foregroundStyle(.gray)
@@ -620,6 +600,38 @@ struct PayMethodEditView: View {
         }
         .pickerStyle(.menu)
         .tint(.secondary)
+    }
+    
+    
+    @State private var showCountrySheet = false
+
+    var countryRow: some View {
+        Button {
+            showCountrySheet = true
+        } label: {
+            HStack {
+                Label {
+                    Text("Country")
+                } icon: {
+                    Image(systemName: "globe.americas")
+                        .foregroundStyle(.gray)
+                }
+                
+                Spacer()
+                
+                if let country = payMethod.country {
+                    Text("\(country.name) (\(country.currencyCode)) \(country.flagEmoji)")
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("Select Country")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .schemeBasedForegroundStyle()
+        }
+        .sheet(isPresented: $showCountrySheet) {
+            CountryPicker(country: $payMethod.country)
+        }
     }
     
 
@@ -1189,7 +1201,6 @@ struct PayMethodEditView: View {
         .frame(height: 50)
     }
     
-    
     private struct AccountHolders: View {
         @Bindable var payMethod: CBPaymentMethod
         
@@ -1209,20 +1220,15 @@ struct PayMethodEditView: View {
             }
         }
         
-        @ViewBuilder func holderLine(id: Int, isPrimary: Bool) -> some View {
+        @ViewBuilder
+        func holderLine(id: Int, isPrimary: Bool) -> some View {
             HStack {
-                
                 let user: CBUser? = switch id {
-                case 1:
-                    payMethod.holderOne
-                case 2:
-                    payMethod.holderTwo
-                case 3:
-                    payMethod.holderThree
-                case 4:
-                    payMethod.holderFour
-                default:
-                    nil
+                case 1: payMethod.holderOne
+                case 2: payMethod.holderTwo
+                case 3: payMethod.holderThree
+                case 4: payMethod.holderFour
+                default: nil
                 }
                 
                 if let user = user {
@@ -1232,13 +1238,13 @@ struct PayMethodEditView: View {
                         .foregroundStyle(.gray)
                 }
                 
-                
                 accountUsersMenu(id: id)
                 Spacer()
             }
         }
          
-        @ViewBuilder func accountUsersMenu(id: Int) -> some View {
+        @ViewBuilder
+        func accountUsersMenu(id: Int) -> some View {
             Menu {
                 let users = AppState.shared
                 .accountUsers
@@ -1276,16 +1282,16 @@ struct PayMethodEditView: View {
                         switch id {
                         case 1:
                             payMethod.holderOne = user
-                            payMethod.holderOneType = XrefModel.getItem(from: .paymentMethodHolderTypes, byEnumID: .primary)
+                            payMethod.holderOneType = XrefPaymentMethodHolderType.primary
                         case 2:
                             payMethod.holderTwo = user
-                            payMethod.holderTwoType = XrefModel.getItem(from: .paymentMethodHolderTypes, byEnumID: .secondary)
+                            payMethod.holderTwoType = XrefPaymentMethodHolderType.secondary
                         case 3:
                             payMethod.holderThree = user
-                            payMethod.holderThreeType = XrefModel.getItem(from: .paymentMethodHolderTypes, byEnumID: .secondary)
+                            payMethod.holderThreeType = XrefPaymentMethodHolderType.secondary
                         case 4:
                             payMethod.holderFour = user
-                            payMethod.holderFourType = XrefModel.getItem(from: .paymentMethodHolderTypes, byEnumID: .secondary)
+                            payMethod.holderFourType = XrefPaymentMethodHolderType.secondary
                         default:
                             break
                         }

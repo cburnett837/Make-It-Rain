@@ -180,6 +180,11 @@ public class LocalStorage {
         set { set(\.creditEodView.rawValue, key: "creditEodView", new: newValue.rawValue) }
     }
     
+    public var showDebuggingInfo: Bool {
+        get { get(\.showDebuggingInfo, key: "showDebuggingInfo", default: false) }
+        set { set(\.showDebuggingInfo, key: "showDebuggingInfo", new: newValue) }
+    }
+    
 //    //@AppStorage("paymentMethodSheetFilterMode") private var paymentMethodSheetFilterMode: PaymentMethodFilterMode = .justPrimary
 //    public var paymentMethodFilterMode: PaymentMethodFilterMode {
 //        get { PaymentMethodFilterMode.fromString(get(\.paymentMethodFilterMode.rawValue, key: "paymentMethodFilterMode", default: PaymentMethodFilterMode.all.rawValue)) }

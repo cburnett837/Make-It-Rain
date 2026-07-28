@@ -75,9 +75,9 @@ struct StandardAmountTextField<T: CanEditAmount & Observation.Observable>: View 
                         .onTapGesture {
                             Helpers.plusMinus($obj.amountString)
                             /// Just do on Mac because the calendar view is still visable.
-                            #if os(macOS)
-                            let _ = calModel.calculateTotal(for: calModel.sMonth)
-                            #endif
+                            //#if os(macOS)
+                            //let _ = calModel.calculateTotal(for: calModel.sMonth)
+                            //#endif
                         }
                 }
                 .validate(obj.amountString, rules: .regex(.currency, "The field contains invalid characters"))

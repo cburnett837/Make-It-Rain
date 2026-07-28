@@ -21,7 +21,7 @@ class NavigationManager {
     var columnVisibility: NavigationSplitViewVisibility = .all
 }
 
-enum NavDest: Hashable, Identifiable {
+enum NavDest: Hashable, Identifiable, Codable {
     case january
     case february
     case march

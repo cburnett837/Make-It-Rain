@@ -9,13 +9,13 @@ import Foundation
 
 class UpdateLogoModel: Encodable {
     var parentID: String?
-    var parentType: XrefEnum?
+    var parentType: XrefLogoParentType?
     var logoString: String?
     //var hasPaymentMethodsExisiting: Bool = false
     
     enum CodingKeys: CodingKey { case parent_id, parent_type, logo_string, user_id, account_id, device_uuid }
     
-    init(parentID: String?, parentType: XrefEnum, logoString: String) {
+    init(parentID: String?, parentType: XrefLogoParentType, logoString: String) {
         self.parentID = parentID
         self.parentType = parentType
         self.logoString = logoString

@@ -11,12 +11,12 @@ class CBOpenOrClosedRecord: Codable {
     var id: String
     var uuid: String?
     var recordID: String
-    var recordType: XrefItem
+    var recordType: XrefOpenRecordType
     var openOrClosed: OpenOrClosed
     var user: CBUser = AppState.shared.user!
     var active: Bool = true
 
-    init(recordID: String, recordType: XrefItem, openOrClosed: OpenOrClosed) {
+    init(recordID: String, recordType: XrefOpenRecordType, openOrClosed: OpenOrClosed) {
         let uuid = UUID().uuidString
         self.id = uuid
         self.uuid = uuid
@@ -57,7 +57,7 @@ class CBOpenOrClosedRecord: Codable {
         user = try container.decode(CBUser.self, forKey: .user)
                                 
         let recordTypeID = try container.decode(Int.self, forKey: .record_type_id)
-        self.recordType = XrefModel.getItem(from: .openRecords, byID: recordTypeID)
+        self.recordType = XrefOpenRecordType.init(id: recordTypeID)// XrefModel.getItem(from: .openRecords, byID: recordTypeID)
         
         let isActive = try container.decode(Int?.self, forKey: .active)
         self.active = isActive == 1 ? true : false

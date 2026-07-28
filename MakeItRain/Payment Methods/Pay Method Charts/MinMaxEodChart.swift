@@ -164,18 +164,30 @@ struct MinMaxEodChart: View {
     @ChartContentBuilder
     func minMaxLine(_ breakdown: PayMethodMonthlyBreakdown) -> some ChartContent {
         let startColor: Color = breakdown.minEod < AppSettings.shared.lowBalanceThreshold ? .orange : .green
+
         let min = breakdown.minEod
         let max = breakdown.maxEod
-        let positionForNewColor: Double? = vm.getGradientPosition(for: .minMaxEod, flipAt: AppSettings.shared.lowBalanceThreshold, min: min, max: max)
+
+        let positionForNewColor = vm.getGradientPosition(
+            for: .minMaxEod,
+            flipAt: AppSettings.shared.lowBalanceThreshold,
+            min: min,
+            max: max
+        )
+
+        let gradientPosition = CGFloat(
+            NSDecimalNumber(decimal: positionForNewColor ?? 0.5).doubleValue
+        )
+
         let gradient = Gradient(
             stops: [
                 .init(color: startColor, location: 0),
-                .init(color: startColor, location: positionForNewColor ?? 0.5 - 0.00001),
-                .init(color: .green, location: positionForNewColor ?? 0.5 + 0.00001),
+                .init(color: startColor, location: gradientPosition - 0.00001),
+                .init(color: .green, location: gradientPosition + 0.00001),
                 .init(color: .green, location: 1)
             ]
         )
-        
+
         var opacity: Double {
             if let selectedDate {
                 breakdown.date == selectedDate ? 1 : 0.3
@@ -183,13 +195,13 @@ struct MinMaxEodChart: View {
                 1
             }
         }
-        
+
         if vm.viewByQuarter {
             RectangleMark(
                 xStart: .value("Start Date", breakdown.date.startDateOfQuarter, unit: .day),
                 xEnd: .value("End Date", breakdown.date.endDateOfQuarter.addingTimeInterval(-60 * 60 * 24 * 14), unit: .day),
                 yStart: .value("Min Eod", breakdown.minEod),
-                yEnd: .value("Max Eod", breakdown.maxEod),
+                yEnd: .value("Max Eod", breakdown.maxEod)
             )
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .foregroundStyle(.linearGradient(gradient, startPoint: .bottom, endPoint: .top))

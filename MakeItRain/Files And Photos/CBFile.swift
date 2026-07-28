@@ -11,7 +11,7 @@ import Foundation
 class CBFile: Codable, Identifiable, Hashable {
     var id: String
     var relatedID: String
-    var relatedRecordType: XrefItem
+    var relatedRecordType: XrefFileType
     var uuid: String
     var active: Bool
     var fileType: FileType
@@ -20,18 +20,19 @@ class CBFile: Codable, Identifiable, Hashable {
     
     enum CodingKeys: CodingKey { case id, related_id, related_type_id, file_type, uuid, ext, active, user_id, account_id, device_uuid }
     
-    init(relatedID: String, uuid: String, parentType: XrefEnum, fileType: FileType) {
+    init(relatedID: String, uuid: String, parentType: XrefFileType, fileType: FileType) {
         self.id = UUID().uuidString
         self.relatedID = relatedID
         self.uuid = uuid
         self.active = true
-        self.relatedRecordType = XrefModel.getItem(from: .fileTypes, byEnumID: parentType)
+        self.relatedRecordType = parentType// XrefModel.getItem(from: .fileTypes, byEnumID: parentType)
         self.fileType = fileType
     }
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(Int(id), forKey: .id) // This weird Int() thing is for the drag and drop
+        try container.encode(id, forKey: .id)
+        //try container.encode(Int(id), forKey: .id) // This weird Int() thing is for the drag and drop
         try container.encode(relatedID, forKey: .related_id)
         try container.encode(fileType.rawValue, forKey: .file_type)
         try container.encode(fileType.ext, forKey: .ext)
@@ -60,10 +61,10 @@ class CBFile: Codable, Identifiable, Hashable {
         
         uuid = try container.decode(String.self, forKey: .uuid)
         let active = try container.decode(Int.self, forKey: .active)
-        self.active = active == 1 ? true : false
+        self.active = active == 1
         
         let relatedID = try container.decode(Int.self, forKey: .related_type_id)
-        self.relatedRecordType = XrefModel.getItem(from: .fileTypes, byID: relatedID)
+        self.relatedRecordType = XrefFileType.init(id: relatedID)// XrefModel.getItem(from: .fileTypes, byID: relatedID)
         
         let ext = try container.decode(String.self, forKey: .ext)
         self.fileType = FileType.getByExtension(ext)

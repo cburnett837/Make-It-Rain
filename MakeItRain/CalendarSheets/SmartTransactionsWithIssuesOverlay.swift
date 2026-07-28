@@ -129,23 +129,23 @@ struct SmartTransactionsWithIssuesOverlay: View {
     
     @ViewBuilder func issueText(for trans: CBTransaction) -> some View {
         Group {
-            if trans.smartTransactionIssue?.enumID == .missingPaymentMethod {
+            if trans.smartTransactionIssue == .missingPaymentMethod {
                 Text("Missing account…")
                     .foregroundStyle(.red)
                 
-            } else if trans.smartTransactionIssue?.enumID == .missingTitle {
+            } else if trans.smartTransactionIssue == .missingTitle {
                 Text("Missing title…")
                     .foregroundStyle(.red)
                 
-            } else if trans.smartTransactionIssue?.enumID == .missingDate {
+            } else if trans.smartTransactionIssue == .missingDate {
                 Text("Missing date…")
                     .foregroundStyle(.red)
                 
-            } else if trans.smartTransactionIssue?.enumID == .missingPaymentMethodAndDate {
+            } else if trans.smartTransactionIssue == .missingPaymentMethodAndDate {
                 Text("Missing account & date…")
                     .foregroundStyle(.red)
                 
-            } else if trans.smartTransactionIssue?.enumID == .funkyDate {
+            } else if trans.smartTransactionIssue == .funkyDate {
                 Text("Date seems strange…")
                     .foregroundStyle(.orange)
             }

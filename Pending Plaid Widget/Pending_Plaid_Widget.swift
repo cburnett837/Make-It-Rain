@@ -8,6 +8,37 @@
 import WidgetKit
 import SwiftUI
 import Security
+//
+//struct IosBudgetWidget: Widget {
+//    let kind = "PlaidWidget"
+//
+//    var body: some WidgetConfiguration {
+//        #if os(iOS)
+//        StaticConfiguration(kind: kind, provider: BudgetWidgetProvider()) { entry in
+//            BudgetWidgetView(entry: entry)
+//        }
+//        .configurationDisplayName("Plaid Transactions")
+//        .description("Shows your latest plaid transactions that require action.")
+//        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+//        .pushHandler(BudgetWidgetPushHandler.self)
+//        #elseif os(watchOS)
+//        StaticConfiguration(kind: kind, provider: BudgetWidgetProvider()) { entry in
+//            BudgetWatchWidgetView(entry: entry)
+//            //BudgetWidgetView(entry: entry)
+//        }
+//        .configurationDisplayName("Plaid Transactions")
+//        .description("Shows your latest plaid transactions that require action.")
+//        .supportedFamilies([
+//            .accessoryRectangular,
+//            .accessoryCircular,
+//            .accessoryInline,
+//            .accessoryCorner
+//        ])
+//        .pushHandler(BudgetWidgetPushHandler.self)
+//        #endif
+//    }
+//}
+
 
 
 struct CBUser: Decodable, Identifiable {
@@ -259,7 +290,7 @@ struct BudgetWidgetProvider: TimelineProvider {
 
             completion(Timeline(
                 entries: [entry],
-                policy: .after(.now.addingTimeInterval(60 * 60 * 3))
+                policy: .after(.now.addingTimeInterval(60 * 60 * 1))
             ))
         }
     }
@@ -356,12 +387,21 @@ struct BudgetWidgetView: View {
     @ViewBuilder
     func transLine(_ trans: PlaidTransLite) -> some View {
         HStack {
+            #if os(iOS)
             if let data = trans.logo, let image = UIImage(data: data) {
                 Image(uiImage: image)
                     .resizable()
                     .frame(width: 20, height: 20, alignment: .center)
                     .clipShape(Circle())
             }
+            #else
+            if let data = trans.logo, let image = NSImage(data: data) {
+                Image(nsImage: image)
+                    .resizable()
+                    .frame(width: 20, height: 20, alignment: .center)
+                    .clipShape(Circle())
+            }
+            #endif
             
             Text(trans.title)
                 .lineLimit(1)
@@ -374,8 +414,6 @@ struct BudgetWidgetView: View {
         .font(.subheadline)
     }
 }
-
-
 
 
 struct BudgetWidgetPushHandler: WidgetPushHandler {

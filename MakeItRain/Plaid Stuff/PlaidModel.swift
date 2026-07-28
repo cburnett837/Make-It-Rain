@@ -46,7 +46,11 @@ class PlaidModel {
         banks.filter { $0.hasIssues }
     }
     
-    var totalTransCount = 0
+    //var totalTransCount = 0
+    
+    var totalTransCount: Int {
+        trans.filter({ !$0.isAcknowledged }).count
+    }
     
     
     
@@ -237,7 +241,7 @@ class PlaidModel {
         let context = DataManager.shared.createContext()
         await context.perform {
             let pred1 = NSPredicate(format: "relatedID == %@", id)
-            let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .plaidBank).id))
+            let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefLogoParentType.plaidBank.id))
             let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
             
             if let perLogo = DataManager.shared.getOne(
@@ -248,7 +252,7 @@ class PlaidModel {
             ) {
                 perLogo.id = UUID().uuidString
                 perLogo.relatedID = id
-                perLogo.relatedTypeID = Int64(XrefModel.getItem(from: .logoTypes, byEnumID: .plaidBank).id)
+                perLogo.relatedTypeID = Int64(XrefLogoParentType.plaidBank.id)
                 perLogo.photoData = logo
                 perLogo.localUpdatedDate = Date()
             }
@@ -659,7 +663,7 @@ class PlaidModel {
     @MainActor
     func handleIncoming(transactionsWithCount: CBPlaidTransactionListWithCount, incomingDataType: IncomingDataType) async {
         print("-- \(#function)")
-        self.totalTransCount = transactionsWithCount.count
+        //self.totalTransCount = transactionsWithCount.count
         
         if let safeTrans = transactionsWithCount.trans {
             for trans in safeTrans {

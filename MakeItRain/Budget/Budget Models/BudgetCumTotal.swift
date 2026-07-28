@@ -12,16 +12,16 @@ import Charts
 struct BudgetCumTotal: Identifiable {
     var id: Date {return date}
     let date: Date
-    var total: Double
+    var total: Decimal
     var isOverBudget: Bool {
         (total * -1) > budgetAmount
     }
-    var budgetAmount: Double
+    var budgetAmount: Decimal
 }
 
 
 struct BudgetDailySpendTotal: Identifiable {
     var id: Date {return date}
     let date: Date
-    var total: Double
+    var total: Decimal
 }

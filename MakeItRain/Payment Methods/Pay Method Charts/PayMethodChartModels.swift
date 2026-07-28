@@ -55,22 +55,22 @@ struct PayMethodChartSelectedDateDetails: Identifiable {
     var id: String { UUID().uuidString }
     var title: String
     var color: Color
-    var income: Double
-    var incomeAndPositiveAmounts: Double
-    var positiveAmounts: Double
-    var startingAmountsAndPositiveAmounts: Double
-    var expenses: Double
-    var payments: Double
-    var startingAmounts: Double
-    var profitLoss: Double
-    var profitLossPercentage: Double
+    var income: Decimal
+    var incomeAndPositiveAmounts: Decimal
+    var positiveAmounts: Decimal
+    var startingAmountsAndPositiveAmounts: Decimal
+    var expenses: Decimal
+    var payments: Decimal
+    var startingAmounts: Decimal
+    var profitLoss: Decimal
+    var profitLossPercentage: Decimal
     //var profitLossMinPercentage: Double
     //var profitLossMaxPercentage: Double
     //var profitLossMinAmount: Double
     //var profitLossMaxAmount: Double
-    var monthEnd: Double
-    var minEod: Double
-    var maxEod: Double
+    var monthEnd: Decimal
+    var minEod: Decimal
+    var maxEod: Decimal
     
     
 }
@@ -164,28 +164,49 @@ class PayMethodMonthlyBreakdown: Identifiable, Decodable, Equatable {
         Helpers.createDate(month: month, year: year)!
     }
     
-    var income: Double { Double(incomeString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
+    var income: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(incomeString) ?? 0.0
+        //Decimal(incomeString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+    }
     var incomeString: String
     
-    var incomeAndPositiveAmounts: Double { Double(incomeAndPositiveAmountsString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
+    var incomeAndPositiveAmounts: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(incomeAndPositiveAmountsString) ?? 0.0
+        //Decimal(incomeAndPositiveAmountsString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+    }
     var incomeAndPositiveAmountsString: String
     
-    var positiveAmounts: Double { Double(positiveAmountsString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
+    var positiveAmounts: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(positiveAmountsString) ?? 0.0
+        //Decimal(positiveAmountsString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+    }
     var positiveAmountsString: String
     
-    var expenses: Double { Double(expensesString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
+    var expenses: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(expensesString) ?? 0.0
+        //Decimal(expensesString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+    }
     var expensesString: String
     
-    var payments: Double { Double(paymentsString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
+    var payments: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(paymentsString) ?? 0.0
+        //Decimal(paymentsString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+    }
     var paymentsString: String
     
-    var startingAmounts: Double { Double(startingAmountsString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
+    var startingAmounts: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(startingAmountsString) ?? 0.0
+        //Decimal(startingAmountsString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+    }
     var startingAmountsString: String
     
-    var profitLoss: Double { Double(profitLossString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
+    var profitLoss: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(profitLossString) ?? 0.0
+        //Decimal(profitLossString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+    }
     var profitLossString: String
     
-    var profitLossPercentage: Double
+    var profitLossPercentage: Decimal
     
 //    var profitLossMinPercentage: Double { Double(profitLossMinPercentageString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
 //    var profitLossMinPercentageString: String
@@ -199,16 +220,28 @@ class PayMethodMonthlyBreakdown: Identifiable, Decodable, Equatable {
 //    var profitLossMaxAmount: Double { Double(profitLossMaxAmountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
 //    var profitLossMaxAmountString: String
                 
-    var monthEnd: Double { Double(monthEndString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
+    var monthEnd: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(monthEndString) ?? 0.0
+        //Decimal(monthEndString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+    }
     var monthEndString: String
     
-    var minEod: Double { Double(minEodString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
+    var minEod: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(minEodString) ?? 0.0
+        //Decimal(minEodString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+    }
     var minEodString: String
     
-    var maxEod: Double { Double(maxEodString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
+    var maxEod: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(maxEodString) ?? 0.0
+        //Decimal(maxEodString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+    }
     var maxEodString: String
         
-    var startingAmountsAndPositiveAmounts: Double { Double(startingAmountsAndPositiveAmountsString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
+    var startingAmountsAndPositiveAmounts: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(startingAmountsAndPositiveAmountsString) ?? 0.0
+        //Decimal(startingAmountsAndPositiveAmountsString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+    }
     var startingAmountsAndPositiveAmountsString: String
     
     
@@ -229,7 +262,7 @@ class PayMethodMonthlyBreakdown: Identifiable, Decodable, Equatable {
         paymentsString: String,
         startingAmountsString: String,
         profitLossString: String,
-        profitLossPercentage: Double,
+        profitLossPercentage: Decimal,
         //profitLossMinPercentageString: String,
         //profitLossMaxPercentageString: String,
         //profitLossMinAmountString: String,

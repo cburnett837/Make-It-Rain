@@ -12,7 +12,7 @@ import Charts
 struct BudgetCumSpendingChart: View {
     @Environment(CalendarModel.self) var calModel
     
-    var budgetAmount: Double
+    var budgetAmount: Decimal
     var cumTotals: [BudgetCumTotal]
     let today = Calendar.current.startOfDay(for: Date())
         
@@ -23,9 +23,12 @@ struct BudgetCumSpendingChart: View {
         if amounts.allSatisfy({ $0 < budgetAmount }) { return AnyShapeStyle(Color.green) }
         
         let gradientPos = BudgetHelper.getBudgetGradientPosition(from: cumTotals, budget: budgetAmount)
-        let transition = min(max(gradientPos ?? 0.5, 0.001), 0.999)
         let epsilon = 0.0001
         
+        let transition = CGFloat(
+            NSDecimalNumber(decimal: min(max(gradientPos ?? 0.5, 0.001), 0.999)).doubleValue
+        )
+
         return AnyShapeStyle(
             LinearGradient(
                 stops: [

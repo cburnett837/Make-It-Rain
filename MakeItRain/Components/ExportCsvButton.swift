@@ -21,7 +21,13 @@ struct BreakdownExportCsvButton: View {
             let overUnder1 = ($0.budgetForCategory) + (($0.expenses) + ($0.income))
             let overUnder2 = abs(overUnder1)
             
-            return [$0.category.title, String(budget), String(expense), String(income), String(overUnder2)]
+            return [
+                $0.category.title,
+                String(describing: budget),
+                String(describing: expense),
+                String(describing: income),
+                String(describing: overUnder2)
+            ]
         }
     }
     

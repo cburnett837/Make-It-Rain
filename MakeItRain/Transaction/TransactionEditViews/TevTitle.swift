@@ -301,7 +301,11 @@ struct TevTitle: View {
             suggestedTitles.removeAll()
             resetLocalTitleSuggestionType()
             Task {
-                if let location = await mapModel.getMapItem(from: completion, parentID: trans.id, parentType: XrefEnum.transaction) {
+                if let location = await mapModel.getMapItem(
+                    from: completion,
+                    parentID: trans.id,
+                    parentType: .transaction
+                ) {
                     trans.upsert(location)
                     mapModel.focusOnFirst(locations: trans.locations)
                 }
@@ -417,7 +421,7 @@ struct TevTitle: View {
         //if !blockKeywordChangeWhenViewLoads {
             let upVal = title.uppercased()
             
-            for key in keyModel.keywords {
+        for key in keyModel.keywords.filter({ !$0.isIgnoredSuggestion }) {
                 let upKey = key.keyword.uppercased()
                 
                 switch key.triggerType {

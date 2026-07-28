@@ -32,7 +32,7 @@ struct MakeItRainApp: App {
     @Local(\.startInFullScreen) var startInFullScreen
     @Local(\.userColorScheme) var userColorScheme
     
-    @State private var store = AppStore()
+    @State var store = AppStore()
     @State private var appState = AppState.shared
     @State private var authState = AuthState.shared
     @State private var undoManager = UndodoManager.shared
@@ -55,9 +55,9 @@ struct MakeItRainApp: App {
     @State var dataChangeTriggers = DataChangeTriggers.shared
     //@State private var mapModel = MapModel()
     
-    #if os(macOS)
-    @State var categoryAnalysisModel = CivViewModel()
-    #endif
+//    #if os(macOS)
+//    @State var categoryAnalysisModel = CivViewModel()
+//    #endif
     
     @State private var userIdentity = Cody.shared
     
@@ -72,6 +72,10 @@ struct MakeItRainApp: App {
         if isStressTest {
             print("Running in UI stress test mode")
         }
+        
+        #if os(iOS)
+        PhoneWatchSync.shared.start()
+        #endif
         
         let store = AppStore()
         let calModel = CalendarModel(store: store)
@@ -300,9 +304,9 @@ struct MakeItRainApp: App {
         #endif
         
         #if os(macOS)
-        dashboardWindow
+        //dashboardWindow
         plaidWindow
-        insightsWindow
+        //insightsWindow
         //multiSelectWindow
         monthlyPlaceholderWindow
         settingsWindow

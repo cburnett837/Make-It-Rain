@@ -122,7 +122,7 @@ struct RootView: View {
                     let targetMonth = calModel.months.filter { $0.enumID == selection }.first
                     if let targetMonth {
                         payModel.prepareStartingAmounts(for: targetMonth, calModel: calModel)
-                        calModel.setSelectedMonthFromNavigation(navID: selection, calculateStartingAndEod: true)
+                        await calModel.setSelectedMonthFromNavigation(navID: selection, calculateStartingAndEod: true)
                     } else {
                         fatalError("Incorrect month")
                     }

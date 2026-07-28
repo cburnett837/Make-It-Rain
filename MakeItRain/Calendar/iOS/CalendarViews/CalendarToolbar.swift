@@ -355,20 +355,46 @@ struct CalendarToolbar: ToolbarContent {
                 }
             }
         } label: {
-            Group {
-                if AppState.shared.isIphone {
-                    Image(systemName: "creditcard")
-                } else {
-                    if calModel.sMonth.isTodayMonth {
-                        let finalText: String = "\(calModel.sPayMethod?.title ?? "Select Account")\(balanceText)"
-                        Text(finalText)
+            
+            if let meth = calModel.sPayMethod {
+                PayMethodLogoMashup(meth: meth)
+//                BusinessLogo(config: .init(
+//                    parent: meth,
+//                    fallBackType: meth.isUnified ? .gradient : .color,
+//                    size: 32
+//                ))
+                .allowsHitTesting(false)
+            } else {
+                Group {
+                    if AppState.shared.isIphone {
+                        Image(systemName: "creditcard")
                     } else {
-                        Text("\(calModel.sPayMethod?.title ?? "Select Account")")
+                        if calModel.sMonth.isTodayMonth {
+                            let finalText: String = "\(calModel.sPayMethod?.title ?? "Select Account")\(balanceText)"
+                            Text(finalText)
+                        } else {
+                            Text("\(calModel.sPayMethod?.title ?? "Select Account")")
+                        }
                     }
                 }
+                .allowsHitTesting(false)
+                .schemeBasedForegroundStyle()
             }
-            .allowsHitTesting(false)
-            .schemeBasedForegroundStyle()
+            
+//            Group {
+//                if AppState.shared.isIphone {
+//                    Image(systemName: "creditcard")
+//                } else {
+//                    if calModel.sMonth.isTodayMonth {
+//                        let finalText: String = "\(calModel.sPayMethod?.title ?? "Select Account")\(balanceText)"
+//                        Text(finalText)
+//                    } else {
+//                        Text("\(calModel.sPayMethod?.title ?? "Select Account")")
+//                    }
+//                }
+//            }
+//            .allowsHitTesting(false)
+//            .schemeBasedForegroundStyle()
             
         } primaryAction: {
             calProps.showPayMethodSheet = true

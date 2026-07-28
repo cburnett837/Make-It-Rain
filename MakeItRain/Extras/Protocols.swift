@@ -12,15 +12,15 @@ protocol CanHandleLogo: AnyObject {
     var logo: Data? {get set}
     var id: String {get}
     var color: Color {get set}
-    var logoParentType: XrefItem {get}
+    var logoParentType: XrefLogoParentType {get}
 }
-
-protocol CanUpdateTitleColor: AnyObject {
-    var logo: Data? {get set}
-    var id: String {get}
-    var color: Color {get set}
-    var logoParentType: XrefItem {get}
-}
+//
+//protocol CanUpdateTitleColor: AnyObject {
+//    var logo: Data? {get set}
+//    var id: String {get}
+//    var color: Color {get set}
+//    var logoParentType: XrefLogoParentType {get}
+//}
 
 
 protocol CanHandleUserAvatar: AnyObject {
@@ -40,7 +40,7 @@ extension CanEditTitleWithLocation {
 }
 
 protocol CanEditAmount: AnyObject {
-    var amount: Double {get}
+    var amount: Decimal {get}
     var amountString: String {get set}
     var id: String {get}
     
@@ -56,12 +56,12 @@ protocol CanHandleLocationsDelegate {
 }
 
 @MainActor protocol FileUploadCompletedDelegate {
-    func addPlaceholderFile(recordID: String, uuid: String, parentType: XrefItem, fileType: FileType)
-    func markPlaceholderFileAsReadyForDownload(recordID: String, uuid: String, parentType: XrefItem, fileType: FileType)
-    func markFileAsFailedToUpload(recordID: String, uuid: String, parentType: XrefItem, fileType: FileType)
-    func displayCompleteAlert(recordID: String, parentType: XrefItem, fileType: FileType)
+    func addPlaceholderFile(recordID: String, uuid: String, parentType: XrefFileType, fileType: FileType)
+    func markPlaceholderFileAsReadyForDownload(recordID: String, uuid: String, parentType: XrefFileType, fileType: FileType)
+    func markFileAsFailedToUpload(recordID: String, uuid: String, parentType: XrefFileType, fileType: FileType)
+    func displayCompleteAlert(recordID: String, parentType: XrefFileType, fileType: FileType)
     func cleanUpPhotoVariables()
-    func delete(file: CBFile, parentType: XrefItem, fileType: FileType) async
+    func delete(file: CBFile, parentType: XrefFileType, fileType: FileType) async
     
     /// These are all optional.
     var smartTransactionDate: Date? {get set}

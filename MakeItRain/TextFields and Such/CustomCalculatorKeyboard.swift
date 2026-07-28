@@ -51,13 +51,21 @@ struct CustomCalculatorKeyboard: View {
             }
         }
         .onDisappear {
-            commitCurrentNumber()
+            if tokens.contains(where: {
+                if case .op = $0 { return true }
+                return false
+            }) {
+                commitCurrentNumber()
+            }
+            
 
             if let result = CalculatorEngine.evaluate(tokens: tokens) {
                 text = result
                 //text = format(result)
                 tokens = [.number(result)]
             }
+            
+            tokens.removeAll()
         }
     }
     

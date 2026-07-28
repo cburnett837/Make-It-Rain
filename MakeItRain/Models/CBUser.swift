@@ -40,13 +40,14 @@ class CBUser: Codable, Identifiable, Hashable, Equatable, CanHandleUserAvatar {
     var initials: String
     var email: String    
     var avatar: Data?
+    var countryID: Int? /// just to send to server
     
     #warning("form downloading app suite budgets. Need to make a dedicated model.")
     var year: Int?
     
     //var hasPaymentMethodsExisiting: Bool = false
     
-    enum CodingKeys: CodingKey { case id, account_id, name, initials, email, avatar, device_uuid, year }
+    enum CodingKeys: CodingKey { case id, account_id, name, initials, email, avatar, device_uuid, year, country_id }
     
     init() {
         self.id = 0
@@ -66,6 +67,7 @@ class CBUser: Codable, Identifiable, Hashable, Equatable, CanHandleUserAvatar {
         try container.encode(Cody.shared.deviceUUID, forKey: .device_uuid)
         try container.encode(avatar, forKey: .avatar)
         try container.encode(year, forKey: .year)
+        try container.encode(countryID, forKey: .country_id)
     }
         
     required init(from decoder: Decoder) throws {

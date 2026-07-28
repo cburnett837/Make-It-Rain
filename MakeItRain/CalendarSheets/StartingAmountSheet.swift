@@ -97,6 +97,7 @@ struct StartingAmountSheet: View {
 fileprivate struct StartingAmountLine: View {
     @Environment(\.layoutDirection) private var layoutDirection: LayoutDirection
     @Environment(CalendarModel.self) var calModel
+    @Environment(AppStore.self) var store
     
     @Bindable var startingAmount: CBStartingAmount
     var payMethod: CBPaymentMethod
@@ -125,8 +126,17 @@ fileprivate struct StartingAmountLine: View {
                     Button("AutoFill") {
                         if calModel.sMonth.num != 0 {
                             let targetMonth = calModel.months.filter { $0.num == calModel.sMonth.num - 1 }.first!
-                            let _ = calModel.calculateTotal(for: targetMonth, using: payMethod)
-                            let eodTotal = targetMonth.days.last!.eodTotal
+                            //let _ = calModel.calculateTotal(for: targetMonth, using: payMethod)
+                            
+                            let eodTotal = CalcHelper.calculateTotal(
+                                for: targetMonth,
+                                using: payMethod,
+                                and: .giveMeLastDayEod,
+                                store: store
+                            )
+                            
+                            
+                            //let eodTotal = targetMonth.days.last!.eodTotal
                             startingAmount.amountString = eodTotal.currencyWithDecimals()
                         }
                     }

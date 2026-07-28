@@ -16,7 +16,7 @@ struct DashboardActivityByCategoryBarChart: View {
     @Binding var selectedCategory: CBCategory?
     
     @State private var selectedRow: String?
-    @State private var selectedXAmount: Double?
+    @State private var selectedXAmount: Decimal?
     
     enum ChartRow: String {
         case budget = "Budget"

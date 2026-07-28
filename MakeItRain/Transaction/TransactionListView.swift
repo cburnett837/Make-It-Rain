@@ -273,7 +273,7 @@ fileprivate struct DayChunk: View {
     
     @State private var filteredTrans: [CBTransaction] = []
     @State private var doesHaveTransactions: Bool = false
-    @State private var dailyTotal: Double = 0.0
+    @State private var dailyTotal: Decimal = 0.0
     @State private var dailyCount: Int = 0
     
     var eodColor: Color {

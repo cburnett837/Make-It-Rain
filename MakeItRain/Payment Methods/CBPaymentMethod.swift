@@ -11,7 +11,7 @@ import SwiftUI
 struct PaymentMethodHolder: Identifiable {
     var id: Int
     var holder: CBUser?
-    var type: XrefItem?
+    var type: XrefPaymentMethodHolderType?
 }
 
 @Observable
@@ -25,8 +25,9 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     }
     var dueDateString: String?
     
-    var limit: Double? {
-        Double(limitString?.replacing("$", with: "").replacing(",", with: "") ?? "0.0") ?? 0.0
+    var limit: Decimal? {
+        CurrencyHelpers.parseAmountStringToDecimal(limitString ?? "0.0") ?? 0.0
+        //Decimal(limitString?.replacing("$", with: "").replacing(",", with: "") ?? "0.0") ?? 0.0
     }
     var limitString: String?
         
@@ -43,17 +44,17 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     var notifyOnDueDate: Bool = false
     var last4: String?
     var logo: Data?
-    var logoParentType: XrefItem = XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod)
+    var logoParentType: XrefLogoParentType = .paymentMethod//  = XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod)
     var ccBrand: CCBrand?
     
     var holderOne: CBUser?
-    var holderOneType: XrefItem?
+    var holderOneType: XrefPaymentMethodHolderType?
     var holderTwo: CBUser?
-    var holderTwoType: XrefItem?
+    var holderTwoType: XrefPaymentMethodHolderType?
     var holderThree: CBUser?
-    var holderThreeType: XrefItem?
+    var holderThreeType: XrefPaymentMethodHolderType?
     var holderFour: CBUser?
-    var holderFourType: XrefItem?
+    var holderFourType: XrefPaymentMethodHolderType?
     
     var holderDisplay: String {
         let holders = [holderOne, holderTwo, holderThree, holderFour].compactMap { $0 }
@@ -97,6 +98,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     var updatedDate: Date
     
     var listOrder: Int?
+    var country: Country?
     
     
     // MARK: - Analytic Variables
@@ -104,19 +106,31 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     /// This is here so the unified payment method can hold it's children for analysis purposes.
     var breakdownsRegardlessOfPaymentMethod: [PayMethodMonthlyBreakdown] = []
     
-    var profitLossMinPercentage: Double = 0.0
-    var profitLossMaxPercentage: Double = 0.0
+    var profitLossMinPercentage: Decimal = 0.0
+    var profitLossMaxPercentage: Decimal = 0.0
     
-    var profitLossMinAmount: Double { Double(profitLossMinAmountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
+    var profitLossMinAmount: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(profitLossMinAmountString) ?? 0.0
+        //Double(profitLossMinAmountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+    }
     var profitLossMinAmountString: String = ""
     
-    var profitLossMaxAmount: Double { Double(profitLossMaxAmountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
+    var profitLossMaxAmount: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(profitLossMaxAmountString) ?? 0.0
+        //Double(profitLossMaxAmountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+    }
     var profitLossMaxAmountString: String = ""
     
-    var minEod: Double { Double(minEodString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
+    var minEod: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(minEodString) ?? 0.0
+        //Double(minEodString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+    }
     var minEodString: String = ""
     
-    var maxEod: Double { Double(maxEodString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0 }
+    var maxEod: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(maxEodString) ?? 0.0
+        //Double(maxEodString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+    }
     var maxEodString: String = ""
     
     
@@ -124,7 +138,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     var sectionType: PaymentMethodSection {
         if self.isDebitOrCash || self.isUnifiedDebit {
             return .debit
-        } else if self.isCreditOrLoan || self.isUnifiedCredit{
+        } else if self.isCreditOrLoan || self.isUnifiedCredit {
             return .credit
         } else {
             return .other
@@ -220,7 +234,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         self.updatedDate = Date()
         
         self.holderOne = AppState.shared.user!
-        self.holderOneType = XrefModel.getItem(from: .paymentMethodHolderTypes, byEnumID: .primary)
+        self.holderOneType = .primary// XrefModel.getItem(from: .paymentMethodHolderTypes, byEnumID: .primary)
     }
     
 //    init(unifiedAccountType: AccountType) {
@@ -336,7 +350,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     /// If the method goes from private to public, update the starting amount records so the long poll will push them to other users on the account.
     var viewingYear: Int?
     
-    enum CodingKeys: CodingKey { case id, uuid, title, due_date, limit, account_type_id, hex_code, is_viewing_default, is_editing_default, active, user_id, account_id, device_uuid, notification_offset, notify_on_due_date, last_4_digits, entered_by, updated_by, entered_date, updated_date, breakdowns, interest_rate, loan_duration, is_hidden, is_private, logo, list_order, viewing_year, holder_one, holder_two, holder_three, holder_four, holder_one_type_id, holder_two_type_id, holder_three_type_id, holder_four_type_id, transaction_count, entered_by_id, updated_by_id, holder_one_id, holder_two_id, holder_three_id, holder_four_id, cc_brand }
+    enum CodingKeys: CodingKey { case id, uuid, title, due_date, limit, account_type_id, hex_code, is_viewing_default, is_editing_default, active, user_id, account_id, device_uuid, notification_offset, notify_on_due_date, last_4_digits, entered_by, updated_by, entered_date, updated_date, breakdowns, interest_rate, loan_duration, is_hidden, is_private, logo, list_order, viewing_year, holder_one, holder_two, holder_three, holder_four, holder_one_type_id, holder_two_type_id, holder_three_type_id, holder_four_type_id, transaction_count, entered_by_id, updated_by_id, holder_one_id, holder_two_id, holder_three_id, holder_four_id, cc_brand, country_id }
     
     
     func encode(to encoder: Encoder) throws {
@@ -383,6 +397,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         try container.encode(holderThreeType?.id, forKey: .holder_three_type_id)
         try container.encode(holderFourType?.id, forKey: .holder_four_type_id)
         try container.encode(ccBrand?.rawValue, forKey: .cc_brand)
+        try container.encode(country?.id, forKey: .country_id)
         
         
         //try container.encode(holderOne, forKey: .holder_one) // for the Transferable protocol
@@ -540,7 +555,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
 
         title = try container.decode(String.self, forKey: .title)
         dueDateString = String(try container.decode(Int?.self, forKey: .due_date) ?? 0)
-        limitString = (try container.decode(Double?.self, forKey: .limit))?.currencyWithDecimals()
+        limitString = (try container.decode(Decimal?.self, forKey: .limit))?.currencyWithDecimals()
 
         let accountType = try container.decode(Int.self, forKey: .account_type_id)
         self.accountType = AccountType(rawValue: accountType) ?? .checking
@@ -561,10 +576,10 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         //holderThree = try container.decode(CBUser?.self, forKey: .holder_three)
         //holderFour = try container.decode(CBUser?.self, forKey: .holder_four)
 
-        if let id = try container.decode(Int?.self, forKey: .holder_one_type_id) { holderOneType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: id) }
-        if let id = try container.decode(Int?.self, forKey: .holder_two_type_id) { holderTwoType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: id) }
-        if let id = try container.decode(Int?.self, forKey: .holder_three_type_id) { holderThreeType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: id) }
-        if let id = try container.decode(Int?.self, forKey: .holder_four_type_id) { holderFourType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: id) }
+        if let id = try container.decode(Int?.self, forKey: .holder_one_type_id) { holderOneType = XrefPaymentMethodHolderType.init(id: id) }
+        if let id = try container.decode(Int?.self, forKey: .holder_two_type_id) { holderTwoType = XrefPaymentMethodHolderType.init(id: id) }
+        if let id = try container.decode(Int?.self, forKey: .holder_three_type_id) { holderThreeType = XrefPaymentMethodHolderType.init(id: id) }
+        if let id = try container.decode(Int?.self, forKey: .holder_four_type_id) { holderFourType = XrefPaymentMethodHolderType.init(id: id) }
 
         if let interestRate = try container.decode(Double?.self, forKey: .interest_rate) {
             interestRateString = String(interestRate)
@@ -623,6 +638,10 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
             ccBrand = CCBrand(rawValue: ccBrandString)
         }
         
+        if let countryID = try container.decode(Int?.self, forKey: .country_id) {
+            country = Countries.fetch(by: countryID)
+        }
+        
 
         listOrder = try container.decode(Int?.self, forKey: .list_order)
         recentTransactionCount = try container.decodeIfPresent(Int.self, forKey: .transaction_count) ?? 0
@@ -641,7 +660,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
             let pred1 = NSPredicate(format: "relatedID == %@", self.id)
             let pred2 = NSPredicate(
                 format: "relatedTypeID == %@",
-                NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id)
+                NSNumber(value: XrefLogoParentType.paymentMethod.id)
             )
             let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
 
@@ -658,7 +677,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
 
     
     
-    func getAmount(for date: Date) -> Double? {
+    func getAmount(for date: Date) -> Decimal? {
         breakdowns.filter { Calendar.current.isDate(date, equalTo: $0.date, toGranularity: .month) }.first?.income
     }
     
@@ -692,6 +711,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
             && self.holderThreeType == deepCopy.holderThreeType
             && self.holderFourType == deepCopy.holderFourType
             && self.ccBrand == deepCopy.ccBrand
+            && self.country == deepCopy.country
             {
                 return false
             }
@@ -733,6 +753,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
             copy.holderThreeType = self.holderThreeType
             copy.holderFourType = self.holderFourType
             copy.ccBrand = self.ccBrand
+            copy.country = self.country
             //copy.action = self.action
             self.deepCopy = copy
         case .restore:
@@ -765,6 +786,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
                 self.holderThreeType = deepCopy.holderThreeType
                 self.holderFourType = deepCopy.holderFourType
                 self.ccBrand = deepCopy.ccBrand
+                self.country = deepCopy.country
                 //self.action = deepCopy.action
             }
         case .clear:
@@ -809,6 +831,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         self.holderFourType = payMethod.holderFourType
         self.recentTransactionCount = payMethod.recentTransactionCount
         self.ccBrand = payMethod.ccBrand
+        self.country = payMethod.country
     }
             
     
@@ -856,6 +879,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
         && lhs.holderThreeType == rhs.holderThreeType
         && lhs.holderFourType == rhs.holderFourType
         && lhs.ccBrand == rhs.ccBrand
+        && lhs.country == rhs.country
         {
             return true
         }
@@ -873,7 +897,7 @@ extension CBPaymentMethod {
         let id: String
         let title: String
         let dueDate: Int64
-        let limit: Double
+        let limit: Decimal
         let accountType: Int
         let hexCode: String?
         let isViewingDefault: Bool
@@ -906,6 +930,7 @@ extension CBPaymentMethod {
 
         let logoData: Data?
         let ccBrand: String?
+        let countryID: Int?
     }
     
     
@@ -940,16 +965,16 @@ extension CBPaymentMethod {
         self.holderFour = AppState.shared.getUserBy(id: Int(s.holderFourID))
 
         if Int(s.holderOneTypeID) != 0 {
-            self.holderOneType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: Int(s.holderOneTypeID))
+            self.holderOneType = XrefPaymentMethodHolderType.init(id: Int(s.holderOneTypeID))
         }
         if Int(s.holderTwoTypeID) != 0 {
-            self.holderTwoType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: Int(s.holderTwoTypeID))
+            self.holderTwoType = XrefPaymentMethodHolderType.init(id: Int(s.holderTwoTypeID))
         }
         if Int(s.holderThreeTypeID) != 0 {
-            self.holderThreeType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: Int(s.holderThreeTypeID))
+            self.holderThreeType = XrefPaymentMethodHolderType.init(id: Int(s.holderThreeTypeID))
         }
         if Int(s.holderFourTypeID) != 0 {
-            self.holderFourType = XrefModel.getItem(from: .paymentMethodHolderTypes, byID: Int(s.holderFourTypeID))
+            self.holderFourType = XrefPaymentMethodHolderType.init(id: Int(s.holderFourTypeID))
         }
 
         self.isHidden = s.isHidden
@@ -961,11 +986,15 @@ extension CBPaymentMethod {
             self.ccBrand = CCBrand(rawValue: string)
         }
         
+        if let countryID = s.countryID {
+            self.country = Countries.fetch(by: countryID)
+        }
+        
 
-        let imageIsNotInCache = ImageCache.shared.loadFromCache(parentTypeId: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id, parentId: s.id, id: s.id) == nil
+        let imageIsNotInCache = ImageCache.shared.loadFromCache(parentTypeId: XrefLogoParentType.paymentMethod.id, parentId: s.id, id: s.id) == nil
         if let data = s.logoData, imageIsNotInCache {
             ImageCache.shared.saveToCache(
-                parentTypeId: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id,
+                parentTypeId: XrefLogoParentType.paymentMethod.id,
                 parentId: s.id,
                 id: s.id,
                 data: data
@@ -984,7 +1013,7 @@ extension CBPaymentMethod {
                 entity.id = snapshot.id
                 entity.title = snapshot.title
                 entity.dueDate = snapshot.dueDate
-                entity.limit = snapshot.limit
+                entity.limit = snapshot.limit as NSDecimalNumber
                 entity.accountType = Int64(snapshot.accountType)
                 entity.hexCode = snapshot.hexCode
                 //entity.hexCode = payMethod.color.description
@@ -1016,10 +1045,14 @@ extension CBPaymentMethod {
                 entity.holderThreeTypeID = snapshot.holderThreeTypeID
                 entity.holderFourTypeID = snapshot.holderFourTypeID
                 entity.ccBrand = snapshot.ccBrand
+                if let countryID = snapshot.countryID {
+                    entity.countryID = Int64(countryID)
+                }
+                
                 
                 
                 let pred1 = NSPredicate(format: "relatedID == %@", snapshot.id)
-                let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id))
+                let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefLogoParentType.paymentMethod.id))
                 let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
                 
                 if let perLogo = DataManager.shared.getOne(
@@ -1061,7 +1094,7 @@ extension CBPaymentMethod {
                 
                 
                 let pred1 = NSPredicate(format: "relatedID == %@", action == .add ? id : id)
-                let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id))
+                let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefLogoParentType.paymentMethod.id))
                 let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
                 
                 if let perLogo = DataManager.shared.getOne(
@@ -1100,10 +1133,9 @@ extension CBPaymentMethod {
         return await DataManager.shared.perform(context: context) {
             guard let entity = DataManager.shared.getOne(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(id)), createIfNotFound: false) else { return nil }
 
-            let logoTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id
             let perdicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
                 NSPredicate(format: "relatedID == %@", entity.id ?? id),
-                NSPredicate(format: "relatedTypeID == %@", NSNumber(value: logoTypeID))
+                NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefLogoParentType.paymentMethod.id))
             ])
 
             let logo = DataManager.shared.getOne(context: context, type: PersistentLogo.self, predicate: .compound(perdicate), createIfNotFound: false)?.photoData
@@ -1112,7 +1144,7 @@ extension CBPaymentMethod {
                 id: entity.id ?? "0",
                 title: entity.title ?? "",
                 dueDate: entity.dueDate,
-                limit: entity.limit,
+                limit: entity.limit?.decimalValue ?? 0.0,
                 accountType: Int(entity.accountType),
                 hexCode: entity.hexCode,
                 isViewingDefault: entity.isViewingDefault,
@@ -1139,7 +1171,8 @@ extension CBPaymentMethod {
                 listOrder: entity.listOrder,
                 recentTransactionCount: entity.recentTransactionCount,
                 logoData: logo,
-                ccBrand: entity.ccBrand
+                ccBrand: entity.ccBrand,
+                countryID: Int(entity.countryID)
             )
         }
     }
@@ -1184,13 +1217,14 @@ extension CBPaymentMethod.Snapshot {
 
         self.logoData = payMethod.logo
         self.ccBrand = payMethod.ccBrand?.rawValue
+        self.countryID = payMethod.country?.id
     }
 
     init(_ entity: PersistentPaymentMethod) {
         self.id = entity.id ?? ""
         self.title = entity.title ?? ""
         self.dueDate = entity.dueDate
-        self.limit = entity.limit
+        self.limit = entity.limit?.decimalValue ?? 0.0
         self.accountType = Int(entity.accountType)
         self.hexCode = entity.hexCode
         self.isViewingDefault = entity.isViewingDefault
@@ -1223,11 +1257,12 @@ extension CBPaymentMethod.Snapshot {
 
         self.logoData = nil
         self.ccBrand = entity.ccBrand
+        self.countryID = Int(entity.countryID)
     }
 }
 
 extension CBPaymentMethod {
-    func matchesFilter() -> Bool {        
+    func accountHolderFilter() -> Bool {        
         let mode: PaymentMethodFilterMode = AppSettings.shared.paymentMethodFilterMode
         let userID: Int? = AppState.shared.user?.id
         

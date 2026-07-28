@@ -40,7 +40,7 @@ struct PopulateSubmissionModel: Encodable {
     var budgets: Array<CBBudgetItem>
     //var budgetGroups: Array<CBBudgetItemGroup>
     var isTransfer: Bool
-    var budget: Double
+    var budget: Decimal
     
     enum CodingKeys: CodingKey { case user_id, account_id, transactions, budgets, device_uuid, has_submitted, month, year, is_transfer, budget_amount }
     

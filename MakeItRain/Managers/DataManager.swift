@@ -239,7 +239,7 @@ class DataManager {
             return
         }
         
-//        let canDelete = container.canDeleteRecord(forManagedObjectWith: entity.objectID)
+//        let canDelete = container.canDeleteRecord(forManagedzObjectWith: entity.objectID)
 //        LogManager.log("Can delete entity (\(entity.objectID)? \(canDelete)")
         context.perform {
             context.delete(entity)

@@ -9,10 +9,13 @@
 import SwiftUI
 import Charts
 
-struct DashboardDataByMonth: Hashable, Identifiable, Decodable, Equatable, DashboardBreakdownSummary {
+struct DashboardDataByMonth: Hashable, Identifiable, Codable, Equatable, DashboardBreakdownSummary {
     var id: String { "\(month)-\(year)" }
     var categories: [CBCategory] = []
     var categoryGroups: [CBCategoryGroup] = []
+    //var startingAmountObj: CBStartingAmount?
+    var startingAmount: Decimal?
+    var paymentAmount: Decimal?
     var budget: Double = 0.0
     var categoryAndGroupBudget: Double = 0.0
     var debitAmounts: DashboardAmounts?
@@ -47,7 +50,25 @@ struct DashboardDataByMonth: Hashable, Identifiable, Decodable, Equatable, Dashb
     var incomeCategories: [CBCategory]
     
     
-    enum CodingKeys: CodingKey { case categories, category_groups, month, year, budget_amount, debit_amounts, credit_amounts, all_amounts, category_and_group_budget, budget }
+    enum CodingKeys: CodingKey { case categories, category_groups, month, year, budget_amount, debit_amounts, credit_amounts, all_amounts, category_and_group_budget, budget, starting_amount, payment_amount }
+    
+    
+    /// For ``NavDest``
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(month, forKey: .month)
+        try container.encode(year, forKey: .year)
+        try container.encode(categories, forKey: .categories)
+        try container.encode(categoryGroups, forKey: .category_groups)
+        try container.encode(budget, forKey: .budget)
+        try container.encode(categoryAndGroupBudget, forKey: .budget_amount)
+        try container.encode(debitAmounts, forKey: .debit_amounts)
+        try container.encode(creditAmounts, forKey: .credit_amounts)
+        try container.encode(allAmounts, forKey: .all_amounts)
+        //try container.encode(startingAmountObj, forKey: .starting_amount)
+        try container.encode(startingAmount, forKey: .starting_amount)
+        try container.encode(paymentAmount, forKey: .payment_amount)
+    }
     
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -60,6 +81,9 @@ struct DashboardDataByMonth: Hashable, Identifiable, Decodable, Equatable, Dashb
         self.debitAmounts = try container.decodeIfPresent(DashboardAmounts.self, forKey: .debit_amounts)
         self.creditAmounts = try container.decodeIfPresent(DashboardAmounts.self, forKey: .credit_amounts)
         self.allAmounts = try container.decodeIfPresent(DashboardAmounts.self, forKey: .all_amounts)
+        //self.startingAmountObj = try container.decodeIfPresent(CBStartingAmount.self, forKey: .starting_amount)
+        self.startingAmount = try container.decodeIfPresent(Decimal.self, forKey: .starting_amount)
+        self.paymentAmount = try container.decodeIfPresent(Decimal.self, forKey: .payment_amount)
         
         let flatCats = (categories + categoryGroups.flatMap(\.categories))
             .uniqued(on: { $0.id })

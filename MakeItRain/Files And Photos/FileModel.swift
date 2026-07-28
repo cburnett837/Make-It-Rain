@@ -36,7 +36,7 @@ class FileModel {
     #endif
             
     
-    func uploadFilesFromLibrary(files: Array<FileData>, delegate: FileUploadCompletedDelegate, parentType: XrefItem) {
+    func uploadFilesFromLibrary(files: Array<FileData>, delegate: FileUploadCompletedDelegate, parentType: XrefFileType) {
         if files.isEmpty { return }
         Task {
             await withTaskGroup(of: Void.self) { group in
@@ -50,7 +50,7 @@ class FileModel {
     }
     
     
-    func uploadPicturesFromLibrary(delegate: FileUploadCompletedDelegate, parentType: XrefItem) {
+    func uploadPicturesFromLibrary(delegate: FileUploadCompletedDelegate, parentType: XrefFileType) {
         if imagesFromLibrary.isEmpty { return }
         delegate.alertUploadingSmartReceiptIfApplicable()
         Task {
@@ -70,7 +70,7 @@ class FileModel {
     }
         
     #if os(iOS)
-    func uploadPictureFromCamera(delegate: FileUploadCompletedDelegate, parentType: XrefItem) {
+    func uploadPictureFromCamera(delegate: FileUploadCompletedDelegate, parentType: XrefFileType) {
         if let imageFromCamera = imageFromCamera, let data = self.prepareDataFromUIImage(image: imageFromCamera) {
             Task {
                 self.imageFromCamera = nil
@@ -119,7 +119,7 @@ class FileModel {
     #endif
     
        
-    func handleFileProgress(with data: Data, fileType: FileType, delegate: FileUploadCompletedDelegate, parentType: XrefItem) async {
+    func handleFileProgress(with data: Data, fileType: FileType, delegate: FileUploadCompletedDelegate, parentType: XrefFileType) async {
         
         //try? await Task.sleep(for: .seconds(5))
         
@@ -340,7 +340,7 @@ class FileModel {
 
 struct FileParent {
     var id: String
-    var type: XrefItem
+    var type: XrefFileType
 }
 
 

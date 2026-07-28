@@ -27,6 +27,7 @@ enum LogField: String {
     case url = "url"
     case date = "date"
     case christmasGiftStatus = "christmas_gift_status"
+    case country = "country"
     
     
     static func pretty(for value: Self) -> String? {
@@ -47,6 +48,7 @@ enum LogField: String {
         else if value == .url { return "URL" }
         else if value == .date { return "Date" }
         else if value == .christmasGiftStatus { return "Gift Status" }
+        else if value == .country { return "Country" }
         
         return nil
     }

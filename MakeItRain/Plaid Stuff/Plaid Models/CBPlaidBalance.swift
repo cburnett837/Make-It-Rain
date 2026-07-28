@@ -12,8 +12,9 @@ class CBPlaidBalance: Decodable, Identifiable, Equatable, Hashable {
     var id: String
     var internalAccountID: String?
     var payMethodID: String
-    var amount: Double {
-        Double(amountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+    var amount: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(amountString) ?? 0.0
+        //Double(amountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
     }
     var amountString: String
     var enteredDate: Date?
@@ -39,7 +40,7 @@ class CBPlaidBalance: Decodable, Identifiable, Equatable, Hashable {
             internalAccountID = try container.decode(String.self, forKey: .internal_account_id)
         }
         
-        let amount = try container.decode(Double.self, forKey: .amount)
+        let amount = try container.decode(Decimal.self, forKey: .amount)
         
         self.amountString = amount.currencyWithDecimals()
         

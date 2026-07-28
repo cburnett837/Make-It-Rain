@@ -295,10 +295,10 @@ struct CatChartRawDataListForGroup: View {
         var id: Int { return month }
         var month: Int
         var monthName: String
-        var income: Double
-        var expenses: Double
-        var budget: Double
-        var expensesMinusIncome: Double
+        var income: Decimal
+        var expenses: Decimal
+        var budget: Decimal
+        var expensesMinusIncome: Decimal
         var data: [CategoryAnalyticData]
     }
     

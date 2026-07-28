@@ -77,7 +77,9 @@ struct DashboardWidget<TitleContent: View, Content: View>: View {
                 .padding()
                 .background {
                     RoundedRectangle(cornerRadius: 25)
+                        #if os(iOS)
                         .fill(Color(.secondarySystemGroupedBackground))
+                        #endif
                 }
         }
     }

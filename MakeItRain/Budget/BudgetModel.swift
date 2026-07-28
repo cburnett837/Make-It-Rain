@@ -151,7 +151,7 @@ class BudgetModel {
     func delete(_ budget: CBBudgetItem, andSubmit: Bool) {
         budget.action = .delete
         withAnimation {
-            print(budget.id)
+            //print(budget.id)
             budgets.removeAll { $0.id == budget.id }
         }
         

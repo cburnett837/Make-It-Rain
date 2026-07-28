@@ -46,20 +46,23 @@ import Charts
 
 
 struct ChartCircleDot: View {
-    var budget: Double
-    var expenses: Double
+    var budget: Decimal
+    var expenses: Decimal
     var color: Color
     var size: CGFloat
     
     /// If the budget is 0, change it to 1 so the chart can calculate
-    var adjustedBudget: Double { budget == 0 ? 1 : budget }
+    var adjustedBudget: Decimal { budget == 0 ? 1 : budget }
     
     /// If the budget is 0, change these to 100 so that the chart gradient get's applied (since any expenses greater than 0 would be considered over-budget)
-    var adjustmentAmount: Double { budget == 0 ? 100 : 1 }
-    var adjustmentAmount2: Double { budget == 0 ? 100 : 0 }
+    var adjustmentAmount: Decimal { budget == 0 ? 100 : 1 }
+    var adjustmentAmount2: Decimal { budget == 0 ? 100 : 0 }
     
     var isOverBudget: Bool { abs(expenses) > abs(adjustedBudget) }
-    var percentage: Double { (abs(expenses) + adjustmentAmount2) / abs(adjustedBudget * adjustmentAmount) }
+    var percentage: Double {
+        let value = (abs(expenses) + adjustmentAmount2) / abs(adjustedBudget * adjustmentAmount)
+        return NSDecimalNumber(decimal: value).doubleValue
+    }
 
     var colors: [Color] {
         #if os(iOS)

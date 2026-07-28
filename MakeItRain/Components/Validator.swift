@@ -35,6 +35,7 @@ enum RegexExpression: String {
 enum ValidationRule {
     case required(String)
     case regex(RegexExpression, String)
+    case currency(String)
 }
 
 // Validation View Modifier
@@ -108,6 +109,20 @@ struct ValidationModifier: ViewModifier {
             
             case .regex(let regexExpression, let message):
                 return validateRegex(pattern: regexExpression.rawValue, message: message)
+            
+            case .currency(let message):
+                let codeRemoved = value.replacingOccurrences(
+                    of: #"^[A-Z]{3}\s*"#,
+                    with: "",
+                    options: .regularExpression
+                )
+
+                let filtered = codeRemoved.filter {
+                    $0.isNumber || $0 == "." || $0 == "," || $0 == "-"
+                }
+
+                let isValid = Double(filtered.replacingOccurrences(of: ",", with: "")) != nil
+                return isValid ? nil : message
         }
     }
     

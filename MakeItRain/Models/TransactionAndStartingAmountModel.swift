@@ -16,9 +16,10 @@ class TransactionAndStartingAmountModel: Decodable {
     let budgets: Array<CBBudgetItem>?
     let plaidTransactionsWithCount: CBPlaidTransactionListWithCount?
     let plaidBalances: Array<CBPlaidBalance>?
+    let exchangeRates: Array<ExchangeRate>?
     let budget: Double
     
-    enum CodingKeys: CodingKey { case transactions, starting_amounts, budgets, has_populated, plaid_transactions_with_count, plaid_balances, budget, populated_id }
+    enum CodingKeys: CodingKey { case transactions, starting_amounts, budgets, has_populated, plaid_transactions_with_count, plaid_balances, budget, populated_id, exchange_rates }
     
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -31,6 +32,7 @@ class TransactionAndStartingAmountModel: Decodable {
         
         plaidTransactionsWithCount = try container.decodeIfPresent(CBPlaidTransactionListWithCount.self, forKey: .plaid_transactions_with_count)
         plaidBalances = try container.decodeIfPresent(Array<CBPlaidBalance>.self, forKey: .plaid_balances)
+        exchangeRates = try container.decodeIfPresent(Array<ExchangeRate>.self, forKey: .exchange_rates)
         
         budget = try container.decode(Double.self, forKey: .budget)
         

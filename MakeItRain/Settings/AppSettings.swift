@@ -44,7 +44,7 @@ class AppSettings: Codable {
     
     var useWholeNumbers: Bool
     var tightenUpEodTotals: Bool
-    var lowBalanceThreshold: Double
+    var lowBalanceThreshold: Decimal
     var paymentMethodFilterMode: PaymentMethodFilterMode
     var paymentMethodSortMode: SortMode
     var transactionSortMode: TransactionSortMode
@@ -82,7 +82,7 @@ class AppSettings: Codable {
         self.tightenUpEodTotals = tightenUpEodTotals == "1"
         
         let lowBalanceThreshold = try container.decode(String.self, forKey: .low_balance_threshold)
-        self.lowBalanceThreshold = Double(lowBalanceThreshold) ?? 0.0
+        self.lowBalanceThreshold = Decimal(string: lowBalanceThreshold) ?? 0.0
         
         let paymentMethodFilterMode = try container.decode(String.self, forKey: .payment_method_filter_mode)
         self.paymentMethodFilterMode = PaymentMethodFilterMode.fromString(paymentMethodFilterMode)
@@ -169,7 +169,7 @@ class AppSettings: Codable {
 struct AppSettingsDecodable: Decodable {
     var useWholeNumbers: Bool
     var tightenUpEodTotals: Bool
-    var lowBalanceThreshold: Double
+    var lowBalanceThreshold: Decimal
     var paymentMethodFilterMode: PaymentMethodFilterMode
     var paymentMethodSortMode: SortMode
     var transactionSortMode: TransactionSortMode
@@ -188,7 +188,7 @@ struct AppSettingsDecodable: Decodable {
         self.tightenUpEodTotals = tightenUpEodTotals == "1"
         
         let lowBalanceThreshold = try container.decode(String.self, forKey: .low_balance_threshold)
-        self.lowBalanceThreshold = Double(lowBalanceThreshold) ?? 0.0
+        self.lowBalanceThreshold = Decimal(string: lowBalanceThreshold) ?? 0.0
         
         let paymentMethodFilterMode = try container.decode(String.self, forKey: .payment_method_filter_mode)
         self.paymentMethodFilterMode = PaymentMethodFilterMode.fromString(paymentMethodFilterMode)

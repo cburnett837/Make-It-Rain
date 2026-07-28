@@ -326,7 +326,7 @@ struct DayViewMac: View {
             switch creditEodView {
             case .availableCredit:
                 
-                let cumulativeLimits = PayMethodModel.shared
+                let cumulativeLimits = payModel
                     .paymentMethods
                     .filter { $0.accountType == .credit  || $0.accountType == .loan }
                     .map { $0.limit ?? 0.0 }

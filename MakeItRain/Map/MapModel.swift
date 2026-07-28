@@ -84,7 +84,7 @@ class MapModel: NSObject {
     }
     
     
-    func search(parentID: String, parentType: XrefEnum, useLastQuery: Bool = false) {
+    func search(parentID: String, parentType: XrefLocationType, useLastQuery: Bool = false) {
         // If there's another search already// in progress, cancel it.
         currentSearch?.cancel()
         
@@ -114,7 +114,7 @@ class MapModel: NSObject {
     }
     
     
-    func getMapItem(from localSearchCompletion: MKLocalSearchCompletion, parentID: String, parentType: XrefEnum) async -> CBLocation? {
+    func getMapItem(from localSearchCompletion: MKLocalSearchCompletion, parentID: String, parentType: XrefLocationType) async -> CBLocation? {
         completions.removeAll()
         let request = MKLocalSearch.Request(completion: localSearchCompletion)
         let search = MKLocalSearch(request: request)
@@ -151,7 +151,7 @@ class MapModel: NSObject {
     }
     
     
-    func addLocationViaTouchAndHold(coordinate: CLLocationCoordinate2D, parentID: String, parentType: XrefEnum) async -> CBLocation? {
+    func addLocationViaTouchAndHold(coordinate: CLLocationCoordinate2D, parentID: String, parentType: XrefLocationType) async -> CBLocation? {
         print("-- \(#function)")
         searchResults.removeAll()
         
@@ -265,10 +265,10 @@ class MapModel: NSObject {
     }
     
     
-    func updateWithSelectedFeature(_ selection: MapSelection<CBLocation>?, parentID: String, parentType: XrefEnum) {
+    func updateWithSelectedFeature(_ selection: MapSelection<CBLocation>?, parentID: String, parentType: XrefLocationType) {
         if let mapItem = selection?.value?.mapItem {
-            print("Getting SelectedMapItem via value")
-            print(mapItem)
+            //print("Getting SelectedMapItem via value")
+            //print(mapItem)
             // The person has selected an annotation, such as a search result.
             withAnimation {
                 //let location = CBLocation(id: UUID().uuidString, name: mapItem.name ?? "N/A", mapItem: mapItem)
@@ -285,7 +285,7 @@ class MapModel: NSObject {
                 let request = MKMapItemRequest(feature: feature)
                 do {
                     let mapItem: MKMapItem? = try await request.mapItem
-                    print("Getting SelectedMapItem via feature")
+                    //print("Getting SelectedMapItem via feature")
                     //print(mapItem)
                     withAnimation {
                         
@@ -300,7 +300,7 @@ class MapModel: NSObject {
             }
             #endif
         } else {
-            print("Setting SelectedMapItem to nil")
+            //print("Setting SelectedMapItem to nil")
             withAnimation {
                 route = nil
                 selectedMapItem = nil
@@ -310,7 +310,7 @@ class MapModel: NSObject {
     }
     
             
-    func saveCurrentLocation(parentID: String, parentType: XrefEnum) async -> CBLocation? {
+    func saveCurrentLocation(parentID: String, parentType: XrefLocationType) async -> CBLocation? {
         #if os(iOS)
         if let coordinate = LocationManager.shared.currentLocation {
             do {

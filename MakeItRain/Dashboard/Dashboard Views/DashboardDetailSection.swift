@@ -23,13 +23,18 @@ struct DashboardDetailSection: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .lineLimit(1)
                             
-                            Text("Income")
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .lineLimit(1)
+                            if model.payMethod?.isDebitOrUnified ?? true {
+                                Text("Income")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .lineLimit(1)
+                            }
                             
-                            Text("Credit Payments")
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .lineLimit(1)
+                            if model.payMethod?.isCreditOrUnified ?? true {
+                                Text("Credit Payments")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .lineLimit(1)
+                            }
+                            
                         }
                         .bold()
                         
@@ -42,15 +47,19 @@ struct DashboardDetailSection: View {
                                 .lineLimit(1)
                                 .bold()
                             
-                            Text((data.debitAmounts.regularIncome + data.debitAmounts.irregularIncome).currencyWithDecimals())
-                                .contentTransition(.numericText())
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .lineLimit(1)
+                            if model.payMethod?.isDebitOrUnified ?? true {
+                                Text((data.debitAmounts.regularIncome + data.debitAmounts.irregularIncome).currencyWithDecimals())
+                                    .contentTransition(.numericText())
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .lineLimit(1)
+                            }
                             
-                            Text((data.creditAmounts.creditPayment ?? 0.0).currencyWithDecimals())
-                                .contentTransition(.numericText())
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .lineLimit(1)
+                            if model.payMethod?.isCreditOrUnified ?? true {
+                                Text((data.creditAmounts.creditPayment ?? 0.0).currencyWithDecimals())
+                                    .contentTransition(.numericText())
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .lineLimit(1)
+                            }
                         }
                     }
                     .font(.caption)
@@ -58,6 +67,7 @@ struct DashboardDetailSection: View {
                     
                     Image(systemName: "chevron.right")
                         .foregroundStyle(.tertiary)
+                        .font(.footnote)
                 }
                 
             }

@@ -10,6 +10,9 @@ import SwiftUI
 import Charts
 
 struct DashboardOptionsSheet: View {
+    #if os(macOS)
+    @Environment(\.dismiss) private var dismiss
+    #endif
     @Environment(CalendarModel.self) private var calModel
     @Bindable var model: DashboardModel
     var isForSelectedMonth: Bool
@@ -87,23 +90,28 @@ struct DashboardOptionsSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        #if os(iOS)
                         withAnimation {
                             model.showOptionsSheet = false
                         }
-                        #else
-                        dismiss()
-                        #endif
                     } label: {
                         Image(systemName: "xmark")
                     }
                     .tint(.none)
-                    #if os(macOS)
-                    .buttonStyle(.roundMacButton)
-                    #endif
                 }
+                #else
+                ToolbarItem(placement: .principal) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .tint(.none)
+                    .buttonStyle(.roundMacButton)
+                }
+                #endif
             }
         }
     }

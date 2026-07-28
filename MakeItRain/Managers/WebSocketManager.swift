@@ -259,6 +259,7 @@ class WebSocketManager {
         || model.plaidBalances != nil
         || model.logos != nil
         || model.settings != nil
+        || model.countryId != nil
         //|| model.receipts != nil
         {
             
@@ -334,6 +335,10 @@ class WebSocketManager {
             
             if let plaidTransactionsWithCount = model.plaidTransactionsWithCount {
                 await plaidModel.handleIncoming(transactionsWithCount: plaidTransactionsWithCount, incomingDataType: .viaLongPoll)
+            }
+            
+            if let countryId = model.countryId {
+                AppState.shared.country = Countries.fetch(by: countryId)!
             }
         }
     }
@@ -512,9 +517,13 @@ class WebSocketManager {
         }
 
         // Apply UI/model updates on MainActor.
-        let paymentMethodTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id
-        let plaidBankTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .plaidBank).id
-        let avatarTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .avatar).id
+        //let paymentMethodTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id
+        //let plaidBankTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .plaidBank).id
+        //let avatarTypeID = XrefModel.getItem(from: .logoTypes, byEnumID: .avatar).id
+        
+        let paymentMethodTypeID = XrefLogoParentType.paymentMethod.id // XrefModel.getItem(from: .logoTypes, byEnumID: .paymentMethod).id
+        let plaidBankTypeID = XrefLogoParentType.plaidBank.id //XrefModel.getItem(from: .logoTypes, byEnumID: .plaidBank).id
+        let avatarTypeID = XrefLogoParentType.avatar.id //XrefModel.getItem(from: .logoTypes, byEnumID: .avatar).id
 
         for logo in incoming {
             if let logoData = logo.data {
@@ -562,7 +571,7 @@ class WebSocketManager {
         print("-- \(#function)")
         
         for openRecord in openRecords {
-            let recordType = openRecord.recordType.enumID
+            let recordType = openRecord.recordType
             
             if OpenRecordManager.shared.doesExist(openRecord, what: recordType) {
                 if !openRecord.active {

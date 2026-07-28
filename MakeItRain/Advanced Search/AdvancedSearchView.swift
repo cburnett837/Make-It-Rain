@@ -347,8 +347,8 @@ struct AdvancedSearchView: View {
                     searchTermCluster
                 }
                 
-                Button("Search", action: search)
-                    .disabled(!searchModel.isValid())
+                Button(isSearching ? "Searching…" : "Search", action: search)
+                    .disabled(!searchModel.isValid() || isSearching)
             } footer: {
                 Text("Search by transaction titles, or tags. Touch # to turn the current search term into a tag. Touch + to add the current search term to the search list.")
             }

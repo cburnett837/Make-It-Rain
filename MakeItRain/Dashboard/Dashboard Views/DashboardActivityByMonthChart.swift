@@ -81,22 +81,22 @@ struct DashboardActivityByMonthChart: View {
     var widgetTitle: String {
         switch selectedTab {
         case .expense:
-            "Spending By "
+            " Spending"
         case .income:
-            "Income By "
+            " Income"
         case .compare:
-            "Spend & Income By "
+            " Spend & Income"
         }
     }
     
     var annotationColor: AnyShapeStyle {
         switch selectedTab {
-        case .expense: AnyShapeStyle(Color.green.gradient)
+        case .expense: AnyShapeStyle(Color.red.gradient)
         case .income: AnyShapeStyle(Color.blue.gradient)
         case .compare: AnyShapeStyle(
             LinearGradient(
                 stops: [
-                    .init(color: .green, location: 0),
+                    .init(color: .red, location: 0),
                     .init(color: .blue, location: 1)
                 ],
                 startPoint: .topLeading,
@@ -158,12 +158,6 @@ struct DashboardActivityByMonthChart: View {
         
         DashboardWidget(showFilterText: !model.allCatsSelected) {
             HStack(spacing: 0) {
-                Text(widgetTitle)
-                    .padding(.leading, 12)
-                    .foregroundStyle(.secondary)
-                    .font(.headline)
-                    .layoutPriority(1)
-                
                 Menu {
                     ForEach(DashboardMontlyOrQuarterlyBreakdowns.allCases, id: \.self) { opt in
                         Button {
@@ -177,8 +171,14 @@ struct DashboardActivityByMonthChart: View {
                 } label: {
                     Text(data.breakdownType.rawValue)
                         .bold()
-                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .padding(.leading, 12)
+                
+                Text(widgetTitle)
+                    .foregroundStyle(.secondary)
+                    .font(.headline)
+                    .layoutPriority(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
                 
 //                Picker("", selection: $data.breakdownType) {
@@ -218,7 +218,9 @@ struct DashboardActivityByMonthChart: View {
                     }
                 }
                 .frame(height: 200)
+                #if os(iOS)
                 .tabViewStyle(.page)
+                #endif
                 .padding(.bottom, -20) /// Remove the padding under the page indicators
             }
             .overlay(alignment: .top) {
@@ -261,7 +263,7 @@ struct DashboardActivityByMonthChart: View {
                         x: .value("Date", month.date, unit: .month),
                         y: .value("Amount", model.shouldUseTotalSpending ? month.allAmounts?.totalSpend ?? 0 : month.allAmounts?.actualSpend ?? 0)
                     )
-                    .foregroundStyle(.green.gradient)
+                    .foregroundStyle(.red.gradient)
                     //.opacity(month.date == selectedMonth?.date ? 1 : (selectedMonth == nil ? 1 : 0.3))
                 }
             case .quarterly:
@@ -272,7 +274,7 @@ struct DashboardActivityByMonthChart: View {
                         yStart: .value("Start", 0),
                         yEnd: .value("End", model.shouldUseTotalSpending ? quarter.allAmounts?.totalSpend ?? 0 : quarter.allAmounts?.actualSpend ?? 0)
                     )
-                    .foregroundStyle(.green.gradient)
+                    .foregroundStyle(.red.gradient)
                 }
             }
         }
@@ -411,7 +413,12 @@ struct DashboardActivityByMonthChart: View {
                         y: .value("Amount", model.shouldUseTotalSpending ? month.allAmounts?.totalSpend ?? 0 : month.allAmounts?.actualSpend ?? 0),
                         series: .value("", "Spending")
                     )
-                    .foregroundStyle(.green.gradient)
+                    .foregroundStyle(.red.gradient)
+                    .symbol {
+                        Circle()
+                            .fill(.red)
+                            .frame(width: 5, height: 5)
+                    }
                     
                     LineMark(
                         x: .value("Date", month.date, unit: .day),
@@ -419,6 +426,11 @@ struct DashboardActivityByMonthChart: View {
                         series: .value("", "Income")
                     )
                     .foregroundStyle(.blue.gradient)
+                    .symbol {
+                        Circle()
+                            .fill(.blue)
+                            .frame(width: 5, height: 5)
+                    }
                 }
                 .interpolationMethod(.catmullRom)
                 
@@ -429,7 +441,12 @@ struct DashboardActivityByMonthChart: View {
                         y: .value("Amount", model.shouldUseTotalSpending ? quarter.allAmounts?.totalSpend ?? 0 : quarter.allAmounts?.actualSpend ?? 0),
                         series: .value("", "Spending")
                     )
-                    .foregroundStyle(.green.gradient)
+                    .foregroundStyle(.red.gradient)
+                    .symbol {
+                        Circle()
+                            .fill(.red)
+                            .frame(width: 5, height: 5)
+                    }
                     
                     LineMark(
                         x: .value("Date", quarter.date.startDateOfQuarter, unit: .day),
@@ -437,6 +454,11 @@ struct DashboardActivityByMonthChart: View {
                         series: .value("", "Income")
                     )
                     .foregroundStyle(.blue.gradient)
+                    .symbol {
+                        Circle()
+                            .fill(.blue)
+                            .frame(width: 5, height: 5)
+                    }
                 }
                 .interpolationMethod(.catmullRom)
             }
@@ -445,6 +467,10 @@ struct DashboardActivityByMonthChart: View {
         .sensoryFeedback(.selection, trigger: selectedID)
         .chartXSelection(value: $rawSelectedDate)
         .chartYAxis { yAxis() }
+        .chartForegroundStyleScale(
+            domain: ["Spending", "Income"],
+            range: [.red, .blue]
+        )
 //        .chartXVisibleDomain(length: visibleSeconds)
 //        .chartScrollableAxes(.horizontal)
 //        .chartScrollTargetBehavior(.valueAligned(matching: DateComponents(day: 1), majorAlignment: .matching(DateComponents(month: 1))))

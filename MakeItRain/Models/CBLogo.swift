@@ -36,7 +36,7 @@ class LogoMaybeShouldUpdateModel: Codable {
 class CBLogo: Codable, Identifiable, Hashable {
     var id: String
     var relatedID: String
-    var relatedRecordType: XrefItem
+    var relatedRecordType: XrefLogoParentType
     var baseString: String?
     var active: Bool
     var enteredBy: CBUser = AppState.shared.user!
@@ -48,12 +48,12 @@ class CBLogo: Codable, Identifiable, Hashable {
     
     enum CodingKeys: CodingKey { case id, related_id, related_type_id, base_string, active, user_id, account_id, device_uuid, entered_by, updated_by, entered_date, updated_date, entered_by_id, updated_by_id }
     
-    init(relatedID: String, baseString: String, fileType: XrefEnum) {
+    init(relatedID: String, baseString: String, fileType: XrefLogoParentType) {
         self.id = UUID().uuidString
         self.relatedID = relatedID
         self.baseString = baseString
         self.active = true
-        self.relatedRecordType = XrefModel.getItem(from: .fileTypes, byEnumID: fileType)
+        self.relatedRecordType = fileType // XrefModel.getItem(from: .fileTypes, byEnumID: fileType)
         self.enteredBy = AppState.shared.user!
         self.updatedBy = AppState.shared.user!
         self.enteredDate = Date()
@@ -70,7 +70,7 @@ class CBLogo: Codable, Identifiable, Hashable {
         
         /// Don't care about any of these, they're just here to satisfy the initializer.
         self.relatedID = entity.relatedID!
-        self.relatedRecordType = XrefModel.getItem(from: .logoTypes, byID: Int(entity.relatedTypeID))
+        self.relatedRecordType = XrefLogoParentType(id: Int(entity.relatedTypeID)) //XrefModel.getItem(from: .logoTypes, byID: Int(entity.relatedTypeID))
         self.active = true
         self.enteredDate = Date()
     }
@@ -102,14 +102,13 @@ class CBLogo: Codable, Identifiable, Hashable {
         } catch {
             relatedID = try container.decode(String.self, forKey: .related_id)
         }
-        
-        
+                
         baseString = try container.decode(String?.self, forKey: .base_string)
         let active = try container.decode(Int.self, forKey: .active)
         self.active = active == 1 ? true : false
         
         let relatedTypeID = try container.decode(Int.self, forKey: .related_type_id)
-        self.relatedRecordType = XrefModel.getItem(from: .logoTypes, byID: relatedTypeID)
+        self.relatedRecordType = XrefLogoParentType(id: relatedTypeID) //XrefModel.getItem(from: .logoTypes, byID: relatedTypeID)
         
         if let enteredById = try container.decode(Int?.self, forKey: .entered_by_id) {
             self.enteredBy = AppState.shared.getUserBy(id: enteredById) ?? CBUser()
@@ -118,7 +117,6 @@ class CBLogo: Codable, Identifiable, Hashable {
         if let updatedById = try container.decode(Int?.self, forKey: .updated_by_id) {
             self.updatedBy = AppState.shared.getUserBy(id: updatedById) ?? CBUser()
         }
-
         
         enteredDate = try container.decode(Date.self, forKey: .entered_date)
         updatedDate = try container.decode(Date.self, forKey: .updated_date)

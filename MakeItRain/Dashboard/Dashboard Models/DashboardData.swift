@@ -10,11 +10,11 @@ import SwiftUI
 import Charts
 
 @Observable
-class DashboardData: Decodable, Hashable {
+class DashboardData: Codable, Hashable {
     var beginDate: Date = Date().startDateOfMonth
     var endDate: Date = Date().endDateOfMonth
-    var budget: Double = 0.0
-    var categoryAndGroupBudget: Double = 0.0
+    var budget: Decimal = 0.0
+    var categoryAndGroupBudget: Decimal = 0.0
     var debitAmounts: DashboardAmounts = DashboardAmounts()
     var creditAmounts: DashboardAmounts = DashboardAmounts()
     var allAmounts: DashboardAmounts = DashboardAmounts()
@@ -33,9 +33,7 @@ class DashboardData: Decodable, Hashable {
     
     private(set) var quarterlyBreakdowns: [DashboardDataByQuarter] = []
 
-    static func makeQuarterlyBreakdowns(
-        from monthlyBreakdowns: [DashboardDataByMonth]
-    ) -> [DashboardDataByQuarter] {
+    static func makeQuarterlyBreakdowns(from monthlyBreakdowns: [DashboardDataByMonth]) -> [DashboardDataByQuarter] {
         let grouped = Dictionary(grouping: monthlyBreakdowns) { monthData in
             "\(monthData.year)-\(monthData.quarter)"
         }
@@ -62,10 +60,24 @@ class DashboardData: Decodable, Hashable {
     
     enum CodingKeys: CodingKey { case categories, category_groups, user_id, account_id, device_uuid, begin_date, end_date, budget_amount, debit_amounts, credit_amounts, all_amounts, monthly_breakdowns, category_and_group_budget, budget}
     
+    /// For ``NavDest``
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(budget, forKey: .budget)
+        try container.encode(categoryAndGroupBudget, forKey: .category_and_group_budget)
+        try container.encode(debitAmounts, forKey: .debit_amounts)
+        try container.encode(creditAmounts, forKey: .credit_amounts)
+        try container.encode(allAmounts, forKey: .all_amounts)
+        try container.encode(monthlyBreakdowns, forKey: .monthly_breakdowns)
+        try container.encode(categories, forKey: .categories)
+        try container.encode(categoryGroups, forKey: .category_groups)
+    }
+    
+    
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.budget = try container.decode(Double.self, forKey: .budget)
-        self.categoryAndGroupBudget = try container.decode(Double.self, forKey: .category_and_group_budget)
+        self.budget = try container.decode(Decimal.self, forKey: .budget)
+        self.categoryAndGroupBudget = try container.decode(Decimal.self, forKey: .category_and_group_budget)
         self.debitAmounts = try container.decode(DashboardAmounts.self, forKey: .debit_amounts)
         self.creditAmounts = try container.decode(DashboardAmounts.self, forKey: .credit_amounts)
         self.allAmounts = try container.decode(DashboardAmounts.self, forKey: .all_amounts)

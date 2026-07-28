@@ -22,8 +22,9 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
     var id: String
     var uuid: String?
     var title: String
-    var amount: Double {
-        Double(amountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+    var amount: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(amountString) ?? 0.0
+        //Decimal(amountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
     }
     var amountString: String
     var amountTypeLingo: String {
@@ -51,7 +52,40 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
     var include: Bool
     var factorInCalculations: Bool
     
-    var repeatingTransactionType: XrefItem = XrefModel.getItem(from: .repeatingTransactionType, byEnumID: .regular)
+    var repeatingTransactionType: XrefRepeatingTransactionType = .regular
+    
+    var prettyRecurrence: String {
+        let monthlyCount =      self.when.filter({ $0.whenType == .month && $0.active }).count
+        let daysInMonthCount =  self.when.filter({ $0.whenType == .dayOfMonth && $0.active }).count
+        let weekdayCount =      self.when.filter({ $0.whenType == .weekday && $0.active }).count
+        
+        
+        /// If every month with specific dates.
+        if monthlyCount == 12 && daysInMonthCount == 0 && weekdayCount > 0 {
+            if weekdayCount == 1 {
+                let weekday = self.when.filter({ $0.whenType == .weekday && $0.active }).first?.when ?? "Custom"
+                return "Every \(weekday.capitalized)"
+            } else {
+                return "Monthly (x\(weekdayCount * 4))"
+            }            
+        }
+        
+        /// If every month, but only on specific week days
+        else if monthlyCount == 12 {
+            if daysInMonthCount == 1 {
+                return "Monthly"
+            } else {
+                return "Monthly (x\(daysInMonthCount))"
+            }
+        }
+                
+        /// If only in 1 month in the year.
+        if self.when.filter({ $0.whenType == .month && $0.active }).count == 1 {
+            return "Annually"
+        }
+        
+        return "Custom"
+    }
 
     
     init() {
@@ -290,7 +324,7 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         id = try String(container.decode(Int.self, forKey: .id))
         title = try container.decode(String.self, forKey: .title)
         
-        let amount = try container.decode(Double.self, forKey: .amount)
+        let amount = try container.decode(Decimal.self, forKey: .amount)
         
         self.amountString = amount.currencyWithDecimals()
         
@@ -371,7 +405,7 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         
         let repeatingTransactionTypeID = try container.decode(Int?.self, forKey: .repeating_transaction_type_id)
         if let repeatingTransactionTypeID = repeatingTransactionTypeID {
-            self.repeatingTransactionType = XrefModel.getItem(from: .repeatingTransactionType, byID: repeatingTransactionTypeID)
+            self.repeatingTransactionType = XrefRepeatingTransactionType.init(id: repeatingTransactionTypeID)
         }
         
     }

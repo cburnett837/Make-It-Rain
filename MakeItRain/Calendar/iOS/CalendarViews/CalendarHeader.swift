@@ -7,8 +7,7 @@
 
 import SwiftUI
 
-struct CalendarMonthLabel: View {
-    
+struct CalendarHeader: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(CalendarProps.self) private var calProps
     @Environment(CalendarModel.self) private var calModel
@@ -94,7 +93,18 @@ struct CalendarMonthLabel: View {
                 VStack(alignment: .trailing, spacing: 0) {
                     HStack(spacing: 4) {
                         
-                        Text("\(calModel.sPayMethod?.title ?? "All Transactions")")
+                        if let meth = calModel.sPayMethod, let cunt = meth.country {
+                            //Text("\(meth.title) (\(cunt.currencyCode))")
+                            Text(meth.title)
+                            
+                        } else if let meth = calModel.sPayMethod, meth.isUnified {
+                            //Text("\(meth.title) (\(AppState.shared.country.currencyCode))")
+                            Text(meth.title)
+                            
+                        } else {
+                            Text("\(calModel.sPayMethod?.title ?? "All Transactions")")
+                        }
+                        
                             //.padding(.leading, -2)
                         
 //                        if let meth = calModel.sPayMethod, meth.isUnified {
@@ -185,7 +195,7 @@ struct CalendarMonthLabel: View {
                 && (selMeth.isUnifiedDebit ? $0.accountType == .checking : $0.isCreditOrUnified)
                 && !$0.isUnified
             }
-            .filter { $0.matchesFilter() }
+            .filter { $0.accountHolderFilter() }
 //            .filter {
 //                switch AppSettings.shared.paymentMethodFilterMode {
 //                case .all:

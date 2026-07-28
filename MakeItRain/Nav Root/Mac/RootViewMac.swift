@@ -17,6 +17,8 @@ struct RootViewMac: View {
     @Environment(CategoryModel.self) var catModel
     @Environment(KeywordModel.self) var keyModel
     @Environment(RepeatingTransactionModel.self) var repModel
+    
+    @State private var navPath = NavigationPath()
             
     var body: some View {
         @Bindable var navManager = NavigationManager.shared
@@ -112,16 +114,13 @@ struct RootViewMac: View {
                 PayMethodsTable()
                 
             case .categories:
-                CategoriesTable()
+                CategoriesTable(navPath: $navPath)
                 
             case .keywords:
                 KeywordsTable()
                 
             case .search:
                 AdvancedSearchView(navPath: .constant(NavigationPath()))
-                
-            case .analytics:
-                Text("Analytics")
                 
             case .settings:
                 Text("Settings")
@@ -145,6 +144,9 @@ struct RootViewMac: View {
                 Text("Invalid Selection")
                 
             case .recentReceipts:
+                Text("Invalid Selection")
+                
+            @unknown default:
                 Text("Invalid Selection")
             }
         }

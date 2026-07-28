@@ -27,7 +27,7 @@ struct CustomAsyncImage<Content: View, Placeholder: View>: View {
             if let uiImage = uiImage {
                 content(Image(uiImage: uiImage))
             } else if let image = ImageCache.shared.loadFromCache(
-                parentTypeId: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction).id,
+                parentTypeId: XrefFileType.transaction.id,// XrefModel.getItem(from: .fileTypes, byEnumID: .transaction).id,
                 parentId: file.relatedID,
                 id: file.id
             ) {

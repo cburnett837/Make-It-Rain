@@ -214,7 +214,7 @@ struct TempTransactionList: View {
             if let entity = DataManager.shared.getOne(context: context, type: TempTransaction.self, predicate: .byId(.string(trans.id)), createIfNotFound: true) {
                 entity.id = trans.id
                 entity.title = trans.title
-                entity.amount = trans.amount
+                entity.amount = trans.amount as NSDecimalNumber
                 entity.payMethodID = trans.payMethod?.id ?? "0"
                 entity.categoryID = trans.category?.id ?? "0"
                 entity.date = trans.date

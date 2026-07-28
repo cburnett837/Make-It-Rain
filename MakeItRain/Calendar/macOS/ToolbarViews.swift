@@ -25,6 +25,7 @@ struct CalendarToolbarLeading: View {
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
     @Environment(CalendarProps.self) private var calProps
+    @Environment(AppStore.self) private var store
 
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
@@ -248,7 +249,7 @@ struct CalendarToolbarLeading: View {
             }
             .toolbarBorder()
             .sheet(isPresented: $showCategorySheet) {
-                MultiCategorySheet(categories: $calModel.sCategories, categoryGroup: $calModel.sCategoryGroupsForAnalysis)
+                MultiCategorySheet(categories: $calModel.sCategories, categoryGroups: $calModel.sCategoryGroupsForAnalysis)
                     .frame(minWidth: 300, minHeight: 500)
                     .presentationSizing(.fitted)
                 //CategorySheet(category: $calModel.sCategory)
@@ -324,7 +325,8 @@ struct CalendarToolbarLeading: View {
             }
             .onChange(of: showStartingAmountsSheet) { oldValue, newValue in
                 if !newValue {
-                    let _ = calModel.calculateTotal(for: calModel.sMonth)
+                    CalcHelper.calculateTotal(for: calModel.sMonth, store: store)
+                    //let _ = calModel.calculateTotal(for: calModel.sMonth)
                     
                     Task {
                         await withTaskGroup(of: Void.self) { group in
@@ -363,7 +365,8 @@ struct CalendarToolbarLeading: View {
     
     
     func submitStartingAmount () {
-        let _ = calModel.calculateTotal(for: calModel.sMonth)
+        CalcHelper.calculateTotal(for: calModel.sMonth, store: store)
+        //let _ = calModel.calculateTotal(for: calModel.sMonth)
         
         if let starting = calModel.sMonth.startingAmounts.filter({ $0.payMethod.id == calModel.sPayMethod?.id }).first {
             if !calModel.isUnifiedPayMethod {
@@ -383,7 +386,7 @@ struct CalendarToolbarLeading: View {
     struct StaticAmountText: View {
         
 
-        let amount: Double?
+        let amount: Decimal?
         let alertText: String
                 
         var body: some View {

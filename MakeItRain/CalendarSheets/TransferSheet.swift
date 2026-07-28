@@ -224,6 +224,38 @@ struct TransferSheet: View {
                 
                 CategorySheetButton(category: $transfer.category)
             }
+            
+#warning("CURRENCY! FIX ME")  
+//            if transfer.to?.country?.code == LocationManager.shared.currentCountry {
+//                let currentCountryCode = LocationManager.shared.currentCountry
+//                let hostCountry = Countries.fetch(by: AppState.shared.country.code)
+//                let destCountry = Countries.fetch(by: currentCountryCode)
+//                
+//                
+//                if let hostCountry,
+//                    let destCountry,
+//                    let destAmount = Countries.convert(amount: 1, from: hostCountry, to: destCountry)
+//                {
+//                    Section {
+//                        TextField("Rate", text: $transfer.exchangeRateString ?? "")
+//                    } header: {
+//                        Text("Exchange Rate")
+//                    } footer: {
+//                        VStack(alignment: .leading) {
+//                            Text("Enter the amount of \(destCountry.currencyCode) that is equal to 1 \(hostCountry.currencyCode).")
+//                            Text("1 \(hostCountry.currencyCode) = \(destAmount) \(destCountry.currencyCode) as of \(destCountry.rateValidityDate ?? Date())")
+//                        }
+//                        
+//                    }
+//                    
+//                    
+//                    Button("Sim rate change") {
+//                        print(Countries.convert(amount: transfer.amount, from: hostCountry, to: destCountry))
+//                    }
+//                }
+//                
+//                
+//            }
                         
                
             transferButtonPhone
@@ -378,12 +410,12 @@ struct TransferSheet: View {
             fromTrans.category = transfer.category
             fromTrans.updatedBy = AppState.shared.user!
             fromTrans.updatedDate = Date()
-            fromTrans.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
+            fromTrans.relatedTransactionType = XrefRelatedTransactionType.transaction// XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
                         
             //let toTrans = calModel.getTransaction(by: UUID().uuidString, from: .normalList)
             toTrans.title = "\(transferLingo) from \(transfer.from?.title ?? "N/A")"
             toTrans.date = date
-            toTrans.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
+            toTrans.relatedTransactionType = XrefRelatedTransactionType.transaction //XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
             
             if transfer.to?.accountType == .credit || transfer.to?.accountType == .loan {
                 toTrans.amountString = (transfer.amount * -1).currencyWithDecimals()
@@ -414,10 +446,10 @@ struct TransferSheet: View {
             
             
             fromTrans.relatedTransactionID = toTrans.id
-            fromTrans.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
+            fromTrans.relatedTransactionType = XrefRelatedTransactionType.transaction// XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
             
             toTrans.relatedTransactionID = fromTrans.id
-            toTrans.relatedTransactionType = XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
+            toTrans.relatedTransactionType = XrefRelatedTransactionType.transaction// XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction)
             
             
             

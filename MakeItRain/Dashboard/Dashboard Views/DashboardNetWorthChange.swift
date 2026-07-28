@@ -28,7 +28,7 @@ struct DashboardNetWorthChange: View {
             .filter { $0.payMethod.isPermittedAndNotHidden }
             .filter { !$0.payMethod.isUnified }
             .filter {
-                $0.payMethod.matchesFilter()
+                $0.payMethod.accountHolderFilter()
 //                switch AppSettings.shared.paymentMethodFilterMode {
 //                case .all:
 //                    return true
@@ -46,7 +46,7 @@ struct DashboardNetWorthChange: View {
             .sorted { Helpers.paymentMethodSorter()($0.payMethod, $1.payMethod) }
     }
     
-    var allStart: Double {
+    var allStart: Decimal {
         let allDebitAssets = allDebitStart?.amount ?? 0.0
         let allOtherAssets = starts.filter {
             $0.payMethod.accountType == .savings
@@ -139,9 +139,9 @@ struct DashboardNetWorthChange: View {
         @Environment(AppStore.self) private var store
         
         var startingAmount: CBStartingAmount
-        @State private var eom: Double = 0.0
-        @State private var change: Double = 0.0
-        @State private var percentage: Double = 0.0
+        @State private var eom: Decimal = 0.0
+        @State private var change: Decimal = 0.0
+        @State private var percentage: Decimal = 0.0
         @State private var isBeneficial: Bool = true
         
         var body: some View {
@@ -194,10 +194,10 @@ struct DashboardNetWorthChange: View {
         @Environment(DataChangeTriggers.self) var dataChangeTriggers
         @Environment(CalendarModel.self) private var calModel
         
-        var startingAmount: Double
-        @State private var eom: Double = 0.0
-        @State private var change: Double = 0.0
-        @State private var percentage: Double = 0.0
+        var startingAmount: Decimal
+        @State private var eom: Decimal = 0.0
+        @State private var change: Decimal = 0.0
+        @State private var percentage: Decimal = 0.0
         @State private var isBeneficial: Bool = true
         
         var body: some View {
@@ -249,8 +249,8 @@ struct DashboardNetWorthChange: View {
         }
         
         
-        private func calculateBalance() -> Double {
-            var finalEodTotal: Double = 0.0
+        private func calculateBalance() -> Decimal {
+            var finalEodTotal: Decimal = 0.0
             var currentAmount = startingAmount
             
             calModel.sMonth.days.forEach { day in
@@ -261,7 +261,7 @@ struct DashboardNetWorthChange: View {
                     .map { ($0.payMethod?.isCreditOrLoan ?? false) ? $0.amount * -1 : $0.amount }
                     //.map { $0.amount }
                 
-                currentAmount += amounts.reduce(0.0, +)
+                currentAmount += amounts.reduce(Decimal(0), +)
                 if day.id == calModel.sMonth.days.last?.id {
                     finalEodTotal = currentAmount
                 }

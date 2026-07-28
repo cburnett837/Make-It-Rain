@@ -10,17 +10,17 @@ struct ChartData: Identifiable, Equatable {
     var id: String { return "\(categoryGroup?.id ?? "0")-\(category.id)" }
     
     let category: CBCategory
-    var budgetForCategory: Double
+    var budgetForCategory: Decimal
     
     let categoryGroup: CBCategoryGroup?
-    var budgetForCategoryGroup: Double?
+    var budgetForCategoryGroup: Decimal?
     
-    var income: Double
-    var incomeMinusPayments: Double
-    var expenses: Double
-    var expensesMinusIncome: Double
-    var chartPercentage: Double /// Only used in ``CivBudgetBreakdown``, in a chart that isn't currently used
-    var actualPercentage: Double /// Only used in ``CivBudgetBreakdown``, in a chart that isn't currently used
+    var income: Decimal
+    var incomeMinusPayments: Decimal
+    var expenses: Decimal
+    var expensesMinusIncome: Decimal
+    var chartPercentage: Decimal /// Only used in ``CivBudgetBreakdown``, in a chart that isn't currently used
+    var actualPercentage: Decimal /// Only used in ``CivBudgetBreakdown``, in a chart that isn't currently used
     var budgetObjects: Array<CBBudgetItem>?
     
     

@@ -20,6 +20,7 @@ class LocationManager: NSObject, CLLocationManagerDelegate  {
     var authIsAllowed: Bool = false
     var currentCountry: String?
     var isThinking: Bool = true
+    var lastLocationCheckDate: Date?
     
     override init() {
         super.init()
@@ -54,17 +55,24 @@ class LocationManager: NSObject, CLLocationManagerDelegate  {
         }
         //print(currentLocation?.latitude)
         //print(currentLocation?.longitude)
+        #if os(iOS)
         Task {
             await getCountryFromLocation()
             isThinking = false
         }
+        #endif
     }
     
     
     func requestLocation() {
-        isThinking = true
-        //print("-- \(#function)")
-        manager.requestLocation()
+        if lastLocationCheckDate == nil || lastLocationCheckDate ?? Date() < Date().addingTimeInterval(-3600) {
+            print("GETTING LOCATION")
+            isThinking = true
+            //print("-- \(#function)")
+            manager.requestLocation()
+            lastLocationCheckDate = Date()
+        }
+        
     }
     
     
@@ -104,6 +112,7 @@ class LocationManager: NSObject, CLLocationManagerDelegate  {
     }
     
     
+    #if os(iOS)
     func getCountryFromLocation() async {
         guard let currentLocation = self.currentLocation else { return }
         do {
@@ -120,4 +129,5 @@ class LocationManager: NSObject, CLLocationManagerDelegate  {
             print(error.localizedDescription)
         }
     }
+    #endif
 }

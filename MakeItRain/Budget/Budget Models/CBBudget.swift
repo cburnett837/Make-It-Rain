@@ -11,8 +11,9 @@ import Foundation
 class CBBudget: Codable, Identifiable, Hashable, Equatable, IsEditableBudget {
     var id: String
     var uuid: String?
-    var amount: Double {
-        Double(amountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
+    var amount: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(amountString) ?? 0.0
+        //Decimal(amountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
     }
     var amountString: String
 
@@ -63,7 +64,7 @@ class CBBudget: Codable, Identifiable, Hashable, Equatable, IsEditableBudget {
             id = try container.decode(String.self, forKey: .id)
         }
                 
-        let amount = try container.decode(Double.self, forKey: .amount)
+        let amount = try container.decode(Decimal.self, forKey: .amount)
         self.amountString = amount.currencyWithDecimals()
     
         let isActive = try container.decode(Int?.self, forKey: .active)
