@@ -75,7 +75,7 @@ class DashboardModel {
     
     
     var cumTotals: [BudgetCumTotal] = []
-    var spendByDateTotals: [BudgetDailySpendTotal] = []
+    var spendByDateTotals: [BudgetDailyTotal] = []
     //var transactions: [CBTransaction] = []
     
     var data = DashboardData() {
@@ -338,6 +338,18 @@ class DashboardModel {
                 categories.append(cat)
             }
             
+            let areThereTransWithNoCat = calModel.sMonth.justTransactions
+                .filter ({ $0.active })
+                .filter ({ $0.amount != 0 && $0.category == nil })
+            
+            if !areThereTransWithNoCat.isEmpty {
+                if let theNil = store.categories.filter({ $0.isNil }).first {
+                    categories.append(theNil)
+                }
+            }
+            
+            
+            
             if isForSelectedMonth {
                 localVersionOfServerCode(calModel: calModel)
             } else {
@@ -462,13 +474,22 @@ class DashboardModel {
         
         withAnimation {
             /// For the spending by day charts
-            spendByDateTotals = BudgetHelper.calculateDailySpend(days: days, transactions: trans)
+            spendByDateTotals = BudgetHelper.calculateDailyAmount(
+                days: days,
+                transactions: trans,
+                type: .spend
+            )
         }
         
         /// For the cumulative spending chart
         Task {
             let newCumTotals = await Task.detached(priority: .userInitiated) {
-                await BudgetHelper.calculateCumTotals(days: days, transactions: trans, budgetAmount: budgetAmount)
+                await BudgetHelper.calculateCumTotals(
+                    days: days,
+                    transactions: trans,
+                    budgetAmount: budgetAmount,
+                    type: .spend
+                )
             }.value
 
             await MainActor.run {

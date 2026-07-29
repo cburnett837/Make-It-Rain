@@ -28,8 +28,14 @@ struct DashboardActivityByCategoryBarChart: View {
         max(0, (model.shouldUseTotalSpending ? data.allAmounts.totalSpend : data.allAmounts.actualSpend)).currencyWithDecimals()
     }
     
+//    var totalExpenseMinusPaymentAmount: String {
+//        max(0, (model.shouldUseTotalSpending ? data.allAmounts.totalSpend : data.allAmounts.actualSpendMinusPayment)).currencyWithDecimals()
+//    }
+    
     var totalIncomeAmount: String {
         max(0, (data.debitAmounts.regularIncome + data.debitAmounts.irregularIncome)).currencyWithDecimals()
+        
+        //max(0, (data.allAmounts.regularIncome + data.allAmounts.irregularIncome)).currencyWithDecimals()
     }
     
     var body: some View {
@@ -48,6 +54,22 @@ struct DashboardActivityByCategoryBarChart: View {
             }
                                     
             expenseBars
+            
+//            ForEach(model.expenseCategories.filter { $0.type != .payment }) { cat in
+//                BarMark(
+//                    //x: .value("Amount", max(0, cat.allAmounts?.totalSpend ?? 0.0)),
+//                    //x: .value("Amount", max(0, (model.shouldUseTotalSpending ? cat.allAmounts?.totalSpend ?? 0 : cat.allAmounts?.actualSpend ?? 0))),
+//                    x: .value("Amount", max(0, (model.shouldUseTotalSpending ? cat.allAmounts?.totalSpend ?? 0 : cat.allAmounts?.actualSpend ?? 0))),
+//                    y: .value("Key", "\(ChartRow.spending.rawValue) minus payments - \(totalExpenseMinusPaymentAmount)"),
+//                    stacking: .standard
+//                )
+//                .foregroundStyle(cat.color.gradient)
+//                .opacity(selectedCategory == nil ? 1 : (cat.id == selectedCategory?.id ? 1 : 0.3))
+//                .zIndex(0)
+//                .cornerRadius(5)
+//            }
+            
+            
             incomeBars
         }
         .frame(height: 150)

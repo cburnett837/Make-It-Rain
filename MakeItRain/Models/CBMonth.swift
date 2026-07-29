@@ -54,7 +54,7 @@ class CBMonth: Identifiable, Hashable, Equatable, Codable, IsEditableBudget {
     /// Use this to determine when we can navigate away from the splash screen when cold-launching from the plaid widget.
     var hasBeenLoadedFromServer = false
     
-    var isTodayMonth: Bool {
+    var isNow: Bool {
         self.actualNum == AppState.shared.todayMonth && self.year == AppState.shared.todayYear
     }
     
@@ -238,7 +238,7 @@ class CBMonth: Identifiable, Hashable, Equatable, Codable, IsEditableBudget {
         try container.encode(Cody.shared.id, forKey: .user_id)
         try container.encode(Cody.shared.accountID, forKey: .account_id)
         try container.encode(Cody.shared.deviceUUID, forKey: .device_uuid)
-        try container.encode(isTodayMonth ? 1 : 0, forKey: .is_today_month)
+        try container.encode(isNow ? 1 : 0, forKey: .is_today_month)
     }
     
     

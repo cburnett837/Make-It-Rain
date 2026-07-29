@@ -121,7 +121,7 @@ struct CalendarHeader: View {
                         selectedCategoriesView
                     }
                                         
-                    if calModel.sMonth.isTodayMonth {
+                    if calModel.sMonth.isNow {
                         //currentBalanceView
                         if let meth = calModel.sPayMethod,
                             let balance = funcModel.getPlaidBalancePrettyString(meth) {

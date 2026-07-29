@@ -53,7 +53,7 @@ struct DashboardDataByQuarter: Hashable, Identifiable, DashboardBreakdownSummary
             .reduce(0, +)
         
         self.paymentAmount = months
-            .filter { [1,4,7,10].contains($0.month) }
+            .filter { $0.date.quarter == self.quarter }
             .map { $0.paymentAmount ?? 0}
             .reduce(0, +)
     }

@@ -591,6 +591,21 @@ struct TransactionEditView: View {
     
     @ViewBuilder
     var paymentMethodAndCategorySection: some View {
+        
+        if trans.category?.isIncome == true && trans.payMethod?.isCreditOrLoan == true {
+            Section {
+                Text("The category you assigned seems weird. An income category should not be assigned on a credit transaction.")
+                    .foregroundStyle(.orange)
+            } header: {
+                HStack {
+                    Image(systemName: "exclamationmark.triangle")
+                        .foregroundStyle(LinearGradient(gradient: Gradient(colors: [.orange, .red]), startPoint: .top, endPoint: .bottom))
+                    Text("Hmm…")
+                }
+            }
+            
+        }
+        
         if !suggestedCategories.isEmpty {
             Section {
                 categoryLine

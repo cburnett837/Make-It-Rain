@@ -369,7 +369,7 @@ struct CalendarToolbar: ToolbarContent {
                     if AppState.shared.isIphone {
                         Image(systemName: "creditcard")
                     } else {
-                        if calModel.sMonth.isTodayMonth {
+                        if calModel.sMonth.isNow {
                             let finalText: String = "\(calModel.sPayMethod?.title ?? "Select Account")\(balanceText)"
                             Text(finalText)
                         } else {
@@ -385,7 +385,7 @@ struct CalendarToolbar: ToolbarContent {
 //                if AppState.shared.isIphone {
 //                    Image(systemName: "creditcard")
 //                } else {
-//                    if calModel.sMonth.isTodayMonth {
+//                    if calModel.sMonth.isNow {
 //                        let finalText: String = "\(calModel.sPayMethod?.title ?? "Select Account")\(balanceText)"
 //                        Text(finalText)
 //                    } else {

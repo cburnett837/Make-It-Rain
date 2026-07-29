@@ -73,7 +73,7 @@ struct CalendarViewMac: View {
                 /// Needed when selecting a month from a category analytic.
                 let viewingMonth = calModel.months.filter { $0.enumID == enumID }.first!
                 payModel.prepareStartingAmounts(for: viewingMonth, calModel: calModel)
-                await calModel.setSelectedMonthFromNavigation(navID: enumID, calculateStartingAndEod: true)
+                await calModel.setSelectedMonthFromNavigation(navID: enumID, calculateStartingAndEod: true, shouldLoadDashboard: true)
                 
                 let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
                 calProps.selectedDay = targetDay

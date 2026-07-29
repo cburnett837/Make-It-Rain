@@ -77,6 +77,7 @@ struct MonthlyBudgetTable: View {
     
     func filteredBudgets(for type: BudgetItemType) -> Array<CBBudgetItem> {
         return calModel.sMonth.budgets
+            .filter { $0.category?.isIncome == false }
             .filter { $0.type == type }
             .filter {
                 if let item = $0.item {
@@ -239,7 +240,7 @@ struct MonthlyBudgetTable: View {
                 BudgetChart(budgetAmount: calModel.sMonth.amount, expenseAmount: totalExpenses)
             }
         } header: {
-            Text("Budget - \(calModel.sMonth.amount.currencyWithDecimals())")
+            Text("\(calModel.sMonth.name)'s Budget - \(calModel.sMonth.amount.currencyWithDecimals())")
         } footer: {
             Text("Touch to edit")
         }
@@ -250,51 +251,58 @@ struct MonthlyBudgetTable: View {
 //            BudgetCumSpendingChart(budgetAmount: calModel.sMonth.amount, cumTotals: cumTotals)
 //        }
 //        Section("Spending By Day") {
-//            BudgetSpendingByDayChart(transactions: transactions)
+//            BudgetByDayChart(transactions: transactions)
 //        }
                                 
         ForEach(BudgetItemType.allCases.filter({ $0 != .tag }), id: \.self) { type in
-            Section(type.prettyValue) {
-                ForEach(filteredBudgets(for: type)) { budget in
-                    NavigationLink(value: NavDest.budgetOverview(budget)) {
-                        Label {
-                            VStack(alignment: .leading) {
-                                HStack {
-                                    Text(budget.item?.title ?? "N/A")
-                                    Spacer()
-                                    Text(budget.amount.currencyWithDecimals())
+            Section(type.sectionHeaderText) {
+                let budgets = filteredBudgets(for: type)
+                if budgets.isEmpty {
+                    Text("No budgets")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(budgets) { budget in
+                        NavigationLink(value: NavDest.budgetOverview(budget)) {
+                            Label {
+                                VStack(alignment: .leading) {
+                                    HStack {
+                                        Text(budget.item?.title ?? "N/A")
+                                        Spacer()
+                                        Text(budget.amount.currencyWithDecimals())
+                                    }
                                 }
-                            }
-                        } icon: {
-                            switch budget.type {
-                            case .category:
-                                if let cat = budget.category {
-                                    ChartCircleDot(
-                                        budget: budget.amount,
-                                        expenses: getExpenseAmount(for: cat),
-                                        color: cat.color,
-                                        size: 20
-                                    )
+                            } icon: {
+                                switch budget.type {
+                                case .category:
+                                    if let cat = budget.category {
+                                        ChartCircleDot(
+                                            budget: budget.amount,
+                                            expenses: getExpenseAmount(for: cat),
+                                            color: cat.color,
+                                            size: 20
+                                        )
+                                    }
+                                    
+                                case .categoryGroup:
+                                    if let group = budget.categoryGroup {
+                                        let colors = group.categories.filter({ $0.active }).sorted(by: Helpers.categorySorter()).map { $0.color }
+                                        GradientCircleDot(colors: colors)
+                                    }
+                                    
+                                case .tag:
+                                    EmptyView()
                                 }
                                 
-                            case .categoryGroup:
-                                if let group = budget.categoryGroup {
-                                    let colors = group.categories.filter({ $0.active }).sorted(by: Helpers.categorySorter()).map { $0.color }
-                                    GradientCircleDot(colors: colors)
-                                }
-                                
-                            case .tag:
-                                EmptyView()
                             }
-                            
                         }
+    //
+    //                    .contentShape(Rectangle())
+    //                    .onTapGesture {
+    //                        budgetItemEditId = budget.id
+    //                    }
                     }
-//                    
-//                    .contentShape(Rectangle())
-//                    .onTapGesture {
-//                        budgetItemEditId = budget.id
-//                    }
                 }
+                
             }
         }
         
@@ -433,7 +441,8 @@ struct MonthlyBudgetTable: View {
                 await BudgetHelper.calculateCumTotals(
                     days: days,
                     transactions: filteredTransactions,
-                    budgetAmount: budgetAmount
+                    budgetAmount: budgetAmount,
+                    type: .spend
                 )
             }.value
 

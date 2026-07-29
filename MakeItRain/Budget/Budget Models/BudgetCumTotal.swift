@@ -20,7 +20,7 @@ struct BudgetCumTotal: Identifiable {
 }
 
 
-struct BudgetDailySpendTotal: Identifiable {
+struct BudgetDailyTotal: Identifiable {
     var id: Date {return date}
     let date: Date
     var total: Decimal

@@ -53,7 +53,7 @@ struct DashboardExpenseByCategoryTable: View {
                                     navPath.append(NavDest.budgetOverview(budget))
                                 } else {
                                     print("No category budget found for group with id: \(group.id)")
-                                    AppState.shared.showAlert("No budget exists for this category. Please create a new one.")
+                                    AppState.shared.showAlert("No budget exists for this category.")
                                 }
                             } else {
                                 group.isExpanded.toggle()
@@ -74,7 +74,7 @@ struct DashboardExpenseByCategoryTable: View {
                 
                 ForEachWithSeparator(
                     model.data.categories
-                        .filter { model.shouldUseTotalSpending ? true : !$0.isIncome }
+                        //.filter { model.shouldUseTotalSpending ? true : !$0.isIncome }
                         .sorted(by: Helpers.categorySorter())
                 ) { cat in
                     line(for: cat, isPartOfGroup: false)
@@ -99,10 +99,10 @@ struct DashboardExpenseByCategoryTable: View {
             }
 
             Text("Budget")
-            Text("Spending")
-            if model.shouldUseTotalSpending {
-                Text("Money In")
-            }
+            Text("Amount")
+//            if model.shouldUseTotalSpending {
+//                Text("Money In")
+//            }
             Text("Variance")
             Text("")
         }
@@ -134,20 +134,22 @@ struct DashboardExpenseByCategoryTable: View {
             
             //(model.shouldUseTotalSpending ? cat.allAmounts?.totalSpend : cat.allAmounts?.actualSpend)
             
-            let value2 = cat.isIncome ? "N/A" : ((model.shouldUseTotalSpending ? cat.allAmounts?.totalSpend : cat.allAmounts?.actualSpend) ?? 0).currencyWithDecimals()
-            Text(value2)
-                .foregroundStyle(value2 == "N/A" ? .gray : .primary)
-                .contentTransition(.numericText())
-
-            if model.shouldUseTotalSpending {
+            if cat.isIncome {
+                //if model.shouldUseTotalSpending {
                 let value3 = cat.isRegularIncome
                     ? (cat.allAmounts?.regularIncome ?? 0.0).currencyWithDecimals()
                     : (cat.allAmounts?.irregularIncome ?? 0.0).currencyWithDecimals()
 
                 Text(value3)
                     .contentTransition(.numericText())
+                //}
+            } else {
+                let value2 = cat.isIncome ? "N/A" : ((model.shouldUseTotalSpending ? cat.allAmounts?.totalSpend : cat.allAmounts?.actualSpend) ?? 0).currencyWithDecimals()
+                Text(value2)
+                    .foregroundStyle(value2 == "N/A" ? .gray : .primary)
+                    .contentTransition(.numericText())
             }
-                    
+                                            
             let variance = cat.allAmounts?.variance ?? 0.0
 
             Text(isPartOfGroup || cat.isIncome ? "N/A" : abs(variance).currencyWithDecimals())
@@ -165,6 +167,8 @@ struct DashboardExpenseByCategoryTable: View {
                     if let budget = calModel.sMonth.budgets.filter({ $0.type == .category && $0.item?.id == cat.id }).first {
                         //BudgetOverview(budget: budget, location: .monthList)
                         navPath.append(NavDest.budgetOverview(budget))
+                    } else {
+                        AppState.shared.showAlert("A budget does not exist for \(cat.title).")
                     }
                 } else {
                     navPath.append(.dashboardTransactionList(model.data, cat))

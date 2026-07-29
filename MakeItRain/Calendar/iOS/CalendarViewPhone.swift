@@ -387,7 +387,12 @@ struct CalendarViewPhone: View {
             let month = calModel.months.filter { $0.enumID == enumID }.first!
             
             payModel.prepareStartingAmounts(for: month, calModel: calModel)
-            await calModel.setSelectedMonthFromNavigation(navID: enumID, calculateStartingAndEod: true)
+            
+            await calModel.setSelectedMonthFromNavigation(
+                navID: enumID,
+                calculateStartingAndEod: true,
+                shouldLoadDashboard: shouldLoadDashboard
+            )
             
             /// Set the selected day so new transactions have a default date.
             /// If in the current month, set to today.
@@ -395,7 +400,7 @@ struct CalendarViewPhone: View {
             let targetDay = month.days.filter { $0.dateComponents?.day == (month.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
             calProps.selectedDay = targetDay
             
-            /// Run this when switching months.xz
+            /// Run this when switching months.
             /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
             /// So we use the ``DataChangeTriggers`` class to send a notification to the view to tell it to recalculate.
             DataChangeTriggers.shared.viewDidChange(.calendar)

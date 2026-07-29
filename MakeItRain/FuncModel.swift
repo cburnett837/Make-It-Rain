@@ -798,7 +798,7 @@ class FuncModel {
 
     @MainActor
     func getPlaidBalancePrettyString(_ meth: CBPaymentMethod) -> String? {
-        if calModel.sMonth.isTodayMonth {
+        if calModel.sMonth.isNow {
             var result: String? {
                 if meth.isUnified {
                     
@@ -1215,7 +1215,7 @@ class FuncModel {
             #if os(iOS)
             if let selectedMonth = navManager.selectedMonth {
                 /// Set the calendar model to use the current month (ignore starting amounts and calculations).
-                await calModel.setSelectedMonthFromNavigation(navID: selectedMonth, calculateStartingAndEod: false)
+                await calModel.setSelectedMonthFromNavigation(navID: selectedMonth, calculateStartingAndEod: false, shouldLoadDashboard: true)
                 /// Download everything, and populate the days in the respective months with transactions.
                 await downloadEverything(setDefaultPayMethod: true, createNewStructs: true, refreshTechnique: .viaInitial)
             } else {
@@ -1224,7 +1224,7 @@ class FuncModel {
             #else
             if let selectedMonth = navManager.selection {
                 /// Set the calendar model to use the current month (ignore starting amounts and calculations).
-                await calModel.setSelectedMonthFromNavigation(navID: selectedMonth, calculateStartingAndEod: false)
+                await calModel.setSelectedMonthFromNavigation(navID: selectedMonth, calculateStartingAndEod: false, shouldLoadDashboard: true)
                 /// Download everything, and populate the days in the respective months with transactions.
                 await downloadEverything(setDefaultPayMethod: true, createNewStructs: true, refreshTechnique: .viaInitial)
             }

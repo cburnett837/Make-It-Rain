@@ -66,12 +66,14 @@ struct Dashboard: View {
         @Bindable var calModel = calModel
         
         content
+            #if os(iOS)
             .onShake {
                 Task {
                     await model.initialFetchIfApplicable(calModel: calModel)
                 }
                 
             }
+            #endif
             .navigationTitle("Dashboard\(AppState.shared.devMode ? " (Dev)" : "")")
             .if(!isForSelectedMonth) {
                 $0.navigationSubtitle("\(model.formattedDateRange)\(model.payMethod == nil ? "" : " (\(model.payMethod!.title))")")
@@ -151,34 +153,40 @@ struct Dashboard: View {
             .sheet(isPresented: $model.showOptionsSheet, onDismiss: {
                 model.fetchIfChange(calModel: calModel)
             }) {
-                DashboardOptionsSheet(model: model, isForSelectedMonth: isForSelectedMonth)
-                    .interactiveDismissDisabled(true)
-                    .presentationDetents([.medium])
-            }
-            .sheet(isPresented: $showCategorySheet, onDismiss: {
-                model.fetchIfChange(calModel: calModel)
-            }) {
-                MultiCategorySheet(
-                    categories: $model.categories,
-                    categoryGroups: $model.groups
+                DashboardOptionsSheet(
+                    model: model,
+                    showCategorySheet: $showCategorySheet,
+                    showPayMethodSheet: $showPayMethodSheet,
+                    isForSelectedMonth: isForSelectedMonth
                 )
-                #if os(macOS)
-                .frame(minWidth: 300, minHeight: 500)
-                .presentationSizing(.fitted)
-                #endif
+                //.interactiveDismissDisabled(true)
+                //.presentationDetents([.medium, .large])
+                .presentationDetents([.large])
             }
-            .sheet(isPresented: $showPayMethodSheet, onDismiss: {
-                model.setMethodIds(payModel: payModel)
-                model.fetchIfChange(calModel: calModel)
-            }) {
-                PayMethodSheet(
-                    payMethod: $model.payMethod,
-                    whichPaymentMethods: .all,
-                    showStartingAmountOption: false,
-                    showNoneOption: true,
-                    noneText: "Don't filter by any account and show all data."
-                )
-            }
+//            .sheet(isPresented: $showCategorySheet, onDismiss: {
+//                model.fetchIfChange(calModel: calModel)
+//            }) {
+//                MultiCategorySheet(
+//                    categories: $model.categories,
+//                    categoryGroups: $model.groups
+//                )
+//                #if os(macOS)
+//                .frame(minWidth: 300, minHeight: 500)
+//                .presentationSizing(.fitted)
+//                #endif
+//            }
+//            .sheet(isPresented: $showPayMethodSheet, onDismiss: {
+//                model.setMethodIds(payModel: payModel)
+//                model.fetchIfChange(calModel: calModel)
+//            }) {
+//                PayMethodSheet(
+//                    payMethod: $model.payMethod,
+//                    whichPaymentMethods: .all,
+//                    showStartingAmountOption: false,
+//                    showNoneOption: true,
+//                    noneText: "Don't filter by any account and show all data."
+//                )
+//            }
     }
     
     
@@ -285,19 +293,48 @@ struct Dashboard: View {
                     }
                     
                     if showExpensiveViews {
-                        DashboardWidget(showFilterText: !model.allCatsSelected, title: "Activity By Category") {
-                            DashboardActivityByCategoryChart(model: model, data: model.data, isForSelectedMonth: isForSelectedMonth)
+                        DashboardWidget(
+                            showFilterText: !model.allCatsSelected,
+                            title: {
+                                Text("Activity By Category")
+                                    .padding(.leading, 12)
+                                    .foregroundStyle(.secondary)
+                                    .font(.headline)
+                            },
+                            footer: {
+                                if !model.categories.filter({ $0.type == .payment }).isEmpty {
+                                    Text("(Note that the spending amount contains credit payments, which you may consider a transfer. To see true spending, remove the credit payment category from the filter list.)")
+                                        .foregroundStyle(.secondary)
+                                        .font(.caption)
+                                        //.bold()
+                                } else {
+                                    EmptyView()
+                                }
+                            }) {
+                                VStack(spacing: 0) {
+                                    DashboardActivityByCategoryChart(model: model, data: model.data, isForSelectedMonth: isForSelectedMonth)
+                                    
+                                    Divider()
+                                        .padding(.vertical, 10)
+                                    
+                                    DashboardExpenseByCategoryTable(model: model, navPath: $navPath, isForSelectedMonth: isForSelectedMonth)
+                                }
+                                
                         }
                     }
                     
                     if showExpensiveViews {
                         if isForSelectedMonth {
                             DashboardWidget(showFilterText: !model.allCatsSelected, title: "Cumulative Spending") {
-                                BudgetCumSpendingChart(budgetAmount: model.data.categoryAndGroupBudget, cumTotals: model.cumTotals)
+                                BudgetCumChart(
+                                    budgetAmount: model.data.categoryAndGroupBudget,
+                                    cumTotals: model.cumTotals,
+                                    type: .spend
+                                )
                             }
                             
                             DashboardWidget(showFilterText: !model.allCatsSelected, title: "Spending By Day") {
-                                BudgetSpendingByDayChart(data: model.spendByDateTotals)
+                                BudgetByDayChart(data: model.spendByDateTotals, type: .spend)
                             }
                         } else {
                             
@@ -315,9 +352,9 @@ struct Dashboard: View {
                         }
                     }
                     
-                    DashboardWidget(showFilterText: !model.allCatsSelected, title: "Breakdown") {
-                        DashboardExpenseByCategoryTable(model: model, navPath: $navPath, isForSelectedMonth: isForSelectedMonth)
-                    }
+//                    DashboardWidget(showFilterText: !model.allCatsSelected, title: "Breakdown") {
+//                        DashboardExpenseByCategoryTable(model: model, navPath: $navPath, isForSelectedMonth: isForSelectedMonth)
+//                    }
                 }
                 .scenePadding()
             }

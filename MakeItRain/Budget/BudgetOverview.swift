@@ -31,7 +31,7 @@ struct BudgetOverview: View {
     @State private var transactions: [CBTransaction] = []
     @State private var searchText = ""
     @State private var cumTotals: [BudgetCumTotal] = []
-    @State private var spendByDateTotals: [BudgetDailySpendTotal] = []
+    @State private var spendByDateTotals: [BudgetDailyTotal] = []
    
 
     
@@ -67,47 +67,89 @@ struct BudgetOverview: View {
     
     var body: some View {
         List {
-            Section("Budget & Expenses") {
-                if budget.type == .categoryGroup {
-                    if let cats = budget.categoryGroup?.categories {
-                        BudgetChartForGroup(
-                            categories: cats,
-                            budgetAmount: budget.amount,
-                            expenseAmount: totalExpenses
-                        )
-                    }
-                    
-                    ForEach(budget.categoryGroup?.categories ?? []) { category in
-                        let transactions = calModel.getTransactions(cats: [category])
-                        let actualSpend = TransactionHelper.All.Amount.actualSpend(from: transactions)
-                        Label {
-                            VStack(alignment: .leading) {
-                                HStack {
-                                    Text(category.title)
-                                    Spacer()
+            if !budget.catIsIncome {
+                Section("Budget & Expenses") {
+                    if budget.type == .categoryGroup {
+                        if let cats = budget.categoryGroup?.categories {
+                            BudgetChartForGroup(
+                                categories: cats,
+                                budgetAmount: budget.amount,
+                                expenseAmount: totalExpenses
+                            )
+                        }
+                        
+                        
+                        Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
+                            gridHeader
+                            
+                            Divider()
+                            
+                            ForEachWithSeparator(budget.categoryGroup?.categories ?? []) { category in
+                                let transactions = calModel.getTransactions(cats: [category])
+                                let actualSpend = TransactionHelper.All.Amount.actualSpend(from: transactions)
+                                
+                                GridRow {
+                                    HStack {
+                                        StandardCategorySymbol(cat: category, labelWidth: 12)
+                                        Text(category.title)
+                                    }
+                                    
                                     Text(actualSpend.currencyWithDecimals())
                                 }
+                                .padding(.vertical, 5)
                             }
-                        } icon: {
-                            StandardCategorySymbol(cat: category, labelWidth: 20)
                         }
-                        #if os(macOS)
-                        .selectionDisabled()
-                        #endif
-                        //Text(cat.title)
+                        .font(.caption)
+                        .lineLimit(1)
+                        .textCase(nil)
+                        
+                        
+//                        ForEach(budget.categoryGroup?.categories ?? []) { category in
+//                            let transactions = calModel.getTransactions(cats: [category])
+//                            let actualSpend = TransactionHelper.All.Amount.actualSpend(from: transactions)
+//                            
+//                            Label {
+//                                VStack(alignment: .leading) {
+//                                    HStack {
+//                                        Text(category.title)
+//                                        Spacer()
+//                                        Text(actualSpend.currencyWithDecimals())
+//                                    }
+//                                }
+//                            } icon: {
+//                                StandardCategorySymbol(cat: category, labelWidth: 20)
+//                            }
+//                            #if os(macOS)
+//                            .selectionDisabled()
+//                            #endif
+//                            //Text(cat.title)
+//                        }
+                    } else {
+                        if let cat = budget.category {
+                            BudgetChart(cat: cat, budgetAmount: budget.amount, expenseAmount: totalExpenses)
+                        } else {
+                            Text("Cannot display chart as it has no category.")
+                        }
+                        
                     }
-                } else {
-                    BudgetChart(budgetAmount: budget.amount, expenseAmount: totalExpenses)
                 }
             }
             
+            
             if budget.type != .tag {
-                Section("Cumulative Spending") {
-                    BudgetCumSpendingChart(budgetAmount: budget.amount, cumTotals: cumTotals)
+                Section("Cumulative \(budget.catIsIncome ? "Income" : "Spending")") {
+                    BudgetCumChart(
+                        budgetAmount: budget.amount,
+                        cumTotals: cumTotals,
+                        type: budget.catIsIncome ? .income : .spend
+                    )
                 }
                 
-                Section("Spending By Day") {
-                    BudgetSpendingByDayChart(data: spendByDateTotals)
+                Section("\(budget.catIsIncome ? "Income" : "Spending") By Day") {
+                    BudgetByDayChart(
+                        data: spendByDateTotals,
+                        type: budget.catIsIncome ? .income : .spend
+                    )
                 }
             }
             
@@ -147,7 +189,19 @@ struct BudgetOverview: View {
             transEditID: $transEditID,
             selectedDay: $transDay,
             findTransactionWhere: budget.type == .tag ? .constant(.tagBudgetList) : .constant(.normalList),
-            tag: budget.tag
+            tag: budget.tag,
+            extraDismissLogic: { didSave in
+                if didSave {
+                    print("didSave \(didSave)")
+                    Task {
+                        if budget.type == .tag {
+                            await fetchTransactionsFromServer(withSpinner: true)
+                        } else {
+                            prepareData(calModel: calModel)
+                        }
+                    }
+                }
+            }
         )
         .onDisappear { store.tagBudgetTransactions.removeAll() }
         .toolbar { toolbar }
@@ -210,7 +264,11 @@ struct BudgetOverview: View {
         }
         #if os(iOS)
         ToolbarSpacer(.fixed, placement: .topBarTrailing)
-        ToolbarItem(placement: .topBarTrailing) { editButton }
+        
+        if !budget.catIsIncome {
+            ToolbarItem(placement: .topBarTrailing) { editButton }
+        }
+        
         ToolbarSpacer(.flexible, placement: .topBarTrailing)
         ToolbarItem(placement: .topBarTrailing) {
             Button {
@@ -222,6 +280,20 @@ struct BudgetOverview: View {
             }
         }
         #endif
+    }
+    
+    
+    var gridHeader: some View {
+        GridRow {
+            HStack {
+                ChartCircleDot(budget: 0, expenses: 0, color: .primary, size: 12)
+                Text("Category")
+            }
+
+            Text("Expenses")
+        }
+        .font(.caption)
+        .bold()
     }
     
     
@@ -373,24 +445,47 @@ struct BudgetOverview: View {
                 $0.dateComponents?.month == month &&
                 $0.dateComponents?.year == year
             }
-
-        self.transactions = filteredTransactions
+                
+        
+        withAnimation {
+            self.transactions = filteredTransactions
+        }
+        
+        
+        //print(transactions)
 
         /// For the spending by day charts
-        spendByDateTotals = BudgetHelper.calculateDailySpend(days: days, transactions: filteredTransactions)
+        spendByDateTotals = BudgetHelper.calculateDailyAmount(
+            days: days,
+            transactions: filteredTransactions,
+            type: budget.catIsIncome ? .income : .spend
+        )
         
         /// For the cumulative spending chart
-        Task {
-            let newCumTotals = await Task.detached(priority: .userInitiated) {
-                await BudgetHelper.calculateCumTotals(days: days, transactions: filteredTransactions, budgetAmount: budgetAmount)
-            }.value
-
-            await MainActor.run {
-                withAnimation {
-                    self.cumTotals = newCumTotals
-                }
-            }
-        }
+//        Task {
+//            let newCumTotals = await Task.detached(priority: .userInitiated) {
+//                await BudgetHelper.calculateCumTotals(
+//                    days: days,
+//                    transactions: filteredTransactions,
+//                    budgetAmount: budgetAmount,
+//                    type: budget.catIsIncome ? .income : .spend
+//                )
+//            }.value
+//
+//            await MainActor.run {
+//                withAnimation {
+//                    self.cumTotals = newCumTotals
+//                }
+//            }
+//        }
+        
+        
+        self.cumTotals = BudgetHelper.calculateCumTotals(
+            days: days,
+            transactions: filteredTransactions,
+            budgetAmount: budgetAmount,
+            type: budget.catIsIncome ? .income : .spend
+        )
     }
     
     

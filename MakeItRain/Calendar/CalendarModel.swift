@@ -2331,8 +2331,10 @@ class CalendarModel {
         var trans = theMonths.flatMap { $0.justTransactions }
             .filter {
                 $0.active
+                /// When refreshing the budget overview aftering deleting a trans, the trans could get captured because the delete process hasn't completed yet.
+                && ($0.action != .delete)
                 /// If the app is in multi-select mode, pay attention to only those transactions.
-                && self.isInMultiSelectMode ? self.multiSelectTransactions.map({ $0.id }).contains($0.id) : true
+                && (self.isInMultiSelectMode ? self.multiSelectTransactions.map({ $0.id }).contains($0.id) : true)
                 /// Only payment methods that are allowed to be viewed by the current user.
                 && $0.isPermitted
                 /// This will look at both the transaction, and its deepCopy.
@@ -2341,7 +2343,7 @@ class CalendarModel {
                 /// Only transactions that are not excluded from calculations.
                 && $0.factorInCalculations
                 
-                && $0.payMethod?.accountHolderFilter() == true
+                && ($0.payMethod?.accountHolderFilter() == true)
                 
                 /// Only transactions related to the passed in payment method. (If applicable).
                 //&& meth == nil ? true : ($0.payMethod?.id == meth?.id)
@@ -2528,7 +2530,7 @@ class CalendarModel {
     }
                     
     
-    func setSelectedMonthFromNavigation(navID: NavDest, calculateStartingAndEod: Bool) async {
+    func setSelectedMonthFromNavigation(navID: NavDest, calculateStartingAndEod: Bool, shouldLoadDashboard: Bool) async {
         //print("-- \(#function)")
         let month = months.get(byEnumId: navID)
         sMonth = month
@@ -2545,16 +2547,21 @@ class CalendarModel {
         }
                         
         //try? await Task.sleep(for: .seconds(1))
-        self.dashboardModel.resetSelf()
         
-        if let firstDate = month.legitDays.first?.date,
-           let lastDate = month.legitDays.last?.date {
+        
+        if shouldLoadDashboard {
+            self.dashboardModel.resetSelf()
             
-            self.dashboardModel.beginDate = firstDate
-            self.dashboardModel.endDate = lastDate
-            
-            await self.dashboardModel.initialFetchIfApplicable(calModel: self)
+            if let firstDate = month.legitDays.first?.date,
+               let lastDate = month.legitDays.last?.date {
+                
+                self.dashboardModel.beginDate = firstDate
+                self.dashboardModel.endDate = lastDate
+                
+                await self.dashboardModel.initialFetchIfApplicable(calModel: self)
+            }
         }
+        
     }
     
     
@@ -2725,7 +2732,12 @@ class CalendarModel {
                 let catExistsInGroup = !store.categoryGroups.filter { $0.categories.contains(where: { $0.id == cat.id }) }.isEmpty
                 let budgetExists = !sMonth.budgets.filter { $0.category?.id == cat.id }.isEmpty
                 
-                if !budgetExists, !catExistsInGroup, !cat.isIncome {
+                //if !budgetExists, !catExistsInGroup, !cat.isIncome {
+                
+                
+                /// For income categories, we hide the budgets from view through out the app.
+                /// But we still want to create one for the income categories because that allows us to access the budget overview page from the dashboard.
+                if !budgetExists, !catExistsInGroup {
                     let budget = CBBudgetItem()
                     budget.monthId = sMonth.populatedId
                     //budget.month = sMonth.actualNum

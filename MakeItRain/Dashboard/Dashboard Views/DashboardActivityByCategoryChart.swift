@@ -55,7 +55,7 @@ struct DashboardActivityByCategoryChart: View {
             overUnder
                 .foreground(isOver ? .red : .green)
 
-            " \(isOver ? "over" : "under") your budget of "
+            " \(isOver ? "over" : "under") your categorical budget of "
             "\(data.categoryAndGroupBudget.currencyWithDecimals()), having spent "
 
             spendingAmount
@@ -88,9 +88,22 @@ struct DashboardActivityByCategoryChart: View {
         VStack {
             Text(message)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.bottom, 10)
+                //.padding(.bottom, 10)
             
             Divider()
+                .padding(.vertical, 10)
+            
+//            if !model.categories.filter({ $0.type == .payment }).isEmpty {
+//                Text("(Note that the spending amount contains credit payments, which could be classified as a transfer. To see true spending, remove the credit payment category from the filter list.)")
+//                    .foregroundStyle(.secondary)
+//                    .font(.caption2)
+//                    .padding(.vertical, 10)
+//                    .bold()
+//                
+//                Divider()
+//            }
+            
+
             
             TabView(selection: $selectedTab) {
                 Tab(value: Tabs.bar) {

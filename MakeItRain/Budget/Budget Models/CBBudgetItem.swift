@@ -33,6 +33,17 @@ enum BudgetItemType: Int, CaseIterable {
             "Tag"
         }
     }
+    
+    var sectionHeaderText: String {
+        switch self {
+        case .categoryGroup:
+            "Group Budgets"
+        case .category:
+            "Categorical Budgets"
+        case .tag:
+            "Tag Budgets"
+        }
+    }
 }
 
 extension CBCategory: BudgetItem {
@@ -72,6 +83,9 @@ class CBBudgetItem: Codable, Identifiable, Hashable, Equatable, IsEditableBudget
     var type: BudgetItemType {
         item?.budgetType ?? .category
     }
+    
+    var catIsIncome: Bool { self.category?.isIncome == true }    
+    var catIsExpense: Bool { self.category?.isExpense == true || self.categoryGroup != nil }
         
     var amount: Decimal {
         CurrencyHelpers.parseAmountStringToDecimal(amountString) ?? 0.0

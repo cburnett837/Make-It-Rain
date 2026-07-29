@@ -210,7 +210,7 @@ struct MultiCategorySheet: View {
                     Spacer()
                     
                     Image(systemName: "checkmark")
-                        .opacity(categories.filter{ $0.active }.contains(theNil) ? 1 : 0)
+                        .opacity(categories.filter{ $0.active }.map {$0.id}.contains(theNil.id) ? 1 : 0)
                 }
                 .schemeBasedForegroundStyle()
                 .contentShape(Rectangle())

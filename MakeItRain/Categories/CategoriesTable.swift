@@ -430,7 +430,13 @@ struct CategoriesTable: View {
         Label {
             VStack(alignment: .leading) {
                 HStack {
-                    Text(cat.title)
+                    VStack(alignment: .leading) {
+                        Text(cat.title)
+                        Text(cat.type.description)
+                            .foregroundStyle(.secondary)
+                            .font(.caption2)
+                    }
+                    
                     if cat.isHidden { Image(systemName: "eye.slash") }
                     
                     Spacer()

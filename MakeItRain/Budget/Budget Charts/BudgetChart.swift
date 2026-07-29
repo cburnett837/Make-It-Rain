@@ -9,11 +9,21 @@
 import SwiftUI
 import Charts
 
+
 struct BudgetChart: View {
+    var cat: CBCategory?
     var budgetAmount: Decimal
     var expenseAmount: Decimal
     
     var body: some View {
+        if expenseAmount == 0 && budgetAmount == 0 {
+            noContentView
+        } else {
+            theChart
+        }
+    }
+    
+    var theChart: some View {
         Chart {
             let yKey = "Budget - \(budgetAmount.currencyWithDecimals())\nExpenses - \(expenseAmount.currencyWithDecimals())"
             RuleMark(
@@ -29,11 +39,16 @@ struct BudgetChart: View {
                 x: .value("Amount", expenseAmount),
                 y: .value("Key", yKey)
             )
-            .foregroundStyle(expenseAmount > budgetAmount ? .red : .green)
+            //.foregroundStyle(expenseAmount > budgetAmount ? .red : .green)
+            .foregroundStyle(cat?.color ?? (expenseAmount > budgetAmount ? .red : .green))
             .cornerRadius(5)
         }
         .chartLegend(.hidden)
         .chartXAxis { BudgetHelper.currencyAxisMarks() }
+    }
+    
+    var noContentView: some View {
+        ContentUnavailableView("No Data", systemImage: "rectangle.stack.slash", description: Text("No data to display."))
     }
 }
 
@@ -47,6 +62,14 @@ struct BudgetChartForGroup: View {
     var expenseAmount: Decimal
     
     var body: some View {
+        if expenseAmount == 0 && budgetAmount == 0 {
+            noContentView
+        } else {
+            theChart
+        }
+    }
+    
+    var theChart: some View {
         Chart {
             let yKey = "Budget - \(budgetAmount.currencyWithDecimals())\nExpenses - \(expenseAmount.currencyWithDecimals())"
             
@@ -81,5 +104,9 @@ struct BudgetChartForGroup: View {
         }
         .chartLegend(.hidden)
         .chartXAxis { BudgetHelper.currencyAxisMarks() }
+    }
+    
+    var noContentView: some View {
+        ContentUnavailableView("No Data", systemImage: "rectangle.stack.slash", description: Text("No data to display."))
     }
 }

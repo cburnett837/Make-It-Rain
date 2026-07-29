@@ -14,19 +14,19 @@ struct DashboardOptionsSheet: View {
     @Environment(\.dismiss) private var dismiss
     #endif
     @Environment(CalendarModel.self) private var calModel
+    @Environment(PayMethodModel.self) private var payModel
+    
     @Bindable var model: DashboardModel
+    @Binding var showCategorySheet: Bool
+    @Binding var showPayMethodSheet: Bool
     var isForSelectedMonth: Bool
     
     var body: some View {
         NavigationStack {
             List {
-                Section {
-                    Picker("Spending Display Type", selection: $model.shouldUseTotalSpending.animation()) {
-                        Text("Actual").tag(false)
-                        Text("Total").tag(true)
-                    }
-                } footer: {
-                    Text("Choose whether to show the actual spending or the total spending. Actual Spending is your spending, offset by any money that came in.")
+                Section("Filter") {
+                    showPaymentMethodSheetButton
+                    showCategorySheetButton
                 }
                 
                 if !isForSelectedMonth {
@@ -81,6 +81,14 @@ struct DashboardOptionsSheet: View {
                     }
                 }
                 
+                Section {
+                    Picker("Spending Display Type", selection: $model.shouldUseTotalSpending.animation()) {
+                        Text("Actual").tag(false)
+                        Text("Total").tag(true)
+                    }
+                } footer: {
+                    Text("Choose whether to show the actual spending or the total spending. Actual Spending is your spending, offset by any money that came in.")
+                }
                 
             }
             //.listStyle(.)
@@ -113,6 +121,66 @@ struct DashboardOptionsSheet: View {
                 }
                 #endif
             }
+            .sheet(isPresented: $showCategorySheet, onDismiss: {
+                //model.fetchIfChange(calModel: calModel)
+            }) {
+                MultiCategorySheet(
+                    categories: $model.categories,
+                    categoryGroups: $model.groups
+                )
+                #if os(macOS)
+                .frame(minWidth: 300, minHeight: 500)
+                .presentationSizing(.fitted)
+                #endif
+            }
+            .sheet(isPresented: $showPayMethodSheet, onDismiss: {
+                model.setMethodIds(payModel: payModel)
+                //model.fetchIfChange(calModel: calModel)
+            }) {
+                PayMethodSheet(
+                    payMethod: $model.payMethod,
+                    whichPaymentMethods: .all,
+                    showStartingAmountOption: false,
+                    showNoneOption: true,
+                    noneText: "Don't filter by any account and show all data."
+                )
+            }
         }
+    }
+    
+    var showPaymentMethodSheetButton: some View {
+        Button {
+            showPayMethodSheet = true
+        } label: {
+            Label {
+                Text(model.payMethod?.title ?? "Select Account")
+            } icon: {
+                PayMethodLogoMashup(meth: model.payMethod)
+            }
+            .schemeBasedForegroundStyle()
+        }
+        .tint(.none)
+        .disabled(model.isLoading)
+    }
+    
+    var showCategorySheetButton: some View {
+        Button {
+            showCategorySheet = true
+        } label: {
+            Label {
+                Text("Select Categories")
+            } icon: {
+                Image(systemName: "books.vertical")
+            }
+            .schemeBasedForegroundStyle()
+        }
+        .if(!model.allCatsSelected) {
+            $0.badge(model.categories.count + model.groups.count)
+        }
+        .tint(.none)
+        .disabled(model.isLoading)
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
     }
 }

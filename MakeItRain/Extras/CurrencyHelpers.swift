@@ -107,7 +107,7 @@ struct CurrencyHelpers {
             options: .regularExpression
         ).trimmingCharacters(in: .whitespacesAndNewlines)
 
-        print("Returning cleaned string: \(result)")
+        //print("Returning cleaned string: \(result)")
         
         return result
     }

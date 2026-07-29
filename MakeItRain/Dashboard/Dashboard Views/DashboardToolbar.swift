@@ -43,16 +43,20 @@ struct DashboardToolbar: ToolbarContent {
         if AppState.shared.isIpad {
             ToolbarItem(placement: .topBarTrailing) { closeButton }
         } else {
-            ToolbarItem(placement: .topBarTrailing) { showPaymentMethodSheetButton }
-            ToolbarSpacer(.fixed, placement: .topBarTrailing)
+//            ToolbarItem(placement: .topBarTrailing) { showPaymentMethodSheetButton }
+//            ToolbarSpacer(.fixed, placement: .topBarTrailing)
             
             if !isForSelectedMonth {
                 ToolbarItem(placement: .topBarTrailing) { refreshButton }
 //                ToolbarSpacer(.fixed, placement: .topBarTrailing)
             }
             
+            if model.payMethod != nil {
+                ToolbarSpacer(.fixed, placement: .topBarTrailing)
+            }
+            
 //            ToolbarItem(placement: .topBarTrailing) { showPaymentMethodSheetButton }
-            ToolbarItem(placement: .topBarTrailing) { showCategorySheetButton }
+//            ToolbarItem(placement: .topBarTrailing) { showCategorySheetButton }
             ToolbarItem(placement: .topBarTrailing) { showOptionsSheetButton }
         }
 
@@ -131,8 +135,11 @@ struct DashboardToolbar: ToolbarContent {
         Button {
             model.showOptionsSheet = true
         } label: {
-            Image(systemName: "ellipsis")
-            //Text("\(model.formattedDateRange)")
+            if model.payMethod == nil {
+                Image(systemName: "ellipsis")
+            } else {
+                PayMethodLogoMashup(meth: model.payMethod)
+            }
         }
         .tint(.none)
         #if os(macOS)

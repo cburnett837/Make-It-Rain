@@ -128,7 +128,12 @@ struct TransactionListView: View {
         .sheet(isPresented: $showPaymentMethodSheet) {
             calModel.startingAmountSheetDismissed()
         } content: {
-            PayMethodSheet(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all, showStartingAmountOption: true, showNoneOption: true)
+            PayMethodSheet(
+                payMethod: $calModel.sPayMethod,
+                whichPaymentMethods: .all,
+                showStartingAmountOption: true,
+                showNoneOption: true
+            )
                 //#if os(iOS)
                 //.navigationTransition(.zoom(sourceID: "myButton", in: paymentMethodMenuButtonNamespace))
                 //#endif
@@ -139,8 +144,15 @@ struct TransactionListView: View {
         Button {
             showPaymentMethodSheet = true
         } label: {
-            Image(systemName: "creditcard")
-                .schemeBasedForegroundStyle()
+//            Image(systemName: "creditcard")
+//                .schemeBasedForegroundStyle()
+            PayMethodLogoMashup(meth: calModel.sPayMethod)
+//            if let meth = calModel.sPayMethod {
+//                PayMethodLogoMashup(meth: calModel.sPayMethod)
+//            } else {
+//                Image(systemName: "creditcard")
+//                    .schemeBasedForegroundStyle()
+//            }
         }
     }
     

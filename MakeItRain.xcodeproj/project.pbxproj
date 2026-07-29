@@ -447,7 +447,7 @@
 		FDFD8F352FB25B7400B9A98B /* BudgetCumTotalChartPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDFD8F342FB25B7400B9A98B /* BudgetCumTotalChartPoint.swift */; };
 		FDFD8F362FB25B7400B9A98B /* BudgetCumTotalChartPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDFD8F342FB25B7400B9A98B /* BudgetCumTotalChartPoint.swift */; };
 		FDFD8F382FB25BA600B9A98B /* BudgetCumTotal.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDFD8F372FB25BA600B9A98B /* BudgetCumTotal.swift */; };
-		FDFD8F3A2FB25BB800B9A98B /* BudgetCumSpendingChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDFD8F392FB25BB800B9A98B /* BudgetCumSpendingChart.swift */; };
+		FDFD8F3A2FB25BB800B9A98B /* BudgetCumChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDFD8F392FB25BB800B9A98B /* BudgetCumChart.swift */; };
 		FDFD8F3C2FB25BC200B9A98B /* BudgetChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDFD8F3B2FB25BC200B9A98B /* BudgetChart.swift */; };
 		FDFD8F3E2FB25BC900B9A98B /* BudgetSpendingByDayChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDFD8F3D2FB25BC900B9A98B /* BudgetSpendingByDayChart.swift */; };
 		FDFD8F422FB4D29700B9A98B /* CategoryEditSheetAndLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDFD8F412FB4D29700B9A98B /* CategoryEditSheetAndLogic.swift */; };
@@ -952,7 +952,7 @@
 		FDFD8F322FB2569C00B9A98B /* BudgetHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetHelper.swift; sourceTree = "<group>"; };
 		FDFD8F342FB25B7400B9A98B /* BudgetCumTotalChartPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetCumTotalChartPoint.swift; sourceTree = "<group>"; };
 		FDFD8F372FB25BA600B9A98B /* BudgetCumTotal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetCumTotal.swift; sourceTree = "<group>"; };
-		FDFD8F392FB25BB800B9A98B /* BudgetCumSpendingChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetCumSpendingChart.swift; sourceTree = "<group>"; };
+		FDFD8F392FB25BB800B9A98B /* BudgetCumChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetCumChart.swift; sourceTree = "<group>"; };
 		FDFD8F3B2FB25BC200B9A98B /* BudgetChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetChart.swift; sourceTree = "<group>"; };
 		FDFD8F3D2FB25BC900B9A98B /* BudgetSpendingByDayChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetSpendingByDayChart.swift; sourceTree = "<group>"; };
 		FDFD8F412FB4D29700B9A98B /* CategoryEditSheetAndLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryEditSheetAndLogic.swift; sourceTree = "<group>"; };
@@ -1958,7 +1958,7 @@
 			children = (
 				FDFD8F3B2FB25BC200B9A98B /* BudgetChart.swift */,
 				FDFD8F3D2FB25BC900B9A98B /* BudgetSpendingByDayChart.swift */,
-				FDFD8F392FB25BB800B9A98B /* BudgetCumSpendingChart.swift */,
+				FDFD8F392FB25BB800B9A98B /* BudgetCumChart.swift */,
 			);
 			path = "Budget Charts";
 			sourceTree = "<group>";
@@ -2496,7 +2496,7 @@
 				FDC26E5B2D3E86D500B0A97C /* KeywordView.swift in Sources */,
 				FD3DFD152EE0D1D7002C2051 /* CategoryAnalyticChartBackup.swift in Sources */,
 				FD3DFD112EDFDF08002C2051 /* TevDatePicker.swift in Sources */,
-				FDFD8F3A2FB25BB800B9A98B /* BudgetCumSpendingChart.swift in Sources */,
+				FDFD8F3A2FB25BB800B9A98B /* BudgetCumChart.swift in Sources */,
 				FD09FF642D9D71EE00795C28 /* StandardUrlTextField.swift in Sources */,
 				FDC26E5E2D3E86D500B0A97C /* NavigationManager.swift in Sources */,
 				FD3DFD0F2EDFDE5E002C2051 /* TevAmount.swift in Sources */,

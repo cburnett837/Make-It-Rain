@@ -9,19 +9,37 @@ import Foundation
 import Charts
 import SwiftUI
 
+enum BudgetHelperCalcType {
+    case spend, income
+}
 struct BudgetHelper {
     
     @MainActor
-    static func calculateDailySpend(days: [CBDay], transactions: Array<CBTransaction>) -> [BudgetDailySpendTotal] {
-        let spendByDateTotals = days.compactMap { day -> BudgetDailySpendTotal? in
+    static func calculateDailyAmount(
+        days: [CBDay],
+        transactions: Array<CBTransaction>,
+        type: BudgetHelperCalcType
+    ) -> [BudgetDailyTotal] {
+        let spendByDateTotals = days.compactMap { day -> BudgetDailyTotal? in
             guard let date = day.date else { return nil }
             
-            let spendByDay = transactions
-                .filter { $0.dateComponents?.day == day.date?.day && $0.isExpense }
-                .map { $0.payMethod?.isCreditOrLoan == true ? $0.amount * -1 : $0.amount }
-                .reduce(0, +)
+            var val: Decimal = 0.0
             
-            return BudgetDailySpendTotal(date: date, total: spendByDay)
+            switch type {
+            case .spend:
+                val = transactions
+                    .filter { $0.dateComponents?.day == day.date?.day && $0.isExpense }
+                    .map { $0.payMethod?.isCreditOrLoan == true ? $0.amount * -1 : $0.amount }
+                    .reduce(0, +)
+            case .income:
+                val = transactions
+                    .filter { $0.dateComponents?.day == day.date?.day && $0.isIncome }
+                    .map { $0.payMethod?.isCreditOrLoan == true ? $0.amount * -1 : $0.amount }
+                    .reduce(0, +)
+            }
+            
+            
+            return BudgetDailyTotal(date: date, total: val)
         }
         
         return spendByDateTotals
@@ -31,7 +49,8 @@ struct BudgetHelper {
     static func calculateCumTotals(
         days: [CBDay],
         transactions: Array<CBTransaction>,
-        budgetAmount: Decimal
+        budgetAmount: Decimal,
+        type: BudgetHelperCalcType
     ) -> Array<BudgetCumTotal> {
         /// Get how much has been spend up until each day.
         //cumTotals.removeAll()
@@ -46,13 +65,22 @@ struct BudgetHelper {
             let trans = transactions.filter { $0.dateComponents?.day == date.day }
 
             if !trans.isEmpty {
-                let dailySpend = TransactionHelper.All.Amount.actualSpend(from: trans) * -1
+                var amount: Decimal = 0.0
+                switch type {
+                case .spend:
+                    amount = TransactionHelper.All.Amount.actualSpend(from: trans) * -1
+                    //print("\(#function) spend - \(amount)")
+                case .income:
+                    amount = TransactionHelper.All.Amount.actualIncome(from: trans)
+                    //print("\(#function) income - \(amount)")
+                }
+                //let dailySpend = TransactionHelper.All.Amount.actualSpend(from: trans) * -1
                 //let dailyIncome = TransactionHelper.All.Amount.actualIncome(from: trans)
-                let new = dailySpend// + dailyIncome
+                //let new = amount// + dailyIncome
                 
                 //print("\(day.date) - \(new)")
                 
-                total += new
+                total += amount
             }
 
             cumTotals.append(

@@ -247,10 +247,11 @@ struct PayMethodSheet: View {
                 //methColorCircle(meth)
                 //BusinessLogo(parent: meth, fallBackType: meth.isUnified ? .gradient : .color)
                 #if os(iOS)
-                BusinessLogo(config: .init(
-                    parent: meth,
-                    fallBackType: meth.isUnified ? .gradient : .color
-                ))
+                PayMethodLogoMashup(meth: meth)
+//                BusinessLogo(config: .init(
+//                    parent: meth,
+//                    fallBackType: meth.isUnified ? .gradient : .color
+//                ))
                 #else
                 BusinessLogo(config: .init(
                     parent: meth,
@@ -356,11 +357,12 @@ fileprivate struct StartingAmountLine: View {
             Label {
                 Text("\(payMethod.title)")
             } icon: {
+                PayMethodLogoMashup(meth: payMethod)
                 //BusinessLogo(parent: payMethod, fallBackType: payMethod.isUnified ? .gradient : .color)
-                BusinessLogo(config: .init(
-                    parent: payMethod,
-                    fallBackType: payMethod.isUnified ? .gradient : .color
-                ))
+//                BusinessLogo(config: .init(
+//                    parent: payMethod,
+//                    fallBackType: payMethod.isUnified ? .gradient : .color
+//                ))
             }
             .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
             .contentShape(Rectangle())
