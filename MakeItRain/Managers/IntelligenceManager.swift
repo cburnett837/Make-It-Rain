@@ -17,7 +17,7 @@ class IntelligenceManager {
         let url = URL(string: "https://api.openai.com/v1/responses")!
         var request = URLRequest(url: url)
         
-        let apiKey = ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? ""
+        guard let apiKey = AppState.shared.openAiKey else {return}
         
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

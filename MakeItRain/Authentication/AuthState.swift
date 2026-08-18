@@ -69,6 +69,7 @@ class AuthState {
                     if let apiKey = model.apiKey {
                         try keychainManager.addToKeychain(key: "user_api_key", value: apiKey)
                         AppState.shared.apiKey = apiKey
+                        AppState.shared.openAiKey = model.openAiKey
                         
                         let userData = try JSONEncoder().encode(model.user)
                         UserDefaults(suiteName: "group.dev.cburnett837.MakeItRain")?.set(userData, forKey: "user")

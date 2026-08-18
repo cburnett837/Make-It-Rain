@@ -15,10 +15,11 @@ struct CBLogin: Decodable {
     var accountUsers: [CBUser]
     var hasPaymentMethodsExisiting: Bool = false
     var apiKey: String?
+    var openAiKey: String?
     var settings: AppSettingsDecodable
     var country: Country
     
-    enum CodingKeys: CodingKey { case account_id, user, account_users, has_payment_methods_existing, api_key, settings, country_id }
+    enum CodingKeys: CodingKey { case account_id, user, account_users, has_payment_methods_existing, api_key, settings, country_id, open_ai_key }
         
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -26,6 +27,7 @@ struct CBLogin: Decodable {
         user = try container.decode(CBUser.self, forKey: .user)
         accountUsers = try container.decode(Array<CBUser>.self, forKey: .account_users)
         apiKey = try container.decode(String?.self, forKey: .api_key)
+        openAiKey = try container.decode(String?.self, forKey: .open_ai_key)
         let hasPaymentMethodsExisiting = try container.decodeIfPresent(Int.self, forKey: .has_payment_methods_existing)
         self.hasPaymentMethodsExisiting = hasPaymentMethodsExisiting == 1
         self.settings = try container.decode(AppSettingsDecodable.self, forKey: .settings)

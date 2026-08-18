@@ -18,6 +18,7 @@ class AppState {
     //month.hasLoadedFromServer = falsevar downloadedMonths: Array<NavDest> = []
     var user: CBUser?
     var apiKey: String?
+    var openAiKey: String?
     var accountUsers: Array<CBUser> = []
     var methsExist = false
     var showPaymentMethodNeededSheet = false
