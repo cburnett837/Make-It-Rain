@@ -14,31 +14,31 @@ final class PhoneWatchSync: NSObject, WCSessionDelegate {
     static let shared = PhoneWatchSync()
 
     func start() {
-        print("-- \(#function)")
+        //print("-- \(#function)")
         guard WCSession.isSupported() else { return }
 
         let session = WCSession.default
         session.delegate = self
         session.activate()
         
-        print("isPaired:", WCSession.default.isPaired)
-        print("isWatchAppInstalled:", WCSession.default.isWatchAppInstalled)
+        print("⌚️ isPaired:", WCSession.default.isPaired)
+        print("⌚️ isWatchAppInstalled:", WCSession.default.isWatchAppInstalled)
     }
 
     func syncUserDefaultsToWatch(apiKey: String) {
-        print("-- \(#function)")
+        //print("-- \(#function)")
         guard WCSession.default.activationState == .activated else {
-            print("Phone WCSession not activated yet")
+            print("⌚️ Phone WCSession not activated yet")
             return
         }
         guard WCSession.default.isWatchAppInstalled else { return }
         
         guard let ud = UserDefaults(suiteName: "group.dev.cburnett837.MakeItRain")?.data(forKey: "user") else {
-            print("User default user not found")
+            print("⌚️ User default user not found")
             return
         }
         guard let user = try? JSONDecoder().decode(CBUser.self, from: ud) else {
-            print("Could not decode user from UserDefaults")
+            print("⌚️ Could not decode user from UserDefaults")
             return
         }
         
@@ -55,9 +55,9 @@ final class PhoneWatchSync: NSObject, WCSessionDelegate {
         do {
             WCSession.default.transferUserInfo(payload)
             //try WCSession.default.updateApplicationContext(payload)
-            print("Sent context:", payload)
+            print("⌚️ Sent context:", payload)
         } catch {
-            print("Failed to sync defaults to watch:", error)
+            print("⌚️ Failed to sync defaults to watch:", error)
         }
     }
 

@@ -83,6 +83,11 @@ class PayMethodModel {
             }
             return false
         }
+        
+        if payMethod.country == nil {
+            AppState.shared.showAlert("The country for the account is required. Changes not saved.")
+            return false
+        }
                                                 
         if payMethod.hasChanges() {
             payMethod.updatedBy = AppState.shared.user!
@@ -105,11 +110,13 @@ class PayMethodModel {
             /// Update starting amounts.
             calModel.months
                 .flatMap { $0.startingAmounts }
-                .filter { $0.payMethod.id == payMethod.id }
-                .forEach { $0.payMethod.setFromAnotherInstance(payMethod: payMethod) }
+                .filter { $0.payMethod?.id == payMethod.id }
+                .forEach { $0.payMethod?.setFromAnotherInstance(payMethod: payMethod) }
+            
             Task {
                 await submit(payMethod)
             }
+            
             return true
         } else {
             print("No Changes")
@@ -237,7 +244,7 @@ class PayMethodModel {
         /// Do networking.
         let model = RequestModel(requestType: "fetch_payment_methods", model: AppState.shared.user)
         typealias ResultResponse = Result<Array<CBPaymentMethod>?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
         
         switch await result {
         case .success(let model):
@@ -262,7 +269,7 @@ class PayMethodModel {
             }
             
             let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-            print("⏰It took \(currentElapsed) seconds to fetch the payment methods")
+            print("⏰ It took \(currentElapsed) seconds to fetch the payment methods")
             
         case .failure (let error):
             switch error {
@@ -500,7 +507,7 @@ class PayMethodModel {
         /// Networking
         let model = RequestModel(requestType: "fetch_starting_amounts_for_date_range", model: analModel)
         typealias ResultResponse = Result<Array<CBStartingAmount>?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
         switch await result {
         case .success(let model):
@@ -530,7 +537,7 @@ class PayMethodModel {
         let model = RequestModel(requestType: "fetch_analytics_for_payment_method", model: analModel)
         
         typealias ResultResponse = Result<Array<CBPaymentMethod>?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
         switch await result {
         case .success(let model):
@@ -555,9 +562,10 @@ class PayMethodModel {
         //print("-- \(#function)")
         for payMethod in self.paymentMethods.filter({ $0.isPermittedAndNotHidden }) {
             /// Create a starting amount if it doesn't exist in the current month.
-            if !month.startingAmounts.contains(where: { $0.payMethod.id == payMethod.id }) {
+            if !month.startingAmounts.contains(where: { $0.payMethod?.id == payMethod.id }) {
                 let starting = CBStartingAmount()
                 starting.payMethod = payMethod
+                starting.condataOriginalCountry = payMethod.country
                 starting.action = .add
                 starting.month = month.actualNum
                 starting.year = month.year
@@ -812,6 +820,7 @@ class PayMethodModel {
         type: ApplicablePaymentMethods,
         sText: String = "",
         includeHidden: Bool = false,
+        respectFilter: Bool = true,
         calModel: CalendarModel? = nil,
         plaidModel: PlaidModel? = nil
     ) -> Array<CBPaymentMethod> {
@@ -841,7 +850,10 @@ class PayMethodModel {
                 && (includeHidden ? true : !$0.isHidden)
                 && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
             }
-            .filter { $0.accountHolderFilter() }
+            .filter {
+                guard respectFilter == true else {return true}
+                return $0.accountHolderFilter()
+            }
 //            .filter {
 //                switch AppSettings.shared.paymentMethodFilterMode {
 //                case .all:

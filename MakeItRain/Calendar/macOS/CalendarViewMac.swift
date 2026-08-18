@@ -45,8 +45,8 @@ struct CalendarViewMac: View {
     @State private var isHoveringOnSlider: Bool = false
     
     //@State private var selectedDay: CBDay?
-    @State private var transEditID: String?
-    @State private var editTrans: CBTransaction?
+    //@State private var transEditID: String?
+    //@State private var editTrans: CBTransaction?
     
     @State private var pulse = false
     
@@ -55,6 +55,7 @@ struct CalendarViewMac: View {
 
     
     var body: some View {
+        //let _ = Self._printChanges()
         @Bindable var calProps = calProps
         
         calendarView
@@ -214,12 +215,19 @@ struct CalendarViewMac: View {
             @Bindable var calProps = calProps
             GeometryReader { geo in
                 LazyVGrid(columns: sevenColumnGrid, spacing: 0) {
-                    ForEach($calModel.sMonth.days) { $day in
-                        DayViewMac(transEditID: $transEditID, editTrans: $editTrans, selectedDay: $calProps.selectedDay, day: $day, cellHeight: geo.size.height / divideBy, focusedField: _focusedField)
-                            //.border(Color(.gray))
-                            .overlay {
-                                Rectangle().stroke(Color(.gray), lineWidth: 1)
-                            }
+                    ForEach(calModel.sMonth.days) { day in
+                        DayViewMac(
+                            //transEditID: $transEditID,
+                            //editTrans: $editTrans,
+                            //selectedDay: $calProps.selectedDay,
+                            day: day,
+                            cellHeight: geo.size.height / divideBy,
+                            focusedField: _focusedField
+                        )
+                        //.border(Color(.gray))
+                        .overlay {
+                            Rectangle().stroke(Color(.gray), lineWidth: 1)
+                        }
                     }
                 }
             }

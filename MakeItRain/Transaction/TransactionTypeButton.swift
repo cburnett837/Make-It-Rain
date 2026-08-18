@@ -38,6 +38,8 @@ struct TransactionAmountRow<Content: View>: View {
 
     var amountTypeLingo: String
     @Binding var amountString: String
+    @Binding var originalAmountString: String
+    @Binding var payMethodAmountString: String
     var isCalculator: Bool = false
     @ViewBuilder var content: Content
     
@@ -47,6 +49,10 @@ struct TransactionAmountRow<Content: View>: View {
             HStack(spacing: 1) {
                 Button {
                     Helpers.plusMinus($amountString)
+                    Helpers.plusMinus($originalAmountString)
+                    Helpers.plusMinus($payMethodAmountString)
+                    //let new = CurrencyHelpers.formatAmountText(amount: foreignAmount, currencyCode: <#T##String#>)
+                    //foreignAmount = Helpers.plusMinus(new)
                 } label: {
                     Text(amountTypeLingo)
                         .font(.body)

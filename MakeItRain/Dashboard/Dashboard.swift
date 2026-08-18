@@ -27,13 +27,12 @@ struct Dashboard: View {
     #else
     @State private var navPath: [NavDest] = []
     #endif
-    @Binding var showAnalysisSheet: Bool
     @Bindable var model: DashboardModel
     var isForSelectedMonth: Bool
     
-    @State private var showPayMethodSheet: Bool = false
-    @State private var showCategorySheet = false
-    @State private var showOptionsSheet = false
+    //@State private var showPayMethodSheet: Bool = false
+    //@State private var showCategorySheet = false
+    //@State private var showOptionsSheet = false
     @State private var showExpensiveViews = true
     
     var totalExpenses: Decimal {
@@ -45,7 +44,7 @@ struct Dashboard: View {
     
     
     var transWithAlerts: Array<CBTransaction> {
-        calModel.getTransactions(meth: model.payMethod)
+        calModel.getTransactions(meth: model.payMethod, includeExcluded: true)
         .filter({
             $0.notifyOnDueDate
             && $0.date?.day == Date().day
@@ -61,26 +60,71 @@ struct Dashboard: View {
         isForSelectedMonth || !transWithAlerts.isEmpty || !cardsDueToday.isEmpty
     }
     
-    
     var body: some View {
+        #if os(iOS)
+        root
+        #else
+        NavigationStack(path: $navPath) {
+            root
+                .navigationDestination(for: NavDest.self) { dest in
+                    switch dest {
+                    case .dashboard:
+                        EmptyView()
+                        
+                    case .dashboardTransactionList(let data, let category):
+                        DashboardTransactionList(data: data, category: category)
+                        
+                    case .dashboardNumericBreakdown:
+                        DashboardNumericDetails(model: calModel.dashboardModel, isForSelectedMonth: true)
+                        
+                    case .plaidRejectPage:
+                        EmptyView()
+//                                ClearPlaidBeforeDateView(selectedMeth: $selectedPlaidFilterMeth, navPath: $navPath)
+                        
+                    case .budgets:
+                        MonthlyBudgetTable()
+                        
+                    case .transactionList:
+                        EmptyView()
+                        //TransactionListView(showTransactionListSheet: $showTransactionListSheet)
+                        
+                    case .multiTransChangeDate:
+                        EmptyView()
+//                                MultiSelectChangeDatePage(navPath: $navPath)
+                        
+                    case .budgetOverview(let budget):
+                        BudgetOverview(budget: budget, location: .monthList)
+                        
+                    default:
+                        Text("That destination is not supported from the calendar.")
+                    }
+                }
+        }
+        #endif
+    }
+    
+    
+    @ViewBuilder
+    var root: some View {
         @Bindable var calModel = calModel
         
-        content
+        contentContainer
             #if os(iOS)
             .onShake {
                 Task {
                     await model.initialFetchIfApplicable(calModel: calModel)
                 }
-                
             }
             #endif
             .navigationTitle("Dashboard\(AppState.shared.devMode ? " (Dev)" : "")")
+            .if(isForSelectedMonth) {
+                $0.navigationSubtitle("\(calModel.sMonth.name) \(String(calModel.sMonth.year))")
+            }
             .if(!isForSelectedMonth) {
                 $0.navigationSubtitle("\(model.formattedDateRange)\(model.payMethod == nil ? "" : " (\(model.payMethod!.title))")")
             }
             #if os(iOS)
             .navigationBarTitleDisplayMode(isForSelectedMonth ? .inline : .large)
-            //.navigationBarTitleDisplayMode(.inline)
             #endif
             .task {
                 model.oldChangeHash = model.changeHash
@@ -89,63 +133,8 @@ struct Dashboard: View {
                 }
             }
             .toolbar {
-//                ToolbarItem(placement: isForSelectedMonth ? .subtitle : .largeSubtitle) {
-//                    HStack {
-//                        VStack(alignment: .leading) {
-//                            if !isForSelectedMonth {
-//                                Text(model.formattedDateRange)
-//                                    .font(.caption)
-//                                    .foregroundStyle(.secondary)
-//                            }
-//                            
-//                            
-//                            if let meth = model.payMethod {
-//                                HStack {
-//                                    BusinessLogo(config: .init(
-//                                        parent: meth,
-//                                        fallBackType: meth.isUnified ? .gradient : .color,
-//                                        size: 14
-//                                    ))
-//                                    
-//                                    Text(meth.title)
-//                                        .font(.caption)
-//                                        .foregroundStyle(.secondary)
-//                                }
-//                            }
-//                        }
-//                        
-//                        Spacer()
-//                    }
-//                                        
-//                }
-                
-                
-//                ToolbarItem(placement: isForSelectedMonth ? .subtitle : .largeSubtitle) {
-//                    HStack(spacing: 4) {
-//                        if let meth = model.payMethod {
-//                            BusinessLogo(config: .init(
-//                                parent: meth,
-//                                fallBackType: meth.isUnified ? .gradient : .color,
-//                                size: 14
-//                            ))
-//                        }
-//                        
-//                        if !isForSelectedMonth {
-//                            Text(model.formattedDateRange)
-//                                .font(.caption)
-//                                .foregroundStyle(.secondary)
-//                        }
-//                        
-//                        Spacer()
-//                    }
-//                                        
-//                }
-                
                 DashboardToolbar(
                     model: model,
-                    showCategorySheet: $showCategorySheet,
-                    showPayMethodSheet: $showPayMethodSheet,
-                    showAnalysisSheet: $showAnalysisSheet,
                     navPath: $navPath,
                     isForSelectedMonth: isForSelectedMonth
                 )
@@ -155,208 +144,37 @@ struct Dashboard: View {
             }) {
                 DashboardOptionsSheet(
                     model: model,
-                    showCategorySheet: $showCategorySheet,
-                    showPayMethodSheet: $showPayMethodSheet,
                     isForSelectedMonth: isForSelectedMonth
                 )
-                //.interactiveDismissDisabled(true)
-                //.presentationDetents([.medium, .large])
+                #if os(macOS)
+                .frame(minWidth: 300, minHeight: 500)
+                .presentationSizing(.fitted)
+                #else
                 .presentationDetents([.large])
+                #endif
             }
-//            .sheet(isPresented: $showCategorySheet, onDismiss: {
-//                model.fetchIfChange(calModel: calModel)
-//            }) {
-//                MultiCategorySheet(
-//                    categories: $model.categories,
-//                    categoryGroups: $model.groups
-//                )
-//                #if os(macOS)
-//                .frame(minWidth: 300, minHeight: 500)
-//                .presentationSizing(.fitted)
-//                #endif
-//            }
-//            .sheet(isPresented: $showPayMethodSheet, onDismiss: {
-//                model.setMethodIds(payModel: payModel)
-//                model.fetchIfChange(calModel: calModel)
-//            }) {
-//                PayMethodSheet(
-//                    payMethod: $model.payMethod,
-//                    whichPaymentMethods: .all,
-//                    showStartingAmountOption: false,
-//                    showNoneOption: true,
-//                    noneText: "Don't filter by any account and show all data."
-//                )
-//            }
     }
     
+    @State private var isBreakdownExpanded = false
+    let gridColumns = Array(repeating: GridItem(.flexible(), spacing: 30, alignment: .top), count: 2)
     
     @ViewBuilder
-    var content: some View {
+    var contentContainer: some View {
         if model.categories.isEmpty && model.groups.isEmpty {
             contentUnavailableView
         } else {
             ScrollView {
-                VStack(spacing: 24) {
-                    if isForSelectedMonth {
-                        DashboardWidget(title: "Net Worth") {
-                            DashboardNetWorthChange()
-                        }
-                    }
-                    
-                    if isForSelectedMonth {
-                        if showExpensiveViews {
-                            DashboardWidget(title: "\(calModel.sMonth.name)'s Overall Budget") {
-                                HStack {
-                                    BudgetChart(budgetAmount: calModel.sMonth.budget, expenseAmount: totalExpenses)
-                                    Image(systemName: "chevron.right")
-                                        .foregroundStyle(.tertiary)
-                                        .font(.footnote)
-                                }
-                                .onTapGesture {
-                                    if isForSelectedMonth {
-                                        navPath.append(NavDest.budgets)
-                                    }
-                                }
-                            }
-                        }
-                        
-                        
-                        if !transWithAlerts.isEmpty {
-                            DashboardWidget(title: "Today's Transaction Reminders") {
-                                ScrollView {
-                                    LazyVStack(spacing: 0) {
-                                        ForEachWithSeparator(transWithAlerts) { trans in
-                                            TransactionListLine(trans: trans) {}
-                                                //.padding(.vertical, 8)
-                                        } separator: {
-                                            Divider().padding(.vertical, 8)
-                                        }
-                                    }
-                                }
-                                .contentMargins(.horizontal, 0, for: .scrollIndicators)
-                                .frame(maxHeight: 150)
-                            }
-                        }
-                    }
-                    
-                    
-                    if !cardsDueToday.isEmpty {
-                        DashboardWidget(title: "Credit Cards Due Today") {
-                            ScrollView {
-                                LazyVStack(spacing: 0) {
-                                    ForEachWithSeparator(cardsDueToday) { meth in
-                                        HStack {
-                                            #if os(iOS)
-                                            BusinessLogo(config: .init(
-                                                parent: meth,
-                                                fallBackType: meth.isUnified ? .gradient : .color
-                                            ))
-                                            #else
-                                            BusinessLogo(config: .init(
-                                                parent: meth,
-                                                fallBackType: meth.isUnified ? .gradient : .color,
-                                                size: 20
-                                            ))
-                                            .padding(.trailing, 10)
-                                            #endif
-
-                                            VStack(alignment: .leading) {
-                                                Text(meth.title)
-                                                Text(funcModel.getPlaidBalancePrettyString(meth) ?? "N/A")
-                                                    .foregroundStyle(.gray)
-                                                    .font(.caption)
-                                            }
-                                                                                        
-                                            Spacer()
-                                        }
-                                        //.padding(.vertical, 8)
-                                    } separator: {
-                                        Divider().padding(.vertical, 8)
-                                    }
-                                }
-                            }
-                            .contentMargins(.horizontal, 0, for: .scrollIndicators)
-                            .frame(maxHeight: 150)
-                        }
-                    }
-                    
-                    if showDivider {
-                        Divider()
-                    }
-                    
-                    if AppState.shared.isIphone {
-                        DashboardDetailSection(model: model, data: model.data)
-                    } else {
-                        NavigationStack(path: $navPath) {
-                            DashboardDetailSection(model: model, data: model.data)
-                        }
-                    }
-                    
-                    if showExpensiveViews {
-                        DashboardWidget(
-                            showFilterText: !model.allCatsSelected,
-                            title: {
-                                Text("Activity By Category")
-                                    .padding(.leading, 12)
-                                    .foregroundStyle(.secondary)
-                                    .font(.headline)
-                            },
-                            footer: {
-                                if !model.categories.filter({ $0.type == .payment }).isEmpty {
-                                    Text("(Note that the spending amount contains credit payments, which you may consider a transfer. To see true spending, remove the credit payment category from the filter list.)")
-                                        .foregroundStyle(.secondary)
-                                        .font(.caption)
-                                        //.bold()
-                                } else {
-                                    EmptyView()
-                                }
-                            }) {
-                                VStack(spacing: 0) {
-                                    DashboardActivityByCategoryChart(model: model, data: model.data, isForSelectedMonth: isForSelectedMonth)
-                                    
-                                    Divider()
-                                        .padding(.vertical, 10)
-                                    
-                                    DashboardExpenseByCategoryTable(model: model, navPath: $navPath, isForSelectedMonth: isForSelectedMonth)
-                                }
-                                
-                        }
-                    }
-                    
-                    if showExpensiveViews {
-                        if isForSelectedMonth {
-                            DashboardWidget(showFilterText: !model.allCatsSelected, title: "Cumulative Spending") {
-                                BudgetCumChart(
-                                    budgetAmount: model.data.categoryAndGroupBudget,
-                                    cumTotals: model.cumTotals,
-                                    type: .spend
-                                )
-                            }
-                            
-                            DashboardWidget(showFilterText: !model.allCatsSelected, title: "Spending By Day") {
-                                BudgetByDayChart(data: model.spendByDateTotals, type: .spend)
-                            }
-                        } else {
-                            
-                            if model.payMethod != nil {
-                                DashboardStartingAmountByMonthChart(model: model, data: model.data)
-//                                DashboardWidget(showFilterText: !model.allCatsSelected, title: "Starting Amounts") {
-//                                    DashboardStartingAmountByMonthChart(model: model, data: model.data)
-//                                }
-                            }
-                            
-                        }
-                        
-                        if model.data.monthlyBreakdowns.count > 1 {
-                            DashboardActivityByMonthChart(model: model, data: model.data)
-                        }
-                    }
-                    
-//                    DashboardWidget(showFilterText: !model.allCatsSelected, title: "Breakdown") {
-//                        DashboardExpenseByCategoryTable(model: model, navPath: $navPath, isForSelectedMonth: isForSelectedMonth)
-//                    }
+                #if os(iOS)
+                LazyVStack(spacing: 24) {
+                    theCards
                 }
                 .scenePadding()
+                #else
+                LazyVGrid(columns: gridColumns, spacing: 30) {
+                    theCards
+                }
+                .scenePadding()
+                #endif
             }
             .scrollContentBackground(.hidden)
             #if os(iOS)
@@ -364,29 +182,190 @@ struct Dashboard: View {
             #endif
             .task {
                 showExpensiveViews = true
+//                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+//                    showExpensiveViews = true
+//                }
+                
             }
+        }
+    }
+    
+    
+    @ViewBuilder
+    var theCards: some View {
+        if isForSelectedMonth {
+            if showExpensiveViews {
+                Card(title: "\(calModel.sMonth.name)'s Overall Budget") {
+                    HStack {
+                        BudgetChart(budgetAmount: calModel.sMonth.budget, expenseAmount: totalExpenses)
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(.tertiary)
+                            .font(.footnote)
+                    }
+                    .onTapGesture {
+                        if isForSelectedMonth {
+                            navPath.append(NavDest.budgets)
+                        }
+                    }
+                }
+            }
+        }
+        
+        HStack {
+            if !cardsDueToday.isEmpty {
+                Card(title: "Due Today") {
+                    creditCardsDueTodayView
+                }
+            }
+            
+            if isForSelectedMonth && !transWithAlerts.isEmpty {
+                Card(title: "Reminders") {
+                    transWithAlertsTodayView
+                }
+            }
+        }
+        
+        
+        
+        #if os(iOS)
+        if showDivider {
+            Divider()
+        }
+        #endif
+        
+        if AppState.shared.isIphone {
+            DashboardDetailSection(model: model, data: model.data)
+        } else {
+            NavigationStack(path: $navPath) {
+                DashboardDetailSection(model: model, data: model.data)
+            }
+        }
+        
+        if showExpensiveViews {
+            Card(
+                showFilterText: !model.allCatsSelected,
+                title: {
+                    Text("Activity By Category")
+                        .padding(.leading, 12)
+                        .foregroundStyle(.secondary)
+                        .font(.headline)
+                },
+                footer: {
+                    if !model.categories.filter({ $0.type == .payment }).isEmpty {
+                        Text("(Note that the spending amount contains credit payments, which you may consider a transfer. To see true spending, remove the credit payment category from the filter list.)")
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
+                            //.bold()
+                    } else {
+                        EmptyView()
+                    }
+                }) {
+                    DashboardActivityByCategoryChart(
+                        model: model,
+                        data: model.data,
+                        isForSelectedMonth: isForSelectedMonth,
+                        navPath: $navPath
+                    )
+            }
+        }
+        
+        if showExpensiveViews {
+            if isForSelectedMonth {
+                Card(showFilterText: !model.allCatsSelected, title: "Cumulative Spending") {
+                    BudgetCumChart(
+                        budgetAmount: model.data.categoryAndGroupBudget,
+                        cumTotals: model.cumTotals,
+                        type: .spend
+                    )
+                }
+                
+                Card(showFilterText: !model.allCatsSelected, title: "Spending By Day") {
+                    BudgetByDayChart(data: model.spendByDateTotals, type: .spend)
+                }
+                
+            } else {
+                if model.payMethod != nil {
+                    DashboardStartingAmountByMonthChart(model: model, data: model.data)
+                }
+            }
+            
+            if model.data.monthlyBreakdowns.count > 1 {
+                DashboardActivityByMonthChart(model: model, data: model.data)
+            }
+        }
+        
+        
+        if isForSelectedMonth {
+            Card(title: "Net Worth") {
+                DashboardNetWorthChange()
+            }
+        } else if model.data.monthlyBreakdowns.count > 1 {
+            DashboardNetWorthChangeChart(model: model, data: model.data)
         }
     }
     
 
     var contentUnavailableView: some View {
         ContentUnavailableView {
-            Label {
-                Text("No Categories Selected")
-            } icon: {
-                Image(systemName: "books.vertical")
-            }
+            Label("No Categories Selected", systemImage: "books.vertical")
         } description: {
-            Text("Select some categories to view insights.")
+            Text("Select some categories to view the dashboard.")
         } actions: {
             Button {
-                showCategorySheet = true
+                model.showOptionsSheet = true
+                //showCategorySheet = true
             } label: {
                 Text("Select Categories")
                     .padding(4)
             }
             .buttonStyle(.borderedProminent)
         }
+    }
+    
+    var transWithAlertsTodayView: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEachWithSeparator(transWithAlerts) { trans in
+                    TransactionListLine(trans: trans) {}
+                        //.padding(.vertical, 8)
+                } separator: {
+                    Divider().padding(.vertical, 8)
+                }
+            }
+        }
+        .contentMargins(.horizontal, 0, for: .scrollIndicators)
+        .frame(maxHeight: 150)
+    }
+    
+    var creditCardsDueTodayView: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEachWithSeparator(cardsDueToday) { meth in
+                    HStack {
+                        #if os(iOS)
+                        PayMethodLogoMashup(meth: meth)
+                        #else
+                        PayMethodLogoMashup(meth: meth, size: 20)
+                            .padding(.trailing, 10)
+                        #endif
+
+                        VStack(alignment: .leading) {
+                            Text(meth.title)
+                            Text(funcModel.getPlaidBalancePrettyString(meth, withTime: false) ?? "N/A")
+                                .foregroundStyle(.gray)
+                                .font(.caption)
+                        }
+                                                                    
+                        Spacer()
+                    }
+                    //.padding(.vertical, 8)
+                } separator: {
+                    Divider().padding(.vertical, 8)
+                }
+            }
+        }
+        .contentMargins(.horizontal, 0, for: .scrollIndicators)
+        .frame(maxHeight: 150)
     }
     
 //    

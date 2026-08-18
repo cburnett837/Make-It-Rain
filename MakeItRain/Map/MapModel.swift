@@ -114,6 +114,8 @@ class MapModel: NSObject {
     }
     
     
+    
+    
     func getMapItem(from localSearchCompletion: MKLocalSearchCompletion, parentID: String, parentType: XrefLocationType) async -> CBLocation? {
         completions.removeAll()
         let request = MKLocalSearch.Request(completion: localSearchCompletion)
@@ -151,7 +153,12 @@ class MapModel: NSObject {
     }
     
     
-    func addLocationViaTouchAndHold(coordinate: CLLocationCoordinate2D, parentID: String, parentType: XrefLocationType) async -> CBLocation? {
+    func addLocationViaTouchAndHold(
+        coordinate: CLLocationCoordinate2D,
+        parentID: String,
+        parentType: XrefLocationType,
+        showDetailsPanel: Bool = true
+    ) async -> CBLocation? {
         print("-- \(#function)")
         searchResults.removeAll()
         
@@ -164,10 +171,12 @@ class MapModel: NSObject {
                 let item = mapItems.first!
                 let cbLocation = CBLocation(relatedID: parentID, locationType: parentType, title: item.name ?? "N/A", mapItem: item)
                 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    withAnimation {
-                        self.selection = MapSelection(cbLocation)
-                        self.panelContent = .details
+                if showDetailsPanel {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        withAnimation {
+                            self.selection = MapSelection(cbLocation)
+                            self.panelContent = .details
+                        }
                     }
                 }
                 

@@ -366,7 +366,7 @@ class CBMonth: Identifiable, Hashable, Equatable, Codable, IsEditableBudget {
     }
     
     func getBudget(by id: String) -> CBBudgetItem {
-        return budgets.filter { $0.id == id }.first ?? CBBudgetItem.empty
+        return budgets.filter { $0.id == id }.first ?? CBBudgetItem(type: .category)
     }
     
     func getIndex(for budget: CBBudgetItem) -> Int? {

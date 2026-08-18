@@ -49,10 +49,12 @@ struct MakeItRainApp: App {
     @State var dashboardModel: DashboardModel
     @State var budgetModel: BudgetModel
     @State var tagModel: TagModel
-    
+    @State var calProps: CalendarProps
+        
     @State private var fileModel = FileModel.shared
     @State private var locationManager = LocationManager.shared
     @State var dataChangeTriggers = DataChangeTriggers.shared
+    @State private var plaidWouldLikeToShow = false
     //@State private var mapModel = MapModel()
     
 //    #if os(macOS)
@@ -61,7 +63,7 @@ struct MakeItRainApp: App {
     
     @State private var userIdentity = Cody.shared
     
-    @State var calProps = CalendarProps()
+    //@State var calProps = CalendarProps()
     
     @State private var showCamera = false
     
@@ -87,6 +89,7 @@ struct MakeItRainApp: App {
         let dashboardModel = DashboardModel(store: store, isForSelectedMonth: false)
         let budgetModel = BudgetModel(store: store)
         let tagModel = TagModel(store: store)
+        let calProps = CalendarProps()
         
         let webSocketManager = WebSocketManager(
             store: store,
@@ -112,7 +115,8 @@ struct MakeItRainApp: App {
             webSocketManager: webSocketManager,
             dashboardModel: dashboardModel,
             budgetModel: budgetModel,
-            tagModel: tagModel
+            tagModel: tagModel,
+            calProps: calProps
         )
 
         _store = State(initialValue: store)
@@ -127,6 +131,7 @@ struct MakeItRainApp: App {
         _funcModel = State(initialValue: funcModel)
         _budgetModel = State(initialValue: budgetModel)
         _tagModel = State(initialValue: tagModel)
+        _calProps = State(initialValue: calProps)
         
         
 //        let webSocketManager = WebSocketManager(
@@ -159,8 +164,7 @@ struct MakeItRainApp: App {
         }
     }
     
-    
-    @State private var plaidWouldLikeToShow = false
+        
     var isReadyToShowPlaidSheet: Bool {
         if let targetMonth = calModel.months.get(by: (AppState.shared.todayMonth, AppState.shared.todayYear)) {
             return plaidWouldLikeToShow
@@ -178,14 +182,17 @@ struct MakeItRainApp: App {
         
     var body: some Scene {
         WindowGroup {
-            /// Allow for universal sheets. Such as payment method sheet when first downloading the app, universal alerts, universal camera, etc.
-            /// Views shown in this layer will be at the top-most part of the UI - Allowing for content on top of both sheets, and allowing the universal calendar sheet.
+            /// Wrap the whole app in a View that has a passthrough window.
+            /// This allow for universal sheets and overlays. Such as payment method sheet when first downloading the app, alerts, toasts, universal camera, etc.
+            /// Views shown in this layer will be at the top-most part of the UI - Allowing for content on top of open sheets.
             RootViewWrapper(showCamera: $showCamera) {
                 /// Allow for a universal calendar view.
+                /// This is a passthrough window that has a blank rectangle, that contains a fullscreen cover with the calendar.
+                /// This allows the calendar to be opened from anywhere.
                 CalendarSheetLayerWrapper() {
                     Group {
                         /// `AuthState.shared.isThinking` is true when launching from a fresh state.
-                        /// `AppState.shared.shouldShowSplash`is true when launching from a fresh state, and is set to false in either `downloadEverything()` when the current month completes, or in ``AuthState`` if login fails.
+                        /// `AppState.shared.shouldShowSplash`is true when launching from a fresh state, and is set to false in either `FuncModel.downloadEverything()` when the current month completes, or in ``AuthState`` if login fails.
                         /// `AppState.shared.splashIsAnimating`is true when launching from a fresh state, and is set to false when the animation on the splash screen finishes.
                         /// *Once the 3 conditions above are met, the view will flip to the `rootView` or the `loginView` (depending on the apps overall state).*
                         if AuthState.shared.isThinking || AppState.shared.shouldShowSplash || AppState.shared.splashIsAnimating {
@@ -193,13 +200,13 @@ struct MakeItRainApp: App {
                             /// Starts the login process.
                             /// Login flow descriptions are written in the `splashScreen` and `loginScreen` views below.
                             splashScreen
+                            
+                        } else if AuthState.shared.isLoggedIn {
+                            rootView
+                            
                         } else {
-                            if AuthState.shared.isLoggedIn {
-                                rootView                                    
-                            } else {
-                                /// Login flow descriptions are written in the `splashScreen` and `loginScreen` views below.
-                                loginView
-                            }
+                            /// Login flow descriptions are written in the `splashScreen` and `loginScreen` views below.
+                            loginView
                         }
                     }
                     #if os(iOS)
@@ -287,6 +294,14 @@ struct MakeItRainApp: App {
                     }
                 }
             }
+            /// If for some reason, access to the server is revoked, or the server is down when the calendar is shown, clear it out so we can see the login screen.
+            .onChange(of: AuthState.shared.isLoggedIn) {
+                if !$1 {
+                    NavigationManager.shared.selectedMonth = nil
+                    NavigationManager.shared.selection = nil
+                    calModel.showMonth = false
+                }
+            }
         }
         .defaultSize(width: 1000, height: 600)
         
@@ -311,6 +326,7 @@ struct MakeItRainApp: App {
         monthlyPlaceholderWindow
         settingsWindow
         macAlertAndToastOverlayWindow
+        dashboardWindow
         #endif
     }
     
@@ -332,7 +348,7 @@ struct MakeItRainApp: App {
             ///     1. We are logged in…
             ///     2. Splash animation has finished…
             ///     3. First month has downloaded…
-            /// ... the splash screen will show the calendar full screen cover, and a split seocnd later switch the app from ``SplashScreen`` to ``RootView``.
+            /// ... the splash screen will show the calendar full screen cover, and a split second later switch the app from ``SplashScreen`` to ``RootView``.
         
         /// If `AuthState.attemptLogin()` fails, it will ...
             /// 1. Set `AuthState.isLoggedIn = false`
@@ -345,6 +361,7 @@ struct MakeItRainApp: App {
         SplashScreen()
             .transition(.opacity)
             .task {
+                /// Set a device UUID that is used on the server to identify which devices should recieve live websocket updates.
                 funcModel.setDeviceUUID()
                 
                 /// Download data when coming to the splash screen via the login screen.
@@ -463,62 +480,6 @@ struct MakeItRainApp: App {
         
         if url.host == "plaid_transactions" {
             plaidWouldLikeToShow = true
-//            self.waitToGoToMainViewTask = Task { @MainActor in
-//                if let targetMonth = calModel.months.filter({ $0.actualNum == AppState.shared.todayMonth }).first {
-//                    var attempts = 0
-//                    let maxAttempts = 300
-//                    /// Wait for up to a minute for the login to succeed.
-//                    while attempts < maxAttempts {
-//                        attempts += 1
-//                        
-//                        if let task = waitToGoToMainViewTask, task.isCancelled { return }
-//                        
-//                        print(
-//                            "Should be all 'true'",
-//                            !AppState.shared.shouldShowSplash,
-//                            !AuthState.shared.isThinking,
-//                            !AppState.shared.splashIsAnimating,
-//                            targetMonth.hasBeenLoadedFromServer,
-//                            (AuthState.shared.isLoggedIn || !AuthState.shared.keychainCredentialsExist)
-//                        )
-//                        
-//                        if !AppState.shared.shouldShowSplash
-//                            && !AuthState.shared.isThinking
-//                            && !AppState.shared.splashIsAnimating
-//                            && targetMonth.hasBeenLoadedFromServer
-//                            && (AuthState.shared.isLoggedIn || !AuthState.shared.keychainCredentialsExist)
-//                        {
-//                            break
-//                        }
-//                        
-//                        try? await Task.sleep(for: .milliseconds(100))
-//                    }
-//                    
-//                    let success = attempts < maxAttempts
-//                    
-//                    if success {
-//                        #if os(iOS)
-//                        if AppState.shared.isIphone,
-//                           AuthState.shared.isLoggedIn,
-//                           !AppState.shared.showPaymentMethodNeededSheet,
-//                           !AppState.shared.splashIsAnimating,
-//                           targetMonth.hasBeenLoadedFromServer {
-//                            
-//                            if calModel.showMonth == false {
-//                                NavigationManager.shared.selectedMonth = targetMonth.enumID
-//                                NavigationManager.shared.selection = nil
-//                                calModel.showMonth = true
-//                            }
-//                            
-//                            withAnimation { calProps.bottomPanelContent = .plaidTransactions }
-//                            
-//                            
-//                        }
-//                        #endif
-//                    }
-//                }
-//            }
-                                               
             return
         }
         

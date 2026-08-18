@@ -9,18 +9,21 @@
 import SwiftUI
 import Charts
 
-struct BudgetCumTotal: Identifiable {
+struct BudgetCumTotal: Identifiable, Equatable {
     var id: Date {return date}
     let date: Date
+    var dailyTotal: Decimal
     var total: Decimal
     var isOverBudget: Bool {
         (total * -1) > budgetAmount
     }
     var budgetAmount: Decimal
+    
+    
 }
 
 
-struct BudgetDailyTotal: Identifiable {
+struct BudgetDailyTotal: Identifiable, Equatable {
     var id: Date {return date}
     let date: Date
     var total: Decimal

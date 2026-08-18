@@ -133,57 +133,57 @@ struct CurrencyHelpers {
 //        return usd * exchangeRate
 //    }
     
-    @MainActor
-    static func convertedDisplayAmountForTransLineItem(trans: CBTransaction, months: Array<CBMonth>, convertUsing: TransactionConversionOriginProperty, convertTo: String?) -> Decimal? {
-        guard
-            let cunt = trans.country,
-            let date = trans.date
-        else {
-            //print("RETURNING nil on the converstion for \(trans.title)")
-            return nil
-        }
-        
-        var fromRate = Self.getExchangeRate(date: date, currencyCode: cunt.currencyCode, months: months)
-        var toRate = Self.getExchangeRate(date: date, currencyCode: convertTo ?? AppState.shared.country.currencyCode, months: months)
-        
-        if fromRate == nil {
-            fromRate = Self.getMostRecentExchangeRate(for: cunt.currencyCode, months: months)
-        }
-        
-        if toRate == nil {
-            toRate = Self.getMostRecentExchangeRate(for: convertTo ?? AppState.shared.country.currencyCode, months: months)
-        }
-        
-        guard
-            let fromRate, let toRate
-        else {
-            //print("RETURNING nil on the converstion for \(trans.title)")
-            return nil
-        }
-        
-        
-        let amount = switch convertUsing {
-        case .amount:
-            trans.amount
-        case .originalUnconvertedAmount:
-            trans.originalUnconvertedAmount
-        }
-        
-        //print("processing converstion for \(trans.title) \(cunt.currencyCode)(\(fromRate)) ---> \(convertTo ?? AppState.shared.country.currencyCode)(\(toRate))")
-        
-        //if cunt != AppState.shared.country, let amount = amount {
-        if let amount = amount {
-            if let converted = Self.convert(amount: amount, fromRate: fromRate, toRate: toRate) {
-                //print("RATE WAS CONVERTED from \(trans.originalUnconvertedAmount ?? trans.amount) to \(converted) FOR \(trans.title)")
-                return converted
-            }
-            //print("RATE WAS NOT CONVERTED FOR \(trans.title)")
-        } else {
-            
-        }
-        
-        return nil
-    }
+//    @MainActor
+//    static func convertedDisplayAmountForTransLineItem(trans: CBTransaction, months: Array<CBMonth>, convertUsing: TransactionConversionOriginProperty, convertTo: String?) -> Decimal? {
+//        guard
+//            let cunt = trans.country,
+//            let date = trans.date
+//        else {
+//            //print("RETURNING nil on the converstion for \(trans.title)")
+//            return nil
+//        }
+//        
+//        var fromRate = Self.getExchangeRate(date: date, currencyCode: cunt.currencyCode, months: months)
+//        var toRate = Self.getExchangeRate(date: date, currencyCode: convertTo ?? AppState.shared.country.currencyCode, months: months)
+//        
+//        if fromRate == nil {
+//            fromRate = Self.getMostRecentExchangeRate(for: cunt.currencyCode, months: months)
+//        }
+//        
+//        if toRate == nil {
+//            toRate = Self.getMostRecentExchangeRate(for: convertTo ?? AppState.shared.country.currencyCode, months: months)
+//        }
+//        
+//        guard
+//            let fromRate, let toRate
+//        else {
+//            //print("RETURNING nil on the converstion for \(trans.title)")
+//            return nil
+//        }
+//        
+//        
+//        let amount = switch convertUsing {
+//        case .amount:
+//            trans.amount
+//        case .originalUnconvertedAmount:
+//            trans.originalUnconvertedAmount
+//        }
+//        
+//        //print("processing converstion for \(trans.title) \(cunt.currencyCode)(\(fromRate)) ---> \(convertTo ?? AppState.shared.country.currencyCode)(\(toRate))")
+//        
+//        //if cunt != AppState.shared.country, let amount = amount {
+//        if let amount = amount {
+//            if let converted = Self.convert(amount: amount, fromRate: fromRate, toRate: toRate) {
+//                //print("RATE WAS CONVERTED from \(trans.originalUnconvertedAmount ?? trans.amount) to \(converted) FOR \(trans.title)")
+//                return converted
+//            }
+//            //print("RATE WAS NOT CONVERTED FOR \(trans.title)")
+//        } else {
+//            
+//        }
+//        
+//        return nil
+//    }
     
     
     @MainActor

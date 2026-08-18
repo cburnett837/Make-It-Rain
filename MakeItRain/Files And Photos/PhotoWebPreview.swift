@@ -74,18 +74,20 @@ struct PhotoWebPreview: View {
             requestType: "download_file",
             model: FileRequestModel(path: "budget_app.\(file.fileType.rawValue).\(file.uuid).\(file.fileType.ext)")
         )
-        
-        let jsonData = try? JSONEncoder().encode(requestModel)
-        var request = NetworkManager().request
-        request!.setValue(AppState.shared.apiKey, forHTTPHeaderField: "Api-Key")
-        request!.httpBody = jsonData
-        
+                        
         do {
-            let (data, _) = try await URLSession.shared.data(for: request!)
+            let networkManager = NetworkManager()
+            var request = networkManager.createRequest()
+            request.setValue(AppState.shared.apiKey, forHTTPHeaderField: "Api-Key")
+            request.httpBody = try JSONEncoder().encode(requestModel)
+            
+            let (data, _) = try await URLSession.shared.data(for: request)
+            
             let now = Date().string(to: .serverDateTime)
             let fileName = "make_it_rain_document_\(now)"
             let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(fileName).\(file.fileType.ext)")
             try data.write(to: tempURL)
+            
             await MainActor.run {
                 localFileURL = tempURL
             }

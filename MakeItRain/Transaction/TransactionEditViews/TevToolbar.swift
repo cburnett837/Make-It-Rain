@@ -37,6 +37,7 @@ struct TevToolbar: ToolbarContent {
         hasher.combine(trans.url)
         hasher.combine(trans.tags)
         hasher.combine(trans.notes)
+        hasher.combine(trans.files)
         hasher.combine(trans.color.hashValue)
         return hasher.finalize()
     }
@@ -44,8 +45,8 @@ struct TevToolbar: ToolbarContent {
     
     var body: some ToolbarContent {
         #if os(iOS)
-        ToolbarItem(placement: .topBarLeading) { deleteButton }
-        ToolbarSpacer(.fixed, placement: .topBarLeading)
+//        ToolbarItem(placement: .topBarLeading) { deleteButton }
+//        ToolbarSpacer(.fixed, placement: .topBarLeading)
         ToolbarItem(placement: .topBarLeading) {
             moreMenu
                 .if(trans.notifyOnDueDate) {
@@ -143,7 +144,7 @@ struct TevToolbar: ToolbarContent {
         .tint(.none)
         .confirmationDialog("Delete \"\(trans.title)\"?", isPresented: $showDeleteAlert) {
             /// There's a bug in dismiss() that causes the photo sheet to open, close, and then open again.
-            /// By moving the dismiss variable into a seperate view, it doesn't affect the photo sheet anymore.
+            /// By moving the dismiss variable into a separate view, it doesn't affect the photo sheet anymore.
             DeleteYesButton(
                 trans: trans,
                 //transEditID: $transEditID,

@@ -11,6 +11,11 @@ struct PayMethodLogoMashup: View {
     @Environment(PayMethodModel.self) private var payModel
     
     var meth: CBPaymentMethod?
+    var size: CGFloat?
+    
+    var theSize: CGFloat {
+        return size ?? 34
+    }
     
     var meths: [CBPaymentMethod] {
         guard let meth else { return [] }
@@ -25,7 +30,7 @@ struct PayMethodLogoMashup: View {
                         .schemeBasedForegroundStyle()
                     
                 } else if meths.count == 1 {
-                    theLogo(meth: meth, size: 34)
+                    theLogo(meth: meth, size: theSize)
                     
                 } else if meths.count == 2 {
                     let logoSize: CGFloat = 21
@@ -42,19 +47,9 @@ struct PayMethodLogoMashup: View {
                                 .offset(offsets[i])
                         }
                     }
-//                    VStack(spacing: 0) {
-//                        HStack(spacing: 0) {
-//                            theLogo(meth: meths[0], size: 21)
-//                            Spacer()
-//                        }
-//                        
-//                        HStack(spacing: 0) {
-//                            Spacer()
-//                            theLogo(meth: meths[1], size: 21)
-//                        }
-//                    }
+                    
                 } else {
-                    let logoSize: CGFloat = 18
+                    let logoSize: CGFloat = size == nil ? 18 : (theSize / 2)
                     let overlap: CGFloat = 7
 
                     let offsets: [CGSize] = [
@@ -69,17 +64,15 @@ struct PayMethodLogoMashup: View {
                                 .offset(offsets[i])
                         }
                     }
-//                    VStack(spacing: 0) {
-//                        HStack(spacing: 0) {
-//                            theLogo(meth: meths[0], size: 16)
-//                            theLogo(meth: meths[1], size: 16)
-//                        }
-//                        theLogo(meth: meths[2], size: 16)
-//                    }
+                    .if(size != nil) {
+                        $0.frame(width: theSize, height: theSize)
+                    }
+                    
+                    //.background(Rectangle().fill(Color.red))
                 }
                 
             } else {
-                theLogo(meth: meth, size: 34)
+                theLogo(meth: meth, size: theSize)
             }
             
             

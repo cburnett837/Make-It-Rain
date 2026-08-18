@@ -9,7 +9,7 @@ import Foundation
 import os
 
 
-struct LogManager {
+enum LogManager {
     private static let logger = Logger(
         subsystem: "MakeItRainLogger",
         category: "LogManager"
@@ -17,91 +17,62 @@ struct LogManager {
         /// Set search type to "subsystem" and search for the key in the subsystem above (MakeItRainLogger)
     )
     
-    
-    static func log(_ text: String? = nil, _ file: String? = #fileID, _ line: Int? = #line, _ function: String? = #function, session: String? = nil) {
-        return
-        var sesh = ""
-        if let session { sesh = "\(session)\n" } else { sesh = "" }
+    static private func baseMessage(file: String, line: Int, function: String, session: String?) -> String {
+        let sesh = session.map { "\($0)" } ?? ""
+        let fileName = file.replacing("MakeItRain/", with: "").replacing(".swift", with: "")
+        let funcName = function.replacingOccurrences(of: #"\(.*?\)"#, with: "", options: .regularExpression)
+            
+        //return "🪵\(sesh.isEmpty ? "" : " Sesh \(sesh) ---") File: \(fileName) --- Line: \(line) --- Function: \(funcName)"
         
-        print(
-            """
-            \(sesh)\(file?.replacing("MakeItRain/", with: "") ?? "NoFile") --- \(line ?? 0) --- \(function ?? "NoFunction")
-            🟢\(text ?? "NoMessage")            
-            """
-        )
+        return "🪵\(sesh.isEmpty ? "" : " Sesh \(sesh) ---") \(fileName).\(funcName).\(line)"
+    }
+    
+    
+    static func log(
+        _ text: String? = nil,
+        _ file: String = #fileID,
+        _ line: Int = #line,
+        _ function: String = #function,
+        session: String? = nil
+    ) {
+        let message = baseMessage(file: file, line: line, function: function, session: session)
         
         if let text {
-            Self.logger.log(
-                level: .default,
-                """
-                \(sesh, privacy: .public)\(file?.replacing("MakeItRain/", with: "") ?? "NoFile", privacy: .public) --- \(line ?? 0, privacy: .public) --- \(function ?? "NoFunction", privacy: .public)
-                🟢\(text, privacy: .public)
-                """
-            )
+            print(message, "🟢", text)
+            Self.logger.log(level: .default, "\(message, privacy: .public)\n🟢\(text, privacy: .public)")
         } else {
-            Self.logger.log(
-                level: .default,
-                """
-                \(sesh, privacy: .public)\(file?.replacing("MakeItRain/", with: "") ?? "NoFile", privacy: .public) --- \(line ?? 0, privacy: .public) --- \(function ?? "NoFunction", privacy: .public)
-                """
-            )
+            print(message)
+            Self.logger.log(level: .default, "\(message, privacy: .public)")
         }
     }
     
     
-    static func error(_ text: String? = nil, _ file: String? = #fileID, _ line: Int? = #line, _ function: String? = #function, session: String? = nil) {
-        var sesh = ""
-        if let session { sesh = "\(session)\n" } else { sesh = "" }
-        
-        print(
-            """
-            \(sesh)\(file?.replacing("MakeItRain/", with: "") ?? "NoFile") --- \(line ?? 0) --- \(function ?? "NoFunction")
-            🔴\(text ?? "NoMessage")
-            
-            """
-        )
-        
-        return
+    static func error(
+        _ text: String? = nil,
+        _ file: String = #fileID,
+        _ line: Int = #line,
+        _ function: String = #function,
+        session: String? = nil
+    ) {
+        let message = baseMessage(file: file, line: line, function: function, session: session)
         
         if let text {
-            Self.logger.log(
-                level: .error,
-                """
-                \(sesh, privacy: .public)\(file?.replacing("MakeItRain/", with: "") ?? "NoFile", privacy: .public) --- \(line ?? 0, privacy: .public) --- \(function ?? "NoFunction", privacy: .public)
-                🔴\(text, privacy: .public)                   
-                """
-            )
+            print(message, "🔴", text)
+            Self.logger.error("\(message, privacy: .public)\n🔴\(text, privacy: .public)")
         } else {
-            Self.logger.log(
-                level: .error,
-                """
-                \(sesh, privacy: .public)\(file?.replacing("MakeItRain/", with: "") ?? "NoFile", privacy: .public) --- \(line ?? 0, privacy: .public) --- \(function ?? "NoFunction", privacy: .public)
-                """
-            )
+            print(message)
+            Self.logger.error("\(message, privacy: .public)")
         }
     }
     
     
-    
-    static func networkingSuccessful(_ file: String? = #fileID, _ line: Int? = #line, _ function: String? = #function, session: String? = nil) {
-        return
-        var sesh = ""
-        if let session { sesh = "\(session)\n" } else { sesh = "" }
-        
-        print(
-            """
-            \(sesh)\(file?.replacing("MakeItRain/", with: "") ?? "NoFile") --- \(line ?? 0) --- \(function ?? "NoFunction")
-            🟢networking successful
-            
-            """
-        )
-        
-        Self.logger.log(
-            level: .default,
-            """
-            \(sesh, privacy: .public)\(file?.replacing("MakeItRain/", with: "") ?? "NoFile", privacy: .public) --- \(line ?? 0, privacy: .public) --- \(function ?? "NoFunction", privacy: .public)
-            🟢networking successful
-            """
-        )
+    static func networkingSuccessful(
+        _ file: String = #fileID,
+        _ line: Int = #line,
+        _ function: String = #function,
+        session: String? = nil
+    ) {
+        let message = baseMessage(file: file, line: line, function: function, session: session)
+        Self.logger.log(level: .default, "\(message, privacy: .public)\n🟢\("networking successful", privacy: .public)")
     }
 }

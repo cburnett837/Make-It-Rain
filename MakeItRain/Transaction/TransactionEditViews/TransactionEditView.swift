@@ -53,6 +53,7 @@ struct TransactionEditView: View {
     var transLocation: WhereToLookForTransaction = .normalList
     var isWarmUp = false
     let symbolWidth: CGFloat = 26
+    let converter = CurrencyConverter()
         
     @FocusState private var focusedField: Int?
     @State private var mapModel = MapModel()
@@ -74,6 +75,7 @@ struct TransactionEditView: View {
     //@State private var showTopTitles: Bool = false
     @State private var showSplitSheet = false
     @State private var showInvoiceGeneratorSheet = false
+    //@State private var showConverterSheet = false
 
     //@State private var titleChangedTask: Task<Void, Error>?
     //@State private var amountChangedTask: Task<Void, Error>?
@@ -89,9 +91,18 @@ struct TransactionEditView: View {
     @State private var showExpensiveViews = false
     @State private var suggestedCategories: Array<CBCategory> = []
     @State private var shouldDismissOnMac: Bool = false
+    @State private var showCountrySheet = false
     //@State private var selection = AttributedTextSelection()
     //@State private var textCommands = TextViewCommands()
-
+    
+    @State private var shouldSuggestAddingNewRule = false
+    @State private var existingRuleCount: Int = 0
+    @State private var editOriginalAmount = false
+    
+    @State private var showUseCurrentLocationButton = true
+//    @State private var suggestedLocations: Array<CBSuggestedLocation> = []
+    @State private var shouldShowLocationSuggestions = false
+    @State private var suggestedLocations: Array<CBSuggestedLocation> = []
 
         
     let changeTransactionTitleColorTip = ChangeTransactionTitleColorTip()
@@ -161,6 +172,10 @@ struct TransactionEditView: View {
     var paymentMethodMissing: Bool {
         return !trans.title.isEmpty && !trans.amountString.isEmpty && trans.payMethod == nil
     }
+    
+    var topThreeMeths: Array<CBPaymentMethod>.SubSequence {
+        payModel.paymentMethods.sorted { $0.recentTransactionCount > $1.recentTransactionCount }.prefix(3)
+    }
         
     
     var undoRedoValuesChanged: Int {
@@ -176,7 +191,7 @@ struct TransactionEditView: View {
         hasher.combine(trans.date)
         return hasher.finalize()
     }
-     
+    
     
     var body: some View {
         //let _ = Self._printChanges()
@@ -233,6 +248,17 @@ struct TransactionEditView: View {
                 .presentationSizing(.page)
                 #endif
         }
+        .sheet(isPresented: $showCountrySheet, onDismiss: {
+            if !editOriginalAmount {
+                trans.condataOriginalAmountString = trans.amountString
+                converter.convert(obj: trans, calModel: calModel)
+            }
+        }) {
+            CountryPicker(country: $trans.condataOriginalCountry)
+        }
+//        .sheet(isPresented: $showConverterSheet) {
+//            CurrencyConverterSheet(trans: trans, day: day)
+//        }
         .environment(mapModel)
 //        /// Check what color the save button should be.
 //        .onChange(of: transactionValuesChanged) { checkIfTransactionIsValidToSave() }
@@ -255,9 +281,21 @@ struct TransactionEditView: View {
         .onChange(of: undoRedoValuesChanged) { UndodoManager.shared.processChange(trans: trans) }
         /// Handle undo and redo.
         .onChange(of: UndodoManager.shared.returnMe) { handleUndoRedo(new: $1) }
+        /// Convert foreign currency when the date changes.
+        .onChange(of: trans.date) {
+            if trans.condataOriginalCountry != nil {
+                converter.convert(obj: trans, calModel: calModel)
+            }
+        }
+        /// Convert foreign currency when the original amount changes.
+        .onChange(of: trans.condataOriginalAmountString) {
+            if trans.condataOriginalCountry != nil {
+                converter.convert(obj: trans, calModel: calModel)
+            }
+        }
         /// Handle undo and redo.
-        .onChange(of: focusedField) {
-            if $1 != nil {
+        .onChange(of: focusedField) { oldFocus, newFocus in
+            if newFocus != nil {
                 if trans.action == .add && blockUndoCommitOnLoad {
                     blockUndoCommitOnLoad = false
                 } else {
@@ -265,14 +303,69 @@ struct TransactionEditView: View {
                     UndodoManager.shared.commitChange(trans: trans)
                 }
             }
+            
+            let setCur = AppState.shared.country.currencyCode
+            let didFocusAmount = newFocus == 1
+            let didUnfocusAmount = oldFocus == 1
+            
+            if didUnfocusAmount {
+                /// Clear out the negative symbol if that's all that is there.
+                if trans.amountString == "-" {
+                    trans.amountString = ""
+                }
+                
+                if !trans.amountString.isEmpty {
+                    /// When unfocusing the field, format the currency with symbol & commas.
+                    trans.amountString = trans.amount.currencyWithDecimals(currencyCode: setCur)
+                }
+                                
+            } else if didFocusAmount {
+                /// When focusing the field, remove the currency symbol and commas.
+                trans.amountString = CurrencyHelpers.cleanAmountString(trans.amountString, currencyCode: setCur)
+                
+                /// If the field is blank, when switching between payment methods, toggle the "-" if applicable to respect an expense/payment.
+                if trans.amountString.isEmpty && trans.payMethod?.isDebitOrCash == true {
+                    trans.amountString = "-"
+                }
+            }
+            
+            
+            /// Handle when leaving the foreign currency field, and the country sheet is not showing.
+            /// When accessing the country sheet, and using its search field, it will mess up with focus of the main textfield.
+            /// This seems to be an issue with sheets specifically, as that behavior does not happen with a navdest.
+            if (oldFocus == 10 || (oldFocus == 10 && newFocus == nil)) && !showCountrySheet {
+                converter.convert(obj: trans, calModel: calModel)
+                withAnimation {
+                    //print(oldFocus, newFocus)
+                    //print("CHANGING VIA FOCUS")
+                    editOriginalAmount = false
+                }
+            }
         }
         #endif
+        .onChange(of: trans.payMethod) { oldMeth, newMeth in
+            if trans.condataOriginalCountry != nil {
+                converter.convert(obj: trans, calModel: calModel)
+            }
+            
+            guard let oldMeth, let newMeth else { return }
+            if (oldMeth.isDebitOrCash && newMeth.isCreditOrLoan) || (oldMeth.isCreditOrLoan && newMeth.isDebitOrCash) {
+                Helpers.plusMinus($trans.amountString)
+                Helpers.plusMinus($trans.condataOriginalAmountString)
+                Helpers.plusMinus($trans.condataPayMethodAmountString)
+            }
+        }
+//        .onChange(of: trans.title) {
+//            if trans.action == .add, !trans.title.isEmpty, trans.locations.isEmpty {
+//                print(store.suggestedLocations)
+//                suggestedLocations = store.suggestedLocations.filter {$0.transTitle.localizedCaseInsensitiveContains(trans.title)}
+//                if !suggestedLocations.isEmpty {
+//                    shouldShowLocationSuggestions = true
+//                }
+//            }
+//        }
     }
-    
-    
-
-    @State private var shouldSuggestAddingNewRule = false
-    @State private var existingRuleCount: Int = 0
+        
     
     @ViewBuilder
     func content(_ scrollProxy: ScrollViewProxy) -> some View {
@@ -281,18 +374,33 @@ struct TransactionEditView: View {
                 trans: trans,
                 mapModel: mapModel,
                 suggestedCategories: $suggestedCategories,
-                focusedField: $focusedField
+                shouldShowLocationSuggestions: $shouldShowLocationSuggestions,
+                suggestedLocations: $suggestedLocations,
+                focusedField: $focusedField,
             )
             
             TevAmount(
                 trans: trans,
+                showCountrySheet: $showCountrySheet,
                 focusedField: $focusedField
             )
+            .opacity(editOriginalAmount ? 0 : 1)
+            .overlay {
+                ForeignAmountTextField(
+                    obj: trans,
+                    showCountrySheet: $showCountrySheet,
+                    focusedField: $focusedField,
+                    editOriginalAmount: editOriginalAmount
+                )
+            }
         } footer: {
-            if AppState.shared.isAwayFromHomeCountry || (trans.country != nil && trans.country != AppState.shared.country) {
-                AlternativeCurrencyQuickPick(trans: trans)
-            } else {
-                EmptyView()
+            if trans.condataOriginalCountry != AppState.shared.country || trans.payMethod?.country != AppState.shared.country {
+                ForeignAmountToolsScroller(
+                    obj: trans,
+                    editOriginalAmount: $editOriginalAmount,
+                    showCountrySheet: $showCountrySheet,
+                    focusedField: $focusedField
+                )
             }
         }
                 
@@ -315,7 +423,14 @@ struct TransactionEditView: View {
         }
         
         if !isTemp {
-            mapSection
+            TevMap(
+                trans: trans,
+                mapModel: mapModel,
+                suggestedLocations: $suggestedLocations,
+                showUseCurrentLocationButton: $showUseCurrentLocationButton,
+                shouldShowLocationSuggestions: $shouldShowLocationSuggestions,
+                showExpensiveViews: showExpensiveViews
+            )
         }
         
         if trans.christmasListGiftID != nil {
@@ -357,12 +472,135 @@ struct TransactionEditView: View {
                 .tint(.none)
         }
         #endif
+        
+        Section {
+            deleteButton
+        }
     }
     
     
     
     
     // MARK: - SubViews
+    
+    
+    @State private var showDeleteAlert = false
+    
+    var deleteButton: some View {
+        Button {
+            showDeleteAlert = true
+        } label: {
+            Text("Delete Transaction")
+                .frame(maxWidth: .infinity, alignment: .center)
+                .foregroundStyle(.red)
+//            Image(systemName: "trash")
+//                #if os(macOS)
+//                    .foregroundStyle(.red)
+//                #endif
+        }
+        #if os(macOS)
+        .buttonStyle(.roundMacButton)
+        #endif
+        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
+        .tint(.none)
+        .confirmationDialog("Are you sure you want to delete this transaction?", isPresented: $showDeleteAlert) {
+            Button(role: .destructive) {
+                delete(.delete)
+            } label: {
+                Text(deleteLingo(.delete))
+            }
+            
+            
+            if trans.christmasListGiftID != nil {
+                Button(role: .destructive) {
+                    delete(.resetStatusToIdea)
+                } label: {
+                    Text(deleteLingo(.resetStatusToIdea))
+                }
+            }
+        } message: {
+            Text("Are you sure you want to delete this transaction?")
+        }
+    }
+    
+    
+//    struct DeleteYesButton: View {
+//        @Environment(CalendarModel.self) private var calModel
+//    
+//        @Environment(\.dismiss) var dismiss
+//        @Bindable var trans: CBTransaction
+//        @Binding var shouldDismissOnMac: Bool
+//        //@Binding var transEditID: String?
+//        var isTemp: Bool
+//        var christmasListDeletePeference: ChristmasListDeletePreference
+//        
+//        var body: some View {
+//            Button(deleteLingo, role: .destructive, action: delete)
+//        }
+//    }
+    
+    
+    func deleteLingo(_ christmasListDeletePeference: ChristmasListDeletePreference) -> String {
+        if trans.christmasListGiftID == nil {
+            "Delete"
+        } else {
+            switch christmasListDeletePeference {
+            case .delete:
+                "Delete transaction & gift"
+            case .resetStatusToIdea:
+                "Delete & set gift as idea"
+            }
+        }
+    }
+    
+    func delete(_ christmasListDeletePeference: ChristmasListDeletePreference) {
+        if isTemp {
+            #if os(iOS)
+            dismiss()
+            #else
+            shouldDismissOnMac = true
+            #endif
+            calModel.tempTransactions.removeAll { $0.id == trans.id }
+            //let _ = DataManager.shared.delete(type: TempTransaction.self, predicate: .byId(.string(trans.id)))
+            
+            Task {
+                let context = DataManager.shared.createContext()
+                context.perform {
+                    if let entity = DataManager.shared.getOne(context: context, type: TempTransaction.self, predicate: .byId(.string(trans.id)), createIfNotFound: true) {
+                        entity.action = TransactionAction.delete.rawValue
+                        entity.tempAction = TransactionAction.delete.rawValue
+                        let _ = DataManager.shared.save(context: context)
+                    }
+                }
+            }
+            
+        } else {
+            /// Prevent from going to the server and trying to delete something that isn't there.
+            if trans.action == .add {
+                Task {
+                    await calModel.delete(trans, andSubmit: false)
+                }
+            } else {
+                trans.christmasListDeletePreference = christmasListDeletePeference
+                trans.action = .delete
+            }
+            
+            //dismiss()
+            
+            
+            //transEditID = nil
+            //trans.christmasListDeletePreference = christmasListDeletePeference
+            //trans.action = .delete
+            #if os(iOS)
+            dismiss()
+            #else
+            shouldDismissOnMac = true
+            #endif
+            
+            //calModel.saveTransaction(id: trans.id, day: day)
+        }
+    }
+    
     
     @ViewBuilder
     func determineNavDest(for dest: TransNavDest) -> some View {
@@ -421,11 +659,6 @@ struct TransactionEditView: View {
             focusedField: $focusedField,
             shouldDismissOnMac: $shouldDismissOnMac
         )
-    }
-    
-    
-    var topThreeMeths: Array<CBPaymentMethod>.SubSequence {
-        payModel.paymentMethods.sorted { $0.recentTransactionCount > $1.recentTransactionCount }.prefix(3)
     }
     
     
@@ -522,73 +755,6 @@ struct TransactionEditView: View {
     }
     
     
-    
-    
-    
-    struct AlternativeCurrencyQuickPick: View {
-        @Bindable var trans: CBTransaction
-        
-        var altCountries: Array<Country> {
-            Countries.list.filter {
-                $0.code == LocationManager.shared.currentCountry
-                || $0.code == trans.payMethod?.country?.code
-            }
-        }
-        
-        
-        
-        var results: [Country] {
-            var countries = altCountries
-
-            if let country = trans.country {
-                countries.append(country)
-            }
-            countries.append(Countries.homeCountry)
-
-            return Array(Set(countries)).sorted { $0.name < $1.name }
-        }
-        
-        var body: some View {
-            ScrollView(.horizontal) {
-                HStack {
-                    ForEach(results) { button(for: $0) }
-                }
-            }
-            .scrollIndicators(.hidden)
-        }
-        
-        
-        @ViewBuilder
-        func button(for country: Country) -> some View {
-            Button {
-                trans.country = country
-                if !trans.amountString.isEmpty {
-                    trans.amountString = CurrencyHelpers.formatAmountText(
-                        amount: trans.amount,
-                        currencyCode: country.currencyCode
-                    )
-                }
-            } label: {
-                Text("\(country.flagEmoji) \(country.currencyCode)?")
-                    .foregroundStyle(.gray)
-                    .font(.subheadline)
-            }
-            #if os(iOS)
-            .padding(8)
-            .background(Capsule().foregroundStyle(.thickMaterial))
-            #else
-            .buttonStyle(.roundMacButton(horizontalPadding: 10))
-            #endif
-            .overlay(
-                Capsule()
-                    .strokeBorder(Color.theme, lineWidth: 1)
-                    .opacity(trans.country?.id == country.id ? 1 : 0)
-                    
-            )
-        }
-    }
-    
-    
     @ViewBuilder
     var paymentMethodAndCategorySection: some View {
         
@@ -658,65 +824,151 @@ struct TransactionEditView: View {
         }
     }
     
-    
-    @State private var showUseCurrentLocationButton = true
-    var mapSection: some View {
-        Section {
-            if showExpensiveViews {
-                StandardMiniMap(
-                    locations: $trans.locations,
-                    parent: trans,
-                    parentID: trans.id,
-                    parentType: .transaction,
-                    addCurrentLocation: false
-                )
-                .listRowInsets(EdgeInsets())
-                .overlay {
-                    if trans.action == .add && showUseCurrentLocationButton {
-                        VStack {
-                            Button {
-                                mapModel.completions.removeAll()
-                                Task {
-                                    if let location = await mapModel.saveCurrentLocation(parentID: trans.id, parentType: .transaction) {
-                                        trans.upsert(location)
-                                    }
-                                }
-                                showUseCurrentLocationButton = false
-                            } label: {
-                                Image(systemName: "heart")
-//                                ZStack {
-//                                    Image(systemName: "heart")
-//                                        .font(.title)
-//                                    Image(systemName: "location.fill")
-//                                        .font(.caption2)
+        
+//    var mapSection: some View {
+//        Section {
+//            if showExpensiveViews {
+//                StandardMiniMap(
+//                    locations: $trans.locations,
+//                    parent: trans,
+//                    parentID: trans.id,
+//                    parentType: .transaction,
+//                    addCurrentLocation: false
+//                )
+//                .listRowInsets(EdgeInsets())
+//                .overlay {
+//                    if trans.action == .add && showUseCurrentLocationButton {
+//                        VStack {
+//                            Button {
+//                                mapModel.completions.removeAll()
+//                                Task {
+//                                    if let location = await mapModel.saveCurrentLocation(parentID: trans.id, parentType: .transaction) {
+//                                        trans.upsert(location)
+//                                    }
 //                                }
-                            }
-                            .clipShape(.circle)
-                            #if os(iOS)
-                            .buttonStyle(.glass)
-                            #endif
-                            
-//                            Button("Use Current") {
-//                                
+//                                showUseCurrentLocationButton = false
+//                            } label: {
+//                                Image(systemName: "heart")
+////                                ZStack {
+////                                    Image(systemName: "heart")
+////                                        .font(.title)
+////                                    Image(systemName: "location.fill")
+////                                        .font(.caption2)
+////                                }
 //                            }
+//                            .clipShape(.circle)
+//                            #if os(iOS)
 //                            .buttonStyle(.glass)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-                        .padding(.bottom, 5)
-                        .padding(.trailing, 5)
-                        
-                    }
-                }
-            } else {
-                ProgressView()
-                    .listRowInsets(EdgeInsets())
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 150)
-                    .tint(.none)
-            }
-        }
-    }
-    
+//                            #endif
+//                            
+////                            Button("Use Current") {
+////                                
+////                            }
+////                            .buttonStyle(.glass)
+//                        }
+//                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+//                        .padding(.bottom, 5)
+//                        .padding(.trailing, 5)
+//                        
+//                    }
+//                }
+//            } else {
+//                ProgressView()
+//                    .listRowInsets(EdgeInsets())
+//                    .frame(maxWidth: .infinity)
+//                    .frame(height: 150)
+//                    .tint(.none)
+//            }
+//        } header: {
+//            Text("Transaction Location")
+//        } footer: {
+//            if shouldShowLocationSuggestions {
+//                HStack {
+//                    ScrollView(.horizontal) {
+//                        HStack {
+//                            ForEach(suggestedLocations.prefix(3)) {
+//                                mapSuggestionButton(for: $0)
+//                                //mapSuggestionButton(for: $0)
+//                            }
+//                        }
+//                    }
+//                    .scrollIndicators(.hidden)
+//                }
+//            }
+//        }
+//    }
+//    
+//    
+//    @ViewBuilder
+//    func mapSuggestionButton(for location: CBSuggestedLocation) -> some View {
+//        Button {
+//            shouldShowLocationSuggestions = false
+//            Task {
+//                if let location = await mapModel.addLocationViaTouchAndHold(coordinate: location.coordinates, parentID: trans.id, parentType: .transaction) {
+//                    trans.upsert(location)
+//                    mapModel.focusOnFirst(locations: trans.locations)
+//                }
+//                
+//            }
+//        } label: {
+//            Text(location.locationTitle)
+//                //.font(.caption2)
+//                .foregroundStyle(.gray)
+////            VStack(alignment: .leading) {
+////                Text(AttributedString(completion.highlightedTitleStringForDisplay))
+////                    .font(.caption2)
+////                    .foregroundStyle(.gray)
+////                
+////                Text(AttributedString(completion.truncatedHighlightedSubtitleStringForDisplay))
+////                    .font(.caption2)
+////                    .foregroundStyle(.gray)
+////            }
+//        }
+//        #if os(iOS)
+//        .padding(8)
+//        .background(Capsule().foregroundStyle(.thickMaterial))
+//        #else
+//        .buttonStyle(.roundMacButton(horizontalPadding: 10))
+//        #endif
+//    }
+//    
+//    
+//    @ViewBuilder
+//    func mapSuggestionButtonOG(for completion: MKLocalSearchCompletion) -> some View {
+//        Button {
+//            //mapModel.blockCompletion = true
+//            //trans.title = completion.title
+//            store.suggestedLocations.removeAll()
+//            //resetLocalTitleSuggestionType()
+//            Task {
+//                if let location = await mapModel.getMapItem(
+//                    from: completion,
+//                    parentID: trans.id,
+//                    parentType: .transaction
+//                ) {
+//                    trans.upsert(location)
+//                    mapModel.focusOnFirst(locations: trans.locations)
+//                }
+//            }
+//        } label: {
+//            VStack(alignment: .leading) {
+//                Text(AttributedString(completion.highlightedTitleStringForDisplay))
+//                    .font(.caption2)
+//                    .foregroundStyle(.gray)
+//                
+//                Text(AttributedString(completion.truncatedHighlightedSubtitleStringForDisplay))
+//                    .font(.caption2)
+//                    .foregroundStyle(.gray)
+//            }
+//        }
+//        #if os(iOS)
+//        .padding(8)
+//        .background(Capsule().foregroundStyle(.thickMaterial))
+//        #else
+//        .buttonStyle(.roundMacButton(horizontalPadding: 10))
+//        #endif
+//    }
+//    
     
     var fileSection: some View {
         Section("Photos & Documents") {
@@ -825,7 +1077,7 @@ struct TransactionEditView: View {
 //            trans.requiresConversion = true
 //        }
         
-        trans.requiresConversion = true
+        //trans.requiresConversion = true
         
         /// Format the currency amount.
         if trans.action != .add /*&& trans.tempAction != .add */{
@@ -834,18 +1086,20 @@ struct TransactionEditView: View {
             //trans.amountString = trans.amount.currencyWithDecimals(currencyCode: trans.country?.currencyCode)
             
             /// Use the original amount in the textfield for editing.
-            if let code = trans.country?.currencyCode,
-               let ogAmount = trans.originalUnconvertedAmount {
-                trans.amountString = ogAmount.currencyWithDecimals(currencyCode: code)
-//                trans.amountString = CurrencyHelpers.formatAmountText(
-//                    amount: ogAmount,
-//                    currencyCode: code
-//                )
-                
-                //trans.requiresConversion = true
-            } else {
-                trans.amountString = trans.amount.currencyWithDecimals()
-            }
+//            if let code = trans.country?.currencyCode,
+//               let ogAmount = trans.originalUnconvertedAmount {
+//                trans.amountString = ogAmount.currencyWithDecimals(currencyCode: code)
+////                trans.amountString = CurrencyHelpers.formatAmountText(
+////                    amount: ogAmount,
+////                    currencyCode: code
+////                )
+//                
+//                //trans.requiresConversion = true
+//            } else {
+//                trans.amountString = trans.amount.currencyWithDecimals()
+//            }
+            
+            trans.amountString = trans.amount.currencyWithDecimals()
             
             
 //            if let code = trans.country?.currencyCode {

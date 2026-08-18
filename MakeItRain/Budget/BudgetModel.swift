@@ -77,8 +77,8 @@ class BudgetModel {
         }
         
         guard let item = budget.item else {
-            print("Budget doesn't have an itmem. Deleting.")
-            delete(budget, andSubmit: false)
+            print("Budget doesn't have an item. Deleting.")
+            delete(budget, andSubmit: budget.action != .add)
             return
         }
         
@@ -314,7 +314,7 @@ class BudgetModel {
 //        /// Do networking.
 //        let model = RequestModel(requestType: "fetch_repeating_transactions", model: AppState.shared.user)
 //        typealias ResultResponse = Result<Array<CBBudgetItem>?, AppError>
-//        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+//        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
 //        
 //        switch await result {
 //        case .success(let model):

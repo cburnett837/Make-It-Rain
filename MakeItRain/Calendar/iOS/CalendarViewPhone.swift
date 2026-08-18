@@ -79,8 +79,6 @@ struct CalendarViewPhone: View {
         @Bindable var calModel = calModel
         @Bindable var photoModel = FileModel.shared
         
-        //Text("Multi \(calModel.isInMultiSelectMode)")
-        
         /// Wrap in a geoReader so I can get the safe area insets and adjust the calendar accordingly.
         GeometryReader { geo in
             NavigationStack(path: $calProps.navPath) {
@@ -104,7 +102,6 @@ struct CalendarViewPhone: View {
                     case .dashboard:
                         Dashboard(
                             navPath: $calProps.navPath,
-                            showAnalysisSheet: $calProps.showAnalysisSheet,
                             model: calModel.dashboardModel,
                             isForSelectedMonth: true
                         )
@@ -283,6 +280,7 @@ struct CalendarViewPhone: View {
                     }
             }
             weekdayNameGrid
+//            SimpCalendarGridPhone(enumID: enumID)
             CalendarGridPhone(enumID: enumID)
                 .sensoryFeedback(.selection, trigger: phoneLineItemDisplayItem)
                 .contentShape(.rect)

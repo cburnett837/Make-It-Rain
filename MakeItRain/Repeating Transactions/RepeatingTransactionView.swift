@@ -211,7 +211,12 @@ struct RepeatingTransactionView: View {
                     Section {
                         titleRow
                         
-                        TransactionAmountRow(amountTypeLingo: repTransaction.amountTypeLingo, amountString: $repTransaction.amountString) {
+                        TransactionAmountRow(
+                            amountTypeLingo: repTransaction.amountTypeLingo,
+                            amountString: $repTransaction.amountString,
+                            originalAmountString: .constant(""),
+                            payMethodAmountString: .constant("")
+                        ) {
                             amountRow
                         }
                     } header: {

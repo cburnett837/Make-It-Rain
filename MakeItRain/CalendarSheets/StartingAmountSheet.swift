@@ -33,8 +33,8 @@ struct StartingAmountSheet: View {
                             calModel: calModel,
                             plaidModel: plaidModel
                         )) { meth in
-                            if let amount = calModel.sMonth.startingAmounts.filter ({ $0.payMethod.id == meth.id }).first {
-                                StartingAmountLine(startingAmount: amount, payMethod: amount.payMethod)
+                            if let amount = calModel.sMonth.startingAmounts.filter ({ $0.payMethod?.id == meth.id }).first, let meth = amount.payMethod {
+                                StartingAmountLine(startingAmount: amount, payMethod: meth)
                             }
                         }
                     }

@@ -42,6 +42,7 @@ struct PayMethodSheet: View {
   
     
     var body: some View {
+        let _ = Self._printChanges()
         NavigationStack {
             StandardContainerWithToolbar(.list, scrollDismissesKeyboard: .never) {
                 if paymentMethodSheetViewMode == .select {
@@ -296,8 +297,9 @@ struct PayMethodSheet: View {
                     calModel: calModel,
                     plaidModel: plaidModel
                 )) { meth in
-                    if let amount = calModel.sMonth.startingAmounts.filter ({ $0.payMethod.id == meth.id }).first {
-                        StartingAmountLine(startingAmount: amount, payMethod: amount.payMethod) { meth in
+                    if let amount = calModel.sMonth.startingAmounts.filter ({ $0.payMethod?.id == meth.id }).first,
+                       let meth = amount.payMethod {
+                        StartingAmountLine(startingAmount: amount, payMethod: meth) { meth in
                             selectPaymentMethod(meth)
                         }
                     }
@@ -349,113 +351,187 @@ fileprivate struct StartingAmountLine: View {
     
     var selectPaymentMethod: (CBPaymentMethod) -> ()
     
+    @State private var showTools = false
+    @State private var showCountrySheet = false
+    @State private var editOriginalAmount = false
     @State private var showDialog = false
     @FocusState private var focusedField: Int?
     
+    let converter = CurrencyConverter()
+    
     var body: some View {
-        HStack(alignment: .circleAndTitle) {
-            Label {
-                Text("\(payMethod.title)")
-            } icon: {
-                PayMethodLogoMashup(meth: payMethod)
-                //BusinessLogo(parent: payMethod, fallBackType: payMethod.isUnified ? .gradient : .color)
-//                BusinessLogo(config: .init(
-//                    parent: payMethod,
-//                    fallBackType: payMethod.isUnified ? .gradient : .color
-//                ))
-            }
-            .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
-            .contentShape(Rectangle())
-            .onTapGesture {
-                selectPaymentMethod(payMethod)
-            }
-            
-            Spacer()
-            
-            VStack(alignment: .trailing) {
-                Group {
-                    #if os(iOS)
-                    if payMethod.isUnified {
-                        Text(startingAmount.amountString.isEmpty ? (AppSettings.shared.useWholeNumbers ? "$0" : "$0.00") : startingAmount.amountString)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        iPhoneTextField
-                    }
-                    
-                    #else
-                    macTextField
-                    #endif
+        VStack {
+            HStack(alignment: .circleAndTitle) {
+                Label {
+                    Text("\(payMethod.title)")
+                } icon: {
+                    PayMethodLogoMashup(meth: payMethod)
                 }
-                .focused($focusedField, equals: 0)
                 .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    selectPaymentMethod(payMethod)
+                }
                 
-                #warning("CURRENCY! FIX ME")
-//                if let converted = startingAmount.convertedDisplayAmount {
-//                    let setCunt = AppState.shared.country
-//                    Text("Converted to \(CurrencyHelpers.formatAmountText(amount: converted, currencyCode: setCunt.currencyCode))")
-//                        .foregroundStyle(.secondary)
-//                        .font(.caption2)
-//                }
+                Spacer()
+                
+                VStack(alignment: .trailing) {
+                    Group {
+                        #if os(iOS)
+                        if payMethod.isUnified {
+                            Text(startingAmount.amountString.isEmpty ? (AppSettings.shared.useWholeNumbers ? "$0" : "$0.00") : startingAmount.amountString)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            
+                            VStack(alignment: .leading) {
+                                iPhoneTextField
+                                                   
+                                if startingAmount.condataOriginalCountry != AppState.shared.country {
+                                    HStack(spacing: 0) {
+                                        Spacer()
+                                        if let cunt = startingAmount.condataOriginalCountry {
+                                            Text(startingAmount.condataOriginalAmount.currencyWithDecimals(currencyCode: cunt.currencyCode))
+                                        }
+                                        
+                                        if let methCurCode = startingAmount.payMethod?.country?.currencyCode, methCurCode != AppState.shared.country.currencyCode {
+                                            Text(" / ")
+                                            Text("(\(startingAmount.condataPayMethodAmount.currencyWithDecimals(currencyCode: methCurCode)))")
+                                        }
+                                    }
+                                    .foregroundStyle(.secondary)
+                                    .font(.caption2)
+                                }
+                                
+                            }
+                        }
+                        
+                        #else
+                        macTextField
+                        #endif
+                    }
+                    .focused($focusedField, equals: 0)
+                    .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+                }
+            }
+            .opacity(editOriginalAmount ? 0 : 1)
+            .overlay {
+                ForeignAmountTextField(
+                    obj: startingAmount,
+                    showCountrySheet: $showCountrySheet,
+                    focusedField: $focusedField,
+                    editOriginalAmount: editOriginalAmount
+                )
             }
             
-//            .formatCurrencyLiveAndOnUnFocus(
-//                focusValue: 0,
-//                focusedField: focusedField,
-//                amountString: startingAmount.amountString,
-//                amountStringBinding: $startingAmount.amountString,
-//                amount: startingAmount.amount
-//            )
-            .onChange(of: focusedField) { oldFocus, newFocus in
-                let didFocus = newFocus == 0
-                let didUnfocus = oldFocus == 0
-                let methCur = calModel.sPayMethod?.country?.currencyCode
-                let setCur = AppState.shared.country.currencyCode
+            if (showTools || editOriginalAmount) && startingAmount.condataOriginalCountry != AppState.shared.country {
+                ForeignAmountToolsScroller(
+                    obj: startingAmount,
+                    editOriginalAmount: $editOriginalAmount,
+                    showCountrySheet: $showCountrySheet,
+                    focusedField: $focusedField,
+                    showCountryOptions: false
+                )
+            }
+        }
+        /// Convert foreign currency when the original amount changes.
+        .onChange(of: startingAmount.condataOriginalAmountString) {
+            if startingAmount.condataOriginalCountry != nil {
+                converter.convert(obj: startingAmount, calModel: calModel)
+            }
+        }
+        .onChange(of: focusedField) { oldFocus, newFocus in
+            let setCur = AppState.shared.country.currencyCode
+            let didFocus = newFocus == 0
+            let didUnfocus = oldFocus == 0
+            
+            if didUnfocus {
+                /// Clear out the negative symbol if that's all that is there.
+                if startingAmount.amountString == "-" {
+                    startingAmount.amountString = ""
+                }
                 
-                if didUnfocus {
+                if !startingAmount.amountString.isEmpty {
                     /// When unfocusing the field, format the currency with symbol & commas.
-                    startingAmount.amountString = CurrencyHelpers.formatAmountText(
-                        amount: startingAmount.amount,
-                        currencyCode: startingAmount.payMethod.country?.currencyCode ?? "USD"
-                    )
-                } else if didFocus {
-                    /// When focusing the field, remove the currency symbol and commas.
-//                    if let cleaned = CurrencyHelpers.cleanAmountString(startingAmount.amountString, currencyCode: methCur ?? setCur) {
-//                        startingAmount.amountString = cleaned
-//                    }
-                    startingAmount.amountString = CurrencyHelpers.cleanAmountString(startingAmount.amountString, currencyCode: methCur ?? setCur)
-                    
-                    /// If the field is blank, when switching between payment methods, toggle the "-" if applicable to respect an expense/payment.
-                    if startingAmount.amountString.isEmpty && startingAmount.payMethod.isDebitOrCash == true {
-                        startingAmount.amountString = "-"
-                    }
-                }
-            }
-            .onChange(of: startingAmount.amountString) { oldValue, newValue in
-                if startingAmount.payMethod.isDebitOrCash {
-                    CalcHelper.updateUnifiedStartingAmount(month: calModel.sMonth, for: .unifiedChecking, store: store)
-                } else if startingAmount.payMethod.isCreditOrLoan {
-                    CalcHelper.updateUnifiedStartingAmount(month: calModel.sMonth, for: .unifiedCredit, store: store)
+                    startingAmount.amountString = startingAmount.amount.currencyWithDecimals(currencyCode: setCur)
                 }
                 
+                if startingAmount.condataOriginalCountry != nil {
+                    showTools = false
+                }
+                                    
+            } else if didFocus {
+                /// When focusing the field, remove the currency symbol and commas.
+                startingAmount.amountString = CurrencyHelpers.cleanAmountString(startingAmount.amountString, currencyCode: setCur)
                 
+                /// If the field is blank, when switching between payment methods, toggle the "-" if applicable to respect an expense/payment.
+                if startingAmount.amountString.isEmpty && startingAmount.payMethod?.isDebitOrCash == false {
+                    startingAmount.amountString = "-"
+                }
+                
+                if startingAmount.condataOriginalCountry != nil {
+                    showTools = true
+                }
             }
-//            .task {
-//                startingAmount.amountString = startingAmount.amount.currencyWithDecimals()
-//            }
+            
+            
+            /// Handle when leaving the foreign currency field, and the country sheet is not showing.
+            /// When accessing the country sheet, and using its search field, it will mess up with focus of the main textfield.
+            /// This seems to be an issue with sheets specifically, as that behavior does not happen with a navdest.
+            if (oldFocus == 10 || (oldFocus == 10 && newFocus == nil)) && !showCountrySheet {
+                converter.convert(obj: startingAmount, calModel: calModel)
+                withAnimation {
+                    //print(oldFocus, newFocus)
+                    //print("CHANGING VIA FOCUS")
+                    editOriginalAmount = false
+                }
+            }
+        }
+        .onChange(of: startingAmount.amountString) { oldValue, newValue in
+            if startingAmount.payMethod?.isDebitOrCash == true {
+                CalcHelper.updateUnifiedStartingAmount(month: calModel.sMonth, for: .unifiedChecking, store: store)
+            } else if startingAmount.payMethod?.isCreditOrLoan == true {
+                CalcHelper.updateUnifiedStartingAmount(month: calModel.sMonth, for: .unifiedCredit, store: store)
+            }
+            
+            
+        }
+        .sheet(isPresented: $showCountrySheet, onDismiss: {
+            if !editOriginalAmount {
+                startingAmount.condataOriginalAmountString = startingAmount.amountString
+                converter.convert(obj: startingAmount, calModel: calModel)
+            }
+        }) {
+            CountryPicker(country: $startingAmount.condataOriginalCountry)
         }
     }
     
     #if os(iOS)
+    @ViewBuilder
     var iPhoneTextField: some View {
+        var placeholder: String {
+            if startingAmount.payMethod?.country == AppState.shared.country {
+                "Starting Amount"
+            } else {
+                "Starting Amount (\(AppState.shared.country.currencyCode))"
+            }
+        }
         /// WARNING!: Can't use the focus arrows because the textfields won't focus unless they are visible on screen. Veriified with apples dummy project.
         /// https://developer.apple.com/documentation/swiftui/focus-cookbook-sample
-        UITextFieldWrapper(placeholder: "Starting Amount", text: $startingAmount.amountString, toolbar: {
-            KeyboardToolbarView(
+        UITextFieldWrapper(placeholder: placeholder, text: $startingAmount.amountString, toolbar: {
+//            KeyboardToolbarView(
+//                focusedField: $focusedField,
+//                accessoryText1: "AutoFill",
+//                accessoryFunc1: { autoFillAmount() },
+//                accessoryImage3: "plus.forwardslash.minus",
+//                accessoryFunc3: { Helpers.plusMinus($startingAmount.amountString) }
+//            )
+//            
+            KeyboardToolbarView2(
                 focusedField: $focusedField,
-                accessoryText1: "AutoFill",
-                accessoryFunc1: { autoFillAmount() },
-                accessoryImage3: "plus.forwardslash.minus",
-                accessoryFunc3: { Helpers.plusMinus($startingAmount.amountString) })
+                disableDown: true,
+                view1: { AnyView(autofillButton) },
+                view4: { AnyView(plequalsButton) }
+            )
         })
         .uiKeyboardType(.custom(.numpad))
         //.uiKeyboardType(useWholeNumbers ? .numberPad : .decimalPad)
@@ -484,6 +560,50 @@ fileprivate struct StartingAmountLine: View {
     }
     #endif
     
+    
+    var showCountryButton: some View {
+//        NavigationLink {
+//            CountryPicker(country: $trans.condataOriginalCountry)
+//        } label: {
+//            if trans.condataOriginalCountry == nil {
+//                FlagCircle(code: trans.condataOriginalCountry?.code ?? Countries.homeCountry.code)
+//            } else {
+//                Image(systemName: "flag")
+//            }
+//        }
+//        .disabled(trans.condataOriginalCountry != nil)
+//
+        Button {
+            //focusedField.wrappedValue = nil
+            showCountrySheet = true
+        } label: {
+            if startingAmount.condataOriginalCountry == nil {
+                FlagCircle(code: startingAmount.condataOriginalCountry?.code ?? Countries.homeCountry.code)
+            } else {
+                Image(systemName: "flag")
+            }
+            
+        }
+        .disabled(startingAmount.condataOriginalCountry != nil)
+    }
+    
+    var plequalsButton: some View {
+        Button {
+            Helpers.plusMinus($startingAmount.amountString)
+            Helpers.plusMinus($startingAmount.condataOriginalAmountString)
+        } label: {
+            Image(systemName: "plus.forwardslash.minus")
+        }
+        .schemeBasedTint()
+    }
+    
+    var autofillButton: some View {
+        Button("AutoFill") {
+            autoFillAmount()
+        }
+        .schemeBasedTint()
+    }
+    
     func autoFillAmount() {
         if calModel.sMonth.num != 0 {
             //if let targetMonth = calModel.months.getAdjacent(num: calModel.sMonth.num , direction: .prev) {
@@ -494,66 +614,10 @@ fileprivate struct StartingAmountLine: View {
                     and: .giveMeLastDayEod,
                     store: store
                 )
-                //let eodTotal = eod//targetMonth.days.last!.eodTotal
-                //startingAmount.amountString = eod.currencyWithDecimals()
+                print("The EOD for \(startingAmount.payMethod?.title ?? "N/A") is \(eod)")
                 
-                
-//                let USA = Countries.fetch(by: 225)!
-//                if let amountConverted = Countries.convert(amount: eod, from: USA, to: AppState.shared.country),
-//                   let country = payMethod.country {
-//        //            self.convertedDisplayAmount = Countries.convert(amount: amount, from: USA, to: AppState.shared.country)
-//                    self.amountString = CurrencyHelpers.formatAmountText(amount: amountConverted, currencyCode: country.currencyCode)
-                    
-                    
-                print("The EOD for \(startingAmount.payMethod.title) is \(eod)")
-                //startingAmount.amountString = eod.currencyWithDecimals()
-                
-//                if let cunt = startingAmount.payMethod.country {
-//                    startingAmount.amountString = CurrencyHelpers.formatAmountText(amount: eod, currencyCode: cunt.currencyCode)
-//                } else {
-//                    startingAmount.amountString = eod.currencyWithDecimals()
-//                }
-                
-                
-                /// Tackle App = USA, starting amount currency = COP
-                /// NOTE! EOD is always the app's currency type
-                //let setCunt = AppState.shared.country
-                
-                
-                startingAmount.amountString = eod.currencyWithDecimals(currencyCode: startingAmount.payMethod.country?.currencyCode)
+                startingAmount.amountString = eod.currencyWithDecimals(currencyCode: startingAmount.payMethod?.country?.currencyCode)
                 return
-                
-//                if let methCunt = startingAmount.payMethod.country {
-//                    //let exchangeRate =
-//                    
-//                }
-//                
-//                
-//                
-//                
-//                if let cunt = startingAmount.payMethod.country {
-//                    let setCunt = AppState.shared.country
-//                    if cunt != setCunt {
-//                        print("🐶0.0")
-//                        if let converted = Countries.convert(
-//                            amount: eod,
-//                            from: setCunt,
-//                            to: cunt
-//                        ) {
-//                            print("🐶0.1")
-//                            startingAmount.amountString = CurrencyHelpers.formatAmountText(
-//                                amount: converted,
-//                                currencyCode: cunt.currencyCode
-//                            )
-//                        }
-//                    } else {
-//                        print("🐶0.2")
-//                        startingAmount.amountString = eod.currencyWithDecimals()
-//                    }
-//                } else {
-//                    print("🐶0.3")
-//                    startingAmount.amountString = eod.currencyWithDecimals()
-//                }
             }
         }
     }

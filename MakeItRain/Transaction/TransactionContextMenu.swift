@@ -9,47 +9,51 @@ import SwiftUI
 
 struct TransactionContextMenu: View {
     @Environment(CalendarModel.self) private var calModel
-    
+    @Environment(CalendarProps.self) private var calProps
     
     @Bindable var trans: CBTransaction
-    @Binding var transEditID: String?
     @Binding var showDeleteAlert: Bool
+    
+    @Binding var showPayMethodSheet: Bool
+    @Binding var showCategorySheet: Bool
     
     var body: some View {
         Section {
-            Button { transEditID = trans.id } label: { Text("Edit") }
-            Button { calModel.createCopy(of: trans) } label: { Text("Copy") }
+            Button { calProps.transEditID = trans.id } label: { Label("Edit", systemImage: "square.and.pencil") }
+            Button { calModel.createCopy(of: trans) } label: { Label("Copy", systemImage: "document.on.document") }
             
             Button {
-                trans.log(field: .factorInCalculations, old: trans.factorInCalculations ? "true" : "false", new: trans.factorInCalculations ? "false" : "true", groupID: UUID().uuidString)
-                
                 trans.factorInCalculations.toggle()
-                Task {
-                    await calModel.saveTransaction(id: trans.id)
-                }                
+                Task { await calModel.saveTransaction(id: trans.id) }
             } label: {
-                Text(trans.factorInCalculations ? "❌ Exclude from totals" : "✅ Include in totals")
+                Label(trans.factorInCalculations ? "Exclude from totals" : "Include in totals", systemImage: trans.factorInCalculations ? "eye.slash" : "eye")
             }
         }
             
         Section {
             TitleColorMenu(transactions: [trans], saveOnChange: true) {
-                Text("Title Color")
+                Label("Title Color", systemImage: "paintpalette")
             }
             
-            PayMethodMenu(payMethod: $trans.payMethod, trans: trans, calcAndSaveOnChange: true, whichPaymentMethods: .allExceptUnified) {
-                Text("Account")
+            Button {
+                trans.deepCopy(.create)
+                showPayMethodSheet = true
+            } label: {
+                Label("Account", systemImage: "wallet.bifold")
             }
             
-            CategoryMenu(category: $trans.category, trans: trans, saveOnChange: true) {
-                Text("Categories")
-            }
+            Button {
+                trans.deepCopy(.create)
+                showCategorySheet = true
+            } label: {
+                Label("Categories", systemImage: "books.vertical")
+            }            
         }
             
         Button(role: .destructive) {
             showDeleteAlert = true
         } label: {
-            Text("Delete")
+            Label("Delete", systemImage: "trash")
                 .foregroundColor(.red)
         }
     }

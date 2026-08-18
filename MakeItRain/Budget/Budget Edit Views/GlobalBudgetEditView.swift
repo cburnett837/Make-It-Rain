@@ -57,8 +57,10 @@ struct GlobalBudgetEditView<T: IsEditableBudget & Observation.Observable>: View 
     }
     
     var monthlyIncome: Decimal {
-        return store.repTransactions.reduce(0.0) { total, rep in
-            guard rep.category?.isIncome == true else { return total }
+        return store.repTransactions
+            .filter { $0.category?.isIncome == true && $0.active && $0.payMethod?.accountHolderFilter() == true }
+            .reduce(0.0) { total, rep in
+            //guard rep.category?.isIncome == true else { return total }
             
             let dayOrDateCount = rep.when.count {
                 [.dayOfMonth, .specificDate].contains($0.whenType) && $0.active
@@ -74,6 +76,10 @@ struct GlobalBudgetEditView<T: IsEditableBudget & Observation.Observable>: View 
     
     var isValidToSave: Bool {
         obj.hasChanges()
+    }
+    
+    var incomeTrans: [CBRepeatingTransaction] {
+        store.repTransactions.filter { $0.category?.isIncome == true && $0.active && $0.payMethod?.accountHolderFilter() == true }
     }
     
 
@@ -100,11 +106,17 @@ struct GlobalBudgetEditView<T: IsEditableBudget & Observation.Observable>: View 
                     }
                     .bold()
                     
-                    ForEach(store.repTransactions.filter { $0.category?.isIncome == true && $0.active }) { repTrans in
+                    ForEach(incomeTrans) { repTrans in
                         RepeatingTransactionLine(repTrans: repTrans)
                     }
                 } header: {
-                    Text("Monthly Income")
+                    HStack {
+                        Text("Monthly Income")
+                        Spacer()
+                        PayMethodFilterMenu()
+                        
+                    }
+                    
                 } footer: {
                     Text("The amount of monthly income as determined by your recurring transactions.")
                 }
@@ -124,7 +136,7 @@ struct GlobalBudgetEditView<T: IsEditableBudget & Observation.Observable>: View 
                             Text("Warning!")
                         }
                     } footer: {
-                        Text("Your overall budget is less than the amount your budgeted for individual categories.")
+                        Text("The total amount you budgeted for individual categories is greater than your overall budget.")
                     }
                     
                     Section("Groups & Categories") {

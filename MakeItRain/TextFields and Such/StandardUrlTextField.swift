@@ -55,6 +55,7 @@ struct StandardUrlTextField: View {
                     }
                     #endif
                 }
+                .focused(focusedField, equals: focusID)
             }
             
             #if os(iOS)

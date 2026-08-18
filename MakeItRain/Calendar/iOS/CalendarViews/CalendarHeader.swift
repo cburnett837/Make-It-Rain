@@ -92,26 +92,11 @@ struct CalendarHeader: View {
             HStack(spacing: 0) {
                 VStack(alignment: .trailing, spacing: 0) {
                     HStack(spacing: 4) {
-                        
-                        if let meth = calModel.sPayMethod, let cunt = meth.country {
-                            //Text("\(meth.title) (\(cunt.currencyCode))")
+                        if let meth = calModel.sPayMethod {
                             Text(meth.title)
-                            
-                        } else if let meth = calModel.sPayMethod, meth.isUnified {
-                            //Text("\(meth.title) (\(AppState.shared.country.currencyCode))")
-                            Text(meth.title)
-                            
                         } else {
                             Text("\(calModel.sPayMethod?.title ?? "All Transactions")")
                         }
-                        
-                            //.padding(.leading, -2)
-                        
-//                        if let meth = calModel.sPayMethod, meth.isUnified {
-//                            Image(systemName: "info.circle")
-//                                .foregroundStyle(Color.theme)
-//                        }
-                        
                     }
                     .font(.callout)
                     .foregroundStyle(.gray)

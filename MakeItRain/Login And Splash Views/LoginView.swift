@@ -15,10 +15,13 @@ struct LoginView: View {
     
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
+    
     @State private var email = ""
     @State private var password = ""
-    @FocusState private var focusedField: Int?
     @State private var attemptingLogin = false
+    @State private var isSecureField = true
+    
+    @FocusState private var focusedField: Int?
     
     var body: some View {
         ZStack {
@@ -123,11 +126,20 @@ struct LoginView: View {
                 .uiTextAlignment(.left)
                 .uiKeyboardType(.system(.default))
                 .uiAutoCapitalizationType(.none)
-                .uiIsSecure(true)
+                .uiIsSecure(isSecureField)
                 .focused($focusedField, equals: 1)
                 #else
                 SecureField("Password", text: $password)
                 #endif
+                
+                if !password.isEmpty {
+                    Button {
+                        isSecureField.toggle()
+                    } label: {
+                        Image(systemName: isSecureField ? "eye" : "eye.slash")
+                            .foregroundStyle(.gray)
+                    }
+                }
             }
             .frame(width: 250)
                                 

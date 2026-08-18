@@ -384,7 +384,7 @@ class WebSocketManager {
             let year = startingAmount.year
                         
             if let targetMonth = calModel.months.get(by: (month, year)) {
-                let targetAmount = targetMonth.startingAmounts.filter { $0.payMethod.id == startingAmount.payMethod.id }.first
+                let targetAmount = targetMonth.startingAmounts.filter { $0.payMethod?.id == startingAmount.payMethod?.id }.first
                 if let targetAmount {
                     
                     if !startingAmount.active {
@@ -395,7 +395,7 @@ class WebSocketManager {
                 } else {
                     payModel.prepareStartingAmounts(for: targetMonth, calModel: calModel)
                     //calModel.prepareStartingAmount(for: startingAmount.payMethod)
-                    let targetAmount = targetMonth.startingAmounts.filter { $0.payMethod.id == startingAmount.payMethod.id }.first
+                    let targetAmount = targetMonth.startingAmounts.filter { $0.payMethod?.id == startingAmount.payMethod?.id }.first
                     if let targetAmount {
                         targetAmount.setFromAnotherInstance(startingAmount: startingAmount)
                     }
@@ -621,8 +621,8 @@ class WebSocketManager {
         
         /// Starting Amounts
         calModel.months
-            .flatMap { $0.startingAmounts.filter { $0.payMethod.id == meth.id } }
-            .forEach { $0.payMethod.logo = logoData }
+            .flatMap { $0.startingAmounts.filter { $0.payMethod?.id == meth.id } }
+            .forEach { $0.payMethod?.logo = logoData }
     }
     
     

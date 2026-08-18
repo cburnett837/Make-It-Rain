@@ -156,7 +156,7 @@ struct DashboardActivityByMonthChart: View {
     
     var body: some View {
         
-        DashboardWidget(showFilterText: !model.allCatsSelected) {
+        Card(showFilterText: !model.allCatsSelected) {
             HStack(spacing: 0) {
                 Menu {
                     ForEach(DashboardMontlyOrQuarterlyBreakdowns.allCases, id: \.self) { opt in

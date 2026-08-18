@@ -12,7 +12,7 @@ struct RootViewMac: View {
 
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) var calModel
-    
+    @Environment(DashboardModel.self) var dashboardModel
     @Environment(PayMethodModel.self) var payModel
     @Environment(CategoryModel.self) var catModel
     @Environment(KeywordModel.self) var keyModel
@@ -57,6 +57,7 @@ struct RootViewMac: View {
                     
                     Section("More") {
                         if AppState.shared.methsExist {
+                            NavLinkMac(destination: .dashboard, title: "Dashboard", image: "chart.pie")
                             NavLinkMac(destination: .categories, title: "Categories", image: "books.vertical")
                         }
                         
@@ -121,6 +122,9 @@ struct RootViewMac: View {
                 
             case .search:
                 AdvancedSearchView(navPath: .constant(NavigationPath()))
+            
+            case .dashboard:
+                Dashboard(model: dashboardModel, isForSelectedMonth: false)
                 
             case .settings:
                 Text("Settings")

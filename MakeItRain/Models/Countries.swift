@@ -57,8 +57,32 @@ import SwiftUI
 struct CountryPicker: View {
     @Environment(\.dismiss) var dismiss
     @Binding var country: Country?
+    var showNoneOption: Bool = true
     
     @State private var searchText = ""
+                    
+    
+    var relevantCountries: [Country] {
+        let countries = Countries.list.filter {
+            [
+                Countries.homeCountry.code,
+                LocationManager.shared.currentCountry,
+                country?.code
+            ].contains($0.code)
+        }
+
+//        if let country {
+//            countries.append(country)
+//        }
+//        
+//        if country?.code != Countries.homeCountry.code {
+//            countries.append(Countries.homeCountry)
+//        }
+        
+
+        return Array(Set(countries)).sorted { $0.name < $1.name }
+    }
+    
     
     var filteredCountries: [Country] {
         return Countries.list.filter {
@@ -73,20 +97,30 @@ struct CountryPicker: View {
     var body: some View {
         NavigationStack {
             List {
-                line(for: nil)
-                
-                Section("Your Home Country") {
-                    line(for: Countries.homeCountry)
+                if showNoneOption {
+                    line(for: nil)
                 }
                 
-                Section("All Countries") {
+                Section {
+                    ForEach(relevantCountries) { cunt in
+                        line(for: cunt)
+                    }
+                } header: {
+                    Text("Relevant Currencies")
+                }
+                
+//                Section("Your Home Country") {
+//                    line(for: Countries.homeCountry)
+//                }
+                
+                Section("All Currencies") {
                     ForEach(filteredCountries) { cunt in
                         line(for: cunt)
                     }
                 }
             }
-            .navigationTitle("Countries")
-            .searchable(text: $searchText, prompt: "Search Countries")
+            .navigationTitle("Currencies")
+            .searchable(text: $searchText, prompt: "Search Countries & Currencies")
             #if os(iOS)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) { closeButton }
@@ -103,7 +137,9 @@ struct CountryPicker: View {
         } label: {
             HStack {
                 if let country {
-                    Text(country.flagEmoji)
+                    FlagCircle(code: country.code)
+                    
+                    //Text(country.flagEmoji)
                     Text(country.name)
                         .schemeBasedForegroundStyle()
                     

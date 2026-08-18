@@ -474,7 +474,7 @@ struct RecentReceiptsView: View {
 //    func fetchFromServer(_ fetchModel: GenericUserInfoModel) async -> [CBTransaction] {
 //        let model = RequestModel(requestType: "fetch_receipts", model: fetchModel)
 //        typealias ResultResponse = Result<Array<CBTransaction>?, AppError>
-//        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+//        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
 //        
 //        switch await result {
 //        case .success(let model):

@@ -7,6 +7,19 @@
 
 import SwiftUI
 import MapKit
+import WeatherKit
+
+import CoreLocation
+
+extension CLLocationCoordinate2D: @retroactive Equatable {
+    public static func == (
+        lhs: CLLocationCoordinate2D,
+        rhs: CLLocationCoordinate2D
+    ) -> Bool {
+        lhs.latitude == rhs.latitude &&
+        lhs.longitude == rhs.longitude
+    }
+}
 
 struct StandardMiniMapContainerWithStatePosition: View {
     @State private var locationManager = LocationManager.shared
@@ -65,6 +78,7 @@ struct StandardMiniMap: View {
     var openBigMapOnTap: Bool = true
     
     @State private var showFullMap = false
+    @State private var currentWeather: CurrentWeather?
         
     var body: some View {
         @Bindable var mapModel = mapModel
@@ -77,7 +91,7 @@ struct StandardMiniMap: View {
                     .tint(.orange)
             }
         }
-        
+        .overlay(weatherBlurbView)
         /// Fix for iOS 26 not being able to touch the map directly.
         .overlay(Color.gray.opacity(0.01))
         .task {
@@ -90,26 +104,53 @@ struct StandardMiniMap: View {
                 showFullMap = true
             }
         }
-        
+        .onChange(of: locationManager.currentLocation) {
+            Task {
+                await getWeatherForLocation()
+            }
+        }
+        .onChange(of: locations.map({ $0.mapItem?.identifier })) {
+            Task {
+                await getWeatherForLocation()
+            }
+        }
         .onDisappear {
             mapModel.completions.removeAll()
         }
         #if os(iOS)
         .fullScreenCover(isPresented: $showFullMap, onDismiss: {
-            /// Set the camera to the first location in the list when opening the map.
+            /// Set the camera to the first location in the list when closing the map.
             mapModel.focusOnFirst(locations: locations)
         }) {
             StandardMapView(locations: $locations, parent: parent, parentID: parentID, parentType: parentType)
         }
         #endif
-//        #else
-//        .sheet(isPresented: $showFullMap, onDismiss: {
-//            /// Set the camera to the first location in the list when opening the map.
-//            mapModel.focusOnFirst(locations: locations)
-//        }) {
-//            StandardMapView(locations: $locations, parent: parent, parentID: parentID, parentType: parentType)
-//        }
-//        #endif
+    }
+    
+    var weatherBlurbView: some View {
+        Group {
+            if let current = currentWeather {
+                HStack {
+                    Image(systemName: current.symbolName)
+                    Text(current.temperature.formatted(
+                        .measurement(
+                            width: .abbreviated,
+                            usage: .weather,
+                            numberFormatStyle: .number.precision(.fractionLength(0))
+                        )
+                    ))
+                }
+            } else {
+                Text("Fetching weather…")
+            }
+        }
+        .padding(5)
+        .glassEffect()
+        //.background(.thickMaterial, in: .capsule)
+        .font(.caption2)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+        .padding(5)
+        .padding(.trailing, 6)
     }
     
     
@@ -124,25 +165,27 @@ struct StandardMiniMap: View {
         
         /// There is no location set, focus on the user position and create a location from there.
         if locations.isEmpty {
-            if let coordinate = LocationManager.shared.currentLocation {
+            if let coordinate = locationManager.currentLocation {
                 let span = MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
                 let region = MKCoordinateRegion(center: coordinate, span: span)
                 mapModel.visibleRegion = region
             }
             
             mapModel.position = .userLocation(followsHeading: false, fallback: .userLocation(fallback: .automatic))
-            
-            
+        
             if addCurrentLocation {
-                print("should add current location to parent")
+                //print("should add current location to parent")
                 if let location = await mapModel.saveCurrentLocation(parentID: parentID, parentType: parentType) {
                     parent.upsert(location)
                     focusOnFirst(locations: parent.locations)
                 }
             }
+            
+            await getWeatherForCurrentLocation()
         } else {
             /// Set the camera to the first location in the list when opening the map.
             focusOnFirst(locations: locations)
+            await getWeatherForLocation()
         }
     }
     
@@ -150,7 +193,8 @@ struct StandardMiniMap: View {
         //print("setting camera to first location in array")
         let filteredLocations = locations.filter { $0.active }
         
-        if let lat = filteredLocations.first?.lat, let lon = filteredLocations.first?.lon {
+        if let lat = filteredLocations.first?.lat,
+           let lon = filteredLocations.first?.lon {
             let viewCord = CLLocationCoordinate2D(latitude: CLLocationDegrees(floatLiteral: lat), longitude: CLLocationDegrees(floatLiteral: lon))
             let span = MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
             let region = MKCoordinateRegion(center: viewCord, span: span)
@@ -158,4 +202,37 @@ struct StandardMiniMap: View {
             mapModel.visibleRegion = region
         }
     }
+    
+    func getWeatherForLocation() async {
+        if let location = locations.filter({ $0.active }).first?.mapItem?.location {
+            do {
+                self.currentWeather = try await getWeather(for: location)
+            } catch {
+                print(error.localizedDescription)
+            }
+        } else {
+            print("Could not determine map item")
+        }
+    }
+    
+    func getWeatherForCurrentLocation() async {
+        if let lat = locationManager.currentLocation?.latitude,
+           let lon = locationManager.currentLocation?.longitude {
+            let location = CLLocation(latitude: lat, longitude: lon)
+            
+            do {
+                self.currentWeather = try await getWeather(for: location)
+            } catch {
+                print(error.localizedDescription)
+            }
+        } else {
+            print("Location data not available")
+        }
+    }
+    
+    func getWeather(for location: CLLocation) async throws -> CurrentWeather {
+        let weather = try await WeatherService.shared.weather(for: location, including: .current)
+        return weather
+    }
 }
+

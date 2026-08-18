@@ -32,11 +32,8 @@ struct TransactionListLine: View {
     
     var body: some View {
         HStack(alignment: .circleAndTitle) {
-            BusinessLogo(config: .init(
-                parent: trans.payMethod,
-                fallBackType: .color
-            ))
-            .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
+            PayMethodLogoMashup(meth: trans.payMethod)
+                .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.center] })
             
             VStack(spacing: 2) {
                 HStack {
@@ -98,7 +95,7 @@ struct TransactionListLine: View {
     
     @ViewBuilder
     var amount: some View {
-        if trans.payMethod?.accountType == .credit || trans.payMethod?.accountType == .loan {
+        if trans.payMethod?.isCreditOrLoan == true {
             Text((trans.amount * -1).currencyWithDecimals())
         } else {
             Text(trans.amount.currencyWithDecimals())

@@ -17,6 +17,9 @@ class CBFile: Codable, Identifiable, Hashable {
     var fileType: FileType
     
     var isPlaceholder: Bool = false
+    var isHovered: Bool = false
+    var isItemizing: Bool = false
+    var isDeleting: Bool = false
     
     enum CodingKeys: CodingKey { case id, related_id, related_type_id, file_type, uuid, ext, active, user_id, account_id, device_uuid }
     

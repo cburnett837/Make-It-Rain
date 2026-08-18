@@ -72,9 +72,9 @@ struct PayMethodMenu<Content: View>: View {
                         }
                     } label: {
                         HStack {
-                            Image(systemName: payMethod?.id == meth.id ? "checkmark" : "circle.fill")
-                                .tint(meth.isUnified ? (colorScheme == .dark ? .white : .black) : meth.color)
-                                //.foregroundStyle(meth.isUnified ? (colorScheme == .dark ? .white : .black) : meth.color, .primary, .secondary)
+                            PayMethodLogoMashup(meth: meth)
+//                            Image(systemName: payMethod?.id == meth.id ? "checkmark" : "circle.fill")
+//                                .tint(meth.isUnified ? (colorScheme == .dark ? .white : .black) : meth.color)
                             Text(meth.title)
                         }
                     }

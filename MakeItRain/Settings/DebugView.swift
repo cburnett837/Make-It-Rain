@@ -369,7 +369,7 @@ struct DebugView: View {
     func fetchPlaidCosts() async {
         let model = RequestModel(requestType: "plaid_get_force_refresh_cost", model: AppState.shared.user!)
         typealias ResultResponse = Result<Array<PlaidForceRefreshCost>?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
         
         switch await result {
         case .success(let model):

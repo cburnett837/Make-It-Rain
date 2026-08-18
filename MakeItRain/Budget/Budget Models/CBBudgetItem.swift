@@ -80,9 +80,11 @@ class CBBudgetItem: Codable, Identifiable, Hashable, Equatable, IsEditableBudget
         set { item = newValue }
     }
     
-    var type: BudgetItemType {
-        item?.budgetType ?? .category
-    }
+//    var type: BudgetItemType {
+//        item?.budgetType ?? .category
+//    }
+    
+    var type: BudgetItemType
     
     var catIsIncome: Bool { self.category?.isIncome == true }    
     var catIsExpense: Bool { self.category?.isExpense == true || self.categoryGroup != nil }
@@ -106,7 +108,7 @@ class CBBudgetItem: Codable, Identifiable, Hashable, Equatable, IsEditableBudget
     var appSuiteKey: AppSuiteKey?
 
     
-    init() {
+    init(type: BudgetItemType) {
         let uuid = UUID().uuidString
         self.id = uuid
         self.uuid = uuid        
@@ -115,10 +117,11 @@ class CBBudgetItem: Codable, Identifiable, Hashable, Equatable, IsEditableBudget
         self.amountString2 = ""
         self.active = true
         self.action = .add
+        self.type = type
     }
     
     
-    init(uuid: String) {
+    init(uuid: String, type: BudgetItemType) {
         self.id = uuid
         self.uuid = uuid
         self.item = nil
@@ -126,6 +129,8 @@ class CBBudgetItem: Codable, Identifiable, Hashable, Equatable, IsEditableBudget
         self.amountString2 = ""
         self.active = true
         self.action = .add
+        //self.type = .category
+        self.type = type
     }
     
     
@@ -164,6 +169,19 @@ class CBBudgetItem: Codable, Identifiable, Hashable, Equatable, IsEditableBudget
         let decodedGroup = try container.decodeIfPresent(CBCategoryGroup.self, forKey: .category_group)
         let decodedTag = try container.decodeIfPresent(CBTag.self, forKey: .tag)
         self.item = decodedCategory ?? decodedGroup ?? decodedTag
+        
+        
+        self.type = (
+            decodedCategory != nil
+            ? .category
+            : (decodedGroup != nil
+               ? .categoryGroup
+               : (decodedTag != nil
+                  ? .tag :
+                    .category
+                 )
+              )
+            )
                 
         let amount = try container.decode(Decimal.self, forKey: .amount)
         self.amountString = amount.currencyWithDecimals()
@@ -177,13 +195,7 @@ class CBBudgetItem: Codable, Identifiable, Hashable, Equatable, IsEditableBudget
         
         action = .edit
     }
-    
-    
-    static var empty: CBBudgetItem {
-        CBBudgetItem()
-    }
-    
-    
+
     
     func hasChanges() -> Bool {
         if let deepCopy = deepCopy {
@@ -201,7 +213,7 @@ class CBBudgetItem: Codable, Identifiable, Hashable, Equatable, IsEditableBudget
     func deepCopy(_ mode: ShadowCopyAction) {
         switch mode {
         case .create:
-            let budget = CBBudgetItem.empty
+            let budget = CBBudgetItem(type: self.type)
             budget.id = self.id
             budget.monthId = self.monthId
             budget.amountString = self.amountString

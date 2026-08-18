@@ -16,48 +16,33 @@ struct DashboardNetWorthChange: View {
     @State private var showAllAccounts = false
     
     var allDebitStart: CBStartingAmount? {
-        calModel.sMonth.startingAmounts.filter { $0.payMethod.isUnifiedDebit }.first
+        calModel.sMonth.startingAmounts.filter { $0.payMethod?.isUnifiedDebit == true }.first
     }
     
     var allCreditStart: CBStartingAmount? {
-        calModel.sMonth.startingAmounts.filter { $0.payMethod.isUnifiedCredit }.first
+        calModel.sMonth.startingAmounts.filter { $0.payMethod?.isUnifiedCredit == true }.first
     }
     
     var starts: Array<CBStartingAmount> {
         calModel.sMonth.startingAmounts
-            .filter { $0.payMethod.isPermittedAndNotHidden }
-            .filter { !$0.payMethod.isUnified }
-            .filter {
-                $0.payMethod.accountHolderFilter()
-//                switch AppSettings.shared.paymentMethodFilterMode {
-//                case .all:
-//                    return true
-//                    
-//                case .justPrimary:
-//                    return $0.payMethod.holderOne?.id == AppState.shared.user?.id
-//                    
-//                case .primaryAndSecondary:
-//                    return $0.payMethod.holderOne?.id == AppState.shared.user?.id
-//                    || $0.payMethod.holderTwo?.id == AppState.shared.user?.id
-//                    || $0.payMethod.holderThree?.id == AppState.shared.user?.id
-//                    || $0.payMethod.holderFour?.id == AppState.shared.user?.id
-//                }
-            }
+            .filter { $0.payMethod?.isPermittedAndNotHidden == true }
+            .filter { $0.payMethod?.isUnified == false }
+            .filter { $0.payMethod?.accountHolderFilter() == true }
             .sorted { Helpers.paymentMethodSorter()($0.payMethod, $1.payMethod) }
     }
     
     var allStart: Decimal {
         let allDebitAssets = allDebitStart?.amount ?? 0.0
         let allOtherAssets = starts.filter {
-            $0.payMethod.accountType == .savings
-            || [.investment, .brokerage, .k401, .crypto, .cash].contains($0.payMethod.accountType)
+            $0.payMethod?.accountType == .savings
+            || [.investment, .brokerage, .k401, .crypto, .cash].contains($0.payMethod?.accountType)
         }
         .map { $0.amount }
         .reduce(0.0, +)
                     
         let allCreditLiabilities = allCreditStart?.amount ?? 0.0
         let allOtherLiabilities = starts.filter {
-            $0.payMethod.accountType == .loan
+            $0.payMethod?.accountType == .loan
         }
         .map { $0.amount }
         .reduce(0.0, +)
@@ -126,8 +111,13 @@ struct DashboardNetWorthChange: View {
             }
             
             Button(showAllAccounts ? "Hide Individual Accounts" : "Show Individual Accounts") {
-                showAllAccounts.toggle()
+                withAnimation {
+                    showAllAccounts.toggle()
+                }
             }
+            #if os(iOS)
+            .drawingGroup()
+            #endif
         }
         .font(.caption)
     }
@@ -147,13 +137,14 @@ struct DashboardNetWorthChange: View {
         var body: some View {
             Group {
                 HStack {
+//                    PayMethodLogoMashup(meth: startingAmount.payMethod, size: 20)
                     BusinessLogo(config: .init(
                         parent: startingAmount.payMethod,
-                        fallBackType: startingAmount.payMethod.isUnified ? .gradient : .color,
+                        fallBackType: startingAmount.payMethod?.isUnified == true ? .gradient : .color,
                         size: 20
                     ))
                     
-                    Text(startingAmount.payMethod.title)
+                    Text(startingAmount.payMethod?.title ?? "N/A")
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 
@@ -167,12 +158,8 @@ struct DashboardNetWorthChange: View {
                 Text("\(percentage.decimals(1))%")
                     .foregroundStyle(isBeneficial ? Color.red : Color.green)
             }
-            .task {
-                calculate()
-            }
-            .onChange(of: DataChangeTriggers.shared.calendarDidChange) { oldValue, newValue in
-                calculate()
-            }
+            .task { calculate() }
+            .onChange(of: DataChangeTriggers.shared.calendarDidChange) { calculate() }
         }
         
         func calculate() {
@@ -181,7 +168,7 @@ struct DashboardNetWorthChange: View {
             self.change = abs(change)
             percentage = abs(Helpers.netWorthPercentageChange(start: startingAmount.amount, end: eom))
             
-            if startingAmount.payMethod.isCreditOrLoan || startingAmount.payMethod.isUnifiedCredit {
+            if startingAmount.payMethod?.isCreditOrLoan == true || startingAmount.payMethod?.isUnifiedCredit == true {
                 isBeneficial = change > 0
             } else {
                 isBeneficial = change < 0

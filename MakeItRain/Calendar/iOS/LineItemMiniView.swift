@@ -20,16 +20,21 @@ struct LineItemMiniView: View {
         
     @Bindable var trans: CBTransaction
     @Bindable var day: CBDay
+    
+    /// These 2 are @AppStorage properties, that have been lifted up to the grandparent view to help with performance.
     var lineItemIndicator: LineItemIndicator
     var phoneLineItemDisplayItem: PhoneLineItemDisplayItem
             
-    //@State private var transEditID: String?
+    @State private var transEditID: String?
     @State private var labelWidth: CGFloat = 20.0
     @State private var showDeleteAlert = false
     @State private var hilightMe = false
     
+//    @State private var showPayMethodSheet = false
+//    @State private var showCategorySheet = false
+    
     var amountColor: Color {
-        if trans.payMethod?.accountType == .credit || trans.payMethod?.accountType == .loan {
+        if trans.payMethod?.isCreditOrLoan == true {
             trans.amount < 0 ? AppSettings.shared.incomeColor : colorScheme == .dark ? .gray : .totalDarkGray
         } else {
             trans.amount > 0 ? AppSettings.shared.incomeColor : colorScheme == .dark ? .gray : .totalDarkGray
@@ -62,59 +67,67 @@ struct LineItemMiniView: View {
         (trans.category?.isNil ?? false) ? .gray : trans.category?.color ?? .gray
     }
         
-//    var opacity: Double {
-//        switch trans.status {
-//        case .editing, .none: 1
-//        case .inFlight, .dummy, .saveSuccess, .saveFail, .deleteSuccess: 0.3
-//        }
-//    }
-    
     //#warning("REGARDING HITCH: All I did here was pull the appstorage properties up to the day view, and made the transaction sheet local.")
     var body: some View {
         //let _ = Self._printChanges()
         @Bindable var calModel = calModel
         @Bindable var calProps = calProps
-        Group {
-            detailsLineItem
-                .statusIndicatorOverlay(for: trans.status)
-                .padding(.horizontal, 2)
-                .background(RoundedRectangle(cornerRadius: 4).fill(lineColor))
-        }
-        .padding(.horizontal, 0)
-        .contentShape(.rect)
-        .allowsHitTesting(phoneLineItemDisplayItem == .both)
-//        .if(phoneLineItemDisplayItem == .both) {
-//            $0
+        detailsLineItem
+            .statusIndicatorOverlay(for: trans.status)
+            .padding(.horizontal, 2)
+            .background(RoundedRectangle(cornerRadius: 4).fill(lineColor))
+            .padding(.horizontal, 0)
+            .contentShape(.rect)
+            .allowsHitTesting(phoneLineItemDisplayItem == .both)
             .draggable(trans) { dragPreview }
             .onTapGesture { selectTrans() }
-        //}
-        
-//        .confirmationDialog("Delete \"\(trans.title)\"?", isPresented: $showDeleteAlert) {
-//            Button("Yes", role: .destructive) {
-//                trans.action = .delete
+            .fixedSize(horizontal: false, vertical: true)
+            .confirmationDialog("Delete Transaction?", isPresented: $showDeleteAlert) {
+                Button("Yes", role: .destructive) {
+                    trans.action = .delete
+                    Task {
+                        await calModel.saveTransaction(id: trans.id)
+                    }
+                }
+                Button("No", role: .close) { showDeleteAlert = false }
+            } message: {
+                Text("Delete \"\(trans.title)\"?")
+            }
+//            .contextMenu {
+//                TransactionContextMenu(
+//                    trans: trans,
+//                    showDeleteAlert: $showDeleteAlert,
+//                    showPayMethodSheet: $showPayMethodSheet,
+//                    showCategorySheet: $showCategorySheet
+//                )
+//                .schemeBasedTint()
+//            }
+//            .sheet(isPresented: $showPayMethodSheet, onDismiss: {
 //                Task {
 //                    await calModel.saveTransaction(id: trans.id)
+//                    trans.deepCopy(.clear)
 //                }
+//            }) {
+//                PayMethodSheet(payMethod: $trans.payMethod, whichPaymentMethods: .allExceptUnified)
 //            }
-//            Button("No", role: .close) { showDeleteAlert = false }
-//        } message: {
-//            Text("Delete \"\(trans.title)\"?")
-//        }
-//        .contextMenu {
-//            TransactionContextMenu(trans: trans, transEditID: $transEditID, showDeleteAlert: $showDeleteAlert)
-//        }
-        
-        .fixedSize(horizontal: false, vertical: true)
-        /// Note about `transactionEditSheetAndLogic()`.
-        /// If you move the transaction sheet here, if the date changes via the long poll, the sheet will close.
-        /// If performance issues arise due to the `calProps.tranEditID` binding, and the sheet must be moved here, finish fleshing out the `trans.dateChangeViaLongPoll` idea.
-        /// That essentially will tell the model that the transaction has to be moved from one day to another when the sheet closes.
-//        .transactionEditSheetAndLogic(
-//            transEditID: $calProps.transEditID,
-//            selectedDay: $calProps.selectedDay,
-//            findTransactionWhere: .constant(.normalList),
-//            resetSelectedDayOnClose: true
-//        )
+//            .sheet(isPresented: $showCategorySheet, onDismiss: {
+//                Task {
+//                    await calModel.saveTransaction(id: trans.id)
+//                    trans.deepCopy(.clear)
+//                }
+//            }) {
+//                CategorySheet(category: $trans.category)
+//            }
+            /// Note about `transactionEditSheetAndLogic()`.
+            /// If you move the transaction sheet here, if the date changes via the long poll, the sheet will close.
+            /// If performance issues arise due to the `calProps.tranEditID` binding, and the sheet must be moved here, finish fleshing out the `trans.dateChangeViaLongPoll` idea.
+            /// That essentially will tell the model that the transaction has to be moved from one day to another when the sheet closes.
+    //        .transactionEditSheetAndLogic(
+    //            transEditID: $calProps.transEditID,
+    //            selectedDay: $calProps.selectedDay,
+    //            findTransactionWhere: .constant(.normalList),
+    //            resetSelectedDayOnClose: true
+    //        )
     }
     
     
@@ -207,9 +220,10 @@ struct LineItemMiniView: View {
     
     
     var notificationIndicator: some View {
-        Image(systemName: "bell.badge")
-            .foregroundStyle(.primary)
-            .symbolRenderingMode(.multicolor)
+        Image(systemName: "clock")
+        //Image(systemName: "bell.badge")
+            .foregroundStyle(.secondary)
+            //.symbolRenderingMode(.multicolor)
             //.font(.caption2)
             .font(.system(size: 10))
     }
@@ -258,9 +272,8 @@ struct LineItemMiniView: View {
                         //.italic(trans.action == .add)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     
-                    if let cunt = trans.country, cunt != calModel.sPayMethod?.country, cunt != AppState.shared.country {
-                        Text(cunt.flagEmoji)
-                            .font(.caption2)
+                    if let cunt = trans.condataOriginalCountry, cunt != calModel.sPayMethod?.country, cunt != AppState.shared.country {
+                        FlagCircle(code: cunt.code, size: 10)
                         
                     } else if trans.notifyOnDueDate {
                         notificationIndicator
@@ -274,27 +287,27 @@ struct LineItemMiniView: View {
                     .font(.caption2)
                     .overlay { ExcludeFromTotalsLine(trans: trans) }
                 
-                if showDebuggingInfo {
-                    VStack {
-                        VStack(alignment: .leading) {
-                            Text("unconv")
-                            Text("\(String(describing: trans.originalUnconvertedAmount))")
-                                .foregroundStyle(.secondary)
-                        }
-                        VStack(alignment: .leading) {
-                            Text("amount")
-                            Text("\(String(describing: trans.amount))")
-                                .foregroundStyle(.secondary)
-                        }
-                        VStack(alignment: .leading) {
-                            Text("usd")
-                            Text("\(String(describing: trans.amountUsd))")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .font(.system(size: 10))
-                    //.padding(.top, 10)
-                }
+//                if showDebuggingInfo {
+//                    VStack {
+//                        VStack(alignment: .leading) {
+//                            Text("unconv")
+//                            Text("\(String(describing: trans.originalUnconvertedAmount))")
+//                                .foregroundStyle(.secondary)
+//                        }
+//                        VStack(alignment: .leading) {
+//                            Text("amount")
+//                            Text("\(String(describing: trans.amount))")
+//                                .foregroundStyle(.secondary)
+//                        }
+//                        VStack(alignment: .leading) {
+//                            Text("usd")
+//                            Text("\(String(describing: trans.amountUsd))")
+//                                .foregroundStyle(.secondary)
+//                        }
+//                    }
+//                    .font(.system(size: 10))
+//                    //.padding(.top, 10)
+//                }
                 
             }
             .italic(wasUpdatedByAnotherUser)
@@ -305,70 +318,18 @@ struct LineItemMiniView: View {
     
     
     var totalTextString: String {
-        func strip(_ string: String, currencyCode: String) -> String {
-            //return string
-            //return CurrencyHelpers.cleanAmountString(string, currencyCode: currencyCode) ?? string.replacing("$", with: "").replacing(",", with: "")
-            return CurrencyHelpers.cleanAmountString(string, currencyCode: currencyCode)
+        let setCur = AppState.shared.country.currencyCode
+        let tight = AppSettings.shared.tightenUpEodTotals
+        
+        func strip(_ string: String) -> String {
+            return CurrencyHelpers.cleanAmountString(string, currencyCode: setCur)
         }
         
-        let isUnified = calModel.sPayMethod?.isUnified == true
+        let returnMe = trans.amount.magnitude > 10_000
+        ? trans.amount.kVersion(AppSettings.shared.useWholeNumbers ? 0 : 2)
+        : trans.amount.currencyWithDecimals()
         
-        var amount: String {
-            let transCur = trans.country?.currencyCode
-            let setCur = AppState.shared.country.currencyCode
-            
-            if isUnified || (transCur != setCur && transCur != calModel.sPayMethod?.country?.currencyCode) || transCur != calModel.sPayMethod?.country?.currencyCode {
-                if let amount = CurrencyHelpers.convertedDisplayAmountForTransLineItem(
-                    trans: trans,
-                    months: calModel.months,
-                    convertUsing: .originalUnconvertedAmount,
-                    convertTo: calModel.sPayMethod?.country?.currencyCode
-                ) {
-                    if amount > 10000 || amount < -10000 {
-                        let returnMe = amount.kVersion(AppSettings.shared.useWholeNumbers ? 0 : 2)
-                        return AppSettings.shared.tightenUpEodTotals ? strip(returnMe, currencyCode: setCur) : returnMe
-                    } else {
-                        let returnMe = amount.currencyWithDecimals(AppSettings.shared.useWholeNumbers ? 0 : 2, currencyCode: setCur)
-                        return AppSettings.shared.tightenUpEodTotals ? strip(returnMe, currencyCode: setCur) : returnMe
-                    }
-                    
-//                    let returnMe = amount.currencyWithDecimals(AppSettings.shared.useWholeNumbers ? 0 : 2, currencyCode: setCur)
-//                    return AppSettings.shared.tightenUpEodTotals ? strip(returnMe, currencyCode: setCur) : returnMe
-                } else {
-                    print("AMount is not set")
-                }
-            }
-            
-            if let ogAmount = trans.originalUnconvertedAmount {
-                if ogAmount > 10000 || ogAmount < -10000 {
-                    let returnMe = ogAmount.kVersion(AppSettings.shared.useWholeNumbers ? 0 : 2)
-                    return AppSettings.shared.tightenUpEodTotals ? strip(returnMe, currencyCode: setCur) : returnMe
-                } else {
-                    let returnMe = ogAmount.currencyWithDecimals(AppSettings.shared.useWholeNumbers ? 0 : 2, currencyCode: transCur)
-                    return AppSettings.shared.tightenUpEodTotals ? strip(returnMe, currencyCode: setCur) : returnMe
-                }
-                
-//                let returnMe = ogAmount.currencyWithDecimals(AppSettings.shared.useWholeNumbers ? 0 : 2, currencyCode: transCur)
-//                return AppSettings.shared.tightenUpEodTotals ? strip(returnMe, currencyCode: transCur ?? setCur) : returnMe
-                
-            }
-            
-            if trans.amount > 10000 || trans.amount < -10000 {
-                let returnMe = trans.amount.kVersion(AppSettings.shared.useWholeNumbers ? 0 : 2)
-                return AppSettings.shared.tightenUpEodTotals ? strip(returnMe, currencyCode: setCur) : returnMe
-            } else {
-                let returnMe = trans.amount.currencyWithDecimals(AppSettings.shared.useWholeNumbers ? 0 : 2, currencyCode: transCur)
-                return AppSettings.shared.tightenUpEodTotals ? strip(returnMe, currencyCode: setCur) : returnMe
-            }
-            
-//            let returnMe = trans.amount.currencyWithDecimals(AppSettings.shared.useWholeNumbers ? 0 : 2, currencyCode: transCur)
-//            return AppSettings.shared.tightenUpEodTotals ? strip(returnMe, currencyCode: transCur ?? setCur) : returnMe
-        }
-        
-        
-        
-        
-        return amount
+        return tight ? strip(returnMe) : returnMe
     }
     
     

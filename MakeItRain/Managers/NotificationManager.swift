@@ -125,13 +125,13 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
                  let settings = await notificationCenter.notificationSettings()
                  switch settings.authorizationStatus {
                  case .notDetermined:
-                     print("Notification Status: notDetermined")
+                     print("🔔 Notification Status: notDetermined")
                      notificationsAreAllowed = false
                  case .denied:
-                     print("Notification Status: denied")
+                     print("🔔 Notification Status: denied")
                      notificationsAreAllowed = false
                  case .authorized:
-                     print("Notification Status: authorized")
+                     print("🔔 Notification Status: authorized")
                      notificationsAreAllowed = true
                      DispatchQueue.main.async {
                          #if os(macOS)
@@ -141,20 +141,20 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
                          #endif
                      }
                  case .provisional:
-                     print("Notification Status: provisional")
+                     print("🔔 Notification Status: provisional")
                  case .ephemeral:
-                     print("Notification Status: ephemeral")
+                     print("🔔 Notification Status: ephemeral")
                  @unknown default:
-                     print("Notification Status: unknown")
+                     print("🔔 Notification Status: unknown")
                      notificationsAreAllowed = false
                  }
                  
              } else {
-                 print("notificationCenter.requestAuthorization is unauthorized")
+                 print("🔔 notificationCenter.requestAuthorization is unauthorized")
                  notificationsAreAllowed = false
              }
         } catch {
-            print("notificationCenter.requestAuthorization failed with error")
+            print("🔔 notificationCenter.requestAuthorization failed with error")
             print(error.localizedDescription)
             notificationsAreAllowed = false
         }
@@ -327,7 +327,7 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
                         
             switch await result {
             case .success:
-                print("Successfully sent token")
+                //print("Successfully sent token")
                 LogManager.networkingSuccessful()
                 break
                 

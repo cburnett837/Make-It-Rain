@@ -77,7 +77,13 @@ struct MonthlyBudgetTable: View {
     
     func filteredBudgets(for type: BudgetItemType) -> Array<CBBudgetItem> {
         return calModel.sMonth.budgets
-            .filter { $0.category?.isIncome == false }
+            .filter {
+                if let cat = $0.category {
+                    return cat.isIncome == false
+                } else {
+                    return true
+                }   
+            }
             .filter { $0.type == type }
             .filter {
                 if let item = $0.item {

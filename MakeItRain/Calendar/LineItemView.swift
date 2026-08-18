@@ -29,6 +29,9 @@ struct LineItemView: View {
     @State private var transDeleteID: String?
     @State private var showDeleteAlert = false
     @State private var labelWidth: CGFloat = 20.0
+    
+    @State private var showPayMethodSheet = false
+    @State private var showCategorySheet = false
 
     @Bindable var trans: CBTransaction
     @Bindable var day: CBDay
@@ -182,7 +185,13 @@ struct LineItemView: View {
         )
         #if os(macOS)
         .contextMenu {
-            TransactionContextMenu(trans: trans, transEditID: $transEditID, showDeleteAlert: $showDeleteAlert)
+            //TransactionContextMenu(trans: trans, transEditID: $transEditID, showDeleteAlert: $showDeleteAlert)
+            TransactionContextMenu(
+                trans: trans,
+                showDeleteAlert: $showDeleteAlert,
+                showPayMethodSheet: $showPayMethodSheet,
+                showCategorySheet: $showCategorySheet
+            )
         }
         
         /// This `.popover(item: $transEditID) & .onChange(of: transEditID)` are used for editing existing transactions. They also exist in ``LineItemViewMac``, which are used to add new transactions.

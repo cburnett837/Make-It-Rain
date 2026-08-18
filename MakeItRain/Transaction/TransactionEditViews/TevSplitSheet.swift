@@ -265,7 +265,12 @@ struct TevSplitSheet: View {
         var body: some View {
             Section {
                 TitleRow(trans: trans)
-                TransactionAmountRow(amountTypeLingo: trans.amountTypeLingo, amountString: $trans.amountString) {
+                TransactionAmountRow(
+                    amountTypeLingo: trans.amountTypeLingo,
+                    amountString: $trans.amountString,
+                    originalAmountString: .constant(""),
+                    payMethodAmountString: .constant("")
+                ) {
                     AmountRow(trans: trans)
                 }
                 CategorySheetButton(category: $trans.category)

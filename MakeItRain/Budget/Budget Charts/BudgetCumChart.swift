@@ -17,6 +17,13 @@ struct BudgetCumChart: View {
     var type: BudgetHelperCalcType
     let today = Calendar.current.startOfDay(for: Date())
     
+    @State private var annotationHeight: CGFloat = 0
+    @State private var rawSelectedDate: Date?
+    var selectedDay: BudgetCumTotal? {
+        guard let rawSelectedDate else { return nil }
+        return cumTotals.filter { Calendar.current.isDate(rawSelectedDate, equalTo: $0.date, toGranularity: .day) }.first
+    }
+    
     var factor: Decimal {
         (type == .spend ? -1 : 1)
     }
@@ -49,7 +56,7 @@ struct BudgetCumChart: View {
             return AnyShapeStyle(Color.green)
         }
         
-        let gradientPos = BudgetHelper.getBudgetGradientPosition(from: cumTotals, budget: budgetAmount)
+        let gradientPos = Helpers.getChartGradientPosition(from: cumTotals, budget: budgetAmount, value: \.total)
         let epsilon = 0.0001
         
         let transition = CGFloat(
@@ -80,6 +87,11 @@ struct BudgetCumChart: View {
     
     var theChart: some View {
         Chart {
+            if let selectedDay = selectedDay {
+                RuleMark(x: .value("Date", Calendar.current.startOfDay(for: selectedDay.date)))
+                    .foregroundStyle(Color.secondary.opacity(0.5))
+            }
+            
             if type == .spend {
                 RuleMark(y: .value("Budget", budgetAmount))
                     .foregroundStyle(.orange)
@@ -113,10 +125,71 @@ struct BudgetCumChart: View {
             }
             .zIndex(3)
         }
+        .sensoryFeedback(.selection, trigger: selectedDay)
+        .chartXSelection(value: $rawSelectedDate)
         .chartYAxis { BudgetHelper.currencyAxisMarks() }
+        .overlay(alignment: .top) {
+            if selectedDay != nil {
+                selectedDataView
+            }
+        }
     }
     
     var noContentView: some View {
         ContentUnavailableView("No Data", systemImage: "rectangle.stack.slash", description: Text("No data to display."))
+    }
+    
+    
+    @ViewBuilder
+    var selectedDataView: some View {
+        if let day = selectedDay {
+            VStack {
+                VStack(alignment: .leading) {
+                    HStack {
+                        Text(day.date.string(to: .date))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .lineLimit(1)
+
+                        Spacer()
+                    }
+                    .font(.headline)
+
+                    Divider()
+
+                    Grid(alignment: .leading) {
+                        GridRow {
+                            Text("Daily Spend").bold()
+                            Text((day.dailyTotal * factor).currencyWithDecimals())
+                        }
+                        
+                        GridRow {
+                            Text("Cumulative Spending").bold()
+                            Text((day.total * factor).currencyWithDecimals())
+                        }
+                    }
+                    .font(.subheadline)
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        //.fill(annotationColor)
+                        .fill(circleColor(for: day))
+                        //.fill(.secondary)
+                )
+                .accessibilityHidden(true)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal)
+            .background {
+                GeometryReader { geo in
+                    Color.clear
+                        .onAppear { annotationHeight = geo.size.height }
+                        .onChange(of: geo.size.height) { annotationHeight = $1 }
+                }
+            }
+            .offset(y: -annotationHeight - 8)
+            .zIndex(10)
+        }
+        
     }
 }

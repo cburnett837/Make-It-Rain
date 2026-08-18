@@ -299,8 +299,15 @@ class DashboardModel {
     func initialFetchIfApplicable(calModel: CalendarModel) async {
         if !calModel.sMonth.isPlaceholder {
             self.payMethod = nil
-            self.beginDate = Date().startDateOfMonth
-            self.endDate = Date().endDateOfMonth
+                        
+            if self.isForSelectedMonth {
+                self.beginDate = Date().startDateOfMonth
+                self.endDate = Date().endDateOfMonth
+            } else {
+                // YTD
+                self.beginDate = Date().startDateOfYear
+                self.endDate = Date()
+            }
             
             for group in store.categoryGroups {
                 let groupCatIds = group.categories.map { $0.id }

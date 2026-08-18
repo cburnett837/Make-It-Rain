@@ -27,6 +27,30 @@ struct CalendarMoreMenu: View {
                 //transactionListSheetButton
             }
             
+            Section("Transaction Filter") {
+                Button {
+                    calProps.showCategorySheet = true
+                    //TouchAndHoldMonthToFilterCategoriesTip.didSelectCategoryFilter = true
+                    //touchAndHoldMonthToFilterCategoriesTip.invalidate(reason: .actionPerformed)
+                } label: {
+                    Label("Categories", systemImage: "books.vertical")
+                }
+                
+//                Button(calModel.sCategory?.title ?? "Categories") {
+//                    
+//                }
+                
+                if !calModel.sCategories.isEmpty || !calModel.sCategoryGroups.isEmpty {
+                    Button("Clear Filter", systemImage: "xmark.circle", role: .destructive) {
+                        withAnimation {
+                            calModel.sCategories.removeAll()
+                            calModel.sCategoryGroups.removeAll()
+                        }
+                    }
+                }
+            }
+            
+            
             Section("Tools") {
                 multiSelectButton
                 exportCsvButton

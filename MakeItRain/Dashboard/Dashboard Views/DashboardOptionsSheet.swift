@@ -17,15 +17,36 @@ struct DashboardOptionsSheet: View {
     @Environment(PayMethodModel.self) private var payModel
     
     @Bindable var model: DashboardModel
-    @Binding var showCategorySheet: Bool
-    @Binding var showPayMethodSheet: Bool
     var isForSelectedMonth: Bool
+    
+    @State private var showPayMethodSheet = false
+    @State private var showCategorySheet = false
+    
+    var categoryFilterTitle: String {
+        let titles = model.groups.map(\.title) + model.categories.map(\.title)
+        switch titles.count {
+        case 0:  return ""
+        case 1:  return titles[0]
+        case 2:  return "\(titles[0]), \(titles[1])"
+        default: return "\(titles[0]), \(titles[1]), \(titles.count - 2)+"
+        }
+    }
+   
     
     var body: some View {
         NavigationStack {
             List {
                 Section("Filter") {
-                    showPaymentMethodSheetButton
+                    //showPaymentMethodSheetButton
+                    
+                    PayMethodSheetButton(
+                        text: "Account",
+                        logoFallBackType: .customImage(.init(name: model.payMethod?.fallbackImage, color: model.payMethod?.color)),
+                        payMethod: $model.payMethod,
+                        whichPaymentMethods: .all
+                    )
+                    
+                    
                     showCategorySheetButton
                 }
                 
@@ -152,12 +173,26 @@ struct DashboardOptionsSheet: View {
         Button {
             showPayMethodSheet = true
         } label: {
-            Label {
-                Text(model.payMethod?.title ?? "Select Account")
-            } icon: {
-                PayMethodLogoMashup(meth: model.payMethod)
+            HStack {
+                Label {
+                    Text(model.payMethod?.title ?? "Account")
+                } icon: {
+                    Image(systemName: "creditcard")
+                        .foregroundStyle(.secondary)
+//                        ..schemeBasedForegroundStyle()
+    //                PayMethodLogoMashup(meth: model.payMethod)
+                }
+                .schemeBasedForegroundStyle()
+                
+                Spacer()
+                
+                if model.payMethod == nil {
+                    Text("Select")
+                        .foregroundStyle(.gray)
+                } else {
+                    PayMethodLogoMashup(meth: model.payMethod)
+                }
             }
-            .schemeBasedForegroundStyle()
         }
         .tint(.none)
         .disabled(model.isLoading)
@@ -167,15 +202,20 @@ struct DashboardOptionsSheet: View {
         Button {
             showCategorySheet = true
         } label: {
-            Label {
-                Text("Select Categories")
-            } icon: {
-                Image(systemName: "books.vertical")
+            HStack {
+                Label {
+                    Text("Categories")
+                } icon: {
+                    Image(systemName: "books.vertical")
+                        .foregroundStyle(.secondary)
+                }
+                .schemeBasedForegroundStyle()
+                
+                Spacer()
+                
+                TextWithCircleBackground(text: "\(model.categories.count + model.groups.count)")
+                    .schemeBasedForegroundStyle()
             }
-            .schemeBasedForegroundStyle()
-        }
-        .if(!model.allCatsSelected) {
-            $0.badge(model.categories.count + model.groups.count)
         }
         .tint(.none)
         .disabled(model.isLoading)

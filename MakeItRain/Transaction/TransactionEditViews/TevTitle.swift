@@ -15,10 +15,13 @@ struct TevTitle: View {
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
+    @Environment(AppStore.self) private var store
     
     @Bindable var trans: CBTransaction
     @Bindable var mapModel: MapModel
     @Binding var suggestedCategories: [CBCategory]
+    @Binding var shouldShowLocationSuggestions: Bool
+    @Binding var suggestedLocations: [CBSuggestedLocation]
     var focusedField: FocusState<Int?>.Binding
     
     //@State private var showTopTitles: Bool = false
@@ -91,6 +94,14 @@ struct TevTitle: View {
                         blockSuggestionsFromPopulating = false
                     } else {
                         setSuggestionsBasedOnCurrentTitleText(newTitle)
+                    }
+                    
+                    
+                    if trans.action == .add, !trans.title.isEmpty, trans.locations.filter({ $0.active }).isEmpty {
+                        suggestedLocations = store.suggestedLocations.filter {$0.transTitle.localizedCaseInsensitiveContains(trans.title)}
+                        if !suggestedLocations.isEmpty {
+                            shouldShowLocationSuggestions = true
+                        }
                     }
                 }
                 
@@ -315,6 +326,7 @@ struct TevTitle: View {
                 Text(AttributedString(completion.highlightedTitleStringForDisplay))
                     .font(.caption2)
                     .foregroundStyle(.gray)
+                    .bold()
                 
                 Text(AttributedString(completion.truncatedHighlightedSubtitleStringForDisplay))
                     .font(.caption2)

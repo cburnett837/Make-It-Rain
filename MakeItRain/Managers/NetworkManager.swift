@@ -70,36 +70,24 @@ final class NetworkLogger: NSObject, URLSessionTaskDelegate, URLSessionDataDeleg
 
 
 class NetworkManager {
+    /// To Read: Plug iPhone into Mac, open console app, and start streaming.
+    /// Set search type to "subsystem" and search for the key in the subsystem above (MakeItRain)
+    private static let logger = Logger(subsystem: "MakeItRain", category: "Network Manager")
     
-    //static var shared = NetworkManager()
-    
-    private static let logger = Logger(
-        subsystem: "MakeItRain",
-        category: "Network Manager"
-        /// To Read: Plug iPhone into Mac, open console app, and start streaming.
-        /// Set search type to "subsystem" and search for the key in the subsystem above (MakeItRain)
-    )
-    var request: URLRequest?
     var session: URLSession?
+    private let baseURL: URL
+
     let logger = NetworkLogger()
     
-    init(timeout: TimeInterval = 60) {
-        let earl = String(format: "\(AppState.shared.devMode ? Keys.devBaseURL : Keys.prodBaseURL)/budget_app")
-        //let earl = String(format: "\(Keys.devBaseURL)/budget_app")
+    init() {
+        guard let baseURL = URL(
+            string: "\(AppState.shared.devMode ? Keys.devBaseURL : Keys.prodBaseURL)/budget_app"
+        ) else {
+            fatalError("Invalid API URL")
+        }
         
-        let url = URL(string: earl)
-        var request = URLRequest(url: url!)
+        self.baseURL = baseURL
         
-        request.httpMethod = "POST"
-        request.setValue("Application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(Keys.authPhrase, forHTTPHeaderField: "Auth-Phrase")
-        request.setValue(Keys.authID, forHTTPHeaderField: "Auth-ID")
-        request.setValue(Keys.userAgent, forHTTPHeaderField: "User-Agent")
-        request.timeoutInterval = timeout
-
-        self.request = request
-        //self.session = URLSession.shared
-        //self.session?.delegate = NetworkLogger()
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 120
         config.timeoutIntervalForResource = 300
@@ -111,127 +99,37 @@ class NetworkManager {
         )
     }
     
+    
     deinit {
-        request = nil
-        session = nil
-        LogManager.log()
+        //request = nil
+        //session = nil
+        session?.invalidateAndCancel()
+        //LogManager.log()
+    }
+    
+    func createRequest(timeout: TimeInterval = 60) -> URLRequest {
+        var request = URLRequest(url: baseURL)
+        
+        request.httpMethod = "POST"
+        request.setValue("Application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(Keys.authPhrase, forHTTPHeaderField: "Auth-Phrase")
+        request.setValue(Keys.authID, forHTTPHeaderField: "Auth-ID")
+        request.setValue(Keys.userAgent, forHTTPHeaderField: "User-Agent")
+        request.timeoutInterval = timeout
+        
+        return request
     }
  
-    func arrayRequest<T: Encodable, U: Decodable>(requestModel: RequestModel<T>, ticker: Int = 3, sessionID: String = "", retainTime: Bool = true) async -> Result<Array<U>?, AppError> {
-        
-        request?.setValue(AppState.shared.apiKey, forHTTPHeaderField: "Api-Key")
-        
-//        do {
-//            let apiKey = try KeychainManager().getFromKeychain(key: "user_api_key")
-//            request?.setValue(apiKey, forHTTPHeaderField: "Api-Key")
-//            //request?.setValue("vqHNAJ_DMzpc6YiSkyQr9wMwus5BzZljeLsJS5iSh94", forHTTPHeaderField: "Api-Key")
-//        } catch {
-//            print("Cannot find apiKey")
-//        }
-        
-        var sesh: String = ""
-        if sessionID.isEmpty {
-            sesh = UUID().uuidString
-        } else {
-            sesh = sessionID
-        }
-        
-        do {
-            LogManager.log("starting", session: sesh)
-            requestModel.sessionID = sessionID
-            let jsonData = try? JSONEncoder().encode(requestModel)
-            LogManager.log("jsonData: \(String(data: jsonData!, encoding: .utf8)!)", session: sesh)
-            if AppState.shared.debugPrint { print("jsonData: \(String(data: jsonData!, encoding: .utf8)!)") }
-            
-            request?.httpBody = jsonData
-            
-            if let session {
-                //print("Sending!")
-                let (data, response): (Data, URLResponse) = try await session.data(for: request!, delegate: logger)
-                //print("Got response!")
-                let httpResponse = response as? HTTPURLResponse
-                
-                /// Only retain the time if the app is in the foreground. This prevents the time from updating if something is in flight in the background, and a change happens from another device.
-                #if os(iOS)
-                if retainTime && AppState.shared.scenePhase == .active {
-                    AppState.shared.lastNetworkTime = .now
-                }
-                #endif
-                
-                if httpResponse?.statusCode == 401 {
-                    await AuthState.shared.serverAccessRevoked()
-                    return .failure(.accessRevoked)
-                }
-                
-                if httpResponse?.statusCode == 403 {
-                    await AuthState.shared.serverAccessRevoked()
-                    return .failure(.incorrectCredentials)
-                }
-                
-                LogManager.log("should have a response from the server now", session: sesh)
-                
-                let serverText = String(data: data, encoding: .utf8) ?? ""
-                if AppState.shared.debugPrint { print(serverText) }
-                let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response
-                
-                LogManager.log("decoding data", session: sesh)
-                
-                #warning("Error handling won't work with the force unwrap")
-                #if targetEnvironment(simulator)
-                //let decodedData = try APIJSON.decoder.decode(Array<U>?.self, from: data)
-                let decoder = JSONDecoder()
-                decoder.dateDecodingStrategy = .iso8601
-                let decodedData = try! decoder.decode(Array<U>?.self, from: data)
-                #else
-                let decoder = JSONDecoder()
-                decoder.dateDecodingStrategy = .iso8601
-                let decodedData = try? decoder.decode(Array<U>?.self, from: data)
-                #endif
-                
-                LogManager.log("data has been decoded", session: sesh)
-                
-                guard let decodedData else {
-                    LogManager.log("something went wrong with the decoded data", session: sesh)
-                    return .failure(.serverError(firstLine))
-                }
-                
-                LogManager.log("networking successful", session: sesh)
-                return .success(decodedData)
-            } else {
-                LogManager.error("session error", session: sesh)
-                return .failure(.sessionError)
-            }
-                                    
-        } catch {
-            LogManager.error("networking exception \(error.localizedDescription)", session: sesh)
-            if Task.isCancelled {
-                LogManager.error("task cancelled", session: sesh)
-                return .failure(.taskCancelled)
-            }
-            if ticker == 0 {
-                LogManager.error("connection failure", session: sesh)
-                return .failure(.connectionError)
-            } else {
-                //try? await Task.sleep(for: .milliseconds(1000))
-                try? await Task.sleep(for: .seconds(1))
-                LogManager.error("retrying request", session: sesh)
-                return await arrayRequest(requestModel: requestModel, ticker: ticker - 1, sessionID: sesh)
-            }
-        }
-    }
     
-    
-    func singleRequest<T: Encodable, U: Decodable>(requestModel: RequestModel<T>, ticker: Int = 3, sessionID: String = "", retainTime: Bool = true) async -> Result<U?, AppError> {
-        //print("-- \(#function)")
-        request?.setValue(AppState.shared.apiKey, forHTTPHeaderField: "Api-Key")
-        
-//        do {
-//            let apiKey = try KeychainManager().getFromKeychain(key: "user_api_key")
-//            request?.setValue(apiKey, forHTTPHeaderField: "Api-Key")
-//            //request?.setValue("vqHNAJ_DMzpc6YiSkyQr9wMwus5BzZljeLsJS5iSh94", forHTTPHeaderField: "Api-Key")
-//        } catch {
-//            print("Cannot find apiKey")
-//        }
+    func singleRequest<T: Encodable, U: Decodable>(
+        requestModel: RequestModel<T>,
+        ticker: Int = 3,
+        sessionID: String = "",
+        retainTime: Bool = true,
+        timeout: TimeInterval = 60
+    ) async -> Result<U?, AppError> {
+        var request = createRequest(timeout: timeout)
+        request.setValue(AppState.shared.apiKey, forHTTPHeaderField: "Api-Key")
         
         var sesh: String = ""
         if sessionID.isEmpty {
@@ -241,156 +139,163 @@ class NetworkManager {
         }
                
         do {
-            LogManager.log("starting", session: sesh)
-            requestModel.sessionID = sessionID
+            requestModel.sessionID = sesh
             let jsonData = try? JSONEncoder().encode(requestModel)
-            LogManager.log("jsonData: \(String(data: jsonData!, encoding: .utf8)!)", session: sesh)
-            if AppState.shared.debugPrint { print("jsonData: \(String(data: jsonData!, encoding: .utf8)!)") }
-                        
-            request?.httpBody = jsonData
+            request.httpBody = jsonData
             
-            if let session {
-                let (data, response): (Data, URLResponse) = try await session.data(for: request!, delegate: logger)
-                let httpResponse = response as? HTTPURLResponse
-                //print(httpResponse?.statusCode)
-                
-                /// Only retain the time if the app is in the foreground. This prevents the time from updating if something is in flight in the background, and a change happens from another device.
-                    #if os(iOS)
-                    if retainTime && AppState.shared.scenePhase == .active {
-                        AppState.shared.lastNetworkTime = .now
-                    }
-                    #endif
-                
-                if httpResponse?.statusCode == 401 {
-                    await AuthState.shared.serverAccessRevoked()
-                    return .failure(.accessRevoked)
-                }
-                
-                if httpResponse?.statusCode == 403 {
-                    await AuthState.shared.serverAccessRevoked()
-                    return .failure(.incorrectCredentials)
-                }
-                                                                
-                LogManager.log("should have a response from the server now", session: sesh)
-                
-                let serverText = String(data: data, encoding: .utf8) ?? ""
-                //print("GOT SERVER RESPONSE")
-                if AppState.shared.debugPrint { print(serverText) }
-                //print(serverText)
-                let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response                                
-                
-                LogManager.log("decoding data", session: sesh)
-                
-                #warning("Error handling won't work with the force unwrap")
-                #if targetEnvironment(simulator)
-                let decoder = JSONDecoder()
-                decoder.dateDecodingStrategy = .iso8601
-                let decodedData = try! decoder.decode(U?.self, from: data)
-                
-                //let decodedData = try APIJSON.decoder.decode(U?.self, from: data)
-                
-                #else
-                let decoder = JSONDecoder()
-                decoder.dateDecodingStrategy = .iso8601
-                let decodedData = try? decoder.decode(U?.self, from: data)
-                #endif
-                
-                LogManager.log("data has been decoded", session: sesh)
-                
-                guard let decodedData else {
-                    //print(serverText)
-                    LogManager.log("something went wrong with the decoded data", session: sesh)
-                    return .failure(.serverError(firstLine))
-                }
-                
-                LogManager.log("networking successful", session: sesh)
-                return .success(decodedData)
-            } else {
-                LogManager.error("session error", session: sesh)
+            if AppState.shared.debugPrint { print("jsonData: \(String(data: jsonData!, encoding: .utf8)!)") }
+                                                
+            guard let session else {
+                LogManager.error("URL session error", session: sesh)
                 return .failure(.sessionError)
             }
-                        
+            
+            let (data, response): (Data, URLResponse) = try await session.data(for: request, delegate: logger)
+            let httpResponse = response as? HTTPURLResponse
+            //print(httpResponse?.statusCode)
+            
+            /// Only retain the time if the app is in the foreground. This prevents the time from updating if something is in flight in the background, and a change happens from another device.
+            #if os(iOS)
+            if retainTime && AppState.shared.scenePhase == .active {
+                AppState.shared.lastNetworkTime = .now
+            }
+            #endif
+            
+            let serverText = String(data: data, encoding: .utf8) ?? ""
+            let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response
+            if AppState.shared.debugPrint { print(serverText) }
+            
+            if httpResponse?.statusCode == 400 {
+                return .failure(.serverError("Server error: \(serverText)"))
+                
+            } else if httpResponse?.statusCode == 401 {
+                await AuthState.shared.serverAccessRevoked()
+                return .failure(.accessRevoked)
+                
+            } else if httpResponse?.statusCode == 403 {
+                await AuthState.shared.serverAccessRevoked()
+                return .failure(.incorrectCredentials)
+            }
+            
+            guard (200...299).contains(httpResponse?.statusCode ?? 0) else {
+                return .failure(.serverError(serverText))
+            }
+            
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            
+            #warning("Error handling won't work with the force unwrap")
+            #if targetEnvironment(simulator)
+            let decodedData = try! decoder.decode(U?.self, from: data)
+            #else
+            let decodedData = try? decoder.decode(U?.self, from: data)
+            #endif
+            
+            guard let decodedData else {
+                LogManager.log("something went wrong with the decoded data: \(serverText)", session: sesh)
+                return .failure(.serverError(firstLine))
+            }
+            
+            LogManager.networkingSuccessful(session: sesh)
+            return .success(decodedData)
+                       
         } catch {
-            LogManager.error("networking exception \(error.localizedDescription)", session: sesh)
             if Task.isCancelled {
-                LogManager.error("task cancelled", session: sesh)
+                LogManager.error("networking exception: task cancelled: \(error.localizedDescription)", session: sesh)
                 return .failure(.taskCancelled)
             }
+            
             if ticker == 0 {
-                LogManager.error("connection failure", session: sesh)
+                LogManager.error("networking exception: connection failure / ticker = 0: \(error.localizedDescription)", session: sesh)
                 return .failure(.connectionError)
-            } else {
-                //try? await Task.sleep(for: .milliseconds(1000))
-                try? await Task.sleep(for: .seconds(1))
-                LogManager.error("retrying request", session: sesh)
-                return await singleRequest(requestModel: requestModel, ticker: ticker - 1, sessionID: sesh)
             }
+            
+            try? await Task.sleep(for: .seconds(1))
+            LogManager.error("networking exception: retrying request: \(error.localizedDescription)", session: sesh)
+            return await singleRequest(requestModel: requestModel, ticker: ticker - 1, sessionID: sesh, retainTime: retainTime)
         }
     }
     
     
     
-    func login(using loginType: LoginType, with loginModel: LoginModel, ticker: Int = 3) async -> Result<CBLogin?, AppError> {
-        do {            
+    func login(
+        using loginType: LoginType,
+        with loginModel: LoginModel,
+        ticker: Int = 3
+    ) async -> Result<CBLogin?, AppError> {
+        do {
+            var request = createRequest(timeout: 15)
             let requestModel = RequestModel(requestType: "login", model: loginModel)
             
             if loginType == .apiKey {
-                request?.setValue(loginModel.apiKey, forHTTPHeaderField: "Api-Key")
+                request.setValue(loginModel.apiKey, forHTTPHeaderField: "Api-Key")
             }
         
             let jsonData = try? JSONEncoder().encode(requestModel)
-            if AppState.shared.debugPrint { print("jsonData: \(String(data: jsonData!, encoding: .utf8)!)") }
-                        
-            request?.httpBody = jsonData
+            request.httpBody = jsonData
             
-            if let session {
-                let (data, response): (Data, URLResponse) = try await session.data(for: request!)
-                let httpResponse = response as? HTTPURLResponse
-                //print(httpResponse?.statusCode)
-                
-                if httpResponse?.statusCode == 401 {
-                    await AuthState.shared.serverAccessRevoked()
-                    return .failure(.accessRevoked)
-                }
-                
-                if httpResponse?.statusCode == 403 {
-                    await AuthState.shared.serverAccessRevoked()
-                    return .failure(.incorrectCredentials)
-                }
-                                                                                                
-                let serverText = String(data: data, encoding: .utf8) ?? ""
-                if AppState.shared.debugPrint { print(serverText) }
-                //print(serverText)
-                let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response
-                
-                if firstLine == "None" && requestModel.requestType == "login" {
-                    return .failure(.incorrectCredentials)
-                }
-                                
-                #if targetEnvironment(simulator)
-                let decodedData = try! JSONDecoder().decode(CBLogin?.self, from: data)
-                #else
-                let decodedData = try? JSONDecoder().decode(CBLogin?.self, from: data)
-                #endif
-                guard let decodedData else {
-                    return .failure(.serverError(firstLine))
-                }
-                                
-                return .success(decodedData)
-            } else {
+            if AppState.shared.debugPrint { print("jsonData: \(String(data: jsonData!, encoding: .utf8)!)") }
+            
+            guard let session else {
+                LogManager.error("URL session error")
                 return .failure(.sessionError)
             }
+            
+            let (data, response): (Data, URLResponse) = try await session.data(for: request)
+            let httpResponse = response as? HTTPURLResponse
+            //print(httpResponse?.statusCode)
+            
+            let serverText = String(data: data, encoding: .utf8) ?? ""
+            let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response
+            if AppState.shared.debugPrint { print(serverText) }
+            
+            if httpResponse?.statusCode == 400 {
+                return .failure(.serverError("Server error: \(serverText)"))
+                
+            } else if httpResponse?.statusCode == 401 {
+                await AuthState.shared.serverAccessRevoked()
+                return .failure(.accessRevoked)
+                
+            } else if httpResponse?.statusCode == 403 {
+                await AuthState.shared.serverAccessRevoked()
+                return .failure(.incorrectCredentials)
+            }
+            
+            guard (200...299).contains(httpResponse?.statusCode ?? 0) else {
+                return .failure(.serverError(serverText))
+            }
+            
+            if firstLine == "None" && requestModel.requestType == "login" {
+                return .failure(.incorrectCredentials)
+            }
+                            
+            #if targetEnvironment(simulator)
+            let decodedData = try! JSONDecoder().decode(CBLogin?.self, from: data)
+            #else
+            let decodedData = try? JSONDecoder().decode(CBLogin?.self, from: data)
+            #endif
+            
+            guard let decodedData else {
+                LogManager.log("something went wrong with the decoded data: \(serverText)")
+                return .failure(.serverError(firstLine))
+            }
+                            
+            return .success(decodedData)
                         
         } catch {
             if Task.isCancelled {
+                LogManager.error("networking exception: task cancelled: \(error.localizedDescription)")
                 return .failure(.taskCancelled)
             }
+            
             if ticker == 0 {
+                LogManager.error("networking exception: connection failure / ticker = 0: \(error.localizedDescription)")
                 return .failure(.connectionError)
-            } else {
-                try? await Task.sleep(for: .milliseconds(1000))
-                return await login(using: loginType, with: loginModel, ticker: ticker - 1)
             }
+            
+            try? await Task.sleep(for: .seconds(1))
+            LogManager.error("networking exception: retrying request: \(error.localizedDescription)")
+            return await login(using: loginType, with: loginModel, ticker: ticker - 1)
         }
     }
     
@@ -486,8 +391,14 @@ class NetworkManager {
 //    }
     
     
-    func downloadFile(requestModel: RequestModel<FileRequestModel>, ticker: Int = 3, sessionID: String = "", retainTime: Bool = true) async -> Result<Data?, AppError> {
-        request?.setValue(AppState.shared.apiKey, forHTTPHeaderField: "Api-Key")
+    func downloadFile(
+        requestModel: RequestModel<FileRequestModel>,
+        ticker: Int = 3,
+        sessionID: String = "",
+        retainTime: Bool = true
+    ) async -> Result<Data?, AppError> {
+        var request = createRequest()
+        request.setValue(AppState.shared.apiKey, forHTTPHeaderField: "Api-Key")
                 
         var sesh: String = ""
         if sessionID.isEmpty {
@@ -509,63 +420,56 @@ class NetworkManager {
 //            let URL = URL(string: earl)
 //            request!.url = URL
             
-            request?.httpBody = jsonData
+            request.httpBody = jsonData
             
-            if let session {
-                let (data, response): (Data, URLResponse) = try await session.data(for: request!)
-                let httpResponse = response as? HTTPURLResponse
-                
-                if retainTime { AppState.shared.lastNetworkTime = .now }
-                
-                //print(httpResponse?.statusCode)
-                
-                if httpResponse?.statusCode == 400 {
-                    let serverText = String(data: data, encoding: .utf8) ?? ""
-                    
-                    if AppState.shared.debugPrint { print(serverText) }
-                    return .failure(.serverError("Server error"))
-                }
-                
-                if httpResponse?.statusCode == 403 {
-                    await AuthState.shared.serverAccessRevoked()
-                    return .failure(.incorrectCredentials)
-                }
-                
-                if httpResponse?.statusCode == 401 {
-                    await AuthState.shared.serverAccessRevoked()
-                    return .failure(.accessRevoked)
-                }
-                                                                
-                LogManager.log("should have a response from the server now", session: sesh)
-                
-                let serverText = String(data: data, encoding: .utf8) ?? ""
-                
-                if AppState.shared.debugPrint { print(serverText) }
-                
-                LogManager.log("networking successful", session: sesh)
-                //return .success(UIImage(data: data))
-                return .success(data)
-                                                
-            } else {
-                LogManager.error("session error", session: sesh)
+            guard let session else {
+                LogManager.error("URL session error")
                 return .failure(.sessionError)
             }
+            
+            let (data, response): (Data, URLResponse) = try await session.data(for: request)
+            let httpResponse = response as? HTTPURLResponse
+            
+            let serverText = String(data: data, encoding: .utf8) ?? ""
+            let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response
+            if AppState.shared.debugPrint { print(serverText) }
+            
+            if retainTime { AppState.shared.lastNetworkTime = .now }
+            
+            //print(httpResponse?.statusCode)
+            
+            if httpResponse?.statusCode == 400 {
+                return .failure(.serverError("Server error: \(serverText)"))
+                
+            } else if httpResponse?.statusCode == 401 {
+                await AuthState.shared.serverAccessRevoked()
+                return .failure(.accessRevoked)
+                
+            } else if httpResponse?.statusCode == 403 {
+                await AuthState.shared.serverAccessRevoked()
+                return .failure(.incorrectCredentials)
+            }
+            
+            guard (200...299).contains(httpResponse?.statusCode ?? 0) else {
+                return .failure(.serverError(serverText))
+            }
+            
+            return .success(data)
                         
         } catch {
-            LogManager.error("networking exception \(error.localizedDescription)", session: sesh)
             if Task.isCancelled {
-                LogManager.error("task cancelled", session: sesh)
+                LogManager.error("networking exception: task cancelled: \(error.localizedDescription)", session: sesh)
                 return .failure(.taskCancelled)
             }
+            
             if ticker == 0 {
-                LogManager.error("connection failure", session: sesh)
+                LogManager.error("networking exception: connection failure / ticker = 0: \(error.localizedDescription)", session: sesh)
                 return .failure(.connectionError)
-            } else {
-                //try? await Task.sleep(for: .milliseconds(1000))
-                try? await Task.sleep(for: .seconds(1))
-                LogManager.error("retrying request", session: sesh)
-                return await downloadFile(requestModel: requestModel, ticker: ticker - 1, sessionID: sesh)
             }
+            
+            try? await Task.sleep(for: .seconds(1))
+            LogManager.error("networking exception: retrying request: \(error.localizedDescription)", session: sesh)
+            return await downloadFile(requestModel: requestModel, ticker: ticker - 1, sessionID: sesh)
         }
     }
         
@@ -582,12 +486,8 @@ class NetworkManager {
         ticker: Int = 3
     ) async -> Result<U?, AppError> {
         do {
-            do {
-                let apiKey = try KeychainManager().getFromKeychain(key: "user_api_key")
-                request?.setValue(apiKey, forHTTPHeaderField: "Api-Key")
-            } catch {
-                print("Cannot find apiKey")
-            }
+            var request = createRequest()
+            request.setValue(AppState.shared.apiKey, forHTTPHeaderField: "Api-Key")
             
             let metadata: [String: String] = [
                 "application": application,
@@ -612,8 +512,8 @@ class NetworkManager {
             let boundary = "Boundary-\(UUID().uuidString)"
             let new = "\r\n"
             
-            request?.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-            request?.setValue("yes", forHTTPHeaderField: "This-Is-A-File")
+            request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+            request.setValue("yes", forHTTPHeaderField: "This-Is-A-File")
                                                                                     
             body.append("--\(boundary)\(new)".data(using: .utf8)!)
             body.append("Content-Disposition: form-data; name=\"json\"\(new)".data(using: .utf8)!)
@@ -629,14 +529,28 @@ class NetworkManager {
                         
             body.append("--\(boundary)--\(new)".data(using: .utf8)!)
               
-            let (data, response) = try await URLSession.shared.upload(for: request!, from: body)
+            let (data, response) = try await URLSession.shared.upload(for: request, from: body)
             let httpResponse = response as? HTTPURLResponse
         
             let serverText = String(data: data, encoding: .utf8) ?? ""
-            if AppState.shared.debugPrint { print(serverText) }
-            //print(serverText)
-            
             let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response
+            if AppState.shared.debugPrint { print(serverText) }
+            
+            if httpResponse?.statusCode == 400 {
+                return .failure(.serverError("Server error: \(serverText)"))
+                
+            } else if httpResponse?.statusCode == 401 {
+                await AuthState.shared.serverAccessRevoked()
+                return .failure(.accessRevoked)
+                
+            } else if httpResponse?.statusCode == 403 {
+                await AuthState.shared.serverAccessRevoked()
+                return .failure(.incorrectCredentials)
+            }
+            
+            guard (200...299).contains(httpResponse?.statusCode ?? 0) else {
+                return .failure(.serverError(serverText))
+            }
                                                             
             let decodedData = try? JSONDecoder().decode(U?.self, from: data)
             if decodedData == nil && httpResponse?.statusCode == 200 {
@@ -647,22 +561,27 @@ class NetworkManager {
             }
                                     
         } catch {
-            if Task.isCancelled { return .failure(.taskCancelled) }
-            if ticker == 0 {
-                return .failure(.connectionError)
-            } else {
-                //try? await Task.sleep(for: .milliseconds(1000))
-                try? await Task.sleep(for: .seconds(1))
-                return await uploadFile(
-                    application: application,
-                    fileParent: fileParent,
-                    uuid: uuid,
-                    fileData: fileData,
-                    fileName: fileName,
-                    fileType: fileType,
-                    ticker: ticker - 1
-                )
+            if Task.isCancelled {
+                LogManager.error("networking exception: task cancelled: \(error.localizedDescription)")
+                return .failure(.taskCancelled)
             }
+            
+            if ticker == 0 {
+                LogManager.error("networking exception: connection failure / ticker = 0: \(error.localizedDescription)")
+                return .failure(.connectionError)
+            }
+            
+            try? await Task.sleep(for: .seconds(1))
+            LogManager.error("networking exception: retrying request: \(error.localizedDescription)")
+            return await uploadFile(
+                application: application,
+                fileParent: fileParent,
+                uuid: uuid,
+                fileData: fileData,
+                fileName: fileName,
+                fileType: fileType,
+                ticker: ticker - 1
+            )
         }
     }
     

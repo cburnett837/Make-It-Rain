@@ -17,6 +17,18 @@ struct AllBudgetsTable: View {
     @Binding var navPath: NavigationPath
 
     @State private var editBudget: CBBudget?
+    @State private var searchText = ""
+    
+    var filteredBudgetItems: [CBBudgetItem] {
+        budgetModel.budgets
+            .filter {
+                //guard let item = $0.item else { return false }
+                $0.type == .tag && searchText.isEmpty
+                ? $0.item?.title.isEmpty == false
+                : ($0.item?.title ?? "").localizedCaseInsensitiveContains(searchText)
+            }
+            //.sorted(by: { ($0.item?.title ?? "").lowercased() < ($0.item?.title ?? "").lowercased() })
+    }
     
     var body: some View {
         List {
@@ -36,7 +48,7 @@ struct AllBudgetsTable: View {
             
             
             Section("Tag Budgets") {
-                ForEach(budgetModel.budgets.filter {$0.item?.budgetType == .tag}) { budget in
+                ForEach(filteredBudgetItems) { budget in
                     //Text("#\(budget.item?.title ?? "N/A")")
                     NavigationLink(value: budget) {
                         Text("#\(budget.item?.title ?? "N/A")")
@@ -44,6 +56,7 @@ struct AllBudgetsTable: View {
                 }
             }
         }
+        .searchable(text: $searchText)
         .listStyle(.plain)
         .toolbar {
 //            ToolbarItem(placement: .topBarTrailing) {
@@ -87,7 +100,7 @@ struct AllBudgetsTable: View {
     var newBudgetButton: some View {
         Button {
             let newId = UUID().uuidString
-            navPath.append(CBBudgetItem(uuid: newId))
+            navPath.append(CBBudgetItem(uuid: newId, type: .tag))
         } label: {
             Image(systemName: "plus")
         }

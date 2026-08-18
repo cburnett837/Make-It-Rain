@@ -66,110 +66,14 @@ struct BudgetOverview: View {
     }
     
     var body: some View {
-        List {
-            if !budget.catIsIncome {
-                Section("Budget & Expenses") {
-                    if budget.type == .categoryGroup {
-                        if let cats = budget.categoryGroup?.categories {
-                            BudgetChartForGroup(
-                                categories: cats,
-                                budgetAmount: budget.amount,
-                                expenseAmount: totalExpenses
-                            )
-                        }
-                        
-                        
-                        Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
-                            gridHeader
-                            
-                            Divider()
-                            
-                            ForEachWithSeparator(budget.categoryGroup?.categories ?? []) { category in
-                                let transactions = calModel.getTransactions(cats: [category])
-                                let actualSpend = TransactionHelper.All.Amount.actualSpend(from: transactions)
-                                
-                                GridRow {
-                                    HStack {
-                                        StandardCategorySymbol(cat: category, labelWidth: 12)
-                                        Text(category.title)
-                                    }
-                                    
-                                    Text(actualSpend.currencyWithDecimals())
-                                }
-                                .padding(.vertical, 5)
-                            }
-                        }
-                        .font(.caption)
-                        .lineLimit(1)
-                        .textCase(nil)
-                        
-                        
-//                        ForEach(budget.categoryGroup?.categories ?? []) { category in
-//                            let transactions = calModel.getTransactions(cats: [category])
-//                            let actualSpend = TransactionHelper.All.Amount.actualSpend(from: transactions)
-//                            
-//                            Label {
-//                                VStack(alignment: .leading) {
-//                                    HStack {
-//                                        Text(category.title)
-//                                        Spacer()
-//                                        Text(actualSpend.currencyWithDecimals())
-//                                    }
-//                                }
-//                            } icon: {
-//                                StandardCategorySymbol(cat: category, labelWidth: 20)
-//                            }
-//                            #if os(macOS)
-//                            .selectionDisabled()
-//                            #endif
-//                            //Text(cat.title)
-//                        }
-                    } else {
-                        if let cat = budget.category {
-                            BudgetChart(cat: cat, budgetAmount: budget.amount, expenseAmount: totalExpenses)
-                        } else {
-                            Text("Cannot display chart as it has no category.")
-                        }
-                        
-                    }
-                }
-            }
-            
-            
-            if budget.type != .tag {
-                Section("Cumulative \(budget.catIsIncome ? "Income" : "Spending")") {
-                    BudgetCumChart(
-                        budgetAmount: budget.amount,
-                        cumTotals: cumTotals,
-                        type: budget.catIsIncome ? .income : .spend
-                    )
-                }
-                
-                Section("\(budget.catIsIncome ? "Income" : "Spending") By Day") {
-                    BudgetByDayChart(
-                        data: spendByDateTotals,
-                        type: budget.catIsIncome ? .income : .spend
-                    )
-                }
-            }
-            
+        Group {
             if budget.type == .tag {
-                Section("Transactions") {
-                    if store.tagBudgetTransactions.isEmpty {
-                        ContentUnavailableView("No Transactions", systemImage: "rectangle.stack.slash")
-                        
-                    } else {
-                        ForEach(sortedTrans) { trans in
-                            TransactionListLine(trans: trans, withDate: true, withPhotos: true) {
-                                self.transEditID = trans.id
-                            }
-                        }
-                    }
-                }
+                tagContent
             } else {
-                transactionListForSelectedMonth
+                content
             }
         }
+        
         .navigationTitle(navTitle)
         .task {
             if budget.action == .add {
@@ -210,7 +114,7 @@ struct BudgetOverview: View {
                 if let budget = budgetModel.getBudgetItem(by: newId, from: location) {
                     editBudget = budget
                 } else {
-                    editBudget = CBBudgetItem(uuid: newId)
+                    editBudget = CBBudgetItem(uuid: newId, type: .tag)
                 }
             } else {
                 budgetModel.saveBudget(id: oldId!, location: location)
@@ -244,6 +148,220 @@ struct BudgetOverview: View {
             }
         }
     }
+    
+//    
+//    @ViewBuilder
+//    var contentOG: some View {
+//        List {
+//            if !budget.catIsIncome {
+//                Section("Budget & Expenses") {
+//                    if budget.type == .categoryGroup {
+//                        if let cats = budget.categoryGroup?.categories {
+//                            BudgetChartForGroup(
+//                                categories: cats,
+//                                budgetAmount: budget.amount,
+//                                expenseAmount: totalExpenses
+//                            )
+//                        }
+//                        
+//                        
+//                        Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
+//                            gridHeader
+//                            
+//                            Divider()
+//                            
+//                            ForEachWithSeparator(budget.categoryGroup?.categories ?? []) { category in
+//                                let transactions = calModel.getTransactions(cats: [category])
+//                                let actualSpend = TransactionHelper.All.Amount.actualSpend(from: transactions)
+//                                
+//                                GridRow {
+//                                    HStack {
+//                                        StandardCategorySymbol(cat: category, labelWidth: 12)
+//                                        Text(category.title)
+//                                    }
+//                                    
+//                                    Text(actualSpend.currencyWithDecimals())
+//                                }
+//                                .padding(.vertical, 5)
+//                            }
+//                        }
+//                        .font(.caption)
+//                        .lineLimit(1)
+//                        .textCase(nil)
+//                        
+//                        
+////                        ForEach(budget.categoryGroup?.categories ?? []) { category in
+////                            let transactions = calModel.getTransactions(cats: [category])
+////                            let actualSpend = TransactionHelper.All.Amount.actualSpend(from: transactions)
+////
+////                            Label {
+////                                VStack(alignment: .leading) {
+////                                    HStack {
+////                                        Text(category.title)
+////                                        Spacer()
+////                                        Text(actualSpend.currencyWithDecimals())
+////                                    }
+////                                }
+////                            } icon: {
+////                                StandardCategorySymbol(cat: category, labelWidth: 20)
+////                            }
+////                            #if os(macOS)
+////                            .selectionDisabled()
+////                            #endif
+////                            //Text(cat.title)
+////                        }
+//                    } else {
+//                        if let cat = budget.category {
+//                            BudgetChart(cat: cat, budgetAmount: budget.amount, expenseAmount: totalExpenses)
+//                        } else {
+//                            Text("Cannot display chart as it has no category.")
+//                        }
+//                        
+//                    }
+//                }
+//            }
+//            
+//            
+//            if budget.type != .tag {
+//                Section("Cumulative \(budget.catIsIncome ? "Income" : "Spending")") {
+//                    BudgetCumChart(
+//                        budgetAmount: budget.amount,
+//                        cumTotals: cumTotals,
+//                        type: budget.catIsIncome ? .income : .spend
+//                    )
+//                }
+//                
+//                Section("\(budget.catIsIncome ? "Income" : "Spending") By Day") {
+//                    BudgetByDayChart(
+//                        data: spendByDateTotals,
+//                        type: budget.catIsIncome ? .income : .spend
+//                    )
+//                }
+//            }
+//            
+//            if budget.type == .tag {
+//                Section("Transactions") {
+//                    if store.tagBudgetTransactions.isEmpty {
+//                        ContentUnavailableView("No Transactions", systemImage: "rectangle.stack.slash")
+//                        
+//                    } else {
+//                        ForEach(sortedTrans) { trans in
+//                            TransactionListLine(trans: trans, withDate: true, withPhotos: true) {
+//                                self.transEditID = trans.id
+//                            }
+//                        }
+//                    }
+//                }
+//            } else {
+//                transactionListForSelectedMonth
+//            }
+//        }
+//    }
+//    
+//    
+    @ViewBuilder
+    var content: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                if !budget.catIsIncome {
+                    Card(title: "Budget & Expenses") {
+                        if budget.type == .categoryGroup {
+                            if let cats = budget.categoryGroup?.categories {
+                                BudgetChartForGroup(
+                                    categories: cats,
+                                    budgetAmount: budget.amount,
+                                    expenseAmount: totalExpenses
+                                )
+                            }
+                            
+                            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
+                                gridHeader
+                                
+                                Divider()
+                                
+                                ForEachWithSeparator(budget.categoryGroup?.categories ?? []) { category in
+                                    let transactions = calModel.getTransactions(cats: [category])
+                                    let actualSpend = TransactionHelper.All.Amount.actualSpend(from: transactions)
+                                    
+                                    GridRow {
+                                        HStack {
+                                            StandardCategorySymbol(cat: category, labelWidth: 12)
+                                            Text(category.title)
+                                        }
+                                        
+                                        Text(actualSpend.currencyWithDecimals())
+                                    }
+                                    .padding(.vertical, 5)
+                                }
+                            }
+                            .font(.caption)
+                            .lineLimit(1)
+                            .textCase(nil)
+                        } else {
+                            if let cat = budget.category {
+                                BudgetChart(cat: cat, budgetAmount: budget.amount, expenseAmount: totalExpenses)
+                            } else {
+                                Text("Cannot display chart as it has no category.")
+                            }
+                        }
+                    }
+                }
+                
+                Card(title: "Cumulative \(budget.catIsIncome ? "Income" : "Spending")") {
+                    BudgetCumChart(
+                        budgetAmount: budget.amount,
+                        cumTotals: cumTotals,
+                        type: budget.catIsIncome ? .income : .spend
+                    )
+                }
+                
+                Card(title: "\(budget.catIsIncome ? "Income" : "Spending") By Day") {
+                    BudgetByDayChart(
+                        data: spendByDateTotals,
+                        type: budget.catIsIncome ? .income : .spend
+                    )
+                }
+                
+                Card(title: "Transactions") {
+                    transactionListForSelectedMonth
+                }
+            }
+            .scenePadding()
+        }
+        #if os(iOS)
+        .scrollContentBackground(.hidden)
+        .background(Color(.systemGroupedBackground))
+        #else
+        .background(Color(.windowBackgroundColor))
+        #endif
+    }
+    
+    
+    
+    @ViewBuilder
+    var tagContent: some View {
+        List {
+            if !budget.catIsIncome {
+                Section("Budget & Expenses") {
+                    BudgetChart(cat: nil, budgetAmount: budget.amount, expenseAmount: totalExpenses)
+                }
+            }
+                                   
+            Section("Transactions") {
+                if store.tagBudgetTransactions.isEmpty {
+                    ContentUnavailableView("No Transactions", systemImage: "rectangle.stack.slash")
+                    
+                } else {
+                    ForEach(sortedTrans) { trans in
+                        TransactionListLine(trans: trans, withDate: true, withPhotos: true) {
+                            self.transEditID = trans.id
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
     
     
     @ToolbarContentBuilder
@@ -310,46 +428,69 @@ struct BudgetOverview: View {
     
     @ViewBuilder
     var transactionListForSelectedMonth: some View {
-        ForEach(calModel.sMonth.days.filter { $0.date != nil }) { day in
-            let doesHaveTransactions = transactions
-                .filter { $0.dateComponents?.day == day.date?.day }
-                .count > 0
-            
-            let dailyTotal = transactions
-                .filter { $0.dateComponents?.day == day.date?.day }
-                .map { ($0.payMethod?.isCreditOrLoan ?? false) ? $0.amount * -1 : $0.amount }
-                .reduce(0.0, +)
-            
-            let dailyCount = transactions
-                .filter { $0.dateComponents?.day == day.date?.day }
-                .count
-                   
-            if doesHaveTransactions {
-                Section {
-                    ForEach(getTransactions(for: day)) { trans in
-                        TransactionListLine(trans: trans) {
-                            self.transDay = day
-                            self.transEditID = trans.id
-                        }
-                    }
-                } header: {
-                    if let date = day.date, date.isToday {
-                        HStack {
-                            Text("TODAY")
-                                .foregroundStyle(Color.theme)
-                            VStack {
-                                Divider()
-                                    .overlay(Color.theme)
+//        var color: Color {
+//            #if os(iOS)
+//            Color(.tertiarySystemGroupedBackground)
+//            #else
+//            Color(.tertiarySystemFill)
+//            #endif
+//        }
+        
+        VStack {
+            ForEach(calModel.sMonth.days.filter { $0.date != nil }) { day in
+                let doesHaveTransactions = transactions
+                    .filter { $0.dateComponents?.day == day.date?.day }
+                    .count > 0
+                
+                let dailyTotal = transactions
+                    .filter { $0.dateComponents?.day == day.date?.day }
+                    .map { ($0.payMethod?.isCreditOrLoan ?? false) ? $0.amount * -1 : $0.amount }
+                    .reduce(0.0, +)
+                
+                let dailyCount = transactions
+                    .filter { $0.dateComponents?.day == day.date?.day }
+                    .count
+                       
+                if doesHaveTransactions {
+                    Card(
+                        layer: .two,
+                        title: {
+                            Group {
+                                if let date = day.date, date.isToday {
+                                    HStack {
+                                        Text("TODAY")
+                                            .foregroundStyle(Color.theme)
+                                        VStack {
+                                            Divider()
+                                                .overlay(Color.theme)
+                                        }
+                                    }
+                                } else {
+                                    Text(day.date?.string(to: .monthDayShortYear) ?? "")
+                                }
+                            }
+                            .padding(.leading, 12)
+                            .foregroundStyle(.secondary)
+                            .font(.headline)
+                            
+                        }, footer: {
+                            if doesHaveTransactions {
+                                SectionFooter(day: day, dailyCount: dailyCount, dailyTotal: dailyTotal, cumTotals: cumTotals)
+                                    .foregroundStyle(.secondary)
+                                    .font(.caption)
+                            }
+                        }, content: {
+                            ForEach(getTransactions(for: day)) { trans in
+                                TransactionListLine(trans: trans) {
+                                    self.transDay = day
+                                    self.transEditID = trans.id
+                                }
                             }
                         }
-                    } else {
-                        Text(day.date?.string(to: .monthDayShortYear) ?? "")
-                    }
+                    )
                     
-                } footer: {
-                    if doesHaveTransactions {
-                        SectionFooter(day: day, dailyCount: dailyCount, dailyTotal: dailyTotal, cumTotals: cumTotals)
-                    }
+                    Divider()
+                        .padding(.bottom, 12)
                 }
             }
         }
@@ -502,7 +643,7 @@ struct BudgetOverview: View {
             /// Do networking.
             let model = RequestModel(requestType: "fetch_transactions_for_tag", model: requestModel)
             typealias ResultResponse = Result<Array<CBTransaction>?, AppError>
-            async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+            async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
 
             switch await result {
             case .success(let model):

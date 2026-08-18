@@ -54,7 +54,8 @@ struct DashboardActivityByCategoryPieChart: View {
             donutLabel($0, text1, text2)
         }
         .chartAngleSelection(value: $rawSelectedExpenseAngle)
-        .frame(width: 150, height: 150)
+        //.frame(width: 150, height: 150)
+        .frame(height: 150)
         .onChange(of: rawSelectedExpenseAngle) {
             updateSelectedCategoryFromExpensePie()
         }
@@ -88,7 +89,8 @@ struct DashboardActivityByCategoryPieChart: View {
             donutLabel($0, text1, text2)
         }
         .chartAngleSelection(value: $rawSelectedIncomeAngle)
-        .frame(width: 150, height: 150)
+        //.frame(width: 150, height: 150)
+        .frame(height: 150)
         .onChange(of: rawSelectedIncomeAngle) {
             updateSelectedCategoryFromIncomePie()
         }

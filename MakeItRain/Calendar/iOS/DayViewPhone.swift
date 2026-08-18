@@ -7,6 +7,20 @@
 
 import SwiftUI
 
+
+struct SimpDayView: View {
+    var id: Int
+    var body: some View {
+        Rectangle()
+            .fill(Color.blue)
+            .padding(5)
+            .overlay {
+                Text("\(id)")
+            }
+            .frame(height: 200)
+    }
+}
+
 #if os(iOS)
 struct DayViewPhone: View {
     @Local(\.updatedByOtherUserDisplayMode) var updatedByOtherUserDisplayMode
@@ -17,6 +31,18 @@ struct DayViewPhone: View {
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
+    
+    @Bindable var day: CBDay
+    var isToday: Bool
+    let filteredTrans: [CBTransaction]
+    let shouldLimitRows: Bool
+    /// These 2 are @AppStorage properties, that have been lifted up to the parent view to help with performance.
+    var lineItemIndicator: LineItemIndicator
+    var phoneLineItemDisplayItem: PhoneLineItemDisplayItem
+    
+    @State private var showDropActions = false
+    @State private var showDailyActions = false
+    @State private var showMoreTrans = false
     
     private var eodColor: Color {
         if let meth = calModel.sPayMethod {
@@ -50,31 +76,15 @@ struct DayViewPhone: View {
         }
     }
     
-    private var isToday: Bool {
-        AppState.shared.todayDay == (day.dateComponents?.day ?? 0) && AppState.shared.todayMonth == calModel.sMonth.actualNum && AppState.shared.todayYear == calModel.sMonth.year
-    }
+//    private var isToday: Bool {
+//        day.id == AppState.shared.todayDay
+//        && calModel.sMonth.actualNum == AppState.shared.todayMonth
+//        && calModel.sMonth.year == AppState.shared.todayYear
+//    }
     
-    //@Binding var transEditID: String?
-    @Bindable var day: CBDay
-    //@Binding var selectedDay: CBDay?
-    //@Binding var showTransferSheet: Bool
-    ////@Binding var putBackToBottomPanelViewOnRotate: Bool
-    //@Binding var showPhotosPicker: Bool
-    //@Binding var showCamera: Bool
-    //@Binding var overviewDay: CBDay?
-    //@Binding var bottomPanelContent: BottomPanelContent?
-    
-    var lineItemIndicator: LineItemIndicator
-    var phoneLineItemDisplayItem: PhoneLineItemDisplayItem
-    
-    @State private var showDropActions = false
-    @State private var showDailyActions = false
-    @State private var showMoreTrans = false
-    
-    
-    var filteredTrans: [CBTransaction] {
-        calModel.filteredTrans(day: day)
-    }
+//    var filteredTrans: [CBTransaction] {
+//        calModel.filteredTrans(day: day)
+//    }
     
     let columnGrid = Array(repeating: GridItem(.flexible(), spacing: 3), count: 2)
         
@@ -90,15 +100,17 @@ struct DayViewPhone: View {
         "\(day.weekday), the \((day.dateComponents?.day ?? 0).withOrdinal())"
     }
     
-    var shouldLimitTo5: Bool {
-        let transCountForCurrentPayMethod = calModel.sMonth.justTransactions.filter({ $0.payMethod?.id == calModel.sPayMethod?.id }).count
-        //if calModel.sMonth.transactionCount > (calModel.sMonth.dayCount * 5)
-        return transCountForCurrentPayMethod > (calModel.sMonth.dayCount * 5) && filteredTrans.count > 5 && phoneLineItemDisplayItem == .both
-    }
+//    var shouldLimitTo5: Bool {
+//        return calModel.transCountForCurrentPayMethod > (calModel.sMonth.dayCount * 5) && filteredTrans.count > 5 && phoneLineItemDisplayItem == .both
+//    }
     
+    var shouldLimitTo5: Bool {
+        shouldLimitRows && filteredTrans.count > 5
+    }
    
     var body: some View {
         //let _ = Self._printChanges()
+        
         if day.date == nil {
             placeholderDayView
         } else {
@@ -221,17 +233,7 @@ struct DayViewPhone: View {
                         trans.status = .editing
                         //}
                         
-                        /// Set the amount to the original unconverted amount since the save function will convert it back
-//                        if let code = trans.country?.currencyCode,
-//                           let ogAmount = trans.originalUnconvertedAmount {
-//                            trans.amountString = ogAmount.currencyWithDecimals(currencyCode: code)
-//                        } else {
-//                            trans.amountString = trans.amount.currencyWithDecimals()
-//                        }
-                        
-                        Task {
-                            await calModel.saveTransaction(id: transId)
-                        }
+                        Task { await calModel.saveTransaction(id: transId) }
                     } else {
                         print("Could not find the transaction ID \(transId)")
                     }
@@ -252,7 +254,7 @@ struct DayViewPhone: View {
     
     var dayBackground: some View {
         RoundedRectangle(cornerRadius: 6)
-            /// Use this to only hilight the overview day.
+            /// Use this to only highlight the overview day.
             .fill(
                 (calProps.overviewDay == day && calProps.bottomPanelContent == .overviewDay)
                 || (calProps.overviewDay == day && calProps.inspectorContent == .overviewDay)
@@ -271,9 +273,10 @@ struct DayViewPhone: View {
                 .padding(4)
                 .background {
                     Circle()
-                    //RoundedRectangle(cornerRadius: 5)
                         .fill(Color.theme)
-                        //.frame(maxWidth: .infinity)
+//                    RoundedRectangle(cornerRadius: 5)
+//                        .fill(Color.theme)
+//                        .frame(maxWidth: .infinity)
                 }
                 .foregroundStyle(.white)
                 .padding(-4)
@@ -283,7 +286,7 @@ struct DayViewPhone: View {
     }
     
     
-#warning("REGARDING HITCH: All I did here was pull the appstorage properties from the line item to this view, and reworked the shouldLimitTo5")
+    #warning("REGARDING HITCH: All I did here was pull the appstorage properties from the line item to this view, and reworked the shouldLimitTo5")
     @ViewBuilder
     var dailyTransactionList: some View {
         @Bindable var calProps = calProps
@@ -299,6 +302,7 @@ struct DayViewPhone: View {
                 if showMoreTrans {
                     ForEach(filteredTrans.suffix(filteredTrans.count - 5)) { trans in
                         lineItem(trans)
+                            .padding(.leading, 4)
                     }
                 }
             } else {
@@ -394,68 +398,101 @@ struct DayViewPhone: View {
                 showMoreTrans.toggle()
             }
         } label: {
-            VStack(alignment: .leading, spacing: 0) {
-                Text(showMoreTrans ? "Hide…" : "More…")
+            HStack {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(showMoreTrans ? "Hide" : "More")
+                        .font(.caption2)
+                        .foregroundStyle(.gray)
+                        .lineLimit(1)
+                    
+                    Text("(\(filteredTrans.count - 5))")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.gray)
+                        .lineLimit(1)
+                }
+                
+                Image(systemName: "chevron.right")
                     .font(.caption2)
                     .foregroundStyle(.gray)
-                    .lineLimit(1)
-                Text("(\(filteredTrans.count - 5))")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.gray)
-                    .lineLimit(1)
+                    .rotationEffect(.degrees(showMoreTrans ? 90 : 0))
+                    .animation(.easeInOut(duration: 0.2), value: showMoreTrans)
+                
+//                Image(systemName: showMoreTrans ? "chevron.down" : "chevron.right")
+//                    .contentTransition(.symbolEffect(.rotate, options: .repeat(.)))
+//                    //.symbolEffect(.rotate)
+//                    .font(.caption2)
+//                    .foregroundStyle(.gray)
+                    
             }
+            
         }
         .buttonStyle(.plain)
     }
     
     
     
+//    var eodTextString: String {
+//        let setCur = AppState.shared.country.currencyCode
+//        
+//        func strip(_ string: String) -> String {
+//            return CurrencyHelpers.cleanAmountString(string, currencyCode: setCur)
+//        }
+//        
+//        if AppSettings.shared.useWholeNumbers && AppSettings.shared.tightenUpEodTotals {
+//            if day.eodTotal > 100000 || day.eodTotal < -100000 {
+//                return strip(day.eodTotal.kVersion(2))
+//            } else {
+//                return strip(String(describing: day.eodTotal.currencyWithDecimals()))
+//            }
+//            
+//        } else if AppSettings.shared.useWholeNumbers {
+//            if day.eodTotal > 100000 || day.eodTotal < -100000 {
+//                return day.eodTotal.kVersion(2)
+//            } else {
+//                return day.eodTotal.currencyWithDecimals(0)
+//            }
+//            
+//        } else if !AppSettings.shared.useWholeNumbers && AppSettings.shared.tightenUpEodTotals {
+//            if day.eodTotal > 100000 || day.eodTotal < -100000 {
+//                return day.eodTotal.kVersion(2)
+//            } else {
+//                return strip(day.eodTotal.currencyWithDecimals(2))
+//            }
+//            
+//        } else {
+//            if day.eodTotal > 100000 || day.eodTotal < -100000 {
+//                return day.eodTotal.kVersion(2)
+//            } else {
+//                return day.eodTotal.currencyWithDecimals(2)
+//            }
+//        }
+//    }
+    
+    
     var eodTextString: String {
-        func strip(_ string: String, currencyCode: String) -> String {
-            //return string
-            return CurrencyHelpers.cleanAmountString(string, currencyCode: currencyCode)/* ?? string.replacing("$", with: "").replacing(",", with: "")*/
+        let setCur = AppState.shared.country.currencyCode
+        let whole = AppSettings.shared.useWholeNumbers
+        let tight = AppSettings.shared.tightenUpEodTotals
+        
+        func strip(_ string: String) -> String {
+            return CurrencyHelpers.cleanAmountString(string, currencyCode: setCur)
         }
         
-        let methCur = calModel.sPayMethod?.country?.currencyCode
-        let setCur = AppState.shared.country.currencyCode
+        if day.eodTotal.magnitude > 100_000 {
+            return strip(day.eodTotal.kVersion(2))
+        }
         
-        if AppSettings.shared.useWholeNumbers && AppSettings.shared.tightenUpEodTotals {
-//                "\(String(format: "%.0f", NSDecimalNumber(decimal: day.eodTotal).doubleValue))"
-            if day.eodTotal > 100000 || day.eodTotal < -100000 {
-                return strip(day.eodTotal.kVersion(2), currencyCode: methCur ?? setCur)
-            } else {
-                return strip(String(describing: day.eodTotal.currencyWithDecimals(AppSettings.shared.useWholeNumbers ? 0 : 2, currencyCode: setCur)), currencyCode: setCur)
-                return strip("\(String(describing: day.eodTotal))", currencyCode: methCur ?? setCur)
-                
-                return strip("\(String(format: "%.0f", NSDecimalNumber(decimal: day.eodTotal).doubleValue))", currencyCode: methCur ?? setCur)
-                
-                //"\(String(format: "%.0f", NSDecimalNumber(decimal: day.eodTotal).doubleValue))"
-                //Text("\(String(format: "%.00f", day.eodTotal).replacing("$", with: "").replacing(",", with: ""))")
-            }
+        if whole && tight {
+            return strip(String(describing: day.eodTotal.currencyWithDecimals()))
             
-        } else if AppSettings.shared.useWholeNumbers {
-//                Text(day.eodTotal.currencyWithDecimals(0))
-            if day.eodTotal > 100000 || day.eodTotal < -100000 {
-                return day.eodTotal.kVersion(2)
-            } else {
-                return day.eodTotal.currencyWithDecimals(0)
-            }
+        } else if whole && !tight {
+            return day.eodTotal.currencyWithDecimals(0)
             
-        } else if !AppSettings.shared.useWholeNumbers && AppSettings.shared.tightenUpEodTotals {
-//                Text(day.eodTotal.currencyWithDecimals(2).replacing("$", with: "").replacing(",", with: ""))
-            if day.eodTotal > 100000 || day.eodTotal < -100000 {
-                return day.eodTotal.kVersion(2)
-            } else {
-                return strip(day.eodTotal.currencyWithDecimals(2), currencyCode: methCur ?? setCur)//.replacing("$", with: "").replacing(",", with: "")
-            }
+        } else if !whole && tight {
+            return strip(day.eodTotal.currencyWithDecimals(2))
             
         } else {
-//                Text(day.eodTotal.currencyWithDecimals(2))
-            if day.eodTotal > 100000 || day.eodTotal < -100000 {
-                return day.eodTotal.kVersion(2)
-            } else {
-                return day.eodTotal.currencyWithDecimals(2)
-            }
+            return day.eodTotal.currencyWithDecimals(2)
         }
     }
     
@@ -516,13 +553,13 @@ struct DayViewPhone: View {
     func handleDayWasTapped() {
         if phoneLineItemDisplayItem != .both {
             withAnimation {
-                
                 if AppState.shared.isIphone {
                     calProps.overviewDay = day
                     /// Set `selectedDay` to the same day as the overview day that way any transactions or transfers initiated via the bottom panel will have the date of the bottom panel.
                     /// (Since `TransactionEditView` and `TransferSheet` use `selectedDate` as their default date.)
                     calProps.selectedDay = day
                     calProps.bottomPanelContent = .overviewDay
+                    
                 } else {
                     calProps.overviewDay = day
                     calProps.selectedDay = day
@@ -530,9 +567,6 @@ struct DayViewPhone: View {
                     calProps.inspectorContent = .overviewDay
                     calProps.showInspector = true
                 }
-                
-                
-                
             }
         }
     }

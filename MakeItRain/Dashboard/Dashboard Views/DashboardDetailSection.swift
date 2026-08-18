@@ -14,7 +14,7 @@ struct DashboardDetailSection: View {
     @Bindable var data: DashboardData
         
     var body: some View {
-        DashboardWidget(showFilterText: !model.allCatsSelected, title: "Details") {
+        Card(showFilterText: !model.allCatsSelected, title: "Details") {
             NavigationLink(value: NavDest.dashboardNumericBreakdown) {
                 HStack {
                     Grid(alignment: .leading) {
@@ -69,9 +69,11 @@ struct DashboardDetailSection: View {
                         .foregroundStyle(.tertiary)
                         .font(.footnote)
                 }
-                
+                .contentShape(.rect)
             }
             .schemeBasedForegroundStyle()
+            /// For macOS
+            .buttonStyle(.plain)
         }
     }
 }

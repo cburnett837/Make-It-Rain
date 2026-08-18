@@ -135,7 +135,8 @@ struct DayOverviewView: View {
     
     
     
-    @ViewBuilder var sheetHeader: some View {
+    @ViewBuilder
+    var sheetHeader: some View {
         @Bindable var calProps = calProps
         SheetHeader(
             title: day!.displayDate,

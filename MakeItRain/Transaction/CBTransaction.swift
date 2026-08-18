@@ -10,7 +10,7 @@ import UniformTypeIdentifiers
 import SwiftUI
 
 @Observable
-class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation, CanEditAmount {
+class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation, CanEditAmount, CurrencyConvertable {
     
     #warning("serverID Change")
     /// This changed affected
@@ -30,41 +30,35 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
     var title: String
     
     
+    /// AMOUNT DETAILS
+    var country: Country?
+    var amountString: String
     var amount: Decimal {
         CurrencyHelpers.parseAmountStringToDecimal(amountString) ?? 0.0
-        //Decimal(amountString.replacing("$", with: "").replacing(",", with: "")) ?? 0.0
     }
     
-//    var convertedDisplayAmountForLineItem: Decimal? {
-//        if let cunt = self.country {
-//            let setCunt = AppState.shared.country
-//            if cunt != setCunt {
-//                if let exc = cunt.exchangeRate, let converted = Countries.convert(amount: amount, from: cunt, using: exc) {
-//                    return converted
-//                }
-//            }
-//        }
-//        
-//        return nil
-//    }
-//    
-//    var convertedDisplayAmountForEditing: Decimal? {
-//        if let cunt = self.country {
-//            let setCunt = AppState.shared.country
-//            if cunt != setCunt {
-//                if let exc = cunt.exchangeRate, let converted = Countries.convert(amount: amount, from: setCunt, using: exc) {
-//                    return converted
-//                }
-//            }
-//        }
-//        
-//        return nil
-//    }
+    /// PRECONVERSION AMOUNT DETAILS
+    var condataOriginalCountry: Country?
+    var condataOriginalAmountString: String
+    var condataOriginalAmount: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(condataOriginalAmountString) ?? 0.0
+    }
     
-    var amountString: String
-    var amountUsd: Decimal?
-    var originalUnconvertedAmount: Decimal?
-    var exchangeRate: Decimal?
+    /// CONVERSION DETAILS
+    var condataOriginCountryToPayMethodCountryExchangeRate: Decimal?
+    var condataPayMethodCountryToAccountCountryExchangeRate: Decimal?
+    var condataPayMethodAmountString: String
+    var condataPayMethodAmount: Decimal {
+        CurrencyHelpers.parseAmountStringToDecimal(condataPayMethodAmountString) ?? 0.0
+    }
+    
+    
+    var hostExRate: Decimal?
+        
+    
+    
+    
+    
     
     var amountTypeLingo: String {
         if (payMethod?.isCreditOrLoan ?? false) {
@@ -137,18 +131,21 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
     var url: String
     //var relatedTransactionType: XrefItem?
     
-    var country: Country?
-    
     //var relatedTransactionTypeID: Int?
     var relatedTransactionType: XrefRelatedTransactionType?
     
     var smartTransactionIssueID: Int?
-//    var smartTransactionIssue: XrefSmartTransactionIssue? {
-//        XrefSmartTransactionIssue.item(id: smartTransactionIssueID)
-//
-//    }
+    var smartTransactionIssue: XrefSmartTransactionIssue? {
+        if let id = smartTransactionIssueID {
+            XrefSmartTransactionIssue(id: id)
+        } else {
+            nil
+        }
+        
+
+    }
     
-    var smartTransactionIssue: XrefSmartTransactionIssue?
+    //var smartTransactionIssue: XrefSmartTransactionIssue?
     
     
     var christmasListGiftID: Int?
@@ -227,6 +224,8 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
         self.uuid = uuid
         self.title = ""
         self.amountString = ""
+        self.condataOriginalAmountString = ""
+        self.condataPayMethodAmountString = ""
         self.date = nil
         self.action = .add
         self.factorInCalculations = true
@@ -259,6 +258,8 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
         self.uuid = uuid
         self.title = ""
         self.amountString = ""
+        self.condataOriginalAmountString = ""
+        self.condataPayMethodAmountString = ""
         self.date = nil
         self.action = .add
         self.factorInCalculations = true
@@ -347,8 +348,10 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
         self.repID = repTrans.id
         self.title = repTrans.title
         self.amountString = amountString
-        self.amountUsd = CurrencyHelpers.parseAmountStringToDecimal(amountString) ?? 0.0
-        self.originalUnconvertedAmount = CurrencyHelpers.parseAmountStringToDecimal(amountString) ?? 0.0
+        self.condataOriginalAmountString = ""
+        self.condataPayMethodAmountString = ""
+        //self.amountUsd = CurrencyHelpers.parseAmountStringToDecimal(amountString) ?? 0.0
+        //self.originalUnconvertedAmount = CurrencyHelpers.parseAmountStringToDecimal(amountString) ?? 0.0
         self.action = .edit
         self.factorInCalculations = true
         self.payMethod = payMethod
@@ -415,8 +418,10 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
         self.plaidID = String(plaidTrans.plaidID)
         self.title = plaidTrans.title
         self.amountString = plaidTrans.amountString
-        self.amountUsd = CurrencyHelpers.parseAmountStringToDecimal(plaidTrans.amountString) ?? 0.0
-        self.originalUnconvertedAmount = CurrencyHelpers.parseAmountStringToDecimal(plaidTrans.amountString) ?? 0.0
+        self.condataOriginalAmountString = ""
+        self.condataPayMethodAmountString = ""
+        //self.amountUsd = CurrencyHelpers.parseAmountStringToDecimal(plaidTrans.amountString) ?? 0.0
+        //self.originalUnconvertedAmount = CurrencyHelpers.parseAmountStringToDecimal(plaidTrans.amountString) ?? 0.0
         //self.action = .add
         self.factorInCalculations = true
         self.payMethod = plaidTrans.payMethod
@@ -443,7 +448,15 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
     }
     
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, entered_date, updated_date, files, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, related_transaction_type_id, fit_id, is_smart_transaction, smart_transaction_issue_id, smart_transaction_is_acknowledged, locations, action, is_payment_origin, is_payment_dest, is_transfer_origin, is_transfer_dest, plaid_id, duplicate_file_records, christmas_list_gift_id, christmas_list_delete_preference, christmas_list_gift_status, entered_by_id, updated_by_id, country_id, original_unconverted_amount, exchange_rate, amount_usd }
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, entered_date, updated_date, files, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, related_transaction_type_id, fit_id, is_smart_transaction, smart_transaction_issue_id, smart_transaction_is_acknowledged, locations, action, is_payment_origin, is_payment_dest, is_transfer_origin, is_transfer_dest, plaid_id, duplicate_file_records, christmas_list_gift_id, christmas_list_delete_preference, christmas_list_gift_status, entered_by_id, updated_by_id,
+        condata__pay_method_amount,
+        condata__pay_method_country_id,
+        condata__original_amount,
+        condata__original_country_id,
+        condata__origin_country_to_pay_method_country_exchange_rate,
+        condata__pay_method_country_to_account_country_exchange_rate,
+        amount_country_id
+    }
     
     
     func encode(to encoder: Encoder) throws {
@@ -453,26 +466,15 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
         try container.encode(relatedTransactionID, forKey: .related_transaction_id)
         try container.encode(title, forKey: .title)
         
-        //try container.encode(amount, forKey: .amount)
+        try container.encode(amount, forKey: .amount)
+        try container.encode(condataPayMethodAmount, forKey: .condata__pay_method_amount)
+        try container.encode(payMethod?.country?.id, forKey: .condata__pay_method_country_id)
+        try container.encode(condataOriginalAmount, forKey: .condata__original_amount)
+        try container.encode(condataOriginalCountry?.id, forKey: .condata__original_country_id)
+        try container.encode(condataOriginCountryToPayMethodCountryExchangeRate, forKey: .condata__origin_country_to_pay_method_country_exchange_rate)
+        try container.encode(condataPayMethodCountryToAccountCountryExchangeRate, forKey: .condata__pay_method_country_to_account_country_exchange_rate)
+        try container.encode(country?.id, forKey: .amount_country_id)
         
-        try container.encode(amountUsd ?? amount, forKey: .amount)
-        try container.encode(amountUsd ?? amount, forKey: .amount_usd) // for the Transferable protocol
-        
-        
-//        let USA = Countries.fetch(by: 225)!
-//        if let amount = Countries.convert(amount: self.amount, from: AppState.shared.country, to: USA) {
-//            try container.encode(amountUsd, forKey: .amount_usd)
-//        }
-        
-        
-        //print("Encoding\namountUsd: \(self.amountUsd)\noriginalUnconvertedAmount: \(self.originalUnconvertedAmount)\nexchangeRate: \(self.exchangeRate)")
-        
-        
-        
-        
-        
-        try container.encode(originalUnconvertedAmount ?? amount, forKey: .original_unconverted_amount)
-        try container.encode(exchangeRate, forKey: .exchange_rate)
         
         try container.encode(payMethod, forKey: .payment_method)
         try container.encode(category, forKey: .category)
@@ -541,11 +543,11 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
             statusString = nil
         }
         try container.encode(statusString, forKey: .christmas_list_gift_status)
-        try container.encode(country?.id, forKey: .country_id)
+        
     }
     
     
-    var requiresConversion = false
+    //var requiresConversion = false
     
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -564,58 +566,52 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
                 self.uuid = try container.decode(String.self, forKey: .id)
             }
         }
-                        
+        
         self.title = try container.decode(String.self, forKey: .title)
         
-        let countryID = try container.decode(Int?.self, forKey: .country_id)
+        let payMethod = try container.decode(CBPaymentMethod?.self, forKey: .payment_method)
+        self.payMethod = payMethod
         
-        var country: Country?
-        if let countryID {
-            country = Countries.fetch(by: countryID)
+        /// AMOUNT DETAILS
+        let amount = try container.decode(Decimal.self, forKey: .amount)
+        if let countryID = try container.decode(Int?.self, forKey: .amount_country_id),
+           let country = Countries.fetch(by: countryID) {
+            self.amountString = CurrencyHelpers.formatAmountText(amount: amount, currencyCode: country.currencyCode)
             self.country = country
+        } else {
+            self.amountString = CurrencyHelpers.formatAmountText(amount: amount, currencyCode: AppState.shared.country.currencyCode)
         }
         
-        let amount = try container.decode(Decimal.self, forKey: .amount)
-        /// Always store the USD amout, and don't allow changing.
-        self.amountUsd = amount
-        let originalUnconvertedAmount = try container.decode(Decimal?.self, forKey: .original_unconverted_amount)
-        let exchangeRate = try container.decode(Decimal?.self, forKey: .exchange_rate)
-        
-        self.originalUnconvertedAmount = originalUnconvertedAmount
-        self.exchangeRate = exchangeRate
-        
-        //self.amountString = CurrencyHelpers.formatAmountText(amount: amount, currencyCode: "USD")
-        
-        /// Since we store all amounts in the database as USD, convert them to the app's user-defined country.
-//        let USA = Countries.fetch(by: 225)!
-//        if let exchangeRate,
-//           let originalUnconvertedAmount,
-//           let amountConverted = CurrencyHelpers.convert(amount: amount, fromRate: exchangeRate, toRate: 1) {
-//            //let amountConverted = Countries.convert(amount: amount, from: USA, to: AppState.shared.country) {
-//            //self.amountString = amountConverted.currencyWithDecimals()
-//            self.amountString = CurrencyHelpers.formatAmountText(amount: amountConverted, currencyCode: AppState.shared.country.currencyCode)
-////            if let code = country?.currencyCode {
-////                self.amountString = CurrencyHelpers.formatAmountText(amount: amountConverted, currencyCode: code)
-////            } else {
-////                self.amountString = amountConverted.currencyWithDecimals()
-////            }
-//        } else {
-//            self.amountString = amount.currencyWithDecimals()
-//        }
+        /// PRECONVERSION AMOUNT DETAILS
+        let condataOriginalAmount = try container.decode(Decimal?.self, forKey: .condata__original_amount)
+        if let condataOriginalCountryID = try container.decode(Int?.self, forKey: .condata__original_country_id),
+           let condataOriginalCountry = Countries.fetch(by: condataOriginalCountryID) {
+            self.condataOriginalCountry = condataOriginalCountry
+            self.condataOriginalAmountString = CurrencyHelpers.formatAmountText(amount: condataOriginalAmount, currencyCode: condataOriginalCountry.currencyCode)
+        } else {
+            self.condataOriginalAmountString = ""
+        }
         
         
-        self.amountString = amount.currencyWithDecimals(currencyCode: AppState.shared.country.currencyCode)
-//
-//        if let code = country?.currencyCode {
-//            self.amountString = CurrencyHelpers.formatAmountText(amount: amount, currencyCode: code)
-//        } else {
-//            self.amountString = amount.currencyWithDecimals()
-//        }
+        /// CONVERSION DETAILS
+        if let condataPayMethodAmount = try container.decode(Decimal?.self, forKey: .condata__pay_method_amount),
+           let countryID = payMethod?.country?.id,
+           let country = Countries.fetch(by: countryID) {
+            self.condataPayMethodAmountString = CurrencyHelpers.formatAmountText(amount: condataPayMethodAmount, currencyCode: country.currencyCode)
+        } else {
+            self.condataPayMethodAmountString = ""
+        }
         
-        //print("Decoding\namount: \(amount)\noriginalUnconvertedAmount: \(originalUnconvertedAmount)\nexchangeRate: \(exchangeRate)\namountUsd: \(amount)")
+        
+        self.condataOriginCountryToPayMethodCountryExchangeRate = try container.decode(Decimal?.self, forKey: .condata__origin_country_to_pay_method_country_exchange_rate)
+        
+        self.condataPayMethodCountryToAccountCountryExchangeRate = try container.decode(Decimal?.self, forKey: .condata__pay_method_country_to_account_country_exchange_rate)
         
         
-        self.payMethod = try container.decode(CBPaymentMethod?.self, forKey: .payment_method)
+        
+        
+        
+        
         self.category = try container.decode(CBCategory?.self, forKey: .category)
         
         
@@ -767,6 +763,7 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
         let smartTransactionIssueID = try container.decode(Int?.self, forKey: .smart_transaction_issue_id)
         if let smartTransactionIssueID = smartTransactionIssueID {
             self.smartTransactionIssueID = smartTransactionIssueID
+            //self.smartTransactionIssue = XrefSmartTransactionIssue(id: smartTransactionIssueID)
             //self.smartTransactionIssue = XrefModel.getItem(from: .smartTransactionIssues, byID: smartTransactionIssueID)
         }
         
@@ -899,9 +896,14 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
         if self.title != deepCopy.title {
             changes.append("title: \(String(describing: deepCopy.title)) → \(String(describing: self.title))")
         }
+        
         if self.amount != deepCopy.amount {
             changes.append("amount: \(deepCopy.amount) → \(self.amount)")
         }
+        if self.country != deepCopy.country {
+            changes.append("country: \(String(describing: deepCopy.country?.code)) → \(String(describing: self.country?.code))")
+        }
+        
         if self.payMethod?.id != deepCopy.payMethod?.id {
             changes.append("payMethod: \(String(describing: deepCopy.payMethod?.id)) → \(String(describing: self.payMethod?.id))")
         }
@@ -951,9 +953,29 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
         if self.christmasListStatus != deepCopy.christmasListStatus {
             changes.append("gift status: \(String(describing: deepCopy.christmasListStatus)) → \(String(describing: self.christmasListStatus))")
         }
-        if self.country != deepCopy.country {
-            changes.append("country: \(String(describing: deepCopy.country?.code)) → \(String(describing: self.country?.code))")
+        
+        
+                
+        if self.condataOriginalAmount != deepCopy.condataOriginalAmount {
+            changes.append("condataOriginalAmount: \(String(describing: deepCopy.condataOriginalAmount)) → \(String(describing: condataOriginalAmount))")
         }
+        if self.condataOriginalCountry != deepCopy.condataOriginalCountry {
+            changes.append("country: \(String(describing: deepCopy.condataOriginalCountry?.code)) → \(String(describing: self.condataOriginalCountry?.code))")
+        }
+        
+        
+        if self.condataPayMethodAmount != deepCopy.condataPayMethodAmount {
+            changes.append("condataPayMethodAmount: \(String(describing: deepCopy.condataPayMethodAmount)) → \(String(describing: condataPayMethodAmount))")
+        }
+        if self.condataOriginCountryToPayMethodCountryExchangeRate != deepCopy.condataOriginCountryToPayMethodCountryExchangeRate {
+            changes.append("condataOriginCountryToPayMethodCountryExchangeRate: \(String(describing: deepCopy.condataOriginCountryToPayMethodCountryExchangeRate)) → \(String(describing: condataOriginCountryToPayMethodCountryExchangeRate))")
+        }
+        if self.condataPayMethodCountryToAccountCountryExchangeRate != deepCopy.condataPayMethodCountryToAccountCountryExchangeRate {
+            changes.append("condataPayMethodCountryToAccountCountryExchangeRate: \(String(describing: deepCopy.condataPayMethodCountryToAccountCountryExchangeRate)) → \(String(describing: condataPayMethodCountryToAccountCountryExchangeRate))")
+        }
+//        if self.amountCountryID != deepCopy.amountCountryID {
+//            changes.append("amountCountryID: \(String(describing: deepCopy.amountCountryID)) → \(String(describing: amountCountryID))")
+//        }
         
         if !changes.isEmpty {
             print("Changes detected:")
@@ -1106,6 +1128,30 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
             if self.country != deepCopy.country  {
                 self.log(field: .country, old: deepCopy.country?.code, new: self.country?.code, groupID: groupID)
             }
+            
+            
+            
+//            if self.condataPayMethodAmount != deepCopy.condataPayMethodAmount {
+//                self.log(field: .country, old: deepCopy.country?.code, new: self.country?.code, groupID: groupID)
+//            }
+//            if self.condataPayMethodCountryID != deepCopy.condataPayMethodCountryID {
+//                self.log(field: .country, old: deepCopy.country?.code, new: self.country?.code, groupID: groupID)
+//            }
+//            if self.condataOriginalAmount != deepCopy.condataOriginalAmount {
+//                self.log(field: .country, old: deepCopy.country?.code, new: self.country?.code, groupID: groupID)
+//            }
+//            if self.condataOriginalCountryID != deepCopy.condataOriginalCountryID {
+//                self.log(field: .country, old: deepCopy.country?.code, new: self.country?.code, groupID: groupID)
+//            }
+//            if self.condataOriginCountryToPayMethodCountryExchangeRate != deepCopy.condataOriginCountryToPayMethodCountryExchangeRate {
+//                self.log(field: .country, old: deepCopy.country?.code, new: self.country?.code, groupID: groupID)
+//            }
+//            if self.condataPayMethodCountryToAccountCountryExchangeRate != deepCopy.condataPayMethodCountryToAccountCountryExchangeRate {
+//                self.log(field: .country, old: deepCopy.country?.code, new: self.country?.code, groupID: groupID)
+//            }
+//            if self.amountCountryID != deepCopy.amountCountryID {
+//                self.log(field: .country, old: deepCopy.country?.code, new: self.country?.code, groupID: groupID)
+//            }
         }
     }
     
@@ -1152,17 +1198,27 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
             copy.relatedTransactionType = self.relatedTransactionType
             copy.repID = self.repID
             copy.country = self.country
-            copy.originalUnconvertedAmount = self.originalUnconvertedAmount
-            copy.exchangeRate = self.exchangeRate
+                        
+            copy.condataOriginalAmountString = self.condataOriginalAmountString
+            copy.condataOriginalCountry = self.condataOriginalCountry
+            
+            copy.condataPayMethodAmountString = self.condataPayMethodAmountString
+            copy.condataOriginCountryToPayMethodCountryExchangeRate = self.condataOriginCountryToPayMethodCountryExchangeRate
+            copy.condataPayMethodCountryToAccountCountryExchangeRate = self.condataPayMethodCountryToAccountCountryExchangeRate
+            
             //copy.action = self.action
             self.deepCopy = copy
+            
             
         case .restore:
             if let deepCopy = self.deepCopy {
                 self.serverID = deepCopy.serverID
                 self.uuid = deepCopy.uuid
                 self.title = deepCopy.title
+                
                 self.amountString = deepCopy.amountString
+                self.country = deepCopy.country
+                
                 self.payMethod = deepCopy.payMethod
                 self.category = deepCopy.category
                 self.date = deepCopy.date
@@ -1187,16 +1243,24 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
                 self.relatedTransactionID = deepCopy.relatedTransactionID
                 self.relatedTransactionType = deepCopy.relatedTransactionType
                 self.repID = deepCopy.repID
-                self.country = deepCopy.country
-                self.originalUnconvertedAmount = deepCopy.originalUnconvertedAmount
-                self.exchangeRate = deepCopy.exchangeRate
+                                
+                self.condataOriginalAmountString = deepCopy.condataOriginalAmountString
+                self.condataOriginalCountry = deepCopy.condataOriginalCountry
+                
+                self.condataPayMethodAmountString = deepCopy.condataPayMethodAmountString
+                self.condataOriginCountryToPayMethodCountryExchangeRate = deepCopy.condataOriginCountryToPayMethodCountryExchangeRate
+                self.condataPayMethodCountryToAccountCountryExchangeRate = deepCopy.condataPayMethodCountryToAccountCountryExchangeRate
+                
                 //self.action = deepCopy.action
             }
             
         case .clear:
             //deepCopy?.uuid = nil
             deepCopy?.title = ""
+                        
             deepCopy?.amountString = ""
+            deepCopy?.country = nil
+            
             deepCopy?.date = nil
             deepCopy?.action = .add
             deepCopy?.factorInCalculations = true
@@ -1218,9 +1282,13 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
             deepCopy?.relatedTransactionID = nil
             deepCopy?.relatedTransactionType = nil
             deepCopy?.repID = nil
-            deepCopy?.country = nil
-            deepCopy?.originalUnconvertedAmount = nil
-            deepCopy?.exchangeRate = nil
+                        
+            deepCopy?.condataOriginalAmountString = ""
+            deepCopy?.condataOriginalCountry = nil
+            
+            deepCopy?.condataPayMethodAmountString = ""
+            deepCopy?.condataOriginCountryToPayMethodCountryExchangeRate = nil
+            deepCopy?.condataPayMethodCountryToAccountCountryExchangeRate = nil
         }
     }
     
@@ -1229,7 +1297,10 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
         self.serverID = transaction.serverID
         self.uuid = transaction.uuid
         self.title = transaction.title
+        
         self.amountString = transaction.amount.currencyWithDecimals()
+        self.country = transaction.country
+        
         self.payMethod = transaction.payMethod
         self.category = transaction.category
         self.date = transaction.date
@@ -1261,17 +1332,19 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
         self.wasAddedFromPopulate = transaction.wasAddedFromPopulate
         self.christmasListGiftID = transaction.christmasListGiftID
         self.christmasListStatus = transaction.christmasListStatus
-        self.country = transaction.country
-        self.originalUnconvertedAmount = transaction.originalUnconvertedAmount
-        self.exchangeRate = transaction.exchangeRate
+                        
+        self.condataOriginalAmountString = transaction.condataOriginalAmountString
+        self.condataOriginalCountry = transaction.condataOriginalCountry
+        
+        self.condataPayMethodAmountString = transaction.condataPayMethodAmountString
+        self.condataOriginCountryToPayMethodCountryExchangeRate = transaction.condataOriginCountryToPayMethodCountryExchangeRate
+        self.condataPayMethodCountryToAccountCountryExchangeRate = transaction.condataPayMethodCountryToAccountCountryExchangeRate
     }
     
     static func getCsvHeaders() -> [String] {
         return [
             "Title",
             "Amount",
-            "Original Unconverted Amount",
-            "Exchange Rate",
             "Country",
             "Date",
             "Payment Method",
@@ -1305,8 +1378,6 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
         return [
             title,
             String(describing: amount),
-            String(describing: originalUnconvertedAmount ?? 0) == "0" ? "" : String(describing: originalUnconvertedAmount ?? 0),
-            String(describing: exchangeRate ?? 0) == "0" ? "" : String(describing: exchangeRate ?? 0),
             country?.code ?? "",
             prettyDate ?? "",
             payMethod?.title ?? "",
@@ -1390,7 +1461,10 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
         if lhs.id == rhs.id
         && lhs.uuid == rhs.uuid
         && lhs.title == rhs.title
+            
         && lhs.amount == rhs.amount
+        && lhs.country == rhs.country
+            
         && lhs.payMethod?.id == rhs.payMethod?.id
         && lhs.category?.id == rhs.category?.id
         && lhs.notes == rhs.notes
@@ -1410,9 +1484,14 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
         && lhs.wasAddedFromPopulate == rhs.wasAddedFromPopulate
         && lhs.url == rhs.url
         && lhs.christmasListStatus == rhs.christmasListStatus
-        && lhs.country == rhs.country
-        && lhs.originalUnconvertedAmount == rhs.originalUnconvertedAmount
-        && lhs.exchangeRate == rhs.exchangeRate
+                    
+        && lhs.condataOriginalAmount == rhs.condataOriginalAmount
+        && lhs.condataOriginalCountry == rhs.condataOriginalCountry
+            
+        && lhs.condataPayMethodAmount == rhs.condataPayMethodAmount
+        && lhs.condataOriginCountryToPayMethodCountryExchangeRate == rhs.condataOriginCountryToPayMethodCountryExchangeRate
+        && lhs.condataPayMethodCountryToAccountCountryExchangeRate == rhs.condataPayMethodCountryToAccountCountryExchangeRate
+        //&& lhs.amountCountryID == rhs.amountCountryID
         {
             return true
         }

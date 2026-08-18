@@ -14,7 +14,7 @@ struct CalcHelper {
     @discardableResult
     static func updateUnifiedStartingAmount(month: CBMonth, for unifiedAccountType: AccountType, store: AppStore) -> Decimal {
         /// This is called via `calculateTotal()` and via `PayMethodSheet.task{}`
-        var targetAccountTypes: [AccountType]
+        var targetAccountTypes: [AccountType?]
         if unifiedAccountType == .unifiedCredit {
             targetAccountTypes = [.credit]
         } else {
@@ -22,27 +22,16 @@ struct CalcHelper {
         }
         
         let startingBalance = month.startingAmounts
-            .filter { targetAccountTypes.contains($0.payMethod.accountType) }
-            .filter { $0.payMethod.isPermitted }
-            .filter { !$0.payMethod.isHidden }
-            .filter { $0.payMethod.accountHolderFilter() }
+            .filter { targetAccountTypes.contains($0.payMethod?.accountType) }
+            .filter { $0.payMethod?.isPermitted == true }
+            .filter { $0.payMethod?.isHidden == false }
+            .filter { $0.payMethod?.accountHolderFilter() == true }
             .map { start in
-                #warning("CURRENCY! FIX ME")
-//                if let cunt = meth.payMethod.country {
-//                    let setCunt = AppState.shared.country
-//                    if cunt != setCunt {
-//                        if let converted = Countries.convert(amount: meth.amount, from: cunt, to: setCunt) {
-//                            return converted
-//                        }
-//                    }
-//                }
-//                
-                
                 let setCunt = AppState.shared.country
                 let shouldRound = AppSettings.shared.useWholeNumbers
                 
                 #warning("if you change useWholeNumbers, the rounding can be off unless you leave the calendar (which triggers this function to run again)")
-                if let methCunt = start.payMethod.country,
+                if let methCunt = start.payMethod?.country,
                    let fromRate = CurrencyHelpers.getExchangeRate(date: month.firstDateOfMonth, currencyCode: methCunt.currencyCode, months: store.months),
                    let toRate = CurrencyHelpers.getExchangeRate(date: month.firstDateOfMonth, currencyCode: setCunt.currencyCode, months: store.months),
                    let converted = CurrencyHelpers.convert(amount: start.amount, fromRate: fromRate, toRate: toRate) {
@@ -56,7 +45,7 @@ struct CalcHelper {
             }
             .reduce(0.0, +)
                                 
-        let index = month.startingAmounts.firstIndex(where: { $0.payMethod.accountType == unifiedAccountType })
+        let index = month.startingAmounts.firstIndex(where: { $0.payMethod?.accountType == unifiedAccountType })
         if let index {
             month.startingAmounts[index].amountString = startingBalance.currencyWithDecimals()
         }
@@ -128,18 +117,18 @@ struct CalcHelper {
                     let shouldRound = AppSettings.shared.useWholeNumbers
                     
                     #warning("if you change useWholeNumbers, the rounding can be off unless you leave the calendar (which triggers this function to run again)")
-                    if let transCunt = trans.country,
-                       //transCunt != AppState.shared.country,
-                       let date = trans.date,
-                       let orig = trans.originalUnconvertedAmount,
-                       let fromRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: transCunt.currencyCode, months: store.months),
-                       let toRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: setCunt.currencyCode, months: store.months),
-                       let converted = CurrencyHelpers.convert(amount: orig, fromRate: fromRate, toRate: toRate) {
-                        print("-- \(#function) - converting \(trans.title) to \(converted)")
-                        return shouldRound ? converted.rounded(scale: 0) : converted
-                    } else {
-                        print("-- \(#function) - did not convert \(trans.title)")
-                    }
+//                    if let transCunt = trans.country,
+//                       //transCunt != AppState.shared.country,
+//                       let date = trans.date,
+//                       let orig = trans.originalUnconvertedAmount,
+//                       let fromRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: transCunt.currencyCode, months: store.months),
+//                       let toRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: setCunt.currencyCode, months: store.months),
+//                       let converted = CurrencyHelpers.convert(amount: orig, fromRate: fromRate, toRate: toRate) {
+//                        print("-- \(#function) - converting \(trans.title) to \(converted)")
+//                        return shouldRound ? converted.rounded(scale: 0) : converted
+//                    } else {
+//                        print("-- \(#function) - did not convert \(trans.title)")
+//                    }
                     
                     return trans.amount
                 }
@@ -209,18 +198,18 @@ struct CalcHelper {
                     let shouldRound = AppSettings.shared.useWholeNumbers
                     
                     #warning("if you change useWholeNumbers, the rounding can be off unless you leave the calendar (which triggers this function to run again)")
-                    if let transCunt = trans.country,
-                       //transCunt != AppState.shared.country,
-                       let date = trans.date,
-                       let orig = trans.originalUnconvertedAmount,
-                       let fromRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: transCunt.currencyCode, months: store.months),
-                       let toRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: setCunt.currencyCode, months: store.months),
-                       let converted = CurrencyHelpers.convert(amount: orig, fromRate: fromRate, toRate: toRate) {
-                        print("-- \(#function) - converting \(trans.title) to \(converted)")
-                        return shouldRound ? converted.rounded(scale: 0) : converted
-                    } else {
-                        print("-- \(#function) - did not convert \(trans.title)")
-                    }
+//                    if let transCunt = trans.country,
+//                       //transCunt != AppState.shared.country,
+//                       let date = trans.date,
+//                       let orig = trans.originalUnconvertedAmount,
+//                       let fromRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: transCunt.currencyCode, months: store.months),
+//                       let toRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: setCunt.currencyCode, months: store.months),
+//                       let converted = CurrencyHelpers.convert(amount: orig, fromRate: fromRate, toRate: toRate) {
+//                        print("-- \(#function) - converting \(trans.title) to \(converted)")
+//                        return shouldRound ? converted.rounded(scale: 0) : converted
+//                    } else {
+//                        print("-- \(#function) - did not convert \(trans.title)")
+//                    }
                     
                     return trans.amount
                 }
@@ -255,7 +244,10 @@ struct CalcHelper {
         let creditEodView = LocalStorage.shared.creditEodView
         
         var finalEodTotal: Decimal = 0.0
-        let startingBalance = month.startingAmounts.filter { $0.payMethod.id == paymentMethod?.id }.filter { !$0.payMethod.isHidden }.first
+        let startingBalance = month.startingAmounts
+            .filter { $0.payMethod?.id == paymentMethod?.id }
+            .filter ({ $0.payMethod?.isHidden == false })
+            .first
         var currentAmount: Decimal = 0.0
         
         if let startingBalance {
@@ -286,22 +278,22 @@ struct CalcHelper {
                         let shouldRound = AppSettings.shared.useWholeNumbers
                         
                         
-                        if let orig = trans.originalUnconvertedAmount, paymentMethod?.country == trans.country {
-                            return orig
-                        }
-                        
-                        #warning("if you change useWholeNumbers, the rounding can be off unless you leave the calendar (which triggers this function to run again)")
-                        if let transCunt = trans.country,
-                           let methCunt = paymentMethod?.country,
-                           transCunt != AppState.shared.country,
-                           let date = trans.date,
-                           let orig = trans.originalUnconvertedAmount,
-                           let fromRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: transCunt.currencyCode, months: store.months),
-                           let toRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: methCunt.currencyCode, months: store.months),
-                           let converted = CurrencyHelpers.convert(amount: orig, fromRate: fromRate, toRate: toRate) {
-                            print("-- \(#function) - converting \(trans.title) to \(converted)")
-                            return shouldRound ? converted.rounded(scale: 0) : converted
-                        }
+//                        if let orig = trans.originalUnconvertedAmount, paymentMethod?.country == trans.country {
+//                            return orig
+//                        }
+//                        
+//                        #warning("if you change useWholeNumbers, the rounding can be off unless you leave the calendar (which triggers this function to run again)")
+//                        if let transCunt = trans.country,
+//                           let methCunt = paymentMethod?.country,
+//                           transCunt != AppState.shared.country,
+//                           let date = trans.date,
+//                           let orig = trans.originalUnconvertedAmount,
+//                           let fromRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: transCunt.currencyCode, months: store.months),
+//                           let toRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: methCunt.currencyCode, months: store.months),
+//                           let converted = CurrencyHelpers.convert(amount: orig, fromRate: fromRate, toRate: toRate) {
+//                            print("-- \(#function) - converting \(trans.title) to \(converted)")
+//                            return shouldRound ? converted.rounded(scale: 0) : converted
+//                        }
                         
                         
                         
@@ -342,7 +334,10 @@ struct CalcHelper {
     static func calculateChecking(for month: CBMonth, using paymentMethod: CBPaymentMethod?, and doWhat: DoWhatWhenCalculating, store: AppStore) -> Decimal {
         print("-- \(#function)")
         var finalEodTotal: Decimal = 0.0
-        let startingAmount = month.startingAmounts.filter { $0.payMethod.id == paymentMethod?.id }.filter { !$0.payMethod.isHidden }.first ?? CBStartingAmount()
+        let startingAmount = month.startingAmounts
+            .filter { $0.payMethod?.id == paymentMethod?.id }
+            .filter { $0.payMethod?.isHidden == false }
+            .first ?? CBStartingAmount()
         
         print("-- \(#function) - The starting amount is \(startingAmount.amount)")
         
@@ -369,22 +364,22 @@ struct CalcHelper {
                     let shouldRound = AppSettings.shared.useWholeNumbers
                     
                     
-                    if let orig = trans.originalUnconvertedAmount, paymentMethod?.country == trans.country {
-                        return orig
-                    }
-                    
-                    #warning("if you change useWholeNumbers, the rounding can be off unless you leave the calendar (which triggers this function to run again)")
-                    if let transCunt = trans.country,
-                       let methCunt = paymentMethod?.country,
-                       transCunt != AppState.shared.country,
-                       let date = trans.date,
-                       let orig = trans.originalUnconvertedAmount,
-                       let fromRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: transCunt.currencyCode, months: store.months),
-                       let toRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: methCunt.currencyCode, months: store.months),
-                       let converted = CurrencyHelpers.convert(amount: orig, fromRate: fromRate, toRate: toRate) {
-                        print("-- \(#function) - converting \(trans.title) to \(converted)")
-                        return shouldRound ? converted.rounded(scale: 0) : converted
-                    }
+//                    if let orig = trans.originalUnconvertedAmount, paymentMethod?.country == trans.country {
+//                        return orig
+//                    }
+//                    
+//                    #warning("if you change useWholeNumbers, the rounding can be off unless you leave the calendar (which triggers this function to run again)")
+//                    if let transCunt = trans.country,
+//                       let methCunt = paymentMethod?.country,
+//                       transCunt != AppState.shared.country,
+//                       let date = trans.date,
+//                       let orig = trans.originalUnconvertedAmount,
+//                       let fromRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: transCunt.currencyCode, months: store.months),
+//                       let toRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: methCunt.currencyCode, months: store.months),
+//                       let converted = CurrencyHelpers.convert(amount: orig, fromRate: fromRate, toRate: toRate) {
+//                        print("-- \(#function) - converting \(trans.title) to \(converted)")
+//                        return shouldRound ? converted.rounded(scale: 0) : converted
+//                    }
                     
                     
                     

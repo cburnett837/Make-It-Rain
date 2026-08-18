@@ -121,7 +121,7 @@ class CategoryModel {
                         } else if !month.budgets.isEmpty {
                             /// If a budget has already been created for the month, add the new category (if applicable).
                             
-                            let budget = CBBudgetItem()
+                            let budget = CBBudgetItem(type: .category)
                             budget.monthId = month.populatedId
                             //budget.month = month.actualNum
                             //budget.year = month.year
@@ -183,7 +183,7 @@ class CategoryModel {
 //        /// Do networking.
 //        let model = RequestModel(requestType: "fetch_categories", model: AppState.shared.user)
 //        typealias ResultResponse = Result<Array<CBCategory>?, AppError>
-//        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+//        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
 //        
 //        switch await result {
 //        case .success(let model):
@@ -207,7 +207,7 @@ class CategoryModel {
 //            }
 //            
 //            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-//            print("⏰It took \(currentElapsed) seconds to fetch the categories")
+//            print("⏰ It took \(currentElapsed) seconds to fetch the categories")
 //            
 //        case .failure (let error):
 //            switch error {
@@ -393,7 +393,7 @@ class CategoryModel {
         let model = RequestModel(requestType: "fetch_expenses_by_category", model: analModel)
         
         typealias ResultResponse = Result<Array<CategoryAnalysisResponseModel>?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
         
         switch await result {
         case .success(let model):
@@ -532,7 +532,7 @@ class CategoryModel {
         let model = RequestModel(requestType: "add_budgets_to_months", model: budgets)
         
         typealias ResultResponse = Result<Array<ReturnIdModel>?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
         
         switch await result {
         case .success(let model):
@@ -637,7 +637,7 @@ extension CategoryModel {
 //        /// Do networking.
 //        let model = RequestModel(requestType: "fetch_category_groups", model: AppState.shared.user)
 //        typealias ResultResponse = Result<Array<CBCategoryGroup>?, AppError>
-//        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+//        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
 //        
 //        switch await result {
 //        case .success(let model):
@@ -661,7 +661,7 @@ extension CategoryModel {
 //            }
 //            
 //            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-//            print("⏰It took \(currentElapsed) seconds to fetch the category groups")
+//            print("⏰ It took \(currentElapsed) seconds to fetch the category groups")
 //            
 //        case .failure (let error):
 //            switch error {

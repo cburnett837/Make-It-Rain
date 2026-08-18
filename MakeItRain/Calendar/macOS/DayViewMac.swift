@@ -11,27 +11,13 @@ struct DayViewMac: View {
     @Local(\.alignWeekdayNamesLeft) var alignWeekdayNamesLeft
     
     @Environment(CalendarModel.self) private var calModel
-    
+    @Environment(CalendarProps.self) private var calProps
     @Environment(PayMethodModel.self) private var payModel
     @Environment(CategoryModel.self) private var catModel
     @Environment(KeywordModel.self) private var keyModel
-    @Environment(CalendarProps.self) private var calProps
     
-    
-    //@State private var transEditID: String?
-    @Binding var transEditID: String?
-    @Binding var editTrans: CBTransaction?
-    @Binding var selectedDay: CBDay?
-    ///@State private var editTrans: CBTransaction?
-    
-    
-    @State private var localEditTrans: CBTransaction?
-    
-    @Binding var day: CBDay
+    var day: CBDay
     var cellHeight: CGFloat?
-    //var searchText: String
-    //var searchWhat: CalendarSearchWhat
-//    var focusedField: FocusState<FocusedField?>.Binding
     @FocusState var focusedField: Int?
 
     @State private var showTransferSheet = false
@@ -79,6 +65,7 @@ struct DayViewMac: View {
     }
     
     var body: some View {
+        //let _ = Self._printChanges()
         Group {
             if day.date == nil {
                 Text("")
@@ -124,8 +111,8 @@ struct DayViewMac: View {
                 .contextMenu { contextMenu }
                                 
                 .onTapGesture(count: 2) {
-                    selectedDay = day
-                    transEditID = UUID().uuidString
+                    calProps.selectedDay = day
+                    calProps.transEditID = UUID().uuidString
                     //calModel.transEditID = 0
                 }
                 .onTapGesture {
@@ -134,68 +121,7 @@ struct DayViewMac: View {
                     focusedField = nil
                     print("OnTapGesture \(#file)")
                 }
-                                
-                /// This `.popover(item: $transEditID) & .onChange(of: transEditID)` are used for adding new transactions. They also exists in ``LineItemViewMac``, which are used to edit existing transactions.
-//                .popover(item: $localEditTrans) { trans in
-//                    TransactionEditView(trans: trans, day: day, isTemp: false)
-//                        .frame(minWidth: 320)
-//                }
-////                .transactionEditSheetAndLogic(
-////                    calModel: calModel,
-////                    transEditID: $transEditID,
-////                    editTrans: $editTrans,
-////                    selectedDay: .constant(nil),
-////                    findTransactionWhere: .normalList
-////                )
-//                
-//                /// When the edit trans is set, set a local copy to trigger the popover.
-//                /// Have to use the "global & local" idea otherwise a popover for every day will try and open when you create a new transactions.
-//                .onChange(of: editTrans) {
-//                    if $1 != nil && selectedDay?.date == day.date {
-//                        localEditTrans = $1
-//                    }
-//                }
-//                
-//                /// When the popover closes, clear the global variables, which will trigger the saving and cleanup of the trans.
-//                .onChange(of: localEditTrans) {
-//                    if $1 == nil {
-//                        editTrans = nil
-//                        transEditID = nil
-//                    }
-//                }
-                
-                
-                
-                
-//                .onChange(of: transEditID) { oldValue, newValue in
-//                    print(".onChange(of: transEditID)")
-//                    /// When `newValue` is false, save to the server. We have to use this because `.popover(isPresented:)` has no onDismiss option.
-//                    if oldValue != nil && newValue == nil {
-////                        calModel.saveTransaction(id: oldValue!, day: day, eventModel: eventModel)
-////                        
-////                        /// Keep the model clean, and show alert for a photo that may be taking a long time to upload.
-////                        calModel.pictureTransactionID = nil
-//                    } else {
-//                        editTrans = calModel.getTransaction(by: transEditID!, from: .normalList)
-//                    }
-//                }
-//                           
-//                /// This onChange is needed because you can close the popover without actually clicking the close button.
-//                /// `popover()` has no `onDismiss()` optiion, so I need somewhere to do cleanup.
-//                .onChange(of: editTrans) { oldValue, newValue in
-//                    print(".onChange(of: editTrans)")
-//                    if oldValue == nil && newValue != nil {
-//                        focusedField = nil
-//                    }
-//                    
-//                    if oldValue != nil && newValue == nil {
-//                        let id = oldValue!.id
-//                        calModel.saveTransaction(id: id, day: day)
-////                        calModel.pictureTransactionID = nil
-//                        FileModel.shared.fileParent = nil
-//                    }
-//                }
-
+                                                
                 .dropDestination(for: CBTransaction.self) { droppedTrans, location in
                     let trans = droppedTrans.first
                     if let trans {
@@ -254,12 +180,12 @@ struct DayViewMac: View {
     var contextMenu: some View {
         VStack {
             Button("New Transaction") {
-                selectedDay = day
+                calProps.selectedDay = day
                 calProps.transEditID = UUID().uuidString
             }
             
             Button("New Transfer / Payment") {
-                selectedDay = day
+                calProps.selectedDay = day
                 calProps.showTransferSheet = true
             }
             

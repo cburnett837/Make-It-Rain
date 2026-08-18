@@ -95,11 +95,11 @@ struct DashboardActivityByCategoryBarChart: View {
             updateSelectedCategoryFromBar()
         }
         .sensoryFeedback(.selection, trigger: selectedCategory)
-        .overlay(alignment: .top) {
-            if let category = selectedCategory {
-                DashboardActivityByCategoryAnnotation(category: category)
-            }
-        }
+//        .overlay(alignment: .top) {
+//            if let category = selectedCategory {
+//                DashboardActivityByCategoryAnnotation(category: category)
+//            }
+//        }
     }
     
     @ChartContentBuilder

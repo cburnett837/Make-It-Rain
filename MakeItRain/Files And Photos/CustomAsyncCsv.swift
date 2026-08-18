@@ -32,17 +32,20 @@ struct CustomAsyncCsv: View {
             .clipShape(.rect(cornerRadius: 14))
         }
         .task {
-            let requestModel = RequestModel(
-                requestType: "download_file",
-                model: FileRequestModel(path: "budget_app.\(file.fileType.rawValue).\(file.uuid).\(file.fileType.ext)")
-            )
-            
-            let jsonData = try? JSONEncoder().encode(requestModel)
-            var request = NetworkManager().request
-            request!.setValue(AppState.shared.apiKey, forHTTPHeaderField: "Api-Key")
-            request!.httpBody = jsonData
-            
-            page.load(request!)
+            do {                
+                let requestModel = RequestModel(
+                    requestType: "download_file",
+                    model: FileRequestModel(path: "budget_app.\(file.fileType.rawValue).\(file.uuid).\(file.fileType.ext)")
+                )
+                
+                let networkManager = NetworkManager()
+                var request = networkManager.createRequest()
+                request.setValue(AppState.shared.apiKey, forHTTPHeaderField: "Api-Key")
+                request.httpBody = try JSONEncoder().encode(requestModel)
+                page.load(request)
+            } catch {
+                print("Download failed: \(error)")
+            }
         }
             
             

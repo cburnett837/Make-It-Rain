@@ -531,6 +531,7 @@ struct PlaidTransactionOverlay: View {
 //                    primaryButton: AlertConfig.AlertButton(config: buttonConfig)
 //                )
                 if let config {
+                    Helpers.buzzPhone(.warning)
                     AppState.shared.showAlert(config: config)
                 }
                 
@@ -554,6 +555,7 @@ struct PlaidTransactionOverlay: View {
                     primaryButton: AlertConfig.AlertButton(config: buttonConfig)
                 )
                 
+                Helpers.buzzPhone(.warning)
                 AppState.shared.showAlert(config: config)
             }
             .buttonStyle(.borderedProminent)

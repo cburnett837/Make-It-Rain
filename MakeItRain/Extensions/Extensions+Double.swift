@@ -106,7 +106,7 @@ extension Decimal {
 //        )
 //    }
     
-    func currencyWithDecimals(_ decimals: Int = AppSettings.shared.useWholeNumbers ? 0 : 2, currencyCode: String? = "USD") -> String {
+    func currencyWithDecimals(_ decimals: Int = AppSettings.shared.useWholeNumbers ? 0 : 2, currencyCode: String? = AppState.shared.country.currencyCode) -> String {
         //let locale = AppState.shared.country.code
         //let country = Countries.fetch(by: locale)
         return formatted(

@@ -91,7 +91,7 @@ class RepeatingTransactionModel {
 //        /// Do networking.
 //        let model = RequestModel(requestType: "fetch_repeating_transactions", model: AppState.shared.user)
 //        typealias ResultResponse = Result<Array<CBRepeatingTransaction>?, AppError>
-//        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+//        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
 //        
 //        switch await result {
 //        case .success(let model):
@@ -130,7 +130,7 @@ class RepeatingTransactionModel {
 //            }                        
 //            
 //            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-//            print("⏰It took \(currentElapsed) seconds to fetch the repeating transactions")
+//            print("⏰ It took \(currentElapsed) seconds to fetch the repeating transactions")
 //            
 //        case .failure (let error):
 //            switch error {

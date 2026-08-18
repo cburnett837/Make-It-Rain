@@ -769,7 +769,7 @@ struct AdvancedSearchView: View {
         
         let model = RequestModel(requestType: "new_advanced_search", model: searchModel)
         typealias ResultResponse = Result<Array<CBTransaction>?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
         
         switch await result {
         case .success(let model):

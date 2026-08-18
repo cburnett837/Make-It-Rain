@@ -204,6 +204,43 @@ extension MakeItRainApp {
                 //.environment(mapModel)
         }
     }
+    
+    
+    @SceneBuilder
+    var dashboardWindow: some Scene {
+        Window("Dashboard", id: "dashboard") {
+            let height = ((NSScreen.main?.visibleFrame.height ?? 500) / 4) * 3
+            
+            Dashboard(model: calModel.dashboardModel, isForSelectedMonth: true)
+                .frame(minWidth: 200, maxWidth: 800, minHeight: height)
+                .environment(funcModel)
+                .environment(calModel)
+                .environment(payModel)
+                .environment(catModel)
+                .environment(keyModel)
+                .environment(plaidModel)
+                .environment(dashboardModel)
+                .environment(calProps)
+                .environment(dataChangeTriggers)
+                .environment(webSocketManager)
+                .environment(store)
+                .environment(budgetModel)
+                .environment(tagModel)
+        }
+        .auxilaryWindow(openIn: .center)
+        .defaultWindowPlacement { content, context in
+            let displayBounds = context.defaultDisplay.visibleRect
+            let fittingSize = content.sizeThatFits(.unspecified)
+            let size = CGSize(width: 800, height: fittingSize.height)
+            let position = CGPoint(
+                x: displayBounds.midX - (size.width / 2),
+                y: displayBounds.maxY - size.height - 140)
+            return WindowPlacement(position, size: size)
+        }
+        //.defaultSize(width: 500, height: 300)
+
+    }
+
 
 
     #endif

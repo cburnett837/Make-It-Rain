@@ -66,7 +66,7 @@ class LocationManager: NSObject, CLLocationManagerDelegate  {
     
     func requestLocation() {
         if lastLocationCheckDate == nil || lastLocationCheckDate ?? Date() < Date().addingTimeInterval(-3600) {
-            print("GETTING LOCATION")
+            //print("📍 GETTING LOCATION")
             isThinking = true
             //print("-- \(#function)")
             manager.requestLocation()
@@ -80,22 +80,22 @@ class LocationManager: NSObject, CLLocationManagerDelegate  {
         //print("-- \(#function)")
         switch manager.authorizationStatus {
         case .notDetermined:
-            print("Location authorization notDetermined")
+            print("📍 Location authorization notDetermined")
             authIsAllowed = false
             manager.requestWhenInUseAuthorization()
             
         case .restricted, .denied:
-            print("Location authorization restricted, denied")
+            print("📍 Location authorization restricted, denied")
             authIsAllowed = false
             
         case .authorizedAlways:
-            print("Location authorization authorizedAlways")
+            print("📍 Location authorization authorizedAlways")
             authIsAllowed = true
             requestLocation()
             //fetchCoreLocations()
             
         case .authorizedWhenInUse:
-            print("Location authorization authorizedWhenInUse")
+            print("📍 Location authorization authorizedWhenInUse")
             authIsAllowed = true
             requestLocation()
             //fetchCoreLocations()

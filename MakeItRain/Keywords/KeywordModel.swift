@@ -193,7 +193,7 @@ class KeywordModel {
 //        /// Do networking.
 //        let model = RequestModel(requestType: "fetch_keywords", model: AppState.shared.user)
 //        typealias ResultResponse = Result<Array<CBKeyword>?, AppError>
-//        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+//        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
 //        
 //        switch await result {
 //        case .success(let model):
@@ -217,7 +217,7 @@ class KeywordModel {
 //            }                        
 //            
 //            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-//            print("⏰It took \(currentElapsed) seconds to fetch the keywords")
+//            print("⏰ It took \(currentElapsed) seconds to fetch the keywords")
 //            
 //        case .failure (let error):
 //            switch error {

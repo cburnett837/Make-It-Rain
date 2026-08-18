@@ -26,6 +26,7 @@ class FuncModel {
     var dashboardModel: DashboardModel
     var budgetModel: BudgetModel
     var tagModel: TagModel
+    var calProps: CalendarProps
     
     //var longPollTask: Task<Void, Error>?
     var refreshTask: Task<Void, Error>?
@@ -44,7 +45,8 @@ class FuncModel {
         webSocketManager: WebSocketManager,
         dashboardModel: DashboardModel,
         budgetModel: BudgetModel,
-        tagModel: TagModel
+        tagModel: TagModel,
+        calProps: CalendarProps
     ) {
         self.store = store
         self.calModel = calModel
@@ -57,6 +59,7 @@ class FuncModel {
         self.dashboardModel = dashboardModel
         self.budgetModel = budgetModel
         self.tagModel = tagModel
+        self.calProps = calProps
     }
     
 //    /// This is only for biometrics.
@@ -109,7 +112,7 @@ class FuncModel {
         let submit = CheckIfShouldDownloadModel(lastNetworkTime: AppState.shared.lastNetworkTime ?? Date())
         let model = RequestModel(requestType: "check_for_changes", model: submit)
         typealias ResultResponse = Result<CheckIfShouldDownloadModel?, AppError>
-        async let result: ResultResponse = await NetworkManager(timeout: 10).singleRequest(requestModel: model, retainTime: false)
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model, retainTime: false, timeout: 10)
         
         switch await result {
         case .success(let model):
@@ -359,7 +362,7 @@ class FuncModel {
 //        }
 //        
 //        let plaidElapsed = CFAbsoluteTimeGetCurrent() - plaidStart
-//        print("⏰It took \(plaidElapsed) seconds to fetch the plaid data")
+//        print("⏰ It took \(plaidElapsed) seconds to fetch the plaid data")
 //    }
     
     
@@ -383,7 +386,7 @@ class FuncModel {
         )
         
         let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-        print("⏰It took \(currentElapsed) seconds to fetch the first month")        
+        print("⏰ It took \(currentElapsed) seconds to fetch the first month")        
         /// During initial download, this willl flip from the splash screen to `RootView`.
         /// `RootView` task will open the calendar sheet.
         AppState.shared.shouldShowSplash = false
@@ -423,7 +426,7 @@ class FuncModel {
 //        }
 //        
 //        let adjacentElapsed = CFAbsoluteTimeGetCurrent() - adjacentStart
-//        print("⏰It took \(adjacentElapsed) seconds to fetch the Adjacent months")
+//        print("⏰ It took \(adjacentElapsed) seconds to fetch the Adjacent months")
 //    }
     
     
@@ -459,7 +462,7 @@ class FuncModel {
         }
         
         let everytingElseElapsed = CFAbsoluteTimeGetCurrent() - everythingElseStart
-        print("⏰It took \(everytingElseElapsed) seconds to fetch all other months")
+        print("⏰ It took \(everytingElseElapsed) seconds to fetch all other months")
     }
     
     
@@ -488,7 +491,7 @@ class FuncModel {
         }
         
         let everytingElseElapsed = CFAbsoluteTimeGetCurrent() - everythingElseStart
-        print("⏰It took \(everytingElseElapsed) seconds to fetch all logos, accessorials, and receipts.")
+        print("⏰ It took \(everytingElseElapsed) seconds to fetch all logos, accessorials, and receipts.")
     }
     
         
@@ -547,7 +550,7 @@ class FuncModel {
             //group.addTask { await self.calModel.fetchReceiptsFromServer(funcModel: self) }
         }
         //let everytingElseElapsed = CFAbsoluteTimeGetCurrent() - everythingElseStart
-        //print("⏰It took \(everytingElseElapsed) seconds to fetch all other months, logos, receipts, and accessorials.")
+        //print("⏰ It took \(everytingElseElapsed) seconds to fetch all other months, logos, receipts, and accessorials.")
     }
     
     
@@ -588,6 +591,7 @@ class FuncModel {
                 await self.repModel.handleIncoming(reps: model.repeatingTransactions, incomingDataType: .viaStandardRefresh)
                 await self.tagModel.handleIncoming(tags: model.tags, incomingDataType: .viaStandardRefresh)
                 await self.calModel.handleIncoming(titles: model.suggestedTitles, incomingDataType: .viaStandardRefresh)
+                await self.calModel.handleIncoming(locations: model.suggestedLocations, incomingDataType: .viaStandardRefresh)
                 //await self.budgetModel.handleIncoming(appSuiteBudgets: model.appSuiteBudgets, incomingDataType: .viaStandardRefresh)
                 await self.budgetModel.handleIncoming(budgets: model.budgets, incomingDataType: .viaStandardRefresh)
                 await self.budgetModel.handleIncoming(globalBudget: model.globalBudget, incomingDataType: .viaStandardRefresh)
@@ -595,7 +599,7 @@ class FuncModel {
                 //await Countries.handleIncoming(currencies: model.countryCurrencies, incomingDataType: .viaStandardRefresh)
             }
             
-            print("⏰It took \(CFAbsoluteTimeGetCurrent() - start) seconds to fetch the accessorials")
+            print("⏰ It took \(CFAbsoluteTimeGetCurrent() - start) seconds to fetch the accessorials")
 
         case .failure(let error):
             switch error {
@@ -797,7 +801,7 @@ class FuncModel {
     
 
     @MainActor
-    func getPlaidBalancePrettyString(_ meth: CBPaymentMethod) -> String? {
+    func getPlaidBalancePrettyString(_ meth: CBPaymentMethod, withTime: Bool = true) -> String? {
         if calModel.sMonth.isNow {
             var result: String? {
                 if meth.isUnified {
@@ -816,15 +820,25 @@ class FuncModel {
                     } else {
                         return "\(self.getPlaidCreditSums().currencyWithDecimals()) (\(mostRecent))"
                     }
-                }
-                else if meth.accountType == .cash {
+                } else if meth.accountType == .cash {
                     return nil
                     //let bal = calModel.calculateChecking(for: calModel.sMonth, using: meth, and: .giveMeEodAsOfToday)
                     //let balStr = bal.currencyWithDecimals()
                     //return "\(balStr) (Manually)"
                     
+                } else if let balance = self.getPlaidBalance(matching: meth), let curCode = meth.country?.currencyCode {
+                    if withTime {
+                        return "\(balance.amount.currencyWithDecimals(currencyCode: curCode)) (\(Date().timeSince(balance.enteredDate)))"
+                    } else {
+                        return "\(balance.amount.currencyWithDecimals(currencyCode: curCode))"
+                    }
+                                        
                 } else if let balance = self.getPlaidBalance(matching: meth) {
-                    return "\(balance.amount.currencyWithDecimals(currencyCode: meth.country?.currencyCode ?? "USD")) (\(Date().timeSince(balance.enteredDate)))"
+                    if withTime {
+                        return "\(balance.amount.currencyWithDecimals()) (\(Date().timeSince(balance.enteredDate)))"
+                    } else {
+                        return "\(balance.amount.currencyWithDecimals())"
+                    }
                     
                 }
 //                else if let balance = plaidModel.balances.filter({ $0.payMethodID == meth.id }).first {
@@ -874,14 +888,14 @@ class FuncModel {
         let submitModel = LogoMaybeShouldUpdateModel(logos: persistentLogos)
         let model = RequestModel(requestType: "fetch_logos", model: submitModel)
         typealias ResultResponse = Result<[CBLogo]?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
 
         switch await result {
         case .success(let response):
             LogManager.networkingSuccessful()
             
             guard let logos = response, !logos.isEmpty else {
-                print("⏰It took \(CFAbsoluteTimeGetCurrent() - start) seconds to fetch logos")
+                print("⏰ It took \(CFAbsoluteTimeGetCurrent() - start) seconds to fetch logos")
                 return
             }
             
@@ -994,7 +1008,7 @@ class FuncModel {
 //                }
 //            }
 
-            print("⏰It took \(CFAbsoluteTimeGetCurrent() - start) seconds to fetch logos")
+            print("⏰ It took \(CFAbsoluteTimeGetCurrent() - start) seconds to fetch logos")
 
         case .failure(let error):
             switch error {
@@ -1101,8 +1115,8 @@ class FuncModel {
         
         /// Starting Amounts
         calModel.months
-            .flatMap { $0.startingAmounts.filter { $0.payMethod.id == meth.id } }
-            .forEach { $0.payMethod.logo = logoData }
+            .flatMap { $0.startingAmounts.filter { $0.payMethod?.id == meth.id } }
+            .forEach { $0.payMethod?.logo = logoData }
     }
     
     
@@ -1292,7 +1306,7 @@ class FuncModel {
 //        let model = RequestModel(requestType: "fetch_exchange_rates", model: user)
 //        
 //        typealias ResultResponse = Result<Array<CountryCurrencyDecodable>?, AppError>
-//        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+//        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
 //                    
 //        switch await result {
 //        case .success(let model):
@@ -1317,7 +1331,7 @@ class FuncModel {
 //        let model = RequestModel(requestType: "fetch_app_suite_budgets", model: reqModel)
 //        
 //        typealias ResultResponse = Result<Array<CBBudgetItem>?, AppError>
-//        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+//        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
 //                    
 //        switch await result {
 //        case .success(let model):
@@ -1422,6 +1436,77 @@ class FuncModel {
             }
             
             return nil
+        }
+    }
+    
+    
+    @MainActor
+    func itemizeReceipt(file: CBFile) {
+        Task {
+            if let data = await self.downloadFile(file: file),
+               let uiImage = UIImage(data: data),
+               let data = uiImage.jpegData(compressionQuality: 0) {
+                let base = data.base64EncodedString()
+                
+                let manager = IntelligenceManager()
+                
+                typealias ResultResponse = Result<ReceiptResponse?, AppError>
+                async let result: ResultResponse = await manager.request(base64Image: base)
+                //await print(result)
+                
+                switch await result {
+                case .success(let receipt):
+                    if let receipt {
+                        guard receipt.isReceipt else {
+                            AppState.shared.showToast(title: "That photo was not a receipt.", subtitle: "Skipping itemization.")
+                            print("Photo was not a receipt")
+                            file.isItemizing = false
+                            return
+                        }
+                        
+                        let lineItems = receipt.items
+                            .map { "\($0.itemName) - \($0.cost)" }
+                            .joined(separator: "\n")
+
+//                        let result = """
+//                        \(lineItems)
+//
+//                        (Line items extracted from receipt via OpenAI)
+//                        """
+
+                        //print(lineItems)
+                        
+                        
+                        if let trans = calModel.getTransaction(by: file.relatedID) {
+                            if trans.notes == "" {
+                                trans.notes = AttributedString(lineItems)
+                            } else {
+                                trans.notes += AttributedString("\n\n\(lineItems)")
+                            }
+                            
+                            if calProps.transEditID == nil {
+                                await calModel.saveTransaction(id: trans.id)
+                            }
+                        } else {
+                            print("Could not find trans.")
+                        }
+                    }
+                    
+                    
+                    
+                case .failure(let error):
+                    switch error {
+                    case .taskCancelled:
+                        print("\(#function) Task Cancelled")
+                    default:
+                        LogManager.error(error.localizedDescription)
+                        AppState.shared.showAlert("There was a problem trying to itemize the receipt.")
+                    }
+                }
+                
+                file.isItemizing = false
+                //props.itemizingFile = nil
+            }
         }
     }
     

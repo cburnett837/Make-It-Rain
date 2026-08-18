@@ -95,13 +95,13 @@ class AppDelegateMac: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func application(_ application: NSApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         let tokenParts = deviceToken.map { data in String(format: "%02.2hhx", data) }
         let token = tokenParts.joined()
-        print("Device Token: \(token)")
+        print("🔔 Device Token: \(token)")
         NotificationManager.shared.sendNotificationTokenToServer(token: token)
     }
     
     
     func application(_ application: NSApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
-        print("Failed to register: \(error)")
+        print("🔔 Failed to register: \(error)")
     }
     
     func windowWillEnterFullScreen(_ notification: Notification) {
@@ -267,13 +267,13 @@ class AppDelegatePhone: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         let tokenParts = deviceToken.map { data in String(format: "%02.2hhx", data) }
         let token = tokenParts.joined()
-        print("Device Token: \(token)")
+        print("🔔 Device Token: \(token)")
         NotificationManager.shared.sendNotificationTokenToServer(token: token)
     }
     
     
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
-        print("Failed to register: \(error)")
+        print("🔔 Failed to register: \(error)")
     }
     
     func application(_ application: UIApplication, shouldAllowExternalSceneSessionCreationForConnectionOptions connectionOptions: UIScene.ConnectionOptions) -> Bool {

@@ -311,7 +311,7 @@ struct CalendarToolbarLeading: View {
 //                }
                 showStartingAmountsSheet = true
             } label: {
-                Text(calModel.sMonth.startingAmounts.filter { $0.payMethod.id == sMeth?.id }.first?.amount.currencyWithDecimals() ?? "0.0")
+                Text(calModel.sMonth.startingAmounts.filter { $0.payMethod?.id == sMeth?.id }.first?.amount.currencyWithDecimals() ?? "0.0")
                     .contentShape(Rectangle())
                     .frame(width: 100)
                     .padding(6)
@@ -330,7 +330,7 @@ struct CalendarToolbarLeading: View {
                     
                     Task {
                         await withTaskGroup(of: Void.self) { group in
-                            let starts = calModel.sMonth.startingAmounts.filter { !$0.payMethod.isUnified }
+                            let starts = calModel.sMonth.startingAmounts.filter { $0.payMethod?.isUnified == false }
                             for start in starts {
                                 
                                 if start.hasChanges() {
@@ -368,7 +368,7 @@ struct CalendarToolbarLeading: View {
         CalcHelper.calculateTotal(for: calModel.sMonth, store: store)
         //let _ = calModel.calculateTotal(for: calModel.sMonth)
         
-        if let starting = calModel.sMonth.startingAmounts.filter({ $0.payMethod.id == calModel.sPayMethod?.id }).first {
+        if let starting = calModel.sMonth.startingAmounts.filter({ $0.payMethod?.id == calModel.sPayMethod?.id }).first {
             if !calModel.isUnifiedPayMethod {
                 Task { await calModel.submit(starting) }
             }
@@ -500,15 +500,16 @@ struct CalendarToolbarTrailing: View {
                 
                 
                 Button {
-                    openWindow(id: "analysisSheet")
+                    //openWindow(id: "analysisSheet")
                     //showAnalysisSheet = true
+                    openWindow(id: "dashboard")
                 } label: {
-                    Image(systemName: "brain")
+                    Image(systemName: "chart.pie")
                 }
                 .toolbarBorder()
-                .help("Open the insights sheet")
+                .help("Open the dashboard")
                 
-                displayModePicker
+                //displayModePicker
                 
                 //Divider()
                 

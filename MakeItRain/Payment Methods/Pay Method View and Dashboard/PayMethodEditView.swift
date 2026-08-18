@@ -126,8 +126,10 @@ struct PayMethodEditView: View {
     @State private var showCcBrandPickerPage = false
         
     var isValidToSave: Bool {
-        (payMethod.action == .add && !payMethod.title.isEmpty)
-        || (payMethod.hasChanges() && !payMethod.title.isEmpty)
+        (
+            (payMethod.action == .add && !payMethod.title.isEmpty)
+            || (payMethod.hasChanges() && !payMethod.title.isEmpty)
+        ) && payMethod.country != nil
     }
     
     
@@ -613,15 +615,20 @@ struct PayMethodEditView: View {
                 Label {
                     Text("Country")
                 } icon: {
-                    Image(systemName: "globe.americas")
-                        .foregroundStyle(.gray)
+                    if let country = payMethod.country {
+                        FlagCircle(code: country.code)
+                    } else {
+                        Image(systemName: "globe.americas")
+                            .foregroundStyle(.gray)
+                    }
                 }
                 
                 Spacer()
                 
                 if let country = payMethod.country {
-                    Text("\(country.name) (\(country.currencyCode)) \(country.flagEmoji)")
+                    Text("\(country.name) (\(country.currencyCode))")
                         .foregroundStyle(.secondary)
+                    
                 } else {
                     Text("Select Country")
                         .foregroundStyle(.secondary)
@@ -630,7 +637,7 @@ struct PayMethodEditView: View {
             .schemeBasedForegroundStyle()
         }
         .sheet(isPresented: $showCountrySheet) {
-            CountryPicker(country: $payMethod.country)
+            CountryPicker(country: $payMethod.country, showNoneOption: false)
         }
     }
     
@@ -1328,6 +1335,7 @@ struct PayMethodEditView: View {
         #else
         if payMethod.action == .add {
             focusedField = 0
+            payMethod.country = AppState.shared.country
         }
         #endif
         

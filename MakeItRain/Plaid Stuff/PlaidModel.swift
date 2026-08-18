@@ -118,7 +118,7 @@ class PlaidModel {
         let model = RequestModel(requestType: "fetch_plaid_banks", model: AppState.shared.user!)
         
         typealias ResultResponse = Result<Array<CBPlaidBank>?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
         switch await result {
         case .success(let model):
@@ -208,7 +208,7 @@ class PlaidModel {
 //        let model = RequestModel(requestType: "fetch_plaid_accounts_for_bank", model: bank)
 //        
 //        typealias ResultResponse = Result<Array<CBPlaidAccount>?, AppError>
-//        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+//        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
 //                    
 //        switch await result {
 //        case .success(let model):
@@ -560,7 +560,7 @@ class PlaidModel {
 //            }
 //            
 //            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-//            print("⏰It took \(currentElapsed) seconds to fetch the plaid transactions")
+//            print("⏰ It took \(currentElapsed) seconds to fetch the plaid transactions")
 //            
 //        case .failure (let error):
 //            switch error {
@@ -743,7 +743,7 @@ class PlaidModel {
 //        //let month = months.filter { $0.num == monthNum }.first!
 //        let model = RequestModel(requestType: "fetch_plaid_balances", model: AppState.shared.user!)
 //        typealias ResultResponse = Result<Array<CBPlaidBalance>?, AppError>
-//        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+//        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
 //        
 //        switch await result {
 //        case .success(let model):
@@ -752,7 +752,7 @@ class PlaidModel {
 //            }
 //            
 //            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-//            print("⏰It took \(currentElapsed) seconds to fetch the plaid balances")
+//            print("⏰ It took \(currentElapsed) seconds to fetch the plaid balances")
 //            
 //        case .failure (let error):
 //            switch error {
@@ -783,7 +783,7 @@ class PlaidModel {
         //let month = months.filter { $0.num == monthNum }.first!
         let model = RequestModel(requestType: "plaid_force_sync_balances_for_bank", model: plaidModel)
         typealias ResultResponse = Result<Array<CBPlaidBalance>?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
         
         switch await result {
         case .success(let model):
@@ -801,7 +801,7 @@ class PlaidModel {
             }
             
             let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-            print("⏰It took \(currentElapsed) seconds to force sync plaid balances for bankID \(bank.id).")
+            print("⏰ It took \(currentElapsed) seconds to force sync plaid balances for bankID \(bank.id).")
             
         case .failure (let error):
             switch error {
@@ -837,7 +837,7 @@ class PlaidModel {
         switch await result {
         case .success:
             let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-            print("⏰It took \(currentElapsed) seconds to force sync plaid transactions for bankID \(bank.id).")
+            print("⏰ It took \(currentElapsed) seconds to force sync plaid transactions for bankID \(bank.id).")
             
             AppState.shared.showAlert(title: "\(bank.title) Sync Initiated", subtitle: "You will be notified when new transactions are available")
             
@@ -875,7 +875,7 @@ class PlaidModel {
         switch await result {
         case .success:
             let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-            print("⏰It took \(currentElapsed) seconds to fetch all available plaid transaction history for bankID \(bank.id).")
+            print("⏰ It took \(currentElapsed) seconds to fetch all available plaid transaction history for bankID \(bank.id).")
             
         case .failure (let error):
             switch error {

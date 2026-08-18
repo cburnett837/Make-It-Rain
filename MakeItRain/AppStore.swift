@@ -17,6 +17,7 @@ final class AppStore {
     var receiptTransactions: [CBTransaction] = []
     var tagBudgetTransactions: [CBTransaction] = []
     var suggestedTitles: [CBSuggestedTitle] = []
+    var suggestedLocations: [CBSuggestedLocation] = []
     var months: [CBMonth] = [
         CBMonth(num: 0),
         CBMonth(num: 1),

@@ -331,39 +331,11 @@ struct CalendarToolbar: ToolbarContent {
             return ""
         }
         
-        Menu {
-            Section("Accounts") {
-                Button(calModel.sPayMethod?.title ?? "Select Account") {
-                    calProps.showPayMethodSheet = true
-                }
-            }
-            
-            Section("Optional Filter By Categories") {
-                Button(calModel.sCategory?.title ?? "Select Categories") {
-                    calProps.showCategorySheet = true
-                    //TouchAndHoldMonthToFilterCategoriesTip.didSelectCategoryFilter = true
-                    //touchAndHoldMonthToFilterCategoriesTip.invalidate(reason: .actionPerformed)
-                }
-                
-                if !calModel.sCategories.isEmpty {
-                    Button("Reset", role: .destructive) {
-                        withAnimation {
-                            calModel.sCategories.removeAll()
-                            calModel.sCategoryGroups.removeAll()
-                        }
-                    }
-                }
-            }
+        Button {
+            calProps.showPayMethodSheet = true
         } label: {
-            
             if let meth = calModel.sPayMethod {
                 PayMethodLogoMashup(meth: meth)
-//                BusinessLogo(config: .init(
-//                    parent: meth,
-//                    fallBackType: meth.isUnified ? .gradient : .color,
-//                    size: 32
-//                ))
-                .allowsHitTesting(false)
             } else {
                 Group {
                     if AppState.shared.isIphone {
@@ -377,28 +349,78 @@ struct CalendarToolbar: ToolbarContent {
                         }
                     }
                 }
-                .allowsHitTesting(false)
                 .schemeBasedForegroundStyle()
             }
-            
-//            Group {
-//                if AppState.shared.isIphone {
-//                    Image(systemName: "creditcard")
-//                } else {
-//                    if calModel.sMonth.isNow {
-//                        let finalText: String = "\(calModel.sPayMethod?.title ?? "Select Account")\(balanceText)"
-//                        Text(finalText)
-//                    } else {
-//                        Text("\(calModel.sPayMethod?.title ?? "Select Account")")
+        }
+        
+//        Menu {
+//            Section("Accounts") {
+//                Button(calModel.sPayMethod?.title ?? "Select Account") {
+//                    calProps.showPayMethodSheet = true
+//                }
+//            }
+//            
+//            Section("Optional Filter By Categories") {
+//                Button(calModel.sCategory?.title ?? "Select Categories") {
+//                    calProps.showCategorySheet = true
+//                    //TouchAndHoldMonthToFilterCategoriesTip.didSelectCategoryFilter = true
+//                    //touchAndHoldMonthToFilterCategoriesTip.invalidate(reason: .actionPerformed)
+//                }
+//                
+//                if !calModel.sCategories.isEmpty {
+//                    Button("Reset", role: .destructive) {
+//                        withAnimation {
+//                            calModel.sCategories.removeAll()
+//                            calModel.sCategoryGroups.removeAll()
+//                        }
 //                    }
 //                }
 //            }
-//            .allowsHitTesting(false)
-//            .schemeBasedForegroundStyle()
-            
-        } primaryAction: {
-            calProps.showPayMethodSheet = true
-        }
+//        } label: {
+//            
+//            if let meth = calModel.sPayMethod {
+//                PayMethodLogoMashup(meth: meth)
+////                BusinessLogo(config: .init(
+////                    parent: meth,
+////                    fallBackType: meth.isUnified ? .gradient : .color,
+////                    size: 32
+////                ))
+//                .allowsHitTesting(false)
+//            } else {
+//                Group {
+//                    if AppState.shared.isIphone {
+//                        Image(systemName: "creditcard")
+//                    } else {
+//                        if calModel.sMonth.isNow {
+//                            let finalText: String = "\(calModel.sPayMethod?.title ?? "Select Account")\(balanceText)"
+//                            Text(finalText)
+//                        } else {
+//                            Text("\(calModel.sPayMethod?.title ?? "Select Account")")
+//                        }
+//                    }
+//                }
+//                .allowsHitTesting(false)
+//                .schemeBasedForegroundStyle()
+//            }
+//            
+////            Group {
+////                if AppState.shared.isIphone {
+////                    Image(systemName: "creditcard")
+////                } else {
+////                    if calModel.sMonth.isNow {
+////                        let finalText: String = "\(calModel.sPayMethod?.title ?? "Select Account")\(balanceText)"
+////                        Text(finalText)
+////                    } else {
+////                        Text("\(calModel.sPayMethod?.title ?? "Select Account")")
+////                    }
+////                }
+////            }
+////            .allowsHitTesting(false)
+////            .schemeBasedForegroundStyle()
+//
+//        } primaryAction: {
+//            calProps.showPayMethodSheet = true
+//        }
         .sheet(isPresented: $calProps.showPayMethodSheet) {
             //TouchAndHoldMonthToFilterCategoriesTip.didTouchMonthName.sendDonation()
             calModel.startingAmountSheetDismissed()

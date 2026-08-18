@@ -165,7 +165,7 @@ class FileModel {
        
     
     
-    func uploadFile(with data: Data, fileType: FileType, delegate: FileUploadCompletedDelegate) -> AsyncStream<FileUploadProgress> {
+    private func uploadFile(with data: Data, fileType: FileType, delegate: FileUploadCompletedDelegate) -> AsyncStream<FileUploadProgress> {
         AsyncStream { continuation in
             
             print("-- \(#function)")

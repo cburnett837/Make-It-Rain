@@ -64,7 +64,10 @@ struct PdfInvoiceViewForSingleTransaction: View {
                 VStack(alignment: .trailing) {
                     Text("\(invoiceTypeLingo) NO:")
                     Text("\(invoiceTypeLingo) DATE:")
-                    Text("DUE DATE:")
+                    if invoiceType == .invoice {
+                        Text("DUE DATE:")
+                    }
+                    
                 }
                 .bold()
                 .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.top] })
@@ -72,7 +75,9 @@ struct PdfInvoiceViewForSingleTransaction: View {
                 VStack(alignment: .trailing) {
                     Text("\(trans.serverID)")
                     Text("\(date.string(to: .monthDayShortYear))")
-                    Text("N/A")
+                    if invoiceType == .invoice {
+                        Text("N/A")
+                    }
                 }
                 .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.top] })
             }

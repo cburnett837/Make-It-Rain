@@ -154,7 +154,8 @@ struct StandardFileSection: View {
     }
     
     
-    @ViewBuilder func photoGrid(_ files: Array<CBFile>) -> some View {
+    @ViewBuilder
+    func photoGrid(_ files: Array<CBFile>) -> some View {
         LazyVGrid(columns: threeColumnGrid, spacing: 5) {
             ForEach(files) { file in
                 ConditionalFileView(
@@ -180,7 +181,8 @@ struct StandardFileSection: View {
     }
     
     
-    @ViewBuilder func photoHstack(_ files: Array<CBFile>) -> some View {
+    @ViewBuilder
+    func photoHstack(_ files: Array<CBFile>) -> some View {
         HStack(alignment: .top, spacing: 4) {
             ForEach(files) { file in
                 ConditionalFileView(
@@ -402,12 +404,17 @@ struct StandardFileSection: View {
     
     
     struct FileImage: View {
+        @Environment(FuncModel.self) var funcModel
         @Environment(FileViewProps.self) var props
+        
         var file: CBFile
         var displayStyle: FileSectionDisplayStyle
         
-        var isDeletingFile: Bool { props.isDeletingFile && file.id == props.deleteFile?.id }
-        var dimImage: Bool { isDeletingFile || props.hoverFile == file || file.isPlaceholder }
+//        var isDeletingFile: Bool { props.isDeletingFile && file.id == props.deleteFile?.id }
+//        var dimImage: Bool { (props.isItemizing && props.itemizingFile == file) || isDeletingFile || props.hoverFile == file || file.isPlaceholder }
+        
+        var isDeletingFile: Bool { file.isDeleting }
+        var dimImage: Bool { file.isItemizing || isDeletingFile || file.isHovered || file.isPlaceholder }
         
         var body: some View {
             @Bindable var props = props
@@ -419,11 +426,21 @@ struct StandardFileSection: View {
                         .frame(width: fileWidth, height: fileHeight)
                         .aspectRatio(contentMode: .fill)
                         .clipShape(.rect(cornerRadius: 14))
+                        .onAppear {
+                            if file.isItemizing {
+                                funcModel.itemizeReceipt(file: file)
+                            }
+                        }
                 case .grid:
                     image
                         .resizable()
                         .aspectRatio(1, contentMode: .fit)
                         .clipShape(.rect(cornerRadius: 14))
+                        .onAppear {
+                            if file.isItemizing {
+                                funcModel.itemizeReceipt(file: file)
+                            }
+                        }
                 }
             } placeholder: {
                 LoadingPlaceholder(text: "Downloading…", displayStyle: displayStyle)
@@ -440,7 +457,7 @@ struct StandardFileSection: View {
 //                        .if(displayStyle == .standard) {
 //                            $0.frame(width: fileWidth, height: fileHeight).aspectRatio(contentMode: .fill)
 //                        }
-//                                                
+//
 //                        .clipShape(.rect(cornerRadius: 12))
 //                        //.frame(maxWidth: 300, maxHeight: 300)
 //                },
@@ -449,7 +466,7 @@ struct StandardFileSection: View {
 //                }
 //            )
             .opacity(dimImage ? 0.2 : 1)
-            .overlay(ProgressView().tint(.none).opacity(isDeletingFile ? 1 : 0))
+            .overlay(ProgressView().tint(.none).opacity(dimImage ? 1 : 0))
         }
     }
     

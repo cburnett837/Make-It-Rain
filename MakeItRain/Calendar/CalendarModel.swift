@@ -45,7 +45,7 @@ class CalendarModel {
 //        get { store.categoryFilterWasSetByCategoryPage }
 //        set { store.categoryFilterWasSetByCategoryPage = newValue }
 //    }
-//    
+//
     
     var transactionViewHasBeenWarmedUp = false
     var isFirstCalendarLoad = true
@@ -178,6 +178,11 @@ class CalendarModel {
         set { store.suggestedTitles = newValue }
     }
     
+    var suggestedLocations: [CBSuggestedLocation] {
+        get { store.suggestedLocations }
+        set { store.suggestedLocations = newValue }
+    }
+    
 //    var tempTransactions: [CBTransaction] = []
 //    var searchedTransactions: [CBTransaction] = []
 //    var dashboardTransactions: [CBTransaction] = []
@@ -205,9 +210,16 @@ class CalendarModel {
     var isUnifiedPayMethod: Bool {
         self.sPayMethod?.accountType == .unifiedChecking || self.sPayMethod?.accountType == .unifiedCredit
     }
-   
     
-    
+    var transCountForCurrentPayMethod: Int {
+        if let meth = sPayMethod {
+            sMonth.justTransactions.filter({ $0.payMethod?.id == meth.id }).count
+        } else {
+            sMonth.justTransactions.count
+        }
+        
+    }
+       
     
     // MARK: - Photo Variables
     var isUploadingSmartTransactionFile: Bool = false
@@ -336,7 +348,7 @@ class CalendarModel {
 //                month.changeLoadingSpinners(toShowing: false, includeCalendar: true)
 //                
 //                let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-//                print("⏰It took \(currentElapsed) seconds to fetch \(month.actualNum) \(month.year)")
+//                print("⏰ It took \(currentElapsed) seconds to fetch \(month.actualNum) \(month.year)")
 //            //}
 //            
 //        case .failure (let error):
@@ -591,22 +603,28 @@ class CalendarModel {
             
             var ogObject: CBTransaction?
             
+            print("Incoming trans id \(id)")
+            
             /// Handle smart transactions.
             if let isSmartTransaction = incomingTrans.isSmartTransaction {
+                print("\(id) - is smart")
                 if isSmartTransaction && !(incomingTrans.smartTransactionIsAcknowledged ?? true) {
+                    print("\(id) - is not acknowledged")
                     if incomingTrans.smartTransactionIssue != nil {
+                        print("\(id) - has an issue")
                         if tempTransactions.filter({ $0.id == incomingTrans.id }).isEmpty {
                             tempTransactions.append(incomingTrans)
                         }
                         continue
+                    } else {
+                        if incomingTrans.active {
+                            AppState.shared.showToast(title: "Smart Transaction Added", subtitle: incomingTrans.title, body: "\(incomingTrans.prettyDate ?? "N/A")", symbol: "checkmark", symbolColor: .green)
+                        }
                     }
-//                    else {
-//                        if incomingTrans.active {
-//                            AppState.shared.showToast(title: "Smart Transaction Added", subtitle: incomingTrans.title, body: "\(incomingTrans.prettyDate ?? "N/A")", symbol: "checkmark", symbolColor: .green)
-//                        }
-//                    }
                 } else {
+                    print("\(id) - is acknowledged")
                     if isSmartTransaction {
+                        print("\(id) - is smart 2")
                         /// Is acknowledged (do this to remove from other devices via long poll)
                         tempTransactions.removeAll { $0.id == incomingTrans.id }
                                                         
@@ -832,9 +850,9 @@ class CalendarModel {
         
         for startingAmount in model.startingAmounts {
             /// When navigation changes, a new `CBStartingAmount` that corresponds to `self.sPayMethod` gets added to the newly selected month. (for when we navigate to a month that does not yet have one on the server.)
-            await startingAmount.payMethod.loadLogoFromCoreDataIfNeeded()
-            if month.startingAmounts.contains(where: { $0.payMethod.id == startingAmount.payMethod.id }) {
-                let index = month.startingAmounts.firstIndex(where: { $0.payMethod.id == startingAmount.payMethod.id })!
+            await startingAmount.payMethod?.loadLogoFromCoreDataIfNeeded()
+            if month.startingAmounts.contains(where: { $0.payMethod?.id == startingAmount.payMethod?.id }) {
+                let index = month.startingAmounts.firstIndex(where: { $0.payMethod?.id == startingAmount.payMethod?.id })!
                 month.startingAmounts[index] = startingAmount
             } else {
                 month.startingAmounts.append(startingAmount)
@@ -1121,91 +1139,10 @@ class CalendarModel {
         if !transactionIsValid(trans: trans/*, day: day*/) {
             print("❌ Trans is not valid to save")
             trans.status = nil
-            
-            if trans.requiresConversion {
-                
-                var code: String {
-                    let setCode = AppState.shared.country.currencyCode
-                    let methCode = trans.payMethod?.country?.currencyCode
-                    let cuntCode = trans.country?.currencyCode
-                    return "USD"
-                    if methCode != cuntCode, let methCode {
-                        return methCode
-                    } else if methCode != setCode, let methCode {
-                        return methCode
-                    } else if let cuntCode {
-                        return "USD"
-                        //return cuntCode
-                    } else {
-                        return "USD"
-                    }
-                }
-                
-                /// Since the app will convert the transAmount back to it's original form for editing, convert it back to the propery display format.
-                if let cunt = trans.country,
-                   let date = trans.date,
-                   let fromRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: cunt.currencyCode, months: months),
-                   let toRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: code, months: months),
-                   let converted = CurrencyHelpers.convert(amount: trans.amount, fromRate: fromRate, toRate: toRate) {
-                    trans.amountString = converted.currencyWithDecimals(currencyCode: AppState.shared.country.currencyCode)
-                }
-            }
-            
             return false
         }
         
-        if trans.requiresConversion {
-            trans.requiresConversion = false
-            if trans.country == AppState.shared.country {
-                if let cunt = trans.country,
-                   let date = trans.date,
-                   let fromRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: cunt.currencyCode, months: months),
-                   let toRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: AppState.shared.country.currencyCode, months: months),
-                   let usdRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: "USD", months: months),
-                   let usdAmount = CurrencyHelpers.convert(amount: trans.amount, fromRate: fromRate, toRate: usdRate),
-                   let converted = CurrencyHelpers.convert(amount: trans.amount, fromRate: fromRate, toRate: toRate) {
-                    trans.amountUsd = usdAmount
-                    trans.exchangeRate = fromRate
-                    trans.originalUnconvertedAmount = trans.amount
-//                    if trans.originalUnconvertedAmount == nil {
-//                        trans.originalUnconvertedAmount = trans.amount
-//                    }
-                    
-                    trans.amountString = converted.currencyWithDecimals(currencyCode: AppState.shared.country.currencyCode)
-                    
-                } else {
-                    trans.amountUsd = trans.amount
-                    trans.originalUnconvertedAmount = trans.amount
-                }
-                
-            } else if let cunt = trans.country,
-                      let date = trans.date,
-                      let fromRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: cunt.currencyCode, months: months),
-                      let toRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: AppState.shared.country.currencyCode, months: months),
-                      let usdRate = CurrencyHelpers.getExchangeRate(date: date, currencyCode: "USD", months: months),
-                      let usdAmount = CurrencyHelpers.convert(amount: trans.amount, fromRate: fromRate, toRate: usdRate),
-                      let converted = CurrencyHelpers.convert(amount: trans.amount, fromRate: fromRate, toRate: toRate)
-            {
-                print("Setting here 🐱, amount: \(trans.amount), fromRate: \(fromRate), toRate: \(toRate), usdRate: \(usdRate), usdAmount: \(usdAmount), converted: \(converted)")
-                trans.amountUsd = usdAmount
-                trans.exchangeRate = fromRate
-                trans.originalUnconvertedAmount = trans.amount
-//                if trans.originalUnconvertedAmount == nil {
-//                    trans.originalUnconvertedAmount = trans.amount
-//                }
-                   
-                trans.amountString = converted.currencyWithDecimals(currencyCode: AppState.shared.country.currencyCode)
-            } else {
-                trans.amountUsd = trans.amount
-                trans.originalUnconvertedAmount = trans.amount
-            }
-        } else {
-            trans.amountUsd = trans.amount
-            trans.originalUnconvertedAmount = trans.amount
-            //trans.amountString = trans.amount.currencyWithDecimals(currencyCode: AppState.shared.country.currencyCode)
-        }
-        
-        
+        trans.amountString = trans.amount.currencyWithDecimals(currencyCode: AppState.shared.country.currencyCode)
 
         print("✅ Trans is valid to save")
             
@@ -1223,6 +1160,9 @@ class CalendarModel {
         if location != .searchResultList {
             if let index = searchedTransactions.firstIndex(where: { $0.id == id }) {
                 searchedTransactions[index].setFromAnotherInstance(transaction: trans)
+                
+            } else if trans.intendedServerAction == .add {
+                searchedTransactions.append(trans)
             }
         }
         
@@ -1235,6 +1175,9 @@ class CalendarModel {
         if location != .receiptsList {
             if let index = receiptTransactions.firstIndex(where: { $0.id == id }) {
                 receiptTransactions[index].setFromAnotherInstance(transaction: trans)
+                
+            } else if trans.intendedServerAction == .add && (trans.files?.count ?? 0) > 0 {
+                receiptTransactions.append(trans)
             }
         }
         
@@ -1320,23 +1263,15 @@ class CalendarModel {
                 /// Update the dollar amounts accordingly.
                 if trans.payMethod?.accountType != .credit && trans.payMethod?.accountType != .loan {
                     if trans2.payMethod?.accountType == .credit || trans2.payMethod?.accountType == .loan {
-                        trans2.amountUsd = trans.amount * 1
-                        trans2.originalUnconvertedAmount = trans.amount * 1
-                        trans2.amountString = (trans.amountUsd ?? 0 * 1).currencyWithDecimals()
+                        trans2.amountString = (trans.amount * 1).currencyWithDecimals()
                     } else {
-                        trans2.amountUsd = trans.amount * -1
-                        trans2.originalUnconvertedAmount = trans.amount * -1
-                        trans2.amountString = (trans.amountUsd ?? 0 * -1).currencyWithDecimals()
+                        trans2.amountString = (trans.amount * -1).currencyWithDecimals()
                     }
                     
                 } else if trans2.payMethod?.accountType == .credit || trans2.payMethod?.accountType == .loan {
-                    trans2.amountUsd = trans.amount * -1
-                    trans2.originalUnconvertedAmount = trans.amount * -1
-                    trans2.amountString = (trans.amountUsd ?? 0 * -1).currencyWithDecimals()
+                    trans2.amountString = (trans.amount * -1).currencyWithDecimals()
                 } else {
-                    trans2.amountUsd = trans.amount * 1
-                    trans2.originalUnconvertedAmount = trans.amount * 1
-                    trans2.amountString = (trans.amountUsd ?? 0 * 1).currencyWithDecimals()
+                    trans2.amountString = (trans.amount * 1).currencyWithDecimals()
                 }
                 
                 /// If we filter transactions by category or by payment method, and change it on the transaction, we need the line below to cause the transaction to disappear when closing it.
@@ -1470,7 +1405,7 @@ class CalendarModel {
         
         /// Do Networking.
         typealias ResultResponse = Result<ParentChildIdModel?, AppError>
-        async let result: ResultResponse = await NetworkManager(timeout: 10).singleRequest(requestModel: model)
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model, timeout: 10)
                     
         switch await result {
         case .success(let model):
@@ -1654,8 +1589,8 @@ class CalendarModel {
                 
         for each in trans {
             each.status = .inFlight
-            each.amountUsd = each.amount
-            each.originalUnconvertedAmount = each.amount
+            //each.amountUsd = each.amount
+            //each.originalUnconvertedAmount = each.amount
         }
                 
         LogManager.log()
@@ -1817,8 +1752,8 @@ class CalendarModel {
             each.updatedBy = AppState.shared.user!
             each.updatedDate = Date()
             
-            each.amountUsd = each.amount
-            each.originalUnconvertedAmount = each.amount
+            //each.amountUsd = each.amount
+            //each.originalUnconvertedAmount = each.amount
         }
         
         //let backgroundTaskId = AppState.shared.beginBackgroundTask()
@@ -1837,7 +1772,7 @@ class CalendarModel {
         let model = RequestModel(requestType: "alter_multiple_transactions", model: multiModel)
         
         typealias ResultResponse = Result<Array<ParentChildIdModel>?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
         switch await result {
         case .success(let model):
@@ -2026,7 +1961,7 @@ class CalendarModel {
 //        //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
 //        
 //        typealias ResultResponse = Result<Array<CBSuggestedTitle>?, AppError>
-//        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+//        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
 //                    
 //        switch await result {
 //        case .success(let model):
@@ -2053,6 +1988,11 @@ class CalendarModel {
     @MainActor
     func handleIncoming(titles: [CBSuggestedTitle], incomingDataType: IncomingDataType) {
         self.suggestedTitles = titles
+    }
+    
+    @MainActor
+    func handleIncoming(locations: [CBSuggestedLocation], incomingDataType: IncomingDataType) {
+        self.suggestedLocations = locations
     }
     
 //    @MainActor
@@ -2236,7 +2176,7 @@ class CalendarModel {
         
         let model = RequestModel(requestType: "fetch_receipts", model: fetchModel)
         typealias ResultResponse = Result<Array<CBTransaction>?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
         
         switch await result {
         case .success(let model):
@@ -2270,7 +2210,7 @@ class CalendarModel {
                 currentReceiptId = model.first?.id
             }
             
-            print("⏰It took \(CFAbsoluteTimeGetCurrent() - start) seconds to fetch the receipts.")
+            print("⏰ It took \(CFAbsoluteTimeGetCurrent() - start) seconds to fetch the receipts.")
                 
         case .failure (let error):
             switch error {
@@ -2321,7 +2261,8 @@ class CalendarModel {
         day: Int? = nil,
         meth: CBPaymentMethod? = nil,
         cats: Array<CBCategory>? = nil,
-        includeHiddenPaymentMethods: Bool = false
+        includeHiddenPaymentMethods: Bool = false,
+        includeExcluded: Bool = false
     ) -> Array<CBTransaction> {
         
         let theMonths: Array<CBMonth> = months ?? [self.sMonth]
@@ -2341,7 +2282,7 @@ class CalendarModel {
                 /// The reason being - in case we change a transaction category or payment method from what is currently being viewed. This will allow the transaction sheet to remain on screen until we close it, at which point the save function will clear the deepCopy.
                 && (includeHiddenPaymentMethods ? true : !$0.hasHiddenMethodInCurrentOrDeepCopy)
                 /// Only transactions that are not excluded from calculations.
-                && $0.factorInCalculations
+                && (includeExcluded ? true : $0.factorInCalculations)
                 
                 && ($0.payMethod?.accountHolderFilter() == true)
                 
@@ -2395,7 +2336,7 @@ class CalendarModel {
     @MainActor
     func submit(_ startingAmount: CBStartingAmount) async {
         print("-- \(#function)")
-        print("\(startingAmount.payMethod.title) -- \(startingAmount.amountString) -- \(startingAmount.month) -- \(startingAmount.year) -- \(startingAmount.action.serverKey)")
+        print("\(startingAmount.payMethod?.title) -- \(startingAmount.amountString) -- \(startingAmount.month) -- \(startingAmount.year) -- \(startingAmount.action.serverKey)")
         //LoadingManager.shared.startDelayedSpinner()
         
         /// Allow more time to save if the user enters the background.
@@ -2473,7 +2414,7 @@ class CalendarModel {
         
         Task {
             await withTaskGroup(of: Void.self) { group in
-                let starts = self.sMonth.startingAmounts.filter { !$0.payMethod.isUnified }
+                let starts = self.sMonth.startingAmounts.filter { $0.payMethod?.isUnified == false }
                 for start in starts {
                     if start.hasChanges() {
                         group.addTask {
@@ -2715,7 +2656,7 @@ class CalendarModel {
             for group in store.categoryGroups {
                 let budgetExists = !sMonth.budgetGroups.filter { $0.id == group.id }.isEmpty
                 if !budgetExists {
-                    let budget = CBBudgetItem()
+                    let budget = CBBudgetItem(type: .categoryGroup)
                     budget.monthId = sMonth.populatedId
                     //budget.month = sMonth.actualNum
                     //budget.year = sMonth.year
@@ -2738,7 +2679,7 @@ class CalendarModel {
                 /// For income categories, we hide the budgets from view through out the app.
                 /// But we still want to create one for the income categories because that allows us to access the budget overview page from the dashboard.
                 if !budgetExists, !catExistsInGroup {
-                    let budget = CBBudgetItem()
+                    let budget = CBBudgetItem(type: .category)
                     budget.monthId = sMonth.populatedId
                     //budget.month = sMonth.actualNum
                     //budget.year = sMonth.year
@@ -2854,7 +2795,7 @@ class CalendarModel {
             }
             
             if meth.startingAmount {
-                sMonth.startingAmounts.removeAll { $0.payMethod.id == meth.id }
+                sMonth.startingAmounts.removeAll { $0.payMethod?.id == meth.id }
             }
         }
                                 
@@ -2947,16 +2888,16 @@ extension CalendarModel: FileUploadCompletedDelegate {
     
     
     func addPlaceholderFile(recordID: String, uuid: String, parentType: XrefFileType, fileType: FileType) {
-        let picture = CBFile(relatedID: recordID, uuid: uuid, parentType: parentType, fileType: fileType)
-        picture.isPlaceholder = true
+        let file = CBFile(relatedID: recordID, uuid: uuid, parentType: parentType, fileType: fileType)
+        file.isPlaceholder = true
         
         if let index = justTransactions.firstIndex(where: { $0.id == recordID }) {
             let trans = justTransactions[index]
             
             if let _ = trans.files {
-                trans.files!.append(picture)
+                trans.files!.append(file)
             } else {
-                trans.files = [picture]
+                trans.files = [file]
             }
         }
         
@@ -2965,9 +2906,9 @@ extension CalendarModel: FileUploadCompletedDelegate {
             let trans = searchedTransactions[index]
             
             if let _ = trans.files {
-                trans.files!.append(picture)
+                trans.files!.append(file)
             } else {
-                trans.files = [picture]
+                trans.files = [file]
             }
         }
         
@@ -2976,9 +2917,9 @@ extension CalendarModel: FileUploadCompletedDelegate {
             let trans = tempTransactions[index]
             
             if let _ = trans.files {
-                trans.files!.append(picture)
+                trans.files!.append(file)
             } else {
-                trans.files = [picture]
+                trans.files = [file]
             }
         }
         
@@ -2987,9 +2928,9 @@ extension CalendarModel: FileUploadCompletedDelegate {
             let trans = receiptTransactions[index]
             
             if let _ = trans.files {
-                trans.files!.append(picture)
+                trans.files!.append(file)
             } else {
-                trans.files = [picture]
+                trans.files = [file]
             }
         }
         
@@ -2998,9 +2939,9 @@ extension CalendarModel: FileUploadCompletedDelegate {
             let trans = dashboardTransactions[index]
             
             if let _ = trans.files {
-                trans.files!.append(picture)
+                trans.files!.append(file)
             } else {
-                trans.files = [picture]
+                trans.files = [file]
             }
         }
         
@@ -3038,6 +2979,11 @@ extension CalendarModel: FileUploadCompletedDelegate {
         if let trans = justTransactions.filter({ $0.id == recordID }).first {
             if let index = trans.files?.firstIndex(where: { $0.uuid == uuid }) {
                 trans.files?[index].isPlaceholder = false
+                
+                /// Indicate that the file should be itemized, so that when the download completes, it will kick off the itemization task.
+                if AppSettings.shared.autoItemizeReceipts {
+                    trans.files?[index].isItemizing = true
+                }
             }
         }
         
@@ -3045,6 +2991,11 @@ extension CalendarModel: FileUploadCompletedDelegate {
         if let trans = searchedTransactions.filter({ $0.id == recordID }).first {
             if let index = trans.files?.firstIndex(where: { $0.uuid == uuid }) {
                 trans.files?[index].isPlaceholder = false
+                
+                /// Indicate that the file should be itemized, so that when the download completes, it will kick off the itemization task.
+                if AppSettings.shared.autoItemizeReceipts {
+                    trans.files?[index].isItemizing = true
+                }
             }
         }
         
@@ -3052,6 +3003,11 @@ extension CalendarModel: FileUploadCompletedDelegate {
         if let trans = tempTransactions.filter({ $0.id == recordID }).first {
             if let index = trans.files?.firstIndex(where: { $0.uuid == uuid }) {
                 trans.files?[index].isPlaceholder = false
+                
+                /// Indicate that the file should be itemized, so that when the download completes, it will kick off the itemization task.
+                if AppSettings.shared.autoItemizeReceipts {
+                    trans.files?[index].isItemizing = true
+                }
             }
         }
         
@@ -3059,12 +3015,22 @@ extension CalendarModel: FileUploadCompletedDelegate {
         if let trans = receiptTransactions.filter({ $0.id == recordID }).first {
             if let index = trans.files?.firstIndex(where: { $0.uuid == uuid }) {
                 trans.files?[index].isPlaceholder = false
+                
+                /// Indicate that the file should be itemized, so that when the download completes, it will kick off the itemization task.
+                if AppSettings.shared.autoItemizeReceipts {
+                    trans.files?[index].isItemizing = true
+                }
             }
         }
         
         if let trans = dashboardTransactions.filter({ $0.id == recordID }).first {
             if let index = trans.files?.firstIndex(where: { $0.uuid == uuid }) {
                 trans.files?[index].isPlaceholder = false
+                
+                /// Indicate that the file should be itemized, so that when the download completes, it will kick off the itemization task.
+                if AppSettings.shared.autoItemizeReceipts {
+                    trans.files?[index].isItemizing = true
+                }
             }
         }
     }

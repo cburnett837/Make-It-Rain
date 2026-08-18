@@ -118,7 +118,7 @@ class OpenRecordManager {
         let model = RequestModel(requestType: "fetch_open_or_closed_records", model: AppState.shared.user!)
         
         typealias ResultResponse = Result<Array<CBOpenOrClosedRecord>?, AppError>
-        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
         switch await result {
         case .success(let model):

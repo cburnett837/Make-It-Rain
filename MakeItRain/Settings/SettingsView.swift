@@ -188,7 +188,7 @@ struct SettingsView: View {
                 Spacer()
                 logoutButton
             }
-            accountNumberLine
+//            accountNumberLine
             countryRow
         }
     }        
@@ -439,14 +439,19 @@ struct SettingsView: View {
                 Label {
                     Text("Currency")
                 } icon: {
-                    Image(systemName: "globe.americas")
-                        .foregroundStyle(.gray)
+                    FlagCircle(code: appState.country.code)
+//                    Image(systemName: "globe.americas")
+//                        .foregroundStyle(.gray)
                 }
                 
                 Spacer()
                 
-                Text("\(appState.country.currencyCode) \(appState.country.flagEmoji)")
+                Text("\(appState.country.currencyCode)")
                     .foregroundStyle(.secondary)
+                
+//                HStack {
+//                    FlagCircle(code: appState.country.code)
+//                }
             }
             .schemeBasedForegroundStyle()
         }
@@ -515,7 +520,7 @@ struct SettingsView: View {
             }
         }
         .sheet(isPresented: $showCountrySheet) {
-            CountryPicker(country: $country)
+            CountryPicker(country: $country, showNoneOption: false)
         }
     }
     
@@ -549,8 +554,10 @@ struct SettingsView: View {
     
     var deviceInformationSection: some View {
         Section {
-            if let uuid = UserDefaults.fetchOneString(requestedKey: "deviceUUID") {
-                Text(uuid)
+            if let uuid = UserDefaults(suiteName: "group.dev.cburnett837.MakeItRain")?.string(forKey: "deviceUUID") {
+//            if let uuid = UserDefaults.fetchOneString(requestedKey: "deviceUUID") {
+//                Text(uuid)
+                Text(Cody.shared.deviceUUID)
                     .textSelection(.enabled)
                     .foregroundStyle(.gray)
                     .font(.footnote)

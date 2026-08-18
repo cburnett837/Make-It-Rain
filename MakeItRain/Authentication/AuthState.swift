@@ -17,16 +17,14 @@ enum LoginType {
 @MainActor
 @Observable
 class AuthState {
-    var keychainCredentialsExist = false
-    var isLoggedIn = false
-    //var isBioAuthed = false
-    var isThinking = true
-    var isAdmin = false
-    var error: AppError?
+    static let shared: AuthState = AuthState()
     
     var serverRevoked = false
-    
-    static let shared: AuthState = AuthState()
+    var keychainCredentialsExist = false
+    var isLoggedIn = false
+    var isThinking = true
+    //var isAdmin = false
+    var error: AppError?
     
     let networkManager = NetworkManager()
     let keychainManager = KeychainManager()
@@ -39,11 +37,8 @@ class AuthState {
     @MainActor
     func getApiKeyFromKeychain() async -> String? {
         do {
-            if let apiKey = try keychainManager.getFromKeychain(key: "user_api_key") {
-                return apiKey
-            } else {
-                return nil
-            }
+            guard let apiKey = try keychainManager.getFromKeychain(key: "user_api_key") else { return nil }
+            return apiKey
         } catch {
             print(error.localizedDescription)
             return nil
@@ -63,7 +58,7 @@ class AuthState {
         
         /// Set the ticker to 0 so it doesn't try and reattempt.
         /// This will try to login once with a 15 second timeout before it says screw it.
-        async let result: ResultResponse = await NetworkManager(timeout: 15).login(using: loginType, with: loginModel, ticker: 0)
+        async let result: ResultResponse = await NetworkManager().login(using: loginType, with: loginModel, ticker: 0)
         
         switch await result {
         case .success(let model):
@@ -82,20 +77,16 @@ class AuthState {
                         PhoneWatchSync.shared.syncUserDefaultsToWatch(apiKey: apiKey)
                         #endif
                         
-                        //UserDefaults.standard.set(userData, forKey: "user")
-                        
                         AppSettings.shared.setFromServerData(setting: model.settings)
-                        
-                        //AppSettings.shared.setFromAnotherInstance(setting: model.settings)
                         AppState.shared.user = model.user
                         AppState.shared.accountUsers = model.accountUsers
                         AppState.shared.methsExist = model.hasPaymentMethodsExisiting
                         AppState.shared.isLoggingInForFirstTime = true
                         AppState.shared.hasBadConnection = false
                         
-                        if model.user.id == 1 {
-                            self.isAdmin = true
-                        }
+//                        if model.user.id == 1 {
+//                            self.isAdmin = true
+//                        }
                         
                         AppState.shared.splashIsAnimating = true
                         withAnimation {
@@ -111,12 +102,10 @@ class AuthState {
                         Cody.shared.email = model.user.email
                                             
                         self.isLoggedIn = true
-                        self.isThinking = false                        
-                        //self.isBioAuthed = true
+                        self.isThinking = false
                     } else {
                         self.isLoggedIn = false
                         self.isThinking = false
-                        //self.isBioAuthed = false
                         AppState.shared.shouldShowSplash = false
                         clearLoginState()
                         AppState.shared.showAlert("Problem getting api key from the server.")
@@ -135,12 +124,12 @@ class AuthState {
                 AppState.shared.devMode = false
                 await self.attemptLogin(using: loginType, with: loginModel)
             }
+            
             LogManager.error(error.localizedDescription)
             
             self.error = error
             self.isLoggedIn = false
             self.isThinking = false
-            //self.isBioAuthed = false
             AppState.shared.shouldShowSplash = false
             
             switch error {
@@ -158,6 +147,13 @@ class AuthState {
         }
     }
     
+    func serverAccessRevoked() {
+        /// This is called via ``NetworkManager``.
+        /// This calls `clearLoginState()`, which causes the if block in ``MakeItRainApp`` to switch to ``LoginView``.
+        /// On Appear of ``LoginView``,  `serverRevoked` being set will cause `funcModel.logout()` to run and force the user out.
+        serverRevoked = true
+        clearLoginState()
+    }
     
     func clearLoginState() {
         withAnimation {
@@ -175,13 +171,7 @@ class AuthState {
     }
         
     
-    func serverAccessRevoked() {
-        /// This is called via ``NetworkManager``.
-        /// This calls `clearLoginState()`, which causes the if block in ``MakeItRainApp`` to switch to ``LoginView``.
-        /// On Appear of ``LoginView``,  `serverRevoked` being set will cause `funcModel.logout()` to run and force the user out.
-        serverRevoked = true
-        clearLoginState()
-    }
+    
     
     
 //    func loginViaKeychain(funcModel: FuncModel) async {

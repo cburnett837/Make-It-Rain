@@ -30,7 +30,7 @@ class TagModel {
 //        /// Do networking.
 //        let model = RequestModel(requestType: "fetch_tags", model: AppState.shared.user)
 //        typealias ResultResponse = Result<Array<CBTag>?, AppError>
-//        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+//        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
 //
 //        switch await result {
 //        case .success(let model):
@@ -185,7 +185,7 @@ class TagModel {
 //        /// Do networking.
 //        let model = RequestModel(requestType: "fetch_tags", model: AppState.shared.user)
 //        typealias ResultResponse = Result<Array<CBTag>?, AppError>
-//        async let result: ResultResponse = await NetworkManager().arrayRequest(requestModel: model)
+//        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
 //        
 //        switch await result {
 //        case .success(let model):

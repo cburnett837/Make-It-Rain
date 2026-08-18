@@ -50,6 +50,7 @@ class AppSettings: Codable {
     var transactionSortMode: TransactionSortMode
     var categorySortMode: SortMode
     var incomeColor: Color
+    var autoItemizeReceipts: Bool
     
     private init() {
         self.useWholeNumbers = false
@@ -60,9 +61,10 @@ class AppSettings: Codable {
         self.transactionSortMode = .title
         self.categorySortMode = .title
         self.incomeColor = .blue
+        self.autoItemizeReceipts = true
     }
         
-    enum CodingKeys: CodingKey { case use_whole_numbers, tighten_up_eod_totals, low_balance_threshold, payment_method_filter_mode, payment_method_sort_mode, transaction_sort_mode, category_sort_mode, income_color, user_id, account_id, device_uuid }
+    enum CodingKeys: CodingKey { case use_whole_numbers, tighten_up_eod_totals, low_balance_threshold, payment_method_filter_mode, payment_method_sort_mode, transaction_sort_mode, category_sort_mode, income_color, user_id, account_id, device_uuid, auto_itemize_receipts }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -98,6 +100,9 @@ class AppSettings: Codable {
         
         let incomeColor = try container.decode(String.self, forKey: .income_color)
         self.incomeColor = Color.fromName(incomeColor)
+        
+        let autoItemizeReceipts = try container.decode(String.self, forKey: .auto_itemize_receipts)
+        self.autoItemizeReceipts = autoItemizeReceipts == "1"
     }
     
     
@@ -110,6 +115,7 @@ class AppSettings: Codable {
         self.transactionSortMode = setting.transactionSortMode
         self.categorySortMode = setting.categorySortMode
         self.incomeColor = setting.incomeColor
+        self.autoItemizeReceipts = setting.autoItemizeReceipts
     }
     
     func setFromServerData(setting: AppSettingsDecodable) {
@@ -121,6 +127,7 @@ class AppSettings: Codable {
         self.transactionSortMode = setting.transactionSortMode
         self.categorySortMode = setting.categorySortMode
         self.incomeColor = setting.incomeColor
+        self.autoItemizeReceipts = setting.autoItemizeReceipts
     }
     
     
@@ -175,8 +182,9 @@ struct AppSettingsDecodable: Decodable {
     var transactionSortMode: TransactionSortMode
     var categorySortMode: SortMode
     var incomeColor: Color
+    var autoItemizeReceipts: Bool
     
-    enum CodingKeys: CodingKey { case use_whole_numbers, tighten_up_eod_totals, low_balance_threshold, payment_method_filter_mode, payment_method_sort_mode, transaction_sort_mode, category_sort_mode, income_color, user_id, account_id, device_uuid }
+    enum CodingKeys: CodingKey { case use_whole_numbers, tighten_up_eod_totals, low_balance_threshold, payment_method_filter_mode, payment_method_sort_mode, transaction_sort_mode, category_sort_mode, income_color, user_id, account_id, device_uuid, auto_itemize_receipts }
     
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -204,5 +212,8 @@ struct AppSettingsDecodable: Decodable {
         
         let incomeColor = try container.decode(String.self, forKey: .income_color)
         self.incomeColor = Color.fromName(incomeColor)
+        
+        let autoItemizeReceipts = try container.decode(String.self, forKey: .auto_itemize_receipts)
+        self.autoItemizeReceipts = autoItemizeReceipts == "1"
     }
 }

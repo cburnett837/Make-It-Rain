@@ -78,6 +78,27 @@ struct Helpers {
         }
     }
     
+    static func plusMinus(amountString: String) -> String {
+        var amountString = amountString
+        if amountString.hasPrefix("$") {
+            amountString.removeFirst()
+            amountString = "-$" + amountString
+            
+        } else if amountString.hasPrefix("-$") {
+            amountString.removeFirst()
+            amountString.removeFirst()
+            amountString = "$" + amountString
+        } else {
+            if amountString.hasPrefix("-") {
+                amountString.removeFirst()
+            } else {
+                amountString = "-" + amountString
+            }
+        }
+        
+        return amountString
+    }
+    
     static func formatCurrency(focusValue: Int, oldFocus: Int?, newFocus: Int?, amountString: String?, amount: Decimal?) -> String? {
         
         
@@ -243,6 +264,18 @@ struct Helpers {
         }
     }
     
+    static func paymentMethodSorter() -> (CBPaymentMethod?, CBPaymentMethod?) -> Bool {
+        //let sortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "paymentMethodSortMode") ?? "")
+        return {
+            switch AppSettings.shared.paymentMethodSortMode {
+            case .title:
+                return $0?.title.lowercased() < $1?.title.lowercased()
+            case .listOrder:
+                return $0?.listOrder ?? 0 < $1?.listOrder ?? 0
+            }
+        }
+    }
+    
     static func transactionSorter() -> (CBTransaction, CBTransaction) -> Bool {
         //let sortMode = TransactionSortMode.fromString(UserDefaults.standard.string(forKey: "transactionSortMode") ?? "")
         //let categorySortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
@@ -314,12 +347,85 @@ struct Helpers {
     
     
 
+    static func highlightString(query: String, in text: String) -> AttributedString {
+        var attributedString = AttributedString(text)
+        
+        // Ensure the query is not empty to avoid infinite loops
+        guard !query.isEmpty else { return attributedString }
+        
+        // Find all matches using regular expressions
+        if let regex = try? NSRegularExpression(pattern: NSRegularExpression.escapedPattern(for: query), options: .caseInsensitive) {
+            let range = NSRange(text.startIndex..<text.endIndex, in: text)
+            let matches = regex.matches(in: text, options: [], range: range)
+            
+            // Loop backward to cleanly map ranges onto AttributedString
+            for match in matches.reversed() {
+                if let stringRange = Range(match.range, in: attributedString) {
+                    // Apply visual highlights
+                    //attributedString[stringRange].backgroundColor = .yellow
+                    attributedString[stringRange].foregroundColor = Color.theme
+                    attributedString[stringRange].inlinePresentationIntent = .stronglyEmphasized // Bold
+                }
+            }
+        }
+        
+        return attributedString
+    }
     
     
+//    static func getChartGradientPosition<T>(from points: [T], budget: Decimal, value: KeyPath<T, Decimal?>) -> Decimal? {
+//        let amounts = points.map { ($0[keyPath: value] ?? 0) * -1 }
+//        
+//        guard let minAmount = amounts.min(),
+//              let maxAmount = amounts.max(),
+//              minAmount != maxAmount
+//        else {
+//            return nil
+//        }
+//        
+//        let result = (budget - minAmount) / (maxAmount - minAmount)
+//        
+//        guard !result.isInfinite, !result.isNaN else {
+//            return nil
+//        }
+//        
+//        return min(max(result, 0), 1)
+//    }
     
     
+    static func getChartGradientPosition<T>(from points: [T], budget: Decimal, value: KeyPath<T, Decimal>) -> Decimal? {
+        getBudgetGradientPosition(
+            amounts: points.map { $0[keyPath: value] },
+            budget: budget
+        )
+    }
+
+    static func getChartGradientPosition<T>(from points: [T], budget: Decimal, value: KeyPath<T, Decimal?>) -> Decimal? {
+        getBudgetGradientPosition(
+            amounts: points.compactMap { $0[keyPath: value] },
+            budget: budget
+        )
+    }
     
-    
+    private static func getBudgetGradientPosition(amounts: [Decimal], budget: Decimal) -> Decimal? {
+        
+        let amounts = amounts.map { $0 * -1 }
+
+        guard let minAmount = amounts.min(),
+              let maxAmount = amounts.max(),
+              minAmount != maxAmount
+        else {
+            return nil
+        }
+
+        let result = (budget - minAmount) / (maxAmount - minAmount)
+
+        guard !result.isInfinite, !result.isNaN else {
+            return nil
+        }
+
+        return min(max(result, 0), 1)
+    }
 }
 
 

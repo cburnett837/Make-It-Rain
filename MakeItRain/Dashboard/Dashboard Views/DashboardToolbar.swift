@@ -11,16 +11,13 @@ import Charts
 
 struct DashboardToolbar: ToolbarContent {
     #if os(macOS)
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismissWindow) var dismiss
     #endif
     
     @Environment(CalendarModel.self) private var calModel
     @Environment(PayMethodModel.self) private var payModel
     
     @Bindable var model: DashboardModel
-    @Binding var showCategorySheet: Bool
-    @Binding var showPayMethodSheet: Bool
-    @Binding var showAnalysisSheet: Bool
     @Binding var navPath: [NavDest]
     var isForSelectedMonth: Bool
     
@@ -30,10 +27,10 @@ struct DashboardToolbar: ToolbarContent {
     var body: some ToolbarContent {
         #if os(iOS)
                 
-        if AppState.shared.isIpad {
-            ToolbarItem(placement: .topBarLeading) { showCategorySheetButton }
-            ToolbarSpacer(.fixed, placement: .topBarLeading)
-        }
+//        if AppState.shared.isIpad {
+//            ToolbarItem(placement: .topBarLeading) { showCategorySheetButton }
+//            ToolbarSpacer(.fixed, placement: .topBarLeading)
+//        }
         
 //        if !isForSelectedMonth {
 //            ToolbarItem(placement: .topBarLeading) { showOptionsSheetButton }
@@ -72,7 +69,7 @@ struct DashboardToolbar: ToolbarContent {
         #else
         ToolbarItemGroup(placement: .destructiveAction) {
             HStack {
-                showCategorySheetButton
+                showOptionsSheetButton
             }
         }
         
@@ -98,37 +95,37 @@ struct DashboardToolbar: ToolbarContent {
         .disabled(model.isLoading)
     }
     
-    var showPaymentMethodSheetButton: some View {
-        Button {
-            showPayMethodSheet = true
-        } label: {
-            PayMethodLogoMashup(meth: model.payMethod)
-        }
-        .tint(.none)
-        .disabled(model.isLoading)
-//        .if(model.payMethod != nil) {
-//            $0.badge(1)
+//    var showPaymentMethodSheetButton: some View {
+//        Button {
+//            showPayMethodSheet = true
+//        } label: {
+//            PayMethodLogoMashup(meth: model.payMethod)
 //        }
-    }
-    
-    var showCategorySheetButton: some View {
-        Button {
-            showCategorySheet = true
-        } label: {
-            Label {
-                Text("Select Categories")
-            } icon: {
-                Image(systemName: "books.vertical")
-            }
-        }
-        .if(!model.allCatsSelected) {
-            $0.badge(model.categories.count + model.groups.count)
-        }
-        .tint(.none)
-        #if os(macOS)
-        .buttonStyle(.roundMacButton)
-        #endif
-    }
+//        .tint(.none)
+//        .disabled(model.isLoading)
+////        .if(model.payMethod != nil) {
+////            $0.badge(1)
+////        }
+//    }
+//    
+//    var showCategorySheetButton: some View {
+//        Button {
+//            showCategorySheet = true
+//        } label: {
+//            Label {
+//                Text("Select Categories")
+//            } icon: {
+//                Image(systemName: "books.vertical")
+//            }
+//        }
+//        .if(!model.allCatsSelected) {
+//            $0.badge(model.categories.count + model.groups.count)
+//        }
+//        .tint(.none)
+//        #if os(macOS)
+//        .buttonStyle(.roundMacButton)
+//        #endif
+//    }
     
     
     var showOptionsSheetButton: some View {
@@ -180,7 +177,6 @@ struct DashboardToolbar: ToolbarContent {
             #if os(iOS)
             withAnimation {
                 calModel.isInMultiSelectMode = false
-                showAnalysisSheet = false
             }
             #else
             dismiss()

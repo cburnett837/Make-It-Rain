@@ -992,6 +992,7 @@ struct UITextFieldWrapper</*Keyboard: View, */Toolbar: View>: UIViewRepresentabl
             textField.font = font
             textField.textColor = textColor
             textField.tintColor = tint
+            textField.isSecureTextEntry = isSecure
 //            if let textAlignment { textField.textAlignment = textAlignment }
 //            textField.textContentType = contentType
 //            textField.autocorrectionType = autoCorrection

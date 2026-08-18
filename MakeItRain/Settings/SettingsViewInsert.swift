@@ -35,15 +35,23 @@ struct SettingsViewInsert: View {
         @Bindable var appSettings = AppSettings.shared
         Group {
             Section("Options") {
-                if AuthState.shared.isAdmin {
-                    showDebuggingInfoToggle
-                }
+//                if AuthState.shared.isAdmin {
+//                    showDebuggingInfoToggle
+//                }
                 useWholeNumbersToggle
                 tightenUpEodTotalsToggle
                 showShowHashTagToggle
                 useCategorySymbolsToggle
                 useBusinessLogosToggle
                 incomeColorPicker
+            }
+            
+            Section {
+                autoItemizeReceiptsToggle
+            } header: {
+                Text("AI")
+            } footer: {
+                Text("When uploading a new photo to a transaction, AI can analyze it to determine if it's a receipt, and if so, have it automatically broken down into individual line items. AI analysis is powered by OpenAI's GPT-5.6 Luna.")
             }
             
             creditEodPicker
@@ -256,6 +264,22 @@ struct SettingsViewInsert: View {
         }
         .onChange(of: appSettings.useWholeNumbers) { oldValue, newValue in
             appSettings.sendToServer(setting: .init(settingId: 54, setting: newValue ? "1" : "0"))
+        }
+    }
+    
+    @ViewBuilder
+    var autoItemizeReceiptsToggle: some View {
+        @Bindable var appSettings = AppSettings.shared
+        Toggle(isOn: $appSettings.autoItemizeReceipts) {
+            VStack(alignment: .leading) {
+                HStack {
+                    Image(systemName: "cloud")
+                    Text("Auto itemize receipts")
+                }
+            }
+        }
+        .onChange(of: appSettings.autoItemizeReceipts) { oldValue, newValue in
+            appSettings.sendToServer(setting: .init(settingId: 67, setting: newValue ? "1" : "0"))
         }
     }
     

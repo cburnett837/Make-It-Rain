@@ -46,7 +46,7 @@ struct MonthNavigationLink: View {
             monthName
             monthDayGrid
         }
-        .contentShape(Rectangle())
+        .contentShape(.rect)
         //.matchedTransitionSource(id: month.enumID, in: monthNavigationNamespace)
         
         .padding(.bottom, 10)
@@ -109,7 +109,6 @@ struct MonthNavigationLink: View {
                     }
                 }
                 .padding(.bottom, 4)
-                
             }
         }
     }
@@ -120,6 +119,8 @@ struct MonthNavigationLink: View {
         NavigationManager.shared.selection = nil
         
         #if os(iOS)
+        /// This triggers the fullscreen cover in ``CalendarSheetLayerView`` to show.
+        /// Since `NavigationManager.shared.selectedMonth` get's set above, the calendar sheet will show with the selected month.
         if AppState.shared.isIphone {
             calModel.showMonth = true
         }

@@ -12,8 +12,10 @@ import PDFKit
 
 @Observable
 class FileViewProps {
-    var hoverFile: CBFile?
+    //var hoverFile: CBFile?
     var deleteFile: CBFile?
-    var isDeletingFile = false
+    //var isDeletingFile = false
     var showDeleteFileAlert = false
+    //var itemizingFile: CBFile?
+    //var isItemizing = false
 }

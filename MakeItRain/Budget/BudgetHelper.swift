@@ -58,14 +58,15 @@ struct BudgetHelper {
         var cumTotals: [BudgetCumTotal] = []
 
         var total: Decimal = 0.0
+        var amount: Decimal = 0.0
 
         for day in days {
+            amount = 0
             guard let date = day.date else { continue }
 
             let trans = transactions.filter { $0.dateComponents?.day == date.day }
 
             if !trans.isEmpty {
-                var amount: Decimal = 0.0
                 switch type {
                 case .spend:
                     amount = TransactionHelper.All.Amount.actualSpend(from: trans) * -1
@@ -83,70 +84,12 @@ struct BudgetHelper {
                 total += amount
             }
 
-            cumTotals.append(
-                BudgetCumTotal(date: date, total: total, budgetAmount: budgetAmount)
-            )
+            cumTotals.append(BudgetCumTotal(date: date, dailyTotal: amount, total: total, budgetAmount: budgetAmount))
         }
         
         return cumTotals
     }
-    
-//    static func pointsWithBudgetCrossings(from points: [BudgetCumTotal], budget: Double) -> [BudgetCumTotalChartPoint] {
-//        var result: [BudgetCumTotalChartPoint] = []
-//        
-//        for index in points.indices {
-//            let current = points[index]
-//            let currentAmount = current.total * -1
-//            
-//            if index > 0 {
-//                let previous = points[index - 1]
-//                let previousAmount = previous.total * -1
-//                
-//                let crossesBudget =
-//                    (previousAmount < budget && currentAmount > budget) ||
-//                    (previousAmount > budget && currentAmount < budget)
-//                
-//                if crossesBudget {
-//                    let progress = (budget - previousAmount) / (currentAmount - previousAmount)
-//                    let timeInterval = current.date.timeIntervalSince(previous.date)
-//                    let crossingDate = previous.date.addingTimeInterval(timeInterval * progress)
-//                    
-//                    let crossingIsFromUnderToOver = previousAmount < budget && currentAmount > budget
-//
-//                    result.append(
-//                        BudgetCumTotalChartPoint(
-//                            date: crossingDate,
-//                            amount: budget,
-//                            isOverBudget: crossingIsFromUnderToOver ? false : true,
-//                            isCrossingPoint: true
-//                        )
-//                    )
-//
-//                    result.append(
-//                        BudgetCumTotalChartPoint(
-//                            date: crossingDate,
-//                            amount: budget,
-//                            isOverBudget: crossingIsFromUnderToOver ? true : false,
-//                            isCrossingPoint: true
-//                        )
-//                    )
-//                }
-//            }
-//            
-//            result.append(
-//                BudgetCumTotalChartPoint(
-//                    date: current.date,
-//                    amount: currentAmount,
-//                    isOverBudget: currentAmount > budget,
-//                    isCrossingPoint: false
-//                )
-//            )
-//        }
-//        
-//        return result
-//    }
-    
-    
+   
     @AxisContentBuilder
     static func currencyAxisMarks() -> some AxisContent {
         AxisMarks { value in
@@ -164,25 +107,5 @@ struct BudgetHelper {
             }
         }
     }
-    
- 
-    static func getBudgetGradientPosition(from points: [BudgetCumTotal], budget: Decimal) -> Decimal? {
-        
-        let amounts = points.map { $0.total * -1 }
-        
-        guard let minAmount = amounts.min(),
-              let maxAmount = amounts.max(),
-              minAmount != maxAmount
-        else {
-            return nil
-        }
-        
-        let result = (budget - minAmount) / (maxAmount - minAmount)
-        
-        guard !result.isInfinite, !result.isNaN else { return nil }
-        
-        return min(max(result, 0), 1)
-    }
-    
 }
 

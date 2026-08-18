@@ -154,7 +154,7 @@ class AppState {
         
         let model = RequestModel(requestType: "check_connection", model: CodablePlaceHolder())
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager(timeout: 10).singleRequest(requestModel: model)
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model, timeout: 10)
         
         switch await result {
         case .success:
