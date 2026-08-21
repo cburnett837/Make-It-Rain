@@ -268,7 +268,7 @@ struct MonthlyBudgetTable: View {
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(budgets) { budget in
-                        NavigationLink(value: NavDest.budgetOverview(budget)) {
+                        NavigationLink(value: NavDest.budgetOverview(budget, nil)) {
                             Label {
                                 VStack(alignment: .leading) {
                                     HStack {

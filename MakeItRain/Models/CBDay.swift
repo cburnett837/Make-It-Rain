@@ -12,13 +12,31 @@ import SwiftUI
 @Observable
 class CBDay: Identifiable, Hashable, Equatable {
     var id: Int
-    var date: Date?
-    var dateComponents: DateComponents? {
-        if let date = self.date {
-            return Calendar.current.dateComponents(in: .current, from: date)
-        }
-        return nil
+    
+    
+    var date: Date? {
+        didSet { cachedDateComponents = nil }
     }
+
+    @ObservationIgnored private var cachedDateComponents: DateComponents?
+
+    var dateComponents: DateComponents? {
+        if let cachedDateComponents { return cachedDateComponents }
+        guard let date else { return nil }
+
+        let components = Calendar.current.dateComponents(in: .current, from: date)
+        cachedDateComponents = components
+        return components
+    }
+    
+    
+//    var date: Date?
+//    var dateComponents: DateComponents? {
+//        if let date = self.date {
+//            return Calendar.current.dateComponents(in: .current, from: date)
+//        }
+//        return nil
+//    }
     
     var exchangeRates: [ExchangeRate] = []
         
@@ -53,6 +71,13 @@ class CBDay: Identifiable, Hashable, Equatable {
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
+    
+//    func setFromAnotherInstance(day: CBDay) {
+//        self.date = day.date
+//        self.exchangeRates = day.exchangeRates
+//        self.transactions = day.transactions
+//        self.eodTotal = day.eodTotal
+//    }
     
     // MARK: - Transaction Object Functions
     func isExisting(_ transaction: CBTransaction) -> Bool {

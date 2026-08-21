@@ -309,53 +309,93 @@ class DashboardModel {
                 self.endDate = Date()
             }
             
-            for group in store.categoryGroups {
-                let groupCatIds = group.categories.map { $0.id }
-                let hasTrans = !calModel.sMonth.justTransactions
-                    .filter ({ $0.active })
-                    .filter ({ $0.amount != 0 && groupCatIds.contains($0.category?.id ?? "0") })
-                    .isEmpty
-                
-                if hasTrans {
-                    groups.append(group)
+//            for group in store.categoryGroups {
+//                let groupCatIds = group.categories.map { $0.id }
+//                let hasTrans = !calModel.sMonth.justTransactions
+//                    .filter ({ $0.active })
+//                    .filter ({ $0.amount != 0 && groupCatIds.contains($0.category?.id ?? "0") })
+//                    .isEmpty
+//                
+//                if hasTrans {
+//                    groups.append(group)
+//                }
+//            }
+//            
+//            //categoryGroups = catModel.categoryGroups
+//            
+//            let relevantCategories = calModel.sMonth.justTransactions
+//                .filter ({ $0.active })
+//                .filter ({ $0.amount != 0 && $0.category != nil })
+//                .compactMap ({ $0.category })
+//                //.filter ({ !$0.isIncome })
+//                .sorted(by: Helpers.categorySorter())
+//                .uniqued(on: \.id)
+//            
+//            
+//            for cat in relevantCategories/*.filter({ $0.appSuiteKey == nil })*/ {
+//                if groups
+//                    .flatMap({ $0.categories })
+//                    .map({ $0.id })
+//                    .contains(cat.id) {
+//                        continue
+//                    }
+//                
+//                if categories.map({ $0.id }).contains(cat.id) { continue }
+//                
+//                categories.append(cat)
+//            }
+//            
+//            let areThereTransWithNoCat = calModel.sMonth.justTransactions
+//                .filter ({ $0.active })
+//                .filter ({ $0.amount != 0 && $0.category == nil })
+//            
+//            if !areThereTransWithNoCat.isEmpty {
+//                if let theNil = store.categories.filter({ $0.isNil }).first {
+//                    categories.append(theNil)
+//                }
+//            }
+            
+            
+            
+            
+            // DashboardModel.swift
+            // Inside initialFetchIfApplicable(), replace the category/group discovery block
+            // with a single-pass version like this:
+
+            let activeNonZeroTransactions = calModel.sMonth.justTransactions.filter {
+                $0.active && $0.amount != 0
+            }
+
+            var categoryIDsWithTransactions = Set<String>()
+            var hasTransactionsWithNoCategory = false
+
+            for trans in activeNonZeroTransactions {
+                if let categoryID = trans.category?.id, trans.category?.isNil == false {
+                    categoryIDsWithTransactions.insert(categoryID)
+                } else {
+                    hasTransactionsWithNoCategory = true
                 }
             }
-            
-            //categoryGroups = catModel.categoryGroups
-            
-            let relevantCategories = calModel.sMonth.justTransactions
-                .filter ({ $0.active })
-                .filter ({ $0.amount != 0 && $0.category != nil })
-                .compactMap ({ $0.category })
-                //.filter ({ !$0.isIncome })
+
+            let selectedGroups = store.categoryGroups.filter { group in
+                group.categories.contains { categoryIDsWithTransactions.contains($0.id) }
+            }
+
+            let groupedCategoryIDs = Set(selectedGroups.flatMap { $0.categories.map(\.id) })
+
+            let selectedCategories = activeNonZeroTransactions
+                .compactMap(\.category)
+                .filter { !groupedCategoryIDs.contains($0.id) && $0.isNil == false }
                 .sorted(by: Helpers.categorySorter())
                 .uniqued(on: \.id)
-            
-            
-            for cat in relevantCategories/*.filter({ $0.appSuiteKey == nil })*/ {
-                if groups
-                    .flatMap({ $0.categories })
-                    .map({ $0.id })
-                    .contains(cat.id) {
-                        continue
-                    }
-                
-                if categories.map({ $0.id }).contains(cat.id) { continue }
-                
-                categories.append(cat)
+
+            groups = selectedGroups
+            categories = selectedCategories
+
+            if hasTransactionsWithNoCategory,
+               let nilCategory = store.categories.first(where: { $0.isNil }) {
+                categories.append(nilCategory)
             }
-            
-            let areThereTransWithNoCat = calModel.sMonth.justTransactions
-                .filter ({ $0.active })
-                .filter ({ $0.amount != 0 && $0.category == nil })
-            
-            if !areThereTransWithNoCat.isEmpty {
-                if let theNil = store.categories.filter({ $0.isNil }).first {
-                    categories.append(theNil)
-                }
-            }
-            
-            
             
             if isForSelectedMonth {
                 localVersionOfServerCode(calModel: calModel)

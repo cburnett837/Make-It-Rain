@@ -244,10 +244,14 @@ fileprivate struct TransactionEditSheetAndLogic: ViewModifier {
         
         if let newId {
             transactionSheetWasOpened(transId: newId)
-        } else {
+            
+        } else if let oldId {
             Task {
-                await transactionSheetWasClosed(transId: oldId!)
+                await transactionSheetWasClosed(transId: oldId)
             }
+            
+        } else {
+            fatalError("Problem with the trans id")
         }
     }
     

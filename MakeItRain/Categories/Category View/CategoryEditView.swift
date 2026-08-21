@@ -456,7 +456,10 @@ struct CategoryEditView: View {
     func deleteCategory() {
         /// Prevent from going to the server and trying to delete something that isn't there.
         if category.action == .add {
-            catModel.delete(category, andSubmit: false)
+            Task {
+                await catModel.delete(category, andSubmit: false)
+            }
+            
         } else {
             category.action = .delete
         }

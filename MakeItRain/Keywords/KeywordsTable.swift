@@ -96,8 +96,12 @@ struct KeywordsTable: View {
                 } else {
                     editKeyword = CBKeyword(uuid: newId)
                 }
+            } else if let oldId {
+                Task {
+                    await keyModel.saveKeyword(id: oldId)
+                }
             } else {
-                keyModel.saveKeyword(id: oldId!)
+                fatalError("Problem with the keyword id")
             }
         }
         .onChange(of: sortOrder) {

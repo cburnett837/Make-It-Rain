@@ -496,7 +496,8 @@ struct CategoriesTable: View {
     }
     
     
-    @ViewBuilder func categoryGroupLine(group: CBCategoryGroup) -> some View {
+    @ViewBuilder
+    func categoryGroupLine(group: CBCategoryGroup) -> some View {
         Label {
             VStack(alignment: .leading) {
                 HStack {
@@ -509,7 +510,6 @@ struct CategoriesTable: View {
             let colors = group.categories.filter({ $0.active }).sorted(by: Helpers.categorySorter()).map { $0.color }
             GradientCircleDot(colors: colors)
         }
-        
     }
     
 //    var sortMenu: some View {

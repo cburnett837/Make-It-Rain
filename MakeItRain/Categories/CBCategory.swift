@@ -62,6 +62,8 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable {
     var creditAmounts: DashboardAmounts?
     var allAmounts: DashboardAmounts?
     
+    var status: ObjectStatus?
+    
     
     enum CodingKeys: CodingKey { case id, uuid, title, amount, hex_code, emoji, active, user_id, account_id, device_uuid, type_id, list_order, entered_by, updated_by, entered_date, updated_date, is_nil, top_titles, is_hidden, app_suite_key, entered_by_id, updated_by_id, budget_amount, debit_amounts, credit_amounts, all_amounts }
         

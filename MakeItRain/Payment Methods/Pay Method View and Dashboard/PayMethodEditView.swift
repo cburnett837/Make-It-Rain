@@ -1350,7 +1350,9 @@ struct PayMethodEditView: View {
     func deletePaymentMethod() {
         /// Prevent from going to the server and trying to delete something that isn't there.
         if payMethod.action == .add {
-            payModel.delete(payMethod, andSubmit: false, calModel: calModel)
+            Task {
+                await payModel.delete(payMethod, andSubmit: false, calModel: calModel)
+            }
         } else {
             payMethod.action = .delete
         }

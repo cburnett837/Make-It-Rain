@@ -624,26 +624,27 @@ struct AdvancedSearchView: View {
     }
     
     
+    @ViewBuilder
     var transactionExportCsvButton: some View {
-        let rows = calModel.searchedTransactions
-            .filter { $0.active && $0.isPermitted }
-            .map { $0.convertToCsvRecord() }
-        
-        func generateCsv() -> URL {
-            return Helpers.generateCsv(
-                fileName: "Search-Results-\(AppState.shared.todayMonth)-\(AppState.shared.todayDay)-\(AppState.shared.todayYear).csv",
-                headers: CBTransaction.getCsvHeaders(),
-                rows: rows
-            )
-        }
-            
-        return ShareLink(item: generateCsv()) {
+        ShareLink(item: generateCsv()) {
             Text("CSV")
                 .frame(maxHeight: .infinity)
         }
         .buttonStyle(.borderedProminent)
         .font(.subheadline)
         .disabled(calModel.searchedTransactions.isEmpty)
+    }
+    
+    func generateCsv() -> URL {
+        let rows = calModel.searchedTransactions
+            .filter { $0.active && $0.isPermitted }
+            .map { $0.convertToCsvRecord() }
+        
+        return Helpers.generateCsv(
+            fileName: "Search-Results-\(AppState.shared.todayMonth)-\(AppState.shared.todayDay)-\(AppState.shared.todayYear).csv",
+            headers: CBTransaction.getCsvHeaders(),
+            rows: rows
+        )
     }
     
         

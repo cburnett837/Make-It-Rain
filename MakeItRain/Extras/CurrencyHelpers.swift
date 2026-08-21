@@ -11,14 +11,19 @@ import SwiftUI
 import AVFoundation
 
 struct CurrencyHelpers {
-    /// Used in models to convert `amountString` to `amount` (Double).
-    static func parseAmountStringToDecimal(_ text: String) -> Decimal? {
+    private static let amountSeparators: (decimal: String, grouping: String) = {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
-        formatter.locale = Locale.current
-
-        let decimalSeparator = formatter.decimalSeparator ?? "."
-        let groupingSeparator = formatter.groupingSeparator ?? ","
+        formatter.locale = .current
+        return (
+            formatter.decimalSeparator ?? ".",
+            formatter.groupingSeparator ?? ","
+        )
+    }()
+    
+    static func parseAmountStringToDecimal(_ text: String) -> Decimal? {
+        let decimalSeparator = amountSeparators.decimal
+        let groupingSeparator = amountSeparators.grouping
 
         var result = ""
         var hasDecimalSeparator = false
@@ -30,28 +35,63 @@ struct CurrencyHelpers {
             if char.isNumber {
                 result.append(char)
             } else if string == decimalSeparator || string == "." {
-                if !hasDecimalSeparator {
-                    result.append(".")
-                    hasDecimalSeparator = true
-                }
+                guard !hasDecimalSeparator else { continue }
+                result.append(".")
+                hasDecimalSeparator = true
             } else if string == "-" {
-                if !hasNegativeSign && result.isEmpty {
-                    result.append("-")
-                    hasNegativeSign = true
-                }
+                guard !hasNegativeSign, result.isEmpty else { continue }
+                result.append("-")
+                hasNegativeSign = true
             } else if string == groupingSeparator {
-                continue
-            } else {
                 continue
             }
         }
 
-        guard result != "-", result != ".", result != "-." else {
-            return nil
-        }
-
+        guard result != "-", result != ".", result != "-." else { return nil }
         return Decimal(string: result)
     }
+    
+    /// Used in models to convert `amountString` to `amount` (Double).
+//    static func parseAmountStringToDecimalOG(_ text: String) -> Decimal? {
+//        let formatter = NumberFormatter()
+//        formatter.numberStyle = .decimal
+//        formatter.locale = Locale.current
+//
+//        let decimalSeparator = formatter.decimalSeparator ?? "."
+//        let groupingSeparator = formatter.groupingSeparator ?? ","
+//
+//        var result = ""
+//        var hasDecimalSeparator = false
+//        var hasNegativeSign = false
+//
+//        for char in text {
+//            let string = String(char)
+//
+//            if char.isNumber {
+//                result.append(char)
+//            } else if string == decimalSeparator || string == "." {
+//                if !hasDecimalSeparator {
+//                    result.append(".")
+//                    hasDecimalSeparator = true
+//                }
+//            } else if string == "-" {
+//                if !hasNegativeSign && result.isEmpty {
+//                    result.append("-")
+//                    hasNegativeSign = true
+//                }
+//            } else if string == groupingSeparator {
+//                continue
+//            } else {
+//                continue
+//            }
+//        }
+//
+//        guard result != "-", result != ".", result != "-." else {
+//            return nil
+//        }
+//
+//        return Decimal(string: result)
+//    }
 
     
     static func formatAmountText(amount: Decimal?, currencyCode: String) -> String {

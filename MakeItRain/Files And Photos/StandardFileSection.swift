@@ -16,23 +16,22 @@ enum FileSectionDisplayStyle {
     case standard, grid
 }
 
+struct MaxSymbolHeightPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = .zero
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+struct SelectFileButtonType: Identifiable {
+    var id: String { return title }
+    var title: String
+    var symbol: String
+    var action: () -> Void
+}
+
 struct StandardFileSection: View {
-    struct SelectFileButtonType: Identifiable {
-        var id: String { return title }
-        var title: String
-        var symbol: String
-        var action: () -> Void
-    }
-            
-    private struct MaxSymbolHeightPreferenceKey: PreferenceKey {
-        static var defaultValue: CGFloat = .zero
-
-        static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-            value = max(value, nextValue())
-        }
-    }
-
-        
     @Binding var files: [CBFile]?
     var fileUploadCompletedDelegate: FileUploadCompletedDelegate
     var parentType: XrefFileType
@@ -309,52 +308,7 @@ struct StandardFileSection: View {
     }
     
     
-    struct FileButton: View {
-        var button: SelectFileButtonType
-        var files: [CBFile]?
-        
-        @State private var hoverColor: Color = Color(.tertiarySystemFill)
-        @State private var symbolHeight: CGFloat = 20.0
-        
-        var body: some View {
-            let thereAreFiles = files?.filter({ $0.active }).count ?? 0 > 0
-            
-            let tallRectangle = RoundedRectangle(cornerRadius: 14)
-                .fill(hoverColor)
-                .frame(width: fileWidth/*, height: (fileHeight / 3) - 3*/) /// -4 to account for the padding
-            
-            let shortRectangle = RoundedRectangle(cornerRadius: 14)
-                .fill(hoverColor)
-                .frame(maxWidth: .infinity)
-                .frame(height: (fileHeight / 3))
-            
-            Button(action: button.action, label: {
-                VStack {
-                    if thereAreFiles {
-                        tallRectangle
-                    } else {
-                        shortRectangle
-                    }
-                }
-                .overlay {
-                    VStack {
-                        Image(systemName: button.symbol)
-                            .font(.title)
-                            /// Monitor the background size so all symbols are the same height.
-                            .background { GeometryReader {
-                                Color.clear.preference(key: MaxSymbolHeightPreferenceKey.self, value: $0.size.height) }
-                            }
-                            .frame(height: symbolHeight, alignment: .center)
-                        Text(button.title)
-                    }
-                    .foregroundStyle(.gray)
-                }
-            })
-            .buttonStyle(.plain)
-            .onHover { isHovered in hoverColor = isHovered ? Color(.systemFill) : Color(.tertiarySystemFill) }
-            .focusEffectDisabled(true)
-        }
-    }
+    
 //    
 //    @ViewBuilder
 //    func fileButton(for button: SelectFileButtonType) -> some View {
@@ -398,129 +352,6 @@ struct StandardFileSection: View {
 //    
     
     
-    
-    
-    
-    
-    
-    struct FileImage: View {
-        @Environment(FuncModel.self) var funcModel
-        @Environment(FileViewProps.self) var props
-        
-        var file: CBFile
-        var displayStyle: FileSectionDisplayStyle
-        
-//        var isDeletingFile: Bool { props.isDeletingFile && file.id == props.deleteFile?.id }
-//        var dimImage: Bool { (props.isItemizing && props.itemizingFile == file) || isDeletingFile || props.hoverFile == file || file.isPlaceholder }
-        
-        var isDeletingFile: Bool { file.isDeleting }
-        var dimImage: Bool { file.isItemizing || isDeletingFile || file.isHovered || file.isPlaceholder }
-        
-        var body: some View {
-            @Bindable var props = props
-            CustomAsyncImage(file: file) { image in
-                switch displayStyle {
-                case .standard:
-                    image
-                        .resizable()
-                        .frame(width: fileWidth, height: fileHeight)
-                        .aspectRatio(contentMode: .fill)
-                        .clipShape(.rect(cornerRadius: 14))
-                        .onAppear {
-                            if file.isItemizing {
-                                funcModel.itemizeReceipt(file: file)
-                            }
-                        }
-                case .grid:
-                    image
-                        .resizable()
-                        .aspectRatio(1, contentMode: .fit)
-                        .clipShape(.rect(cornerRadius: 14))
-                        .onAppear {
-                            if file.isItemizing {
-                                funcModel.itemizeReceipt(file: file)
-                            }
-                        }
-                }
-            } placeholder: {
-                LoadingPlaceholder(text: "Downloading…", displayStyle: displayStyle)
-            }
-
-//            AsyncImage(
-//                url: URL(string: "https://\(Keys.baseURL):8676/files/budget_app.photo.\(file.uuid).jpg"),
-//                content: { image in
-//                    image
-//                        .resizable()
-//                        .if(displayStyle == .grid) {
-//                            $0.aspectRatio(1, contentMode: .fit)
-//                        }
-//                        .if(displayStyle == .standard) {
-//                            $0.frame(width: fileWidth, height: fileHeight).aspectRatio(contentMode: .fill)
-//                        }
-//
-//                        .clipShape(.rect(cornerRadius: 12))
-//                        //.frame(maxWidth: 300, maxHeight: 300)
-//                },
-//                placeholder: {
-//                    LoadingPlaceholder(text: "Downloading…", displayStyle: displayStyle)
-//                }
-//            )
-            .opacity(dimImage ? 0.2 : 1)
-            .overlay(ProgressView().tint(.none).opacity(dimImage ? 1 : 0))
-        }
-    }
-    
-    
-    
-    #if os(macOS)
-    struct FileButtons: View {
-        @Environment(FileViewProps.self) var props
-        var file: CBFile
-
-        var body: some View {
-            @Bindable var props = props
-
-            VStack {
-                HStack {
-//                    Link(destination: URL(string: "http://\(Keys.baseURL):8677/budget_app.photo.\(file.uuid).jpg")!) {
-//                        Image(systemName: "arrow.down.left.and.arrow.up.right")
-//                            .frame(width: 30, height: 30)
-//                            .background(RoundedRectangle(cornerRadius: 4).fill(.ultraThickMaterial))
-//                    }
-
-                    ShareLink(item: URL(string: "https://\(Keys.prodBaseFileURL)/files/budget_app.photo.\(file.uuid).jpg")! /*, subject: Text(trans.title), message: Text(trans.amountString)*/) {
-                        Image(systemName: "square.and.arrow.up")
-                            .frame(width: 30, height: 30)
-                            .foregroundStyle(Color.accentColor)
-                            .background(RoundedRectangle(cornerRadius: 4).fill(.ultraThickMaterial))
-                    }
-                    .buttonStyle(.plain)
-
-                    Button {
-                        props.deleteFile = file
-                        props.showDeleteFileAlert = true
-                    } label: {
-                        Image(systemName: "trash")
-                            .foregroundStyle(.red)
-                            .frame(width: 30, height: 30)
-                            .background(RoundedRectangle(cornerRadius: 4).fill(.ultraThickMaterial))
-                    }
-                    .buttonStyle(.plain)
-
-                    //Spacer()
-                }
-                .padding(.leading, 4)
-                Spacer()
-            }
-            .padding(.top, 4)
-
-            .opacity(props.isDeletingFile && file.id == props.deleteFile?.id ? 0 : 1)
-            .disabled(props.isDeletingFile && file.id != props.deleteFile?.id)
-        }
-    }
-    #endif
-    
-    
 //    func deleteFile() {
 //        Task {
 //            props.isDeletingPic = true
@@ -530,3 +361,7 @@ struct StandardFileSection: View {
 //        }
 //    }
 }
+
+
+
+

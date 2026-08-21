@@ -563,7 +563,7 @@ struct SettingsView: View {
                     .font(.footnote)
             }
                                 
-            if NotificationManager.shared.notificationsAreAllowed {
+            if AppState.shared.notificationsAreAllowed {
                 Text(AppState.shared.notificationToken ?? "N/A")
                     .textSelection(.enabled)
                     .foregroundStyle(.gray)
@@ -575,7 +575,7 @@ struct SettingsView: View {
         } header: {
             Text("Device Information")
         } footer: {
-            if !NotificationManager.shared.notificationsAreAllowed {
+            if !AppState.shared.notificationsAreAllowed {
                 Text("Notifications are used to alert you about upcoming payments, or reminders about certain transactions.")
             }
         }

@@ -34,6 +34,8 @@ struct Dashboard: View {
     //@State private var showCategorySheet = false
     //@State private var showOptionsSheet = false
     @State private var showExpensiveViews = true
+    @State private var isBreakdownExpanded = false
+    let gridColumns = Array(repeating: GridItem(.flexible(), spacing: 30, alignment: .top), count: 2)
     
     var totalExpenses: Decimal {
         let trans = calModel.getTransactions(meth: model.payMethod)
@@ -155,8 +157,6 @@ struct Dashboard: View {
             }
     }
     
-    @State private var isBreakdownExpanded = false
-    let gridColumns = Array(repeating: GridItem(.flexible(), spacing: 30, alignment: .top), count: 2)
     
     @ViewBuilder
     var contentContainer: some View {

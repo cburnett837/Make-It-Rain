@@ -22,6 +22,7 @@ class AppState {
     var accountUsers: Array<CBUser> = []
     var methsExist = false
     var showPaymentMethodNeededSheet = false
+    var notificationsAreAllowed = false
     #if os(macOS)
     var isInFullScreen = false
     var macWindowDidBecomeMain = false
@@ -150,25 +151,25 @@ class AppState {
     }
     
     
-    func hasBadConnection() async -> Bool {
-        //print("-- \(#function)")
-        
-        let model = RequestModel(requestType: "check_connection", model: CodablePlaceHolder())
-        typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model, timeout: 10)
-        
-        switch await result {
-        case .success:
-            AppState.shared.hasBadConnection = false
-            return false
-            
-        case .failure(let error):
-            LogManager.error(error.localizedDescription)
-            AppState.shared.hasBadConnection = true
-            AppState.shared.showAlert("Connection Problem")
-            return true
-        }
-    }
+//    func hasBadConnection() async -> Bool {
+//        //print("-- \(#function)")
+//        
+//        let model = RequestModel(requestType: "check_connection", model: CodablePlaceHolder())
+//        typealias ResultResponse = Result<ResultCompleteModel?, AppError>
+//        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model, timeout: 10)
+//        
+//        switch await result {
+//        case .success:
+//            AppState.shared.hasBadConnection = false
+//            return false
+//            
+//        case .failure(let error):
+//            LogManager.error(error.localizedDescription)
+//            AppState.shared.hasBadConnection = true
+//            AppState.shared.showAlert("Connection Problem")
+//            return true
+//        }
+//    }
     
     
 //    func checkIfDownloadingDataIsNeeded() async -> Bool {

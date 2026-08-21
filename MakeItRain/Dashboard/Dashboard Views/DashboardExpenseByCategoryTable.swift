@@ -50,7 +50,7 @@ struct DashboardExpenseByCategoryTableNewAttempt: View {
                         withAnimation {
                             if isForSelectedMonth {
                                 if let budget = calModel.sMonth.budgets.filter({ $0.type == .categoryGroup && $0.item?.id == group.id }).first {
-                                    navPath.append(NavDest.budgetOverview(budget))
+                                    navPath.append(NavDest.budgetOverview(budget, model.payMethod))
                                 } else {
                                     print("No category budget found for group with id: \(group.id)")
                                     AppState.shared.showAlert("No budget exists for this category.")
@@ -179,7 +179,7 @@ struct DashboardExpenseByCategoryTableNewAttempt: View {
                 if isForSelectedMonth {
                     if let budget = calModel.sMonth.budgets.filter({ $0.type == .category && $0.item?.id == cat.id }).first {
                         //BudgetOverview(budget: budget, location: .monthList)
-                        navPath.append(NavDest.budgetOverview(budget))
+                        navPath.append(NavDest.budgetOverview(budget, model.payMethod))
                     } else {
                         AppState.shared.showAlert("A budget does not exist for \(cat.title).")
                     }
@@ -234,7 +234,7 @@ struct DashboardExpenseByCategoryTable: View {
                         withAnimation {
                             if isForSelectedMonth {
                                 if let budget = calModel.sMonth.budgets.filter({ $0.type == .categoryGroup && $0.item?.id == group.id }).first {
-                                    navPath.append(NavDest.budgetOverview(budget))
+                                    navPath.append(NavDest.budgetOverview(budget, model.payMethod))
                                 } else {
                                     print("No category budget found for group with id: \(group.id)")
                                     AppState.shared.showAlert("No budget exists for this category.")
@@ -351,7 +351,7 @@ struct DashboardExpenseByCategoryTable: View {
                 if isForSelectedMonth {
                     if let budget = calModel.sMonth.budgets.filter({ $0.type == .category && $0.item?.id == cat.id }).first {
                         //BudgetOverview(budget: budget, location: .monthList)
-                        navPath.append(NavDest.budgetOverview(budget))
+                        navPath.append(NavDest.budgetOverview(budget, model.payMethod))
                     } else {
                         AppState.shared.showAlert("A budget does not exist for \(cat.title).")
                     }

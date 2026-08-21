@@ -57,7 +57,7 @@ enum NavDest: Hashable, Identifiable, Codable {
     case multiTransChangeDate
     case dashboardNumericBreakdown
     case dashboardTransactionList(DashboardData, CBCategory)
-    case budgetOverview(CBBudgetItem)
+    case budgetOverview(CBBudgetItem, CBPaymentMethod?)
     
     var id: NavDest { return self }
     

@@ -200,8 +200,6 @@ struct OpenAIResponse: Decodable {
         let text: String?
     }
 }
-
-
 struct ReceiptResponse: Decodable {
     let isReceipt: Bool
     let items: [ReceiptItem]
@@ -210,14 +208,54 @@ struct ReceiptResponse: Decodable {
         case isReceipt = "is_receipt"
         case items
     }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        isReceipt = try container.decodeIfPresent(Bool.self, forKey: .isReceipt) ?? false
+        items = try container.decodeIfPresent([ReceiptItem].self, forKey: .items) ?? []
+    }
 }
 
 struct ReceiptItem: Decodable {
     let itemName: String
     let cost: String
+    let emoji: String
+    let subLines: [ReceiptSubLine]
 
     enum CodingKeys: String, CodingKey {
         case itemName = "item name"
         case cost
+        case emoji
+        case subLines = "sub_lines"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        itemName = try container.decodeIfPresent(String.self, forKey: .itemName) ?? ""
+        cost = try container.decodeIfPresent(String.self, forKey: .cost) ?? ""
+        emoji = try container.decodeIfPresent(String.self, forKey: .emoji) ?? ""
+        subLines = try container.decodeIfPresent([ReceiptSubLine].self, forKey: .subLines) ?? []
+    }
+}
+
+struct ReceiptSubLine: Decodable {
+    let itemName: String
+    let cost: String
+    let emoji: String
+
+    enum CodingKeys: String, CodingKey {
+        case itemName = "item name"
+        case cost
+        case emoji
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        itemName = try container.decodeIfPresent(String.self, forKey: .itemName) ?? ""
+        cost = try container.decodeIfPresent(String.self, forKey: .cost) ?? ""
+        emoji = try container.decodeIfPresent(String.self, forKey: .emoji) ?? ""
     }
 }

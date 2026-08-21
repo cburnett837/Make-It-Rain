@@ -80,7 +80,8 @@ struct CalendarGridPhone: View {
                 ScrollView {
                     /// NOTE: Tried and failed to use LazyVGrid, because when dismissing the bottom panel, the scroll view would not resize with the dismissing transition. It would just snap when the transition has finished. This is because the LazyVGrid would recalc its size.
                     Grid(alignment: .top, horizontalSpacing: 0, verticalSpacing: 0) {
-                        ForEach(weeks, id: \.self) { week in
+                        ForEach(weeks.indices, id: \.self) { i in
+                            let week = weeks[i]
                             GridRow {
                                 ForEach(week) { day in
                                     VStack(spacing: 0) {

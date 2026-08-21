@@ -61,28 +61,8 @@ class FuncModel {
         self.tagModel = tagModel
         self.calProps = calProps
     }
+ 
     
-//    /// This is only for biometrics.
-//    @MainActor func authenticate() {
-//        let context = LAContext()
-//        var error: NSError?
-//
-//        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
-//            let reason = "We need to unlock your data."
-//
-//            context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) { success, authenticationError in
-//                if success {
-//                    AuthState.shared.isBioAuthed = true
-//                } else {
-//                    //AuthState.shared.isBioAuthed = false
-//                }
-//            }
-//        } else {
-//            AuthState.shared.isBioAuthed = true
-//        }
-//    }
-//    
-//    
     /// Establish a UUID for each device for the long poll server. The long poll will not respond to the device that makes the change.
     @MainActor
     func setDeviceUUID() {
@@ -161,13 +141,13 @@ class FuncModel {
         let start = CFAbsoluteTimeGetCurrent()
         
         /// Run this in case the user changes notificaiton settings, we will know about it ASAP.
-        Task {
-            await NotificationManager.shared.registerForPushNotifications()
-        }
+        /// Must be MainActor.
+        /// Run in a task so we don't have to wait for it.
+        Task { AppState.shared.notificationsAreAllowed = await NotificationManager.shared.registerForPushNotifications() }
         
-        await setUserAvatars()
-        
-        
+        /// Run in a task so we don't have to wait for it.
+        Task { await setUserAvatars() }
+                        
         WidgetCenter.shared.reloadTimelines(ofKind: "PlaidWidget")
         
 //        /// Set user avatar.
@@ -199,14 +179,16 @@ class FuncModel {
               
         /// Check if the user has bad connection.
         /// If so, network tasks will be cancelled, and a variable will be set in ``AppState`` and the app will flip to the temporary list.
+        #warning("Concurrency: Come back to this and check")
         Task {
-            if await AppState.shared.hasBadConnection() {
+            if await hasBadConnection() {
                 self.refreshTask?.cancel()
                 //self.longPollTask?.cancel()
                 webSocketManager.stopListening()
             }
         }
         
+        #warning("Concurrency: Come back to this and check")
         webSocketManager.startListening()
         /// Restart long poll (if applicable).
         //longPollServerForChanges()
@@ -218,10 +200,10 @@ class FuncModel {
         }
         
         /// Grab anything that got stuffed into temporary storage while the network connection was bad, and send it to the server before trying to download any new data.
+        /// If I remove MainActor here, the app completely freezes on the splash screen..
         await submitCachedTransactionsIfApplicable()
         await submitCachedAccessorialsIfApplicable()
-                                             
-        
+                                                     
         /// Populate accessorials from cache.
         payModel.methsAreCachedAtLaunch = false
         await payModel.populateFromCoreData(setDefaultPayMethod: setDefaultPayMethod, calModel: calModel)
@@ -245,7 +227,6 @@ class FuncModel {
         if let currentNavSelection {
             /// If viewing a month, determine current and adjacent months.
             if NavDest.justMonths.contains(currentNavSelection) {
-                
                 /// Grab Payment Methods (only when logging in. We need this to have a payment method in place before the viewing month loads.)
                 /// If not logging in, methods will be downloaded the accessory download function.
                 if AppState.shared.isLoggingInForFirstTime, !payModel.methsAreCachedAtLaunch {
@@ -262,7 +243,8 @@ class FuncModel {
                     prev = calModel.months.getAdjacent(num: (currentNavSelection.monthNum ?? 0), direction: .prev)
                 }
                 
-                //await fetchExchangeRates()
+                //viewingMonth.hasBeenLoadedFromServer = true
+                //AppState.shared.shouldShowSplash = false
         
                 /// Download viewing month.
                 await downloadViewingMonth(
@@ -365,6 +347,27 @@ class FuncModel {
 //        print("⏰ It took \(plaidElapsed) seconds to fetch the plaid data")
 //    }
     
+    
+    
+    func hasBadConnection() async -> Bool {
+        //print("-- \(#function)")
+        
+        let model = RequestModel(requestType: "check_connection", model: CodablePlaceHolder())
+        typealias ResultResponse = Result<ResultCompleteModel?, AppError>
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model, timeout: 10)
+        
+        switch await result {
+        case .success:
+            AppState.shared.hasBadConnection = false
+            return false
+            
+        case .failure(let error):
+            LogManager.error(error.localizedDescription)
+            AppState.shared.hasBadConnection = true
+            AppState.shared.showAlert("Connection Problem")
+            return true
+        }
+    }
     
     
     @MainActor
@@ -665,6 +668,7 @@ class FuncModel {
 
     
     @MainActor
+    //nonisolated
     func submitCachedTransactionsIfApplicable() async {
         let context = DataManager.shared.createContext()
 
@@ -676,18 +680,19 @@ class FuncModel {
         guard !tempTransactionIDs.isEmpty else { return }
 
         for id in tempTransactionIDs {
-            print("Found temp trans with ID \(id)")
-            guard let trans = await CBTransaction.loadFromCoreData(id: id) else { continue }
-            
-            print("Created trans snapshot with ID \(trans.id)")
-            
+            guard let trans = await CBTransaction.loadFromCoreData(id: id) else { continue }            
             guard trans.payMethod != nil else { continue }
-            await calModel.saveTemp(trans: trans)
+            await withTaskGroup(of: Void.self) { group in
+                group.addTask {
+                    await self.calModel.saveTemp(trans: trans)
+                }
+            }
         }
     }
 
     
     @MainActor
+    //nonisolated
     func submitCachedAccessorialsIfApplicable() async {
         let context = DataManager.shared.createContext()
         let pendingPredicate = NSPredicate(format: "isPending == %@", NSNumber(value: true))
@@ -701,29 +706,64 @@ class FuncModel {
             return (catIDs: catIDs, groupIDs: groupIDs, keyIDs: keyIDs, methIDs: methIDs)
         }
 
-        for id in pending.catIDs {
-            if let category = await CBCategory.loadFromCoreData(id: id) {
-                await catModel.submit(category)
+        await withTaskGroup(of: Void.self) { group in
+            for id in pending.catIDs {
+                if let category = await CBCategory.loadFromCoreData(id: id) {
+                    group.addTask {
+                        await self.catModel.submit(category)
+                    }
+                }
+            }
+        }
+        
+        await withTaskGroup(of: Void.self) { group in
+            for id in pending.groupIDs {
+                if let catGroup = await CBCategoryGroup.loadFromCoreData(id: id) {
+                    group.addTask {
+                        await self.catModel.submit(catGroup)
+                    }
+                }
+            }
+        }
+        
+        await withTaskGroup(of: Void.self) { group in
+            for id in pending.keyIDs {
+                if let keyword = await CBKeyword.loadFromCoreData(id: id) {
+                    group.addTask {
+                        await self.keyModel.submit(keyword)
+                    }
+                }
+            }
+
+        }
+        
+        await withTaskGroup(of: Void.self) { group in
+            for id in pending.methIDs {
+                if let method = await CBPaymentMethod.loadFromCoreData(id: id) {
+                    group.addTask {
+                        await self.payModel.submit(method)
+                    }
+                }
             }
         }
 
-        for id in pending.groupIDs {
-            if let group = await CBCategoryGroup.loadFromCoreData(id: id) {
-                await catModel.submit(group)
-            }
-        }
-
-        for id in pending.keyIDs {
-            if let keyword = await CBKeyword.loadFromCoreData(id: id) {
-                await keyModel.submit(keyword)
-            }
-        }
-
-        for id in pending.methIDs {
-            if let method = await CBPaymentMethod.loadFromCoreData(id: id) {
-                await payModel.submit(method)
-            }
-        }
+//        for id in pending.groupIDs {
+//            if let group = await CBCategoryGroup.loadFromCoreData(id: id) {
+//                await catModel.submit(group)
+//            }
+//        }
+//
+//        for id in pending.keyIDs {
+//            if let keyword = await CBKeyword.loadFromCoreData(id: id) {
+//                await keyModel.submit(keyword)
+//            }
+//        }
+//
+//        for id in pending.methIDs {
+//            if let method = await CBPaymentMethod.loadFromCoreData(id: id) {
+//                await payModel.submit(method)
+//            }
+//        }
     }
 
     
@@ -1460,28 +1500,34 @@ class FuncModel {
                         guard receipt.isReceipt else {
                             AppState.shared.showToast(title: "That photo was not a receipt.", subtitle: "Skipping itemization.")
                             print("Photo was not a receipt")
-                            file.isItemizing = false
+                            withAnimation {
+                                file.isItemizing = false
+                            }
                             return
                         }
                         
                         let lineItems = receipt.items
-                            .map { "\($0.itemName) - \($0.cost)" }
+                            .flatMap { item in
+                                //let itemEmoji = item.emoji.isEmpty ? "" : "\(item.emoji) "
+                                //let parent = "\(itemEmoji)\(item.itemName) - \(item.cost)"
+                                let parent = "\(item.itemName) - \(item.cost)"
+
+                                let subLines = item.subLines.map { subLine in
+                                    //let emoji = subLine.emoji.isEmpty ? "" : "\(subLine.emoji) "
+                                    //return "\(emoji)\(subLine.itemName) - \(subLine.cost)"
+                                    return "\(subLine.itemName) - \(subLine.cost)"
+                                }
+
+                                return [parent] + subLines
+                            }
                             .joined(separator: "\n")
-
-//                        let result = """
-//                        \(lineItems)
-//
-//                        (Line items extracted from receipt via OpenAI)
-//                        """
-
-                        //print(lineItems)
                         
                         
                         if let trans = calModel.getTransaction(by: file.relatedID) {
                             if trans.notes == "" {
-                                trans.notes = AttributedString(lineItems)
+                                trans.notes = AttributedString("Items:\n\(lineItems)")
                             } else {
-                                trans.notes += AttributedString("\n\n\(lineItems)")
+                                trans.notes += AttributedString("\n\nItems:\n\(lineItems)")
                             }
                             
                             if calProps.transEditID == nil {
@@ -1504,7 +1550,9 @@ class FuncModel {
                     }
                 }
                 
-                file.isItemizing = false
+                withAnimation {
+                    file.isItemizing = false
+                }
                 //props.itemizingFile = nil
             }
         }

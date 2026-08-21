@@ -308,16 +308,7 @@ struct KeywordView: View {
         .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
         .tint(.none)
         .confirmationDialog("Delete \"\(keyword.keyword)\"?", isPresented: $showDeleteAlert, actions: {
-            Button("Yes", role: .destructive) {
-                /// Prevent from going to the server and trying to delete something that isn't there.
-                if keyword.action == .add {
-                    keyModel.delete(keyword, andSubmit: false)
-                } else {
-                    keyword.action = .delete
-                }
-                
-                dismiss()                
-            }
+            Button("Yes", role: .destructive) { delete() }
             #if os(iOS)
             Button("No", role: .close) { showDeleteAlert = false }
             #else
@@ -345,7 +336,19 @@ struct KeywordView: View {
         }
     }
     
-    
+    func delete() {
+        /// Prevent from going to the server and trying to delete something that isn't there.
+        if keyword.action == .add {
+            Task {
+                await keyModel.delete(keyword, andSubmit: false)
+            }
+            
+        } else {
+            keyword.action = .delete
+        }
+        
+        dismiss()
+    }
     
 //    func save() {
 //        dismiss()

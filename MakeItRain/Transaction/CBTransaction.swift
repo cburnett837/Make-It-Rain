@@ -9,8 +9,9 @@ import Foundation
 import UniformTypeIdentifiers
 import SwiftUI
 
+
 @Observable
-class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation, CanEditAmount, CurrencyConvertable {
+class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation, CanEditAmount, CurrencyConvertable, CanUpdateStatus {
     
     #warning("serverID Change")
     /// This changed affected
@@ -32,9 +33,23 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
     
     /// AMOUNT DETAILS
     var country: Country?
-    var amountString: String
+//    var amountString: String
+//    var amount: Decimal {
+//        CurrencyHelpers.parseAmountStringToDecimal(amountString) ?? 0.0
+//    }
+    
+    var amountString: String {
+        didSet { cachedAmount = nil }
+    }
+
+    @ObservationIgnored private var cachedAmount: Decimal?
+
     var amount: Decimal {
-        CurrencyHelpers.parseAmountStringToDecimal(amountString) ?? 0.0
+        if let cachedAmount { return cachedAmount }
+
+        let parsed = CurrencyHelpers.parseAmountStringToDecimal(amountString) ?? 0
+        cachedAmount = parsed
+        return parsed
     }
     
     /// PRECONVERSION AMOUNT DETAILS
@@ -68,7 +83,7 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
         }
     }
     
-    var date: Date?
+    //var date: Date?
     
     var prettyDate: String? {
         if let date = self.date {
@@ -77,15 +92,32 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
         return nil
     }
     
-    var dateComponents: DateComponents? {
-        //return Calendar.current.dateComponents(in: .current, from: date)
-        
-        if let date = self.date {
-            return Calendar.current.dateComponents(in: .current, from: date)
-        } else {
-            return nil
-        }
+//    var dateComponents: DateComponents? {
+//        //return Calendar.current.dateComponents(in: .current, from: date)
+//        
+//        if let date = self.date {
+//            return Calendar.current.dateComponents(in: .current, from: date)
+//        } else {
+//            return nil
+//        }
+//    }
+    
+    
+    var date: Date? {
+        didSet { cachedDateComponents = nil }
     }
+
+    @ObservationIgnored private var cachedDateComponents: DateComponents?
+
+    var dateComponents: DateComponents? {
+        if let cachedDateComponents { return cachedDateComponents }
+        guard let date else { return nil }
+
+        let components = Calendar.current.dateComponents(in: .current, from: date)
+        cachedDateComponents = components
+        return components
+    }
+    
     
     var day: Int? { self.dateComponents?.day }
     var month: Int? { self.dateComponents?.month }
@@ -103,7 +135,7 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
     var factorInCalculations: Bool
     
     var status: ObjectStatus?
-    var isInFlight = false
+    //var isInFlight = false
     
     var enteredBy: CBUser = AppState.shared.user ?? CBUser()
     var updatedBy: CBUser = AppState.shared.user ?? CBUser()
@@ -1461,8 +1493,9 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
         if lhs.id == rhs.id
         && lhs.uuid == rhs.uuid
         && lhs.title == rhs.title
-            
-        && lhs.amount == rhs.amount
+        
+        && lhs.amountString == rhs.amountString
+//        && lhs.amount == rhs.amount
         && lhs.country == rhs.country
             
         && lhs.payMethod?.id == rhs.payMethod?.id
@@ -1485,10 +1518,12 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
         && lhs.url == rhs.url
         && lhs.christmasListStatus == rhs.christmasListStatus
                     
-        && lhs.condataOriginalAmount == rhs.condataOriginalAmount
+//        && lhs.condataOriginalAmount == rhs.condataOriginalAmount
+        && lhs.condataOriginalAmountString == rhs.condataOriginalAmountString
         && lhs.condataOriginalCountry == rhs.condataOriginalCountry
             
-        && lhs.condataPayMethodAmount == rhs.condataPayMethodAmount
+//        && lhs.condataPayMethodAmount == rhs.condataPayMethodAmount
+        && lhs.condataPayMethodAmountString == rhs.condataPayMethodAmountString
         && lhs.condataOriginCountryToPayMethodCountryExchangeRate == rhs.condataOriginCountryToPayMethodCountryExchangeRate
         && lhs.condataPayMethodCountryToAccountCountryExchangeRate == rhs.condataPayMethodCountryToAccountCountryExchangeRate
         //&& lhs.amountCountryID == rhs.amountCountryID

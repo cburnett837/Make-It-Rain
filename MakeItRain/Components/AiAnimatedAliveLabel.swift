@@ -263,14 +263,16 @@ struct AiAnimatedAliveLabel<Content: View>: View {
 
 
 struct AiAnimatedAliveSymbol: View {
+    var symbol: String
+    var withGlow: Bool = false
+    var fontSize: Font = .body
+    var text: String? = nil
+    
     @State private var hueShift: Double = 0
     @State private var glowPulse: CGFloat = 0
     
-    var symbol: String
-    var withGlow: Bool = false
-    
     var body: some View {
-        Group {
+        VStack {
             if withGlow {
                 ZStack {
                     image
@@ -283,6 +285,10 @@ struct AiAnimatedAliveSymbol: View {
             } else {
                 image
             }
+            
+            if let text {
+                Text(text)
+            }
         }
         .onAppear {
             animate(withGlow: withGlow, hueShift: $hueShift, glowPulse: $glowPulse)
@@ -293,6 +299,6 @@ struct AiAnimatedAliveSymbol: View {
         Image(systemName: symbol)
             .foregroundStyle(gradient)
             .hueRotation(.degrees(hueShift))
-            //.font(.title)
+            .font(fontSize)
     }
 }

@@ -210,23 +210,66 @@ struct CalendarMoreMenu: View {
         .disabled(funcModel.isLoading)
     }
     
+    @State private var csvURL: URL?
     
     @ViewBuilder
     var exportCsvButton: some View {
-        let rows = calModel.sMonth
-            .justTransactions
-            .filter { $0.active && $0.isPermitted }
-            .map { $0.convertToCsvRecord() }
-        
-        ExportCsvButton(
-            fileName: "Transactions-\(calModel.sMonth.name)-\(calModel.sYear).csv",
-            headers: CBTransaction.getCsvHeaders(),
-            rows: rows
-        ) {
-            Label("Export CSV", systemImage: "tablecells")
+        Group {
+            if let csvURL = csvURL {
+                ShareLink(item: csvURL) {
+                    Label("Export CSV", systemImage: "tablecells")
+                }
+            } else {
+                Button {
+                    Task { csvURL = await generateCsv() }
+                } label: {
+                    Label("Generate CSV", systemImage: "tablecells")
+                }
+            }
+        }
+        //.buttonStyle(.borderedProminent)
+        .font(.subheadline)
+        .task {
+            csvURL = await generateCsv()
         }
     }
     
+    func generateCsv() async -> URL {
+        return await Task.detached {
+            let rows = await calModel.sMonth
+                .justTransactions
+                .filter { $0.active && $0.isPermitted }
+                .map { $0.convertToCsvRecord() }
+            
+            let fileName = "Transactions-\(await calModel.sMonth.name)-\(await calModel.sYear).csv"
+            let headers = CBTransaction.getCsvHeaders()
+            
+            return Helpers.generateCsv(
+                fileName: fileName,
+                headers: headers,
+                rows: rows
+            )
+        }.value
+    }
+//    
+//    @State private var csvURL: URL?
+//    @State private var showCsvShareSheet = false
+//    var exportCsvButton: some View {
+//        Button {
+//            csvURL = generateCsv()
+//            showCsvShareSheet = true
+//        } label: {
+//            Label("Export CSV", systemImage: "tablecells")
+//        }
+//        .buttonStyle(.borderedProminent)
+//        .font(.subheadline)
+//        .sheet(isPresented: $showCsvShareSheet) {
+//            if let csvURL {
+//                ActivityView(items: [csvURL])
+//            }
+//        }
+//    }
+//    
     
     var settingsSheetButton: some View {
         Button {
@@ -238,4 +281,15 @@ struct CalendarMoreMenu: View {
     }
 }
 #endif
-
+//
+//#if os(iOS)
+//struct ActivityView: UIViewControllerRepresentable {
+//    let items: [Any]
+//
+//    func makeUIViewController(context: Context) -> UIActivityViewController {
+//        UIActivityViewController(activityItems: items, applicationActivities: nil)
+//    }
+//
+//    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
+//}
+//#endif

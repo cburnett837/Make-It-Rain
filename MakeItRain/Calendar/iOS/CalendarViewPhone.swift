@@ -124,8 +124,8 @@ struct CalendarViewPhone: View {
                     case .multiTransChangeDate:
                         MultiSelectChangeDatePage(navPath: $calProps.navPath)
                         
-                    case .budgetOverview(let budget):
-                        BudgetOverview(budget: budget, location: .monthList)
+                    case .budgetOverview(let budget, let meth):
+                        BudgetOverview(budget: budget, payMethod: meth, location: .monthList)
                         
                     default:
                         Text("That destination is not supported from the calendar.")
@@ -395,8 +395,15 @@ struct CalendarViewPhone: View {
             /// Set the selected day so new transactions have a default date.
             /// If in the current month, set to today.
             /// If not, set to the first of the month.
-            let targetDay = month.days.filter { $0.dateComponents?.day == (month.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
+            // Begin Before
+            //let targetDay = month.days.filter { $0.dateComponents?.day == (month.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
+            // End Before
+            // Begin After
+            let targetDayNumber = month.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1
+            let targetDay = month.days.first { $0.id == targetDayNumber }
+            // End After
             calProps.selectedDay = targetDay
+            
             
             /// Run this when switching months.
             /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.

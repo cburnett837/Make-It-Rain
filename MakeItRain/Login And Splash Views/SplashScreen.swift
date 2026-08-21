@@ -65,27 +65,54 @@ struct SplashScreen: View {
                 }
             }
         }
+//        .onChange(of: isReadyForMainApp, initial: true) { _, isReady in
+//            guard isReady else { return }
+//
+//            Task { @MainActor in
+//                if shouldWarmUpTransactionViewDuringSplash {
+//                    try? await Task.sleep(for: .milliseconds(1500))
+//                }
+//
+//                #if os(iOS)
+//                if AppState.shared.isIphone,
+//                   AuthState.shared.isLoggedIn,
+//                   !AppState.shared.showPaymentMethodNeededSheet {
+//                    #warning("QWER: CAUSES SECOND HANG")
+//                    calModel.showMonth = true
+//                }
+//                #endif
+//
+//                try? await Task.sleep(for: .milliseconds(500))
+//
+//                withAnimation(.easeOut(duration: 1)) {
+//                    AppState.shared.splashIsAnimating = false
+//                }
+//            }
+//        }
         .onChange(of: isReadyForMainApp, initial: true) { _, isReady in
             guard isReady else { return }
+            
+            #if os(iOS)
+            if AppState.shared.isIphone,
+               AuthState.shared.isLoggedIn,
+               !AppState.shared.showPaymentMethodNeededSheet {
+                #warning("QWER: CAUSES HANG 625ms. I think this is a rendering issue because the calendar is expensive to compute.")
+                calModel.showMonth = true
+            }
+            #endif
+                            
+            
 
+            #warning("QWER: CAUSES MICROHANG ~400ms. This is what causes the occasional animation scroll glitch in the calendar on first boot.")
             Task { @MainActor in
-                if shouldWarmUpTransactionViewDuringSplash {
-                    try? await Task.sleep(for: .milliseconds(1500))
-                }
-
-                #if os(iOS)
-                if AppState.shared.isIphone,
-                   AuthState.shared.isLoggedIn,
-                   !AppState.shared.showPaymentMethodNeededSheet {
-                    calModel.showMonth = true
-                }
-                #endif
-
                 try? await Task.sleep(for: .milliseconds(500))
 
                 withAnimation(.easeOut(duration: 1)) {
                     AppState.shared.splashIsAnimating = false
                 }
+                
+                /// Simulate a hang
+                //Thread.sleep(forTimeInterval: 3.0)
             }
         }
         .onDisappear {

@@ -265,7 +265,8 @@ struct DayViewPhone: View {
     
     
     var dayNumber: some View {
-        Text("\(day.dateComponents?.day ?? 0)")
+        Text("\(day.id)")
+//        Text("\(day.dateComponents?.day ?? 0)")
             .contentShape(Rectangle())
             .if(isToday) {
                 $0

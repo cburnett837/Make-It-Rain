@@ -92,15 +92,15 @@ struct ConditionalFileView<Placeholder: View, PhotoView: View, PdfView: View, Cs
                     
                     if file.fileType == .photo {
                         Button {
-                            //props.itemizingFile = file
-                            file.isItemizing = true
-                            funcModel.itemizeReceipt(file: file)
-                            //itemize()
+                            withAnimation {
+                                file.isItemizing = true
+                                funcModel.itemizeReceipt(file: file)
+                            }
+                            
                         } label: {
                             Text("Itemize")
                         }
                     }
-                    
                 }
                 
                 Button("Delete", role: .destructive) {

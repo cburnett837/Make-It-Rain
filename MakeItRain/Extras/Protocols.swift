@@ -47,6 +47,13 @@ protocol CanEditAmount: AnyObject {
     var amountTypeLingo: String {get}
 }
 
+protocol CanUpdateStatus: AnyObject {
+    associatedtype Action: ServerActions
+
+    var status: ObjectStatus? { get set }
+    var action: Action { get set }
+}
+
 protocol CanHandleLocationsDelegate {
     var title: String {get set}
     func setTitle(_ text: String)
@@ -55,7 +62,8 @@ protocol CanHandleLocationsDelegate {
     func deleteLocation(id: String)
 }
 
-@MainActor protocol FileUploadCompletedDelegate {
+@MainActor
+protocol FileUploadCompletedDelegate {
     func addPlaceholderFile(recordID: String, uuid: String, parentType: XrefFileType, fileType: FileType)
     func markPlaceholderFileAsReadyForDownload(recordID: String, uuid: String, parentType: XrefFileType, fileType: FileType)
     func markFileAsFailedToUpload(recordID: String, uuid: String, parentType: XrefFileType, fileType: FileType)

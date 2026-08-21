@@ -17,6 +17,7 @@ struct BudgetOverview: View {
     @Environment(AppStore.self) var store
 
     @Bindable var budget: CBBudgetItem
+    var payMethod: CBPaymentMethod? = nil // For filtering transactions from the dashboard
     var location: WhereToLookForBudget
     //@Binding var navPath: NavigationPath
     
@@ -75,6 +76,9 @@ struct BudgetOverview: View {
         }
         
         .navigationTitle(navTitle)
+        .if(payMethod != nil) {
+            $0.navigationSubtitle(payMethod!.title)
+        }
         .task {
             if budget.action == .add {
                 budgetEditID = budget.id
@@ -563,25 +567,25 @@ struct BudgetOverview: View {
 
         if budget.type == .category {
             if let cat = budget.category {
-                transactions = calModel.getTransactions(cats: [cat])
+                transactions = calModel.getTransactions(meth: payMethod, cats: [cat])
                     .filter { $0.dateComponents?.month == calModel.sMonth.actualNum }
                     .filter { $0.dateComponents?.year == calModel.sMonth.year }
             }
         } else if budget.type == .categoryGroup {
             if let cats = budget.categoryGroup?.categories {
-                transactions = calModel.getTransactions(cats: cats)
+                transactions = calModel.getTransactions(meth: payMethod, cats: cats)
                     .filter { $0.dateComponents?.month == calModel.sMonth.actualNum }
                     .filter { $0.dateComponents?.year == calModel.sMonth.year }
             }
         } else {
-            transactions = calModel.sMonth.justTransactions
+            transactions = calModel.getTransactions(meth: payMethod)
                 .filter { $0.dateComponents?.month == calModel.sMonth.actualNum }
                 .filter { $0.dateComponents?.year == calModel.sMonth.year }
         }
         
         let days = calModel.sMonth.legitDays
 
-        let filteredTransactions = transactions//TransactionHelper.All.Transactions.spend(from: transactions)
+        let filteredTransactions = transactions
             .filter {
                 $0.dateComponents?.month == month &&
                 $0.dateComponents?.year == year
@@ -591,9 +595,6 @@ struct BudgetOverview: View {
         withAnimation {
             self.transactions = filteredTransactions
         }
-        
-        
-        //print(transactions)
 
         /// For the spending by day charts
         spendByDateTotals = BudgetHelper.calculateDailyAmount(
@@ -603,24 +604,6 @@ struct BudgetOverview: View {
         )
         
         /// For the cumulative spending chart
-//        Task {
-//            let newCumTotals = await Task.detached(priority: .userInitiated) {
-//                await BudgetHelper.calculateCumTotals(
-//                    days: days,
-//                    transactions: filteredTransactions,
-//                    budgetAmount: budgetAmount,
-//                    type: budget.catIsIncome ? .income : .spend
-//                )
-//            }.value
-//
-//            await MainActor.run {
-//                withAnimation {
-//                    self.cumTotals = newCumTotals
-//                }
-//            }
-//        }
-        
-        
         self.cumTotals = BudgetHelper.calculateCumTotals(
             days: days,
             transactions: filteredTransactions,

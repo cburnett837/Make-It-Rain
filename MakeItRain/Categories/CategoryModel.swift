@@ -59,14 +59,14 @@ class CategoryModel {
     }
     
     
-    func saveCategory(id: String) {
-        guard let category = getCategory(by: id) else { return }
+    @discardableResult
+    func saveCategory(id: String) async -> Bool {
+        guard let category = getCategory(by: id) else { return true }
         
         if category.action == .delete {
             category.updatedBy = AppState.shared.user!
             category.updatedDate = Date()
-            delete(category, andSubmit: true)
-            return
+            return await delete(category, andSubmit: true)
         }
         
         /// User blanked out the title of an existing category.
@@ -78,67 +78,70 @@ class CategoryModel {
                 /// Remove the dud that is in `.add` mode since it's being upserted into the list on creation.
                 withAnimation { categories.removeAll { $0.id == id } }
             }
-            return
+            
+            return false
         }
         
-        if category.hasChanges() {
-            Task {
-                category.updatedBy = AppState.shared.user!
-                category.updatedDate = Date()
-                
-                /// Do this to allow new items to be sorted. Something weird happens and it tried to move the second to last item if you don't sort when adding
-                if category.action == .add {
-                    category.listOrder = categories.filter { !$0.isNil }.count
-                    categories.sort(by: Helpers.categorySorter())
+        if !category.hasChanges() {
+            return false
+        }
+        
+        category.updatedBy = AppState.shared.user!
+        category.updatedDate = Date()
+        
+        /// Do this to allow new items to be sorted. Something weird happens and it tried to move the second to last item if you don't sort when adding
+        if category.action == .add {
+            category.listOrder = categories.filter { !$0.isNil }.count
+            categories.sort(by: Helpers.categorySorter())
+        }
+        
+        let wasSuccessful = await submit(category)
+        if wasSuccessful {
+            var budgetsToServer: Array<CBBudgetItem> = []
+            
+            /// Update the category info on the associated keywords.
+            //let context = DataManager.shared.createContext()
+            
+            for keyword in store.keywords.filter({ $0.category?.id == category.id }) {
+                keyword.category?.setFromAnotherInstance(category: category)
+            }
+            
+            await _updatePersistentKeywords(category: category)
+            
+            
+            store.months.forEach { month in
+                /// Update the local transactions with the new category info.
+                month.days.forEach { day in
+                    day.transactions.filter { $0.category?.id == category.id }.forEach { transaction in
+                        transaction.category?.setFromAnotherInstance(category: category)
+                    }
                 }
                 
-                let wasSuccessful = await submit(category)
-                if wasSuccessful {
-                    var budgetsToServer: Array<CBBudgetItem> = []
+                if let index = month.budgets.firstIndex(where: { $0.category?.id == category.id }) {
+                    /// Update the months budget with the new category info (if applicable).
+                    //month.budgets[index].category = category
                     
-                    /// Update the category info on the associated keywords.
-                    //let context = DataManager.shared.createContext()
+                } else if !month.budgets.isEmpty {
+                    /// If a budget has already been created for the month, add the new category (if applicable).
                     
-                    for keyword in store.keywords.filter({ $0.category?.id == category.id }) {
-                        keyword.category?.setFromAnotherInstance(category: category)
-                    }
+                    let budget = CBBudgetItem(type: .category)
+                    budget.monthId = month.populatedId
+                    //budget.month = month.actualNum
+                    //budget.year = month.year
+                    budget.amountString = category.amountString ?? ""
+                    budget.category = category
                     
-                    await _updatePersistentKeywords(category: category)
-                    
-                    
-                    store.months.forEach { month in
-                        /// Update the local transactions with the new category info.
-                        month.days.forEach { day in
-                            day.transactions.filter { $0.category?.id == category.id }.forEach { transaction in
-                                transaction.category?.setFromAnotherInstance(category: category)
-                            }
-                        }
-                        
-                        if let index = month.budgets.firstIndex(where: { $0.category?.id == category.id }) {
-                            /// Update the months budget with the new category info (if applicable).
-                            //month.budgets[index].category = category
-                            
-                        } else if !month.budgets.isEmpty {
-                            /// If a budget has already been created for the month, add the new category (if applicable).
-                            
-                            let budget = CBBudgetItem(type: .category)
-                            budget.monthId = month.populatedId
-                            //budget.month = month.actualNum
-                            //budget.year = month.year
-                            budget.amountString = category.amountString ?? ""
-                            budget.category = category
-                            
-                            budgetsToServer.append(budget)
-                            month.budgets.append(budget)
-                        }
-                    }
-                    
-                    if !budgetsToServer.isEmpty {
-                        let _ = await submitNewBudgetsOnBehalfOfCategory(budgets: budgetsToServer)
-                    }
+                    budgetsToServer.append(budget)
+                    month.budgets.append(budget)
                 }
             }
+            
+            if !budgetsToServer.isEmpty {
+                let _ = await submitNewBudgetsOnBehalfOfCategory(budgets: budgetsToServer)
+            }
         }
+        
+        return wasSuccessful
         
         
         /// Updated for concurrency rules.
@@ -255,7 +258,7 @@ class CategoryModel {
         for category in cats.sorted(by: Helpers.categorySorter()) {
             if self.doesExist(category) {
                 if !category.active {
-                    self.delete(category, andSubmit: false)
+                    await self.delete(category, andSubmit: false)
                     continue
                 } else {
                     if let index = self.getIndex(for: category) {
@@ -271,8 +274,10 @@ class CategoryModel {
             
             await category.updateCoreData(action: .edit, isPending: false, createIfNotFound: incomingDataType == .viaStandardRefresh)
             
-            store.justTransactions.filter { $0.category?.id == category.id }.forEach { $0.category = category }
-            repModel.repTransactions.filter { $0.category?.id == category.id }.forEach { $0.category = category }
+            if incomingDataType == .viaLongPoll {
+                store.justTransactions.filter { $0.category?.id == category.id }.forEach { $0.category = category }
+                repModel.repTransactions.filter { $0.category?.id == category.id }.forEach { $0.category = category }
+            }
         }
         
         /// When downloading everything from the server, if we find a local object that is not in the server payload, it means it is no longer valid and must be deleted from the local copies.
@@ -346,7 +351,8 @@ class CategoryModel {
     }
     
     
-    func delete(_ category: CBCategory, andSubmit: Bool) {
+    @discardableResult
+    func delete(_ category: CBCategory, andSubmit: Bool) async -> Bool {
         category.action = .delete
         category.deepCopy?.action = .delete
         withAnimation {
@@ -359,12 +365,11 @@ class CategoryModel {
         }
         
         if andSubmit {
-            Task { @MainActor in
-                let _ = await submit(category)
-            }
+            return await submit(category)
         } else {
             let context = DataManager.shared.createContext()
             DataManager.shared.delete(context: context, type: PersistentCategory.self, predicate: .byId(.string(category.id)))
+            return false
         }
     }
     

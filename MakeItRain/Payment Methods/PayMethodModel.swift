@@ -60,7 +60,7 @@ class PayMethodModel {
     
     
     @discardableResult
-    func savePaymentMethod(id: String, calModel: CalendarModel, plaidModel: PlaidModel) -> Bool {
+    func savePaymentMethod(id: String, calModel: CalendarModel, plaidModel: PlaidModel) async -> Bool {
         guard let payMethod = getPaymentMethod(by: id) else { return true }
         
         payMethod.viewingYear = calModel.sYear
@@ -68,8 +68,7 @@ class PayMethodModel {
         if payMethod.action == .delete {
             payMethod.updatedBy = AppState.shared.user!
             payMethod.updatedDate = Date()
-            delete(payMethod, andSubmit: true, calModel: calModel)
-            return true
+            return await delete(payMethod, andSubmit: true, calModel: calModel)
         }
         
         if payMethod.title.isEmpty {
@@ -113,11 +112,8 @@ class PayMethodModel {
                 .filter { $0.payMethod?.id == payMethod.id }
                 .forEach { $0.payMethod?.setFromAnotherInstance(payMethod: payMethod) }
             
-            Task {
-                await submit(payMethod)
-            }
+            return await submit(payMethod)
             
-            return true
         } else {
             print("No Changes")
             return false
@@ -346,7 +342,8 @@ class PayMethodModel {
     }
     
     
-    func delete(_ payMethod: CBPaymentMethod, andSubmit: Bool, calModel: CalendarModel) {
+    @discardableResult
+    func delete(_ payMethod: CBPaymentMethod, andSubmit: Bool, calModel: CalendarModel) async -> Bool {
         payMethod.action = .delete
         withAnimation { paymentMethods.removeAll { $0.id == payMethod.id } }
         
@@ -357,12 +354,11 @@ class PayMethodModel {
         }
         
         if andSubmit {
-            Task { @MainActor in
-                let _ = await submit(payMethod)
-            }
+            return await submit(payMethod)
         } else {
             let context = DataManager.shared.createContext()
             DataManager.shared.delete(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)))
+            return false
         }
     }
     
@@ -558,8 +554,8 @@ class PayMethodModel {
     }
     
     
-    @MainActor func prepareStartingAmounts(for month: CBMonth, calModel: CalendarModel) {
-        //print("-- \(#function)")
+    @MainActor
+    func prepareStartingAmounts(for month: CBMonth, calModel: CalendarModel) {
         for payMethod in self.paymentMethods.filter({ $0.isPermittedAndNotHidden }) {
             /// Create a starting amount if it doesn't exist in the current month.
             if !month.startingAmounts.contains(where: { $0.payMethod?.id == payMethod.id }) {
@@ -573,11 +569,10 @@ class PayMethodModel {
                 starting.amountString = ""
                 month.startingAmounts.append(starting)
             }
-                                                
-            if payMethod.isUnified {
-                CalcHelper.updateUnifiedStartingAmount(month: month, for: payMethod.accountType, store: store)
-            }
         }
+                                            
+        CalcHelper.updateUnifiedStartingAmount(month: month, for: .unifiedChecking, store: store)
+        CalcHelper.updateUnifiedStartingAmount(month: month, for: .unifiedCredit, store: store)
     }
     
     
@@ -681,7 +676,7 @@ class PayMethodModel {
             //newListOrders.append(payMethod.listOrder ?? 0)
             if self.doesExist(payMethod) {
                 if !payMethod.active {
-                    self.delete(payMethod, andSubmit: false, calModel: calModel)
+                    await self.delete(payMethod, andSubmit: false, calModel: calModel)
                     continue
                 } else {
                     if let index = self.getIndex(for: payMethod) {
@@ -701,19 +696,20 @@ class PayMethodModel {
                 DataManager.shared.delete(context: context, type: PersistentPaymentMethod.self, predicate: .byId(.string(payMethod.id)))
             }
             
-
-            calModel.justTransactions
-                .filter { $0.payMethod?.id == payMethod.id }
-                .forEach { $0.payMethod?.setFromAnotherInstance(payMethod: payMethod) }
-            
-            calModel.months
-                .flatMap { $0.startingAmounts.compactMap { $0.payMethod } }
-                .filter { $0.id == payMethod.id }
-                .forEach { $0.setFromAnotherInstance(payMethod: payMethod) }
-            
-            repModel.repTransactions
-                .filter { $0.payMethod?.id == payMethod.id }
-                .forEach { $0.payMethod?.setFromAnotherInstance(payMethod: payMethod) }
+            if incomingDataType == .viaLongPoll {
+                calModel.justTransactions
+                    .filter { $0.payMethod?.id == payMethod.id }
+                    .forEach { $0.payMethod?.setFromAnotherInstance(payMethod: payMethod) }
+                
+                calModel.months
+                    .flatMap { $0.startingAmounts.compactMap { $0.payMethod } }
+                    .filter { $0.id == payMethod.id }
+                    .forEach { $0.setFromAnotherInstance(payMethod: payMethod) }
+                
+                repModel.repTransactions
+                    .filter { $0.payMethod?.id == payMethod.id }
+                    .forEach { $0.payMethod?.setFromAnotherInstance(payMethod: payMethod) }
+            }
         }
         
         /// When downloading everything from the server, if we find a local object that is not in the server payload, it means it is no longer valid and must be deleted from the local copies.

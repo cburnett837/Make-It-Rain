@@ -7,8 +7,14 @@
 
 import Foundation
 
+protocol ServerActions {
+    var isAdd: Bool { get }
+    var isEdit: Bool { get }
+    var isDelete: Bool { get }
+}
 
-enum TransactionAction: String {
+
+enum TransactionAction: String, ServerActions {
     case add, edit, delete
     
     var serverKey: String {
@@ -27,9 +33,13 @@ enum TransactionAction: String {
         default: return .add
         }
     }
+    
+    var isAdd: Bool { self == .add }
+    var isEdit: Bool { self == .edit }
+    var isDelete: Bool { self == .delete }
 }
 
-enum RepeatingTransactionAction {
+enum RepeatingTransactionAction: String, ServerActions {
     case add, edit, delete
     
     var serverKey: String {
@@ -39,6 +49,10 @@ enum RepeatingTransactionAction {
         case .delete: return "delete_cb_repeating_transaction"
         }
     }
+    
+    var isAdd: Bool { self == .add }
+    var isEdit: Bool { self == .edit }
+    var isDelete: Bool { self == .delete }
 }
 
 enum PaymentMethodAction: String {

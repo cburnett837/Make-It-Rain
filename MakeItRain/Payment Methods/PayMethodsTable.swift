@@ -239,7 +239,6 @@ struct PayMethodsTable: View {
                 PayMethodEditView(payMethod: meth, editID: $model.paymentMethodEditID)
             }
             .onChange(of: model.paymentMethodEditID) { oldId, newId in
-                print("running attached to \(model.editPaymentMethod?.title)")
                 if let newId {
                     if let payMethod = payModel.getPaymentMethod(by: newId) {
                         model.editPaymentMethod = payMethod
@@ -247,10 +246,13 @@ struct PayMethodsTable: View {
                         model.editPaymentMethod = CBPaymentMethod(uuid: newId)
                     }
 
-                } else {
-                    if let meth = payModel.getPaymentMethod(by: oldId!) {
-                        let _ = payModel.savePaymentMethod(id: oldId!, calModel: calModel, plaidModel: plaidModel)
-                        payModel.determineIfUserIsRequiredToAddPaymentMethod()
+                } else if let oldId {
+                    if let meth = payModel.getPaymentMethod(by: oldId) {
+                        Task {
+                            await payModel.savePaymentMethod(id: oldId, calModel: calModel, plaidModel: plaidModel)
+                            payModel.determineIfUserIsRequiredToAddPaymentMethod()
+                        }
+                        
                         /// Close if deleting since it will be gone.
                         /// Also close if adding, since the server will send back the real ID, and cause the list to redraw, which would cause the sheet to dismiss itself and reopen.
                         /// iPhone: pop from nav.
@@ -268,6 +270,8 @@ struct PayMethodsTable: View {
     //                        }
                         }
                     }
+                } else {
+                    fatalError("problem with the payment method edit id")
                 }
             }
         }

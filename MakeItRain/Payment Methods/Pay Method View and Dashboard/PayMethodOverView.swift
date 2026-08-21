@@ -116,12 +116,16 @@ struct PayMethodOverView: View {
                     }
                     
                 } else {
-                    let _ = payModel.savePaymentMethod(id: oldId!, calModel: calModel, plaidModel: plaidModel)
-                    payModel.determineIfUserIsRequiredToAddPaymentMethod()
+                    Task {
+                        await payModel.savePaymentMethod(id: oldId!, calModel: calModel, plaidModel: plaidModel)
+                        payModel.determineIfUserIsRequiredToAddPaymentMethod()
+                    }
+                    
                     /// Close if deleting since it will be gone.
                     /// Also close if adding, since the server will send back the real ID, and cause the list to redraw, which would cause the sheet to dismiss itself and reopen.
                     /// iPhone: pop from nav.
                     /// iPad: dismiss sheet.
+                    
                     if payMethod.action == .delete || payMethod.action == .add {
                         if AppState.shared.isIphone {
                             navPath.removeLast()

@@ -202,6 +202,7 @@ struct MakeItRainApp: App {
                             splashScreen
                             
                         } else if AuthState.shared.isLoggedIn {
+//                            Text("Root View")
                             rootView
                             
                         } else {

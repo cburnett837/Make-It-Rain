@@ -95,8 +95,12 @@ struct RepeatingTransactionsTable: View {
                 } else {
                     editRepeatingTransaction = CBRepeatingTransaction(uuid: newId)
                 }
+            } else if let oldId {
+                Task {
+                    await repModel.saveTransaction(id: oldId)
+                }
             } else {
-                repModel.saveTransaction(id: oldId!)
+                fatalError("Problem with the rep trans id")
             }
         }
     }

@@ -108,39 +108,55 @@ struct NavSidebarPad: View {
         Spacer().frame(height: 20)
     }
         
-    
+    @ViewBuilder
     var iPadGrid: some View {
+        let monthsByEnumID = Dictionary(uniqueKeysWithValues: calModel.months.map { ($0.enumID, $0) })
+
         Grid {
             GridRow(alignment: .top) {
                 Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
-                MonthNavigationLink(enumID: .lastDecember)
+                if let month = monthsByEnumID[.lastDecember] { MonthNavigationLink(month: month) }
+//                MonthNavigationLink(enumID: .lastDecember)
             }
             GridRow(alignment: .top) {
-                MonthNavigationLink(enumID: .january).id(1)
-                MonthNavigationLink(enumID: .february).id(2)
+                if let month = monthsByEnumID[.january] { MonthNavigationLink(month: month).id(1) }
+                if let month = monthsByEnumID[.february] { MonthNavigationLink(month: month).id(2) }
+//                MonthNavigationLink(enumID: .january).id(1)
+//                MonthNavigationLink(enumID: .february).id(2)
             }
             GridRow(alignment: .top) {
-                MonthNavigationLink(enumID: .march).id(3)
-                MonthNavigationLink(enumID: .april).id(4)
+                if let month = monthsByEnumID[.march] { MonthNavigationLink(month: month).id(3) }
+                if let month = monthsByEnumID[.april] { MonthNavigationLink(month: month).id(4) }
+//                MonthNavigationLink(enumID: .march).id(3)
+//                MonthNavigationLink(enumID: .april).id(4)
             }
             GridRow(alignment: .top) {
-                MonthNavigationLink(enumID: .may).id(5)
-                MonthNavigationLink(enumID: .june).id(6)
+                if let month = monthsByEnumID[.may] { MonthNavigationLink(month: month).id(5) }
+                if let month = monthsByEnumID[.june] { MonthNavigationLink(month: month).id(6) }
+//                MonthNavigationLink(enumID: .may).id(5)
+//                MonthNavigationLink(enumID: .june).id(6)
             }
             GridRow(alignment: .top) {
-                MonthNavigationLink(enumID: .july).id(7)
-                MonthNavigationLink(enumID: .august).id(8)
+                if let month = monthsByEnumID[.july] { MonthNavigationLink(month: month).id(7) }
+                if let month = monthsByEnumID[.august] { MonthNavigationLink(month: month).id(8) }
+//                MonthNavigationLink(enumID: .july).id(7)
+//                MonthNavigationLink(enumID: .august).id(8)
             }
             GridRow(alignment: .top) {
-                MonthNavigationLink(enumID: .september).id(9)
-                MonthNavigationLink(enumID: .october).id(10)
+                if let month = monthsByEnumID[.september] { MonthNavigationLink(month: month).id(9) }
+                if let month = monthsByEnumID[.october] { MonthNavigationLink(month: month).id(10) }
+//                MonthNavigationLink(enumID: .september).id(9)
+//                MonthNavigationLink(enumID: .october).id(10)
             }
             GridRow(alignment: .top) {
-                MonthNavigationLink(enumID: .november).id(11)
-                MonthNavigationLink(enumID: .december).id(12)
+                if let month = monthsByEnumID[.november] { MonthNavigationLink(month: month).id(11) }
+                if let month = monthsByEnumID[.december] { MonthNavigationLink(month: month).id(12) }
+//                MonthNavigationLink(enumID: .november).id(11)
+//                MonthNavigationLink(enumID: .december).id(12)
             }
             GridRow(alignment: .top) {
-                MonthNavigationLink(enumID: .nextJanuary)
+                if let month = monthsByEnumID[.nextJanuary] { MonthNavigationLink(month: month) }
+//                MonthNavigationLink(enumID: .nextJanuary)
                 Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
             }
         }

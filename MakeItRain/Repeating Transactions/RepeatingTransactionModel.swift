@@ -16,7 +16,6 @@ class RepeatingTransactionModel {
         self.store = store
     }
     
-    
     var isThinking = false
     
     var repTransactions: [CBRepeatingTransaction] {
@@ -47,139 +46,7 @@ class RepeatingTransactionModel {
         return repTransactions.firstIndex(where: { $0.id == repTransaction.id })
     }
     
-    func saveTransaction(id: String) {
-        guard let repTransaction = getRepeatingTransaction(by: id) else { return }
-                
-        if repTransaction.action == .delete {
-            repTransaction.updatedBy = AppState.shared.user!
-            repTransaction.updatedDate = Date()
-            delete(repTransaction, andSubmit: true)
-            return
-        }
         
-        /// User blanked out the title of an existing transaction.
-        if repTransaction.action == .edit && repTransaction.title.isEmpty {
-            repTransaction.title = repTransaction.deepCopy?.title ?? ""
-            AppState.shared.showAlert("Removing a title is not allowed. If you want to delete \(repTransaction.title), please use the delete button instead.")
-            return
-        }
-        
-        /// User is entering a new transaction but forgot the payment method.
-        /// Remove the dud that is in `.add` mode since it's being upserted into the list on creation.
-        if repTransaction.title.isEmpty && repTransaction.payMethod == nil {
-            //AppState.shared.showAlert(title: "Not Saved", subtitle: "An account is required.")
-            withAnimation { repTransactions.removeAll { $0.id == id } }
-            return
-        }
-        
-        if repTransaction.hasChanges() {
-            repTransaction.updatedBy = AppState.shared.user!
-            repTransaction.updatedDate = Date()
-            Task {
-                await submit(repTransaction)
-            }
-        }
-    }
-    
-    
-//    @MainActor
-//    func fetchRepeatingTransactions(file: String = #file, line: Int = #line, function: String = #function) async {
-//        NSLog("\(file):\(line) : \(function)")
-//        LogManager.log()
-//        let start = CFAbsoluteTimeGetCurrent()
-//        
-//        /// Do networking.
-//        let model = RequestModel(requestType: "fetch_repeating_transactions", model: AppState.shared.user)
-//        typealias ResultResponse = Result<Array<CBRepeatingTransaction>?, AppError>
-//        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
-//        
-//        switch await result {
-//        case .success(let model):
-//            
-//            /// For testing bad network connection.
-//            //try? await Task.sleep(nanoseconds: UInt64(10 * Double(NSEC_PER_SEC)))
-//
-//            LogManager.networkingSuccessful()
-//            if let model {
-//                if !model.isEmpty {
-//                    var activeIds: Array<String> = []
-//                    for repTransaction in model.sorted(by: { $0.title.lowercased() < $1.title.lowercased() }) {
-//                        activeIds.append(repTransaction.id)
-//                        
-//                        await repTransaction.payMethod?.loadLogoFromCoreDataIfNeeded()
-//                        await repTransaction.payMethodPayTo?.loadLogoFromCoreDataIfNeeded()
-//                        
-//                        if let index = repTransactions.firstIndex(where: { $0.id == repTransaction.id }) {
-//                            /// If the transaction is already in the list, update it from the server.
-//                            repTransactions[index].setFromAnotherInstance(repTransaction: repTransaction)
-//                        } else {
-//                            /// Add the transaction to the list (like when the transaction was added on another device).
-//                            repTransactions.append(repTransaction)
-//                        }
-//                    }
-//                    
-//                    /// Delete from model.
-//                    for repTransaction in repTransactions {
-//                        if !activeIds.contains(repTransaction.id) {
-//                            repTransactions.removeAll { $0.id == repTransaction.id }
-//                        }
-//                    }
-//                } else {
-//                    repTransactions.removeAll()
-//                }
-//            }                        
-//            
-//            let currentElapsed = CFAbsoluteTimeGetCurrent() - start
-//            print("⏰ It took \(currentElapsed) seconds to fetch the repeating transactions")
-//            
-//        case .failure (let error):
-//            switch error {
-//            case .taskCancelled:
-//                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
-//                print("repModel fetchFrom Server Task Cancelled")
-//            default:
-//                LogManager.error(error.localizedDescription)
-//                AppState.shared.showAlert("There was a problem trying to fetch the repTransactions.")
-//            }
-//        }
-//    }
-    
-    
-    
-//    @MainActor
-//    func handleDownloadedRepeatingTransactions(reps: Array<CBRepeatingTransaction>?, file: String = #file, line: Int = #line, function: String = #function) async {
-//        LogManager.networkingSuccessful()
-//        if let reps {
-//            if !reps.isEmpty {
-//                var activeIds: Array<String> = []
-//                for repTransaction in reps.sorted(by: { $0.title.lowercased() < $1.title.lowercased() }) {
-//                    activeIds.append(repTransaction.id)
-//                    
-//                    await repTransaction.payMethod?.loadLogoFromCoreDataIfNeeded()
-//                    await repTransaction.payMethodPayTo?.loadLogoFromCoreDataIfNeeded()
-//                    
-//                    if let index = repTransactions.firstIndex(where: { $0.id == repTransaction.id }) {
-//                        /// If the transaction is already in the list, update it from the server.
-//                        repTransactions[index].setFromAnotherInstance(repTransaction: repTransaction)
-//                    } else {
-//                        /// Add the transaction to the list (like when the transaction was added on another device).
-//                        repTransactions.append(repTransaction)
-//                    }
-//                }
-//                
-//                /// Delete from model.
-//                for repTransaction in repTransactions {
-//                    if !activeIds.contains(repTransaction.id) {
-//                        repTransactions.removeAll { $0.id == repTransaction.id }
-//                    }
-//                }
-//            } else {
-//                repTransactions.removeAll()
-//            }
-//        }
-//    }
-    
-    
     @MainActor
     func handleIncoming(reps: Array<CBRepeatingTransaction>, incomingDataType: IncomingDataType) async {
         if reps.isEmpty {
@@ -187,13 +54,13 @@ class RepeatingTransactionModel {
             return
         }
                 
-        for repTransaction in reps.sorted(by: { $0.title.lowercased() < $1.title.lowercased() }) {            
+        for repTransaction in reps.sorted(by: { $0.title.lowercased() < $1.title.lowercased() }) {
             await repTransaction.payMethod?.loadLogoFromCoreDataIfNeeded()
             await repTransaction.payMethodPayTo?.loadLogoFromCoreDataIfNeeded()
             
             if self.doesExist(repTransaction) {
                 if !repTransaction.active {
-                    self.delete(repTransaction, andSubmit: false)
+                    await self.delete(repTransaction, andSubmit: false)
                     continue
                 } else if let index = self.getIndex(for: repTransaction) {
                     self.repTransactions[index].setFromAnotherInstance(repTransaction: repTransaction)
@@ -208,38 +75,51 @@ class RepeatingTransactionModel {
         if incomingDataType == .viaStandardRefresh {
             for rep in self.repTransactions {
                 if reps.filter({ $0.id == rep.id }).isEmpty {
-                    delete(rep, andSubmit: false)
+                    await delete(rep, andSubmit: false)
                 }
             }
         }
     }
     
     
-    
-//    @MainActor
-//    private func handleLongPollRepeatingTransactions(_ repeatingTransactions: Array<CBRepeatingTransaction>) async {
-//        print("-- \(#function)")
-//        for transaction in repeatingTransactions {
-//            if self.doesExist(transaction) {
-//                if !transaction.active {
-//                    self.delete(transaction, andSubmit: false)
-//                } else {
-//                    if let index = self.getIndex(for: transaction) {
-//                        self.repTransactions[index].setFromAnotherInstance(repTransaction: transaction)
-//                        self.repTransactions[index].deepCopy?.setFromAnotherInstance(repTransaction: transaction)
-//                    }
-//                }
-//            } else {
-//                if transaction.active {
-//                    withAnimation { self.upsert(transaction) }
-//                }
-//            }
-//        }
-//    }
-    
-    
+    @discardableResult
+    func saveTransaction(id: String) async -> Bool {
+        guard let repTransaction = getRepeatingTransaction(by: id) else { return true }
+                
+        if repTransaction.action == .delete {
+            repTransaction.updatedBy = AppState.shared.user!
+            repTransaction.updatedDate = Date()
+            return await delete(repTransaction, andSubmit: true)
+        }
+        
+        /// User blanked out the title of an existing transaction.
+        if repTransaction.action == .edit && repTransaction.title.isEmpty {
+            repTransaction.title = repTransaction.deepCopy?.title ?? ""
+            AppState.shared.showAlert("Removing a title is not allowed. If you want to delete \(repTransaction.title), please use the delete button instead.")
+            return false
+        }
+        
+        /// User is entering a new transaction but forgot the payment method.
+        /// Remove the dud that is in `.add` mode since it's being upserted into the list on creation.
+        if repTransaction.title.isEmpty && repTransaction.payMethod == nil {
+            //AppState.shared.showAlert(title: "Not Saved", subtitle: "An account is required.")
+            withAnimation { repTransactions.removeAll { $0.id == id } }
+            return false
+        }
+        
+        if repTransaction.hasChanges() {
+            repTransaction.updatedBy = AppState.shared.user!
+            repTransaction.updatedDate = Date()
+            return await submit(repTransaction)
+        }
+        
+        return false
+    }
+        
+
     @MainActor
-    func submit(_ repTransaction: CBRepeatingTransaction) async {
+    @discardableResult
+    func submit(_ repTransaction: CBRepeatingTransaction) async -> Bool {
         print("-- \(#function)")
         
         /// Allow more time to save if the user enters the background.
@@ -262,52 +142,46 @@ class RepeatingTransactionModel {
         case .success(let model):
             LogManager.networkingSuccessful()
             
+            isThinking = false
             if repTransaction.action != .delete {
                 if repTransaction.action == .add {
                     repTransaction.id = model?.id ?? "0"
                     repTransaction.action = .edit
                 }                
             }
-            
-            /// End the background task.
-            #if os(iOS)
-            AppState.shared.endBackgroundTask(&backgroundTaskId)
-            #endif
                                     
         case .failure(let error):
             LogManager.error(error.localizedDescription)
-            AppState.shared.showAlert("There was a problem trying to save the repeating transaction.")
-            repTransaction.deepCopy(.restore)
+            AppState.shared.showAlert("There was a problem trying to save the recurring transaction.")
+            
+            isThinking = false
+            repTransaction.action = .edit
             
             switch repTransaction.action {
             case .add: repTransactions.removeAll { $0.id == repTransaction.id }
-            case .edit: break
+            case .edit: repTransaction.deepCopy(.restore)
             case .delete: repTransactions.append(repTransaction)
             }
         }
-        
-        isThinking = false
-        repTransaction.action = .edit
-        #if os(macOS)
-        fuckYouSwiftuiTableRefreshID = UUID()
-        #endif
         
         /// End the background task.
         #if os(iOS)
         AppState.shared.endBackgroundTask(&backgroundTaskId)
         #endif
+                        
+        #if os(macOS)
+        fuckYouSwiftuiTableRefreshID = UUID()
+        #endif
+                        
+        return (await result).isSuccess
     }
     
     
-    func delete(_ repTransaction: CBRepeatingTransaction, andSubmit: Bool) {
+    @discardableResult
+    func delete(_ repTransaction: CBRepeatingTransaction, andSubmit: Bool) async -> Bool {
         repTransaction.action = .delete
         withAnimation { repTransactions.removeAll { $0.id == repTransaction.id } }
-        
-        if andSubmit {
-            Task { @MainActor in
-                let _ = await submit(repTransaction)
-            }
-        }    
+        return andSubmit ? await submit(repTransaction) : false
     }
     
     

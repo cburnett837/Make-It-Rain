@@ -843,8 +843,16 @@ class CalendarModel {
                 
                 await trans.payMethod?.loadLogoFromCoreDataIfNeeded()
                 
-                let day = month.days.filter { $0.date == trans.date }.first
-                day?.transactions.append(trans)
+                //let day = month.days.filter { $0.date == trans.date }.first
+                //day?.transactions.append(trans)
+            }
+            
+            let transactionsByDay = Dictionary(grouping: model.transactions) { transaction in
+                transaction.dateComponents?.day ?? -1
+            }
+
+            for day in month.legitDays {
+                day.transactions = transactionsByDay[day.id] ?? []
             }
         }
         
@@ -859,11 +867,23 @@ class CalendarModel {
             }
         }
         
-        for day in month.legitDays {
-            if let rates = model.exchangeRates?.filter({ $0.date?.day == day.dateComponents?.day }) {
-                day.exchangeRates = rates
-            }
+        // Begin Before
+//        for day in month.legitDays {
+//            if let rates = model.exchangeRates?.filter({ $0.date?.day == day.dateComponents?.day }) {
+//                day.exchangeRates = rates
+//            }
+//        }
+        // End Before
+        // Begin After
+        let exchangeRatesByDay = Dictionary(grouping: model.exchangeRates ?? []) { rate in
+            rate.date?.day ?? -1
         }
+
+        for day in month.legitDays {
+            day.exchangeRates = exchangeRatesByDay[day.id] ?? []
+        }
+        // End After
+        
         
         if let budgets = model.budgets {
             for budget in budgets {
@@ -1448,13 +1468,13 @@ class CalendarModel {
             }
             
             isThinking = false
-            if trans.action == .delete {
-                //trans.status = nil
-                trans.status = .deleteSuccess
-            } else {
-                trans.status = .saveSuccess
-            }
-            performLineItemAnimations(for: trans)
+//            if trans.action == .delete {
+//                //trans.status = nil
+//                trans.status = .deleteSuccess
+//            } else {
+//                trans.status = .saveSuccess
+//            }
+            performLineItemAnimations(for: trans, wasSuccessful: true)
                         
             /// At this point, in the future the trans will always be in edit mode unless it was deleted.
             trans.intendedServerAction = .edit
@@ -1480,7 +1500,7 @@ class CalendarModel {
             NotificationCenter.default.post(name: .updateCategoryAnalytics, object: nil, userInfo: nil)
             
             /// Return successful save result to the caller.
-            return true
+            //return true
             
         case .failure(let error):
             print("❌Transaction failed to save")
@@ -1490,8 +1510,8 @@ class CalendarModel {
 
             isThinking = false
             trans.action = .edit
-            trans.status = .saveFail
-            performLineItemAnimations(for: trans)
+            //trans.status = .saveFail
+            performLineItemAnimations(for: trans, wasSuccessful: false)
             
             /// Cancel the loading spinner if it hasn't started, otherwise hide it,
             stopDelayedLoadingSpinnerTimer()
@@ -1503,8 +1523,10 @@ class CalendarModel {
             #endif
             
             /// Return unsuccessful save result to the caller.
-            return false
+            //return false
         }
+        
+        return (await result).isSuccess
     }
     
     
@@ -1623,11 +1645,11 @@ class CalendarModel {
                             transactions[index].serverID = String(idModel.id)
                             transactions[index].action = .edit
                             transactions[index].intendedServerAction = .edit
-                            transactions[index].status = .saveSuccess
+                            //transactions[index].status = .saveSuccess
                             if let relatedID = idModel.relatedID {
                                 transactions[index].relatedTransactionID = String(relatedID)
                             }
-                            performLineItemAnimations(for: transactions[index])
+                            performLineItemAnimations(for: transactions[index], wasSuccessful: true)
                         }
                     } else {
                         if let index = targetMonth.budgets.firstIndex(where: { $0.id == idModel.uuid }) {
@@ -1647,8 +1669,8 @@ class CalendarModel {
             AppState.shared.showAlert("There was a problem trying to add multiple transactions.")
             
             for each in trans {
-                each.status = .saveFail
-                performLineItemAnimations(for: each)
+                //each.status = .saveFail
+                performLineItemAnimations(for: each, wasSuccessful: false)
             }
             
             #if os(iOS)
@@ -1707,7 +1729,7 @@ class CalendarModel {
                             if let relatedID = idModel.relatedID {
                                 transactions[index].relatedTransactionID = String(relatedID)
                             }
-                            performLineItemAnimations(for: transactions[index])
+                            performLineItemAnimations(for: transactions[index], wasSuccessful: true)
                         }
                     } else {
                         if let index = targetMonth.budgets.firstIndex(where: { $0.id == idModel.uuid }) {
@@ -1725,6 +1747,10 @@ class CalendarModel {
         case .failure(let error):
             LogManager.error(error.localizedDescription)
             AppState.shared.showAlert("There was a problem trying to add multiple transactions.")
+            
+//            for each in trans {
+//                performLineItemAnimations(for: each, wasSuccessful: false)
+//            }
             
             #if os(iOS)
             AppState.shared.endBackgroundTask(&backgroundTaskId)
@@ -1785,7 +1811,7 @@ class CalendarModel {
                             foundTrans.serverID = String(parent.parentID.id)
                             //foundTrans.uuid = nil
                             foundTrans.action = .edit
-                            foundTrans.status = .saveSuccess
+                            //foundTrans.status = .saveSuccess
                             foundTrans.duplicateFileRecordsOnDb = false
                             
                             
@@ -1811,10 +1837,10 @@ class CalendarModel {
                             
                             
                         } else if foundTrans.action == .edit {
-                            foundTrans.status = .saveSuccess
+                            //foundTrans.status = .saveSuccess
                             
                         } else if foundTrans.action == .delete {
-                            foundTrans.status = .deleteSuccess
+                            //foundTrans.status = .deleteSuccess
                             tempTransactions.removeAll { $0.id == foundTrans.id }
                             //foundTrans.status = .deleteSuccess
 //                            withAnimation {
@@ -1828,7 +1854,11 @@ class CalendarModel {
 //                            }
                         }
                         
-                        performLineItemAnimations(for: foundTrans)
+                        performLineItemAnimations(for: foundTrans, wasSuccessful: true)
+                        #warning("Fix me")
+//                        {
+//                            tempTransactions.removeAll { $0.id == foundTrans.id }
+//                        }
                         
                     }
                 }
@@ -1849,8 +1879,8 @@ class CalendarModel {
             #warning("Undo behavior")
             
             for each in trans {
-                each.status = .saveFail
-                performLineItemAnimations(for: each)
+                //each.status = .saveFail
+                performLineItemAnimations(for: each, wasSuccessful: false)
             }
                                     
             #if os(iOS)
@@ -1925,29 +1955,49 @@ class CalendarModel {
     }
         
     
-    func performLineItemAnimations(for trans: CBTransaction) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            /// This triggers drawOff (reverse of drawOn)
-            withAnimation(.easeOut(duration: 0.8)) {
-                trans.status = .dummy
-            }
-            
-            /// STEP 3 — Wait for drawOff to finish (~0.6s)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                withAnimation(.easeOut(duration: 0.6)) {
-                    trans.status = nil
-                    
-                    if trans.action == .delete {
-                        if let targetMonth = self.months.filter({ $0.actualNum == trans.dateComponents?.month && $0.year == trans.dateComponents?.year }).first {
-                            if let day = targetMonth.days.filter({ $0.dateComponents?.day == trans.dateComponents?.day }).first {
-                                day.remove(trans)
-                                CalcHelper.calculateTotal(for: self.sMonth, store: self.store)
-                            }
-                        }
-                    }
+    func performLineItemAnimations(for trans: CBTransaction, wasSuccessful: Bool) {
+        Task {
+            await Helpers.performLineItemAnimations(for: trans, wasSuccessful: wasSuccessful) {
+                if let month = self.months.first(where: { $0.isNow }),
+                   let day = month.days.first(where: { $0.id == trans.dateComponents?.day }) {
+                    day.remove(trans)
+                    CalcHelper.calculateTotal(for: self.sMonth, store: self.store)
                 }
             }
         }
+        
+        
+        
+        
+//        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+//            /// This triggers drawOff (reverse of drawOn)
+//            withAnimation(.easeOut(duration: 0.8)) {
+//                trans.status = .dummy
+//            }
+//            
+//            /// STEP 3 — Wait for drawOff to finish (~0.6s)
+//            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+//                withAnimation(.easeOut(duration: 0.6)) {
+//                    trans.status = nil
+//                    
+//                    if trans.action == .delete {
+////                        if let targetMonth = self.months.filter({ $0.actualNum == trans.dateComponents?.month && $0.year == trans.dateComponents?.year }).first {
+////                            if let day = targetMonth.days.filter({ $0.dateComponents?.day == trans.dateComponents?.day }).first {
+////                                day.remove(trans)
+////                                CalcHelper.calculateTotal(for: self.sMonth, store: self.store)
+////                            }
+////                        }
+//                        
+//                        
+//                        if let month = self.months.first(where: { $0.isNow }),
+//                           let day = month.days.first(where: { $0.id == trans.dateComponents?.day }) {
+//                            day.remove(trans)
+//                            CalcHelper.calculateTotal(for: self.sMonth, store: self.store)
+//                        }
+//                    }
+//                }
+//            }
+//        }
     }
                 
     
@@ -2269,13 +2319,17 @@ class CalendarModel {
         
         //var trans: Array<CBTransaction> = []
         
+        let multiSelectIDs = Set(self.multiSelectTransactions.map(\.id))
+
+        
         var trans = theMonths.flatMap { $0.justTransactions }
             .filter {
                 $0.active
                 /// When refreshing the budget overview aftering deleting a trans, the trans could get captured because the delete process hasn't completed yet.
                 && ($0.action != .delete)
                 /// If the app is in multi-select mode, pay attention to only those transactions.
-                && (self.isInMultiSelectMode ? self.multiSelectTransactions.map({ $0.id }).contains($0.id) : true)
+//                && (self.isInMultiSelectMode ? self.multiSelectTransactions.map({ $0.id }).contains($0.id) : true)
+                && (!self.isInMultiSelectMode || multiSelectIDs.contains($0.id))
                 /// Only payment methods that are allowed to be viewed by the current user.
                 && $0.isPermitted
                 /// This will look at both the transaction, and its deepCopy.
@@ -2313,11 +2367,20 @@ class CalendarModel {
         }
         
         /// Only transactions related to the passed in categories. (If applicable).
-        if let cats = cats {
-            let catIds = cats.map { $0.id }
-            
+//        if let cats = cats {
+//            let catIds = cats.map { $0.id }
+//            
+//            trans = trans.filter {
+//                catIds.contains($0.categoryIdsInCurrentAndDeepCopy[0] ?? "") || catIds.contains($0.categoryIdsInCurrentAndDeepCopy[1] ?? "")
+//            }
+//        }
+        
+        if let cats {
+            let catIDs = Set(cats.map(\.id))
+
             trans = trans.filter {
-                catIds.contains($0.categoryIdsInCurrentAndDeepCopy[0] ?? "") || catIds.contains($0.categoryIdsInCurrentAndDeepCopy[1] ?? "")
+                let ids = $0.categoryIdsInCurrentAndDeepCopy
+                return catIDs.contains(ids[0] ?? "") || catIDs.contains(ids[1] ?? "")
             }
         }
         
@@ -2466,6 +2529,34 @@ class CalendarModel {
                     let theDate = Calendar.current.date(from: components)!
                     month.days.append(CBDay(date: theDate))
                 }
+            }
+        }
+    }
+    
+    
+    func prepare(month: CBMonth) {
+        if month.days.isEmpty {
+            if month.firstWeekdayOfMonth != 1 {
+                for i in 0 ..< month.firstWeekdayOfMonth - 1 {
+                    month.days.append(CBDay(id: i-50))
+                }
+            }
+            
+            for i in 1 ..< month.dayCount + 1 {
+                var components: DateComponents
+                
+                if month.enumID == .lastDecember {
+                    components = DateComponents(year: sYear - 1, month: 12, day: i)
+                    
+                } else if month.enumID == .nextJanuary {
+                    components = DateComponents(year: sYear + 1, month: 1, day: i)
+                    
+                } else {
+                    components = DateComponents(year: sYear, month: month.num, day: i)
+                }
+                
+                let theDate = Calendar.current.date(from: components)!
+                month.days.append(CBDay(date: theDate))
             }
         }
     }

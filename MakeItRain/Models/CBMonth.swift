@@ -348,8 +348,15 @@ class CBMonth: Identifiable, Hashable, Equatable, Codable, IsEditableBudget {
 //    func setFromAnotherInstance(month: CBMonth) {
 //        self.num = month.num
 //        self.year = month.year
-//        self.days = month.days
+//        self.days = month.days                
 //        self.startingAmounts = month.startingAmounts
+//        self.populatedId = month.populatedId
+//        self.amountString = month.amountString
+//        self.budgetGroups = month.budgetGroups
+//        self.hasBeenPopulated = month.hasBeenPopulated
+//        self.showCalendarLoadingSpinner = month.showCalendarLoadingSpinner
+//        self.showSecondaryLoadingSpinner = month.showSecondaryLoadingSpinner
+//        self.hasBeenLoadedFromServer = month.hasBeenLoadedFromServer
 //    }
     
     

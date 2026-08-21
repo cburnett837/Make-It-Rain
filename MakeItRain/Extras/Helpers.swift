@@ -211,13 +211,13 @@ struct Helpers {
     }
         
     static func categorySorter() -> (CBCategory, CBCategory) -> Bool {
-        return {
-            switch AppSettings.shared.categorySortMode {
-            case .title:
-                return $0.title.lowercased() < $1.title.lowercased()
-            case .listOrder:
-                return $0.listOrder ?? 0 < $1.listOrder ?? 0
-            }
+        let sortMode = AppSettings.shared.categorySortMode
+
+        switch sortMode {
+        case .title:
+            return { $0.title.lowercased() < $1.title.lowercased() }
+        case .listOrder:
+            return { ($0.listOrder ?? 0) < ($1.listOrder ?? 0) }
         }
         
         //return { $0.title.lowercased() < $1.title.lowercased() }
@@ -425,6 +425,89 @@ struct Helpers {
         }
 
         return min(max(result, 0), 1)
+    }
+    
+    
+//    @MainActor
+//    static func performLineItemAnimations(for obj: CanUpdateStatus, onDelete: @escaping () -> Void) {
+//        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+//            /// This triggers drawOff (reverse of drawOn)
+//            withAnimation(.easeOut(duration: 0.8)) {
+//                obj.status = .dummy
+//            }
+//            
+//            /// STEP 3 — Wait for drawOff to finish (~0.6s)
+//            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+//                withAnimation(.easeOut(duration: 0.6)) {
+//                    obj.status = nil
+//                    
+//                    if obj.action.isDelete {
+//                        onDelete()
+//                    }
+//                }
+//            }
+//        }
+//    }
+    
+//    @MainActor
+//    static func performLineItemAnimations<T: CanUpdateStatus & Observation.Observable>(
+//        for obj: T,
+//        wasSuccessful: Bool,
+//        onDelete: (() -> Void)? = nil
+//    ) {
+//        
+//        if wasSuccessful {
+//            if obj.action.isDelete {
+//                obj.status = .deleteSuccess
+//            } else {
+//                obj.status = .saveSuccess
+//            }
+//        } else {
+//            obj.status = .saveFail
+//        }
+//        
+//        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+//            withAnimation(.easeOut(duration: 0.8)) {
+//                obj.status = .dummy
+//            }
+//
+//            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+//                withAnimation(.easeOut(duration: 0.6)) {
+//                    obj.status = nil
+//                    
+//                    if obj.action.isDelete && wasSuccessful {
+//                        onDelete?()
+//                    }
+//                }
+//            }
+//        }
+//    }
+    
+    
+    
+    @MainActor
+    static func performLineItemAnimations<T: CanUpdateStatus & Observation.Observable>(
+        for obj: T,
+        wasSuccessful: Bool,
+        onDelete: (() -> Void)? = nil
+    ) async {
+        obj.status = wasSuccessful ? (obj.action.isDelete ? .deleteSuccess : .saveSuccess) : .saveFail
+
+        try? await Task.sleep(for: .seconds(1))
+
+        withAnimation(.easeOut(duration: 0.8)) {
+            obj.status = .dummy
+        }
+
+        try? await Task.sleep(for: .seconds(0.6))
+
+        withAnimation(.easeOut(duration: obj.action.isDelete && wasSuccessful ? 0.8 : 0.6)) {
+            obj.status = nil
+            
+            if obj.action.isDelete && wasSuccessful {
+                onDelete?()
+            }
+        }
     }
 }
 

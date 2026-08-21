@@ -59,12 +59,20 @@ struct BudgetHelper {
 
         var total: Decimal = 0.0
         var amount: Decimal = 0.0
+        
+        
+        let transactionsByDay = Dictionary(grouping: transactions) {
+            $0.dateComponents?.day ?? -1
+        }
 
         for day in days {
+            guard let date = day.date else { continue }
+            let trans = transactionsByDay[day.id] ?? []
+            
             amount = 0
             guard let date = day.date else { continue }
 
-            let trans = transactions.filter { $0.dateComponents?.day == date.day }
+            //let trans = transactions.filter { $0.dateComponents?.day == date.day }
 
             if !trans.isEmpty {
                 switch type {

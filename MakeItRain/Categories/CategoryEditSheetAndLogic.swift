@@ -70,9 +70,7 @@ fileprivate struct CategoryEditSheetAndLogic: ViewModifier {
     }
     
     func sheetWasClosed(id: String) async {
-        #warning("Fix me")
-        let didSave = true
-        catModel.saveCategory(id: id)
+        let didSave = await catModel.saveCategory(id: id)
         
         if let onDismiss = onDismiss {
             onDismiss(didSave)

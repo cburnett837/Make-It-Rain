@@ -570,22 +570,7 @@ struct RepeatingTransactionView: View {
         .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
         .tint(.none)
         .confirmationDialog("Delete \"\(repTransaction.title)\"?", isPresented: $showDeleteAlert, actions: {
-            Button("Yes", role: .destructive) {
-                //Task {
-//                    repTransaction.action = .delete
-//                    dismiss()
-                    //await repModel.delete(repTransaction, andSubmit: true)
-                //}
-                
-                /// Prevent from going to the server and trying to delete something that isn't there.
-                if repTransaction.action == .add {
-                    repModel.delete(repTransaction, andSubmit: false)
-                } else {
-                    repTransaction.action = .delete
-                }
-                
-                dismiss()
-            }
+            Button("Yes", role: .destructive) { delete() }
             #if os(iOS)
             Button("No", role: .close) { showDeleteAlert = false }
             #else
@@ -624,8 +609,6 @@ struct RepeatingTransactionView: View {
         }
         .scrollIndicators(.hidden)
     }
-    
-    
     
     
     var monthToggles: some View {
@@ -674,7 +657,9 @@ struct RepeatingTransactionView: View {
         
     }
     
-    @ViewBuilder func optionLabel(title: String, active: Bool) -> some View {
+    
+    @ViewBuilder
+    func optionLabel(title: String, active: Bool) -> some View {
         Text(title)
             .schemeBasedForegroundStyle()
             .frame(width: 40, height: 40)
@@ -684,4 +669,19 @@ struct RepeatingTransactionView: View {
             .bold()
             .contentShape(Circle())
     }
+
+    
+    func delete() {
+        /// Prevent from going to the server and trying to delete something that isn't there.
+        if repTransaction.action == .add {
+            Task {
+                await repModel.delete(repTransaction, andSubmit: false)
+            }
+        } else {
+            repTransaction.action = .delete
+        }
+        
+        dismiss()
+    }
+    
 }
