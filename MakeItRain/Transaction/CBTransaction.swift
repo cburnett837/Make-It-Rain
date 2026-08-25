@@ -11,7 +11,7 @@ import SwiftUI
 
 
 @Observable
-class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation, CanEditAmount, CurrencyConvertable, CanUpdateStatus {
+class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation, CanEditAmount, CurrencyConvertable, CanUpdateStatus, HasUserUpdateInfo {
     
     #warning("serverID Change")
     /// This changed affected
@@ -154,6 +154,14 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
     
     var notificationOffset: Int = 0
     var notifyOnDueDate: Bool = false
+    var notifyUserId: Int?
+    var notifyUser: CBUser? {
+        if let notifyUserId {
+            return AppState.shared.getUserBy(id: notifyUserId)
+        } else {
+            return nil
+        }
+    }
     
     var isFromCoreData = false
     var wasAddedFromPopulate = false
@@ -269,6 +277,7 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
         self.updatedDate = Date()
         self.notificationOffset = 0
         self.notifyOnDueDate = false
+        self.notifyUserId = nil
         self.trackingNumber = ""
         self.orderNumber = ""
         self.url = ""
@@ -303,6 +312,7 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
         self.updatedDate = Date()
         self.notificationOffset = 0
         self.notifyOnDueDate = false
+        self.notifyUserId = nil
         self.trackingNumber = ""
         self.orderNumber = ""
         self.url = ""
@@ -480,7 +490,7 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
     }
     
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, entered_date, updated_date, files, tags, device_uuid, notification_offset, notify_on_due_date, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, related_transaction_type_id, fit_id, is_smart_transaction, smart_transaction_issue_id, smart_transaction_is_acknowledged, locations, action, is_payment_origin, is_payment_dest, is_transfer_origin, is_transfer_dest, plaid_id, duplicate_file_records, christmas_list_gift_id, christmas_list_delete_preference, christmas_list_gift_status, entered_by_id, updated_by_id,
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, date, payment_method, category, notes, title_hex_code, factor_in_calculations, active, user_id, account_id, entered_by, updated_by, entered_date, updated_date, files, tags, device_uuid, notification_offset, notify_on_due_date, notify_user_id, related_transaction_id, tracking_number, order_number, url, was_added_from_populate, logs, related_transaction_type_id, fit_id, is_smart_transaction, smart_transaction_issue_id, smart_transaction_is_acknowledged, locations, action, is_payment_origin, is_payment_dest, is_transfer_origin, is_transfer_dest, plaid_id, duplicate_file_records, christmas_list_gift_id, christmas_list_delete_preference, christmas_list_gift_status, entered_by_id, updated_by_id,
         condata__pay_method_amount,
         condata__pay_method_country_id,
         condata__original_amount,
@@ -536,6 +546,7 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
         try container.encode(locations, forKey: .locations)
         try container.encode(notificationOffset, forKey: .notification_offset)
         try container.encode(notifyOnDueDate ? 1 : 0, forKey: .notify_on_due_date)
+        try container.encode(notifyUserId, forKey: .notify_user_id)
         
         try container.encode(trackingNumber, forKey: .tracking_number)
         try container.encode(orderNumber, forKey: .order_number)
@@ -705,6 +716,12 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
         
         let notifyOnDueDate = try container.decode(Int?.self, forKey: .notify_on_due_date)
         self.notifyOnDueDate = notifyOnDueDate == 1
+        
+        
+//        if let notifyUserId = try container.decode(Int?.self, forKey: .notify_user_id) {
+//            self.updatedBy = AppState.shared.getUserBy(id: updatedById) ?? CBUser()
+//        }
+        self.notifyUserId = try container.decode(Int?.self, forKey: .notify_user_id)
         
         
         //self.enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
@@ -964,6 +981,9 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
         if self.notifyOnDueDate != deepCopy.notifyOnDueDate {
             changes.append("notifyOnDueDate: \(deepCopy.notifyOnDueDate) → \(self.notifyOnDueDate)")
         }
+        if self.notifyUserId != deepCopy.notifyUserId {
+            changes.append("notifyUserId: \(deepCopy.notifyUserId) → \(self.notifyUserId)")
+        }
         if self.trackingNumber != deepCopy.trackingNumber {
             changes.append("trackingNumber: \(String(describing: deepCopy.trackingNumber)) → \(String(describing: self.trackingNumber))")
         }
@@ -1142,6 +1162,9 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
             if self.notifyOnDueDate != deepCopy.notifyOnDueDate {
                 self.log(field: .notifyOnDueDate, old: deepCopy.notifyOnDueDate ? "true" : "false", new: self.notifyOnDueDate ? "true" : "false", groupID: groupID)
             }
+            if self.notifyUserId != deepCopy.notifyUserId {
+                self.log(field: .notifyUserId, old: deepCopy.notifyUser?.name ?? "N/A", new: self.notifyUser?.name ?? "N/A", groupID: groupID)
+            }
             if self.trackingNumber != deepCopy.trackingNumber {
                 self.log(field: .trackingNumber, old: deepCopy.trackingNumber, new: self.trackingNumber, groupID: groupID)
             }
@@ -1219,6 +1242,7 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
             copy.updatedBy = self.updatedBy
             copy.notificationOffset = self.notificationOffset
             copy.notifyOnDueDate = self.notifyOnDueDate
+            copy.notifyUserId = self.notifyUserId
             copy.trackingNumber = self.trackingNumber
             copy.orderNumber = self.orderNumber
             copy.url = self.url
@@ -1265,6 +1289,7 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
                 self.updatedBy = deepCopy.updatedBy
                 self.notificationOffset = deepCopy.notificationOffset
                 self.notifyOnDueDate = deepCopy.notifyOnDueDate
+                self.notifyUserId = deepCopy.notifyUserId
                 self.trackingNumber = deepCopy.trackingNumber
                 self.orderNumber = deepCopy.orderNumber
                 self.url = deepCopy.url
@@ -1304,6 +1329,7 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
             deepCopy?.updatedDate = Date()
             deepCopy?.notificationOffset = 0
             deepCopy?.notifyOnDueDate = false
+            deepCopy?.notifyUserId = nil
             deepCopy?.trackingNumber = ""
             deepCopy?.orderNumber = ""
             deepCopy?.url = ""
@@ -1358,6 +1384,7 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
         self.factorInCalculations = transaction.factorInCalculations
         self.notificationOffset = transaction.notificationOffset
         self.notifyOnDueDate = transaction.notifyOnDueDate
+        self.notifyUserId = transaction.notifyUserId
         self.trackingNumber = transaction.trackingNumber
         self.orderNumber = transaction.orderNumber
         self.url = transaction.url
@@ -1512,6 +1539,7 @@ class CBTransaction: Codable, Identifiable, Equatable, CanEditTitleWithLocation,
         && lhs.updatedBy.id == rhs.updatedBy.id
         && lhs.notificationOffset == rhs.notificationOffset
         && lhs.notifyOnDueDate == rhs.notifyOnDueDate
+        && lhs.notifyUserId == rhs.notifyUserId
         && lhs.trackingNumber == rhs.trackingNumber
         && lhs.orderNumber == rhs.orderNumber
         && lhs.wasAddedFromPopulate == rhs.wasAddedFromPopulate
@@ -1620,6 +1648,7 @@ extension CBTransaction {
         let factorInCalculations: Bool
         let notificationOffset: Int
         let notifyOnDueDate: Bool
+        let notifyUserId: Int?
         let active: Bool
         let actionRaw: String
         let tempActionRaw: String
@@ -1653,6 +1682,7 @@ extension CBTransaction {
         self.factorInCalculations = s.factorInCalculations
         self.notificationOffset = s.notificationOffset
         self.notifyOnDueDate = s.notifyOnDueDate
+        self.notifyUserId = s.notifyUserId
         self.active = s.active
         self.action = TransactionAction.fromString(s.actionRaw)
         self.tempAction = TransactionAction.fromString(s.tempActionRaw)
@@ -1713,6 +1743,7 @@ extension CBTransaction {
                 factorInCalculations: entity.factorInCalculations,
                 notificationOffset: Int(entity.notificationOffset),
                 notifyOnDueDate: entity.notifyOnDueDate,
+                notifyUserId: Int(entity.notifyUserId),
                 active: entity.active,
                 actionRaw: entity.action ?? "add",
                 tempActionRaw: entity.tempAction ?? "add",

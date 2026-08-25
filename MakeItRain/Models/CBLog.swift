@@ -28,6 +28,7 @@ enum LogField: String {
     case date = "date"
     case christmasGiftStatus = "christmas_gift_status"
     case country = "country"
+    case notifyUserId = "notify_user"
     
     
     static func pretty(for value: Self) -> String? {

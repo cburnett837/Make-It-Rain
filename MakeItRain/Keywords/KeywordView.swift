@@ -48,18 +48,20 @@ struct KeywordView: View {
                 } footer: {
                     Text("The app will look for combinations of titles and categories that happen often and suggest that you create a rule, if you haven't done so already. Use this toggle to prevent suggestions for **\(keyword.keyword.isEmpty ? "N/A" : keyword.keyword)** and **\(keyword.category?.title ?? "N/A")** in the future.")
                 }
+                                            
+                StandardDeleteButton(type: .keyword, delete: delete)
             }
             .navigationTitle(title)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { deleteButton }
+//                ToolbarItem(placement: .topBarLeading) { deleteButton }
                 ToolbarItem(placement: .topBarTrailing) {
                     AnimatedCloseButton(isValidToSave: isValidToSave, closeButton: closeButton)
                 }
                 
                 ToolbarItem(placement: .bottomBar) {
-                    EnteredByAndUpdatedByView(enteredBy: keyword.enteredBy, updatedBy: keyword.updatedBy, enteredDate: keyword.enteredDate, updatedDate: keyword.updatedDate)
+                    EnteredByAndUpdatedByView(obj: keyword)
                 }
                 .sharedBackgroundVisibility(.hidden)
             }
@@ -298,28 +300,6 @@ struct KeywordView: View {
         .buttonStyle(.borderedProminent)
     }
     
-    
-    var deleteButton: some View {
-        Button {
-            showDeleteAlert = true
-        } label: {
-            Image(systemName: "trash")
-        }
-        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
-        .tint(.none)
-        .confirmationDialog("Delete \"\(keyword.keyword)\"?", isPresented: $showDeleteAlert, actions: {
-            Button("Yes", role: .destructive) { delete() }
-            #if os(iOS)
-            Button("No", role: .close) { showDeleteAlert = false }
-            #else
-            Button("No") { showDeleteAlert = false }
-            #endif
-        }, message: {
-            #if os(iOS)
-            Text("Delete \"\(keyword.keyword)\"?")
-            #endif
-        })
-    }
     
     
     var closeButton: some View {

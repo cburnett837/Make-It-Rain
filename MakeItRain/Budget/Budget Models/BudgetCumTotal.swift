@@ -19,6 +19,9 @@ struct BudgetCumTotal: Identifiable, Equatable {
     }
     var budgetAmount: Decimal
     
+    var properTotal: Decimal {
+        total * -1
+    }
     
 }
 

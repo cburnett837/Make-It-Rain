@@ -76,6 +76,28 @@ enum PaymentMethodAction: String {
     }
 }
 
+enum DashboardFilterAction: String {
+    case add, edit, delete
+    
+    var serverKey: String {
+        switch self {
+        case .add: return "add_dashboard_filter"
+        case .edit: return "NONE"
+        case .delete: return "delete_dashboard_filter"
+        }
+    }
+    
+    static func fromString(_ theString: String) -> Self {
+        switch theString {
+        case "add": return .add
+        case "edit": return .edit
+        case "delete": return .delete
+        default: return .add
+        }
+    }
+}
+
+
 enum PlaidBankAction: String {
     case edit, delete
     

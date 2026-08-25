@@ -195,14 +195,14 @@ struct PayMethodEditView: View {
     @ToolbarContentBuilder
     var toolbar: some ToolbarContent {
         #if os(iOS)
-        ToolbarItem(placement: .topBarLeading) {
-            if !payMethod.isUnified {
-                deleteButton
-                    .glassEffectID("delete", in: namespace)
-            }
-        }
-                
-        ToolbarSpacer(.fixed, placement: .topBarLeading)
+//        ToolbarItem(placement: .topBarLeading) {
+//            if !payMethod.isUnified {
+//                deleteButton
+//                    .glassEffectID("delete", in: namespace)
+//            }
+//        }
+//                
+//        ToolbarSpacer(.fixed, placement: .topBarLeading)
         
         ToolbarItem(placement: .topBarLeading) {
             if (payMethod.accountType == .credit || payMethod.accountType == .loan) && payMethod.dueDate != nil {
@@ -216,7 +216,7 @@ struct PayMethodEditView: View {
         }
         
         ToolbarItem(placement: .bottomBar) {
-            EnteredByAndUpdatedByView(enteredBy: payMethod.enteredBy, updatedBy: payMethod.updatedBy, enteredDate: payMethod.enteredDate, updatedDate: payMethod.updatedDate)
+            EnteredByAndUpdatedByView(obj: payMethod)
         }
         .sharedBackgroundVisibility(.hidden)
         #else
@@ -310,6 +310,8 @@ struct PayMethodEditView: View {
             
     //        Section {
     //            deleteButton
+            
+            StandardDeleteButton(type: .payMethod, delete: deletePaymentMethod)
         }
     }
     
@@ -437,7 +439,7 @@ struct PayMethodEditView: View {
 //    }
     
     
-    
+    #if os(macOS)
     var editPageMac: some View {
         StandardContainer {
             titleRow
@@ -488,6 +490,7 @@ struct PayMethodEditView: View {
             header
         }
     }
+    #endif
                 
     
     var titleRow: some View {
@@ -1066,32 +1069,6 @@ struct PayMethodEditView: View {
     
     
     // MARK: - Header & Footer Views
-    var deleteButton: some View {
-        Button {
-            showDeleteAlert = true
-        } label: {
-            //Text("Delete Account")
-                //.foregroundStyle(.red)
-            Image(systemName: "trash")
-        }
-        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
-        .tint(.none)
-        .confirmationDialog("Delete \"\(payMethod.title)\"?", isPresented: $showDeleteAlert, actions: {
-            Button("Yes", role: .destructive, action: deletePaymentMethod)
-            #if os(iOS)
-            Button("No", role: .close) { showDeleteAlert = false }
-            #else
-            Button("No") { showDeleteAlert = false }
-            #endif
-        }, message: {
-            #if os(iOS)
-            Text("Delete \"\(payMethod.title)\"?\nThis will also delete all associated transactions and event transactions.")
-            #else
-            Text("This will also delete all associated transactions and event transactions.")
-            #endif
-        })
-    }
-    
     var notificationButton: some View {
         Button {
             payMethod.notifyOnDueDate.toggle()
@@ -1160,6 +1137,7 @@ struct PayMethodEditView: View {
         }
     }
     
+    #if os(macOS)
     var header: some View {
         Group {
             if (payMethod.accountType == .credit || payMethod.accountType == .loan) && payMethod.dueDate != nil {
@@ -1178,6 +1156,7 @@ struct PayMethodEditView: View {
             }
         }
     }
+    #endif
         
     var fakeMacTabBar: some View {
         HStack(spacing: 0) {

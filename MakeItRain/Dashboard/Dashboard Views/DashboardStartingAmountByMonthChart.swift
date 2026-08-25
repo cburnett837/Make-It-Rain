@@ -93,6 +93,22 @@ struct DashboardStartingAmountByMonthChart: View {
         }
     }
     
+    
+    var widgetFooter: String {
+        if model.payMethod?.isCreditOrUnified == true {
+            switch selectedTab {
+            case .balance:
+                "Your balance at the beginning of the month."
+            case .payments:
+                "Your total payments."
+            case .compare:
+                "Your balance at the beginning of the month, plus total payments."
+            }
+        } else {
+            "Your balance at the beginning of each month."
+        }
+    }
+    
     var annotationColor: AnyShapeStyle {
         if model.payMethod?.isCreditOrUnified == true {
             switch selectedTab {
@@ -140,6 +156,11 @@ struct DashboardStartingAmountByMonthChart: View {
                     .layoutPriority(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
+        } footer: {
+            Text(widgetFooter)
+                .foregroundStyle(.secondary)
+                .font(.caption)
+            
         } content: {
             VStack {
                 if model.payMethod?.isCreditOrUnified == true {
@@ -184,7 +205,7 @@ struct DashboardStartingAmountByMonthChart: View {
                     }
                     .padding(.top, 10)
                 }
-                    
+                
             }
             .overlay(alignment: .top) {
                 if let _ = selectedMonth {
@@ -192,15 +213,15 @@ struct DashboardStartingAmountByMonthChart: View {
                 }
             }
             
-//            VStack {
-//                expenseChart2
-//                Spacer()
-//            }
-//            .overlay(alignment: .top) {
-//                if let _ = selectedMonth {
-//                    selectedDataView
-//                }
-//            }
+            //            VStack {
+            //                expenseChart2
+            //                Spacer()
+            //            }
+            //            .overlay(alignment: .top) {
+            //                if let _ = selectedMonth {
+            //                    selectedDataView
+            //                }
+            //            }
         }
     }
     

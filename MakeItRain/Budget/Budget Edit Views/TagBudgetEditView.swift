@@ -43,7 +43,7 @@ struct TagBudgetEditView: View {
                     footer: "Choose a tag to associate with the budget. Any transactions that use this tag will factor into the overall expenses."
                 )
                 
-                deleteButton
+                StandardDeleteButton(type: .budget, delete: deleteBudget)
             }
             .navigationDestination(for: TransNavDest.self) { dest in
                 TagView(tags: $tags, tagLimit: 1)
@@ -86,63 +86,6 @@ struct TagBudgetEditView: View {
     }
     
     
-//    var deleteButton: some View {
-//        Button {
-//            showDeleteAlert = true
-//        } label: {
-//            Image(systemName: "trash")
-//        }
-//        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
-//        .tint(.none)
-//        .confirmationDialog("Delete \"\(budget.item?.title ?? "N/A")\"?", isPresented: $showDeleteAlert, actions: {
-//            Button("Yes", role: .destructive) {
-//                deleteBudget()
-//            }
-//            #if os(iOS)
-//            Button("No", role: .close) { showDeleteAlert = false }
-//            #else
-//            Button("No") { showDeleteAlert = false }
-//            #endif
-//        }, message: {
-//            #if os(iOS)
-//            Text("Delete \"\(budget.item?.title ?? "N/A")\"?")
-//            #endif
-//        })
-//    }
-    
-    
-    var deleteButton: some View {
-        Button {
-            showDeleteAlert = true
-        } label: {
-            #if os(iOS)
-            Text("Delete Budget")
-                .frame(maxWidth: .infinity, alignment: .center)
-                .foregroundStyle(.red)
-            #else
-            Image(systemName: "trash")
-                .foregroundStyle(.red)
-            #endif
-        }
-        #if os(macOS)
-        .buttonStyle(.roundMacButton)
-        #endif
-        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
-        .tint(.none)
-        .confirmationDialog("Are you sure you want to delete this budget?", isPresented: $showDeleteAlert, actions: {
-            Button("Delete Budget", role: .destructive) { deleteBudget() }
-            //Button("No", role: .close) { showDeleteAlert = false }
-        }, message: {
-            #if os(iOS)
-            Text("Are you sure you want to delete this budget?\nThis will not delete any associated transactions.")
-            #else
-            Text("This will not delete any associated transactions.")
-            #endif
-        })
-    }
-    
-    
-    
     var titleRow: some View {
         HStack(spacing: 0) {
             Label("", systemImage: "t.circle")
@@ -167,6 +110,7 @@ struct TagBudgetEditView: View {
         .focused($focusedField, equals: 0)
     }
     
+    
     func prepareView() {
         budget.deepCopy(.create)
         
@@ -181,6 +125,7 @@ struct TagBudgetEditView: View {
             }
         }
     }
+    
     
     func deleteBudget() {
         /// Prevent from going to the server and trying to delete something that isn't there.

@@ -38,13 +38,13 @@ struct CategoryGroupEditView: View {
             .sorted(by: Helpers.categorySorter())
     }
     
-    var filteredAvailableCategories: Array<CBCategory> {
-        return catModel.categories
-            .filter { $0.active }
-            .filter { !categoryIds.contains($0.id) && $0.appSuiteKey == nil }
-            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
-            .sorted(by: Helpers.categorySorter())
-    }
+//    var filteredAvailableCategories: Array<CBCategory> {
+//        return catModel.categories
+//            .filter { $0.active }
+//            .filter { !categoryIds.contains($0.id) && $0.appSuiteKey == nil }
+//            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+//            .sorted(by: Helpers.categorySorter())
+//    }
     
     var isValidToSave: Bool {
         if group.title.isEmpty { return false }
@@ -64,28 +64,39 @@ struct CategoryGroupEditView: View {
                     Text("Set a budget to use for each month.")
                 }
                 
-                if !filteredSelectedCategories.isEmpty {
-                    Section("Selected Categories") {
+                
+                Section("Selected Categories") {
+                    if !filteredSelectedCategories.isEmpty {
                         ForEach(filteredSelectedCategories) { cat in
                             multiCategoryPickerLineItem(cat: cat)
                         }
                     }
-                }
-                                
-                Section("Available Categories") {
-                    ForEach(filteredAvailableCategories) { cat in
-                        multiCategoryPickerLineItem(cat: cat)
+                    
+                    
+                    NavigationLink {
+                        StandardContainerWithToolbar(.list) {
+                            Section("Available Categories") {
+                                ForEach(catModel.categories) { cat in
+                                    multiCategoryPickerLineItem(cat: cat)
+                                }
+                            }
+                        }
+                        .navigationTitle("Categories")
+                        .searchable(text: $searchText, prompt: Text("Search"))
+                    } label: {
+                        Text("More")
                     }
                 }
+                
+                StandardDeleteButton(type: .categoryGroup, delete: deleteGroup)
             }
-            .searchable(text: $searchText, prompt: Text("Search"))
             .navigationTitle(title)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
                 #if os(iOS)
-                ToolbarItem(placement: .topBarLeading) { deleteButton }                
+//                ToolbarItem(placement: .topBarLeading) { deleteButton }                
                 ToolbarItem(placement: .topBarTrailing) {
                     if isValidToSave {
                         closeButton
@@ -164,16 +175,6 @@ struct CategoryGroupEditView: View {
         #endif
     }
     
-//    var deleteButton: some View {
-//        Button {
-//            showDeleteAlert = true
-//        } label: {
-//            Image(systemName: "trash")
-//                .schemeBasedForegroundStyle()
-//        }
-//        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
-//    }
-    
     
     var closeButton: some View {
         Button {
@@ -183,35 +184,14 @@ struct CategoryGroupEditView: View {
                 .schemeBasedForegroundStyle()
         }
     }
-    
-    
-    var deleteButton: some View {
-        Button {
-            showDeleteAlert = true
-        } label: {
-            Image(systemName: "trash")
-        }
-        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
-        .tint(.none)
-        .confirmationDialog("Delete \"\(group.title)\"?", isPresented: $showDeleteAlert, actions: {
-            Button("Delete", role: .destructive) { deleteGroup() }
-            //Button("No", role: .close) { showDeleteAlert = false }
-        }, message: {
-            #if os(iOS)
-            Text("Delete \"\(group.title)\"?\nThis will not delete any associated transactions.")
-            #else
-            Text("This will not delete any associated transactions.")
-            #endif
-        })
-    }
-    
+        
     
     @ViewBuilder
     func multiCategoryPickerLineItem(cat: CBCategory) -> some View {
         StandardCategoryLabel(
             cat: cat,
             labelWidth: labelWidth,
-            showCheckmarkCondition: group.categories.filter{ $0.active }.contains(cat)
+            showCheckmarkCondition: categoryIds.contains(cat.id)
         )
         .onTapGesture {
             withAnimation { doit(cat) }
@@ -222,7 +202,9 @@ struct CategoryGroupEditView: View {
     func deleteGroup() {
         /// Prevent from going to the server and trying to delete something that isn't there.
         if group.action == .add {
-            catModel.delete(group, andSubmit: false)
+            Task {
+                await catModel.delete(group, andSubmit: false)
+            }
         } else {
             group.action = .delete
         }
@@ -234,19 +216,15 @@ struct CategoryGroupEditView: View {
     func doit(_ category: CBCategory) {
         print("-- \(#function)")
         if categoryIds.contains(category.id) {
-            print("contains")
-            //group.categories.removeAll(where: { $0.id == category.id })
             if let index = group.categories.firstIndex(where: { $0.id == category.id }) {
                 if group.action == .add {
                     group.categories.remove(at: index)
                 } else {
-                    print("Setting \(group.categories[index].title) to inactive")
                     group.categories[index].active = false
                 }
                 
             }
         } else {
-            print("doesn't contain")
             if let index = group.categories.firstIndex(where: {$0.id == category.id}) {
                 group.categories[index].active = true
             } else {

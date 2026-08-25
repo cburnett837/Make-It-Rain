@@ -287,6 +287,7 @@ fileprivate struct DashboardActivityByCategoryTable: View {
             } label: {
                 Card(layer: .two) {
                     Text(isBreakdownExpandedLocal ? "Hide Breakdown" : "View")
+                        .foregroundStyle(Color.theme)
                 }
                 .contentShape(.rect)
             }

@@ -597,14 +597,15 @@ extension CategoryModel {
     }
     
     
-    func saveCategoryGroup(id: String) {
-        guard let group = getCategoryGroup(by: id) else { return }
+    @discardableResult
+    func saveCategoryGroup(id: String) async -> Bool {
+        guard let group = getCategoryGroup(by: id) else { return true }
         
         if group.action == .delete {
             group.updatedBy = AppState.shared.user!
             group.updatedDate = Date()
-            delete(group, andSubmit: true)
-            return
+            return await delete(group, andSubmit: true)
+            
         }
                 
         if group.title.isEmpty {
@@ -616,16 +617,16 @@ extension CategoryModel {
                 /// Remove the dud that is in `.add` mode since it's being upserted into the list on creation.
                 withAnimation { categoryGroups.removeAll { $0.id == id } }
             }
-            return
+            return false
         }
                                                 
         if group.hasChanges() {
             group.updatedBy = AppState.shared.user!
             group.updatedDate = Date()
-            Task {
-                let _ = await submit(group)
-            }
+            return await submit(group)
         }
+        
+        return false
     }
     
     
@@ -713,7 +714,7 @@ extension CategoryModel {
         for group in groups {
             if self.doesExist(group) {
                 if !group.active {
-                    self.delete(group, andSubmit: false)
+                    await self.delete(group, andSubmit: false)
                     continue
                 } else {
                     if let index = self.getIndex(for: group) {
@@ -797,18 +798,18 @@ extension CategoryModel {
     }
     
     
-    func delete(_ group: CBCategoryGroup, andSubmit: Bool) {
+    @discardableResult
+    func delete(_ group: CBCategoryGroup, andSubmit: Bool) async -> Bool {
         group.action = .delete
         group.deepCopy?.action = .delete
         withAnimation { categoryGroups.removeAll { $0.id == group.id } }
         
         if andSubmit {
-            Task { @MainActor in
-                let _ = await submit(group)
-            }
+            return await submit(group)
         } else {
             let context = DataManager.shared.createContext()
             DataManager.shared.delete(context: context, type: PersistentCategoryGroup.self, predicate: .byId(.string(group.id)))
+            return true
         }
     }
     

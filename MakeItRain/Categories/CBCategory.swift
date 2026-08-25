@@ -10,7 +10,7 @@ import SwiftUI
 import CoreData
 
 @Observable
-class CBCategory: Codable, Identifiable, Hashable, Equatable {
+class CBCategory: Codable, Identifiable, Hashable, Equatable, HasUserUpdateInfo {
     var id: String
     var uuid: String?
     var title: String

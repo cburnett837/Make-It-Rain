@@ -10,7 +10,7 @@ import SwiftUI
 import CoreData
 
 @Observable
-class CBKeyword: Codable, Identifiable {
+class CBKeyword: Codable, Identifiable, HasUserUpdateInfo {
     var id: String
     var uuid: String?
     var keyword: String

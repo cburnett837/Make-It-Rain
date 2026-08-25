@@ -35,7 +35,7 @@ fileprivate struct CategoryEditSheetAndLogic: ViewModifier {
         
     func body(content: Content) -> some View {
         content
-            .sensoryFeedback(.selection, trigger: editId) { $1 != nil }
+            //.sensoryFeedback(.selection, trigger: editId) { $1 != nil }
             .onChange(of: editId) { editIdChanged(oldId: $0, newId: $1) }
             .sheet(item: $editCategory, onDismiss: {
                 editId = nil
@@ -90,7 +90,7 @@ fileprivate struct CategoryGroupEditSheetAndLogic: ViewModifier {
         
     func body(content: Content) -> some View {
         content
-            .sensoryFeedback(.selection, trigger: editId) { $1 != nil }
+            //.sensoryFeedback(.selection, trigger: editId) { $1 != nil }
             .onChange(of: editId) { editIdChanged(oldId: $0, newId: $1) }
             .sheet(item: $editGroup, onDismiss: {
                 editId = nil
@@ -125,9 +125,7 @@ fileprivate struct CategoryGroupEditSheetAndLogic: ViewModifier {
     }
     
     func sheetWasClosed(id: String) async {
-        #warning("Fix me")
-        let didSave = true
-        catModel.saveCategoryGroup(id: id)
+        let didSave = await catModel.saveCategoryGroup(id: id)
         
         if let onDismiss = onDismiss {
             onDismiss(didSave)

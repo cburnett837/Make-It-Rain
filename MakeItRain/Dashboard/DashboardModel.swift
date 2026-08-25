@@ -38,6 +38,7 @@ class DashboardModel {
     var groups: [CBCategoryGroup] = []
     var payMethod: CBPaymentMethod?
     var payMethodIds: Array<String>?
+    
         
     @MainActor
     func setMethodIds(payModel: PayMethodModel) {
@@ -296,72 +297,13 @@ class DashboardModel {
     
     
     @MainActor
-    func initialFetchIfApplicable(calModel: CalendarModel) async {
-        if !calModel.sMonth.isPlaceholder {
-            self.payMethod = nil
-                        
-            if self.isForSelectedMonth {
-                self.beginDate = Date().startDateOfMonth
-                self.endDate = Date().endDateOfMonth
-            } else {
-                // YTD
-                self.beginDate = Date().startDateOfYear
-                self.endDate = Date()
-            }
+    func setDefaultFilter(calModel: CalendarModel) {
+        self.payMethod = nil
+                    
+        if self.isForSelectedMonth {
+            self.beginDate = Date().startDateOfMonth
+            self.endDate = Date().endDateOfMonth
             
-//            for group in store.categoryGroups {
-//                let groupCatIds = group.categories.map { $0.id }
-//                let hasTrans = !calModel.sMonth.justTransactions
-//                    .filter ({ $0.active })
-//                    .filter ({ $0.amount != 0 && groupCatIds.contains($0.category?.id ?? "0") })
-//                    .isEmpty
-//                
-//                if hasTrans {
-//                    groups.append(group)
-//                }
-//            }
-//            
-//            //categoryGroups = catModel.categoryGroups
-//            
-//            let relevantCategories = calModel.sMonth.justTransactions
-//                .filter ({ $0.active })
-//                .filter ({ $0.amount != 0 && $0.category != nil })
-//                .compactMap ({ $0.category })
-//                //.filter ({ !$0.isIncome })
-//                .sorted(by: Helpers.categorySorter())
-//                .uniqued(on: \.id)
-//            
-//            
-//            for cat in relevantCategories/*.filter({ $0.appSuiteKey == nil })*/ {
-//                if groups
-//                    .flatMap({ $0.categories })
-//                    .map({ $0.id })
-//                    .contains(cat.id) {
-//                        continue
-//                    }
-//                
-//                if categories.map({ $0.id }).contains(cat.id) { continue }
-//                
-//                categories.append(cat)
-//            }
-//            
-//            let areThereTransWithNoCat = calModel.sMonth.justTransactions
-//                .filter ({ $0.active })
-//                .filter ({ $0.amount != 0 && $0.category == nil })
-//            
-//            if !areThereTransWithNoCat.isEmpty {
-//                if let theNil = store.categories.filter({ $0.isNil }).first {
-//                    categories.append(theNil)
-//                }
-//            }
-            
-            
-            
-            
-            // DashboardModel.swift
-            // Inside initialFetchIfApplicable(), replace the category/group discovery block
-            // with a single-pass version like this:
-
             let activeNonZeroTransactions = calModel.sMonth.justTransactions.filter {
                 $0.active && $0.amount != 0
             }
@@ -389,13 +331,33 @@ class DashboardModel {
                 .sorted(by: Helpers.categorySorter())
                 .uniqued(on: \.id)
 
-            groups = selectedGroups
-            categories = selectedCategories
+            self.groups = selectedGroups
+            self.categories = selectedCategories
 
             if hasTransactionsWithNoCategory,
                let nilCategory = store.categories.first(where: { $0.isNil }) {
                 categories.append(nilCategory)
             }
+            
+        } else {
+            let groupedCategoryIDs = Set(store.categoryGroups.flatMap { $0.categories.map(\.id) })
+            
+            // YTD
+            self.beginDate = Date().startDateOfYear
+            self.endDate = Date()
+            self.groups = store.categoryGroups
+            self.categories = store.categories.filter {
+                !groupedCategoryIDs.contains($0.id) && $0.isNil == false
+            }
+        }
+    }
+    
+    @MainActor
+    func initialFetchIfApplicable(calModel: CalendarModel) async {
+        if !calModel.sMonth.isPlaceholder {
+            self.payMethod = nil
+            
+            setDefaultFilter(calModel: calModel)
             
             if isForSelectedMonth {
                 localVersionOfServerCode(calModel: calModel)
@@ -471,6 +433,40 @@ class DashboardModel {
             default:
                 LogManager.error(error.localizedDescription)
                 AppState.shared.showAlert("There was a problem trying to fetch the dashboard.")
+            }
+        }
+        isLoading = false
+    }
+    
+    
+    @MainActor
+    func alterFilter(filter: DashboardFilter, file: String = #file, line: Int = #line, function: String = #function) async {
+        if filter.action == .delete {
+            store.dashboardFilters.removeAll { $0.id == filter.id }
+        }
+        /// Do networking.
+        let model = RequestModel(requestType: filter.action.serverKey, model: filter)
+        typealias ResultResponse = Result<ReturnIdModel?, AppError>
+        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+
+        switch await result {
+        case .success(let model):
+            if let model {
+                if filter.action == .add {
+                    filter.id = model.id
+                    filter.uuid = nil
+                    filter.action = .edit
+                }
+            }
+
+        case .failure (let error):
+            switch error {
+            case .taskCancelled:
+                /// Task get cancelled when switching years. So only show the alert if the error is not related to the task being cancelled.
+                print("\(#function) Task Cancelled")
+            default:
+                LogManager.error(error.localizedDescription)
+                AppState.shared.showAlert("There was a problem trying to update the filter.")
             }
         }
         isLoading = false

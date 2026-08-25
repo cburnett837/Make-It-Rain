@@ -193,6 +193,8 @@ struct TevLogSheet: View {
                 break
             case .notifyOnDueDate:
                 break
+            case .notifyUserId:
+                break
             case .trackingNumber:
                 break
             case .orderNumber:

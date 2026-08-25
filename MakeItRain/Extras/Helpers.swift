@@ -409,7 +409,7 @@ struct Helpers {
     
     private static func getBudgetGradientPosition(amounts: [Decimal], budget: Decimal) -> Decimal? {
         
-        let amounts = amounts.map { $0 * -1 }
+        //let amounts = amounts.map { $0 * -1 }
 
         guard let minAmount = amounts.min(),
               let maxAmount = amounts.max(),

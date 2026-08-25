@@ -102,20 +102,18 @@ struct PlaidTable: View {
     
     @ToolbarContentBuilder
     func phoneToolbar() -> some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            if AppState.shared.user?.id == 1 {
+        ToolbarItem(placement: .topBarTrailing) { ToolbarLongPollButton() }
+        ToolbarItem(placement: .topBarTrailing) { ToolbarRefreshButton() }
+        ToolbarItem(placement: .topBarTrailing) {
+            PlaidLinkView(plaidModel: plaidModel, linkMode: .newBank)
+                .tint(.none)
+        }
+        
+        if AppState.shared.user?.id == 1 {
+            ToolbarItem(placement: .topBarTrailing) {
                 infoButton
             }
         }
-                
-        ToolbarItem(placement: .topBarTrailing) { ToolbarLongPollButton() }
-        ToolbarItem(placement: .topBarTrailing) { ToolbarRefreshButton() }
-        //ToolbarSpacer(.fixed, placement: .topBarTrailing)
-        ToolbarItem(placement: .topBarTrailing) {
-            PlaidLinkView(plaidModel: plaidModel, linkMode: .newBank)
-            .tint(.none)
-        }
-    
     }
     
     var phoneList: some View {

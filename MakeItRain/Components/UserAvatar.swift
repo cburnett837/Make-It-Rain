@@ -59,7 +59,8 @@ struct UserAvatar: View {
             .schemeBasedForegroundStyle()
             .font(.caption2)
             .frame(width: 30, height: 30)
-            .background(Color(.secondarySystemFill))
+            //.background(Color(.secondarySystemFill))
+            .background(Color(.gray))
             .clipShape(.circle)
     }
     

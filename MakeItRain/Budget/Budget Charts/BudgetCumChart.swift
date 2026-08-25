@@ -56,7 +56,12 @@ struct BudgetCumChart: View {
             return AnyShapeStyle(Color.green)
         }
         
-        let gradientPos = Helpers.getChartGradientPosition(from: cumTotals, budget: budgetAmount, value: \.total)
+        let gradientPos = Helpers.getChartGradientPosition(
+            from: cumTotals,
+            budget: budgetAmount,
+            value: \.properTotal
+        )
+        
         let epsilon = 0.0001
         
         let transition = CGFloat(

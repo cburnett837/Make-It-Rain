@@ -284,6 +284,9 @@ struct RepeatingTransactionView: View {
                     //                }
                     
                     StandardUITextEditor(text: $repTransaction.notes, focusedField: _focusedField, focusID: 2, scrollProxy: scrollProxy)
+                    
+                    StandardDeleteButton(type: .recurringTransaction, delete: delete)
+                    
                 }
             }
             .navigationTitle(title)
@@ -292,14 +295,15 @@ struct RepeatingTransactionView: View {
                 TitleColorList(color: $repTransaction.color, navPath: $navPath)
             }
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { deleteButton }
-                ToolbarSpacer(.fixed, placement: .topBarLeading)
+//                ToolbarItem(placement: .topBarLeading) { deleteButton }
+//                ToolbarSpacer(.fixed, placement: .topBarLeading)
                 ToolbarItem(placement: .topBarTrailing) {
                     AnimatedCloseButton(isValidToSave: isValidToSave, closeButton: closeButton)                    
                 }
                 
                 ToolbarItem(placement: .bottomBar) {
-                    EnteredByAndUpdatedByView(enteredBy: repTransaction.enteredBy, updatedBy: repTransaction.updatedBy, enteredDate: repTransaction.enteredDate, updatedDate: repTransaction.updatedDate)
+                    
+                    EnteredByAndUpdatedByView(obj: repTransaction)
                 }
                 .sharedBackgroundVisibility(.hidden)
             }
@@ -537,50 +541,6 @@ struct RepeatingTransactionView: View {
                 Text("Include in Calculations")
             }
         }
-    }
-    
-    
-//    
-//    var transactionTypeButton: some View {
-//        HStack(spacing: 1) {
-//            Text("Transaction Type: ")
-//                .foregroundStyle(.gray)
-//            
-//            Text(repTransaction.amountTypeLingo)
-//                .bold(true)
-//                .foregroundStyle(Color.theme)
-//                .onTapGesture {
-//                    Helpers.plusMinus($repTransaction.amountString)                    
-//                }
-//        }
-//        .validate(repTransaction.amountString, rules: .regex(.currency, "The field contains invalid characters"))
-//        .disabled(repTransaction.amountString.isEmpty)
-//    }
-//    
-//    
-//    
-//    
-//    
-    var deleteButton: some View {
-        Button {
-            showDeleteAlert = true
-        } label: {
-            Image(systemName: "trash")
-        }
-        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
-        .tint(.none)
-        .confirmationDialog("Delete \"\(repTransaction.title)\"?", isPresented: $showDeleteAlert, actions: {
-            Button("Yes", role: .destructive) { delete() }
-            #if os(iOS)
-            Button("No", role: .close) { showDeleteAlert = false }
-            #else
-            Button("No") { showDeleteAlert = false }
-            #endif
-        }, message: {
-            #if os(iOS)
-            Text("Delete \"\(repTransaction.title)\"?")
-            #endif
-        })
     }
     
     

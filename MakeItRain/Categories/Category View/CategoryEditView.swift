@@ -62,12 +62,7 @@ struct CategoryEditView: View {
                         }
                         
                         ToolbarItem(placement: .bottomBar) {
-                            EnteredByAndUpdatedByView(
-                                enteredBy: category.enteredBy,
-                                updatedBy: category.updatedBy,
-                                enteredDate: category.enteredDate,
-                                updatedDate: category.updatedDate
-                            )
+                            EnteredByAndUpdatedByView(obj: category)                            
                         }
                         .sharedBackgroundVisibility(.hidden)
                     }
@@ -194,7 +189,8 @@ struct CategoryEditView: View {
                 Text("Hide this category from **my** menus. (This will not delete any data).")
             }
             
-            deleteButton
+            
+            StandardDeleteButton(type: .category, delete: deleteCategory)
             
         }
 //        header: {
@@ -386,38 +382,6 @@ struct CategoryEditView: View {
                 .schemeBasedForegroundStyle()
         }
     }
-    
-    
-    var deleteButton: some View {
-        Button {
-            showDeleteAlert = true
-        } label: {
-            #if os(iOS)
-            Text("Delete Category")
-                .frame(maxWidth: .infinity, alignment: .center)
-                .foregroundStyle(.red)
-            #else
-            Image(systemName: "trash")
-                .foregroundStyle(.red)
-            #endif
-        }
-        #if os(macOS)
-        .buttonStyle(.roundMacButton)
-        #endif
-        .sensoryFeedback(.warning, trigger: showDeleteAlert) { !$0 && $1 }
-        .tint(.none)
-        .confirmationDialog("Are you sure you want to delete this category?", isPresented: $showDeleteAlert, actions: {
-            Button("Delete Category", role: .destructive) { deleteCategory() }
-            //Button("No", role: .close) { showDeleteAlert = false }
-        }, message: {
-            #if os(iOS)
-            Text("Are you sure you want to delete this category?\nThis will not delete any associated transactions.")
-            #else
-            Text("This will not delete any associated transactions.")
-            #endif
-        })
-    }
-    
     
         
     // MARK: - Functions

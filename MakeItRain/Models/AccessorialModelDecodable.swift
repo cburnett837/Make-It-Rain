@@ -21,9 +21,10 @@ struct AccessorialModelDecodable: Decodable {
     var settings: AppSettingsDecodable?
     var budgets: [CBBudgetItem]
     var globalBudget: CBBudget
+    var dashboardFilters: [DashboardFilter]
     //var countryCurrencies: [CountryCurrencyDecodable]
     
-    enum CodingKeys: CodingKey { case payment_methods, categories, category_groups, repeating_transactions, keywords, tags, suggested_titles, app_suite_budgets, plaid_banks, settings, budgets, global_budget, countries, suggested_locations }
+    enum CodingKeys: CodingKey { case payment_methods, categories, category_groups, repeating_transactions, keywords, tags, suggested_titles, app_suite_budgets, plaid_banks, settings, budgets, global_budget, countries, suggested_locations, dashboard_filters }
     
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -41,6 +42,7 @@ struct AccessorialModelDecodable: Decodable {
         self.settings = try container.decode(AppSettingsDecodable?.self, forKey: .settings)
         self.budgets = try container.decode(Array<CBBudgetItem>.self, forKey: .budgets)
         self.globalBudget = try container.decode(CBBudget.self, forKey: .global_budget)
+        self.dashboardFilters = try container.decode(Array<DashboardFilter>.self, forKey: .dashboard_filters)
         //self.countryCurrencies = try container.decode(Array<CountryCurrencyDecodable>.self, forKey: .countries)
     }
 }

@@ -599,6 +599,13 @@ class FuncModel {
                 await self.budgetModel.handleIncoming(budgets: model.budgets, incomingDataType: .viaStandardRefresh)
                 await self.budgetModel.handleIncoming(globalBudget: model.globalBudget, incomingDataType: .viaStandardRefresh)
                 await self.plaidModel.handleIncoming(banks: model.plaidBanks, incomingDataType: .viaStandardRefresh)
+                
+                store.dashboardFilters = model.dashboardFilters
+                for each in store.dashboardFilters {
+                    await each.payMethod?.loadLogoFromCoreDataIfNeeded()
+                }
+                
+                
                 //await Countries.handleIncoming(currencies: model.countryCurrencies, incomingDataType: .viaStandardRefresh)
             }
             

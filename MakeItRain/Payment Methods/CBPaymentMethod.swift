@@ -15,7 +15,7 @@ struct PaymentMethodHolder: Identifiable {
 }
 
 @Observable
-class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo {
+class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo, HasUserUpdateInfo {
     var id: String
     var uuid: String?
     var title: String

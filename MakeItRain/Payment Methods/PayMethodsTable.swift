@@ -1333,10 +1333,10 @@ struct CardAccessoryView: View {
     var body: some View {
         VStack {
             List {
-                NavigationLink(value: "chart-page") {
-                    Label("Insights", systemImage: "chart.xyaxis.line")
-                        .schemeBasedForegroundStyle()
-                }
+//                NavigationLink(value: "chart-page") {
+//                    Label("Insights", systemImage: "chart.xyaxis.line")
+//                        .schemeBasedForegroundStyle()
+//                }
                 
                 if let month = month, !transactions.isEmpty {
                     Section("Recent Transactions") {

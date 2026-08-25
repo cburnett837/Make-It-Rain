@@ -79,11 +79,13 @@ struct PlaidBankView: View {
                 } footer: {
                     Text("Revise your linked accounts from \(bank.title). Note, you must select all accounts you wish to have linked. Even if you have already linked them.")
                 }
+                
+                StandardDeleteButton(type: .plaidBank, delete: deleteBank)
             }
             .navigationTitle("Plaid Bank")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { deleteButton }
+                //ToolbarItem(placement: .topBarLeading) { deleteButton }
                 ToolbarSpacer(.fixed, placement: .topBarLeading)
                 ToolbarItem(placement: .topBarLeading) { if AppState.shared.user?.id == 1 { infoButton } }
                 ToolbarItem(placement: .topBarTrailing) {

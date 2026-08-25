@@ -64,7 +64,6 @@ struct PayMethodSheetButton: View {
                             .font(.caption)
                             .fontWeight(.semibold)
                     }
-                    
                 }
                 .tint(.none)
                 #if os(iOS)

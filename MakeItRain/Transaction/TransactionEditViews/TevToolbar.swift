@@ -26,6 +26,7 @@ struct TevToolbar: ToolbarContent {
         hasher.combine(trans.factorInCalculations)
         hasher.combine(trans.notificationOffset)
         hasher.combine(trans.notifyOnDueDate)
+        hasher.combine(trans.notifyUserId)
         hasher.combine(trans.title)
         hasher.combine(trans.amountString)
         hasher.combine(trans.payMethod)
@@ -63,12 +64,7 @@ struct TevToolbar: ToolbarContent {
         if showExpensiveViews {
             ToolbarItem(placement: .bottomBar) {
                 NavigationLink(value: TransNavDest.logs) {
-                    EnteredByAndUpdatedByView(
-                        enteredBy: trans.enteredBy,
-                        updatedBy: trans.updatedBy,
-                        enteredDate: trans.enteredDate,
-                        updatedDate: trans.updatedDate
-                    )
+                    EnteredByAndUpdatedByView(obj: trans)
                 }
             }
             //.sharedBackgroundVisibility(.hidden)
@@ -77,12 +73,7 @@ struct TevToolbar: ToolbarContent {
         ToolbarItemGroup(placement: .destructiveAction) {
             HStack {
                 NavigationLink(value: TransNavDest.logs) {
-                    EnteredByAndUpdatedByView(
-                        enteredBy: trans.enteredBy,
-                        updatedBy: trans.updatedBy,
-                        enteredDate: trans.enteredDate,
-                        updatedDate: trans.updatedDate
-                    )
+                    EnteredByAndUpdatedByView(obj: trans)
                 }
                 .buttonStyle(.roundMacButton(horizontalPadding: 5))
             }

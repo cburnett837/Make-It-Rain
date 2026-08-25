@@ -133,7 +133,7 @@ struct DashboardToolbar: ToolbarContent {
             model.showOptionsSheet = true
         } label: {
             if model.payMethod == nil {
-                Image(systemName: "ellipsis")
+                Image(systemName: "line.3.horizontal.decrease")
             } else {
                 PayMethodLogoMashup(meth: model.payMethod)
             }

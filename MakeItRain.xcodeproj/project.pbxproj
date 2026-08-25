@@ -84,6 +84,9 @@
 		FD2822E32F925B2C00CA00B8 /* Extensions+Sequence.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2822E22F925B2400CA00B8 /* Extensions+Sequence.swift */; };
 		FD2822E52F92641D00CA00B8 /* GradientCircleDot.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2822E42F92641D00CA00B8 /* GradientCircleDot.swift */; };
 		FD2822FF2F97A73400CA00B8 /* Dashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2822FE2F97A73400CA00B8 /* Dashboard.swift */; };
+		FD2AD9C63038937A00D1E707 /* UserPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2AD9C53038937A00D1E707 /* UserPicker.swift */; };
+		FD2AD9C83038CA9F00D1E707 /* DashboardFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2AD9C73038CA9F00D1E707 /* DashboardFilter.swift */; };
+		FD2AD9CA303981CB00D1E707 /* StandardDeleteButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2AD9C9303981CB00D1E707 /* StandardDeleteButton.swift */; };
 		FD2F25B12EE9C75700E18F99 /* CatChartDataStructures.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2F25B02EE9C75700E18F99 /* CatChartDataStructures.swift */; };
 		FD2F25B42EE9C99C00E18F99 /* CatChartRawDataList.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2F25B32EE9C99C00E18F99 /* CatChartRawDataList.swift */; };
 		FD2F25B62EE9E55C00E18F99 /* CatChartRawDataListLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2F25B52EE9E55C00E18F99 /* CatChartRawDataListLine.swift */; };
@@ -620,6 +623,9 @@
 		FD2822E42F92641D00CA00B8 /* GradientCircleDot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradientCircleDot.swift; sourceTree = "<group>"; };
 		FD2822FE2F97A73400CA00B8 /* Dashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Dashboard.swift; sourceTree = "<group>"; };
 		FD292E0E2C9B248B003C18D2 /* MakeItRain.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MakeItRain.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FD2AD9C53038937A00D1E707 /* UserPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserPicker.swift; sourceTree = "<group>"; };
+		FD2AD9C73038CA9F00D1E707 /* DashboardFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardFilter.swift; sourceTree = "<group>"; };
+		FD2AD9C9303981CB00D1E707 /* StandardDeleteButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandardDeleteButton.swift; sourceTree = "<group>"; };
 		FD2F25B02EE9C75700E18F99 /* CatChartDataStructures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatChartDataStructures.swift; sourceTree = "<group>"; };
 		FD2F25B32EE9C99C00E18F99 /* CatChartRawDataList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatChartRawDataList.swift; sourceTree = "<group>"; };
 		FD2F25B52EE9E55C00E18F99 /* CatChartRawDataListLine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatChartRawDataListLine.swift; sourceTree = "<group>"; };
@@ -1478,6 +1484,7 @@
 				FDBD479E2FB91299004F34F5 /* DashboardMontlyOrQuarterlyBreakdowns.swift */,
 				FDBD47AC2FB912E9004F34F5 /* DashboardNavDest.swift */,
 				FDBD47A82FB912C7004F34F5 /* DashboardRequestModel.swift */,
+				FD2AD9C73038CA9F00D1E707 /* DashboardFilter.swift */,
 			);
 			path = "Dashboard Models";
 			sourceTree = "<group>";
@@ -1631,6 +1638,8 @@
 				FDB066D02D4D40C40060568B /* UIDatePicker.swift */,
 				FD49F8A32DD9A98200A563C8 /* Validator.swift */,
 				FDC26E0F2D3E86D500B0A97C /* YearPicker.swift */,
+				FD2AD9C53038937A00D1E707 /* UserPicker.swift */,
+				FD2AD9C9303981CB00D1E707 /* StandardDeleteButton.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -2279,6 +2288,7 @@
 				FDC26E132D3E86D500B0A97C /* CBBudgetItem.swift in Sources */,
 				FDBD47BC2FB91394004F34F5 /* DashboardActivityByCategoryChart.swift in Sources */,
 				FDA1726D2EF993F900C113F2 /* RecentReceiptsView.swift in Sources */,
+				FD2AD9CA303981CB00D1E707 /* StandardDeleteButton.swift in Sources */,
 				FDBA69D92DF252FE007FB0CB /* FileRequestModel.swift in Sources */,
 				FD1088C12ED397820030090E /* BabyTransEditView.swift in Sources */,
 				FDA8FA482EB5334100D7C29B /* TevMoreOptions.swift in Sources */,
@@ -2533,6 +2543,7 @@
 				FD3DFD112EDFDF08002C2051 /* TevDatePicker.swift in Sources */,
 				FDFD8F3A2FB25BB800B9A98B /* BudgetCumChart.swift in Sources */,
 				FD09FF642D9D71EE00795C28 /* StandardUrlTextField.swift in Sources */,
+				FD2AD9C83038CA9F00D1E707 /* DashboardFilter.swift in Sources */,
 				FDC26E5E2D3E86D500B0A97C /* NavigationManager.swift in Sources */,
 				FD3DFD0F2EDFDE5E002C2051 /* TevAmount.swift in Sources */,
 				FD174C422ED5427500A01F67 /* Extensions+UiColor.swift in Sources */,
@@ -2600,6 +2611,7 @@
 				FD7F77062E8D624C0087F229 /* TevSplitSheet.swift in Sources */,
 				FDBD47C02FB913B0004F34F5 /* DashboardActivityByCategoryPieChart.swift in Sources */,
 				FDA1724C2EF4504600C113F2 /* ImageCache.swift in Sources */,
+				FD2AD9C63038937A00D1E707 /* UserPicker.swift in Sources */,
 				FD06F6B62DEA34B800753490 /* ChartIncomeOptionMenu.swift in Sources */,
 				FDC26E752D3E86D500B0A97C /* Extensions.swift in Sources */,
 				FDC26E762D3E86D500B0A97C /* LongPollModel.swift in Sources */,

@@ -88,6 +88,9 @@ final class AppStore {
     var trans: Array<CBPlaidTransaction> = []
     var balances: Array<CBPlaidBalance> = []
     
+    // MARK: - Dashboard
+    var dashboardFilters: [DashboardFilter] = []
+    
     
     func removeAll() {
         sPayMethod = nil

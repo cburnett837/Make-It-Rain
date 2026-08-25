@@ -52,12 +52,12 @@ struct CategoriesTable: View {
             /// NOTE: Sorting must be done in the task and not in the computed property. If done in the computed property, when reording, they get all messed up.
     }
     
-//    var filteredSpecialCategories: [CBCategory] {
-//        catModel.categories
-//            .filter { !$0.isNil && $0.appSuiteKey != nil }
-//            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedCaseInsensitiveContains(searchText) }
-//            /// NOTE: Sorting must be done in the task and not in the computed property. If done in the computed property, when reording, they get all messed up.
-//    }
+    enum CategoryListSelection: Hashable {
+        case group(CBCategoryGroup.ID)
+        case category(CBCategory.ID)
+    }
+    
+    @State private var selection: CategoryListSelection?
     
     var body: some View {
         //let _ = Self._printChanges()
@@ -71,11 +71,7 @@ struct CategoriesTable: View {
                     if filteredCategories.isEmpty && filteredCategoryGroups.isEmpty {
                         ContentUnavailableView("No categories found", systemImage: "exclamationmark.magnifyingglass")
                     } else {
-                        if AppState.shared.isIphone {
-                            listForPhoneAndMacSort
-                        } else {
-                            padList
-                        }
+                        listForPhoneAndMacSort
                     }
                     #endif
                 } else {
@@ -96,15 +92,7 @@ struct CategoriesTable: View {
             //.navigationBarBackButtonHidden(true)
             .task {
                 /// NOTE: Sorting must be done here and not in the computed property. If done in the computed property, when reording, they get all messed up.
-                //let categorySortMode = SortMode.fromString(UserDefaults.standard.string(forKey: "categorySortMode") ?? "")
-                
                 catModel.categories.sort(by: Helpers.categorySorter())
-            }
-            .navigationDestination(for: CBCategory.self) { cat in
-                CategoryOverView(category: cat, navPath: $navPath, calModel: calModel, catModel: catModel)
-            }
-            .navigationDestination(for: CBCategoryGroup.self) { group in
-                CategoryGroupOverView(group: group, navPath: $navPath, calModel: calModel, catModel: catModel)
             }
             .toolbar {
                 #if os(macOS)
@@ -114,49 +102,30 @@ struct CategoriesTable: View {
                 #endif
             }
             .searchable(text: $searchText)
-            .categoryGroupEditSheetAndLogic(editId: $groupEditID)
+            .onChange(of: selection) { _, newValue in
+                switch newValue {
+                case .group(let id):
+                    groupEditID = id
+
+                case .category(let id):
+                    categoryEditID = id
+
+                case nil:
+                    break
+                }
+            }
+            .categoryGroupEditSheetAndLogic(editId: $groupEditID) { didSave in
+                selection = nil
+                
+            }
             .categoryEditSheetAndLogic(editId: $categoryEditID) { didSave in
+                selection = nil
                 if store.categoryFilterWasSetByCategoryPage {
                     calModel.sCategories.removeAll()
                     store.categoryFilterWasSetByCategoryPage = false
                 }
             }
-        
-//            .onChange(of: categoryEditID) { oldId, newId in
-//                if let newId {
-//                    if let category = catModel.getCategory(by: newId) {
-//                        editCategory = category
-//                    } else {
-//                        editCategory = CBCategory(uuid: newId)
-//                    }
-//                } else {
-//                    catModel.saveCategory(id: oldId!)
-//                    //catModel.categories.sort(by: Helpers.categorySorter())
-//                }
-//            }            
-//            .sheet(item: $editCategory, onDismiss: {
-//                categoryEditID = nil
-//                
-//                if store.categoryFilterWasSetByCategoryPage {
-//                    calModel.sCategories.removeAll()
-//                    store.categoryFilterWasSetByCategoryPage = false
-//                }
-//            }) { cat in
-//                CategoryOverViewWrapperIpad(category: cat, calModel: calModel, catModel: catModel)
-//                    #if os(macOS)
-//                    .presentationSizing(.page)
-//                    #endif
-//
-////                CategoryView(category: cat, editID: $categoryEditID)
-////                    #if os(macOS)
-////                    .frame(minWidth: 500, minHeight: 700)
-////                    .presentationSizing(.fitted)
-////                    #else
-////                    .presentationSizing(.page) // big sheet
-////                    //.presentationSizing(.fitted) // small sheet - resizable - doesn't work on iOS
-////                    //.presentationSizing(.form) // seems to be the same as a regular sheet
-////                    #endif
-//            }
+  
             #if os(macOS)
             .sheet(isPresented: $showReorderList) {
                 StandardContainer(.plainList) {
@@ -174,49 +143,9 @@ struct CategoriesTable: View {
             .onChange(of: sortOrder) { _, sortOrder in
                 catModel.categories.sort(using: sortOrder)
             }
-//            .onChange(of: groupEditID) { oldId, newId in
-//                if let newId {
-//                    if let group = catModel.getCategoryGroup(by: newId) {
-//                        editGroup = group
-//                    } else {
-//                        editGroup = CBCategoryGroup(uuid: newId)
-//                    }
-//                    
-//                } else {
-//                    catModel.saveCategoryGroup(id: oldId!)
-//                }
-//            }
-//            
-//            .sheet(item: $editGroup, onDismiss: {
-//                groupEditID = nil
-//            }, content: { group in
-//                CategoryGroupOverViewWrapperIpad(group: group, calModel: calModel, catModel: catModel)
-//                
-//                //CategoryGroupEditView(group: group, editID: $groupEditID)
-//                #if os(macOS)
-//                    .frame(minWidth: 500, minHeight: 700)
-//                    .presentationSizing(.fitted)
-//                #endif
-//            })
-        //}
     }
     
-    
-//    func sortBy(comparator: KeyPathComparator<CBCategory>) {
-//        let keyPath = comparator.keyPath
-//        let isForwardSort = comparator.order == .forward
-//        
-//        if keyPath == \CBCategory.title {
-//            if isForwardSort {
-//                return catModel.categories.sort { ($0.title).lowercased() < ($1.title).lowercased() }
-//            } else {
-//                return catModel.categories.sort { ($0.title).lowercased() > ($1.title).lowercased() }
-//            }
-//        } else {
-//            return catModel.categories.sort { $0.listOrder.sortOrder < $1.listOrder.sortOrder }
-//        }
-//    }
-    
+        
     #if os(macOS)
     @ToolbarContentBuilder
     func macToolbar() -> some ToolbarContent {
@@ -341,7 +270,7 @@ struct CategoriesTable: View {
     
     
     var listForPhoneAndMacSort: some View {
-        List {
+        List(selection: $selection) {
             listForPhoneAndMacSortContent
         }
         .listStyle(.plain)
@@ -352,76 +281,20 @@ struct CategoriesTable: View {
     var listForPhoneAndMacSortContent: some View {
         Section("Category Groups") {
             ForEach(filteredCategoryGroups) { group in
-                NavigationLink(value: group) {
-                    categoryGroupLine(group: group)
-                }
+                line(for: group)
+                    .tag(CategoryListSelection.group(group.id))
             }
         }
         
-        Section("My Categories") {
+        Section("Categories") {
             ForEach(filteredCategories) { cat in
-                NavigationLink(value: cat) {
-                    line(for: cat)
-                }
+                line(for: cat)
+                    .tag(CategoryListSelection.category(cat.id))
             }
             .if(AppSettings.shared.categorySortMode == .listOrder) {
                 $0.onMove(perform: move)
             }
         }
-        
-//        Section("Special Categories") {
-//            ForEach(filteredSpecialCategories) { cat in
-//                NavigationLink(value: cat) {
-//                    line(for: cat)
-//                }
-//            }
-//        }
-        
-    }
-    
-    
-    @ViewBuilder
-    var padList: some View {
-//        List(selection: $groupEditID) {
-//            Section("Category Groups") {
-//                ForEach(filteredCategoryGroups) { group in
-//                    NavigationLink(value: group) {
-//                        categoryGroupLine(group: group)
-//                    }
-//                }
-//            }
-//        }
-//        .listStyle(.plain)
-//        
-        List {
-            Section("Category Groups") {
-                ForEach(filteredCategoryGroups) { group in
-                    categoryGroupLine(group: group)
-                        .contentShape(.rect)
-                        .onTapGesture {
-                            groupEditID = group.id
-                        }
-                }
-            }
-            Section("Categories") {
-                ForEach(filteredCategories) { cat in
-                    line(for: cat)
-                        .onTapGesture {
-                            categoryEditID = cat.id
-                        }
-                }
-            }
-            
-//            Section("Special Categories") {
-//                ForEach(filteredSpecialCategories) { cat in
-//                    line(for: cat)
-//                        .onTapGesture {
-//                            categoryEditID = cat.id
-//                        }
-//                }
-//            }
-        }
-        .listStyle(.plain)
     }
     
     
@@ -468,36 +341,18 @@ struct CategoriesTable: View {
         .tint(.none)
         .confirmationDialog("Add New", isPresented: $showAddNewDialog) {
             Button("Category") {
-                let newId = UUID().uuidString
-                
-                /// On iPhone, push the details page to the nav, which will auto-open the edit sheet.
-                if AppState.shared.isIphone {
-                    navPath.append(CBCategory(uuid: newId))
-                } else {
-                    /// On iPad, trigger the details sheet to open, which will then open the edit sheet.
-                    //#error("On Ipad, when closing the edit sheet, the details sheet freaks out.")
-                    categoryEditID = newId
-                }
+                categoryEditID = UUID().uuidString
             }
             
             Button("Group") {
-                let newId = UUID().uuidString
-                
-                /// On iPhone, push the details page to the nav, which will auto-open the edit sheet.
-                if AppState.shared.isIphone {
-                    navPath.append(CBCategoryGroup(uuid: newId))
-                } else {
-                    /// On iPad, trigger the details sheet to open, which will then open the edit sheet.
-                    //#error("On Ipad, when closing the edit sheet, the details sheet freaks out.")
-                    groupEditID = newId
-                }
+                groupEditID = UUID().uuidString
             }
         }
     }
     
     
     @ViewBuilder
-    func categoryGroupLine(group: CBCategoryGroup) -> some View {
+    func line(for group: CBCategoryGroup) -> some View {
         Label {
             VStack(alignment: .leading) {
                 HStack {
@@ -512,61 +367,6 @@ struct CategoriesTable: View {
         }
     }
     
-//    var sortMenu: some View {
-//        Menu {
-//            Button {
-//                categorySortMode = .title
-//                withAnimation {
-//                    #if os(macOS)
-//                    sortOrder = [KeyPathComparator(\CBCategory.title)]
-//                    #else
-//                    catModel.categories.sort(by: Helpers.categorySorter())
-//                    //catModel.categories.sort { ($0.title).lowercased() < ($1.title).lowercased() }
-//                    #endif
-//                }
-//            } label: {
-//                Label {
-//                    Text("Title")
-//                } icon: {
-//                    Image(systemName: categorySortMode == .title ? "checkmark" : "textformat.abc")
-//                }
-//            }
-//            
-//            Button {
-//                categorySortMode = .listOrder
-//                withAnimation {
-//                    #if os(macOS)
-//                    sortOrder = [KeyPathComparator(\CBCategory.listOrder.specialDefaultIfNil)]
-//                    #else
-//                    catModel.categories.sort(by: Helpers.categorySorter())
-//                    #endif
-//                }
-//            } label: {
-//                Label {
-//                    Text("Custom")
-//                } icon: {
-//                    Image(systemName: categorySortMode == .listOrder ? "checkmark" : "list.bullet")
-//                }
-//            }
-//        } label: {
-//            Image(systemName: "arrow.up.arrow.down")
-//                .schemeBasedForegroundStyle()
-//        }
-//        
-//
-//    }
-//    
-    
-//    func move(from source: IndexSet, to destination: Int) {
-//        print("\(source.map { $0.id }) - \(destination)")
-//        print(catModel.categories[source.map { $0.id }.first!].title)
-//        catModel.categories.filter { !$0.isNil }.move(fromOffsets: source, toOffset: destination)
-////        Task {
-////            let listOrderUpdates = await catModel.setListOrders(calModel: calModel)
-////            let _ = await funcModel.submitListOrders(items: listOrderUpdates, for: .categories)
-////        }
-//        
-//    }
     
     func getReversedColors(_ categories: Array<CBCategory>) -> Array<Gradient.Stop> {
          let colors = categories
@@ -629,6 +429,7 @@ struct CategoryLine: View {
 
     var category: CBCategory
     var labelWidth: Double
+    var withBudget: Bool = true
     
     var body: some View {
         Label {
@@ -638,14 +439,16 @@ struct CategoryLine: View {
                     if category.isHidden { Image(systemName: "eye.slash") }
                     
                     Spacer()
-                    let isPartOfGroup = catModel.groupedCategoryIds.contains(category.id)
-                    if isPartOfGroup {
-                        Text("-")
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Text(category.amount?.currencyWithDecimals() ?? "-")
-                    }
                     
+                    if withBudget {
+                        let isPartOfGroup = catModel.groupedCategoryIds.contains(category.id)
+                        if isPartOfGroup {
+                            Text("-")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text(category.amount?.currencyWithDecimals() ?? "-")
+                        }
+                    }                    
                 }
             }
         } icon: {
@@ -659,13 +462,18 @@ struct CategoryLine: View {
 
 struct CategoryGroupLine: View {
     var group: CBCategoryGroup
+    var withBudget: Bool = true
+    
     var body: some View {
         Label {
             VStack(alignment: .leading) {
                 HStack {
                     Text(group.title)
                     Spacer()
-                    Text(group.amount?.currencyWithDecimals() ?? "-")
+                    if withBudget {
+                        Text(group.amount?.currencyWithDecimals() ?? "-")
+                    }
+                    
                 }
             }
         } icon: {

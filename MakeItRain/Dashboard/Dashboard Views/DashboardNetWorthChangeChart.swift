@@ -114,7 +114,7 @@ struct DashboardNetWorthChangeChart: View {
 
     
     var body: some View {
-        Card(showFilterText: !model.allCatsSelected) {
+        Card {
             HStack(spacing: 0) {
                 Menu {
                     ForEach(DashboardMontlyOrQuarterlyBreakdowns.allCases, id: \.self) { opt in
@@ -138,6 +138,10 @@ struct DashboardNetWorthChangeChart: View {
                     .layoutPriority(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
+        } footer: {
+            Text("Note: This chart is not influenced by categorical filters.")
+                .foregroundStyle(.secondary)
+                .font(.caption)
         } content: {
             compareChart
                 .overlay(alignment: .top) {

@@ -18,7 +18,7 @@ enum RepeatingTransactionType: String, CaseIterable {
 }
 
 @Observable
-class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, CanEditAmount {
+class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transferable, CanEditAmount, HasUserUpdateInfo {
     var id: String
     var uuid: String?
     var title: String

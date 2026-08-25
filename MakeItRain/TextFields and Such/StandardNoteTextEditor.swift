@@ -149,7 +149,7 @@ struct StandardUITextEditor: View {
             .uiTextAlignment(.left)
             .uiFont(.preferredFont(forTextStyle: .body))
             .uiTextColor(colorScheme == .dark ? .white : .black)
-            .frame(minHeight: 100)
+            //.frame(minHeight: 100)
             .focused(focusedField.projectedValue, equals: 2)
             .overlay(fakePlaceholder)
         }
@@ -273,11 +273,17 @@ struct UITextViewWrapper<Toolbar: View>: UIViewRepresentable {
 
     func updateUIView(_ uiView: UITextView, context: Context) {
         let ns = Helpers.makeUITextViewString(from: text)
-        uiView.attributedText = ns
+        if !uiView.attributedText.isEqual(to: ns) {
+            uiView.attributedText = ns
+        }
         //uiView.attributedText = NSAttributedString(text)
         context.coordinator.textView = uiView
-        
-        
+    }
+    
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
+        guard let width = proposal.width else { return nil }
+        let size = uiView.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
+        return CGSize(width: width, height: max(100, ceil(size.height)))
     }
 
     func makeCoordinator() -> Coordinator {

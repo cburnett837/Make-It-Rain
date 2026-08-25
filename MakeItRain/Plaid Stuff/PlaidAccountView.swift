@@ -78,11 +78,13 @@ struct PlaidAccountView: View {
                     }
                 }
                 
+                StandardDeleteButton(type: .plaidAccount, delete: deleteAccount)
+                
             }
             .navigationTitle(account.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { deleteButton }
+//                ToolbarItem(placement: .topBarLeading) { deleteButton }
                 ToolbarItem(placement: .topBarTrailing) {
                     AnimatedCloseButton(isValidToSave: isValidToSave, closeButton: closeButton)
                 }

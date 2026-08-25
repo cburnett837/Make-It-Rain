@@ -84,7 +84,33 @@ struct TevMoreOptions: View {
             Section {
                 notificationButton
                 if trans.notifyOnDueDate {
-                    ReminderPicker(title: "for…", notificationOffset: $trans.notificationOffset)
+                    ReminderPicker(title: "Alert", notificationOffset: $trans.notificationOffset)
+                    NavigationLink {
+                        UserPicker(title: "Select Recipient", userId: $trans.notifyUserId)
+                    } label: {
+                        Label {
+                            HStack {
+                                Text("Notify")
+                                Spacer()
+                                if let userId = trans.notifyUserId,
+                                   let user = AppState.shared.getUserBy(id: userId) {
+                                    Text(user.name)
+                                        .foregroundStyle(.gray)
+                                } else {
+                                    Text("Everyone")
+                                        .foregroundStyle(.gray)
+                                }
+                            }
+                        } icon: {
+                            if let userId = trans.notifyUserId,
+                               let user = AppState.shared.getUserBy(id: userId) {
+                                UserAvatar(user: user)
+                            } else {
+                                Image(systemName: "person.crop.circle")
+                                    .foregroundStyle(.gray)
+                            }
+                        }
+                    }
                 }
             } footer: {
                 Text(trans.notifyOnDueDate ? "You will be notified around 9:00 AM." : "Choose to be notified when this transaction is approaching.")
@@ -92,7 +118,6 @@ struct TevMoreOptions: View {
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     #endif
-                
             }
         }
         
@@ -284,6 +309,7 @@ struct TevMoreOptions: View {
         }
         .onChange(of: trans.notifyOnDueDate) {
             trans.notificationOffset = 0
+            trans.notifyUserId = nil
 //            if !$1 {
 //                trans.notificationOffset = nil
 //            } else {

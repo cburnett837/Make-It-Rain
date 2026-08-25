@@ -114,17 +114,17 @@ struct MultiCategorySheet: View {
                                     categoryGroupLine(group: group)
                                 }
                                 
-                                if searchText.isEmpty {
-                                    allExpenseCategoriesButton
-                                    
-                                    if !catModel.categories.filter({ $0.isIncome }).isEmpty {
-                                        allIncomeCategoriesButton
-                                    }
-                                    
-                                    if showAnalyticSpecificOptions {
-                                        anythingWithAnAmountButton
-                                    }
-                                }
+//                                if searchText.isEmpty {
+//                                    allExpenseCategoriesButton
+//                                    
+//                                    if !catModel.categories.filter({ $0.isIncome }).isEmpty {
+//                                        allIncomeCategoriesButton
+//                                    }
+//                                    
+//                                    if showAnalyticSpecificOptions {
+//                                        anythingWithAnAmountButton
+//                                    }
+//                                }
                             }
                         }
                         
