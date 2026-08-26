@@ -161,7 +161,7 @@ struct Card<TitleContent: View, FooterContent: View, Content: View>: View {
                 Text(footer)
                     .padding(.horizontal, 12)
                     .foregroundStyle(.secondary)
-                    .font(.headline)
+                    .font(.caption)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
             } else if !(FooterContent.self == EmptyView.self) {

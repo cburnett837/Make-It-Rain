@@ -211,27 +211,28 @@ struct Dashboard: View {
             }
         }
         
-        HStack {
-            if !cardsDueToday.isEmpty {
-                Card(title: "Due Today") {
-                    creditCardsDueTodayView
+        if !cardsDueToday.isEmpty || (isForSelectedMonth && !transWithAlerts.isEmpty) {
+            HStack {
+                if !cardsDueToday.isEmpty {
+                    Card(title: "Due Today") {
+                        creditCardsDueTodayView
+                    }
                 }
-            }
-            
-            if isForSelectedMonth && !transWithAlerts.isEmpty {
-                Card(title: "Reminders") {
-                    transWithAlertsTodayView
+                
+                if isForSelectedMonth && !transWithAlerts.isEmpty {
+                    Card(title: "Reminders") {
+                        transWithAlertsTodayView
+                    }
                 }
             }
         }
         
         
-        
-        #if os(iOS)
-        if showDivider {
-            Divider()
-        }
-        #endif
+//        #if os(iOS)
+//        if showDivider {
+//            Divider()
+//        }
+//        #endif
         
         if AppState.shared.isIphone {
             DashboardDetailSection(model: model, data: model.data)
@@ -296,7 +297,10 @@ struct Dashboard: View {
         
         
         if isForSelectedMonth {
-            Card(title: "Net Worth") {
+            Card(
+                title: "Net Worth Change",
+                footer: "This compares how much money you start & finish the month with."
+            ) {
                 DashboardNetWorthChange()
             }
         } else if model.data.monthlyBreakdowns.count > 1 {

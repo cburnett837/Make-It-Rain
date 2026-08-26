@@ -1627,6 +1627,7 @@
 				FDAECC412DC938F400C6EDA5 /* StandardColorPicker.swift */,
 				FD2FC7F82D7A267100501D41 /* StandardContainer.swift */,
 				FD7F77032E8D57E10087F229 /* StandardContainerWithToolbar.swift */,
+				FD2AD9C9303981CB00D1E707 /* StandardDeleteButton.swift */,
 				FDC26DFD2D3E86D500B0A97C /* StandardDivider.swift */,
 				FD737B202D806B9A00B6A97B /* StandardRectangle.swift */,
 				FDC26DFF2D3E86D500B0A97C /* SymbolPicker.swift */,
@@ -1639,7 +1640,6 @@
 				FD49F8A32DD9A98200A563C8 /* Validator.swift */,
 				FDC26E0F2D3E86D500B0A97C /* YearPicker.swift */,
 				FD2AD9C53038937A00D1E707 /* UserPicker.swift */,
-				FD2AD9C9303981CB00D1E707 /* StandardDeleteButton.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";

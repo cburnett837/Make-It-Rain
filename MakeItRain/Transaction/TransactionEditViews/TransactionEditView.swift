@@ -542,13 +542,13 @@ struct TransactionEditView: View {
     
     func deleteLingo(_ christmasListDeletePeference: ChristmasListDeletePreference) -> String {
         if trans.christmasListGiftID == nil {
-            "Delete"
+            "Delete Transaction"
         } else {
             switch christmasListDeletePeference {
             case .delete:
-                "Delete transaction & gift"
+                "Delete Transaction & Gift"
             case .resetStatusToIdea:
-                "Delete & set gift as idea"
+                "Delete Transaction & Set Gift As Idea"
             }
         }
     }
