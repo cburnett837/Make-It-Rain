@@ -22,8 +22,8 @@ struct AllBudgetsTable: View {
     var filteredBudgetItems: [CBBudgetItem] {
         budgetModel.budgets
             .filter {
-                //guard let item = $0.item else { return false }
-                $0.type == .tag && searchText.isEmpty
+                guard $0.type == .tag else { return false }
+                return searchText.isEmpty
                 ? $0.item?.title.isEmpty == false
                 : ($0.item?.title ?? "").localizedCaseInsensitiveContains(searchText)
             }
@@ -32,19 +32,26 @@ struct AllBudgetsTable: View {
     
     var body: some View {
         List {
-            Section("Your Monthly Budget") {
-                Button {
-                    editBudget = store.globalBudget
-                } label: {
-                    HStack {
-                        Text(store.globalBudget.amount.currencyWithDecimals())
-                            .schemeBasedForegroundStyle()
-                        Spacer()
-                        Text("Edit")
-                            .foregroundStyle(Color.theme)
+            if searchText.isEmpty {
+                Section("Your Monthly Budget") {
+                    Button {
+                        editBudget = store.globalBudget
+                    } label: {
+                        HStack {
+                            Text(store.globalBudget.amount.currencyWithDecimals())
+                                .schemeBasedForegroundStyle()
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundStyle(Color(uiColor: .systemGray3))
+                                .font(.footnote)
+                                .bold()
+//                            Text("Edit")
+//                                .foregroundStyle(Color.theme)
+                        }
                     }
                 }
             }
+            
             
             
             Section("Tag Budgets") {
@@ -59,11 +66,7 @@ struct AllBudgetsTable: View {
         .searchable(text: $searchText)
         .listStyle(.plain)
         .toolbar {
-//            ToolbarItem(placement: .topBarTrailing) {
-//                editGlobalBudgetButton
-//            }
             #if os(iOS)
-            ToolbarSpacer(placement: .topBarTrailing)
             ToolbarItem(placement: .topBarTrailing) { ToolbarRefreshButton() }
             ToolbarItem(placement: .topBarTrailing) { newBudgetButton }
             #endif

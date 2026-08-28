@@ -14,6 +14,11 @@ import SwiftUI
 @MainActor
 class MapModel: NSObject {
     var locationManager = LocationManager.shared
+    
+    var mapCenter: CLLocationCoordinate2D? {
+        visibleRegion?.center
+    }
+
     var position: MapCameraPosition = .userLocation(followsHeading: false, fallback: .userLocation(fallback: .automatic))
     var modes: MapInteractionModes = [.all]
     
@@ -54,6 +59,20 @@ class MapModel: NSObject {
         }
     }
     
+    var isFocusedOnUser: Bool {
+        guard
+            let region = visibleRegion,
+            let location = locationManager.currentLocation
+        else {
+            return false
+        }
+
+        let latDifference = abs(location.latitude - region.center.latitude)
+        let lonDifference = abs(location.longitude - region.center.longitude)
+
+        return latDifference < region.span.latitudeDelta * 0.1 &&
+               lonDifference < region.span.longitudeDelta * 0.1
+    }
     
     func getAutoCompletions(for text: String) {
         if blockCompletion {
@@ -67,7 +86,6 @@ class MapModel: NSObject {
     
     
     func addQueryToRecents() {
-        
         if let index = recentQueries.firstIndex(of: searchQuery) {
             recentQueries.remove(at: index)
         }
@@ -107,12 +125,43 @@ class MapModel: NSObject {
             }
             
             let response = try? await search.start()
-            searchResults = response?.mapItems.map { CBLocation(relatedID: parentID, locationType: parentType, title: $0.name ?? "N/A", mapItem: $0) } ?? []
+            
+                                                
+            searchResults = response?.mapItems.map {
+                CBLocation(relatedID: parentID, locationType: parentType, title: $0.name ?? "N/A", mapItem: $0)
+            } ?? []
             //searchResults = response?.mapItems ?? []
-            position = .region(request.region)
+            //position = .region(request.region)
+            
+            zoomToSearchResults(response?.mapItems ?? [])
         }
     }
     
+    func zoomToSearchResults(_ results: [MKMapItem]) {
+        guard !results.isEmpty else { return }
+        
+        if results.count == 1 {
+            position = .camera(MapCamera(centerCoordinate: results[0].location.coordinate, distance: 2_000))
+            return
+        }
+
+        let coordinates = results.map(\.location.coordinate)
+        let minLat = coordinates.map(\.latitude).min()!
+        let maxLat = coordinates.map(\.latitude).max()!
+        let minLon = coordinates.map(\.longitude).min()!
+        let maxLon = coordinates.map(\.longitude).max()!
+
+        let center = CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2, longitude: (minLon + maxLon) / 2)
+
+        let span = MKCoordinateSpan(
+            latitudeDelta: max((maxLat - minLat) * 1.4, 0.01),
+            longitudeDelta: max((maxLon - minLon) * 1.4, 0.01)
+        )
+
+        withAnimation {
+            position = .region(MKCoordinateRegion(center: center, span: span))
+        }
+    }
     
     
     

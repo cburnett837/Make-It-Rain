@@ -670,18 +670,12 @@ class PlaidModel {
                 await trans.payMethod?.loadLogoFromCoreDataIfNeeded()
                 
                 if self.doesExist(trans) {
-                    if !trans.active {
+                    if !trans.active || trans.isAcknowledged{
                         self.delete(trans)
                         continue
-                    } else {
-                        if trans.isAcknowledged {
-                            self.delete(trans)
-                            continue
-                        } else {
-                            if let index = self.getIndex(for: trans) {
-                                self.trans[index].setFromAnotherInstance(trans: trans)
-                            }
-                        }
+                        
+                    } else if let index = self.getIndex(for: trans) {
+                        self.trans[index].setFromAnotherInstance(trans: trans)
                     }
                 } else {
                     if !trans.isAcknowledged {
@@ -700,7 +694,8 @@ class PlaidModel {
             }
         }
         
-        
+        let plaidTrans = self.trans.filter({ !$0.isAcknowledged })
+        try? await UNUserNotificationCenter.current().setBadgeCount(plaidTrans.count)
     }
     
     

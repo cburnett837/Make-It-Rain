@@ -631,6 +631,9 @@ struct PlaidTransactionOverlay: View {
             let payload: [String: Any] = ["action": "reloadWidget"]
             WCSession.default.transferUserInfo(payload)
             #endif
+            
+            let plaidTrans = plaidModel.trans.filter({ !$0.isAcknowledged })
+            try? await UNUserNotificationCenter.current().setBadgeCount(plaidTrans.count)
         }
         
         
@@ -641,6 +644,9 @@ struct PlaidTransactionOverlay: View {
             }
             //plaidModel.totalTransCount -= 1
             Task {
+                let plaidTrans = plaidModel.trans.filter({ !$0.isAcknowledged })
+                try? await UNUserNotificationCenter.current().setBadgeCount(plaidTrans.count)
+                
                 await plaidModel.denyPlaidTransaction(trans)
                 plaidModel.trans.removeAll(where: { $0.id == trans.id })
                 WidgetCenter.shared.reloadTimelines(ofKind: "PlaidWidget")

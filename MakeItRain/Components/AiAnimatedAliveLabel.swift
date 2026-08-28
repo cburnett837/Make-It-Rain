@@ -272,26 +272,35 @@ struct AiAnimatedAliveSymbol: View {
     @State private var glowPulse: CGFloat = 0
     
     var body: some View {
-        VStack {
-            if withGlow {
-                ZStack {
-                    image
-                        .blur(radius: 8 + glowPulse * 8)
-                        .opacity(0.6 + glowPulse * 0.3)
-                        /// Needed to make the blur rotate colors.
-                        .compositingGroup()
-                    image
+        Group {
+            if let text {
+                VStack {
+                    content
+                    Text(text)
                 }
             } else {
-                image
-            }
-            
-            if let text {
-                Text(text)
-            }
+                content
+            }            
         }
         .onAppear {
             animate(withGlow: withGlow, hueShift: $hueShift, glowPulse: $glowPulse)
+        }
+    }
+    
+    
+    @ViewBuilder
+    var content: some View {
+        if withGlow {
+            ZStack {
+                image
+                    .blur(radius: 8 + glowPulse * 8)
+                    .opacity(0.6 + glowPulse * 0.3)
+                    /// Needed to make the blur rotate colors.
+                    .compositingGroup()
+                image
+            }
+        } else {
+            image
         }
     }
     

@@ -261,6 +261,7 @@
 		FDBA69D72DEF9152007FB0CB /* ChartSelectedDataContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBA69D62DEF9152007FB0CB /* ChartSelectedDataContainer.swift */; };
 		FDBA69D92DF252FE007FB0CB /* FileRequestModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBA69D82DF252FE007FB0CB /* FileRequestModel.swift */; };
 		FDBA69DC2DF89C84007FB0CB /* UserDefaultsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBA69DB2DF89C84007FB0CB /* UserDefaultsManager.swift */; };
+		FDBB19193040824E00F102FA /* TagEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBB19183040824E00F102FA /* TagEditView.swift */; };
 		FDBD479F2FB91299004F34F5 /* DashboardMontlyOrQuarterlyBreakdowns.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBD479E2FB91299004F34F5 /* DashboardMontlyOrQuarterlyBreakdowns.swift */; };
 		FDBD47A12FB912A0004F34F5 /* DashboardBreakdownSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBD47A02FB912A0004F34F5 /* DashboardBreakdownSummary.swift */; };
 		FDBD47A32FB912AB004F34F5 /* DashboardDataByQuarter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBD47A22FB912AB004F34F5 /* DashboardDataByQuarter.swift */; };
@@ -782,6 +783,7 @@
 		FDBA69D62DEF9152007FB0CB /* ChartSelectedDataContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartSelectedDataContainer.swift; sourceTree = "<group>"; };
 		FDBA69D82DF252FE007FB0CB /* FileRequestModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileRequestModel.swift; sourceTree = "<group>"; };
 		FDBA69DB2DF89C84007FB0CB /* UserDefaultsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDefaultsManager.swift; sourceTree = "<group>"; };
+		FDBB19183040824E00F102FA /* TagEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagEditView.swift; sourceTree = "<group>"; };
 		FDBD479E2FB91299004F34F5 /* DashboardMontlyOrQuarterlyBreakdowns.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardMontlyOrQuarterlyBreakdowns.swift; sourceTree = "<group>"; };
 		FDBD47A02FB912A0004F34F5 /* DashboardBreakdownSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardBreakdownSummary.swift; sourceTree = "<group>"; };
 		FDBD47A22FB912AB004F34F5 /* DashboardDataByQuarter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardDataByQuarter.swift; sourceTree = "<group>"; };
@@ -1796,6 +1798,7 @@
 		FDC26D892D3E86D500B0A97C /* Tags */ = {
 			isa = PBXGroup;
 			children = (
+				FDBB19183040824E00F102FA /* TagEditView.swift */,
 				FDC26DAD2D3E86D500B0A97C /* CBTag.swift */,
 				FDC26E002D3E86D500B0A97C /* TagLayout.swift */,
 				FDC26E012D3E86D500B0A97C /* TagModel.swift */,
@@ -2581,6 +2584,7 @@
 				FD3EB4E12FAEA7CF008BAFD5 /* AppStore.swift in Sources */,
 				FD09FF662D9D769400795C28 /* StandardNoteTextEditor.swift in Sources */,
 				FD07B2E72EA970BA00901601 /* CustomDecimalKeyboard.swift in Sources */,
+				FDBB19193040824E00F102FA /* TagEditView.swift in Sources */,
 				FD25FF412E97EB010079E001 /* PaymentMethodChartVisibleYearPicker.swift in Sources */,
 				FD4BABD02D95F9EE00384AB3 /* LinkPreviewView.swift in Sources */,
 				FDC26E6A2D3E86D500B0A97C /* SettingsViewInsert.swift in Sources */,

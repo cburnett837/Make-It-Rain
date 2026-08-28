@@ -22,10 +22,18 @@ struct TagBudgetEditView: View {
     
     @State private var showDeleteAlert = false
     @FocusState private var focusedField: Int?
+    
     @State private var tags: [CBTag] = []
     
     var title: String {
         budget.item?.title ?? "N/A"
+    }
+    
+    var isValidToSave: Bool {
+        guard budget.type == .tag else { return false }
+        guard let item = budget.item else { return false }
+        
+        return budget.hasChanges() || (budget.action == .add && !item.title.isEmpty)
     }
     
 
@@ -57,7 +65,9 @@ struct TagBudgetEditView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 //ToolbarItem(placement: .topBarLeading) { deleteButton }
-                ToolbarItem(placement: AppState.shared.isIphone ? .topBarTrailing : .topBarLeading) { closeButton }
+                ToolbarItem(placement: AppState.shared.isIphone ? .topBarTrailing : .topBarLeading) {
+                    AnimatedCloseButton(isValidToSave: isValidToSave, closeButton: closeButton)
+                }
             }
         }
         .task { prepareView() }
@@ -80,7 +90,7 @@ struct TagBudgetEditView: View {
         Button {
             dismiss()
         } label: {
-            Image(systemName: "xmark")
+            Image(systemName: isValidToSave ? "checkmark" : "xmark")
                 .schemeBasedForegroundStyle()
         }
     }

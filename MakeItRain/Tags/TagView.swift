@@ -9,15 +9,10 @@ import SwiftUI
 
 
 struct TagView: View {
-    //@Local(\.colorTheme) var colorTheme
-    //@Environment(\.dismiss) var dismiss
-    //@Environment(\.colorScheme) var colorScheme
-
+    @Environment(AppStore.self) private var store
     @Environment(CalendarModel.self) private var calModel
     @Environment(TagModel.self) private var tagModel
-    
-    //@Environment(TagModel.self) private var tagModel
-    //@Bindable var trans: CBTransaction
+        
     @Binding var tags: [CBTag]
     var tagLimit: Int?
     
@@ -26,34 +21,32 @@ struct TagView: View {
     
     @FocusState private var focusedField: Int?
     @State private var isEditMode = false
+    @State private var tagEditID: String?
+    @State private var editTag: CBTag?
     
     
     var gridTags: Array<CBTag> {
-        //var theTags: [CBTag] = []
         var returnTags: [CBTag] = []
         let allTags = tagModel.tags.sorted(by: { $0.title < $1.title })
         
         for each in allTags {
-            //theTags.append(each)
             if !each.isHidden {
                 returnTags.append(each)
             }
         }
         
         for each in tags {
-            if !returnTags.contains(each) {
+            if !returnTags.map({$0.id}).contains(each.id) {
                 returnTags.append(each)
             }
         }
         
         return returnTags
-        
     }
     
     
     var allTags: Array<CBTag> {
         tagModel.tags
-            //.filter { !$0.isHidden }
             .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
             .sorted(by: { $0.title < $1.title })
     }
@@ -61,70 +54,77 @@ struct TagView: View {
     
     
     var body: some View {
-        //NavigationStack {
-            StandardContainerWithToolbar(.list) {
-                if isEditMode {
-                    editList
-                } else {
-                    if !tagModel.tags.isEmpty {
-                        if gridTags.isEmpty {
-                            VStack {
-                                Text("No Tags…")
-                                    .frame(maxWidth: .infinity)
-                                addFirstTagButton
-                            }
-                        } else {
-                            tagGrid
+        StandardContainerWithToolbar(.list) {
+            if isEditMode {
+                editList
+            } else {
+                if !tagModel.tags.isEmpty {
+                    if gridTags.isEmpty {
+                        VStack {
+                            Text("No Tags…")
+                                .frame(maxWidth: .infinity)
+                            addFirstTagButton
                         }
-                    }
-                    
-                    Section {
-                        newTagTextField
-                        
-                        if !newTag.isEmpty {
-                            addNewTagButton
-                        }
+                    } else {
+                        tagGrid
                     }
                 }
                 
+                Section {
+                    newTagTextField
+                    
+                    if !newTag.isEmpty {
+                        addNewTagButton
+                    }
+                }
             }
-            .searchable(text: $searchText, prompt: Text("Search"))
-            .navigationTitle("Tags")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) { editButton }
-//                if !isEditMode {
-//                    ToolbarItem(placement: .topBarTrailing) { closeButton }
-//                }
+            
+        }
+        .searchable(text: $searchText, prompt: Text("Search"))
+        .navigationTitle("Tags")
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) { editButton }
+        }
+        .onChange(of: newTag) { old, new in
+            newTag = new.replacing(" ", with: "")
+        }
+        .onChange(of: tagEditID) { oldId, newId in
+            if let newId {
+                editTag = store.tags.first(where: { $0.id == newId })
                 
+            } else if let oldId, let tag = store.tags.first(where: { $0.id == oldId }) {
+                Task {
+                    tagModel.updateParents(store: store, tag: tag)
+                    await tagModel.submit(tag)
+                }
             }
-            .onChange(of: newTag) { old, new in
-                newTag = new.replacing(" ", with: "")
-            }
-            #endif
-        //}
+        }
+        .sheet(item: $editTag, onDismiss: {
+            tagEditID = nil
+        }) { tag in
+            TagEditView(tag: tag)
+        }
+        #endif
     }
     
     
     
     
     // MARK: - Subviews
-    
-    
-    
-    
-    @ViewBuilder var editList: some View {
+    @ViewBuilder
+    var editList: some View {
         @Bindable var calModel = calModel
         Section("Visible") {
             ForEach(allTags.filter { !$0.isHidden }) { tag in
-                EditLine(tag: tag)
+                EditLine(tag: tag, tagEditID: $tagEditID)
             }
         }
         
         Section("Hidden") {
             ForEach(allTags.filter { $0.isHidden }) { tag in
-                EditLine(tag: tag)
+                EditLine(tag: tag, tagEditID: $tagEditID)
             }
         }
     }
@@ -133,13 +133,20 @@ struct TagView: View {
     private struct EditLine: View {
         @Environment(CalendarModel.self) private var calModel
         @Environment(TagModel.self) private var tagModel
-        @Bindable var tag: CBTag
+        var tag: CBTag
+        @Binding var tagEditID: String?
         
         @State private var showDeleteAlert = false
                 
         var body: some View {
             HStack {
-                TextField("Edit", text: $tag.title)
+                Text(tag.title)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(.rect)
+                    .onTapGesture {
+                        tagEditID = tag.id
+                    }
+                
                 Button {
                     showDeleteAlert = true
                 } label: {
@@ -195,15 +202,18 @@ struct TagView: View {
     var tagGrid: some View {
         TagLayout(alignment: .leading, spacing: 10) {
             ForEach(gridTags) { tag in
-                let exists = !tags.filter { $0.id == tag.id }.isEmpty
+                let exists = !tags.filter({ $0.id == tag.id }).isEmpty
                 
                 Button {
                     addOrRemove(tag: tag)
                 } label: {
                     Text("#\(tag.title)")
+                        .schemeBasedForegroundStyle()
+                    
                 }
+                
                 .buttonStyle(.borderedProminent)
-                .tint(exists ? Color.theme : .gray)
+                .tint(exists ? Color.theme : Color(.tertiarySystemFill))
                 .focusable(false)
             }
         }
@@ -308,3 +318,7 @@ struct TagView: View {
         }
     }
 }
+
+
+
+

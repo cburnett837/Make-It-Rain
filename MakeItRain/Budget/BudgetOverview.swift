@@ -74,7 +74,11 @@ struct BudgetOverview: View {
                 content
             }
         }
-        
+        .if(budget.type == .tag && (budget.item?.title ?? "").localizedCaseInsensitiveContains("christmas")) {
+            $0
+            .scrollContentBackground(.hidden)
+            .background(SnowyBackground(blurred: true, withSnow: true))
+        }
         .navigationTitle(navTitle)
         .if(payMethod != nil) {
             $0.navigationSubtitle(payMethod!.title)

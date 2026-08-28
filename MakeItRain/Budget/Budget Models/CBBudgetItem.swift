@@ -194,6 +194,11 @@ class CBBudgetItem: Codable, Identifiable, Hashable, Equatable, IsEditableBudget
         self.active = isActive == 1 ? true : false
         
         action = .edit
+        
+        if let appSuiteKey = try container.decode(String?.self, forKey: .app_suite_key) {
+            self.appSuiteKey = AppSuiteKey(rawValue: appSuiteKey)
+        }
+        
     }
 
     

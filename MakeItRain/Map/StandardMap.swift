@@ -387,7 +387,8 @@ struct StandardMapView: View {
                     //.frame(width: 50, height: 50)
                     .foregroundStyle(LinearGradient(gradient: Gradient(colors: [.orange, .red]), startPoint: .top, endPoint: .bottom))
             } else {
-                Image(systemName: mapModel.position.positionedByUser ? "location" : "location.fill")
+//                Image(systemName: mapModel.position.positionedByUser ? "location" : "location.fill")
+                Image(systemName: mapModel.isFocusedOnUser ? "location.fill" : "location")
                     .contentTransition(.symbolEffect(.replace))
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.primary)

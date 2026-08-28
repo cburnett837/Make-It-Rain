@@ -347,6 +347,8 @@ struct CategoriesTable: View {
             Button("Group") {
                 groupEditID = UUID().uuidString
             }
+        } message: {
+            Text("Add New")
         }
     }
     

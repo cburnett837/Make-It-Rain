@@ -736,6 +736,7 @@ struct TransactionEditView: View {
                             #if os(iOS)
                             .padding(8)
                             .background(Capsule().foregroundStyle(.thickMaterial))
+                            //.background(Capsule().foregroundStyle(Color(.tertiarySystemFill)))
                             #else
                             .buttonStyle(.roundMacButton(horizontalPadding: 10))
                             #endif
