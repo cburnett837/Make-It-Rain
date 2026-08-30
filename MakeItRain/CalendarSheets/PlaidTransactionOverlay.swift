@@ -11,6 +11,10 @@ import WidgetKit
 import WatchConnectivity
 #endif
 
+enum AcceptPlaidTransactionAction {
+    case accept, acceptOnlyDate, acceptOnlyAmount, acceptDateAndAmount
+}
+
 struct PlaidTransactionOverlay: View {
     //@Local(\.colorTheme) var colorTheme
     @Environment(\.colorScheme) private var colorScheme
@@ -31,7 +35,7 @@ struct PlaidTransactionOverlay: View {
     @State private var clearDate: Date = Date()
     
     @State private var rowNumber = 1
-    @State private var selectedMeth: CBPaymentMethod?
+    @Binding var selectedMeth: CBPaymentMethod?
     
     @Binding var showInspector: Bool
     @Binding var navPath: [NavDest]
@@ -47,6 +51,8 @@ struct PlaidTransactionOverlay: View {
         if AppState.shared.isIphone {
             StandardContainer(AppState.shared.isIpad ? .sidebarScrolling : .bottomPanel) {
                 content
+                    .drawingGroup()
+                    .compositingGroup()
             } header: {
                 sheetHeader
             }
@@ -355,7 +361,7 @@ struct PlaidTransactionOverlay: View {
     struct LineItem: View {
         //@Local(\.colorTheme) var colorTheme
         
-
+        @Environment(CalendarProps.self) private var calProps
         @Environment(CalendarModel.self) private var calModel
         @Environment(CategoryModel.self) private var catModel
         @Environment(KeywordModel.self) private var keyModel
@@ -371,35 +377,72 @@ struct PlaidTransactionOverlay: View {
                 HStack {
                     VStack(spacing: 0) {
                         HStack {
-                            BusinessLogo(config: .init(
-                                parent: trans.payMethod,
-                                fallBackType: .color
-                            ))
+//                            if trans.potentiallyExistingTransactionID != nil {
+//                                AiAnimatedAliveSymbol(symbol: "brain", fontSize: .title3)
+//                            } else {
+//                                BusinessLogo(config: .init(parent: trans.payMethod, fallBackType: .color))
+//                            }
+                            
+                            BusinessLogo(config: .init(parent: trans.payMethod, fallBackType: .color))
+                            
                             //BusinessLogo(parent: trans.payMethod, fallBackType: .color)
                             
                             VStack(alignment: .leading, spacing: 0) {
                                 Text(trans.title.capitalized)
                                     .lineLimit(showExpandedTitle ? nil : 1)
                                 
-                                Text(trans.amount.currencyWithDecimals())
-                                    .foregroundStyle(.gray)
-                                    .font(.footnote)
+                                if let id = trans.potentiallyExistingTransactionID, calModel.getTransaction(by: id) != nil {
+                                    Text("This might be a duplicate…")
+                                        .foregroundStyle(.orange)
+                                        .font(.footnote)
+                                }
                                                                             
                                 Text(trans.prettyDate ?? "N/A")
                                     .foregroundStyle(.gray)
                                     .font(.footnote)
+                                
+                                Text(trans.amount.currencyWithDecimals())
+                                    .foregroundStyle(.gray)
+                                    .font(.footnote)
+                                
+                                
                             }
                         }
                     }
                     .listRowInsets(EdgeInsets())
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        showExpandedTitle.toggle()
+                        if let id = trans.potentiallyExistingTransactionID {
+                            withAnimation {
+                                calModel.sPayMethod = trans.payMethod
+                            } completion: {
+                                calProps.showPotentiallyExistingTransFromPlaidID = id
+                                /// Give a little buffer for the calendar to change.
+//                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+//                                    calProps.showPotentiallyExistingTransFromPlaidID = id
+//                                }
+                            }
+                            
+                        } else {
+                            showExpandedTitle.toggle()
+                        }
                     }
                     
                     Spacer()
-                    acceptButton
-                    rejectButton
+                    
+                    HStack {
+//                        if let id = trans.potentiallyExistingTransactionID, let trans = calModel.getTransaction(by: id) {
+//                            Button {
+//                                calModel.sPayMethod = trans.payMethod
+//                                calProps.showPotentiallyExistingTransFromPlaidID = id
+//                            } label: {
+//                                AiAnimatedAliveSymbol(symbol: "brain")
+//                            }
+//                        }
+                        acceptButton
+                        rejectButton
+                    }
+                    
                 }
                 #if os(iOS)
                 if AppState.shared.isIphone {
@@ -419,221 +462,458 @@ struct PlaidTransactionOverlay: View {
         
         
         var acceptButton: some View {
-            Button("Accept") {
-                
-                /// See if there is a rename rule and let the user know it will be renamed.
-                var willRenameTo: String? = nil
-                
-                
-                for key in keyModel.keywords {
-                    let upKey = key.keyword.uppercased()
-                    let upTitle = trans.title.uppercased()
-                    
-                    if let renameTo = key.renameTo {
-                        switch key.triggerType {
-                        case .equals:
-                            if upTitle == upKey { willRenameTo = renameTo }
-                        case .contains:
-                            if upTitle.contains(upKey) { willRenameTo = renameTo }
-                        }
-                    }
-                    
-                    if willRenameTo != nil { break }
+            Button {
+                acceptButtonFunc()
+            } label: {
+//                Text("Accept")
+                ZStack {
+                    Image(systemName: "checkmark")
+                    Image(systemName: "xmark").hidden()
                 }
-                
-//                if let key = keyModel.keywords.filter({ $0.keyword.uppercased() == trans.title.uppercased() }).first {
-//                    if let renameTo = key.renameTo {
-//                        let upKey = key.keyword.uppercased()
-//                                                                
-//                        switch key.triggerType {
-//                        case .equals:
-//                            if trans.title.uppercased() == upKey { willRenameTo = renameTo }
-//                        case .contains:
-//                            if trans.title.uppercased().contains(upKey) { willRenameTo = renameTo }
-//                        }
-//                    }
-//                }
-                
-                var config: AlertConfig?
-                
-                let buttonConfig = AlertConfig.ButtonConfig(text: "Yes", role: .primary) {
-                    if let newName = willRenameTo {
-                        trans.title = newName
-                    }
-                    Task {
-                        await accept()
-                    }
-                    
-                }
-                
-                if willRenameTo == nil {
-                    config = AlertConfig(
-                        title: "Accept \(trans.title)?",
-                        subtitle: (trans.prettyDate ?? "N/A"),
-                        logo: .init(
-                            parent: trans.payMethod,
-                            fallBackType: .customImage(.init(name: "checkmark.circle.badge.questionmark", color: .green)),
-                            size: 65
-                        ),
-                        logoStrokeColor: .green,
-                        primaryButton: AlertConfig.AlertButton(config: buttonConfig)
-                    )
-                } else {
-                    
-                    let subtitleView = VStack {
-                        HStack(spacing: 0) {
-                            Text("(Will be renamed to ")
-                                .foregroundStyle(.gray)
-                            
-                            AiAnimatedAliveLabel(willRenameTo!, withGlow: true)
-                            
-                            Text(")")
-                                .foregroundStyle(.gray)
-                            
-//                            AiAnimatedAliveSymbol(symbol: "brain")
-//                            Text(willRenameTo!)
-//                                /// Standard alert subtitle modifiers
-//                                .font(.callout)
-//                                .multilineTextAlignment(.center)
-//                                .lineLimit(5)
-//                                .foregroundStyle(.gray)
-                        }
-                        
-                        Text("\(trans.prettyDate ?? "N/A")")
-                            /// Standard alert subtitle modifiers
-                            .font(.callout)
-                            .multilineTextAlignment(.center)
-                            .lineLimit(5)
-                            .foregroundStyle(.gray)
-                    }
-                    
-                    config = AlertConfig(
-                        title: "Accept \(trans.title)?",
-                        subtitleView: AnyView(subtitleView),
-                        logo: .init(
-                            parent: trans.payMethod,
-                            fallBackType: .customImage(.init(name: "checkmark.circle.badge.questionmark", color: .green)),
-                            size: 65
-                        ),
-                        logoStrokeColor: .green,
-                        primaryButton: AlertConfig.AlertButton(config: buttonConfig)
-                    )
-                }
-                
-                //let subtitle = willRenameTo == nil ? (trans.prettyDate ?? "N/A") : "(It will be renamed to \"\(willRenameTo!)\")\n\(trans.prettyDate ?? "N/A")"
-                
-                
-//                let buttonConfig = AlertConfig.ButtonConfig(text: "Yes", role: .primary) { accept() }
-//                let config = AlertConfig(
-//                    title: "Accept \(trans.title)?",
-//                    subtitle: subtitle,
-//                    symbol: .init(name: "checkmark.circle.badge.questionmark", color: .green),
-//                    primaryButton: AlertConfig.AlertButton(config: buttonConfig)
-//                )
-                if let config {
-                    Helpers.buzzPhone(.warning)
-                    AppState.shared.showAlert(config: config)
-                }
-                
             }
             .buttonStyle(.borderedProminent)
             .tint(Color.theme)
         }
         
         var rejectButton: some View {
-            Button("Reject") {
-                let buttonConfig = AlertConfig.ButtonConfig(text: "Yes", role: .destructive) { reject() }
-                let config = AlertConfig(
-                    title: "Reject \(trans.title)?",
-                    subtitle: trans.prettyDate ?? "N/A",
-                    logo: .init(
-                        parent: trans.payMethod,
-                        fallBackType: .customImage(.init(name: "questionmark.circle", color: .orange)),
-                        size: 65
-                    ),
-                    logoStrokeColor: .orange,
-                    primaryButton: AlertConfig.AlertButton(config: buttonConfig)
-                )
-                
-                Helpers.buzzPhone(.warning)
-                AppState.shared.showAlert(config: config)
+            Button {
+                rejectButtonFunc()
+            } label: {
+//                Text("Reject")
+                ZStack {
+                    Image(systemName: "checkmark").hidden()
+                    Image(systemName: "xmark")
+                }
             }
             .buttonStyle(.borderedProminent)
             .tint(.gray)
         }
         
         
-        func accept() async {
-            /// Animate for the toolbar button
+//        func acceptButtonFunc() {
+//            /// See if there is a rename rule and let the user know it will be renamed.
+//            var willRenameTo: String? = nil
+//            
+//            for key in keyModel.keywords {
+//                let upKey = key.keyword.uppercased()
+//                let upTitle = trans.title.uppercased()
+//                
+//                if let renameTo = key.renameTo {
+//                    switch key.triggerType {
+//                    case .equals:
+//                        if upTitle == upKey { willRenameTo = renameTo }
+//                    case .contains:
+//                        if upTitle.contains(upKey) { willRenameTo = renameTo }
+//                    }
+//                }
+//                
+//                if willRenameTo != nil { break }
+//            }
+//            
+//            
+//            let logo = LogoConfig(
+//                parent: trans.payMethod,
+//                fallBackType: .customImage(.init(name: "checkmark.circle.badge.questionmark", color: .green)),
+//                size: 65
+//            )
+//                                    
+//            let yesButtonConfig = AlertConfig.ButtonConfig(text: "Yes", role: .primary) {
+//                if let newName = willRenameTo { trans.title = newName }
+//                Task { await accept(action: .accept) }
+//            }
+//            
+//            var config = AlertConfig(
+//                title: "Accept \(trans.title)?",
+//                subtitle: (trans.prettyDate ?? "N/A"),
+//                logo: logo,
+//                logoStrokeColor: .green,
+//                primaryButton: AlertConfig.AlertButton(config: yesButtonConfig)
+//            )
+//            
+//            @ViewBuilder
+//            var acceptButtonView: some View {
+//                let buttonConfig = AlertConfig.ButtonConfig(text: "Create Transaction", role: .primary) {
+//                    if let newName = willRenameTo { trans.title = newName }
+//                    Task { await accept(action: .accept) }
+//                }
+//                AlertConfig.AlertButton(config: buttonConfig)
+//            }
+//            
+//            @ViewBuilder
+//            var onlyDateButtonview: some View {
+//                let buttonConfig = AlertConfig.ButtonConfig(text: "Update Date", role: .primary) {
+//                    if let newName = willRenameTo { trans.title = newName }
+//                    Task { await accept(action: .acceptOnlyDate) }
+//                }
+//                AlertConfig.AlertButton(config: buttonConfig)
+//            }
+//            
+//            @ViewBuilder
+//            var onlyAmountButtonview: some View {
+//                let buttonConfig = AlertConfig.ButtonConfig(text: "Update Amount", role: .primary) {
+//                    if let newName = willRenameTo { trans.title = newName }
+//                    Task { await accept(action: .acceptOnlyAmount) }
+//                }
+//                AlertConfig.AlertButton(config: buttonConfig)
+//            }
+//            
+//            @ViewBuilder
+//            var dateAndAmountButtonview: some View {
+//                let buttonConfig = AlertConfig.ButtonConfig(text: "Update Date & Amount", role: .primary) {
+//                    if let newName = willRenameTo { trans.title = newName }
+//                    Task { await accept(action: .acceptDateAndAmount) }
+//                }
+//                AlertConfig.AlertButton(config: buttonConfig)
+//            }
+//            
+//            
+//            if let willRenameTo {
+//                let subtitleView = VStack {
+//                    HStack(spacing: 0) {
+//                        Text("(Will be renamed to ")
+//                            .foregroundStyle(.gray)
+//                        
+//                        AiAnimatedAliveLabel(willRenameTo, withGlow: true)
+//                        
+//                        Text(")")
+//                            .foregroundStyle(.gray)
+//                    }
+//                    
+//                    Text("\(trans.prettyDate ?? "N/A")")
+//                        /// Standard alert subtitle modifiers
+//                        .font(.callout)
+//                        .multilineTextAlignment(.center)
+//                        .lineLimit(5)
+//                        .foregroundStyle(.gray)
+//                }
+//                
+//                config.subtitle = nil
+//                config.subtitleView = AnyView(subtitleView)
+//            }
+//            
+//            
+//            if trans.potentiallyExistingTransactionID != nil {
+//                config.primaryButton = nil
+//                config.views = [
+//                    .init(content: AnyView(acceptButtonView)),
+//                    .init(content: AnyView(onlyDateButtonview)),
+//                    .init(content: AnyView(onlyAmountButtonview)),
+//                    .init(content: AnyView(dateAndAmountButtonview))
+//                ]
+//            }
+//                        
+//            
+//            Helpers.buzzPhone(.warning)
+//            AppState.shared.showAlert(config: config)
+//        }
+        
+        @discardableResult
+        func renameTarget(for title: String) -> String? {
+            keyModel.keywords.first { key in
+                guard key.renameTo != nil else { return false }
+
+                switch key.triggerType {
+                case .equals:
+                    return title.caseInsensitiveCompare(key.keyword) == .orderedSame
+
+                case .contains:
+                    return title.range(of: key.keyword, options: .caseInsensitive) != nil
+                }
+            }?.renameTo
+        }
+        
+        
+        func acceptButtonFunc() {
+            let willRenameTo = renameTarget(for: trans.title)
+
+            let logo = LogoConfig(
+                parent: trans.payMethod,
+                fallBackType: .customImage(.init(name: "checkmark.circle.badge.questionmark", color: .green)),
+                size: 65
+            )
+
+            func performAccept(_ action: AcceptPlaidTransactionAction) {
+                if let willRenameTo { trans.title = willRenameTo }
+                Task { await accept(action: action) }
+            }
+
+            func makeButton(_ title: String, action: AcceptPlaidTransactionAction) -> AlertConfig.AlertButton {
+                let config = AlertConfig.ButtonConfig(text: title, role: .primary) {
+                    performAccept(action)
+                }
+
+                return AlertConfig.AlertButton(config: config)
+            }
+
+            var config = AlertConfig(
+                title: "Accept \(trans.title)?",
+                subtitle: trans.prettyDate ?? "N/A",
+                logo: logo,
+                logoStrokeColor: .green,
+                primaryButton: makeButton("Yes", action: .accept)
+            )
+
+            if let willRenameTo {
+                config.subtitle = nil
+                config.subtitleView = AnyView(
+                    VStack {
+                        HStack(spacing: 0) {
+                            Text("(Will be renamed to ")
+                                .foregroundStyle(.gray)
+
+                            AiAnimatedAliveLabel(
+                                willRenameTo,
+                                withGlow: true
+                            )
+
+                            Text(")")
+                                .foregroundStyle(.gray)
+                        }
+
+                        Text(trans.prettyDate ?? "N/A")
+                            .font(.callout)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(5)
+                            .foregroundStyle(.gray)
+                    }
+                )
+            }
+
+            if trans.potentiallyExistingTransactionID != nil {
+                config.primaryButton = nil
+                config.views = [
+                    .init(content: AnyView(makeButton("Create Transaction", action: .accept))),
+                    .init(content: AnyView(makeButton("Update Date", action: .acceptOnlyDate))),
+                    .init(content: AnyView(makeButton("Update Amount", action: .acceptOnlyAmount))),
+                    .init(content: AnyView(makeButton("Update Date & Amount", action: .acceptDateAndAmount)))
+                ]
+            }
+
+            Helpers.buzzPhone(.warning)
+            AppState.shared.showAlert(config: config)
+        }
+        
+        
+        
+//        func accept(action: AcceptPlaidTransactionAction) async {
+//            /// Animate for the toolbar button
+//            withAnimation {
+//                trans.isAcknowledged = true
+//            }
+//            
+//            //plaidModel.totalTransCount -= 1
+//            
+//            if trans.payMethod?.isCreditOrUnified ?? false {
+//                if trans.amountString.contains("-") {
+//                    trans.amountString = trans.amountString.replacing("-", with: "")
+//                } else {
+//                    trans.amountString = "-\(trans.amountString)"
+//                }
+//            }
+//            
+//            if trans.category == nil {
+//                trans.category = catModel.categories.filter { $0.isNil }.first
+//            }
+//            
+//            var realTrans: CBTransaction? = nil
+//            
+//            switch action {
+//            case .accept:
+//                realTrans = CBTransaction(plaidTrans: trans)
+//                
+//            case .acceptOnlyDate:
+//                if let id = trans.potentiallyExistingTransactionID, let foundTrans = calModel.getTransaction(by: id) {
+//                    foundTrans.deepCopy(.create)
+//                    foundTrans.date = trans.date
+//                    realTrans = foundTrans
+//                }
+//                
+//            case .acceptOnlyAmount:
+//                if let id = trans.potentiallyExistingTransactionID, let foundTrans = calModel.getTransaction(by: id) {
+//                    foundTrans.deepCopy(.create)
+//                    foundTrans.amountString = trans.amountString
+//                    realTrans = foundTrans
+//                }
+//                
+//            case .acceptDateAndAmount:
+//                if let id = trans.potentiallyExistingTransactionID, let foundTrans = calModel.getTransaction(by: id) {
+//                    foundTrans.deepCopy(.create)
+//                    foundTrans.date = trans.date
+//                    foundTrans.amountString = trans.amountString
+//                    realTrans = foundTrans
+//                }
+//            }
+//            
+//            guard let realTrans else { return }
+//            
+//            realTrans.plaidID = String(trans.plaidID)
+//            
+//            /// Switch the calendar to the payment method of the transaction (if it's not already)
+//            if calModel.sPayMethod != realTrans.payMethod {
+//                withAnimation { calModel.sPayMethod = realTrans.payMethod }
+//                
+//                try? await Task.sleep(for: .seconds(1))
+//            }
+//            
+//            /// See if there is a rename rule and rename the transaction.
+//            renameTarget(for: trans.title)
+//            
+//            
+//            if action == .accept {
+//                if
+//                    let date = realTrans.date,
+//                    let targetMonth = calModel.months.get(by: (date.month, date.year)),
+//                    let targetDay = targetMonth.getDay(by: date.day) {
+//                    withAnimation {
+//                        targetDay.upsert(realTrans)
+//                    }
+//                }
+//            } else {
+//                
+//            }
+//            
+//            
+//            calModel.tempTransactions.append(realTrans)
+//                                    
+//            
+//            await calModel.saveTransaction(id: realTrans.id, location: .tempList)
+//            WidgetCenter.shared.reloadTimelines(ofKind: "PlaidWidget")
+//            
+////            guard WCSession.default.isReachable else {
+////                print("Not reachable")
+////                return
+////            }
+////            WCSession.default.sendMessage(["action": "reloadWidget"], replyHandler: nil) { error in
+////                print("Error sending message to watch: \(error.localizedDescription)")
+////            }
+//            
+//            #if os(iOS)
+//            let payload: [String: Any] = ["action": "reloadWidget"]
+//            WCSession.default.transferUserInfo(payload)
+//            #endif
+//            
+//            let plaidTrans = plaidModel.trans.filter({ !$0.isAcknowledged })
+//            try? await UNUserNotificationCenter.current().setBadgeCount(plaidTrans.count)
+//        }
+        
+        
+        func accept(action: AcceptPlaidTransactionAction) async {
+            /// Animate the Plaid transaction being acknowledged.
             withAnimation {
                 trans.isAcknowledged = true
             }
-            
-            //plaidModel.totalTransCount -= 1
-            
-            if trans.payMethod?.isCreditOrUnified ?? false {
-                if trans.amountString.contains("-") {
-                    trans.amountString = trans.amountString.replacing("-", with: "")
+
+            /// Credit/unified payment methods use the opposite sign convention.
+            if trans.payMethod?.isCreditOrUnified == true {
+                if trans.amountString.hasPrefix("-") {
+                    trans.amountString.removeFirst()
                 } else {
                     trans.amountString = "-\(trans.amountString)"
                 }
             }
-            
+
+            /// Assign the fallback category if the transaction does not have one.
             if trans.category == nil {
-                trans.category = catModel.categories.filter { $0.isNil }.first
+                trans.category = catModel.categories.first(where: \.isNil)
             }
-            
-            let realTrans = CBTransaction(plaidTrans: trans)
-            
-            
-            /// Switch the calendar to the payment method of the transaction (if it's not already)
+
+            /// Create the transaction that will actually be saved.
+            ///
+            /// A full accept creates a new transaction.
+            /// Partial accepts update the potentially matching existing transaction.
+            let realTrans: CBTransaction
+
+            switch action {
+            case .accept:
+                realTrans = CBTransaction(plaidTrans: trans)
+
+            case .acceptOnlyDate, .acceptOnlyAmount, .acceptDateAndAmount:
+                guard
+                    let id = trans.potentiallyExistingTransactionID,
+                    let foundTrans = calModel.getTransaction(by: id)
+                else {
+                    return
+                }
+
+                /// Save the current state before modifying the existing transaction.
+                foundTrans.deepCopy(.create)
+
+                if action == .acceptOnlyDate || action == .acceptDateAndAmount {
+                    foundTrans.date = trans.date
+                }
+
+                if action == .acceptOnlyAmount || action == .acceptDateAndAmount {
+                    foundTrans.amountString = trans.amountString
+                }
+
+                realTrans = foundTrans
+            }
+
+            /// Link the calendar transaction back to its Plaid transaction.
+            realTrans.plaidID = String(trans.plaidID)
+
+            /// Apply the same rename rule that was shown in the confirmation alert.
+            if let renameTo = renameTarget(for: trans.title) {
+                realTrans.title = renameTo
+            }
+
+            /// Switch the calendar to the transaction's payment method if needed.
             if calModel.sPayMethod != realTrans.payMethod {
-                withAnimation { calModel.sPayMethod = realTrans.payMethod }
-                
+                withAnimation {
+                    calModel.sPayMethod = realTrans.payMethod
+                }
+
                 try? await Task.sleep(for: .seconds(1))
             }
-            
-            /// See if there is a rename rule and rename the transaction.
-            if let key = keyModel.keywords.filter({ $0.keyword.uppercased() == trans.title.uppercased() }).first {
-                if let renameTo = key.renameTo {
-                    let upKey = key.keyword.uppercased()
-                                                            
-                    switch key.triggerType {
-                    case .equals:
-                        if trans.title.uppercased() == upKey { realTrans.title = renameTo }
-                    case .contains:
-                        if trans.title.uppercased().contains(upKey) { realTrans.title = renameTo }
-                    }
+
+            /// A full accept creates a new calendar transaction, so add it to its day.
+            ///
+            /// Partial accepts modify an existing transaction that is already in the calendar.
+            if action == .accept,
+               let date = realTrans.date,
+               let targetMonth = calModel.months.get(by: (date.month, date.year)),
+               let targetDay = targetMonth.getDay(by: date.day) {
+
+                withAnimation {
+                    targetDay.upsert(realTrans)
                 }
             }
-            
-            if
-                let targetMonth = calModel.months.filter({ $0.actualNum == realTrans.date?.month && $0.year == realTrans.date?.year }).first,
-                let targetDay = targetMonth.days.filter({ $0.dateComponents?.day == realTrans.date?.day }).first {
-                    withAnimation { targetDay.upsert(realTrans) }
-            }
-            
+
+            /// Add the transaction to the temporary save list and persist it.
             calModel.tempTransactions.append(realTrans)
-                                    
-            
+
             await calModel.saveTransaction(id: realTrans.id, location: .tempList)
+
+            /// Refresh the Plaid widget.
             WidgetCenter.shared.reloadTimelines(ofKind: "PlaidWidget")
-            
-//            guard WCSession.default.isReachable else {
-//                print("Not reachable")
-//                return
-//            }
-//            WCSession.default.sendMessage(["action": "reloadWidget"], replyHandler: nil) { error in
-//                print("Error sending message to watch: \(error.localizedDescription)")
-//            }
-            
+
+            /// Tell the Apple Watch to refresh.
             #if os(iOS)
-            let payload: [String: Any] = ["action": "reloadWidget"]
-            WCSession.default.transferUserInfo(payload)
+            WCSession.default.transferUserInfo(["action": "reloadWidget"])
             #endif
+
+            /// Update the app badge with the remaining unacknowledged transactions.
+            let remainingCount = plaidModel.trans.lazy.filter { !$0.isAcknowledged }.count
+            try? await UNUserNotificationCenter.current().setBadgeCount(remainingCount)
+        }
+        
+        
+        func rejectButtonFunc() {
+            let buttonConfig = AlertConfig.ButtonConfig(text: "Yes", role: .destructive) { reject() }
+            let config = AlertConfig(
+                title: "Reject \(trans.title)?",
+                subtitle: trans.prettyDate ?? "N/A",
+                logo: .init(
+                    parent: trans.payMethod,
+                    fallBackType: .customImage(.init(name: "questionmark.circle", color: .orange)),
+                    size: 65
+                ),
+                logoStrokeColor: .orange,
+                primaryButton: AlertConfig.AlertButton(config: buttonConfig)
+            )
             
-            let plaidTrans = plaidModel.trans.filter({ !$0.isAcknowledged })
-            try? await UNUserNotificationCenter.current().setBadgeCount(plaidTrans.count)
+            Helpers.buzzPhone(.warning)
+            AppState.shared.showAlert(config: config)
         }
         
         

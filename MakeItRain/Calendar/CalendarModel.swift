@@ -120,6 +120,8 @@ class CalendarModel {
     
     var isInMultiSelectMode = false
     var multiSelectTransactions: Array<CBTransaction> = []
+    var multiSelectTags: [CBTag] = []
+    
     var currentReceiptId: CBTransaction.ID?
     
     
@@ -395,11 +397,11 @@ class CalendarModel {
                     if !sCategories.isEmpty || !sCategoryGroups.isEmpty {
                         let categoryIds = (sCategories + sCategoryGroups.flatMap(\.categories)).map(\.id)
                         return
-                            (trans.title.localizedCaseInsensitiveContains(searchText) || !trans.tags.filter { $0.title.localizedCaseInsensitiveContains(searchText) }.isEmpty)
+                            (trans.title.localizedStandardContains(searchText) || !trans.tags.filter { $0.title.localizedStandardContains(searchText) }.isEmpty)
                             && categoryIds.contains { trans.categoryIdsInCurrentAndDeepCopy.contains($0) }
                         
                     } else {
-                        return (trans.title.localizedCaseInsensitiveContains(searchText) || !trans.tags.filter { $0.title.localizedCaseInsensitiveContains(searchText) }.isEmpty)
+                        return (trans.title.localizedStandardContains(searchText) || !trans.tags.filter { $0.title.localizedStandardContains(searchText) }.isEmpty)
                     }
                 }
             }
@@ -528,18 +530,18 @@ class CalendarModel {
                     if !sCategories.isEmpty {
                         if searchWhat == .titles {
                             return
-                                trans.title.localizedCaseInsensitiveContains(searchText)
+                                trans.title.localizedStandardContains(searchText)
                                 && sCategories.map{ $0.id }.contains { trans.categoryIdsInCurrentAndDeepCopy.contains($0) }
                         } else {
                             return
-                                !trans.tags.filter { $0.title.localizedCaseInsensitiveContains(searchText) }.isEmpty
+                                !trans.tags.filter { $0.title.localizedStandardContains(searchText) }.isEmpty
                                 && sCategories.map{ $0.id }.contains { trans.categoryIdsInCurrentAndDeepCopy.contains($0) }
                         }
                     } else {
                         if searchWhat == .titles {
-                            return trans.title.localizedCaseInsensitiveContains(searchText)
+                            return trans.title.localizedStandardContains(searchText)
                         } else {
-                            return !trans.tags.filter { $0.title.localizedCaseInsensitiveContains(searchText) }.isEmpty
+                            return !trans.tags.filter { $0.title.localizedStandardContains(searchText) }.isEmpty
                         }
                     }
                 }
@@ -1255,9 +1257,10 @@ class CalendarModel {
             /// Check if the transaction has a related ID (like from a transfer or payment).
             /// This will not handle event transactions!
             if trans.relatedTransactionID != nil
+            && trans.relatedTransactionType != .split
             && trans.intendedServerAction != .add
-                && trans.relatedTransactionType == .transaction, // XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction),
-                let trans2 = getTransaction(by: trans.relatedTransactionID!, from: .normalList) {
+            && trans.relatedTransactionType == .transaction, // XrefModel.getItem(from: .relatedTransactionType, byEnumID: .transaction),
+            let trans2 = getTransaction(by: trans.relatedTransactionID!, from: .normalList) {
                                     
                 
                 //print("the paymethod is \(trans.payMethod?.title)")
@@ -1425,9 +1428,9 @@ class CalendarModel {
         
         /// Do Networking.
         typealias ResultResponse = Result<ParentChildIdModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model, timeout: 10)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model, timeout: 10)
                     
-        switch await result {
+        switch result {
         case .success(let model):
             LogManager.networkingSuccessful()
             
@@ -1626,11 +1629,10 @@ class CalendarModel {
         )
         
         let model = RequestModel(requestType: "add_populated_transactions_and_budgets", model: repModel)
-        
         typealias ResultResponse = Result<PopulatedMonthResultModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success(let model):
             LogManager.networkingSuccessful()
             if let model {
@@ -1702,11 +1704,10 @@ class CalendarModel {
         )
         
         let model = RequestModel(requestType: "add_populated_transactions_and_budgets", model: repModel)
-        
         typealias ResultResponse = Result<PopulatedMonthResultModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success(let model):
             LogManager.networkingSuccessful()
             if let model {
@@ -1798,9 +1799,9 @@ class CalendarModel {
         let model = RequestModel(requestType: "alter_multiple_transactions", model: multiModel)
         
         typealias ResultResponse = Result<Array<ParentChildIdModel>?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success(let model):
             LogManager.networkingSuccessful()
             if let model {
@@ -2085,9 +2086,9 @@ class CalendarModel {
         //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
         
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success:
             LogManager.networkingSuccessful()
             
@@ -2226,9 +2227,9 @@ class CalendarModel {
         
         let model = RequestModel(requestType: "fetch_receipts", model: fetchModel)
         typealias ResultResponse = Result<Array<CBTransaction>?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
         
-        switch await result {
+        switch result {
         case .success(let model):
             if let model {
                 if self.receiptTransactions.isEmpty {
@@ -2423,9 +2424,9 @@ class CalendarModel {
         //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
         
         typealias ResultResponse = Result<ReturnIdModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success(let model):
             LogManager.networkingSuccessful()
             /// Get the new ID from the server after adding a new activity.
@@ -2910,9 +2911,9 @@ class CalendarModel {
             let model = RequestModel(requestType: "reset_month", model: resetModel)
             
             typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-            async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+            let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                         
-            switch await result {
+            switch result {
             case .success:
                 LogManager.networkingSuccessful()
                 

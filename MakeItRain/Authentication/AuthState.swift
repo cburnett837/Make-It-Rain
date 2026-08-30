@@ -58,9 +58,9 @@ class AuthState {
         
         /// Set the ticker to 0 so it doesn't try and reattempt.
         /// This will try to login once with a 15 second timeout before it says screw it.
-        async let result: ResultResponse = await NetworkManager().login(using: loginType, with: loginModel, ticker: 0)
+        let result: ResultResponse = await NetworkManager().login(using: loginType, with: loginModel, ticker: 0)
         
-        switch await result {
+        switch result {
         case .success(let model):
             do {
                 if let model = model {

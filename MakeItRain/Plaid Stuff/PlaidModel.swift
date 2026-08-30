@@ -118,9 +118,9 @@ class PlaidModel {
         let model = RequestModel(requestType: "fetch_plaid_banks", model: AppState.shared.user!)
         
         typealias ResultResponse = Result<Array<CBPlaidBank>?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success(let model):
             if let model {
                 self.banks = model
@@ -262,9 +262,9 @@ class PlaidModel {
         
         
         typealias ResultResponse = Result<ReturnIdModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success(let model):
             LogManager.networkingSuccessful()
             
@@ -342,9 +342,9 @@ class PlaidModel {
         //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
         
         typealias ResultResponse = Result<ReturnIdModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success:
             LogManager.networkingSuccessful()
             
@@ -434,9 +434,9 @@ class PlaidModel {
         let model = RequestModel(requestType: "plaid_get_transactions", model: plaidModel)
         
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success(let model):
             print(model?.result ?? "No transactions")
             return model?.result
@@ -454,9 +454,9 @@ class PlaidModel {
         let model = RequestModel(requestType: "plaid_get_accounts_for_item", model: plaidModel)
         
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success(let model):
             print(model?.result ?? "No transactions")
             return model?.result
@@ -587,9 +587,9 @@ class PlaidModel {
         //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
         
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success:
             LogManager.networkingSuccessful()
             
@@ -615,9 +615,9 @@ class PlaidModel {
         //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
         
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success:
             LogManager.networkingSuccessful()
             
@@ -778,9 +778,9 @@ class PlaidModel {
         //let month = months.filter { $0.num == monthNum }.first!
         let model = RequestModel(requestType: "plaid_force_sync_balances_for_bank", model: plaidModel)
         typealias ResultResponse = Result<Array<CBPlaidBalance>?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
         
-        switch await result {
+        switch result {
         case .success(let model):
             if let model {
                 for balance in model {
@@ -827,9 +827,9 @@ class PlaidModel {
         //let month = months.filter { $0.num == monthNum }.first!
         let model = RequestModel(requestType: "plaid_force_sync_transactions_for_bank", model: plaidModel)
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
         
-        switch await result {
+        switch result {
         case .success:
             let currentElapsed = CFAbsoluteTimeGetCurrent() - start
             print("⏰ It took \(currentElapsed) seconds to force sync plaid transactions for bankID \(bank.id).")
@@ -865,9 +865,9 @@ class PlaidModel {
         //let month = months.filter { $0.num == monthNum }.first!
         let model = RequestModel(requestType: "plaid_fetch_all_available_transaction_history_for_bank", model: plaidModel)
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
         
-        switch await result {
+        switch result {
         case .success:
             let currentElapsed = CFAbsoluteTimeGetCurrent() - start
             print("⏰ It took \(currentElapsed) seconds to fetch all available plaid transaction history for bankID \(bank.id).")
@@ -1004,9 +1004,9 @@ class PlaidModel {
         let model = RequestModel(requestType: "plaid_create_link_token", model: tokenModel)
         
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success(let model):
             print(model?.result ?? "No link token from server")
             return model?.result
@@ -1025,9 +1025,9 @@ class PlaidModel {
         let model = RequestModel(requestType: "plaid_exchange_public_token", model: plaidModel)
         
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success(let model):
             print(model?.result ?? "No link token from server")
             return model?.result

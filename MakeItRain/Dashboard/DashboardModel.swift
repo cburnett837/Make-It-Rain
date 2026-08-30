@@ -413,9 +413,9 @@ class DashboardModel {
         /// Do networking.
         let model = RequestModel(requestType: "fetch_dashboard", model: requestModel)
         typealias ResultResponse = Result<DashboardData?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
 
-        switch await result {
+        switch result {
         case .success(let model):
             if let model {
                 withAnimation {
@@ -447,9 +447,9 @@ class DashboardModel {
         /// Do networking.
         let model = RequestModel(requestType: filter.action.serverKey, model: filter)
         typealias ResultResponse = Result<ReturnIdModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
 
-        switch await result {
+        switch result {
         case .success(let model):
             if let model {
                 if filter.action == .add {

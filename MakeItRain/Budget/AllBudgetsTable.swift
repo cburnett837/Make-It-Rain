@@ -14,7 +14,7 @@ struct AllBudgetsTable: View {
     @Environment(BudgetModel.self) var budgetModel
     @Environment(AppStore.self) var store
     
-    @Binding var navPath: NavigationPath
+    @Binding var navPath: [NavDest]
 
     @State private var editBudget: CBBudget?
     @State private var searchText = ""
@@ -25,7 +25,7 @@ struct AllBudgetsTable: View {
                 guard $0.type == .tag else { return false }
                 return searchText.isEmpty
                 ? $0.item?.title.isEmpty == false
-                : ($0.item?.title ?? "").localizedCaseInsensitiveContains(searchText)
+                : ($0.item?.title ?? "").localizedStandardContains(searchText)
             }
             //.sorted(by: { ($0.item?.title ?? "").lowercased() < ($0.item?.title ?? "").lowercased() })
     }
@@ -56,8 +56,16 @@ struct AllBudgetsTable: View {
             
             Section("Tag Budgets") {
                 ForEach(filteredBudgetItems) { budget in
-                    //Text("#\(budget.item?.title ?? "N/A")")
-                    NavigationLink(value: budget) {
+                    
+//                    Button {
+//                        navPath.append(.budgetItem(budget))
+//                    } label: {
+//                        Text("#\(budget.item?.title ?? "N/A")")
+//                    }
+//                    .tint(.none)
+                    
+                    
+                    NavigationLink(value: NavDest.budgetItem(budget)) {
                         Text("#\(budget.item?.title ?? "N/A")")
                     }
                 }
@@ -72,9 +80,9 @@ struct AllBudgetsTable: View {
             #endif
         }
         .navigationTitle("Budget\(AppState.shared.devMode ? " (Dev)" : "")")
-        .navigationDestination(for: CBBudgetItem.self) { budget in
-            BudgetOverview(budget: budget, location: .globalList)
-        }
+//        .navigationDestination(for: CBBudgetItem.self) { budget in
+//            BudgetOverview(budget: budget, location: .globalList)
+//        }
         .sheet(item: $editBudget, onDismiss: {
             if store.globalBudget.hasChanges() {
                 Task {
@@ -103,7 +111,9 @@ struct AllBudgetsTable: View {
     var newBudgetButton: some View {
         Button {
             let newId = UUID().uuidString
-            navPath.append(CBBudgetItem(uuid: newId, type: .tag))
+            let newItem = CBBudgetItem(uuid: newId, type: .tag)
+            navPath.append(.budgetItem(newItem))
+            //navPath.append(CBBudgetItem(uuid: newId, type: .tag))
         } label: {
             Image(systemName: "plus")
         }

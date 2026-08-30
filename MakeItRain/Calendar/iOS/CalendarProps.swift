@@ -57,4 +57,7 @@ class CalendarProps {
     var phoneLineItemDisplayItemWhenMultiSelectWasOpened: PhoneLineItemDisplayItem?
     
     var dashboardIsDirty = false
+    
+    var showPotentiallyExistingTransFromPlaidID: String?
+    var tempHighlightTransId: String? 
 }

@@ -240,9 +240,9 @@ class PayMethodModel {
         /// Do networking.
         let model = RequestModel(requestType: "fetch_payment_methods", model: AppState.shared.user)
         typealias ResultResponse = Result<Array<CBPaymentMethod>?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
         
-        switch await result {
+        switch result {
         case .success(let model):
             LogManager.networkingSuccessful()
             if let model {
@@ -302,9 +302,9 @@ class PayMethodModel {
         
         let model = RequestModel(requestType: payMethod.action.serverKey, model: payMethod)
         typealias ResultResponse = Result<ReturnIdModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success(let model):
             LogManager.networkingSuccessful()
             
@@ -418,9 +418,9 @@ class PayMethodModel {
         let submitModel = IdSubmitModel(id: payMethod?.id)
         let model = RequestModel(requestType: "set_default_viewing_payment_method", model: submitModel)
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success:
             LogManager.networkingSuccessful()
 
@@ -474,9 +474,9 @@ class PayMethodModel {
         let submitModel = IdSubmitModel(id: payMethod?.id)
         let model = RequestModel(requestType: "set_default_editing_payment_method", model: submitModel)
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success:
             LogManager.networkingSuccessful()
 
@@ -503,9 +503,9 @@ class PayMethodModel {
         /// Networking
         let model = RequestModel(requestType: "fetch_starting_amounts_for_date_range", model: analModel)
         typealias ResultResponse = Result<Array<CBStartingAmount>?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success(let model):
             LogManager.networkingSuccessful()
             return model
@@ -533,9 +533,9 @@ class PayMethodModel {
         let model = RequestModel(requestType: "fetch_analytics_for_payment_method", model: analModel)
         
         typealias ResultResponse = Result<Array<CBPaymentMethod>?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success(let model):
             LogManager.networkingSuccessful()
             return model
@@ -844,7 +844,7 @@ class PayMethodModel {
                 $0.sectionType == section
                 && $0.isPermitted
                 && (includeHidden ? true : !$0.isHidden)
-                && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
+                && (sText.isEmpty ? true : $0.title.localizedStandardContains(sText))
             }
             .filter {
                 guard respectFilter == true else {return true}
@@ -892,7 +892,7 @@ class PayMethodModel {
 //                        $0.isDebitOrUnified
 //                        && $0.isPermitted
 //                        && (includeHidden ? true : !$0.isHidden)
-//                        && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
+//                        && (sText.isEmpty ? true : $0.title.localizedStandardContains(sText))
 //                    }
 //                    .filter {
 //                        switch AppSettings.shared.paymentMethodFilterMode {
@@ -916,7 +916,7 @@ class PayMethodModel {
 //                        $0.isCreditOrUnified
 //                        && $0.isPermitted
 //                        && (includeHidden ? true : !$0.isHidden)
-//                        && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
+//                        && (sText.isEmpty ? true : $0.title.localizedStandardContains(sText))
 //                    }
 //                    .filter {
 //                        switch AppSettings.shared.paymentMethodFilterMode {
@@ -941,7 +941,7 @@ class PayMethodModel {
 //                        && !$0.isCreditOrUnified
 //                        && $0.isPermitted
 //                        && (includeHidden ? true : !$0.isHidden)
-//                        && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
+//                        && (sText.isEmpty ? true : $0.title.localizedStandardContains(sText))
 //                    }
 //                    .filter {
 //                        switch AppSettings.shared.paymentMethodFilterMode {
@@ -970,7 +970,7 @@ class PayMethodModel {
 //                        $0.isDebitOrCash
 //                        && $0.isPermitted
 //                        && (includeHidden ? true : !$0.isHidden)
-//                        && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
+//                        && (sText.isEmpty ? true : $0.title.localizedStandardContains(sText))
 //                    }
 //                    .filter {
 //                        switch AppSettings.shared.paymentMethodFilterMode {
@@ -994,7 +994,7 @@ class PayMethodModel {
 //                        $0.isCreditOrLoan
 //                        && $0.isPermitted
 //                        && (includeHidden ? true : !$0.isHidden)
-//                        && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
+//                        && (sText.isEmpty ? true : $0.title.localizedStandardContains(sText))
 //                    }
 //                    .filter {
 //                        switch AppSettings.shared.paymentMethodFilterMode {
@@ -1019,7 +1019,7 @@ class PayMethodModel {
 //                        && !$0.isCreditOrUnified
 //                        && $0.isPermitted
 //                        && (includeHidden ? true : !$0.isHidden)
-//                        && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
+//                        && (sText.isEmpty ? true : $0.title.localizedStandardContains(sText))
 //                    }
 //                    .filter {
 //                        switch AppSettings.shared.paymentMethodFilterMode {
@@ -1049,7 +1049,7 @@ class PayMethodModel {
 //                            $0.isDebitOrUnified
 //                            && $0.isPermitted
 //                            && (includeHidden ? true : !$0.isHidden)
-//                            && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
+//                            && (sText.isEmpty ? true : $0.title.localizedStandardContains(sText))
 //                        }
 //                        .filter {
 //                            switch AppSettings.shared.paymentMethodFilterMode {
@@ -1077,7 +1077,7 @@ class PayMethodModel {
 //                            $0.isCreditOrLoan
 //                            && $0.isPermitted
 //                            && (includeHidden ? true : !$0.isHidden)
-//                            && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
+//                            && (sText.isEmpty ? true : $0.title.localizedStandardContains(sText))
 //                        }
 //                        .filter {
 //                            switch AppSettings.shared.paymentMethodFilterMode {
@@ -1106,7 +1106,7 @@ class PayMethodModel {
 //                            && !$0.isCreditOrUnified
 //                            && $0.isPermitted
 //                            && (includeHidden ? true : !$0.isHidden)
-//                            && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
+//                            && (sText.isEmpty ? true : $0.title.localizedStandardContains(sText))
 //                        }
 //                        .filter {
 //                            switch AppSettings.shared.paymentMethodFilterMode {
@@ -1138,7 +1138,7 @@ class PayMethodModel {
 //                        $0.accountType == .checking
 //                        && !taken.contains($0.id)
 //                        && $0.isPermitted
-//                        && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
+//                        && (sText.isEmpty ? true : $0.title.localizedStandardContains(sText))
 //                    }
 //                    .filter {
 //                        switch AppSettings.shared.paymentMethodFilterMode {
@@ -1162,7 +1162,7 @@ class PayMethodModel {
 //                        ($0.accountType == .credit || $0.accountType == .loan)
 //                        && !taken.contains($0.id)
 //                        && $0.isPermitted
-//                        && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
+//                        && (sText.isEmpty ? true : $0.title.localizedStandardContains(sText))
 //                    }
 //                    .filter {
 //                        switch AppSettings.shared.paymentMethodFilterMode {
@@ -1186,7 +1186,7 @@ class PayMethodModel {
 //                        !$0.isDebitOrUnified
 //                        && !$0.isCreditOrUnified
 //                        && $0.isPermitted
-//                        && (sText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(sText))
+//                        && (sText.isEmpty ? true : $0.title.localizedStandardContains(sText))
 //                    }
 //                    .filter {
 //                        switch AppSettings.shared.paymentMethodFilterMode {

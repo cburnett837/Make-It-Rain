@@ -98,9 +98,9 @@ struct DashboardTransactionList: View {
         
         let model = RequestModel(requestType: "new_advanced_search", model: searchModel)
         typealias ResultResponse = Result<Array<CBTransaction>?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
         
-        switch await result {
+        switch result {
         case .success(let model):
             LogManager.networkingSuccessful()
             if let model {

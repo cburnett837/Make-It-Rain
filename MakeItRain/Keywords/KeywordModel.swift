@@ -136,9 +136,9 @@ class KeywordModel {
         
         let model = RequestModel(requestType: keyword.action.serverKey, model: keyword)
         typealias ResultResponse = Result<ReturnIdModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                                 
-        switch await result {
+        switch result {
         case .success(let model):
             LogManager.networkingSuccessful()
                         

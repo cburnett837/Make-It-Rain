@@ -280,7 +280,7 @@ struct AiAnimatedAliveSymbol: View {
                 }
             } else {
                 content
-            }            
+            }
         }
         .onAppear {
             animate(withGlow: withGlow, hueShift: $hueShift, glowPulse: $glowPulse)

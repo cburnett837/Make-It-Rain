@@ -13,7 +13,7 @@ struct CalendarNavGridHeader: View {
     @Environment(CalendarModel.self) var calModel
     @Environment(PlaidModel.self) var plaidModel
     
-    @Binding var calendarNavPath: NavigationPath
+    @Binding var calendarNavPath: [NavDest]
     
     var isPlayground: Bool { calModel.sYear == 1900 }
     

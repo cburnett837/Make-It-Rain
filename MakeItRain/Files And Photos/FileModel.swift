@@ -261,7 +261,7 @@ class FileModel {
         
         /// Upload to Server. If successful, add image to persons gift array. If fails, throw up a warning on the page
         //typealias ResultResponse = Result<U?, AppError>
-        async let result: Result<U?, AppError> = await NetworkManager().uploadFile(
+        let result: Result<U?, AppError> = await NetworkManager().uploadFile(
             application: application,
             fileParent: fileParent,
             uuid: uuid,
@@ -272,7 +272,7 @@ class FileModel {
             smartTransactionDate: smartTransactionDate
         )
         
-        switch await result {
+        switch result {
         case .success(let model):
             #if os(iOS)
             UIApplication.shared.endBackgroundTask(backgroundTaskID!)
@@ -294,11 +294,10 @@ class FileModel {
     @MainActor
     func delete(_ file: CBFile) async -> Bool {
         let model = RequestModel(requestType: "budget_app_delete_file", model: file)
-                    
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                 
-        switch await result {
+        switch result {
         case .success:
             return true
                         

@@ -34,7 +34,7 @@ struct CategoryGroupEditView: View {
     var filteredSelectedCategories: Array<CBCategory> {
         return group.categories
             .filter { $0.active && categoryIds.contains($0.id) && $0.appSuiteKey == nil }
-            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
             .sorted(by: Helpers.categorySorter())
     }
     
@@ -42,7 +42,7 @@ struct CategoryGroupEditView: View {
 //        return catModel.categories
 //            .filter { $0.active }
 //            .filter { !categoryIds.contains($0.id) && $0.appSuiteKey == nil }
-//            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+//            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
 //            .sorted(by: Helpers.categorySorter())
 //    }
     

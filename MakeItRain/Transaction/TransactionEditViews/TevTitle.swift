@@ -98,7 +98,7 @@ struct TevTitle: View {
                     
                     
                     if trans.action == .add, !trans.title.isEmpty, trans.locations.filter({ $0.active }).isEmpty {
-                        suggestedLocations = store.suggestedLocations.filter {$0.transTitle.localizedCaseInsensitiveContains(trans.title)}
+                        suggestedLocations = store.suggestedLocations.filter {$0.transTitle.localizedStandardContains(trans.title)}
                         if !suggestedLocations.isEmpty {
                             shouldShowLocationSuggestions = true
                         }

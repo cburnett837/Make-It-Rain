@@ -154,7 +154,9 @@ struct TevSplitSheet: View {
 //            }
 //        }
         .task {
-            originalAmount = trans.amount            
+            trans.relatedTransactionID = trans.serverID
+            trans.relatedTransactionType = .split
+            originalAmount = trans.amount
             addTrans()
         }
         .onChange(of: additionalTrans.map { $0.amount }) {
@@ -170,6 +172,8 @@ struct TevSplitSheet: View {
         newTrans.date = trans.date
         newTrans.payMethod = trans.payMethod
         newTrans.files = trans.files
+        newTrans.relatedTransactionID = trans.serverID
+        newTrans.relatedTransactionType = .split
         /// Tell the server to copy over any pre-existing file records.
         newTrans.duplicateFileRecordsOnDb = true
         withAnimation {

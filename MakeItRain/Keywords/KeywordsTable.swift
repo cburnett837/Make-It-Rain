@@ -27,7 +27,7 @@ struct KeywordsTable: View {
     var filteredKeywords: [CBKeyword] {
         keyModel.keywords
             .filter {
-                (searchText.isEmpty ? !$0.keyword.isEmpty : $0.keyword.localizedCaseInsensitiveContains(searchText))
+                (searchText.isEmpty ? !$0.keyword.isEmpty : $0.keyword.localizedStandardContains(searchText))
                 && !$0.isIgnoredSuggestion
             }
             //.sorted { $0.keyword.lowercased() < $1.keyword.lowercased() }
@@ -37,7 +37,7 @@ struct KeywordsTable: View {
     var filteredIgnoredKeywords: [CBKeyword] {
         keyModel.keywords
             .filter {
-                (searchText.isEmpty ? !$0.keyword.isEmpty : $0.keyword.localizedCaseInsensitiveContains(searchText))
+                (searchText.isEmpty ? !$0.keyword.isEmpty : $0.keyword.localizedStandardContains(searchText))
                 && $0.isIgnoredSuggestion
             }
             //.sorted { $0.keyword.lowercased() < $1.keyword.lowercased() }

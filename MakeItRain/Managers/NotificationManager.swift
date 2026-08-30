@@ -320,17 +320,15 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     
     
     func sendNotificationTokenToServer(token: String) {
-        //print("-- \(#function)")
-        
         AppState.shared.notificationToken = token
-        
-        let tokenModel = CBNotificationToken(user: AppState.shared.user!, token: token)
-        let model = RequestModel(requestType: "add_new_notification_token_for_app", model: tokenModel)
         Task {
+            let tokenModel = CBNotificationToken(user: AppState.shared.user!, token: token)
+            let model = RequestModel(requestType: "add_new_notification_token_for_app", model: tokenModel)
+            
             typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-            async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+            let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                         
-            switch await result {
+            switch result {
             case .success:
                 //print("Successfully sent token")
                 LogManager.networkingSuccessful()

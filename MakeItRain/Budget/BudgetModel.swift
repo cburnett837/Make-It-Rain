@@ -112,9 +112,9 @@ class BudgetModel {
         //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
         
         typealias ResultResponse = Result<ParentChildIdModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success(let model):
             LogManager.networkingSuccessful()
                         
@@ -181,9 +181,9 @@ class BudgetModel {
         //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
         
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success(let model):
             LogManager.networkingSuccessful()
             /// End the background task.
@@ -226,9 +226,9 @@ class BudgetModel {
         //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
         
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success(let model):
             LogManager.networkingSuccessful()
             /// End the background task.

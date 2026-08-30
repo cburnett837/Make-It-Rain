@@ -171,7 +171,7 @@ struct SymbolPicker: View {
             return sections
         } else {
             return sections
-                .filter { !$0.symbols.filter { $0.localizedCaseInsensitiveContains(searchText) }.isEmpty }
+                .filter { !$0.symbols.filter { $0.localizedStandardContains(searchText) }.isEmpty }
         }
     }
     
@@ -223,7 +223,7 @@ struct SymbolPicker: View {
     fileprivate func getSymbols(for section: SymbolSection) -> Array<String> {
         let filtered = searchText.isEmpty
         ? section.symbols.sorted { $0 < $1 }
-        : section.symbols.filter { $0.localizedCaseInsensitiveContains(searchText) }.sorted { $0 < $1 }
+        : section.symbols.filter { $0.localizedStandardContains(searchText) }.sorted { $0 < $1 }
         return filtered
     }
     

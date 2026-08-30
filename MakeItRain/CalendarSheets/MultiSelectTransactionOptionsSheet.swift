@@ -43,15 +43,17 @@ struct MultiSelectTransactionOptionsSheet: View {
     var body: some View {
         #if os(iOS)
         if AppState.shared.isIphone {
-            StandardContainer(.bottomPanel) {
-                contentGrid
+            StandardContainer(.plainList) {
+                //contentGrid
+                contentList
+                    .listRowBackground(Color(.secondarySystemBackground))
             } header: {
                 sheetHeader
             }
             /// Keep the state updated if the user drags the inspector closed.
-            .onChange(of: calProps.bottomPanelContent) {
-                if $1 == nil { sheetWasClosed() }
-            }
+//            .onChange(of: calProps.bottomPanelContent) {
+//                if $1 == nil { sheetWasClosed() }
+//            }
         } else {
             NavigationStack {
                 StandardContainerWithToolbar(.list) {
@@ -111,51 +113,66 @@ struct MultiSelectTransactionOptionsSheet: View {
     
     @ViewBuilder
     var contentList: some View {
-        Section {
-            summarizeButton
-            deleteButton
+        tagButton
+        changeCategoryButton
+        changeDateButton
+        MultiTitleColorMenu(
+            transactions: calModel.multiSelectTransactions,
+            shouldSave: $shouldSave
+        ) {
+            Label("Change Title Color", systemImage: "paintpalette")
+                .symbolRenderingMode(.multicolor)
         }
         
-        Section {
-            MultiTitleColorMenu(transactions: calModel.multiSelectTransactions, shouldSave: $shouldSave) { Text("Change title color") }
-            changeCategoryButton
-            changeDateButton
-            factorInCalculationsButton
-            excludeFromCalculationsButton
-        }
+        deleteButton
+        excludeFromCalculationsButton
+        factorInCalculationsButton
     }
     
     
+    @ViewBuilder
     var contentGrid: some View {
         TagLayout {
-            summarizeButton
-            deleteButton
-            MultiTitleColorMenu(transactions: calModel.multiSelectTransactions, shouldSave: $shouldSave) { Text("Change title color") }
+            tagButton
             changeCategoryButton
             changeDateButton
-            factorInCalculationsButton
+//            summarizeButton
+            MultiTitleColorMenu(
+                transactions: calModel.multiSelectTransactions,
+                shouldSave: $shouldSave
+            ) {
+                Text("Change Title Color")
+            }
+            
+            deleteButton
             excludeFromCalculationsButton
+            factorInCalculationsButton
         }
         .buttonStyle(.borderedProminent)
         .padding(.top, 6)
     }
     
     
-    @ViewBuilder var sheetHeader: some View {
-        @Bindable var calProps = calProps
+    @ViewBuilder
+    var sheetHeader: some View {
         SheetHeader(
             title: "Multi-Select Options",
             close: {
-                calProps.bottomPanelContent = nil
+                withAnimation {
+                    calProps.bottomPanelContent = nil
+                }
+                sheetWasClosed()
             }
         )
     }
     
+    
+    @ViewBuilder
     var closeButton: some View {
         Button {
             //closeSheet()
             if AppState.shared.isIphone {
-                calProps.bottomPanelContent = nil
+                withAnimation { calProps.bottomPanelContent = nil }
             } else {
                 showInspector = false
             }
@@ -169,8 +186,11 @@ struct MultiSelectTransactionOptionsSheet: View {
     }
     
     
+    @ViewBuilder
     var summarizeButton: some View {
-        Button("Summarize") {
+        Button {
+            guard validateTransAreSelected() else { return }
+            
             calModel.sCategoriesForAnalysis = calModel.multiSelectTransactions
                 .compactMap(\.category)
                 .uniqued(on: \.id)
@@ -190,13 +210,17 @@ struct MultiSelectTransactionOptionsSheet: View {
             #else
             openWindow(id: "analysisSheet")
             #endif
-            
+        } label: {
+            Label("Summarize", systemImage: "chart.line.text.clipboard")
+                .foregroundStyle(Color.theme)
         }
     }
     
     
     var factorInCalculationsButton: some View {
         Button {
+            guard validateTransAreSelected() else { return }
+            
             withAnimation {
                 for trans in calModel.multiSelectTransactions {
                     trans.factorInCalculations = true
@@ -215,13 +239,16 @@ struct MultiSelectTransactionOptionsSheet: View {
                 CalcHelper.calculateTotal(for: calModel.sMonth, store: store)
             }
         } label: {
-            Text("Include in calculations")
+            Label("Include In Calculations", systemImage: "eye")
+                .foregroundStyle(Color.theme)
         }
     }
     
     
     var excludeFromCalculationsButton: some View {
         Button {
+            guard validateTransAreSelected() else { return }
+            
             withAnimation {
                 for trans in calModel.multiSelectTransactions {
                     trans.factorInCalculations = false
@@ -239,17 +266,20 @@ struct MultiSelectTransactionOptionsSheet: View {
                 CalcHelper.calculateTotal(for: calModel.sMonth, store: store)
             }
         } label: {
-            Text("Exclude from calculations")
+            Label("Exclude From Calculations", systemImage: "eye.slash")
+                .foregroundStyle(Color.theme)
         }
     }
     
     
     var changeCategoryButton: some View {
         Button {
+            guard validateTransAreSelected() else { return }
             selectedCategory = nil
             showCategorySheet = true
         } label: {
-            Text("Change category")
+            Label("Change Category", systemImage: "books.vertical")
+                .foregroundStyle(Color.theme)
         }
         .sheet(isPresented: $showCategorySheet, onDismiss: {
             if shouldChangeCategory {
@@ -285,6 +315,7 @@ struct MultiSelectTransactionOptionsSheet: View {
     
     var changeDateButton: some View {
         Button {
+            guard validateTransAreSelected() else { return }
             #if os(iOS)
             navPath.append(NavDest.multiTransChangeDate)
             #else
@@ -292,18 +323,20 @@ struct MultiSelectTransactionOptionsSheet: View {
             #endif
             shouldSave = false
         } label: {
-            Text("Change date")
+            Label("Change Date", systemImage: "calendar")
+                .foregroundStyle(Color.theme)
         }
     }
     
     
     var deleteButton: some View {
         Button {
+            guard validateTransAreSelected() else { return }
             showDeleteAlert = true
         } label: {
-            Text("Delete")
+            Label("Delete", systemImage: "trash")
+                .foregroundStyle(.red)
         }
-        .tint(.red)
         .confirmationDialog("Delete the selected transactions?", isPresented: $showDeleteAlert) {
             Button("Yes", role: .destructive) {
                 withAnimation {
@@ -350,6 +383,18 @@ struct MultiSelectTransactionOptionsSheet: View {
         }
     }
     
+    
+    var tagButton: some View {
+        Button {
+            guard validateTransAreSelected() else { return }
+            navPath.append(NavDest.tags)
+            shouldSave = true
+        } label: {
+            Label("Assign Tags", systemImage: "number")
+                .foregroundStyle(Color.theme)
+        }
+    }
+    
         
     func sheetWasClosed() {
         //#if os(iOS)
@@ -389,15 +434,29 @@ struct MultiSelectTransactionOptionsSheet: View {
                         
                         await calModel.editMultiple(trans: transToEdit)
                         calModel.multiSelectTransactions.removeAll()
+                        calModel.multiSelectTags.removeAll()
                     }
                 } else {
                     calModel.multiSelectTransactions.removeAll()
+                    calModel.multiSelectTags.removeAll()
                 }
             }
         //#else
             /// Clean up & saving logic will be handled in the .onDisappear()
             //dismiss()
         //#endif
+    }
+    
+    
+    func validateTransAreSelected() -> Bool {
+        if calModel.multiSelectTransactions.isEmpty {
+            Helpers.buzzPhone(.warning)
+            AppState.shared.showAlert(title: "No Selection", subtitle: "Please select some transactions to continue.")
+            
+            return false
+        }
+        
+        return true
     }
 }
 

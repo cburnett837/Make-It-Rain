@@ -40,7 +40,7 @@ struct PayMethodDashboard: View {
             return first
                 .breakdowns
                 //.filter { chartVisibleYearCount == .yearToDate ? $0.year == AppState.shared.todayYear : true }
-                .filter { searchText.isEmpty ? true : $0.date.string(to: .monthNameYear).localizedCaseInsensitiveContains(searchText) }
+                .filter { searchText.isEmpty ? true : $0.date.string(to: .monthNameYear).localizedStandardContains(searchText) }
                 .sorted(by: { $0.date > $1.date })
         } else {
             return []
@@ -615,7 +615,7 @@ struct PayMethodDashboard: View {
 //            return first
 //                .breakdowns
 //                //.filter { chartVisibleYearCount == .yearToDate ? $0.year == AppState.shared.todayYear : true }
-//                .filter { searchText.isEmpty ? true : $0.date.string(to: .monthNameYear).localizedCaseInsensitiveContains(searchText) }
+//                .filter { searchText.isEmpty ? true : $0.date.string(to: .monthNameYear).localizedStandardContains(searchText) }
 //                .sorted(by: { $0.date > $1.date })
 //        } else {
 //            return []

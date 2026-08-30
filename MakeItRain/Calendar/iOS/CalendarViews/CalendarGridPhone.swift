@@ -26,10 +26,11 @@ struct CalendarGridPhone: View {
     let enumID: NavDest
     
     @State private var initialGeoHeight: CGFloat = 0
+    @State private var resetTransactionHighlightTask: Task<Void, Never>?
     
-    let sevenColumnGrid = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
+    private let sevenColumnGrid = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
     
-    var divideBy: CGFloat {
+    private var divideBy: CGFloat {
         let cellCount = calModel.sMonth.firstWeekdayOfMonth - 1 + calModel.sMonth.dayCount
         if cellCount > 35 {
             return 6
@@ -59,11 +60,9 @@ struct CalendarGridPhone: View {
                 && phoneLineItemDisplayItem == .both
         )
     }
-    
         
     
     #warning("REGARDING HITCH: All I did here was change binding to day to a regular bindable")
-    @ViewBuilder
     var body: some View {
         //let _ = Self._printChanges()
         @Bindable var calModel = calModel
@@ -112,14 +111,64 @@ struct CalendarGridPhone: View {
                 .scrollIndicators(.hidden)
                 //.onScrollPhaseChange { if $1 == .interacting { withAnimation { calModel.hilightTrans = nil } } }
                 /// Scroll to today when the view loads (if applicable)
-                .onAppear { scrollToTodayOnAppearOfScrollView(scrollProxy) }
+                .onAppear {
+                    scrollToDayOnAppearOfScrollView(scrollProxy)
+                }
                 /// Focus on the overviewDay when selecting, or changing.
                 .onChange(of: calProps.overviewDay) { scrollToOverViewDay(scrollProxy, $0, $1) }
                 .onChange(of: calProps.bottomPanelContent) { handleBottomPanelContentChange($0, $1) }
+                
+                /// - From the plaid sheet, if applicable, you can select one of the lines to show the potentially related transaction.
+                /// - When this happens, look up the transaction, and take us to the month of the transaction.
+                /// - Then scroll to and highlight the transaction.
+                .onChange(of: calProps.showPotentiallyExistingTransFromPlaidID) { oldId, newId in
+                    if let newId,
+                       let trans = calModel.getTransaction(by: newId),
+                       let date = trans.date {
+                        
+                        /// Navigate to the appropriate month if it's not currently on screen.
+                        if calModel.sMonth.actualNum != date.month || calModel.sMonth.year != date.year {
+                            if let month = calModel.months.get(by: (date.month, date.year)) {
+                                NavigationManager.shared.selectedMonth = month.enumID
+                            }
+                        } else {
+                            /// If we're already viewing the appropriate month, scroll to the transaction and highlight it.
+                            withAnimation {
+                                scrollProxy.scrollTo(date.day, anchor: .top)
+                                calProps.tempHighlightTransId = trans.id
+                            }
+                        }
+                    }
+                }
+                /// - When the applicable potentially related transaction from plaid is highlighted, clear the ID of it from `calProps`, and start a task to clear the highlight.
+                /// - In the code above, `calProps.tempHighlightTransId = trans.id`
+                ///     will cause `onChange(of: calProps.tempHighlightTransId)` to run
+                ///     inside ``LineItemMiniView``,  which will cause all transactions to change to the appropriate highlight state.
+                /// - The `resetTransactionHighlightTask` task below will reset all the transactions
+                ///     back to normal via `LineItemMiniView.onChange(of: calProps.tempHighlightTransId)`.
+                .onChange(of: calProps.tempHighlightTransId) { oldValue, newValue in
+                    calProps.showPotentiallyExistingTransFromPlaidID = nil
+                    guard newValue != nil else { return }
+
+                    resetTransactionHighlightTask?.cancel()
+
+                    resetTransactionHighlightTask = Task {
+                        do {
+                            try await Task.sleep(for: .seconds(1.5))
+
+                            guard !Task.isCancelled else { return }
+
+                            calProps.tempHighlightTransId = nil
+                            resetTransactionHighlightTask = nil
+                        } catch {
+                            // Task was cancelled.
+                        }
+                    }
+                }
             }
             /// Set the initial geo height so the day views don't shrink too much when opening the bottom panel. (Since the geometry reader will get small and cause the minHeight of the day view to become less)
             .task {
-                /// When navigating forward via the bottom panel, when you come back to the calendar, this would be recalculated based on the size of the calendar view with the bottom panel open. This would cause the day views to be too small. So only set `initialGeoHeight` if it 0 (default).
+                /// When navigating forward via the bottom panel, when you come back to the calendar, this would be recalculated based on the size of the calendar view with the bottom panel open. This would cause the day views to be too small. So only set `initialGeoHeight` if it's 0 (default).
                 if initialGeoHeight.isZero {
                     initialGeoHeight = geo.size.height
                 }
@@ -138,29 +187,50 @@ struct CalendarGridPhone: View {
     func handleBottomPanelContentChange(_ oldValue: BottomPanelContent?, _ newValue: BottomPanelContent?) {
         if oldValue == .overviewDay && newValue != nil {
             calProps.overviewDay = nil
-            let targetDay = calModel.sMonth.days.filter { $0.dateComponents?.day == (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
+            
+            let dayValue = (calModel.sMonth.num == AppState.shared.todayMonth ? AppState.shared.todayDay : 1)
+            let targetDay = calModel.sMonth.getDay(by: dayValue)
             calProps.selectedDay = targetDay
         }
         
-        if newValue == nil {
-            if calModel.isInMultiSelectMode {
-                calProps.bottomPanelContent = .multiSelectOptions
-            }
-        }
+        #warning("Wtf was this for, it causes the bottom panel to infinitely open... 8/28/26")
+//        if newValue == nil {
+//            if calModel.isInMultiSelectMode {
+//                calProps.bottomPanelContent = .multiSelectOptions
+//            }
+//        }
     }
     
     
-    func scrollToTodayOnAppearOfScrollView(_ proxy: ScrollViewProxy) {
+    func scrollToDayOnAppearOfScrollView(_ proxy: ScrollViewProxy) {
         if enumID.monthActualNum == AppState.shared.todayMonth && calModel.sMonth.year == AppState.shared.todayYear {
             /// Give a little delay since the view can take a while to render.
             /// Without the delay, you can kind of see it flicker when it loads.
             DispatchQueue.main.asyncAfter(deadline: .now() + (calModel.isFirstCalendarLoad ? 0.5 : 0.1)) {
-                if let today = calModel.sMonth.days.first(where: { $0.id == AppState.shared.todayDay }) {
-                    withAnimation {
-                        proxy.scrollTo(today.id, anchor: .top)
+                
+                /// If we are opening now month, scroll to today.
+                if calProps.showPotentiallyExistingTransFromPlaidID == nil {
+                    if let today = calModel.sMonth.days.first(where: { $0.id == AppState.shared.todayDay }) {
+                        withAnimation {
+                            proxy.scrollTo(today.id, anchor: .top)
+                        }
                     }
                 } else {
-                    print("⚠️ todayDay not found in current scrollable days.")
+                    /// If we are coming to this month via the plaid sheet, find the appropriate transaction and scroll to it.
+                    if let newId = calProps.showPotentiallyExistingTransFromPlaidID,
+                       let trans = calModel.getTransaction(by: newId),
+                       let date = trans.date {
+                        if let targetDay = calModel.sMonth.getDay(by: date) {
+                            withAnimation {
+                                proxy.scrollTo(targetDay.id, anchor: .top)
+                            } completion: {
+                                /// Allow a little buffer for the scroll to complete before highlighing the transaction.
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                    calProps.tempHighlightTransId = trans.id
+                                }
+                            }
+                        }
+                    }
                 }
                 
                 /// There is an animation lag when the calendar first shows. So adjust the "scroll to today" time accordingly.

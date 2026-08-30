@@ -384,7 +384,7 @@
 //    
 //    func getTransactions(month: CBMonth, day: CBDay? = nil) -> Array<CBTransaction> {
 //        model.selectedMonth!.trans
-//            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+//            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
 //            .filter { transaction in
 //                guard
 //                    let comps = transaction.dateComponents,

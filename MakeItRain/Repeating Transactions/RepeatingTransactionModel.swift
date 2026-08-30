@@ -136,9 +136,9 @@ class RepeatingTransactionModel {
         //try? await Task.sleep(nanoseconds: UInt64(6 * Double(NSEC_PER_SEC)))
         
         typealias ResultResponse = Result<ReturnIdModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success(let model):
             LogManager.networkingSuccessful()
             

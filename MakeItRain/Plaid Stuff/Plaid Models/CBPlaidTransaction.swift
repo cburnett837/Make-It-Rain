@@ -41,8 +41,9 @@ class CBPlaidTransaction: Codable, Identifiable {
     
     var isAcknowledged: Bool
     var active: Bool
+    var potentiallyExistingTransactionID: String?
     
-    enum CodingKeys: CodingKey { case id, plaid_id, internal_account_id, title, amount, date, is_acknowledged, payment_method, category, device_uuid, user_id, account_id, active }
+    enum CodingKeys: CodingKey { case id, plaid_id, internal_account_id, title, amount, date, is_acknowledged, payment_method, category, device_uuid, user_id, account_id, active, potentially_existing_transaction_id }
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -84,6 +85,15 @@ class CBPlaidTransaction: Codable, Identifiable {
         
         let active = try container.decode(Int?.self, forKey: .active)
         self.active = active == 1 ? true : false
+        
+        
+        do {
+            if let potentiallyExistingTransactionID = try container.decode(Int?.self, forKey: .potentially_existing_transaction_id) {
+                self.potentiallyExistingTransactionID = String(potentiallyExistingTransactionID)
+            }
+        } catch {
+            potentiallyExistingTransactionID = try container.decode(String?.self, forKey: .potentially_existing_transaction_id)
+        }
     }
     
     func setFromAnotherInstance(trans: CBPlaidTransaction) {
@@ -97,6 +107,7 @@ class CBPlaidTransaction: Codable, Identifiable {
         self.category = trans.category
         self.isAcknowledged = trans.isAcknowledged
         self.active = trans.active
+        self.potentiallyExistingTransactionID = trans.potentiallyExistingTransactionID
     }
 }
 

@@ -185,7 +185,7 @@ struct TransactionListView: View {
     
 //    func getTransactions(for day: CBDay) -> Array<CBTransaction> {
 //        return transactions
-//            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+//            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
 //            .filter { $0.dateComponents?.day == day.date?.day }
 //            .filter { ($0.payMethod?.isPermitted ?? true) }
 //            //.filter { !($0.payMethod?.isHidden ?? false) && $0.payMethod?.id == calModel.sPayMethod?.id }
@@ -403,7 +403,7 @@ fileprivate struct DayChunk: View {
     
     func prepareTransactions(searchText: String) {
         self.filteredTrans = calModel.getTransactions(day: day.id, meth: calModel.sPayMethod)
-            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
         
         self.doesHaveTransactions = filteredTrans
             .filter { $0.dateComponents?.day == day.date?.day }

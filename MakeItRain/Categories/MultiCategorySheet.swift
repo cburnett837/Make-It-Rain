@@ -38,7 +38,7 @@ struct MultiCategorySheet: View {
         catModel.categories
             .filter { !$0.isNil }
             .filter { !$0.isHidden && $0.appSuiteKey == nil }
-            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
             .sorted(by: Helpers.categorySorter())
     }
     
@@ -47,7 +47,7 @@ struct MultiCategorySheet: View {
         catModel.categories
             .filter { !$0.isNil }
             .filter { $0.isHidden && $0.appSuiteKey == nil }
-            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
             .sorted(by: Helpers.categorySorter())
     }
     
@@ -57,7 +57,7 @@ struct MultiCategorySheet: View {
             .filter { !$0.isNil }
             //.filter { !$0.isHidden && $0.appSuiteKey != nil }
             .filter { $0.appSuiteKey != nil }
-            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
             .sorted(by: Helpers.categorySorter())
     }
     
@@ -65,7 +65,7 @@ struct MultiCategorySheet: View {
     var filteredCategoryGroups: Array<CBCategoryGroup> {
         catModel.categoryGroups
             .filter { !$0.title.isEmpty }
-            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
             .sorted { $0.title.lowercased() < $1.title.lowercased() }
     }
     

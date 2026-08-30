@@ -14,10 +14,6 @@ import Contacts
 struct ContactPickerView: UIViewControllerRepresentable {
     var onSelect: (CNContact) -> Void
 
-    func makeCoordinator() -> Coordinator {
-        Coordinator(onSelect: onSelect)
-    }
-
     func makeUIViewController(context: Context) -> CNContactPickerViewController {
         let picker = CNContactPickerViewController()
         picker.delegate = context.coordinator
@@ -26,6 +22,10 @@ struct ContactPickerView: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ uiViewController: CNContactPickerViewController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onSelect: onSelect)
+    }
 
     final class Coordinator: NSObject, CNContactPickerDelegate {
         let onSelect: (CNContact) -> Void

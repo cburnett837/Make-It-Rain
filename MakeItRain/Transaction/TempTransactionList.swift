@@ -28,7 +28,7 @@ struct TempTransactionList: View {
     @FocusState private var searchFocused: Int?
     
     var filteredTransactions: Array<CBTransaction> {
-        calModel.tempTransactions.filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+        calModel.tempTransactions.filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
     }
     
     var searchPrompt: String {

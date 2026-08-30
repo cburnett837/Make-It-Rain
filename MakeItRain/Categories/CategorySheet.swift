@@ -42,7 +42,7 @@ struct CategorySheet: View {
     
     var filteredCategories: Array<CBCategory> {
         catModel.categories
-            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
             .filter { !$0.isHidden && $0.appSuiteKey == nil }
             .filter { !$0.isNil }
             .sorted(by: Helpers.categorySorter())
@@ -50,7 +50,7 @@ struct CategorySheet: View {
     
     var filteredHiddenCategories: Array<CBCategory> {
         catModel.categories
-            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
             .filter { $0.isHidden && $0.appSuiteKey == nil }
             .filter { !$0.isNil }
             .sorted(by: Helpers.categorySorter())
@@ -60,7 +60,7 @@ struct CategorySheet: View {
         catModel.categories
             .filter { !$0.isNil }
             .filter { !$0.isHidden && $0.appSuiteKey != nil }
-            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
             .sorted(by: Helpers.categorySorter())
     }
     

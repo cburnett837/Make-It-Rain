@@ -100,11 +100,7 @@ struct CalendarViewPhone: View {
                 .navigationDestination(for: NavDest.self) { dest in
                     switch dest {
                     case .dashboard:
-                        Dashboard(
-                            navPath: $calProps.navPath,
-                            model: calModel.dashboardModel,
-                            isForSelectedMonth: true
-                        )
+                        Dashboard(navPath: $calProps.navPath, model: calModel.dashboardModel, isForSelectedMonth: true)
                         
                     case .dashboardTransactionList(let data, let category):
                         DashboardTransactionList(data: data, category: category)
@@ -126,7 +122,10 @@ struct CalendarViewPhone: View {
                         
                     case .budgetOverview(let budget, let meth):
                         BudgetOverview(budget: budget, payMethod: meth, location: .monthList)
-                        
+                    
+                    case .tags:
+                        TagView(tags: $calModel.multiSelectTags)
+
                     default:
                         Text("That destination is not supported from the calendar.")
                     }
@@ -164,7 +163,24 @@ struct CalendarViewPhone: View {
                 //.navigationTitle("Calendar")
                 .toolbar { CalendarToolbar() }
                 /// Prevent the dashboard from loading again after coming back to the calendar from the dashboard.
-                .onChange(of: calProps.navPath) { if $1.first == NavDest.dashboard { shouldLoadDashboard = false } }
+                .onChange(of: calProps.navPath) { oldStack, newStack in
+                    if oldStack.last == NavDest.dashboard {
+                        shouldLoadDashboard = false
+                    }
+                    
+                    if oldStack.last == NavDest.tags {
+                        guard
+                            !calModel.multiSelectTransactions.isEmpty,
+                            !calModel.multiSelectTags.isEmpty
+                        else {
+                            return
+                        }
+                        
+                        for trans in calModel.multiSelectTransactions {
+                            trans.tags.append(contentsOf: calModel.multiSelectTags)
+                        }
+                    }
+                }
                 //.onChange(of: calProps.dashboardIsDirty) { if $1 { Task { await loadDashboard() } } }
                 /// Using this instead of a task because the iPad doesn't reload `CalendarView`. It just changes the data source.
                 .onChange(of: enumID, initial: true, onChangeOfMonthEnumID)
@@ -241,8 +257,8 @@ struct CalendarViewPhone: View {
         //let _ = Self._printChanges()
         //let _ = print("The new safe area insets are \(safeAreaInsets.bottom)")
         /// Use the GeoReader to adjust the calendar height so the bottom panel properly transitions all the way to the bottom of the screen on dismissal.
-        /// Without it, the calendar/bottom panel would get clipped by the safe area, leading to the bottom panel's slide transition "poofing" at the end of it's transition.
-        /// Essentially, I stretch the view into the safe area, and then apply padding to offset the stretch.
+        /// Without it, the calendar/bottom panel would get clipped by the safe area, leading to the bottom panel's slide transition "poofing" at the end of its transition.
+        /// Essentially, I stretch the view into the safe area, and then apply padding to the content to offset the stretch.
         GeometryReader { geo in
             VStack(spacing: 0) {
                 calendarView
@@ -330,7 +346,11 @@ struct CalendarViewPhone: View {
                     DayOverviewView(day: $calProps.overviewDay, showInspector: .constant(false))
                     
                 case .plaidTransactions:
-                    PlaidTransactionOverlay(showInspector: .constant(false), navPath: $calProps.navPath)
+                    PlaidTransactionOverlay(
+                        selectedMeth: $selectedPlaidFilterMeth,
+                        showInspector: .constant(false),
+                        navPath: $calProps.navPath
+                    )
                     
                 case .smartTransactionsWithIssues:
                     SmartTransactionsWithIssuesOverlay(showInspector: .constant(false))

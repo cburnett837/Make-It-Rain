@@ -27,7 +27,7 @@ struct PlaidTable: View {
     var filteredBanks: [CBPlaidBank] {
         plaidModel.banks
             .filter { $0.active }
-            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedCaseInsensitiveContains(searchText) }
+            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedStandardContains(searchText) }
     }
     
     var body: some View {

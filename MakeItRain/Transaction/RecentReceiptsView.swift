@@ -64,7 +64,7 @@ struct RecentReceiptsView: View {
 //                }
 //            }
             .filter { ($0.isSmartTransaction ?? false) || !($0.files ?? []).isEmpty }
-            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedCaseInsensitiveContains(searchText) }
+            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedStandardContains(searchText) }
             //.sorted(by: Helpers.transactionSorter())
             .sorted(by: { ($0.date ?? Date()) > ($1.date ?? Date()) })
     }

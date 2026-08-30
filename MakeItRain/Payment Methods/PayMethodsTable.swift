@@ -1317,7 +1317,7 @@ struct CardAccessoryView: View {
     
     var filteredTransactions: [CBTransaction] {
         transactions.filter {
-            model.transSearchText.isEmpty ? true : String($0.title).localizedCaseInsensitiveContains(model.transSearchText)
+            model.transSearchText.isEmpty ? true : String($0.title).localizedStandardContains(model.transSearchText)
         }
         .sorted(by: { $0.date ?? Date() > $1.date ?? Date() })
     }
@@ -1381,7 +1381,7 @@ struct CardAccessoryView: View {
             self.transactions = calModel
                 .getTransactions(months: [month], meth: meth)
                 .filter { $0.dateComponents?.day ?? 0 <= AppState.shared.todayDay }
-                .filter { model.transSearchText.isEmpty ? true : String($0.title).localizedCaseInsensitiveContains(model.transSearchText) }
+                .filter { model.transSearchText.isEmpty ? true : String($0.title).localizedStandardContains(model.transSearchText) }
         }
         /// Make sure this stays under the other modifiers otherwise the frame will get appplied and cause weird scroll offset.
         .transactionEditSheetAndLogic(transEditID: $model.transEditID, selectedDay: $model.transDay, extraDismissLogic: { didSave in
@@ -1546,7 +1546,7 @@ struct CardAccessoryView: View {
 ////        payModel.paymentMethods
 ////            .filter { !$0.isUnified }
 ////            .filter { $0.isPermitted }
-////            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedCaseInsensitiveContains(searchText) }
+////            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedStandardContains(searchText) }
 ////            //.sorted { $0.title.lowercased() < $1.title.lowercased() }
 ////    }
 ////    
@@ -1554,21 +1554,21 @@ struct CardAccessoryView: View {
 ////        payModel.paymentMethods
 ////            .filter { $0.isPermitted }
 ////            .filter { $0.accountType == .checking || $0.accountType == .unifiedChecking }
-////            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+////            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
 ////    }
 ////    
 ////    var creditMethods: [CBPaymentMethod] {
 ////        payModel.paymentMethods
 ////            .filter { $0.isPermitted }
 ////            .filter { $0.accountType == .credit || $0.accountType == .unifiedCredit || $0.accountType == .loan }
-////            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+////            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
 ////    }
 ////    
 ////    var otherMethods: [CBPaymentMethod] {
 ////        payModel.paymentMethods
 ////            .filter { $0.isPermitted }
 ////            .filter { $0.accountType != .checking && $0.accountType != .credit && $0.accountType != .loan && !$0.isUnified }
-////            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+////            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
 ////    }
 ////    var sections: Array<SectionData> {
 ////        return [

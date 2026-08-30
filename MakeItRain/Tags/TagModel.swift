@@ -50,9 +50,9 @@ class TagModel {
         /// Do networking.
         let model = RequestModel(requestType: "edit_cb_tag", model: tag)
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
 
-        switch await result {
+        switch result {
         case .success:
             LogManager.networkingSuccessful()
             

@@ -197,17 +197,21 @@ struct CalendarHeader: View {
             
             .map { meth in
                 let theView = HStack {
-                    BusinessLogo(config: .init(
-                        parent: meth,
-                        fallBackType: meth.isUnified ? .gradient : .color
-                    ))
-                    VStack(alignment: .leading) {
-                        Text(meth.title)
-                        Text(funcModel.getPlaidBalancePrettyString(meth) ?? "N/A")
-                            .foregroundStyle(.gray)
-                            .font(.caption)
-                    }
-                    
+                    Card {
+                        HStack {
+                            BusinessLogo(config: .init(
+                                parent: meth,
+                                fallBackType: meth.isUnified ? .gradient : .color
+                            ))
+                            VStack(alignment: .leading) {
+                                Text(meth.title)
+                                Text(funcModel.getPlaidBalancePrettyString(meth) ?? "N/A")
+                                    .foregroundStyle(.gray)
+                                    .font(.caption)
+                            }
+                            Spacer()
+                        }
+                    }                                        
                 }
                 
                 return AlertConfig.ViewConfig(content: AnyView(theView))

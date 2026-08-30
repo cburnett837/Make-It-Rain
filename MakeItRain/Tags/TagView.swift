@@ -47,7 +47,7 @@ struct TagView: View {
     
     var allTags: Array<CBTag> {
         tagModel.tags
-            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
             .sorted(by: { $0.title < $1.title })
     }
     

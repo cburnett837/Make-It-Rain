@@ -21,9 +21,9 @@ class SettingsModel {
         let model = RequestModel(requestType: "update_user_avatar", model: user)
         
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success:
             LogManager.networkingSuccessful()
 

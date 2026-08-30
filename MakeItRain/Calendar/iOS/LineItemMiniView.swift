@@ -10,6 +10,11 @@ import SwiftUI
 
 #if os(iOS)
 struct LineItemMiniView: View {
+    private enum TransactionHighlightState {
+        case highlight, blur, nothing
+    }
+
+    
     @Local(\.showDebuggingInfo) var showDebuggingInfo
     
     @Environment(\.colorScheme) var colorScheme
@@ -28,7 +33,8 @@ struct LineItemMiniView: View {
     @State private var transEditID: String?
     @State private var labelWidth: CGFloat = 20.0
     @State private var showDeleteAlert = false
-    @State private var hilightMe = false
+    @State private var highlightMe = false
+    @State private var highlightState: TransactionHighlightState = .nothing
     
 //    @State private var showPayMethodSheet = false
 //    @State private var showCategorySheet = false
@@ -41,19 +47,35 @@ struct LineItemMiniView: View {
         }
     }
     
+//    var lineColor: Color {
+//        if calModel.isInMultiSelectMode {
+//            if calModel.multiSelectTransactions.map({ $0.id }).contains(trans.id) {
+//                Color(.secondarySystemFill)
+//            } else {
+//                Color.clear
+//            }
+//        } else if highlightMe {
+//            Color(.secondarySystemFill)
+//            
+//        } else if highlightState == .highlight {
+//            Color(.secondarySystemFill).opacity(0.8)
+//            
+//        } else {
+//            Color.clear
+//        }
+//    }
+    
     var lineColor: Color {
-        if calModel.isInMultiSelectMode {
-            if calModel.multiSelectTransactions.map({ $0.id }).contains(trans.id) {
-                Color(.secondarySystemFill)
-            } else {
-                Color.clear
-            }
-        } else if hilightMe {
+        
+        if calModel.multiSelectTransactions.map({ $0.id }).contains(trans.id) || highlightMe {
             Color(.secondarySystemFill)
+        } else if highlightState == .highlight {
+            Color(.secondarySystemFill).opacity(0.8)
         } else {
             Color.clear
         }
     }
+    
     
     var titleColor: Color {
         trans.color == Color.white || trans.color == Color.black ? Color.primary : trans.color
@@ -92,6 +114,24 @@ struct LineItemMiniView: View {
                 Button("No", role: .close) { showDeleteAlert = false }
             } message: {
                 Text("Delete \"\(trans.title)\"?")
+            }
+            /// Control the visibility of the transaction.
+            .opacity(highlightState == .blur ? 0.5 : 1)
+            .blur(radius: highlightState == .blur ? 3 : 0)
+            
+            /// Changing back to normal happens in the ``CalendarGridPhone`` task set via  `.onChange(of: calProps.tempHighlightTransId)`
+            .onChange(of: calProps.tempHighlightTransId) { oldId, newId in
+                withAnimation {
+                    if let newId {
+                        if newId == trans.id {
+                            highlightState = .highlight
+                        } else {
+                            highlightState = .blur
+                        }
+                    } else {
+                        highlightState = .nothing
+                    }
+                }
             }
 //            .contextMenu {
 //                TransactionContextMenu(
@@ -379,12 +419,12 @@ struct LineItemMiniView: View {
             }
         } else {
             //calModel.hilightTrans = trans
-            hilightMe = true
+            highlightMe = true
             calProps.transEditID = trans.id
                          
             /// Remove the hilight so we don't see it animate away when we close the transaction.
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                hilightMe = false
+                highlightMe = false
             }
         }
     }

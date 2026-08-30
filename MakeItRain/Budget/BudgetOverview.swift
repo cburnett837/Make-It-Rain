@@ -74,7 +74,7 @@ struct BudgetOverview: View {
                 content
             }
         }
-        .if(budget.type == .tag && (budget.item?.title ?? "").localizedCaseInsensitiveContains("christmas")) {
+        .if(budget.type == .tag && (budget.item?.title ?? "").localizedStandardContains("christmas")) {
             $0
             .scrollContentBackground(.hidden)
             .background(SnowyBackground(blurred: true, withSnow: true))
@@ -526,7 +526,7 @@ struct BudgetOverview: View {
   
     func getTransactions(for day: CBDay) -> Array<CBTransaction> {
         transactions
-            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+            .filter { searchText.isEmpty ? true : $0.title.localizedStandardContains(searchText) }
             .filter { $0.dateComponents?.day == day.date?.day }
             .sorted(by: Helpers.transactionSorter())
     }
@@ -630,9 +630,9 @@ struct BudgetOverview: View {
             /// Do networking.
             let model = RequestModel(requestType: "fetch_transactions_for_tag", model: requestModel)
             typealias ResultResponse = Result<Array<CBTransaction>?, AppError>
-            async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+            let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
 
-            switch await result {
+            switch result {
             case .success(let model):
                 if let model {
                     for each in model {

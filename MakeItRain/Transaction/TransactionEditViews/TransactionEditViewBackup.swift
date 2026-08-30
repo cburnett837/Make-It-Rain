@@ -700,7 +700,7 @@
 //            } else {
 //                if !blockSuggestionsFromPopulating {
 //                    suggestedTitles = calModel.suggestedTitles.filter {
-//                        $0.title//.localizedCaseInsensitiveContains(new)
+//                        $0.title//.localizedStandardContains(new)
 //                            .range(of: new, options: [.caseInsensitive, .diacriticInsensitive, .anchored]) != nil
 //                    }//.prefix(3)
 //                } else {
@@ -1256,7 +1256,7 @@
 //        if trans.category != nil && !(trans.category?.isNil ?? false) {
 //            let existingCount = calModel.justTransactions
 //                .filter {
-//                    $0.title.localizedCaseInsensitiveContains(trans.title)
+//                    $0.title.localizedStandardContains(trans.title)
 //                    && $0.category?.id == trans.category!.id
 //                }
 //                .count
@@ -1266,7 +1266,7 @@
 //            let ruleDoesNotExist = keyModel
 //                .keywords
 //                .filter {
-//                    $0.keyword.localizedCaseInsensitiveContains(trans.title)
+//                    $0.keyword.localizedStandardContains(trans.title)
 //                    && $0.category?.id == trans.category!.id
 //                }
 //                .isEmpty

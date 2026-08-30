@@ -314,9 +314,9 @@ class CategoryModel {
                        
         let model = RequestModel(requestType: category.action.serverKey, model: category)
         typealias ResultResponse = Result<ReturnIdModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
         
-        switch await result {
+        switch result {
         case .success(let model):
             LogManager.networkingSuccessful()
             
@@ -398,9 +398,9 @@ class CategoryModel {
         let model = RequestModel(requestType: "fetch_expenses_by_category", model: analModel)
         
         typealias ResultResponse = Result<Array<CategoryAnalysisResponseModel>?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
         
-        switch await result {
+        switch result {
         case .success(let model):
             LogManager.networkingSuccessful()
             return model
@@ -537,9 +537,9 @@ class CategoryModel {
         let model = RequestModel(requestType: "add_budgets_to_months", model: budgets)
         
         typealias ResultResponse = Result<Array<ReturnIdModel>?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
         
-        switch await result {
+        switch result {
         case .success(let model):
             LogManager.networkingSuccessful()
             if let model {
@@ -762,9 +762,9 @@ extension CategoryModel {
         
         let model = RequestModel(requestType: group.action.serverKey, model: group)
         typealias ResultResponse = Result<ReturnIdModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success(let model):
             LogManager.networkingSuccessful()
             

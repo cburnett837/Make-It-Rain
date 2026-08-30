@@ -31,6 +31,8 @@ struct SmartTransactionsWithIssuesOverlay: View {
         if AppState.shared.isIphone {
             StandardContainer(.bottomPanel) {
                 content
+                    .drawingGroup()
+                    .compositingGroup()
             } header: {
                 sheetHeader
             }
@@ -173,7 +175,6 @@ struct SmartTransactionsWithIssuesOverlay: View {
     
     @ViewBuilder
     var sheetHeader: some View {
-        @Bindable var calProps = calProps
         SheetHeader(
             title: "Pending Receipts",
             close: {

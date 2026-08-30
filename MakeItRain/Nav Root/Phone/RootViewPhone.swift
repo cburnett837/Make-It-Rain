@@ -21,10 +21,10 @@ struct RootViewPhone: View {
     
     /// Using a navigation link instead of a button for the settings button the toolbar causes the icon to be a tiny bit wider than a normal button.
     /// So use a navPath so we can append to the path via the settings button.
-    @State private var calendarNavPath = NavigationPath()
+    @State private var calendarNavPath: [NavDest] = []
     @State private var advancedSearchNavPath = NavigationPath()
     @State private var dashboardNavPath: [NavDest] = []
-    @State private var moreNavPath = NavigationPath()
+    @State private var moreNavPath: [NavDest] = []
     @State private var toolbarVisibility = Visibility.visible
     @State private var sel: NavDest?
     
@@ -32,16 +32,12 @@ struct RootViewPhone: View {
         @Bindable var navManager = NavigationManager.shared
         TabView(selection: $sel) {
             Tab(NavDest.calendar.displayName, systemImage: NavDest.calendar.symbol, value: .calendar) {
-                NavigationStack(path: $calendarNavPath) {
-                    calendarGridNavPhone
-                }
-                .toolbar(toolbarVisibility, for: .tabBar)
+                calendarGridNavPhone
+                    .toolbar(toolbarVisibility, for: .tabBar)
             }
             
             Tab(NavDest.dashboard.displayName, systemImage: NavDest.dashboard.symbol, value: .dashboard) {
-                NavigationStack(path: $dashboardNavPath) {
-                    dashboard
-                }
+                dashboard
             }
             
             Tab(NavDest.paymentMethods.displayName, systemImage: NavDest.paymentMethods.symbol, value: .paymentMethods) {
@@ -50,9 +46,7 @@ struct RootViewPhone: View {
             }
             
             Tab(NavDest.more.displayName, systemImage: NavDest.more.symbol, value: .more) {
-                NavigationStack(path: $moreNavPath) {
-                    moreTabList
-                }
+                moreTabList
             }
             .badge(plaidModel.banksWithIssues.count)
             
@@ -66,40 +60,40 @@ struct RootViewPhone: View {
     
     
     var calendarGridNavPhone: some View {
-        CalendarNavGridPhone(calendarNavPath: $calendarNavPath)
-            .onAppear { toolbar(to: .visible) }
-            .navigationDestination(for: NavDest.self) { dest in
-                switch dest {
-                case .settings:
-                    SettingsView(showSettings: .constant(false))
-                        .onAppear { toolbar(to: .hidden) }
-                case .toasts:
-                    ToastList()
-                        .onAppear { toolbar(to: .hidden) }
-                default:
-                    EmptyView()
+        NavigationStack(path: $calendarNavPath) {
+            CalendarNavGridPhone(calendarNavPath: $calendarNavPath)
+                .onAppear { toolbar(to: .visible) }
+                .navigationDestination(for: NavDest.self) { dest in
+                    switch dest {
+                    case .settings:
+                        SettingsView(showSettings: .constant(false))
+                            .onAppear { toolbar(to: .hidden) }
+                    case .toasts:
+                        ToastList()
+                            .onAppear { toolbar(to: .hidden) }
+                    default:
+                        EmptyView()
+                    }
                 }
-            }
+        }
     }
     
     
     var dashboard: some View {
-        Dashboard(
-            navPath: $dashboardNavPath,
-            model: dashboardModel,
-            isForSelectedMonth: false
-        )
-        .navigationDestination(for: NavDest.self) { dest in
-            switch dest {
-            case .dashboardNumericBreakdown:
-                DashboardNumericDetails(model: dashboardModel, isForSelectedMonth: false)
-                
-            case .dashboardTransactionList(let data, let category):
-                DashboardTransactionList(data: data, category: category)
-                
-            default:
-                Text("Unsupported destination")
-            }
+        NavigationStack(path: $dashboardNavPath) {
+            Dashboard(navPath: $dashboardNavPath, model: dashboardModel, isForSelectedMonth: false)
+                .navigationDestination(for: NavDest.self) { dest in
+                    switch dest {
+                    case .dashboardNumericBreakdown:
+                        DashboardNumericDetails(model: dashboardModel, isForSelectedMonth: false)
+                        
+                    case .dashboardTransactionList(let data, let category):
+                        DashboardTransactionList(data: data, category: category)
+                        
+                    default:
+                        Text("Unsupported destination")
+                    }
+                }
         }
     }
     
@@ -121,36 +115,40 @@ struct RootViewPhone: View {
     
     
     var moreTabList: some View {
-        List {
-            Section {
-                //NavLinkPhone(destination: .paymentMethods)
-                if AppState.shared.methsExist {
-                    NavLinkPhone(destination: .budgets)
-                    NavLinkPhone(destination: .categories)
-                    NavLinkPhone(destination: .repeatingTransactions)
-                    NavLinkPhone(destination: .keywords)
-                    NavLinkPhone(destination: .recentReceipts)
-                }
-            }
-            
-            Section("Plaid Integration") {
-                plaidNavLink
-            }
-            
-            Section("Misc") {
-                NavLinkPhone(destination: .toasts)
-                
-                if AppState.shared.user?.id == 1 {
-                    NavLinkPhone(destination: .debug)
-                        .badge(funcModel.loadTimes.count)
+        NavigationStack(path: $moreNavPath) {
+            List {
+                Section {
+                    //NavLinkPhone(destination: .paymentMethods)
+                    if AppState.shared.methsExist {
+                        NavLinkPhone(destination: .budgets)
+                        NavLinkPhone(destination: .categories)
+                        NavLinkPhone(destination: .repeatingTransactions)
+                        NavLinkPhone(destination: .keywords)
+                        NavLinkPhone(destination: .recentReceipts)
+                    }
                 }
                 
-                NavLinkPhone(destination: .settings)
+                Section("Plaid Integration") {
+                    plaidNavLink
+                }
+                
+                Section("Misc") {
+                    NavLinkPhone(destination: .toasts)
+                    
+                    if AppState.shared.user?.id == 1 {
+                        NavLinkPhone(destination: .debug)
+                            .badge(funcModel.loadTimes.count)
+                    }
+                    
+                    NavLinkPhone(destination: .settings)
+                }
+            }
+            .listStyle(.plain)
+            .navigationTitle("More")
+            .navigationDestination(for: NavDest.self) { dest in
+                NavDest.view(for: dest, navPath: $moreNavPath)
             }
         }
-        .listStyle(.plain)
-        .navigationTitle("More")
-        .navigationDestination(for: NavDest.self) { NavDest.view(for: $0, navPath: $moreNavPath) }
     }
     
     

@@ -138,9 +138,9 @@ struct AdvancedSearchView: View {
         }
         #if os(iOS)
         .navigationTitle("Transaction Search")
-        .navigationDestination(for: String.self, destination: { dest in
+        .navigationDestination(for: String.self) { _ in
             DatePickerPage(searchModel: searchModel, navPath: $navPath)
-        })
+        }
         .onShake { resetForm() }
         //.navigationBarTitleDisplayMode(.inline)
         #endif
@@ -449,7 +449,7 @@ struct AdvancedSearchView: View {
                 Button {
                     withAnimation {
                         searchModel.searchTerms.removeAll { $0 == term }
-                        calModel.searchedTransactions.removeAll { $0.title.localizedCaseInsensitiveContains(term) }
+                        calModel.searchedTransactions.removeAll { $0.title.localizedStandardContains(term) }
                     }
                 } label: {
                     HStack {
@@ -770,9 +770,9 @@ struct AdvancedSearchView: View {
         
         let model = RequestModel(requestType: "new_advanced_search", model: searchModel)
         typealias ResultResponse = Result<Array<CBTransaction>?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
         
-        switch await result {
+        switch result {
         case .success(let model):
             LogManager.networkingSuccessful()
             if let model {

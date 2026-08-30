@@ -32,7 +32,8 @@ struct RootViewPad: View {
     @State private var navPath: [NavDest] = []
     //@State private var categoryAnalysisModel = CivViewModel()
     //@State private var overviewAnalysisModel = CivViewModel()
-    @State private var moreNavPath = NavigationPath()
+    @State private var moreNavPath: [NavDest] = []
+    @State private var selectedPlaidFilterMeth: CBPaymentMethod?
 
     
     //@State private var columnVisibility = NavigationSplitViewVisibility.doubleColumn
@@ -89,7 +90,11 @@ struct RootViewPad: View {
                 TransactionListView(showTransactionListSheet: $calProps.showInspector)
                 
             case .plaidTransactions:
-                PlaidTransactionOverlay(showInspector: $calProps.showInspector, navPath: $navPath)
+                PlaidTransactionOverlay(
+                    selectedMeth: $selectedPlaidFilterMeth,
+                    showInspector: $calProps.showInspector,
+                    navPath: $navPath
+                )
                 
             case .multiSelectOptions:
                 MultiSelectTransactionOptionsSheet(showInspector: $calProps.showInspector, navPath: $navPath)

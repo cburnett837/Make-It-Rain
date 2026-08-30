@@ -87,8 +87,10 @@ struct TransactionEditView: View {
     /// These are just to control the animations in the options sheet. The are here so we don't see the option sheet "set up its state" when the view appears.
     @State private var showBadgeBell = false
     @State private var showHiddenEye = false
-    @State private var showContent = false
-    @State private var showExpensiveViews = false
+    
+    @State private var showContent = true
+    @State private var showExpensiveViews = true
+    
     @State private var suggestedCategories: Array<CBCategory> = []
     @State private var shouldDismissOnMac: Bool = false
     @State private var showCountrySheet = false
@@ -228,7 +230,7 @@ struct TransactionEditView: View {
             }
         }
         .interactiveDismissDisabled(paymentMethodMissing || !navPath.isEmpty)
-        .onAppear { handleWarmUpAndExpensiveViews() }
+        //.onAppear { handleWarmUpAndExpensiveViews() }
         .task {
             if !isWarmUp {
                 prepareTransactionForEditing(isTemp: isTemp)
@@ -358,7 +360,7 @@ struct TransactionEditView: View {
 //        .onChange(of: trans.title) {
 //            if trans.action == .add, !trans.title.isEmpty, trans.locations.isEmpty {
 //                print(store.suggestedLocations)
-//                suggestedLocations = store.suggestedLocations.filter {$0.transTitle.localizedCaseInsensitiveContains(trans.title)}
+//                suggestedLocations = store.suggestedLocations.filter {$0.transTitle.localizedStandardContains(trans.title)}
 //                if !suggestedLocations.isEmpty {
 //                    shouldShowLocationSuggestions = true
 //                }
@@ -604,48 +606,40 @@ struct TransactionEditView: View {
     
     @ViewBuilder
     func determineNavDest(for dest: TransNavDest) -> some View {
-        switch dest {
-        case .options:
-            TevMoreOptions(
-                trans: trans,
-                showSplitSheet: $showSplitSheet,
-                showInvoiceGeneratorSheet: $showInvoiceGeneratorSheet,
-                isTemp: isTemp,
-                navPath: $navPath,
-                showBadgeBell: $showBadgeBell,
-                showHiddenEye: $showHiddenEye
-            )
-            .if(trans.christmasListGiftID != nil) {
-                $0
-                .scrollContentBackground(.hidden)
-                .background(SnowyBackground(blurred: true, withSnow: true))
+        Group {
+            switch dest {
+            case .options:
+                TevMoreOptions(
+                    trans: trans,
+                    showSplitSheet: $showSplitSheet,
+                    showInvoiceGeneratorSheet: $showInvoiceGeneratorSheet,
+                    isTemp: isTemp,
+                    navPath: $navPath,
+                    showBadgeBell: $showBadgeBell,
+                    showHiddenEye: $showHiddenEye
+                )
+                
+            case .logs:
+                TevLogSheet(title: trans.title, itemID: trans.serverID, logType: .transaction)
+                
+            case .titleColorMenu:
+                TitleColorList(color: $trans.color, navPath: $navPath)
+                
+            case .tracking:
+                #if os(iOS)
+                TevTrackingNumberView(trackingNumber: $trans.trackingNumber)
+                #else
+                Text("Not available on this platform")
+                #endif
+                
+            case .tags:
+                TagView(tags: $trans.tags)
             }
-            
-        case .logs:
-            TevLogSheet(title: trans.title, itemID: trans.serverID, logType: .transaction)
-                .if(trans.christmasListGiftID != nil) {
-                    $0
-                    .scrollContentBackground(.hidden)
-                    .background(SnowyBackground(blurred: true, withSnow: true))
-                }
-            
-        case .titleColorMenu:
-            TitleColorList(color: $trans.color, navPath: $navPath)
-            //TitleColorList(trans: trans, saveOnChange: false, navPath: $navPath)
-                .if(trans.christmasListGiftID != nil) {
-                    $0
-                    .scrollContentBackground(.hidden)
-                    .background(SnowyBackground(blurred: true, withSnow: true))
-                }
-        case .tracking:
-            #if os(iOS)
-            TevTrackingNumberView(trackingNumber: $trans.trackingNumber)
-            #else
-            Text("Not available on this platform")
-            #endif
-            
-        case .tags:
-            TagView(tags: $trans.tags)
+        }
+        .if(trans.christmasListGiftID != nil) {
+            $0
+            .scrollContentBackground(.hidden)
+            .background { SnowyBackground(blurred: true, withSnow: true) }
         }
     }
     
@@ -1300,7 +1294,7 @@ struct TransactionEditView: View {
         
         let existingCount = calModel.justTransactions
             .filter {
-                $0.title.localizedCaseInsensitiveContains(trans.title)
+                $0.title.localizedStandardContains(trans.title)
                 && $0.category?.id == trans.category?.id
             }
             .count
@@ -1310,7 +1304,7 @@ struct TransactionEditView: View {
         let ruleDoesNotExist = keyModel
             .keywords
             .filter {
-                $0.keyword.localizedCaseInsensitiveContains(trans.title)
+                $0.keyword.localizedStandardContains(trans.title)
                 && $0.category?.id == trans.category?.id
                 && !$0.isIgnoredSuggestion
             }

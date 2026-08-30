@@ -170,14 +170,15 @@ struct CalendarMoreMenu: View {
             calModel.sCategoriesForAnalysis.removeAll()
             calModel.multiSelectTransactions.removeAll()
             
+             //#error("This causes many bugs with animation and sheet dismissal.")
+            calModel.isInMultiSelectMode = true
+            
             if AppState.shared.isIphone {
                 /// Bottom panel is in ``CalendarViewPhone``.
                 withAnimation {
-                    calModel.isInMultiSelectMode = true
                     calProps.bottomPanelContent = .multiSelectOptions
                 }
             } else {
-                calModel.isInMultiSelectMode = true
                 /// Inspector is in ``RootViewPad``.
                 calProps.inspectorContent = .multiSelectOptions
                 calProps.showInspector = true

@@ -17,7 +17,7 @@ struct CalendarNavGridPhone: View {
     @Environment(KeywordModel.self) var keyModel
     @Environment(RepeatingTransactionModel.self) var repModel
     
-    @Binding var calendarNavPath: NavigationPath
+    @Binding var calendarNavPath: [NavDest]
     
     @State private var hasDoneInitialScrollToThisMonth = false
     

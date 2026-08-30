@@ -60,7 +60,15 @@ struct StandardContainer<Content: View, Content2: View, Content3: View, Content4
         VStack(spacing: 0) {
             headerChunk
             
-            if isList { listContent } else { scrollingContent }
+            Divider()
+            
+            if isList {
+                listContent
+                    //.contentMargins(.top, 8, for: .scrollContent)
+            } else {
+                scrollingContent
+                    //.contentMargins(.top, 8, for: .scrollContent)
+            }
                                                 
             footer()
                 .padding(.top, 10)

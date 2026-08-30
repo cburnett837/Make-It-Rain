@@ -30,7 +30,7 @@ struct RepeatingTransactionsTable: View {
     
     var filteredTransactions: [CBRepeatingTransaction] {
         repModel.repTransactions
-            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedCaseInsensitiveContains(searchText) }
+            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedStandardContains(searchText) }
             .sorted(by: { $0.title.lowercased() < $1.title.lowercased() })
     }
         

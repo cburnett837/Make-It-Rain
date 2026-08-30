@@ -128,6 +128,7 @@ class NetworkManager {
         retainTime: Bool = true,
         timeout: TimeInterval = 60
     ) async -> Result<U?, AppError> {
+        
         var request = createRequest(timeout: timeout)
         request.setValue(AppState.shared.apiKey, forHTTPHeaderField: "Api-Key")
         
@@ -143,7 +144,9 @@ class NetworkManager {
             let jsonData = try? JSONEncoder().encode(requestModel)
             request.httpBody = jsonData
             
-            if AppState.shared.debugPrint { print("jsonData: \(String(data: jsonData!, encoding: .utf8)!)") }
+            if AppState.shared.debugPrint {
+                print("jsonData: \(String(data: jsonData!, encoding: .utf8)!)")
+            }
                                                 
             guard let session else {
                 LogManager.error("URL session error", session: sesh)
@@ -163,7 +166,9 @@ class NetworkManager {
             
             let serverText = String(data: data, encoding: .utf8) ?? ""
             let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response
-            if AppState.shared.debugPrint { print(serverText) }
+            if AppState.shared.debugPrint {
+                print(serverText)
+            }
             
             if httpResponse?.statusCode == 400 {
                 return .failure(.serverError("Server error: \(serverText)"))

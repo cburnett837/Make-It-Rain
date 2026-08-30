@@ -87,9 +87,9 @@ struct CountryPicker: View {
     var filteredCountries: [Country] {
         return Countries.list.filter {
             searchText.isEmpty ? true : (
-                $0.name.localizedCaseInsensitiveContains(searchText)
-                || $0.code.localizedCaseInsensitiveContains(searchText)
-                || $0.currencyCode.localizedCaseInsensitiveContains(searchText)
+                $0.name.localizedStandardContains(searchText)
+                || $0.code.localizedStandardContains(searchText)
+                || $0.currencyCode.localizedStandardContains(searchText)
             )
         }
     }

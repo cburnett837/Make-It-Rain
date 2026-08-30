@@ -135,9 +135,9 @@ class AppSettings: Codable {
         let model = RequestModel(requestType: "fetch_user_settings", model: AppState.shared.user)
         
         typealias ResultResponse = Result<AppSettings?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success(let model):
             if let model {
                 self.setFromAnotherInstance(setting: model)
@@ -158,9 +158,9 @@ class AppSettings: Codable {
             let model = RequestModel(requestType: "update_user_setting", model: setting)
             
             typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-            async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+            let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                         
-            switch await result {
+            switch result {
             case .success:
                 LogManager.networkingSuccessful()
 

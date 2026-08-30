@@ -23,7 +23,7 @@ struct MultiYearSheet: View {
     @State private var searchText = ""
     
     var filteredYears: Array<Int> {
-        yearOptions.filter { searchText.isEmpty ? true : String($0).localizedCaseInsensitiveContains(searchText) }
+        yearOptions.filter { searchText.isEmpty ? true : String($0).localizedStandardContains(searchText) }
     }
     
     var body: some View {

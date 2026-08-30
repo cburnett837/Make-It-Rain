@@ -92,9 +92,9 @@ class FuncModel {
         let submit = CheckIfShouldDownloadModel(lastNetworkTime: AppState.shared.lastNetworkTime ?? Date())
         let model = RequestModel(requestType: "check_for_changes", model: submit)
         typealias ResultResponse = Result<CheckIfShouldDownloadModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model, retainTime: false, timeout: 10)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model, retainTime: false, timeout: 10)
         
-        switch await result {
+        switch result {
         case .success(let model):
             if let model = model {
                 return model.shouldDownload
@@ -354,9 +354,9 @@ class FuncModel {
         
         let model = RequestModel(requestType: "check_connection", model: CodablePlaceHolder())
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model, timeout: 10)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model, timeout: 10)
         
-        switch await result {
+        switch result {
         case .success:
             AppState.shared.hasBadConnection = false
             return false
@@ -577,9 +577,9 @@ class FuncModel {
         let model = RequestModel(requestType: "fetch_accessorials", model: user)
         
         typealias ResultResponse = Result<AccessorialModelDecodable?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success(let model):
             LogManager.networkingSuccessful()
             if let model {
@@ -604,9 +604,6 @@ class FuncModel {
                 for each in store.dashboardFilters {
                     await each.payMethod?.loadLogoFromCoreDataIfNeeded()
                 }
-                
-                
-                //await Countries.handleIncoming(currencies: model.countryCurrencies, incomingDataType: .viaStandardRefresh)
             }
             
             print("⏰ It took \(CFAbsoluteTimeGetCurrent() - start) seconds to fetch the accessorials")
@@ -640,9 +637,9 @@ class FuncModel {
                             
         let model = RequestModel(requestType: "fetch_monthly_data", model: month)
         typealias ResultResponse = Result<TransactionAndStartingAmountModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
         
-        switch await result {
+        switch result {
         case .success(let model):
             if let model {
                 month.amountString = model.budget.currencyWithDecimals()
@@ -935,9 +932,9 @@ class FuncModel {
         let submitModel = LogoMaybeShouldUpdateModel(logos: persistentLogos)
         let model = RequestModel(requestType: "fetch_logos", model: submitModel)
         typealias ResultResponse = Result<[CBLogo]?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
 
-        switch await result {
+        switch result {
         case .success(let response):
             LogManager.networkingSuccessful()
             
@@ -1302,9 +1299,9 @@ class FuncModel {
         let model = RequestModel(requestType: "alter_list_orders", model: ListOrderUpdateModel(items: items, updateType: updateType))
         
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success:
             LogManager.networkingSuccessful()
             return true
@@ -1329,9 +1326,9 @@ class FuncModel {
         let model = RequestModel(requestType: "update_country", model: user)
         
         typealias ResultResponse = Result<ResultCompleteModel?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success:
             LogManager.networkingSuccessful()
             return true
@@ -1449,13 +1446,13 @@ class FuncModel {
     func downloadFile(file: CBFile) async -> Data? {
         let fileModel = FileRequestModel(path: "budget_app.\(file.fileType.rawValue).\(file.uuid).\(file.fileType.ext)")
         let requestModel = RequestModel(requestType: "download_file", model: fileModel)
-        let result = await NetworkManager().downloadFile(requestModel: requestModel)
+        typealias ResultResponse = Result<Data?, AppError>
+        let result: ResultResponse = await NetworkManager().downloadFile(requestModel: requestModel)
         
         switch result {
         case .success(let data):
             if let data = data {                
                 ImageCache.shared.saveToCache(
-                    //parentTypeId: XrefModel.getItem(from: .fileTypes, byEnumID: .transaction).id,
                     parentTypeId: XrefFileType.transaction.id,
                     parentId: file.relatedID,
                     id: file.id,
@@ -1463,12 +1460,6 @@ class FuncModel {
                 )
                 
                 return data
-                
-//                #if os(iOS)
-//                    self.uiImage = UIImage(data: data)
-//                #else
-//                    self.nsImage = NSImage(data: data)
-//                #endif
             }
             
             return nil
@@ -1498,10 +1489,10 @@ class FuncModel {
                 let manager = IntelligenceManager()
                 
                 typealias ResultResponse = Result<ReceiptResponse?, AppError>
-                async let result: ResultResponse = await manager.request(base64Image: base)
+                let result: ResultResponse = await manager.request(base64Image: base)
                 //await print(result)
                 
-                switch await result {
+                switch result {
                 case .success(let receipt):
                     if let receipt {
                         guard receipt.isReceipt else {

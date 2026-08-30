@@ -19,7 +19,7 @@ struct CategoriesTable: View {
     @Environment(KeywordModel.self) private var keyModel
     @Environment(AppStore.self) private var store
     
-    @Binding var navPath: NavigationPath
+    //@Binding var navPath: NavigationPath
     //@State private var navPath = NavigationPath()
 
     @State private var searchText = ""
@@ -41,14 +41,14 @@ struct CategoriesTable: View {
     var filteredCategoryGroups: Array<CBCategoryGroup> {
         catModel.categoryGroups
             .filter { !$0.title.isEmpty }
-            .filter { searchText.isEmpty ? true : $0.title.localizedCaseInsensitiveContains(searchText) }
+            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedStandardContains(searchText) }
             //.sorted { $0.title.lowercased() < $1.title.lowercased() }
     }
     
     var filteredCategories: [CBCategory] {
         catModel.categories
             .filter { !$0.isNil && $0.appSuiteKey == nil }
-            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedCaseInsensitiveContains(searchText) }
+            .filter { searchText.isEmpty ? !$0.title.isEmpty : $0.title.localizedStandardContains(searchText) }
             /// NOTE: Sorting must be done in the task and not in the computed property. If done in the computed property, when reording, they get all messed up.
     }
     

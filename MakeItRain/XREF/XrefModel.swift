@@ -178,6 +178,7 @@ extension XrefRecord where Self: RawRepresentable, RawValue == Int {
 enum XrefRelatedTransactionType: Int, XrefRecord {
     case transaction = 3
     case christmasListGift = 50
+    case split = 68
 
     var id: Int { rawValue }
     var refType: String { "related_transaction_type" }
@@ -186,6 +187,7 @@ enum XrefRelatedTransactionType: Int, XrefRecord {
         switch self {
         case .transaction: "Transaction"
         case .christmasListGift: "Christmas List Gift"
+        case .split: "Split"
         }
     }
 }

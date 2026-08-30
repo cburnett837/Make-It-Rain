@@ -7,6 +7,13 @@
 
 import SwiftUI
 
+extension UIScreen {
+    static var currentHeight: CGFloat? {
+        let scenes = UIApplication.shared.connectedScenes
+        let windowScene = scenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
+        return windowScene?.screen.bounds.height
+    }
+}
 
 struct CustomAlert: View {
     let config: AlertConfig
@@ -50,11 +57,16 @@ struct CustomAlert: View {
             
                         
             if !config.views.isEmpty {
-                List(config.views) { view in
-                    view.content
-                        .listRowBackground(Color.clear)
+                ScrollView {
+                    VStack {
+                        ForEach(config.views) { view in
+                            view.content
+                        }
+                    }
                 }
-                .listStyle(.plain)
+                .if(UIScreen.currentHeight != nil) {
+                    $0.frame(maxHeight: UIScreen.currentHeight! / 4)
+                }                
             }
             
             if config.primaryButton == nil && config.secondaryButton == nil {

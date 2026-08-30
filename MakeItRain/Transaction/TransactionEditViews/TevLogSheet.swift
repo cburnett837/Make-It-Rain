@@ -260,12 +260,13 @@ struct TevLogSheet: View {
     func fetchLogs() async {
         print("-- \(#function)")
         LogManager.log()
-        let model = RequestModel(requestType: "fetch_logs", model: FetchLogModel(itemID: itemID, logType: logType))
+        let logModel = FetchLogModel(itemID: itemID, logType: logType)
+        let model = RequestModel(requestType: "fetch_logs", model: logModel)
         
         typealias ResultResponse = Result<Array<CBLogGroup>?, AppError>
-        async let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
+        let result: ResultResponse = await NetworkManager().singleRequest(requestModel: model)
                     
-        switch await result {
+        switch result {
         case .success(let model):
             LogManager.networkingSuccessful()
             if let model {

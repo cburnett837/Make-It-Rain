@@ -64,7 +64,7 @@ struct MonthlyBudgetTable: View {
 //                //.filter { $0.category != nil }
 //                .filter { budget in
 //                    guard budget.category != nil else { return false }
-//                    if budget.category!.title.localizedCaseInsensitiveContains(searchText) && !budget.category!.isHidden && !budget.category!.isNil {
+//                    if budget.category!.title.localizedStandardContains(searchText) && !budget.category!.isHidden && !budget.category!.isNil {
 //                        return true
 //                    }
 //                    return false
@@ -87,7 +87,7 @@ struct MonthlyBudgetTable: View {
             .filter { $0.type == type }
             .filter {
                 if let item = $0.item {
-                    return searchText.isEmpty ? true : item.title.localizedCaseInsensitiveContains(searchText)
+                    return searchText.isEmpty ? true : item.title.localizedStandardContains(searchText)
                 } else {
                     return true
                 }
@@ -113,7 +113,7 @@ struct MonthlyBudgetTable: View {
 //                .filter { $0.categoryGroup != nil }
 //                .filter { budget in
 ////                    guard budget.category != nil else { return false }
-//                    if budget.categoryGroup!.title.localizedCaseInsensitiveContains(searchText) {
+//                    if budget.categoryGroup!.title.localizedStandardContains(searchText) {
 //                        return true
 //                    }
 //                    return false

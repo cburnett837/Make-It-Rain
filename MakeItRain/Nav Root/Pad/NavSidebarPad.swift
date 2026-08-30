@@ -38,7 +38,7 @@ struct NavSidebarPad: View {
     @State private var linkWidth: CGFloat = 20.0
     @State private var linkHeight: CGFloat = 20.0
     @State private var hasDoneInitialScrollToThisMonth = false
-    @State private var calendarNavPath = NavigationPath()
+    @State private var calendarNavPath: [NavDest] = []
 
     
     var body: some View {

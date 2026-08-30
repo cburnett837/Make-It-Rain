@@ -58,6 +58,8 @@ enum NavDest: Hashable, Identifiable, Codable {
     case dashboardNumericBreakdown
     case dashboardTransactionList(DashboardData, CBCategory)
     case budgetOverview(CBBudgetItem, CBPaymentMethod?)
+    case tags
+    case budgetItem(CBBudgetItem)
     
     var id: NavDest { return self }
     
@@ -137,7 +139,9 @@ enum NavDest: Hashable, Identifiable, Codable {
         case .multiTransChangeDate:         "Multi Trans Date Change"
         case .dashboardNumericBreakdown:    "Dashboard Numeric Breakdown"
         case .dashboardTransactionList(_, _): "Dashboard Transaction List"
-        case .budgetOverview(_):            "Budget Overview"
+        case .budgetOverview(_, _):            "Budget Overview"
+        case .tags:                         "Tags"
+        case .budgetItem(_):                "Budget Item"
         }
     }
     
@@ -176,7 +180,9 @@ enum NavDest: Hashable, Identifiable, Codable {
         case .multiTransChangeDate:     ""
         case .dashboardNumericBreakdown:    ""
         case .dashboardTransactionList(_, _):   ""
-        case .budgetOverview(_):    ""
+        case .budgetOverview(_, _):        ""
+        case .tags:                         ""
+        case .budgetItem(_):                ""
         }
     }
     
@@ -210,7 +216,8 @@ enum NavDest: Hashable, Identifiable, Codable {
     
     @MainActor
     @ViewBuilder
-    static func view(for destination: NavDest, navPath: Binding<NavigationPath>) -> some View {
+    static func view(for destination: NavDest, navPath: Binding<[NavDest]>) -> some View {
+        let _ = print("getting view to navigation to for \(destination)")
         switch destination {
         case .repeatingTransactions:
             RepeatingTransactionsTable()
@@ -219,7 +226,7 @@ enum NavDest: Hashable, Identifiable, Codable {
             PayMethodsTable() /// NavStack is in the view.
             
         case .categories:
-            CategoriesTable(navPath: navPath)
+            CategoriesTable()
              
         case .keywords:
             KeywordsTable()
@@ -245,6 +252,10 @@ enum NavDest: Hashable, Identifiable, Codable {
             
         case .budgets:
             AllBudgetsTable(navPath: navPath)
+            
+        case .budgetItem(let item):
+            BudgetOverview(budget: item, location: .globalList)
+            //AllBudgetsTable(navPath: navPath)
             
         default:
             EmptyView()
