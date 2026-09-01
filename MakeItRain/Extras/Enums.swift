@@ -514,9 +514,14 @@ enum AmountType: String, CaseIterable, Identifiable {
 
 
 enum GiftStatus: String, CaseIterable, Identifiable {
-    case idea, purchased, inTransit, inHand, wrapped
+    case idea = "idea"
+    case purchased = "purchased"
+    case inTransit = "in_transit"
+    case inHand = "in_hand"
+    case wrapped = "wrapped"
+    
     var id: String { return self.rawValue }
-    var string: String { String(describing: self).capitalized }
+    //var string: String { String(describing: self).capitalized }
     
     var prettyValue: String {
         switch self {
@@ -535,6 +540,7 @@ enum GiftStatus: String, CaseIterable, Identifiable {
     
     //var boughtArray: Array<GiftStatus> { [GiftStatus.purchased, GiftStatus.inTransit, GiftStatus.inHand, GiftStatus.wrapped] }
 }
+
 
 enum PrevNext {
     case prev, next

@@ -425,7 +425,13 @@ struct CalendarToolbar: ToolbarContent {
             //TouchAndHoldMonthToFilterCategoriesTip.didTouchMonthName.sendDonation()
             calModel.startingAmountSheetDismissed()
         } content: {
-            PayMethodSheet(payMethod: $calModel.sPayMethod, whichPaymentMethods: .all, showStartingAmountOption: true, showNoneOption: true)
+            PayMethodSheet(
+                payMethod: $calModel.sPayMethod,
+                whichPaymentMethods: .all,
+                showStartingAmountOption: true,
+                showNoneOption: true,
+                noneButtonText: "Show All"
+            )
                 //#if os(iOS)
                 //.navigationTransition(.zoom(sourceID: "paymentMethodButton", in: paymentMethodMenuButtonNamespace))
                 //#endif

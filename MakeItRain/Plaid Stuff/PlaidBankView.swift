@@ -91,6 +91,11 @@ struct PlaidBankView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     AnimatedCloseButton(isValidToSave: isValidToSave, closeButton: closeButton)
                 }
+                
+                ToolbarItem(placement: .bottomBar) {
+                    EnteredByAndUpdatedByView(obj: bank)
+                }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
         

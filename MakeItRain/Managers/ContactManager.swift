@@ -17,6 +17,16 @@ final class ContactStoreManager {
     
     /// Contains the Contacts authorization status for the app.
     var authorizationStatus: CNAuthorizationStatus
+    var authIsAllowed: Bool {
+        switch authorizationStatus {
+        case .notDetermined, .restricted, .denied, .limited:
+            false
+        case .authorized:
+            true
+        @unknown default:
+            false
+        }
+    }
     
     private let logger = Logger(subsystem: "ContactsAccess", category: "ContactStoreManager")
     private let store: CNContactStore
@@ -25,7 +35,8 @@ final class ContactStoreManager {
     init() {
         self.contacts = []
         self.store = CNContactStore()
-        self.authorizationStatus = .notDetermined
+        self.authorizationStatus = CNContactStore.authorizationStatus(for: .contacts)
+        //self.fetchAuthorizationStatus()
         self.keysToFetch = [
             CNContactFormatter.descriptorForRequiredKeys(for: .fullName),
             CNContactEmailAddressesKey as any CNKeyDescriptor,

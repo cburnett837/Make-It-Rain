@@ -141,7 +141,12 @@ struct StandardMiniMap: View {
                     ))
                 }
             } else {
-                Text("Fetching weather…")
+                if LocationManager.shared.authIsAllowed {
+                    Text("Fetching weather…")
+                } else {
+                    Text("Weather Unavailable")
+                }
+                
             }
         }
         .padding(5)
@@ -181,7 +186,9 @@ struct StandardMiniMap: View {
                 }
             }
             
-            await getWeatherForCurrentLocation()
+            if LocationManager.shared.authIsAllowed {
+                await getWeatherForCurrentLocation()
+            }
         } else {
             /// Set the camera to the first location in the list when opening the map.
             focusOnFirst(locations: locations)

@@ -24,13 +24,14 @@ struct ConditionalFileView<Placeholder: View, PhotoView: View, PdfView: View, Cs
     var displayStyle: FileSectionDisplayStyle
     var parentType: XrefFileType
     var fileUploadCompletedDelegate: FileUploadCompletedDelegate
-    @State private var showDeleteFileAlert = false
-    @State private var showFileOptions = false
-    
+    var transLocation: WhereToLookForTransaction /// Needed only for the reciept itemizer from OpenAI
     @ViewBuilder var placeholderView: () -> Placeholder
     @ViewBuilder var photoView: () -> PhotoView
     @ViewBuilder var pdfView: () -> PdfView
     @ViewBuilder var csvView: () -> CsvView
+    
+    @State private var showDeleteFileAlert = false
+    @State private var showFileOptions = false
     
     var body: some View {
         @Bindable var props = props
@@ -94,7 +95,7 @@ struct ConditionalFileView<Placeholder: View, PhotoView: View, PdfView: View, Cs
                         Button {
                             withAnimation {
                                 file.isItemizing = true
-                                funcModel.itemizeReceipt(file: file)
+                                funcModel.itemizeReceipt(file: file, transLocation: transLocation)
                             }
                             
                         } label: {

@@ -37,6 +37,7 @@ struct StandardFileSection: View {
     var parentType: XrefFileType
     var displayStyle: FileSectionDisplayStyle = .standard
     var showInScrollView: Bool = true
+    var transLocation: WhereToLookForTransaction /// Needed only for the reciept itemizer from OpenAI
     
     @Binding var showCamera: Bool
     @Binding var showPhotosPicker: Bool
@@ -163,10 +164,11 @@ struct StandardFileSection: View {
                     displayStyle: displayStyle,
                     parentType: parentType,
                     fileUploadCompletedDelegate: fileUploadCompletedDelegate,
+                    transLocation: transLocation,
                     placeholderView: {
                         LoadingPlaceholder(text: "Uploading…", displayStyle: displayStyle)
                     }, photoView: {
-                        FileImage(file: file, displayStyle: displayStyle)
+                        FileImage(file: file, displayStyle: displayStyle, transLocation: transLocation)
                     }, pdfView: {
                         CustomAsyncPdf(file: file, displayStyle: displayStyle)
                     }, csvView: {
@@ -190,10 +192,11 @@ struct StandardFileSection: View {
                     displayStyle: displayStyle,
                     parentType: parentType,
                     fileUploadCompletedDelegate: fileUploadCompletedDelegate,
+                    transLocation: transLocation,
                     placeholderView: {
                         LoadingPlaceholder(text: "Uploading…", displayStyle: displayStyle)
                     }, photoView: {
-                        FileImage(file: file, displayStyle: displayStyle)
+                        FileImage(file: file, displayStyle: displayStyle, transLocation: transLocation)
                     }, pdfView: {
                         CustomAsyncPdf(file: file, displayStyle: displayStyle)
                     }, csvView: {

@@ -28,7 +28,7 @@ struct RecentReceiptsView: View {
     @State private var showInitialPage = true
     
     var transactions: [CBTransaction] {
-        calModel.receiptTransactions
+        calModel.receiptTransactions.prefix(100)
             .filter { trans in
                 if let meth = trans.payMethod {
                     return meth.isPermittedAndNotHidden
@@ -293,6 +293,7 @@ struct RecentReceiptsView: View {
                         displayStyle: .standard,
                         parentType: .transaction,
                         fileUploadCompletedDelegate: calModel,
+                        transLocation: .receiptsList,
                         placeholderView: {
                             LoadingPlaceholder(text: "Uploading…", displayStyle: .standard)
                         }, photoView: {

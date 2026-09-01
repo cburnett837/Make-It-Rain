@@ -258,12 +258,16 @@ fileprivate struct TransactionEditSheetAndLogic: ViewModifier {
     
     func transactionSheetWasOpened(transId: String) {
         //print("-- \(#function)")
-        if let editTrans = calModel.getTransaction(by: transId, from: findTransactionWhere) {
-            self.editTrans = editTrans
+        if let trans = calModel.getTransaction(by: transId, from: findTransactionWhere) {
+            trans.status = .editing
+            trans.location = findTransactionWhere
+            self.editTrans = trans
         } else {
+            let trans = CBTransaction(uuid: transId)
+            trans.status = .editing
+            trans.location = findTransactionWhere
             self.editTrans = CBTransaction(uuid: transId)
         }
-        editTrans?.status = .editing
     }
     
     func transactionSheetWasClosed(transId: String) async {

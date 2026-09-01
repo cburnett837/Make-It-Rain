@@ -488,7 +488,7 @@ struct DashboardActivityByMonthChart: View {
             AxisTick()
             AxisValueLabel {
                 if let value = axisValue.as(Double.self) {
-                    Text("$\(value.kVersion)")
+                    Text("$\(value.kVersion(1))")
                 }
             }
         }

@@ -20,6 +20,7 @@ struct FileImage: View {
     
     var file: CBFile
     var displayStyle: FileSectionDisplayStyle
+    var transLocation: WhereToLookForTransaction /// Needed only for the reciept itemizer from OpenAI
     
 //        var isDeletingFile: Bool { props.isDeletingFile && file.id == props.deleteFile?.id }
 //        var dimImage: Bool { (props.isItemizing && props.itemizingFile == file) || isDeletingFile || props.hoverFile == file || file.isPlaceholder }
@@ -39,7 +40,7 @@ struct FileImage: View {
                     .clipShape(.rect(cornerRadius: 14))
                     .onAppear {
                         if file.isItemizing {
-                            funcModel.itemizeReceipt(file: file)
+                            funcModel.itemizeReceipt(file: file, transLocation: transLocation)
                         }
                     }
             case .grid:
@@ -49,7 +50,7 @@ struct FileImage: View {
                     .clipShape(.rect(cornerRadius: 14))
                     .onAppear {
                         if file.isItemizing {
-                            funcModel.itemizeReceipt(file: file)
+                            funcModel.itemizeReceipt(file: file, transLocation: transLocation)
                         }
                     }
             }

@@ -13,7 +13,7 @@ import Contacts
 struct PdfInvoiceViewForSingleTransaction: View {
     var pageIndex: Int
     var trans: CBTransaction
-    var contact: CNContact?
+    var issuedTo: String?
     var title: String
     var amount: Decimal
     var date: Date
@@ -44,10 +44,10 @@ struct PdfInvoiceViewForSingleTransaction: View {
             HStack(alignment: .circleAndTitle) {
                 VStack(alignment: .leading) {
                     VStack(alignment: .leading) {
-                        if let contact = contact {
+                        if let issuedTo = issuedTo {
                             Text("ISSUED TO:")
                                 .bold()
-                            Text(contact.formattedName)
+                            Text(issuedTo)
                         }
                     }
                     .alignmentGuide(.circleAndTitle, computeValue: { $0[VerticalAlignment.top] })

@@ -150,6 +150,7 @@ struct TransactionListLine: View {
                     displayStyle: .standard,
                     parentType: .transaction,
                     fileUploadCompletedDelegate: calModel,
+                    transLocation: trans.location,
                     placeholderView: {
                         LoadingPlaceholder(text: "Uploading…", displayStyle: .standard)
                     }, photoView: {

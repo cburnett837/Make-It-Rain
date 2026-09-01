@@ -76,10 +76,18 @@ protocol FileUploadCompletedDelegate {
     var isUploadingSmartTransactionFile: Bool {get set}
     func alertUploadingSmartReceiptIfApplicable()
 }
+
 /// To make the protocol variables optional.
 extension FileUploadCompletedDelegate {
     var smartTransactionDate: Date? { get { return nil } set {} }
     var isUploadingSmartTransactionFile: Bool { get { return false } set {} }
     func alertUploadingSmartReceiptIfApplicable() {}
     func cleanUpPhotoVariables() {}
+}
+
+protocol HasUserUpdateInfo {
+    var enteredBy: CBUser {get set}
+    var updatedBy: CBUser {get set}
+    var enteredDate: Date {get set}
+    var updatedDate: Date {get set}
 }

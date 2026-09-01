@@ -9,7 +9,7 @@
 import SwiftUI
 import Charts
 
-struct DashboardActivityByCategoryBarChart: View {
+struct DashboardActivityByCategoryHorizontalBarChart: View {
     @Environment(CalendarModel.self) private var calModel
     @Bindable var model: DashboardModel
     @Bindable var data: DashboardData

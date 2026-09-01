@@ -103,7 +103,7 @@ struct SplashScreen: View {
                             
             
 
-            #warning("QWER: CAUSES MICROHANG ~400ms. This is what causes the occasional animation scroll glitch in the calendar on first boot.")
+            #warning("QWER: CAUSES MICROHANG ~400ms. This is what causes the occasional animation scroll glitch in the calendar on first boot. It's the rendering of the calendar grid that causes it.")
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(500))
 
@@ -263,7 +263,9 @@ struct SplashScreen: View {
 
             if success {
                 #if os(iOS)
-                if AppState.shared.isIphone, AuthState.shared.isLoggedIn, !AppState.shared.showPaymentMethodNeededSheet {
+                if AppState.shared.isIphone,
+                AuthState.shared.isLoggedIn,
+                !AppState.shared.showPaymentMethodNeededSheet {
                     calModel.showMonth = true
                 }
                 #endif

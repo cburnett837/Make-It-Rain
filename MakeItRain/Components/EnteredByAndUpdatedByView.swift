@@ -7,12 +7,6 @@
 
 import SwiftUI
 
-protocol HasUserUpdateInfo {
-    var enteredBy: CBUser {get set}
-    var updatedBy: CBUser {get set}
-    var enteredDate: Date {get set}
-    var updatedDate: Date {get set}
-}
 
 struct EnteredByAndUpdatedByView<T: HasUserUpdateInfo & Observable>: View {
     var obj: T

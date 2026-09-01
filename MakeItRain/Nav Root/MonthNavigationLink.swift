@@ -174,6 +174,10 @@ struct MonthNavigationLink: View {
         NavigationManager.shared.selectedMonth = month.enumID
         NavigationManager.shared.selection = nil
         
+//        Task {
+//            calModel.setSelectedMonthFromNavigation(navID: month.enumID, calculateStartingAndEod: true, shouldLoadDashboard: true)
+//        }
+        
         #if os(iOS)
         /// This triggers the fullscreen cover in ``CalendarSheetLayerView`` to show.
         /// Since `NavigationManager.shared.selectedMonth` get's set above, the calendar sheet will show with the selected month.

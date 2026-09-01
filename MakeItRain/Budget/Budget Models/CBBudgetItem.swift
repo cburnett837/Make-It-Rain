@@ -59,7 +59,7 @@ extension CBTag: BudgetItem {
 }
 
 @Observable
-class CBBudgetItem: Codable, Identifiable, Hashable, Equatable, IsEditableBudget {
+class CBBudgetItem: Codable, Identifiable, Hashable, Equatable, IsEditableBudget, HasUserUpdateInfo {
     var id: String
     var uuid: String?
     var monthId: Int?
@@ -106,6 +106,13 @@ class CBBudgetItem: Codable, Identifiable, Hashable, Equatable, IsEditableBudget
     var action: BudgetItemAction
     
     var appSuiteKey: AppSuiteKey?
+    
+    var enteredBy: CBUser = AppState.shared.user!
+    var updatedBy: CBUser = AppState.shared.user!
+    var enteredById: Int?
+    var updatedById: Int?
+    var enteredDate: Date
+    var updatedDate: Date
 
     
     init(type: BudgetItemType) {
@@ -118,6 +125,11 @@ class CBBudgetItem: Codable, Identifiable, Hashable, Equatable, IsEditableBudget
         self.active = true
         self.action = .add
         self.type = type
+        
+        self.enteredBy = AppState.shared.user!
+        self.updatedBy = AppState.shared.user!
+        self.enteredDate = Date()
+        self.updatedDate = Date()
     }
     
     
@@ -131,11 +143,16 @@ class CBBudgetItem: Codable, Identifiable, Hashable, Equatable, IsEditableBudget
         self.action = .add
         //self.type = .category
         self.type = type
+        
+        self.enteredBy = AppState.shared.user!
+        self.updatedBy = AppState.shared.user!
+        self.enteredDate = Date()
+        self.updatedDate = Date()
     }
     
     
     
-    enum CodingKeys: CodingKey { case id, uuid, category, category_group, category_id, category_group_id, amount, amount2, active, user_id, account_id, device_uuid, app_suite_key, type_id, item_id, tag, budget_month_id, item_title }
+    enum CodingKeys: CodingKey { case id, uuid, category, category_group, category_id, category_group_id, amount, amount2, active, user_id, account_id, device_uuid, app_suite_key, type_id, item_id, tag, budget_month_id, item_title, entered_by, updated_by, entered_date, updated_date, entered_by_id, updated_by_id }
     
     
     func encode(to encoder: Encoder) throws {
@@ -147,6 +164,10 @@ class CBBudgetItem: Codable, Identifiable, Hashable, Equatable, IsEditableBudget
         try container.encode(item?.title, forKey: .item_title)
         try container.encode(amount, forKey: .amount)
         try container.encode(active ? 1 : 0, forKey: .active)
+        try container.encode(enteredById, forKey: .entered_by_id) // for the Transferable protocol
+        try container.encode(updatedById, forKey: .updated_by_id) // for the Transferable protocol
+        try container.encode(enteredDate, forKey: .entered_date) // for the Transferable protocol
+        try container.encode(updatedDate, forKey: .updated_date) // for the Transferable protocol
         try container.encode(Cody.shared.id, forKey: .user_id)
         try container.encode(Cody.shared.accountID, forKey: .account_id)
         try container.encode(Cody.shared.deviceUUID, forKey: .device_uuid)
@@ -198,6 +219,17 @@ class CBBudgetItem: Codable, Identifiable, Hashable, Equatable, IsEditableBudget
         if let appSuiteKey = try container.decode(String?.self, forKey: .app_suite_key) {
             self.appSuiteKey = AppSuiteKey(rawValue: appSuiteKey)
         }
+        
+        if let enteredById = try container.decode(Int?.self, forKey: .entered_by_id) {
+            self.enteredBy = AppState.shared.getUserBy(id: enteredById) ?? CBUser()
+        }
+        
+        if let updatedById = try container.decode(Int?.self, forKey: .updated_by_id) {
+            self.updatedBy = AppState.shared.getUserBy(id: updatedById) ?? CBUser()
+        }
+
+        enteredDate = try container.decode(Date.self, forKey: .entered_date)
+        updatedDate = try container.decode(Date.self, forKey: .updated_date)
         
     }
 
@@ -261,6 +293,11 @@ class CBBudgetItem: Codable, Identifiable, Hashable, Equatable, IsEditableBudget
         self.appSuiteKey = budget.appSuiteKey
         //self.type = budget.type
         self.item = budget.item
+        
+        self.enteredBy = budget.enteredBy
+        self.updatedBy = budget.updatedBy
+        self.enteredDate = budget.enteredDate
+        self.updatedDate = budget.updatedDate
         
         //print(category?.title)
         //print(categoryGroup?.title)

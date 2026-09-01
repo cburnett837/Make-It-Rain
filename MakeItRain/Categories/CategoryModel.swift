@@ -86,6 +86,8 @@ class CategoryModel {
             return false
         }
         
+        category.markUpdated()
+        
         category.updatedBy = AppState.shared.user!
         category.updatedDate = Date()
         

@@ -88,8 +88,8 @@ struct TransactionEditView: View {
     @State private var showBadgeBell = false
     @State private var showHiddenEye = false
     
-    @State private var showContent = true
-    @State private var showExpensiveViews = true
+    @State private var showContent = false
+    @State private var showExpensiveViews = false
     
     @State private var suggestedCategories: Array<CBCategory> = []
     @State private var shouldDismissOnMac: Bool = false
@@ -230,7 +230,7 @@ struct TransactionEditView: View {
             }
         }
         .interactiveDismissDisabled(paymentMethodMissing || !navPath.isEmpty)
-        //.onAppear { handleWarmUpAndExpensiveViews() }
+        .onAppear { handleWarmUpAndExpensiveViews() }
         .task {
             if !isWarmUp {
                 prepareTransactionForEditing(isTemp: isTemp)
@@ -972,6 +972,7 @@ struct TransactionEditView: View {
                     files: $trans.files,
                     fileUploadCompletedDelegate: calModel,
                     parentType: .transaction,
+                    transLocation: transLocation,
                     showCamera: $showCamera,
                     showPhotosPicker: $showPhotosPicker
                 )

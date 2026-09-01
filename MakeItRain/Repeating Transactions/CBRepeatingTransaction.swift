@@ -312,8 +312,8 @@ class CBRepeatingTransaction: Codable, Identifiable, Hashable, Equatable, Transf
         try container.encode(Cody.shared.deviceUUID, forKey: .device_uuid)
         try container.encode(enteredBy, forKey: .entered_by) // for the Transferable protocol
         try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
-        try container.encode(enteredDate.string(to: .serverDateTime), forKey: .entered_date) // for the Transferable protocol
-        try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date) // for the Transferable protocol
+        try container.encode(enteredDate, forKey: .entered_date) // for the Transferable protocol
+        try container.encode(updatedDate, forKey: .updated_date) // for the Transferable protocol
         
         try container.encode(repeatingTransactionType.id, forKey: .repeating_transaction_type_id)
     }

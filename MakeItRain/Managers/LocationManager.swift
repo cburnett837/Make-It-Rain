@@ -17,7 +17,17 @@ class LocationManager: NSObject, CLLocationManagerDelegate  {
     var currentLocation: CLLocationCoordinate2D?
     var region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: 51.507222, longitude: -0.1275), span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05))
     
-    var authIsAllowed: Bool = false
+    var authIsAllowed: Bool {
+        switch manager.authorizationStatus {
+        case .notDetermined, .restricted, .denied:
+            false
+        case .authorizedAlways, .authorizedWhenInUse:
+            true
+        @unknown default:
+            false
+        }
+    }
+    
     var currentCountry: String?
     var isThinking: Bool = true
     var lastLocationCheckDate: Date?
@@ -81,24 +91,18 @@ class LocationManager: NSObject, CLLocationManagerDelegate  {
         switch manager.authorizationStatus {
         case .notDetermined:
             print("📍 Location authorization notDetermined")
-            authIsAllowed = false
             manager.requestWhenInUseAuthorization()
             
         case .restricted, .denied:
             print("📍 Location authorization restricted, denied")
-            authIsAllowed = false
             
         case .authorizedAlways:
             print("📍 Location authorization authorizedAlways")
-            authIsAllowed = true
             requestLocation()
-            //fetchCoreLocations()
             
         case .authorizedWhenInUse:
             print("📍 Location authorization authorizedWhenInUse")
-            authIsAllowed = true
             requestLocation()
-            //fetchCoreLocations()
             
         @unknown default:
             break

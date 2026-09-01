@@ -13,7 +13,6 @@ struct LineItemMiniView: View {
     private enum TransactionHighlightState {
         case highlight, blur, nothing
     }
-
     
     @Local(\.showDebuggingInfo) var showDebuggingInfo
     
@@ -21,7 +20,6 @@ struct LineItemMiniView: View {
     @Environment(CalendarModel.self) private var calModel
     @Environment(CalendarProps.self) private var calProps
     @Environment(AppStore.self) private var store
-
         
     @Bindable var trans: CBTransaction
     @Bindable var day: CBDay
@@ -66,16 +64,15 @@ struct LineItemMiniView: View {
 //    }
     
     var lineColor: Color {
-        
         if calModel.multiSelectTransactions.map({ $0.id }).contains(trans.id) || highlightMe {
             Color(.secondarySystemFill)
         } else if highlightState == .highlight {
-            Color(.secondarySystemFill).opacity(0.8)
+            Color.clear
+            //Color(.secondarySystemFill).opacity(0.8)
         } else {
             Color.clear
         }
     }
-    
     
     var titleColor: Color {
         trans.color == Color.white || trans.color == Color.black ? Color.primary : trans.color
@@ -90,6 +87,13 @@ struct LineItemMiniView: View {
     }
         
     //#warning("REGARDING HITCH: All I did here was pull the appstorage properties up to the day view, and made the transaction sheet local.")
+    
+    
+    @State private var hideHilight = true
+    @State private var animateHilight = false
+    @State private var highlightStartDate = Date()
+    @State private var stopHilightTask: Task<Void, Never>?
+    
     var body: some View {
         //let _ = Self._printChanges()
         @Bindable var calModel = calModel
@@ -115,21 +119,68 @@ struct LineItemMiniView: View {
             } message: {
                 Text("Delete \"\(trans.title)\"?")
             }
+            .overlay(
+                AiAnimatedBorder(
+                    startDate: highlightStartDate,
+                    isAnimating: animateHilight,
+                    hideHilight: hideHilight
+                )
+            )
+//            .overlay(
+//                RoundedRectangle(cornerRadius: 4)
+//                    .strokeBorder(Color.green, lineWidth: 2)
+//                    .opacity(highlightState == .highlight ? 1 : 0)
+//                    .padding(-2)
+//            )
             /// Control the visibility of the transaction.
             .opacity(highlightState == .blur ? 0.5 : 1)
             .blur(radius: highlightState == .blur ? 3 : 0)
             
             /// Changing back to normal happens in the ``CalendarGridPhone`` task set via  `.onChange(of: calProps.tempHighlightTransId)`
+//            .onChange(of: calProps.tempHighlightTransId) { oldId, newId in
+//                withAnimation {
+//                    if let newId {
+//                        if newId == trans.id {
+//                            highlightState = .highlight
+//                        } else {
+//                            highlightState = .blur
+//                        }
+//                    } else {
+//                        highlightState = .nothing
+//                    }
+//                }
+//            }
             .onChange(of: calProps.tempHighlightTransId) { oldId, newId in
-                withAnimation {
-                    if let newId {
-                        if newId == trans.id {
-                            highlightState = .highlight
-                        } else {
-                            highlightState = .blur
-                        }
+                stopHilightTask?.cancel()
+                
+                if let newId {
+                    if newId == trans.id {
+                        animateHilight = true
+                        
+                        withAnimation { highlightState = .highlight }
+                        withAnimation(.easeIn(duration: 0.15)) { hideHilight = false }
+                        
                     } else {
-                        highlightState = .nothing
+                        withAnimation { highlightState = .blur }
+                    }
+                } else {
+                    withAnimation { highlightState = .nothing }
+                    
+                    /// Keep spinning while fading out.
+                    withAnimation(.easeOut(duration: 0.5)) { hideHilight = true }
+                    
+                    stopHilightTask = Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(0.5))
+                        
+                        guard !Task.isCancelled else {
+                            return
+                        }
+                        
+                        /// Border is now invisible.
+                        animateHilight = false
+                        
+                        /// Reset the next animation to start at 0°.
+                        highlightStartDate = Date()
                     }
                 }
             }

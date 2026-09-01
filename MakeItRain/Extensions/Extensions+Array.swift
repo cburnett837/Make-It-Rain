@@ -15,15 +15,15 @@ extension Array where Element: Comparable {
 
 
 
-extension Array where Element == CBPaymentMethod {
-    func getAmount(for date: Date) -> Decimal {
-        return self
-            .flatMap { $0.breakdowns }
-            .filter { Calendar.current.isDate(date, equalTo: $0.date, toGranularity: .month) }
-            .map { $0.income }
-            .reduce(0, +)
-    }
-}
+//extension Array where Element == CBPaymentMethod {
+//    func getAmount(for date: Date) -> Decimal {
+//        return self
+//            .flatMap { $0.breakdowns }
+//            .filter { Calendar.current.isDate(date, equalTo: $0.date, toGranularity: .month) }
+//            .map { $0.income }
+//            .reduce(0, +)
+//    }
+//}
 
 
 extension Array where Element: FloatingPoint {

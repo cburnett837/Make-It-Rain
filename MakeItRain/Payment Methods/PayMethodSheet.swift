@@ -29,7 +29,8 @@ struct PayMethodSheet: View {
     var isPendingSmartTransaction: Bool = false
     var showStartingAmountOption: Bool = false
     var showNoneOption: Bool = false
-    var noneText: String = "Show all transactions and their daily sum."
+    var noneButtonText: String = "None"
+    var noneDescription: String = "Show all transactions and their daily sum."
     //let theSections: [PaymentMethodSection] = [.debit, .credit, .other]
     
     var monthText: String {
@@ -82,10 +83,10 @@ struct PayMethodSheet: View {
                     }
                 }
                 
-                ToolbarItem(placement: .topBarLeading) { moreMenu }
-                if AppState.shared.isIphone {
-                    ToolbarItem(placement: .bottomBar) { PayMethodFilterMenu() }
-                }
+//                ToolbarItem(placement: .topBarLeading) { moreMenu }
+//                if AppState.shared.isIphone {
+//                    ToolbarItem(placement: .bottomBar) { PayMethodFilterMenu() }
+//                }
                 
                 ToolbarSpacer(.flexible, placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar)
                 
@@ -93,8 +94,11 @@ struct PayMethodSheet: View {
                     DefaultToolbarItem(kind: .search, placement: .bottomBar)
                 //}
                 
-                ToolbarSpacer(.flexible, placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar)
-                ToolbarItem(placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar) { PayMethodSortMenu() }
+                ToolbarSpacer(.fixed, placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar)
+                
+                ToolbarItem(placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar) {
+                    PayMethodsTableOptionMenu(hide: .reorder, .defaultEditing, .defaultViewing)
+                }
                 
                 if AppState.shared.isIpad {
                     ToolbarSpacer(.flexible, placement: .topBarLeading)
@@ -194,7 +198,7 @@ struct PayMethodSheet: View {
     var noneSection: some View {
         Section {
             HStack {
-                Text("None")
+                Text(noneButtonText)
                 Spacer()
                 if payMethod == nil {
                     Image(systemName: "checkmark")
@@ -207,7 +211,7 @@ struct PayMethodSheet: View {
                 dismiss()
             }
         } footer: {
-            Text(noneText)
+            Text(noneDescription)
         }
     }
     
@@ -386,7 +390,7 @@ fileprivate struct StartingAmountLine: View {
                             VStack(alignment: .leading) {
                                 iPhoneTextField
                                                    
-                                if startingAmount.condataOriginalCountry != AppState.shared.country {
+                                if startingAmount.condataOriginalCountry != AppState.shared.country && startingAmount.condataOriginalCountry != nil {
                                     HStack(spacing: 0) {
                                         Spacer()
                                         if let cunt = startingAmount.condataOriginalCountry {
@@ -401,7 +405,6 @@ fileprivate struct StartingAmountLine: View {
                                     .foregroundStyle(.secondary)
                                     .font(.caption2)
                                 }
-                                
                             }
                         }
                         

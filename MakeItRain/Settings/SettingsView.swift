@@ -143,8 +143,8 @@ struct SettingsView: View {
     
     @ViewBuilder
     var locationErrorView: some View {
-        let globalAuthDeniedError = "Please enable Location Services by going to Settings -> Privacy & Security"
-        let authDeniedError = "Please authorize access to Location Services"
+        let globalAuthDeniedError = "Please authorize access to Location Services by going to Settings -> Privacy & Security."
+        let authDeniedError = "Please authorize access to Location Services."
         let authRestrictedError = "Can't access location. Do you have Parental Controls enabled?"
         let unknownAuthStatus = "Please contact the developer about an unknown authorization status."
         
@@ -174,6 +174,14 @@ struct SettingsView: View {
                     .frame(width: 50, height: 50)
                     .foregroundStyle(LinearGradient(gradient: Gradient(colors: [.orange, .red]), startPoint: .top, endPoint: .bottom))
                 Text(message)
+            }
+            
+            Button {
+                let settingsAppURL = URL(string: UIApplication.openSettingsURLString)!
+                UIApplication.shared.open(settingsAppURL, options: [:], completionHandler: nil)
+                //LocationManager.shared.manager.requestWhenInUseAuthorization()
+            } label: {
+                Text("Open Settings")
             }
         } footer: {
             Text("Location services are used to find businsses near you when entering a transaction.")
@@ -536,7 +544,10 @@ struct SettingsView: View {
             HStack {
                 Text("Current Location")
                 Spacer()
-                if LocationManager.shared.isThinking {
+                if !LocationManager.shared.authIsAllowed {
+                    Text("(Location Services Disabled)")
+                        .foregroundStyle(.secondary)
+                } else if LocationManager.shared.isThinking {
                     ProgressView()
                         .tint(.none)
                 } else {

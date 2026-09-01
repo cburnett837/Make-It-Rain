@@ -88,6 +88,11 @@ struct PlaidAccountView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     AnimatedCloseButton(isValidToSave: isValidToSave, closeButton: closeButton)
                 }
+                
+                ToolbarItem(placement: .bottomBar) {
+                    EnteredByAndUpdatedByView(obj: account)
+                }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
         .task { await prepareView() }

@@ -11,12 +11,10 @@ internal import Combine
 
 @Observable
 class AppState {
-    
-    var avatar: Data?
-    
     static let shared = AppState()
     //month.hasLoadedFromServer = falsevar downloadedMonths: Array<NavDest> = []
     var user: CBUser?
+    var avatar: Data?
     var apiKey: String?
     var openAiKey: String?
     var accountUsers: Array<CBUser> = []
@@ -52,9 +50,7 @@ class AppState {
     var debugPrintString = UserDefaults.standard.string(forKey: "debugPrint") ?? "no debugPrint found"
     var debugPrint: Bool { return debugPrintString == "YES" ? true : false }
     var devMode: Bool = UserDefaults.standard.bool(forKey: "devMode")
-    
-    let numberFormatter = NumberFormatter()
-    let dateFormatter = DateFormatter()
+        
     let colorMenuOptions: Array<Color> = [.pink, .red, .orange, .yellow, .green, .mint, .teal, .cyan, .blue, .indigo, .purple, .brown, /*.white, .black*/]
     
     #if os(iOS)
@@ -103,18 +99,21 @@ class AppState {
         
     //var shouldWarmUpTransactionViewDuringSplash = false
     
-    #warning("for sqlite")
+    /// For Sqlite
 //    var fromServerDateFormatter: DateFormatter {
 //        let dateFormatter = DateFormatter()
 //        dateFormatter.dateFormat = getDateFormat(.serverDateTime)
 //        dateFormatter.timeZone = .none
 //        return dateFormatter
 //    }
-    #warning("for postgres")
+    /// For Postgres
     var fromServerDateFormatter: ISO8601DateFormatter {
         let formatter = ISO8601DateFormatter()
         return formatter
     }
+    
+    let numberFormatter = NumberFormatter()
+    let dateFormatter = DateFormatter()
           
     
     init() {
@@ -129,25 +128,19 @@ class AppState {
     
     
     func user(is user: CBUser?) -> Bool {
-        if let user {
-            return AppState.shared.user!.id == user.id
-        } else {
-            return false
-        }
+        guard let user, let cody = AppState.shared.user else { return false }
+        return cody.id == user.id
     }
     
     
     func user(isNot user: CBUser?) -> Bool {
-        if let user {
-            return AppState.shared.user!.id != user.id
-        } else {
-            return true
-        }
+        guard let user, let cody = AppState.shared.user else { return false }
+        return cody.id != user.id
     }
     
     
     func getUserBy(id: Int) -> CBUser? {
-        return AppState.shared.accountUsers.filter {$0.id == id}.first
+        return AppState.shared.accountUsers.first { $0.id == id }
     }
     
     
@@ -196,50 +189,171 @@ class AppState {
     
     
     // MARK: - Current Date Stuff
-    var currentDateTimer = Timer.publish(every: 1, tolerance: 0.5, on: .main, in: .common).autoconnect()
+//    var currentDateTimer = Timer.publish(every: 1, tolerance: 0.5, on: .main, in: .common).autoconnect()
+//    var todayDay = Calendar.current.component(.day, from: Date())
+//    var todayMonth = Calendar.current.component(.month, from: Date())
+//    var todayYear = Calendar.current.component(.year, from: Date())
+//
+//    /// Called via `currentDateTimer`. The onReceive() modifier that calls this is in ``CalendarViewPhone``.
+//    func setNow() -> Bool {
+//        let oldToday = todayDay
+//        let newToday = Calendar.current.component(.day, from: Date())
+//                        
+//        if newToday != oldToday {
+//            todayDay = newToday
+//            todayMonth = Calendar.current.component(.month, from: Date())
+//            todayYear = Calendar.current.component(.year, from: Date())
+//            return true
+//        } else {
+//            return false
+//        }
+//    }
+//    
+//    /// Called when the iPhone enters the forground or when the Mac unlocks.
+//    func startNewNowTimer() {
+//        self.currentDateTimer = Timer.publish(every: 1, tolerance: 0.5, on: .main, in: .common).autoconnect()
+//    }
+//    
+//    /// Called when the iPhone enters background or when the Mac locks.
+//    func cancelNowTimer() {
+//        self.currentDateTimer.upstream.connect().cancel()
+//    }
+    
+    
+    /// Attempt 2
+//    var currentDateTimer: Timer?
+//    var todayDay = Calendar.current.component(.day, from: Date())
+//    var todayMonth = Calendar.current.component(.month, from: Date())
+//    var todayYear = Calendar.current.component(.year, from: Date())
+//
+//
+//    /// Updates the stored current date.
+//    func setNow() {
+//        let now = Date()
+//        todayDay = Calendar.current.component(.day, from: now)
+//        todayMonth = Calendar.current.component(.month, from: now)
+//        todayYear = Calendar.current.component(.year, from: now)
+//    }
+//
+//
+//    /// Called when the iPhone enters the foreground
+//    /// or when the Mac unlocks.
+//    func startNewNowTimer() {
+//        currentDateTimer?.invalidate()
+//
+//        /// Immediately make sure the date is correct.
+//        setNow()
+//
+//        let calendar = Calendar.current
+//
+//        guard let nextMidnight = calendar.nextDate(
+//            after: Date(),
+//            matching: DateComponents(hour: 0, minute: 0, second: 0),
+//            matchingPolicy: .nextTime
+//        ) else {
+//            return
+//        }
+//
+//        currentDateTimer = Timer(fire: nextMidnight, interval: 0, repeats: false) { [weak self] _ in
+//            guard let self else { return }
+//
+//            self.setNow()
+//
+//            /// Schedule tomorrow's midnight.
+//            self.startNewNowTimer()
+//        }
+//
+//        if let currentDateTimer {
+//            RunLoop.main.add(currentDateTimer, forMode: .common)
+//        }
+//    }
+//
+//
+//    /// Called when the iPhone enters the background
+//    /// or when the Mac locks.
+//    func cancelNowTimer() {
+//        currentDateTimer?.invalidate()
+//        currentDateTimer = nil
+//    }
+    
+    
+    /// Attempt 3
+    @ObservationIgnored
+    private var midnightTimer: Timer?
+    
+    var today = Calendar.current.startOfDay(for: Date())
     var todayDay = Calendar.current.component(.day, from: Date())
     var todayMonth = Calendar.current.component(.month, from: Date())
     var todayYear = Calendar.current.component(.year, from: Date())
-
-    /// Called via `currentDateTimer`. The onReceive() modifier that calls this is in ``CalendarViewPhone``.
+    
+    @discardableResult
     func setNow() -> Bool {
-        let oldToday = todayDay
-        let newToday = Calendar.current.component(.day, from: Date())
-                        
-        if newToday != oldToday {
-            todayDay = newToday
-            todayMonth = Calendar.current.component(.month, from: Date())
-            todayYear = Calendar.current.component(.year, from: Date())
-            return true
-        } else {
-            return false
+        let newToday = Calendar.current.startOfDay(for: Date())
+        
+        guard newToday != today else { return false }
+        
+        today = newToday
+        todayDay = Calendar.current.component(.day, from: newToday)
+        todayMonth = Calendar.current.component(.month, from: newToday)
+        todayYear = Calendar.current.component(.year, from: newToday)
+        
+        return true
+    }
+    
+    /// Called when the iPhone enters the foreground
+    /// or when the Mac unlocks.
+    func startNewNowTimer() {
+        midnightTimer?.invalidate()
+        
+        /// Catch up immediately when returning to the foreground.
+        setNow()
+        
+        guard let nextMidnight = Calendar.current.nextDate(
+            after: Date(),
+            matching: DateComponents(hour: 0, minute: 0, second: 0),
+            matchingPolicy: .nextTime
+        ) else { return }
+        
+        midnightTimer = Timer(fire: nextMidnight, interval: 0, repeats: false) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                self.setNow()
+                self.startNewNowTimer()
+            }
+        }
+        
+        if let midnightTimer {
+            RunLoop.main.add(midnightTimer, forMode: .common)
         }
     }
     
-    /// Called when the iPhone enters the forground or when the Mac unlocks.
-    func startNewNowTimer() {
-        self.currentDateTimer = Timer.publish(every: 1, tolerance: 0.5, on: .main, in: .common).autoconnect()
+    /// Called when the iPhone enters the background
+    /// or when the Mac locks.
+    func cancelNowTimer() {
+        midnightTimer?.invalidate()
+        midnightTimer = nil
     }
     
-    /// Called when the iPhone enters background or when the Mac locks.
-    func cancelNowTimer() {
-        self.currentDateTimer.upstream.connect().cancel()
-    }
-               
-
+    
+    
+    
+    // MARK: - Background Task Stuff
     #if os(iOS)
     func beginBackgroundTask() -> UIBackgroundTaskIdentifier {
-        var backgroundTaskID: UIBackgroundTaskIdentifier?
-        backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: UUID().uuidString) {
-            UIApplication.shared.endBackgroundTask(backgroundTaskID!)
-            backgroundTaskID = .invalid
+        var taskId: UIBackgroundTaskIdentifier?
+        taskId = UIApplication.shared.beginBackgroundTask(withName: UUID().uuidString) {
+            if let theId = taskId {
+                UIApplication.shared.endBackgroundTask(theId)
+                taskId = .invalid
+            }
+            
         }
-        return backgroundTaskID!
+        return taskId!
     }
     
-    func endBackgroundTask(_ backgroundTaskID: inout UIBackgroundTaskIdentifier) {
-        UIApplication.shared.endBackgroundTask(backgroundTaskID)
-        backgroundTaskID = .invalid
+    func endBackgroundTask(_ taskId: inout UIBackgroundTaskIdentifier) {
+        UIApplication.shared.endBackgroundTask(taskId)
+        taskId = .invalid
     }
     #endif
     

@@ -36,7 +36,7 @@ struct WebViewRep: UIViewRepresentable {
             let networkManager = NetworkManager()
             var request = networkManager.createRequest()
             request.setValue(AppState.shared.apiKey, forHTTPHeaderField: "Api-Key")
-            request.httpBody = try JSONEncoder().encode(requestModel)
+            request.httpBody = try networkManager.encoder.encode(requestModel)
             webView.load(request)
             return webView
             

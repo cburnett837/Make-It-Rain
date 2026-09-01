@@ -142,7 +142,7 @@ struct DashboardOptionsSheet: View {
                     whichPaymentMethods: .all,
                     showStartingAmountOption: false,
                     showNoneOption: true,
-                    noneText: "Don't filter by any account and show all data."
+                    noneDescription: "Don't filter by any account and show all data."
                 )
             }
         }

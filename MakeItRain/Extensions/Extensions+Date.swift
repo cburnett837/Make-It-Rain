@@ -49,19 +49,163 @@ extension Date {
 //        return format
 //    }
     #warning("new for postgres")
+//    func string(to format: DateFormat) -> String {
+//        if format == .serverDateTime {
+//            let formatter = AppState.shared.fromServerDateFormatter
+//            let string = formatter.string(from: self)
+//            return string
+//        } else {
+//            let dateFormatter = AppState.shared.dateFormatter
+//            dateFormatter.dateFormat = getDateFormat(format)
+//            dateFormatter.timeZone = .none
+//            let format = dateFormatter.string(from: self)
+//            return format
+//        }
+//    }
+    
     func string(to format: DateFormat) -> String {
-        if format == .serverDateTime {
-            let formatter = AppState.shared.fromServerDateFormatter
-            let string = formatter.string(from: self)
-            return string
-        } else {
-            let dateFormatter = AppState.shared.dateFormatter
-            dateFormatter.dateFormat = getDateFormat(format)
-            dateFormatter.timeZone = .none
-            let format = dateFormatter.string(from: self)
-            return format
-        }
+        switch format {
 
+        case .date:
+            return formatted(
+                .dateTime
+                    .month(.twoDigits)
+                    .day(.twoDigits)
+                    .year()
+            )
+
+        case .dateTime:
+            return formatted(
+                .dateTime
+                    .month(.twoDigits)
+                    .day(.twoDigits)
+                    .year(.twoDigits)
+                    .hour()
+                    .minute(.twoDigits)
+                    .second(.twoDigits)
+            )
+
+        case .dateTimeShort:
+            return formatted(
+                .dateTime
+                    .month(.twoDigits)
+                    .day(.twoDigits)
+                    .hour()
+                    .minute(.twoDigits)
+            )
+
+        case .dateTimeNoYear:
+            return formatted(
+                .dateTime
+                    .month(.twoDigits)
+                    .day(.twoDigits)
+                    .hour()
+                    .minute(.twoDigits)
+                    .second(.twoDigits)
+            )
+
+        case .monthDayHrMinAmPm:
+            return formatted(
+                .dateTime
+                    .month(.twoDigits)
+                    .day(.twoDigits)
+                    .hour(.defaultDigits(amPM: .abbreviated))
+                    .minute(.twoDigits)
+            )
+
+        case .monthDayYearHrMinAmPm:
+            return formatted(
+                .dateTime
+                    .month(.twoDigits)
+                    .day(.twoDigits)
+                    .year(.twoDigits)
+                    .hour(.defaultDigits(amPM: .abbreviated))
+                    .minute(.twoDigits)
+            )
+
+        case .timeAmPm:
+            return formatted(
+                .dateTime
+                    .hour(.defaultDigits(amPM: .abbreviated))
+                    .minute(.twoDigits)
+            )
+
+        case .serverDateTime:
+            return ISO8601Format()
+
+        case .serverDate:
+            return formatted(
+                Date.VerbatimFormatStyle(
+                    format: "\(year: .defaultDigits)-\(month: .twoDigits)-\(day: .twoDigits)",
+                    timeZone: .gmt,
+                    calendar: Calendar(identifier: .iso8601)
+                )
+            )
+
+        case .monthDay:
+            return formatted(
+                .dateTime
+                    .month(.twoDigits)
+                    .day(.twoDigits)
+            )
+
+        case .monthNameYear:
+            return formatted(
+                .dateTime
+                    .month(.abbreviated)
+                    .year()
+            )
+
+        case .monthDayShortYear:
+            return formatted(
+                .dateTime
+                    .month(.twoDigits)
+                    .day(.twoDigits)
+                    .year(.twoDigits)
+            )
+
+        case .swiftDefault:
+            return ISO8601Format()
+
+        case .datePickerDateOnlyDefault:
+            return formatted(
+                .dateTime
+                    .month(.abbreviated)
+                    .day()
+                    .year()
+            )
+
+        case .invoiceDate:
+            return formatted(
+                Date.VerbatimFormatStyle(
+                    format: "\(month: .twoDigits)-\(day: .twoDigits)-\(year: .defaultDigits)",
+                    timeZone: .current,
+                    calendar: .current
+                )
+            )
+
+        case .mm:
+            return formatted(
+                .dateTime
+                    .month(.twoDigits)
+            )
+
+        case .yy:
+            return formatted(
+                .dateTime
+                    .year(.twoDigits)
+            )
+
+        case .dateTimeTodayOrNot:
+            return formatted(
+                .dateTime
+                    .month(.twoDigits)
+                    .day(.twoDigits)
+                    .year(.twoDigits)
+                    .hour(.defaultDigits(amPM: .abbreviated))
+                    .minute(.twoDigits)
+            )
+        }
     }
     
     func convert(from: DateFormat, to: DateFormat) -> Date {
@@ -82,17 +226,11 @@ extension Date {
         calendar.date(from: calendar.dateComponents([.year, .month], from: self))!
     }
 
-//    var endDateOfMonth: Date {
-//        guard let date = Calendar.current.date(byAdding: DateComponents(month: 1, day: -1), to: self) else {
-//            fatalError("Unable to get end date from date")
-//        }
-//        return date
-//    }
     
     var endDateOfMonth: Date {
-            let startOfNextMonth = calendar.date(byAdding: .month, value: 1, to: startDateOfMonth)!
-            return calendar.date(byAdding: .second, value: -1, to: startOfNextMonth)!
-        }
+        let startOfNextMonth = calendar.date(byAdding: .month, value: 1, to: startDateOfMonth)!
+        return calendar.date(byAdding: .second, value: -1, to: startOfNextMonth)!
+    }
     
     
     var startDateOfYear: Date {
@@ -105,33 +243,6 @@ extension Date {
     }
     
     
-//    var startOfDay: Date {
-//        return Calendar.current.startOfDay(for: self)
-//    }
-//    
-//    var endOfDay: Date {
-//        var components = DateComponents()
-//        components.day = 1
-//        components.second = -1
-//        return Calendar.current.date(byAdding: components, to: startOfDay)!
-//    }
-//
-//    public var startOfQuarter: Date {
-//        let startOfMonth = Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: Calendar.current.startOfDay(for: self)))!
-//
-//        var components = Calendar.current.dateComponents([.month, .day, .year], from: startOfMonth)
-//
-//        let newMonth: Int
-//        switch components.month! {
-//        case 1,2,3: newMonth = 1
-//        case 4,5,6: newMonth = 4
-//        case 7,8,9: newMonth = 7
-//        case 10,11,12: newMonth = 10
-//        default: newMonth = 1
-//        }
-//        components.month = newMonth
-//        return Calendar.current.date(from: components)!
-//    }
     
     var quarter: Int {
         (calendar.component(.month, from: self) - 1) / 3 + 1
@@ -153,45 +264,6 @@ extension Date {
         let startOfNextQuarter = calendar.date(byAdding: .month, value: 3, to: start)!
         return calendar.date(byAdding: .second, value: -1, to: startOfNextQuarter)!
     }
-    
-//    var startOfQuarter: Date {
-//        let calendar = Calendar.current
-//        let year = calendar.component(.year, from: self)
-//        let month = calendar.component(.month, from: self)
-//
-//        let quarter = (month - 1) / 3 + 1
-//        let firstMonthOfQuarter = (quarter - 1) * 3 + 1
-//
-//        var components = DateComponents()
-//        components.year = year
-//        components.month = firstMonthOfQuarter
-//        components.day = 1
-//
-//        return calendar.date(from: components)!
-//    }
-//    
-//    var endOfQuarter: Date {
-//        let calendar = Calendar.current
-//        let year = calendar.component(.year, from: self)
-//        let quarter = (calendar.component(.month, from: self) - 1) / 3 + 1
-//
-//        // Determine the last month of the quarter
-//        let lastMonthOfQuarter = quarter * 3
-//
-//        // Create a date for the first day of the next month
-//        var components = DateComponents()
-//        components.year = year
-//        components.month = lastMonthOfQuarter + 1
-//        components.day = 1
-//
-//        // Get the first day of the next month
-//        guard let startOfNextMonth = calendar.date(from: components) else {
-//            return self // fallback
-//        }
-//
-//        // Subtract one day to get the last day of the quarter
-//        return calendar.date(byAdding: .day, value: -1, to: startOfNextMonth)!
-//    }
     
     func datesForQuarter(_ quarter: Int) -> (start: Date, end: Date) {
         let year = calendar.component(.year, from: self)
@@ -309,12 +381,7 @@ extension Date {
         }
         
     }
-    
-    
 }
-
-
-
 
 
 extension String {

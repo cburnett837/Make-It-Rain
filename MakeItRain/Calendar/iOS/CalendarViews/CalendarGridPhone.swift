@@ -27,6 +27,8 @@ struct CalendarGridPhone: View {
     
     @State private var initialGeoHeight: CGFloat = 0
     @State private var resetTransactionHighlightTask: Task<Void, Never>?
+    //@State private var position = ScrollPosition(idType: Int.self)
+    //@Binding var position: ScrollPosition
     
     private let sevenColumnGrid = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
     
@@ -105,15 +107,14 @@ struct CalendarGridPhone: View {
                             }
                         }
                     }
+                    //.scrollTargetLayout()
                 }
-                //.contentMargins(.bottom, calculatedScrollContentMargins, for: .scrollContent)
+                //.scrollPosition($position)
+                
                 .frame(height: geo.size.height)
                 .scrollIndicators(.hidden)
-                //.onScrollPhaseChange { if $1 == .interacting { withAnimation { calModel.hilightTrans = nil } } }
                 /// Scroll to today when the view loads (if applicable)
-                .onAppear {
-                    scrollToDayOnAppearOfScrollView(scrollProxy)
-                }
+                .onAppear { scrollToDayOnAppearOfScrollView(scrollProxy) }
                 /// Focus on the overviewDay when selecting, or changing.
                 .onChange(of: calProps.overviewDay) { scrollToOverViewDay(scrollProxy, $0, $1) }
                 .onChange(of: calProps.bottomPanelContent) { handleBottomPanelContentChange($0, $1) }
@@ -134,6 +135,7 @@ struct CalendarGridPhone: View {
                         } else {
                             /// If we're already viewing the appropriate month, scroll to the transaction and highlight it.
                             withAnimation {
+//                                position.scrollTo(id: date.day, anchor: .top)
                                 scrollProxy.scrollTo(date.day, anchor: .top)
                                 calProps.tempHighlightTransId = trans.id
                             }
@@ -203,69 +205,44 @@ struct CalendarGridPhone: View {
     
     
     func scrollToDayOnAppearOfScrollView(_ proxy: ScrollViewProxy) {
-        if enumID.monthActualNum == AppState.shared.todayMonth && calModel.sMonth.year == AppState.shared.todayYear {
-            /// Give a little delay since the view can take a while to render.
-            /// Without the delay, you can kind of see it flicker when it loads.
-            DispatchQueue.main.asyncAfter(deadline: .now() + (calModel.isFirstCalendarLoad ? 0.5 : 0.1)) {
-                
-                /// If we are opening now month, scroll to today.
-                if calProps.showPotentiallyExistingTransFromPlaidID == nil {
-                    if let today = calModel.sMonth.days.first(where: { $0.id == AppState.shared.todayDay }) {
-                        withAnimation {
-                            proxy.scrollTo(today.id, anchor: .top)
-                        }
+        if calModel.isFirstCalendarLoad {
+            if let today = calModel.sMonth.days.first(where: { $0.id == AppState.shared.todayDay }) {
+                //position.scrollTo(id: today.id, anchor: .top)
+                proxy.scrollTo(today.id, anchor: .top)
+            }
+            calModel.isFirstCalendarLoad = false
+            return
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + (calModel.isFirstCalendarLoad ? 0.5 : 0.1)) {
+            if calProps.showPotentiallyExistingTransFromPlaidID == nil {
+                if calModel.sMonth.isNow,
+                   let today = calModel.sMonth.days.first(where: { $0.id == AppState.shared.todayDay }) {
+                    withAnimation(.spring(duration: 0.5)) {
+                        //position.scrollTo(id: today.id, anchor: .top)
+                        proxy.scrollTo(today.id, anchor: .top)
                     }
-                } else {
-                    /// If we are coming to this month via the plaid sheet, find the appropriate transaction and scroll to it.
-                    if let newId = calProps.showPotentiallyExistingTransFromPlaidID,
-                       let trans = calModel.getTransaction(by: newId),
-                       let date = trans.date {
-                        if let targetDay = calModel.sMonth.getDay(by: date) {
-                            withAnimation {
-                                proxy.scrollTo(targetDay.id, anchor: .top)
-                            } completion: {
-                                /// Allow a little buffer for the scroll to complete before highlighing the transaction.
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                    calProps.tempHighlightTransId = trans.id
-                                }
+                }
+            } else {
+                /// If we are coming to this month via the plaid sheet, find the appropriate transaction and scroll to it.
+                if let newId = calProps.showPotentiallyExistingTransFromPlaidID,
+                   let trans = calModel.getTransaction(by: newId),
+                   let date = trans.date {
+                    if let targetDay = calModel.sMonth.getDay(by: date) {
+                        withAnimation(.spring(duration: 0.5)) {
+                            //position.scrollTo(id: targetDay.id, anchor: .top)
+                            proxy.scrollTo(targetDay.id, anchor: .top)
+                        } completion: {
+                            /// Allow a little buffer for the scroll to complete before highlighing the transaction.
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                calProps.tempHighlightTransId = trans.id
                             }
                         }
                     }
                 }
-                
-                /// There is an animation lag when the calendar first shows. So adjust the "scroll to today" time accordingly.
-                calModel.isFirstCalendarLoad = false
-            }
-        } else {
-            /// There is an animation lag when the calendar first shows. So adjust the "scroll to today" time accordingly.
-            if calModel.isFirstCalendarLoad {
-                calModel.isFirstCalendarLoad = false
             }
         }
     }
-    
-    
-//    func scrollToOverViewDayOLD(_ proxy: ScrollViewProxy, _ oldValue: CBDay?, _ newValue: CBDay?) {
-//        print("-- \(#function)")
-//        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-//            if let day = newValue {
-//                print("\(#function) -- new overView day is set")
-//                /// Block this from running since .onChange(of: calculatedScrollContentMargins) will also run when opening the day for the first time.
-//                if oldValue != nil {
-//                    print("\(#function) -- adjusting day to \(day.id)")
-//                    withAnimation { proxy.scrollTo(day.id, anchor: .bottom) }
-//                } else {
-//                    print("\(#function) -- ignoring because oldValue is nil")
-//                }
-//                
-//            } else if let oldViewDay = oldValue {
-//                print("\(#function) -- old overView say is set - adjusting day to \(oldViewDay.id)")
-//                withAnimation { proxy.scrollTo(oldViewDay.id, anchor: .bottom) }
-//            } else {
-//                print("\(#function) -- Can't find overview day")
-//            }
-//        }
-//    }
     
     
     func scrollToOverViewDay(_ proxy: ScrollViewProxy, _ oldValue: CBDay?, _ newValue: CBDay?) {
@@ -274,105 +251,6 @@ struct CalendarGridPhone: View {
                 withAnimation(.bouncy) {
                     proxy.scrollTo(day.id, anchor: .bottom)
                 }
-            }
-        }
-    }
-}
-#endif
-
-
-
-#if os(iOS)
-struct SimpCalendarGridPhone: View {
-    @Local(\.lineItemIndicator) var lineItemIndicator
-    @Local(\.phoneLineItemDisplayItem) var phoneLineItemDisplayItem
-    
-    @Environment(CalendarModel.self) private var calModel
-    @Environment(CalendarProps.self) private var calProps
-    
-    let enumID: NavDest
-    
-    @State private var initialGeoHeight: CGFloat = 0
-    
-    let sevenColumnGrid = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
-    
-    var divideBy: CGFloat {
-        let cellCount = calModel.sMonth.firstWeekdayOfMonth - 1 + calModel.sMonth.dayCount
-        if cellCount > 35 {
-            return 6
-        } else if cellCount <= 35 && cellCount > 28 {
-            return 5
-        } else {
-            return 4
-        }
-    }
-        
-    
-    #warning("REGARDING HITCH: All I did here was change binding to day to a regular bindable")
-    @ViewBuilder
-    var body: some View {
-        //let _ = Self._printChanges()
-        @Bindable var calModel = calModel
-        @Bindable var calProps = calProps
-        
-        let weeks = calModel.sMonth.days.chunked(into: 7)
-        
-        /// Use geometry reader instead of a preference key to avoid the fakeNavHeader from being pushed up when the dayOverView sheet gets dragged to the top.
-        GeometryReader { geo in
-            /// DO NOT USE the new scrollView apis.
-            /// The new .scrollPosition($scrollPosition) causes big lagging issues when scrolling. ---> I think it's because it has to constantly report its position.
-            ScrollViewReader { scrollProxy in
-                ScrollView {
-                    /// NOTE: Tried and failed to use LazyVGrid, because when dismissing the bottom panel, the scroll view would not resize with the dismissing transition. It would just snap when the transition has finished. This is because the LazyVGrid would recalc its size.
-                    Grid(alignment: .top, horizontalSpacing: 0, verticalSpacing: 0) {
-                        ForEach(weeks, id: \.self) { week in
-                            GridRow {
-                                ForEach(week) { day in
-                                    VStack(spacing: 0) {
-                                        SimpDayView(id: day.id)
-                                    }
-                                    /// Use the initial geo height so the day view doesn't shrink too much when opening the bottom panel.
-                                    .frame(minHeight: initialGeoHeight / divideBy, alignment: .center)
-                                    .id(day.id)
-                                }
-                            }
-                        }
-                    }
-                }
-                .frame(height: geo.size.height)
-                .scrollIndicators(.hidden)
-                /// Scroll to today when the view loads (if applicable)
-                .onAppear { scrollToTodayOnAppearOfScrollView(scrollProxy) }
-                /// Focus on the overviewDay when selecting, or changing.
-            }
-            .task {
-                if initialGeoHeight.isZero {
-                    initialGeoHeight = geo.size.height
-                }
-            }
-        }
-    }
-    
-    func scrollToTodayOnAppearOfScrollView(_ proxy: ScrollViewProxy) {
-        if enumID.monthActualNum == AppState.shared.todayMonth && calModel.sMonth.year == AppState.shared.todayYear {
-            /// Give a little delay since the view can take a while to render.
-            /// Without the delay, you can kind of see it flicker when it loads.
-            DispatchQueue.main.asyncAfter(deadline: .now() + (calModel.isFirstCalendarLoad ? 0.5 : 0.1)) {
-                if let today = calModel.sMonth.days.first(where: { $0.id == AppState.shared.todayDay }) {
-                    withAnimation {
-                        proxy.scrollTo(today.id, anchor: .top)
-                    }
-                } else {
-                    print("⚠️ todayDay not found in current scrollable days.")
-                }
-                
-                /// There is an animation lag when the calendar first shows. So adjust the "scroll to today" time accordingly.
-                calModel.isFirstCalendarLoad = false
-            }
-        } else {
-            /// There is an animation lag when the calendar first shows. So adjust the "scroll to today" time accordingly.
-            if calModel.isFirstCalendarLoad {
-                calModel.isFirstCalendarLoad = false
             }
         }
     }

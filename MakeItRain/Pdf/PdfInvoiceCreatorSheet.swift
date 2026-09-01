@@ -34,11 +34,84 @@ struct PdfInvoiceCreatorSheet: View {
     
     let threeColumnGrid = Array(repeating: GridItem(.flexible(), spacing: 5, alignment: .top), count: 3)
     
+    @ViewBuilder
+    var contactErrorView: some View {
+        let authDeniedError = "Please authorize access to Contacts in your device settings."
+        let authRestrictedError = "Can't access Contacts. Do you have Parental Controls enabled?"
+        let unknownAuthStatus = "Please contact the developer about an unknown authorization status."
+        let limitedAccessError = "Only select contacts are allowed to be shown. You can edit this list in your devices settings."
+        
+        if !contactManager.authIsAllowed {
+            switch contactManager.authorizationStatus {
+            case .notDetermined, .denied:   errorMessage(authDeniedError)
+            case .restricted:               errorMessage(authRestrictedError)
+            case .authorized:               EmptyView()
+            case .limited:                  errorMessage(limitedAccessError)
+            @unknown default:               errorMessage(unknownAuthStatus)
+            }
+        }
+    }
+//    
+//    
+//    @ViewBuilder
+//    func errorMessage(_ message: String) -> some View {
+//        Section {
+//            HStack {
+//                Image(systemName: "exclamationmark.triangle")
+//                    .font(.body)
+//                    //.resizable()
+//                    //.frame(width: 50, height: 50)
+//                    .foregroundStyle(LinearGradient(gradient: Gradient(colors: [.orange, .red]), startPoint: .top, endPoint: .bottom))
+//                Text(message)
+//            }
+//            
+//            Button {
+//                let settingsAppURL = URL(string: UIApplication.openSettingsURLString)!
+//                UIApplication.shared.open(settingsAppURL, options: [:], completionHandler: nil)
+//            } label: {
+//                Text("Open Settings")
+//            }
+//        } footer: {
+//            Text("Contact integrations allows you to select, message, and email documents to a person.")
+//        }
+//    }
+    
+    
+    @ViewBuilder
+    func errorMessage(_ message: String) -> some View {
+        VStack(alignment: .leading) {
+            HStack {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.body)
+                    .foregroundStyle(LinearGradient(gradient: Gradient(colors: [.orange, .red]), startPoint: .top, endPoint: .bottom))
+                Text(message)
+            }
+            
+//            Text("Contact integrations allows you to select, message, and email documents to a person.")
+//            
+//            Button {
+//                let settingsAppURL = URL(string: UIApplication.openSettingsURLString)!
+//                UIApplication.shared.open(settingsAppURL, options: [:], completionHandler: nil)
+//            } label: {
+//                Text("Open Settings")
+//            }
+            //.buttonStyle(.borderedProminent)
+        }
+    }
+    
+    
     var body: some View {
         NavigationStack {
             List {
-                Section("Recipient") {
+                
+                Section {
                     recipRow
+                } header: {
+                    Text("Recipient")
+                } footer: {
+                    if !contactManager.authIsAllowed {
+                        contactErrorView
+                    }
                 }
                 
 //                Section("PDF Type") {

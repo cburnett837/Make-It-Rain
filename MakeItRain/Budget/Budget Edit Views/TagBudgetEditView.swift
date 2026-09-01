@@ -68,6 +68,11 @@ struct TagBudgetEditView: View {
                 ToolbarItem(placement: AppState.shared.isIphone ? .topBarTrailing : .topBarLeading) {
                     AnimatedCloseButton(isValidToSave: isValidToSave, closeButton: closeButton)
                 }
+                
+                ToolbarItem(placement: .bottomBar) {
+                    EnteredByAndUpdatedByView(obj: budget)
+                }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
         .task { prepareView() }

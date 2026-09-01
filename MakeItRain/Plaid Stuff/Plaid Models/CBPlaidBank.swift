@@ -10,7 +10,7 @@ import SwiftUI
 
 
 @Observable
-class CBPlaidBank: Codable, Identifiable, Equatable, Hashable, CanHandleLogo {
+class CBPlaidBank: Codable, Identifiable, Equatable, Hashable, CanHandleLogo, HasUserUpdateInfo, Auditable {
     var id: String
     var title: String
     var active: Bool
@@ -18,12 +18,7 @@ class CBPlaidBank: Codable, Identifiable, Equatable, Hashable, CanHandleLogo {
     
     var accounts: Array<CBPlaidAccount>
     
-    var enteredBy: CBUser = AppState.shared.user!
-    var updatedBy: CBUser = AppState.shared.user!
-    var enteredById: Int?
-    var updatedById: Int?
-    var enteredDate: Date
-    var updatedDate: Date
+    var audit = AuditInfo()
     var lastUpdateByPlaidDate: Date?
     var lastTimePlaidSyncedWithInstitutionDate: Date?
     var lastTimeICheckedPlaidSyncedDate: Date?
@@ -52,15 +47,11 @@ class CBPlaidBank: Codable, Identifiable, Equatable, Hashable, CanHandleLogo {
         self.title = ""
         self.active = true
         self.action = .edit /// Different than normal since a `PlaidBank` will never be be created directly by the user.
-        self.enteredBy = AppState.shared.user!
-        self.updatedBy = AppState.shared.user!
-        self.enteredDate = Date()
-        self.updatedDate = Date()
         self.accounts = []
     }
     
         
-    enum CodingKeys: CodingKey { case id, title, active, user_id, account_id, device_uuid, entered_by, updated_by, entered_date, updated_date, accounts, plaid_id, requires_update, last_updated_by_plaid_date, last_time_plaid_synced_with_institution_date, last_time_i_checked_plaid_synced_date, logo, entered_by_id, updated_by_id }
+    enum CodingKeys: CodingKey { case id, title, active, user_id, account_id, device_uuid, accounts, plaid_id, requires_update, last_updated_by_plaid_date, last_time_plaid_synced_with_institution_date, last_time_i_checked_plaid_synced_date, logo}
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -71,10 +62,7 @@ class CBPlaidBank: Codable, Identifiable, Equatable, Hashable, CanHandleLogo {
         try container.encode(Cody.shared.id, forKey: .user_id)
         try container.encode(Cody.shared.accountID, forKey: .account_id)
         try container.encode(Cody.shared.deviceUUID, forKey: .device_uuid)
-        try container.encode(enteredBy, forKey: .entered_by) // for the Transferable protocol
-        try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
-        try container.encode(enteredDate.string(to: .serverDateTime), forKey: .entered_date) // for the Transferable protocol
-        try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date) // for the Transferable protocol
+        try audit.encode(to: encoder)
         try container.encode(logo, forKey: .logo)
     }
     
@@ -96,72 +84,14 @@ class CBPlaidBank: Codable, Identifiable, Equatable, Hashable, CanHandleLogo {
         
         let requiresUpdate = try container.decode(Int?.self, forKey: .requires_update)
         self.requiresUpdate = requiresUpdate == 1 ? true : false
-                
-        
+                        
         action = .edit
         
-        //enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
-        //updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
-        
-        if let enteredById = try container.decode(Int?.self, forKey: .entered_by_id) {
-            self.enteredBy = AppState.shared.getUserBy(id: enteredById) ?? CBUser()
-        }
-        
-        if let updatedById = try container.decode(Int?.self, forKey: .updated_by_id) {
-            self.updatedBy = AppState.shared.getUserBy(id: updatedById) ?? CBUser()
-        }
-        
-//        let enteredDate = try container.decode(String?.self, forKey: .entered_date)
-//        if let enteredDate {
-//            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime)!
-//        } else {
-//            fatalError("Could not determine enteredDate date")
-//        }
-//        
-//        let updatedDate = try container.decode(String?.self, forKey: .updated_date)
-//        if let updatedDate {
-//            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
-//        } else {
-//            fatalError("Could not determine updatedDate date")
-//        }
-        
-        enteredDate = try container.decode(Date.self, forKey: .entered_date)
-        updatedDate = try container.decode(Date.self, forKey: .updated_date)
+        audit = try AuditInfo(from: decoder)
+                
         lastUpdateByPlaidDate = try container.decode(Date.self, forKey: .last_updated_by_plaid_date)
         lastTimePlaidSyncedWithInstitutionDate = try container.decode(Date.self, forKey: .last_time_plaid_synced_with_institution_date)
         lastTimeICheckedPlaidSyncedDate = try container.decode(Date.self, forKey: .last_time_i_checked_plaid_synced_date)
-        
-//        let lastUpdateByPlaidDate = try container.decode(String?.self, forKey: .last_updated_by_plaid_date)
-//        if let lastUpdateByPlaidDate {
-//            self.lastUpdateByPlaidDate = lastUpdateByPlaidDate.toDateObj(from: .serverDateTime)!
-//        }
-//        
-//        let lastTimePlaidSyncedWithInstitutionDate = try container.decode(String?.self, forKey: .last_time_plaid_synced_with_institution_date)
-//        if let lastTimePlaidSyncedWithInstitutionDate {
-//            self.lastTimePlaidSyncedWithInstitutionDate = lastTimePlaidSyncedWithInstitutionDate.toDateObj(from: .serverDateTime)!
-//        }
-//        
-//        let lastTimeICheckedPlaidSyncedDate = try container.decode(String?.self, forKey: .last_time_i_checked_plaid_synced_date)
-//        if let lastTimeICheckedPlaidSyncedDate {
-//            self.lastTimeICheckedPlaidSyncedDate = lastTimeICheckedPlaidSyncedDate.toDateObj(from: .serverDateTime)!
-//        }
-//        
-//        //logo = try container.decode(String?.self, forKey: .logo)
-//        
-//        let pred1 = NSPredicate(format: "relatedID == %@", self.id)
-//        let pred2 = NSPredicate(format: "relatedTypeID == %@", NSNumber(value: XrefModel.getItem(from: .logoTypes, byEnumID: .plaidBank).id))
-//        let comp = NSCompoundPredicate(andPredicateWithSubpredicates: [pred1, pred2])
-//        
-//        /// Fetch the logo out of core data since the encoded strings can be heavy and I don't want to use Async Image for every logo.
-//        let context = DataManager.shared.createContext()
-//        if let logo = DataManager.shared.getOne(
-//           context: context,
-//           type: PersistentLogo.self,
-//           predicate: .compound(comp),
-//           createIfNotFound: false
-//        ) {
-//            self.logo = logo.photoData
-//        }
     }
     
     
@@ -246,6 +176,8 @@ class CBPlaidBank: Codable, Identifiable, Equatable, Hashable, CanHandleLogo {
         self.lastTimePlaidSyncedWithInstitutionDate = bank.lastTimePlaidSyncedWithInstitutionDate
         self.lastTimeICheckedPlaidSyncedDate = bank.lastTimeICheckedPlaidSyncedDate
         self.logo = bank.logo
+        
+        setAuditInfo(from: bank)
         
         var activeIds: Array<String> = []
         

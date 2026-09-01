@@ -42,11 +42,19 @@ extension Double {
     }
     
     func kVersion(_ fractions: Int = 0) -> String {
-        return "\(self.formatted(.number.notation(.compactName).precision(.fractionLength(fractions))))"
+        return self.formatted(
+            .number
+                .notation(.compactName)
+                .precision(.fractionLength(0...fractions))
+        )
     }
     
     var kVersion: String {
-        return "\(self.formatted(.number.notation(.compactName).precision(.fractionLength(0))))"
+        return self.formatted(
+            .number
+                .notation(.compactName)
+                .precision(.fractionLength(0))
+        )
     }
     
     func currencyWithDecimals(_ decimals: Int = AppSettings.shared.useWholeNumbers ? 0 : 2) -> String {

@@ -36,12 +36,12 @@ struct MultiPayMethodSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { selectButton }
                 
-                ToolbarItem(placement: .bottomBar) { PayMethodFilterMenu() }
-                ToolbarSpacer(.flexible, placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar)
+//                ToolbarItem(placement: .bottomBar) { PayMethodFilterMenu() }
+//                ToolbarSpacer(.flexible, placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar)
                 DefaultToolbarItem(kind: .search, placement: .bottomBar)
                 
-                ToolbarSpacer(.flexible, placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar)
-                ToolbarItem(placement: AppState.shared.isIpad ? .topBarTrailing : .bottomBar) { PayMethodSortMenu() }
+                ToolbarSpacer(.fixed, placement: AppState.shared.isIpad ? .topBarLeading : .bottomBar)
+                ToolbarItem(placement: AppState.shared.isIpad ? .topBarTrailing : .bottomBar) { PayMethodsTableOptionMenu(hide: .reorder, .defaultEditing, .defaultViewing) }
                 
                 if AppState.shared.isIpad {
                     ToolbarSpacer(.fixed, placement: .topBarTrailing)

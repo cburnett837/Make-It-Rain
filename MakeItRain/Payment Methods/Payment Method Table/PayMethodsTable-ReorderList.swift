@@ -9,7 +9,7 @@
 import SwiftUI
 import LocalAuthentication
 
-struct PayMethodTableReorderList: View {
+struct PayMethodsTableReorderList: View {
     @Environment(FuncModel.self) var funcModel
     @Environment(CalendarModel.self) private var calModel
     @Environment(PayMethodModel.self) private var payModel

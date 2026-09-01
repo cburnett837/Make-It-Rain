@@ -99,6 +99,18 @@ class NetworkManager {
         )
     }
     
+    let encoder: JSONEncoder = {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        return encoder
+    }()
+    
+    let decoder: JSONDecoder = {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
+    }()
+            
     
     deinit {
         //request = nil
@@ -118,6 +130,32 @@ class NetworkManager {
         request.timeoutInterval = timeout
         
         return request
+    }
+    
+    private func verify(httpResponse: HTTPURLResponse?, serverText: String) async -> Result<Void, AppError> {
+        guard let statusCode = httpResponse?.statusCode else {
+            return .failure(.serverError(serverText))
+        }
+        
+        switch statusCode {
+            
+        case 200...299:
+            return .success(())
+            
+        case 400:
+            return .failure(.serverError("Server error: \(serverText)"))
+            
+        case 401:
+            await AuthState.shared.serverAccessRevoked()
+            return .failure(.accessRevoked)
+            
+        case 403:
+            await AuthState.shared.serverAccessRevoked()
+            return .failure(.incorrectCredentials)
+            
+        default:
+            return .failure(.serverError(serverText))
+        }
     }
  
     
@@ -140,8 +178,9 @@ class NetworkManager {
         }
                
         do {
-            requestModel.sessionID = sesh
-            let jsonData = try? JSONEncoder().encode(requestModel)
+            requestModel.sessionID = sesh            
+            
+            let jsonData = try? encoder.encode(requestModel)
             request.httpBody = jsonData
             
             if AppState.shared.debugPrint {
@@ -170,24 +209,9 @@ class NetworkManager {
                 print(serverText)
             }
             
-            if httpResponse?.statusCode == 400 {
-                return .failure(.serverError("Server error: \(serverText)"))
-                
-            } else if httpResponse?.statusCode == 401 {
-                await AuthState.shared.serverAccessRevoked()
-                return .failure(.accessRevoked)
-                
-            } else if httpResponse?.statusCode == 403 {
-                await AuthState.shared.serverAccessRevoked()
-                return .failure(.incorrectCredentials)
+            if case .failure(let error) = await verify(httpResponse: httpResponse, serverText: serverText) {
+                return .failure(error)
             }
-            
-            guard (200...299).contains(httpResponse?.statusCode ?? 0) else {
-                return .failure(.serverError(serverText))
-            }
-            
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
             
             #warning("Error handling won't work with the force unwrap")
             #if targetEnvironment(simulator)
@@ -236,7 +260,7 @@ class NetworkManager {
                 request.setValue(loginModel.apiKey, forHTTPHeaderField: "Api-Key")
             }
         
-            let jsonData = try? JSONEncoder().encode(requestModel)
+            let jsonData = try? encoder.encode(requestModel)
             request.httpBody = jsonData
             
             if AppState.shared.debugPrint { print("jsonData: \(String(data: jsonData!, encoding: .utf8)!)") }
@@ -254,20 +278,8 @@ class NetworkManager {
             let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response
             if AppState.shared.debugPrint { print(serverText) }
             
-            if httpResponse?.statusCode == 400 {
-                return .failure(.serverError("Server error: \(serverText)"))
-                
-            } else if httpResponse?.statusCode == 401 {
-                await AuthState.shared.serverAccessRevoked()
-                return .failure(.accessRevoked)
-                
-            } else if httpResponse?.statusCode == 403 {
-                await AuthState.shared.serverAccessRevoked()
-                return .failure(.incorrectCredentials)
-            }
-            
-            guard (200...299).contains(httpResponse?.statusCode ?? 0) else {
-                return .failure(.serverError(serverText))
+            if case .failure(let error) = await verify(httpResponse: httpResponse, serverText: serverText) {
+                return .failure(error)
             }
             
             if firstLine == "None" && requestModel.requestType == "login" {
@@ -275,9 +287,9 @@ class NetworkManager {
             }
                             
             #if targetEnvironment(simulator)
-            let decodedData = try! JSONDecoder().decode(CBLogin?.self, from: data)
+            let decodedData = try! decoder.decode(CBLogin?.self, from: data)
             #else
-            let decodedData = try? JSONDecoder().decode(CBLogin?.self, from: data)
+            let decodedData = try? decoder.decode(CBLogin?.self, from: data)
             #endif
             
             guard let decodedData else {
@@ -415,7 +427,8 @@ class NetworkManager {
         do {
             LogManager.log("starting", session: sesh)
             requestModel.sessionID = sessionID
-            let jsonData = try? JSONEncoder().encode(requestModel)
+            
+            let jsonData = try? encoder.encode(requestModel)
             LogManager.log("jsonData: \(String(data: jsonData!, encoding: .utf8)!)", session: sesh)
             if AppState.shared.debugPrint { print("jsonData: \(String(data: jsonData!, encoding: .utf8)!)") }
             
@@ -443,20 +456,8 @@ class NetworkManager {
             
             //print(httpResponse?.statusCode)
             
-            if httpResponse?.statusCode == 400 {
-                return .failure(.serverError("Server error: \(serverText)"))
-                
-            } else if httpResponse?.statusCode == 401 {
-                await AuthState.shared.serverAccessRevoked()
-                return .failure(.accessRevoked)
-                
-            } else if httpResponse?.statusCode == 403 {
-                await AuthState.shared.serverAccessRevoked()
-                return .failure(.incorrectCredentials)
-            }
-            
-            guard (200...299).contains(httpResponse?.statusCode ?? 0) else {
-                return .failure(.serverError(serverText))
+            if case .failure(let error) = await verify(httpResponse: httpResponse, serverText: serverText) {
+                return .failure(error)
             }
             
             return .success(data)
@@ -541,23 +542,11 @@ class NetworkManager {
             let firstLine = String(serverText.split(whereSeparator: \.isNewline).first ?? "") /// used to grab the error from the response
             if AppState.shared.debugPrint { print(serverText) }
             
-            if httpResponse?.statusCode == 400 {
-                return .failure(.serverError("Server error: \(serverText)"))
-                
-            } else if httpResponse?.statusCode == 401 {
-                await AuthState.shared.serverAccessRevoked()
-                return .failure(.accessRevoked)
-                
-            } else if httpResponse?.statusCode == 403 {
-                await AuthState.shared.serverAccessRevoked()
-                return .failure(.incorrectCredentials)
-            }
-            
-            guard (200...299).contains(httpResponse?.statusCode ?? 0) else {
-                return .failure(.serverError(serverText))
+            if case .failure(let error) = await verify(httpResponse: httpResponse, serverText: serverText) {
+                return .failure(error)
             }
                                                             
-            let decodedData = try? JSONDecoder().decode(U?.self, from: data)
+            let decodedData = try? decoder.decode(U?.self, from: data)
             if decodedData == nil && httpResponse?.statusCode == 200 {
                 return .success(nil)
             } else {

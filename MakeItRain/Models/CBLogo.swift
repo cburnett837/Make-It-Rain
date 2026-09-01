@@ -82,7 +82,7 @@ class CBLogo: Codable, Identifiable, Hashable {
         try container.encode(relatedID, forKey: .related_id)
         try container.encode(baseString, forKey: .base_string)
         try container.encode(active ? 1 : 0, forKey: .active)
-        try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date)
+        try container.encode(updatedDate, forKey: .updated_date)
         try container.encode(Cody.shared.id, forKey: .user_id)
         try container.encode(Cody.shared.accountID, forKey: .account_id)
         try container.encode(Cody.shared.deviceUUID, forKey: .device_uuid)

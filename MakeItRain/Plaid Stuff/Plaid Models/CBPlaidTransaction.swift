@@ -200,8 +200,8 @@ class CBPlaidTransaction: Codable, Identifiable {
 //        try container.encode(active ? 1 : 0, forKey: .active)
 //        try container.encode(enteredBy, forKey: .entered_by_id)
 //        try container.encode(updatedBy, forKey: .updated_by_id)
-//        try container.encode(enteredDate.string(to: .serverDateTime), forKey: .entered_date)
-//        try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date)
+//        try container.encode(enteredDate, forKey: .entered_date)
+//        try container.encode(updatedDate, forKey: .updated_date)
 //    }
 //
 //    // MARK: - Helpers

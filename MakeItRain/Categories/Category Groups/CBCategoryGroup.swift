@@ -102,8 +102,8 @@ class CBCategoryGroup: Codable, Identifiable, Hashable, Equatable {
 //        try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
         try container.encode(enteredById, forKey: .entered_by_id) // for the Transferable protocol
         try container.encode(updatedById, forKey: .updated_by_id) // for the Transferable protocol
-        try container.encode(enteredDate.string(to: .serverDateTime), forKey: .entered_date) // for the Transferable protocol
-        try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date) // for the Transferable protocol
+        try container.encode(enteredDate, forKey: .entered_date) // for the Transferable protocol
+        try container.encode(updatedDate, forKey: .updated_date) // for the Transferable protocol
     }
     
     

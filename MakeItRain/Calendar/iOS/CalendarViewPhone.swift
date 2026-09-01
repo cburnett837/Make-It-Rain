@@ -82,7 +82,8 @@ struct CalendarViewPhone: View {
         /// Wrap in a geoReader so I can get the safe area insets and adjust the calendar accordingly.
         GeometryReader { geo in
             NavigationStack(path: $calProps.navPath) {
-                VStack {                    
+                VStack {
+                    //Text("I'm a calendar")
                     if calModel.sMonth.enumID == enumID {
                         if AppState.shared.isIphone {
                             calChunkIphone
@@ -213,22 +214,31 @@ struct CalendarViewPhone: View {
                 .sheet(isPresented: $calProps.showTransferSheet) {
                     TransferSheet(defaultDate: calProps.selectedDay?.date ?? Date())
                 }
-                /// Keep the current date indicator up to date.
-                .onReceive(AppState.shared.currentDateTimer) { input in
-                    let isDayChange = AppState.shared.setNow()
-                    #if os(iOS)
-                    /// If on iPhone, and the day changes, change the selected day as well otherwise it will be blank on day change and cause a crash.
-                    if isDayChange {
-                        if let month = calModel.months.filter({ $0.num == AppState.shared.todayMonth && $0.year == AppState.shared.todayYear }).first {
-                            if let day = month.days.filter({ $0.dateComponents?.day == AppState.shared.todayDay }).first {
-                                calProps.selectedDay = day
-                            }
-                        }
+                #if os(iOS)
+                /// Keep the selected day up to date.
+                .onChange(of: AppState.shared.today) {
+                    if let month = calModel.months.get(by: (AppState.shared.todayMonth, AppState.shared.todayYear)),
+                       let day = month.days.first(where: { $0.id == AppState.shared.todayDay }) {
+                        calProps.selectedDay = day
                     }
-                    #endif
                 }
+                #endif
+                /// Keep the current date indicator up to date.
+//                .onReceive(AppState.shared.currentDateTimer) { input in
+//                    let isDayChange = AppState.shared.setNow()
+//                    #if os(iOS)
+//                    /// If on iPhone, and the day changes, change the selected day as well otherwise it will be blank on day change and cause a crash.
+//                    if isDayChange {
+//                        if let month = calModel.months.filter({ $0.num == AppState.shared.todayMonth && $0.year == AppState.shared.todayYear }).first {
+//                            if let day = month.days.filter({ $0.dateComponents?.day == AppState.shared.todayDay }).first {
+//                                calProps.selectedDay = day
+//                            }
+//                        }
+//                    }
+//                    #endif
+//                }
                 
-                /// BEGIN CURRENT BALANCE TIMER STUFF
+                /// CURRENT PLAID BALANCE TIMER STUFF
                 .onChange(of: plaidModel.balances, setCurrentBalanceTimer)
                 .onChange(of: calModel.sPayMethod, initial: true) { oldValue, newValue in
                     if let balance = plaidModel.balances.filter({ $0.payMethodID == newValue?.id }).first {
@@ -297,6 +307,8 @@ struct CalendarViewPhone: View {
             }
             weekdayNameGrid
 //            SimpCalendarGridPhone(enumID: enumID)
+            //ExampleView()
+            //CalendarGridPhone(enumID: enumID, scrollToDay: $scrollToDay)
             CalendarGridPhone(enumID: enumID)
                 .sensoryFeedback(.selection, trigger: phoneLineItemDisplayItem)
                 .contentShape(.rect)
@@ -398,42 +410,51 @@ struct CalendarViewPhone: View {
     }
     
     
+    //@State private var scrollToDay: Int?
     func onChangeOfMonthEnumID() {
         print(".onChange(of: enumID, initial: true)")
+        
+        let month = calModel.months.get(byEnumId: enumID)
+        
+//        if month.isNow {
+//            if let today = month.days.first(where: { $0.id == AppState.shared.todayDay }) {
+//                scrollToDay = today.id
+//            }
+//        } else {
+//            scrollToDay = 1
+//        }
+        
+        payModel.prepareStartingAmounts(for: month, calModel: calModel)
+        
+        /// Wrapping in a task allows the sheet that ``CalendarViewPhone`` is in to open faster, but can cause some funky rendering when it appears.
+        /// - Specifically with the "scroll to today" function in the now month.
+        /// - However, it seems to be better than waiting for the sheet to appear.
+        ///
+        /// This seems to be strictly related to the intense rendering needed to create the calendar, as opposed to any of my code.
+        /// To test: Remove the task from around the function below, remove `calChunkPhone` from the body of the view, and replace it with `Text("whatever")`.
+        /// - The sheet will now immediately show.
+        ///
+        /// The function below will set `sMonth` in the ``CalendarModel``, and the body of this view uses `if calModel.sMonth.enumID == enumID {}` to then show the calendar.
+        /// That flip to the calendar and subsequent render is what causes the hitch.
         Task {
-            //calModel.isInMultiSelectMode = false
-            let month = calModel.months.filter { $0.enumID == enumID }.first!
-            
-            payModel.prepareStartingAmounts(for: month, calModel: calModel)
-            
-            await calModel.setSelectedMonthFromNavigation(
+            calModel.setSelectedMonthFromNavigation(
                 navID: enumID,
                 calculateStartingAndEod: true,
                 shouldLoadDashboard: shouldLoadDashboard
             )
-            
-            /// Set the selected day so new transactions have a default date.
-            /// If in the current month, set to today.
-            /// If not, set to the first of the month.
-            // Begin Before
-            //let targetDay = month.days.filter { $0.dateComponents?.day == (month.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1) }.first
-            // End Before
-            // Begin After
-            let targetDayNumber = month.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1
-            let targetDay = month.days.first { $0.id == targetDayNumber }
-            // End After
-            calProps.selectedDay = targetDay
-            
-            
-            /// Run this when switching months.
-            /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
-            /// So we use the ``DataChangeTriggers`` class to send a notification to the view to tell it to recalculate.
-            DataChangeTriggers.shared.viewDidChange(.calendar)
-            
-//            if shouldLoadDashboard {
-//                await loadDashboard()
-//            }
         }
+            
+        /// Set the selected day so new transactions have a default date.
+        /// If in the current month, set to today.
+        /// If not, set to the first of the month.
+        let targetDayNumber = month.actualNum == AppState.shared.todayMonth ? AppState.shared.todayDay : 1
+        let targetDay = month.days.first { $0.id == targetDayNumber }
+        calProps.selectedDay = targetDay
+        
+        /// Run this when switching months.
+        /// If the dashboard is open in the inspector on iPad, it won't be recalculate its data on its own.
+        /// So we use the ``DataChangeTriggers`` class to send a notification to the view to tell it to recalculate.
+        DataChangeTriggers.shared.viewDidChange(.calendar)
     }
     
     

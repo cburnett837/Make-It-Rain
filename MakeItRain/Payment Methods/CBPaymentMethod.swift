@@ -102,9 +102,9 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
     
     
     // MARK: - Analytic Variables
-    var breakdowns: Array<PayMethodMonthlyBreakdown> = []
+    //var breakdowns: Array<PayMethodMonthlyBreakdown> = []
     /// This is here so the unified payment method can hold it's children for analysis purposes.
-    var breakdownsRegardlessOfPaymentMethod: [PayMethodMonthlyBreakdown] = []
+    //var breakdownsRegardlessOfPaymentMethod: [PayMethodMonthlyBreakdown] = []
     
     var profitLossMinPercentage: Decimal = 0.0
     var profitLossMaxPercentage: Decimal = 0.0
@@ -630,7 +630,7 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
 //            self.updatedDate = Date()
 //        }
 
-        breakdowns = try container.decodeIfPresent([PayMethodMonthlyBreakdown].self, forKey: .breakdowns) ?? []
+        //breakdowns = try container.decodeIfPresent([PayMethodMonthlyBreakdown].self, forKey: .breakdowns) ?? []
 
         // Do not hit Core Data here.
         logo = try container.decodeIfPresent(Data.self, forKey: .logo)
@@ -677,9 +677,9 @@ class CBPaymentMethod: Codable, Identifiable, Equatable, Hashable, CanHandleLogo
 
     
     
-    func getAmount(for date: Date) -> Decimal? {
-        breakdowns.filter { Calendar.current.isDate(date, equalTo: $0.date, toGranularity: .month) }.first?.income
-    }
+//    func getAmount(for date: Date) -> Decimal? {
+//        breakdowns.filter { Calendar.current.isDate(date, equalTo: $0.date, toGranularity: .month) }.first?.income
+//    }
     
 //    static var empty: CBPaymentMethod {
 //        CBPaymentMethod()

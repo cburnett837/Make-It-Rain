@@ -38,10 +38,11 @@ struct CCBrandPickerPage: View {
                 #endif
             }
         }
-        
     }
     
-    @ViewBuilder func ccImage(title: String, imageName: String) -> some View {
+    
+    @ViewBuilder
+    func ccImage(title: String, imageName: String) -> some View {
         HStack {
             Text(title)
             Spacer()
@@ -86,14 +87,6 @@ struct PayMethodEditView: View {
         case dayBack1 = 1
         case dayBack2 = 2
     }
-    
-    enum ChartRange: Int {
-        case year1 = 1
-        case year2 = 2
-        case year3 = 3
-        case year4 = 4
-        case year5 = 5
-    }
         
     @AppStorage("selectedPaymentMethodTab") var selectedTab: DetailsOrInsights = .details
     @AppStorage(LocalKeys.Charts.Options.showOverviewDataPerMethodOnUnified) var showOverviewDataPerMethodOnUnifiedChart = false
@@ -103,9 +96,6 @@ struct PayMethodEditView: View {
     @Environment(CalendarModel.self) private var calModel
     @Environment(PayMethodModel.self) private var payModel
     @Environment(PlaidModel.self) private var plaidModel
-
-    
-    @State private var viewModel = PayMethodViewModel()
     
     @Bindable var payMethod: CBPaymentMethod
     
@@ -195,15 +185,6 @@ struct PayMethodEditView: View {
     @ToolbarContentBuilder
     var toolbar: some ToolbarContent {
         #if os(iOS)
-//        ToolbarItem(placement: .topBarLeading) {
-//            if !payMethod.isUnified {
-//                deleteButton
-//                    .glassEffectID("delete", in: namespace)
-//            }
-//        }
-//                
-//        ToolbarSpacer(.fixed, placement: .topBarLeading)
-        
         ToolbarItem(placement: .topBarLeading) {
             if (payMethod.accountType == .credit || payMethod.accountType == .loan) && payMethod.dueDate != nil {
                 notificationButton.disabled(payMethod.isUnified)
@@ -225,7 +206,6 @@ struct PayMethodEditView: View {
             AnimatedCloseButton(isValidToSave: isValidToSave, closeButton: closeButton)
         }
         #endif
-
     }
     
     
@@ -303,13 +283,6 @@ struct PayMethodEditView: View {
                     Text("Hide this account from **my** menus. (This will not delete any data).")
                 }
             }
-    //
-    //            Section {
-    //                colorRow
-    //            }
-            
-    //        Section {
-    //            deleteButton
             
             StandardDeleteButton(type: .payMethod, delete: deletePaymentMethod)
         }
@@ -318,7 +291,6 @@ struct PayMethodEditView: View {
     
     
     var ccBrandRowPhone: some View {
-        
         Button {
             showCcBrandPickerPage = true
         } label: {
@@ -340,103 +312,7 @@ struct PayMethodEditView: View {
                 .foregroundStyle(.gray)
             }
         }
-        
-        
-//        Picker(selection: $payMethod.ccBrand) {
-//            
-//            Text("Visa").tag("cc_logo_visa_blue")
-//            Text("Mastercard").tag("cc_logo_mastercard")
-//            Text("Amex").tag("cc_logo_amex")
-//            Text("Discover").tag("cc_logo_discover")
-//        } label: {
-//            Label {
-//                Text("Brand Logo")
-//            } icon: {
-//                Image(systemName: "dollarsign.bank.building")
-//                    .foregroundStyle(.gray)
-//            }
-//        }
-//        .pickerStyle(.menu)
-//        .tint(.secondary)
     }
-    
-    
-    
-//    var editPagePhoneOG: some View {
-//        StandardContainerWithToolbar(.list) {
-//            
-//            
-//            //BigBusinessLogo(parent: payMethod, fallBackType: payMethod.isUnified ? .gradient : .color)
-//            
-//            Section("Title") {
-//                titleRow
-//            }
-//            
-//            Section {
-//                typeRowPhone
-//                colorRow
-//                logoRow
-//                if payMethod.accountType == .checking || payMethod.accountType == .credit {
-//                    last4Row
-//                }
-//            } header: {
-//                Text("Details")
-//            } footer: {
-//                if payMethod.accountType == .checking || payMethod.accountType == .credit {
-//                    Text("If you wish to use the smart receipt feature offered by ChatGPT, enter the last 4 digits of your card information. If not, you can leave this field blank.")
-//                        .validate(payMethod.last4 ?? "", rules: .regex(.onlyNumbers, "Only numbers are allowed"))
-//                }
-//            }
-//
-//            
-//            
-////            if payMethod.accountType == .checking || payMethod.accountType == .credit {
-////                Section {
-////                    last4Row
-////                } footer: {
-////                    Text("If you wish to use the smart receipt feature offered by ChatGPT, enter the last 4 digits of your card information. If not, you can leave this field blank.")
-////                        .validate(payMethod.last4 ?? "", rules: .regex(.onlyNumbers, "Only numbers are allowed"))
-////                }
-////            }
-//            
-//            if payMethod.accountType == .credit || payMethod.accountType == .loan {
-//                Section("Credit Details") {
-//                    dueDateRow
-//                    limitRow
-//                    interestRateRow
-//                    if payMethod.accountType == .loan {
-//                        loanDurationRow
-//                    }
-//                }
-//            }
-//            
-//            if (payMethod.accountType == .credit || payMethod.accountType == .loan) && payMethod.dueDate != nil && payMethod.notifyOnDueDate {
-//                Section {
-//                    reminderRow
-//                } footer: {
-//                    Text("Alerts will be sent out at 9:00 AM")
-//                }
-//            }
-//                                    
-//            if !payMethod.isUnified {
-//                Section {
-//                    isPrivateRow
-//                } footer: {
-//                    Text("Transactions, Search Results, Etc. belonging to this account will only be visible to you.")
-//                }
-//                
-//                Section {
-//                    isHiddenRow
-//                } footer: {
-//                    Text("Hide this account from **my** menus. (This will not delete any data).")
-//                }
-//            }
-////
-////            Section {
-////                colorRow
-////            }
-//        }
-//    }
     
     
     #if os(macOS)
@@ -965,109 +841,6 @@ struct PayMethodEditView: View {
     }
     
     
-//    @ViewBuilder
-//    var logoRow: some View {
-//        #if os(iOS)
-//        Group {
-//            if payMethod.logo == nil {
-//                Button {
-//                    showLogoSearchPage = true
-//                } label: {
-//                    logoLabel
-//                }
-//            } else {
-//                Menu {
-//                    Button("Clear Logo") { payMethod.logo = nil }
-//                    Button("Change Logo") { showLogoSearchPage = true }
-//                } label: {
-//                    logoLabel
-//                }
-//            }
-//        }
-//        .sheet(isPresented: $showLogoSearchPage) {
-//            LogoSearchPage(parent: payMethod, parentType: .paymentMethod)
-//        }
-//        
-//        #else
-//        LabeledRow("Color", labelWidth) {
-//            HStack {
-//                ColorPicker("", selection: $payMethod.color, supportsOpacity: false)
-//                    .labelsHidden()
-//                Capsule()
-//                    .fill(payMethod.color)
-//                    .onTapGesture {
-//                        AppState.shared.showToast(title: "Color Picker", subtitle: "Click the circle to the left to change the color.", body: nil, symbol: "theatermask.and.paintbrush", symbolColor: payMethod.color)
-//                    }
-//            }
-//        }
-//        #endif
-//    }
-//    
-//    
-//    var logoLabel: some View {
-//        HStack {
-//            Label {
-//                Text("Logo")
-//                    .schemeBasedForegroundStyle()
-//            } icon: {
-//                Image(systemName: "circle.hexagongrid")
-//                    .foregroundStyle(.gray)
-//            }
-//            Spacer()
-//            //StandardColorPicker(color: $payMethod.color)
-//            BusinessLogo(config: .init(
-//                parent: payMethod,
-//                fallBackType: payMethod.isUnified ? .gradient : .color
-//            ))
-//            
-//            //BusinessLogo(parent: payMethod, fallBackType: payMethod.isUnified ? .gradient : .color)
-//        }
-//    }
-    
-        
-    
-    // MARK: - Chart Stuff
-    var configType: PayMethodChartDataType {
-        switch payMethod.accountType {
-        case .checking:
-            .debitPaymentMethod
-        case .credit:
-            .creditPaymentMethod
-        case .cash:
-            .debitPaymentMethod
-        case .unifiedChecking:
-            .unifiedDebitPaymentMethod
-        case .unifiedCredit:
-            .unifiedCreditPaymentMethod
-        default:
-            .other
-        }
-    }
-
-
-//    @ViewBuilder
-//    var chartPage: some View {
-//        if payMethod.action == .add {
-//            ContentUnavailableView("Insights are not available when adding a new account", systemImage: "square.stack.3d.up.slash.fill")
-//        } else {
-//            VStack {
-//                PayMethodDashboard(vm: viewModel, payMethod: payMethod)
-//            }
-//            .opacity(viewModel.isLoadingHistory ? 0 : 1)
-//            .overlay {
-//                ProgressView("Loading Insights…")
-//                    .tint(.none)
-//                    .opacity(viewModel.isLoadingHistory ? 1 : 0)
-//            }
-//            .focusable(false)
-//        }
-//    }
-    
-    
-    
-    
-    
-    
     // MARK: - Header & Footer Views
     var notificationButton: some View {
         Button {
@@ -1078,55 +851,6 @@ struct PayMethodEditView: View {
         .tint(.none)
     }
     
-    var refreshButton: some View {
-        Button {
-            payMethod.breakdowns.removeAll()
-            payMethod.breakdownsRegardlessOfPaymentMethod.removeAll()
-            Task {
-                viewModel.fetchYearStart = AppState.shared.todayYear - 10
-                viewModel.fetchYearEnd = AppState.shared.todayYear
-                viewModel.payMethods.removeAll()
-                viewModel.isLoadingHistory = true
-                viewModel.fetchHistory(for: payMethod, payModel: payModel, setChartAsNew: true)
-            }
-        } label: {
-            Image(systemName: "arrow.triangle.2.circlepath")
-                .schemeBasedForegroundStyle()
-        }
-        .symbolEffect(.rotate, options: SymbolEffectOptions.repeat(.continuous).speed(3), isActive: viewModel.isLoadingHistory)
-    }
-    
-//    var styleMenu: some View {
-//        Menu {
-//            Section("This Year Style") {
-//                Picker(selection: $viewModel.chartCropingStyle) {
-//                    Text("Whole year")
-//                        .tag(ChartCropingStyle.showFullCurrentYear)
-//                    Text("Through current month")
-//                        .tag(ChartCropingStyle.endAtCurrentMonth)
-//                } label: {
-//                    Text(viewModel.chartCropingStyle.prettyValue)
-//                }
-//                .pickerStyle(.menu)
-//            }
-//            
-//            Section("Overview Style") {
-//                Picker(selection: $showOverviewDataPerMethodOnUnifiedChart) {
-//                    Text("View as summary only")
-//                        .tag(false)
-//                    Text("View by payment method")
-//                        .tag(true)
-//                } label: {
-//                    Text(showOverviewDataPerMethodOnUnifiedChart ? "By payment method" : "As summary only")
-//                }
-//                .pickerStyle(.menu)
-//                
-//            }
-//        } label: {
-//            Image(systemName: "line.3.horizontal.decrease")
-//                .schemeBasedForegroundStyle()
-//        }
-//    }
         
     var closeButton: some View {
         Button {
@@ -1137,27 +861,28 @@ struct PayMethodEditView: View {
         }
     }
     
+    
     #if os(macOS)
+    @ViewBuilder
     var header: some View {
-        Group {
-            if (payMethod.accountType == .credit || payMethod.accountType == .loan) && payMethod.dueDate != nil {
-                SheetHeader(
-                    title: title,
-                    close: { editID = nil; dismiss() },
-                    view1: { notificationButton.disabled(payMethod.isUnified) },
-                    view3: { deleteButton.disabled(payMethod.isUnified) }
-                )
-            } else {
-                SheetHeader(
-                    title: title,
-                    close: { editID = nil; dismiss() },
-                    view3: { deleteButton.disabled(payMethod.isUnified) }
-                )
-            }
+        if (payMethod.accountType == .credit || payMethod.accountType == .loan) && payMethod.dueDate != nil {
+            SheetHeader(
+                title: title,
+                close: { editID = nil; dismiss() },
+                view1: { notificationButton.disabled(payMethod.isUnified) },
+                view3: { deleteButton.disabled(payMethod.isUnified) }
+            )
+        } else {
+            SheetHeader(
+                title: title,
+                close: { editID = nil; dismiss() },
+                view3: { deleteButton.disabled(payMethod.isUnified) }
+            )
         }
     }
     #endif
         
+    
     var fakeMacTabBar: some View {
         HStack(spacing: 0) {
             Rectangle()
@@ -1186,6 +911,7 @@ struct PayMethodEditView: View {
         //.fixedSize(horizontal: false, vertical: true)
         .frame(height: 50)
     }
+    
     
     private struct AccountHolders: View {
         @Bindable var payMethod: CBPaymentMethod
@@ -1317,12 +1043,12 @@ struct PayMethodEditView: View {
             payMethod.country = AppState.shared.country
         }
         #endif
-        
-        if payMethod.action != .add {
-            viewModel.fetchHistory(for: payMethod, payModel: payModel, setChartAsNew: true)
-        } else {
-            viewModel.isLoadingHistory = false
-        }
+//        
+//        if payMethod.action != .add {
+//            viewModel.fetchHistory(for: payMethod, payModel: payModel, setChartAsNew: true)
+//        } else {
+//            viewModel.isLoadingHistory = false
+//        }
     }
     
     

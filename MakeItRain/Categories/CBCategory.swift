@@ -10,11 +10,10 @@ import SwiftUI
 import CoreData
 
 @Observable
-class CBCategory: Codable, Identifiable, Hashable, Equatable, HasUserUpdateInfo {
+class CBCategory: Codable, Identifiable, Hashable, Equatable, HasUserUpdateInfo, Auditable {
     var id: String
     var uuid: String?
     var title: String
-    //var titleLower: String { title.lowercased() }
     var amount: Decimal? {
         CurrencyHelpers.parseAmountStringToDecimal(amountString ?? "0.0") ?? 0.0
         //Decimal(amountString?.replacing("$", with: "").replacing(",", with: "") ?? "0.0") ?? 0.0
@@ -25,27 +24,12 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable, HasUserUpdateInfo 
     var active: Bool
     var action: CategoryAction
     var type: XrefCategoryType = XrefCategoryType.expense
-    
-    //var type: XrefItem = XrefModel.getItem(from: .categoryTypes, byEnumID: .expense)
     var listOrder: Int?
-    //var unwrappedListOrder: Int { listOrder ?? 0 }
-    var enteredBy: CBUser = AppState.shared.user!
-    var updatedBy: CBUser = AppState.shared.user!
-    var enteredById: Int?
-    var updatedById: Int?
-    var enteredDate: Date
-    var updatedDate: Date
+    var audit = AuditInfo()
     var isNil: Bool = false
     var topTitles: [CBSuggestedTitle] = []
     
-    var isIncome: Bool { self.isRegularIncome || self.isIrregularIncome }    
-    //var isRegularIncome: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .income) }
-    //var isIrregularIncome: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .irregularIncome) }
-    //var isPayment: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .payment) }
-    //var isExpense: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .expense) }
-    //var isSavings: Bool { self.type == XrefModel.getItem(from: .categoryTypes, byEnumID: .savings) }
-    
-    
+    var isIncome: Bool { self.isRegularIncome || self.isIrregularIncome }
     var isRegularIncome: Bool { self.type == XrefCategoryType.income }
     var isIrregularIncome: Bool { self.type == XrefCategoryType.irregularIncome }
     var isPayment: Bool { self.type == XrefCategoryType.payment }
@@ -65,76 +49,29 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable, HasUserUpdateInfo 
     var status: ObjectStatus?
     
     
-    enum CodingKeys: CodingKey { case id, uuid, title, amount, hex_code, emoji, active, user_id, account_id, device_uuid, type_id, list_order, entered_by, updated_by, entered_date, updated_date, is_nil, top_titles, is_hidden, app_suite_key, entered_by_id, updated_by_id, budget_amount, debit_amounts, credit_amounts, all_amounts }
+    enum CodingKeys: CodingKey { case id, uuid, title, amount, hex_code, emoji, active, user_id, account_id, device_uuid, type_id, list_order, is_nil, top_titles, is_hidden, app_suite_key, budget_amount, debit_amounts, credit_amounts, all_amounts }
         
+    
     init() {
         let uuid = UUID().uuidString
         self.id = uuid
         self.uuid = uuid
         self.title = ""
         self.color = .primary
-        //self.emoji = "questionmark.circle.fill"
         self.active = true
         self.action = .add
-        self.enteredBy = AppState.shared.user!
-        self.updatedBy = AppState.shared.user!
-        self.enteredDate = Date()
-        self.updatedDate = Date()
     }
+    
     
     init(uuid: String) {
         self.id = uuid
         self.uuid = uuid
         self.title = ""
         self.color = .primary
-        //self.emoji = "questionmark.circle.fill"
         self.active = true
         self.action = .add
-        self.enteredBy = AppState.shared.user!
-        self.updatedBy = AppState.shared.user!
-        self.enteredDate = Date()
-        self.updatedDate = Date()
     }
-    
-    
-//    init(entity: PersistentCategory) {
-//        self.id = entity.id!
-//        self.title = entity.title ?? ""
-//        self.color = Color.fromHex(entity.hexCode) ?? .clear
-//        //self.color = Color.fromName(entity.hexCode ?? "white")
-//        if entity.isNil {
-//            self.emoji = nil
-//        } else {
-//            self.emoji = entity.emoji ?? ""
-//        }
-//        
-//        self.active = true
-//        self.action = CategoryAction.fromString(entity.action!)
-//        
-//        self.amountString = entity.amount.currencyWithDecimals()
-//        //#warning("remove this when Laura installs")
-//        //self.type = XrefModel.getItem(from: .categoryTypes, byID: Int(entity.typeID) == 0 ? 27 : Int(entity.typeID))
-//        self.type = XrefModel.getItem(from: .categoryTypes, byID: Int(entity.typeID))
-//        self.listOrder = Int(entity.listOrder)
-//        
-////        self.enteredBy = AppState.shared.user!
-////        self.updatedBy = AppState.shared.user!
-////        self.enteredDate = Date()
-////        self.updatedDate = Date()
-//        
-//        self.enteredBy = AppState.shared.getUserBy(id: Int(entity.enteredByID)) ?? AppState.shared.user!
-//        self.updatedBy = AppState.shared.getUserBy(id: Int(entity.updatedByID)) ?? AppState.shared.user!
-//        self.enteredDate = entity.enteredDate ?? Date()
-//        self.updatedDate = entity.updatedDate ?? Date()
-//                                
-//        self.isNil = entity.isNil
-//        self.isHidden = entity.isHidden
-//        if let key = entity.appSuiteKey {
-//            self.appSuiteKey = AppSuiteKey.fromString(key)
-//        }
-//        
-//    }
-    
+ 
     
     /// For Christmas or other special events
     init(title: String, appSuiteKey: AppSuiteKey) {
@@ -143,28 +80,11 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable, HasUserUpdateInfo 
         self.uuid = uuid
         self.title = title
         self.color = .red
-        //self.emoji = "questionmark.circle.fill"
         self.active = true
         self.action = .edit
-        self.enteredBy = AppState.shared.user!
-        self.updatedBy = AppState.shared.user!
-        self.enteredDate = Date()
-        self.updatedDate = Date()
-        
         self.appSuiteKey = appSuiteKey
     }
     
-    
-//    init(entity: TempCategory) {
-//        self.id = entity.id!
-//        self.title = entity.title ?? ""
-//        self.color = Color.fromHex(entity.hexCode) ?? .clear
-//        self.emoji = entity.emoji ?? ""
-//        self.active = true
-//        self.action = CategoryAction.fromString(entity.action!)
-//        
-//        self.amountString = entity.amount.currencyWithDecimals()
-//    }
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -181,13 +101,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable, HasUserUpdateInfo 
         try container.encode(Cody.shared.deviceUUID, forKey: .device_uuid)
         try container.encode(type.id, forKey: .type_id)
         try container.encode(listOrder, forKey: .list_order)
-        //try container.encode(enteredBy, forKey: .entered_by) // for the Transferable protocol
-        //try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
-        try container.encode(enteredById, forKey: .entered_by_id) // for the Transferable protocol
-        try container.encode(updatedById, forKey: .updated_by_id) // for the Transferable protocol
-        try container.encode(enteredDate, forKey: .entered_date) // for the Transferable protocol
-        try container.encode(updatedDate, forKey: .updated_date) // for the Transferable protocol
-        
+        try audit.encode(to: encoder)
         try container.encode(isNil ? 1 : 0, forKey: .is_nil) // for the Transferable protocol
         try container.encode(isHidden ? 1 : 0, forKey: .is_hidden)
         try container.encode(appSuiteKey?.rawValue, forKey: .app_suite_key)
@@ -205,12 +119,9 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable, HasUserUpdateInfo 
         
         let amount = try container.decode(Decimal?.self, forKey: .amount)
         self.amountString = amount?.currencyWithDecimals()
-        
-        //let colorDescription = try container.decode(String?.self, forKey: .hex_code)
-        //self.color = Color.fromName(colorDescription ?? "white")
+                
         let hexCode = try container.decode(String?.self, forKey: .hex_code)
         let color = Color.fromHex(hexCode) ?? .primary
-        
         if color == .white || color == .black {
             self.color = .primary
         } else {
@@ -221,7 +132,6 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable, HasUserUpdateInfo 
         
         let isActive = try container.decode(Int?.self, forKey: .active)
         self.active = isActive == 1 ? true : false
-        
         
         let typeID = try container.decode(Int?.self, forKey: .type_id)
         if let typeID = typeID {
@@ -240,36 +150,8 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable, HasUserUpdateInfo 
         }
         
         action = .edit
-        
-        //enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
-        //updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
-        
-        if let enteredById = try container.decode(Int?.self, forKey: .entered_by_id) {
-            self.enteredBy = AppState.shared.getUserBy(id: enteredById) ?? CBUser()
-        }
-        
-        if let updatedById = try container.decode(Int?.self, forKey: .updated_by_id) {
-            self.updatedBy = AppState.shared.getUserBy(id: updatedById) ?? CBUser()
-        }
-
-        
-        enteredDate = try container.decode(Date.self, forKey: .entered_date)
-        updatedDate = try container.decode(Date.self, forKey: .updated_date)
-        
-//        let enteredDate = try container.decode(String?.self, forKey: .entered_date)
-//        if let enteredDate {
-//            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime)!
-//        } else {
-//            fatalError("Could not determine enteredDate date")
-//        }
-//        
-//        let updatedDate = try container.decode(String?.self, forKey: .updated_date)
-//        if let updatedDate {
-//            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
-//        } else {
-//            fatalError("Could not determine updatedDate date")
-//        }
-        
+                
+        audit = try AuditInfo(from: decoder)
         
         self.topTitles = try container.decodeIfPresent(Array<CBSuggestedTitle>.self, forKey: .top_titles) ?? []
         
@@ -279,21 +161,12 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable, HasUserUpdateInfo 
         if let appSuiteKey = try container.decode(String?.self, forKey: .app_suite_key) {
             self.appSuiteKey = AppSuiteKey.fromString(appSuiteKey)
         }
-        
                         
         /// For the dashboard
         self.budgetAmount = try container.decodeIfPresent(Decimal.self, forKey: .budget_amount) ?? 0.0
         self.debitAmounts = try container.decodeIfPresent(DashboardAmounts.self, forKey: .debit_amounts)
         self.creditAmounts = try container.decodeIfPresent(DashboardAmounts.self, forKey: .credit_amounts)
         self.allAmounts = try container.decodeIfPresent(DashboardAmounts.self, forKey: .all_amounts)
-    }
-    
-    
-    
-    
-    
-    static var empty: CBCategory {
-        CBCategory()
     }
     
     
@@ -317,7 +190,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable, HasUserUpdateInfo 
     func deepCopy(_ mode: ShadowCopyAction) {
         switch mode {
         case .create:
-            let copy = CBCategory.empty
+            let copy = CBCategory()
             copy.id = self.id
             copy.uuid = self.uuid
             copy.title = self.title
@@ -365,22 +238,15 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable, HasUserUpdateInfo 
         self.isHidden = category.isHidden
         self.isNil = category.isNil
         
-        self.enteredBy = category.enteredBy
-        self.updatedBy = category.updatedBy
-        self.enteredDate = category.enteredDate
-        self.updatedDate = category.updatedDate
         self.appSuiteKey = category.appSuiteKey
+        
+        setAuditInfo(from: category)
         
         self.budgetAmount = category.budgetAmount
         self.debitAmounts = category.debitAmounts
         self.creditAmounts = category.creditAmounts
         self.allAmounts = category.allAmounts
     }
-    
-    
-    
-    
-    
     
     
     static func == (lhs: CBCategory, rhs: CBCategory) -> Bool {
@@ -399,6 +265,7 @@ class CBCategory: Codable, Identifiable, Hashable, Equatable, HasUserUpdateInfo 
         }
         return false
     }
+    
     
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)

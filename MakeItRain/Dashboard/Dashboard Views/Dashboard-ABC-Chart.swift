@@ -35,8 +35,21 @@ fileprivate struct DashboardViewHeightKey: PreferenceKey {
 }
 
 struct DashboardActivityByCategoryChart: View {
-    enum Tabs: String { case bar, pie, guage }
-    @AppStorage("dashboardSelectedChartPageTabThing") var selectedTab: Tabs = .bar
+    enum Tabs: String, CaseIterable {
+        case horizontalBar
+        case verticalBar
+        case pie
+        
+        var imageName: String {
+            switch self {
+            case .horizontalBar: "chart.bar.fill"
+            case .verticalBar: "chart.bar.fill"
+            case .pie: "chart.pie.fill"
+            }
+        }
+    }
+    
+    @AppStorage("dashboardSelectedChartPageTabThing") var selectedTab: Tabs = .horizontalBar
     @Environment(CalendarModel.self) private var calModel
     @Environment(AppStore.self) private var store
     
@@ -45,7 +58,9 @@ struct DashboardActivityByCategoryChart: View {
     var isForSelectedMonth: Bool
     @Binding var navPath: [NavDest]
     
-    @State private var selectedCategory: CBCategory?
+    @State private var selectedCategory1: CBCategory?
+    @State private var selectedCategory2: CBCategory?
+    @State private var selectedCategory3: CBCategory?
     
     //let columnGrid = Array(repeating: GridItem(.flexible(), spacing: 0, alignment: .top), count: 6)
     
@@ -122,31 +137,71 @@ struct DashboardActivityByCategoryChart: View {
             
             
             VStack(spacing: 0) {
-                Text("Spending & Income")
+                Text(selectedTab == .verticalBar ? "Spending" : "Spending & Income")
                     .padding(.leading, 12)
                     .foregroundStyle(.secondary)
                     .font(.headline)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 
+                
+//                switch selectedTab {
+//                case .horizontalBar:
+//                    Card(layer: .two) {
+//                        DashboardActivityByCategoryHorizontalBarChart(model: model, data: data, selectedCategory: $selectedCategory1)
+//                    }
+//                case .verticalBar:
+//                    Card(layer: .two) {
+//                        DashboardActivityByCategoryPieChart(model: model, data: data, selectedCategory: $selectedCategory2)
+//                    }
+//                case .pie:
+//                    Card(layer: .two) {
+//                        DashboardActivityByCategoryVerticalBarChart(
+//                            model: model,
+//                            data: data,
+////                                selectedCategory: $selectedCategory3
+//                        )
+//                    }
+//                case .guage:
+//                    Card(layer: .two) {
+//                        DashboardActivityByCategoryVerticalBarChart(
+//                            model: model,
+//                            data: data,
+////                                selectedCategory: $selectedCategory3
+//                        )
+//                    }
+//                }
+                
                 TabView(selection: $selectedTab) {
-                    Tab(value: Tabs.bar) {
+                    Tab(value: Tabs.horizontalBar) {
                         Card(layer: .two) {
-                            DashboardActivityByCategoryBarChart(model: model, data: data, selectedCategory: $selectedCategory)
+                            DashboardActivityByCategoryHorizontalBarChart(model: model, data: data, selectedCategory: $selectedCategory1)
                         }
                         .measureHeight()
                     } label: {
                         Label("Bar Chart", systemImage: "chart.bar.yaxis")
                     }
                     
+                    Tab(value: Tabs.verticalBar) {
+                        Card(layer: .two) {
+                            DashboardActivityByCategoryVerticalBarChart(
+                                model: model,
+                                data: data,
+                                selectedCategory: $selectedCategory3
+                            )
+                        }
+                        .measureHeight()
+                    } label: {
+                        Label("Bar Chart", systemImage: "chart.bar.xaxis")
+                    }
+                    
                     Tab(value: Tabs.pie) {
                         Card(layer: .two) {
-                            DashboardActivityByCategoryPieChart(model: model, data: data, selectedCategory: $selectedCategory)
+                            DashboardActivityByCategoryPieChart(model: model, data: data, selectedCategory: $selectedCategory2)
                         }
                         .measureHeight()                        
                     } label: {
                         Label("Pie Chart", systemImage: "chart.pie")
                     }
-                    
                 }
                 .frame(height: tabHeight)
                 .onPreferenceChange(DashboardViewHeightKey.self) { measuredHeight in
@@ -159,24 +214,26 @@ struct DashboardActivityByCategoryChart: View {
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 #endif
                 .overlay(alignment: .top) {
-                    if let category = selectedCategory {
+                    if let category = selectedCategory1 ?? selectedCategory2 ?? selectedCategory3 {
                         VStack {
                             Spacer()
-                                .frame(height: 50)
+                                .frame(height: 20)
+
                             DashboardActivityByCategoryAnnotation(category: category)
                         }
-                        
                     }
                 }
                 
                 /// Have to use a custom tab indicator since the tabview doesn't place nice with automatic sizing.
                 HStack {
-                    Image(systemName: "chart.bar.yaxis")
-                        .foregroundStyle(selectedTab == .bar ? .primary : .secondary)
-                        .onTapGesture { selectedTab = .bar }
-                    Image(systemName: "chart.pie.fill")
-                        .foregroundStyle(selectedTab == .pie ? .primary : .secondary)
-                        .onTapGesture { selectedTab = .pie }
+                    ForEach(Tabs.allCases, id: \.self) { tab in
+                        Image(systemName: tab.imageName)
+                            .foregroundStyle(selectedTab == tab ? .primary : .secondary)
+                            .onTapGesture { selectedTab = tab }
+                            .if(tab == .horizontalBar) {
+                                $0.rotationEffect(Angle(degrees: 90))
+                            }
+                    }
                 }
                 .font(.caption2)
                 .padding(.top, 5)
@@ -185,74 +242,74 @@ struct DashboardActivityByCategoryChart: View {
             DashboardActivityByCategoryTable(model: model, isForSelectedMonth: isForSelectedMonth, navPath: $navPath)
         }
     }
-    
-    
-    var bodyOG: some View {
-        VStack(spacing: 24) {
-            Card(layer: .two) {
-                Text(message)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                //.padding(.bottom, 10)
-            }
-            
-//            Divider()
-//                .padding(.vertical, 10)
-            
-//            if !model.categories.filter({ $0.type == .payment }).isEmpty {
-//                Text("(Note that the spending amount contains credit payments, which could be classified as a transfer. To see true spending, remove the credit payment category from the filter list.)")
-//                    .foregroundStyle(.secondary)
-//                    .font(.caption2)
-//                    .padding(.vertical, 10)
-//                    .bold()
-//
-//                Divider()
+//    
+//    
+//    var bodyOG: some View {
+//        VStack(spacing: 24) {
+//            Card(layer: .two) {
+//                Text(message)
+//                    .frame(maxWidth: .infinity, alignment: .leading)
+//                //.padding(.bottom, 10)
 //            }
-            
-
-            Card(layer: .two, title: "Spending & Income") {
-                TabView(selection: $selectedTab) {
-                    Tab(value: Tabs.bar) {
-                        VStack {
-                            DashboardActivityByCategoryBarChart(model: model, data: data, selectedCategory: $selectedCategory)
-                            Spacer()
-                        }
-                    } label: {
-                        Label("Bar Chart", systemImage: "chart.bar.yaxis")
-                        //                    Image(systemName: "chart.bar.yaxis")
-                    }
-                    
-                    Tab(value: Tabs.pie) {
-                        VStack {
-                            DashboardActivityByCategoryPieChart(model: model, data: data, selectedCategory: $selectedCategory)
-                            Spacer()
-                        }
-                    } label: {
-                        Label("Pie Chart", systemImage: "chart.pie")
-                        //                    Image(systemName: "chart.pie")
-                    }
-                }
-                .frame(height: 200)
-                #if os(iOS)
-                .tabViewStyle(.page)
-                #endif
-                .padding(.bottom, -20) /// Remove the padding under the page indicators
-                .overlay(alignment: .top) {
-                    if let category = selectedCategory {
-                        DashboardActivityByCategoryAnnotation(category: category)
-                    }
-                }
-                #if os(iOS)
-                /// Tab indicators don't show in light mode.
-                .onAppear {
-                    UIPageControl.appearance().currentPageIndicatorTintColor = UIColor.label
-                    UIPageControl.appearance().pageIndicatorTintColor = UIColor.secondaryLabel.withAlphaComponent(0.35)
-                }
-                #endif
-            }
-                         
-            DashboardActivityByCategoryTable(model: model, isForSelectedMonth: isForSelectedMonth, navPath: $navPath)
-        }
-    }
+//            
+////            Divider()
+////                .padding(.vertical, 10)
+//            
+////            if !model.categories.filter({ $0.type == .payment }).isEmpty {
+////                Text("(Note that the spending amount contains credit payments, which could be classified as a transfer. To see true spending, remove the credit payment category from the filter list.)")
+////                    .foregroundStyle(.secondary)
+////                    .font(.caption2)
+////                    .padding(.vertical, 10)
+////                    .bold()
+////
+////                Divider()
+////            }
+//            
+//
+//            Card(layer: .two, title: "Spending & Income") {
+//                TabView(selection: $selectedTab) {
+//                    Tab(value: Tabs.horizontalBar) {
+//                        VStack {
+//                            DashboardActivityByCategoryHorizontalBarChart(model: model, data: data, selectedCategory: $selectedCategory)
+//                            Spacer()
+//                        }
+//                    } label: {
+//                        Label("Bar Chart", systemImage: "chart.bar.yaxis")
+//                        //                    Image(systemName: "chart.bar.yaxis")
+//                    }
+//                    
+//                    Tab(value: Tabs.pie) {
+//                        VStack {
+//                            DashboardActivityByCategoryPieChart(model: model, data: data, selectedCategory: $selectedCategory)
+//                            Spacer()
+//                        }
+//                    } label: {
+//                        Label("Pie Chart", systemImage: "chart.pie")
+//                        //                    Image(systemName: "chart.pie")
+//                    }
+//                }
+//                .frame(height: 200)
+//                #if os(iOS)
+//                .tabViewStyle(.page)
+//                #endif
+//                .padding(.bottom, -20) /// Remove the padding under the page indicators
+//                .overlay(alignment: .top) {
+//                    if let category = selectedCategory {
+//                        DashboardActivityByCategoryAnnotation(category: category)
+//                    }
+//                }
+//                #if os(iOS)
+//                /// Tab indicators don't show in light mode.
+//                .onAppear {
+//                    UIPageControl.appearance().currentPageIndicatorTintColor = UIColor.label
+//                    UIPageControl.appearance().pageIndicatorTintColor = UIColor.secondaryLabel.withAlphaComponent(0.35)
+//                }
+//                #endif
+//            }
+//                         
+//            DashboardActivityByCategoryTable(model: model, isForSelectedMonth: isForSelectedMonth, navPath: $navPath)
+//        }
+//    }
 }
 
 

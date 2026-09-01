@@ -1479,7 +1479,8 @@ class FuncModel {
     
     
     @MainActor
-    func itemizeReceipt(file: CBFile) {
+    func itemizeReceipt(file: CBFile, transLocation: WhereToLookForTransaction) {
+        print("-- \(#function)")
         Task {
             if let data = await self.downloadFile(file: file),
                let uiImage = UIImage(data: data),
@@ -1521,12 +1522,33 @@ class FuncModel {
                             .joined(separator: "\n")
                         
                         
-                        if let trans = calModel.getTransaction(by: file.relatedID) {
-                            if trans.notes == "" {
-                                trans.notes = AttributedString("Items:\n\(lineItems)")
+                        let transactionId = file.relatedID
+
+                        if let trans = calModel.getTransaction(by: transactionId, from: transLocation) {
+                            let itemNotes = AttributedString("Items:\n\(lineItems)")
+                            let newNotes: AttributedString
+                            
+                            if trans.notes.characters.isEmpty {
+                                newNotes = itemNotes
                             } else {
-                                trans.notes += AttributedString("\n\nItems:\n\(lineItems)")
+                                newNotes = trans.notes + AttributedString("\n\n") + itemNotes
                             }
+                            
+                            trans.notes = newNotes
+                            
+                            func updateNotes(in transactions: inout [CBTransaction], unless location: WhereToLookForTransaction) {
+                                guard transLocation != location else { return }
+                                
+                                if let index = transactions.firstIndex(where: { $0.id == transactionId }) {
+                                    transactions[index].notes = newNotes
+                                }
+                            }
+                            
+                            updateNotes(in: &store.searchedTransactions, unless: .searchResultList)
+                            updateNotes(in: &store.tempTransactions, unless: .tempList)
+                            updateNotes(in: &store.receiptTransactions, unless: .receiptsList)
+                            updateNotes(in: &store.tagBudgetTransactions, unless: .tagBudgetList)
+                            updateNotes(in: &store.dashboardTransactions, unless: .dashboardList)
                             
                             if calProps.transEditID == nil {
                                 await calModel.saveTransaction(id: trans.id)

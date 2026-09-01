@@ -120,7 +120,7 @@ class PdfInvoiceCreatorModel {
                 PdfInvoiceViewForSingleTransaction(
                     pageIndex: pageIndex,
                     trans: trans,
-                    contact: selectedContact,
+                    issuedTo: selectedContact?.formattedName ?? self.recipient,
                     title: title,
                     amount: properAmount,
                     date: date,

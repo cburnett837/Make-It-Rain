@@ -195,15 +195,15 @@ public class LocalStorage {
         
     
     // MARK: - Chart Variables
-    public var profitLossMetrics: String {
-        get { get(\.profitLossMetrics, key: "profitLossMetrics", default: "all") }
-        set { set(\.profitLossMetrics, key: "profitLossMetrics", new: newValue) }
-    }
-    
-    public var chartCropingStyle: ChartCropingStyle {
-        get { ChartCropingStyle.fromString(get(\.chartCropingStyle.rawValue, key: "chartCropingStyle", default: ChartCropingStyle.showFullCurrentYear.rawValue)) }
-        set { set(\.chartCropingStyle.rawValue, key: "chartCropingStyle", new: newValue.rawValue) }
-    }
+//    public var profitLossMetrics: String {
+//        get { get(\.profitLossMetrics, key: "profitLossMetrics", default: "all") }
+//        set { set(\.profitLossMetrics, key: "profitLossMetrics", new: newValue) }
+//    }
+//    
+//    public var chartCropingStyle: ChartCropingStyle {
+//        get { ChartCropingStyle.fromString(get(\.chartCropingStyle.rawValue, key: "chartCropingStyle", default: ChartCropingStyle.showFullCurrentYear.rawValue)) }
+//        set { set(\.chartCropingStyle.rawValue, key: "chartCropingStyle", new: newValue.rawValue) }
+//    }
     
 //    public var showOverviewDataPerMethodOnUnifiedChart: Bool {
 //        get { get(\.showOverviewDataPerMethodOnUnifiedChart, key: "showOverviewDataPerMethodOnUnifiedChart", default: false) }

@@ -9,7 +9,7 @@
 import SwiftUI
 import Charts
 
-struct BudgetItemEditView<T: IsEditableBudget & Observation.Observable>: View {
+struct BudgetItemEditView<T: IsEditableBudget & HasUserUpdateInfo & Observation.Observable>: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) var dismiss
     
@@ -139,6 +139,11 @@ struct BudgetItemEditView<T: IsEditableBudget & Observation.Observable>: View {
                 ToolbarItem(placement: AppState.shared.isIphone ? .topBarTrailing : .topBarLeading) {
                     AnimatedCloseButton(isValidToSave: isValidToSave, closeButton: closeButton)
                 }
+                
+                ToolbarItem(placement: .bottomBar) {
+                    EnteredByAndUpdatedByView(obj: obj)
+                }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
         .onPreferenceChange(MaxSizePreferenceKey.self) { labelWidth = max(labelWidth, $0) }

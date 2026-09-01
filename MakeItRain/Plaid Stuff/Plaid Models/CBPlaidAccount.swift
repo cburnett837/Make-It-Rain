@@ -9,7 +9,7 @@ import Foundation
 
 
 @Observable
-class CBPlaidAccount: Codable, Identifiable, Equatable, Hashable {
+class CBPlaidAccount: Codable, Identifiable, Equatable, Hashable, HasUserUpdateInfo, Auditable {
     var id: String
     var bankID: String
     var title: String
@@ -18,12 +18,7 @@ class CBPlaidAccount: Codable, Identifiable, Equatable, Hashable {
     var action: PlaidAccountAction
     var paymentMethodID: String?
     
-    var enteredBy: CBUser = AppState.shared.user!
-    var updatedBy: CBUser = AppState.shared.user!
-    var enteredById: Int?
-    var updatedById: Int?
-    var enteredDate: Date
-    var updatedDate: Date
+    var audit = AuditInfo()
     
     /// For deep copies
     init() {
@@ -33,14 +28,10 @@ class CBPlaidAccount: Codable, Identifiable, Equatable, Hashable {
         self.title = ""
         self.active = true
         self.action = .edit /// Different than normal since a `PlaidBank` will never be be created directly by the user.
-        self.enteredBy = AppState.shared.user!
-        self.updatedBy = AppState.shared.user!
-        self.enteredDate = Date()
-        self.updatedDate = Date()
     }
     
         
-    enum CodingKeys: CodingKey { case id, bank_id, title, account_type, active, user_id, account_id, device_uuid, entered_by, updated_by, entered_date, updated_date, payment_method_id, entered_by_id, updated_by_id }
+    enum CodingKeys: CodingKey { case id, bank_id, title, account_type, active, user_id, account_id, device_uuid, payment_method_id }
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -52,10 +43,7 @@ class CBPlaidAccount: Codable, Identifiable, Equatable, Hashable {
         try container.encode(Cody.shared.id, forKey: .user_id)
         try container.encode(Cody.shared.accountID, forKey: .account_id)
         try container.encode(Cody.shared.deviceUUID, forKey: .device_uuid)
-        try container.encode(enteredBy, forKey: .entered_by) // for the Transferable protocol
-        try container.encode(updatedBy, forKey: .updated_by) // for the Transferable protocol
-        try container.encode(enteredDate.string(to: .serverDateTime), forKey: .entered_date) // for the Transferable protocol
-        try container.encode(updatedDate.string(to: .serverDateTime), forKey: .updated_date) // for the Transferable protocol
+        try audit.encode(to: encoder)
     }
     
     required init(from decoder: Decoder) throws {
@@ -80,10 +68,6 @@ class CBPlaidAccount: Codable, Identifiable, Equatable, Hashable {
             paymentMethodID = try container.decode(String?.self, forKey: .payment_method_id)
         }
         
-        
-        
-                
-        
         title = try container.decode(String.self, forKey: .title)
         accountType = try container.decode(String?.self, forKey: .account_type)
         
@@ -91,35 +75,7 @@ class CBPlaidAccount: Codable, Identifiable, Equatable, Hashable {
         self.active = isActive == 1 ? true : false
         
         action = .edit
-        
-//        enteredBy = try container.decode(CBUser.self, forKey: .entered_by)
-//        updatedBy = try container.decode(CBUser.self, forKey: .updated_by)
-        
-        if let enteredById = try container.decode(Int?.self, forKey: .entered_by_id) {
-            self.enteredBy = AppState.shared.getUserBy(id: enteredById) ?? CBUser()
-        }
-        
-        if let updatedById = try container.decode(Int?.self, forKey: .updated_by_id) {
-            self.updatedBy = AppState.shared.getUserBy(id: updatedById) ?? CBUser()
-        }
-        
-        enteredDate = try container.decode(Date.self, forKey: .entered_date)
-        updatedDate = try container.decode(Date.self, forKey: .updated_date)
-        
-//        let enteredDate = try container.decode(String?.self, forKey: .entered_date)
-//        if let enteredDate {
-//            self.enteredDate = enteredDate.toDateObj(from: .serverDateTime)!
-//        } else {
-//            fatalError("Could not determine enteredDate date")
-//        }
-//        
-//        let updatedDate = try container.decode(String?.self, forKey: .updated_date)
-//        if let updatedDate {
-//            self.updatedDate = updatedDate.toDateObj(from: .serverDateTime)!
-//        } else {
-//            fatalError("Could not determine updatedDate date")
-//        }
-        
+        audit = try AuditInfo(from: decoder)
     }
     
     
@@ -168,6 +124,7 @@ class CBPlaidAccount: Codable, Identifiable, Equatable, Hashable {
         self.accountType = account.accountType
         self.active = account.active
         self.paymentMethodID = account.paymentMethodID
+        setAuditInfo(from: account)
     }
     
     
